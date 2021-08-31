@@ -70,10 +70,8 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
                     diagnostics -> {
                       diagnostics.assertOnlyErrors();
                       diagnostics.assertErrorsMatch(
-                          allOf(
-                              diagnosticMessage(
-                                  containsString("Unsupported dynamic constant (different owner)")),
-                              diagnosticOrigin(hasParent(Origin.unknown()))));
+                          diagnosticMessage(
+                              containsString("Unsupported dynamic constant (different owner)")));
                     }));
   }
 

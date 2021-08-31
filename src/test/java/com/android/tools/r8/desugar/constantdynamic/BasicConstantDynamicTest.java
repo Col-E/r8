@@ -4,9 +4,6 @@
 package com.android.tools.r8.desugar.constantdynamic;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
-import static com.android.tools.r8.OriginMatcher.hasParent;
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
@@ -17,7 +14,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
@@ -110,11 +106,9 @@ public class BasicConstantDynamicTest extends TestBase {
                           diagnostics -> {
                             diagnostics.assertOnlyErrors();
                             diagnostics.assertErrorsMatch(
-                                allOf(
-                                    diagnosticMessage(
-                                        containsString(
-                                            "Unsupported dynamic constant (not desugaring)")),
-                                    diagnosticOrigin(hasParent(Origin.unknown()))));
+                                diagnosticMessage(
+                                    containsString(
+                                        "Unsupported dynamic constant (not desugaring)")));
                           }));
             },
             r ->
