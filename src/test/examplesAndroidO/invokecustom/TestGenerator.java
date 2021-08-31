@@ -21,6 +21,8 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+// TODO(b/167145686): Migrate these tests to the new setup ala
+//  InvokeDynamicVirtualDispatchToDefaultInterfaceMethodTest
 public class TestGenerator {
 
   private final Path classNamePath;
@@ -52,7 +54,6 @@ public class TestGenerator {
               generateMethodTest6(cw);
               generateMethodTest7(cw);
               generateMethodTest8(cw);
-              generateMethodTest9(cw);
               generateMethodTest10(cw);
               generateMethodTest11(cw);
               generateMethodTest12(cw);
@@ -88,8 +89,6 @@ public class TestGenerator {
         Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test7", "()V", false);
     mv.visitMethodInsn(
         Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test8", "()V", false);
-    mv.visitMethodInsn(
-        Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test9", "()V", false);
     mv.visitMethodInsn(
         Opcodes.INVOKESTATIC, Type.getInternalName(InvokeCustom.class), "test10", "()V", false);
     mv.visitMethodInsn(
@@ -274,29 +273,6 @@ public class TestGenerator {
     mv.visitInvokeDynamicInsn("targetMethodTest9", "(Linvokecustom/InvokeCustom;)V", bootstrap,
         new Handle(Opcodes.H_INVOKEVIRTUAL, Type.getInternalName(InvokeCustom.class),
             "targetMethodTest9", "()V", false));
-    mv.visitInsn(Opcodes.RETURN);
-    mv.visitMaxs(-1, -1);
-  }
-
-  /**
-   *  Generate test with an invokedynamic, a static bootstrap method with an extra arg that is a
-   *  MethodHandle of kind invoke virtual. The target method is a method into a class implementing
-   *  an abstract method and that shadows a default method from an interface.
-   */
-  private void generateMethodTest9(ClassVisitor cv) {
-    MethodVisitor mv = cv.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "test9", "()V",
-        null, null);
-    MethodType mt = MethodType.methodType(CallSite.class, MethodHandles.Lookup.class, String.class,
-        MethodType.class, MethodHandle.class);
-    Handle bootstrap = new Handle(Opcodes.H_INVOKESTATIC, Type.getInternalName(InvokeCustom.class),
-        "bsmCreateCallSite", mt.toMethodDescriptorString(), false);
-    mv.visitTypeInsn(Opcodes.NEW, Type.getInternalName(InvokeCustom.class));
-    mv.visitInsn(Opcodes.DUP);
-    mv.visitMethodInsn(
-        Opcodes.INVOKESPECIAL, Type.getInternalName(InvokeCustom.class), "<init>", "()V", false);
-    mv.visitInvokeDynamicInsn("targetMethodTest10", "(Linvokecustom/InvokeCustom;)V", bootstrap,
-        new Handle(Opcodes.H_INVOKEVIRTUAL, Type.getInternalName(InvokeCustom.class),
-            "targetMethodTest10", "()V", false));
     mv.visitInsn(Opcodes.RETURN);
     mv.visitMaxs(-1, -1);
   }

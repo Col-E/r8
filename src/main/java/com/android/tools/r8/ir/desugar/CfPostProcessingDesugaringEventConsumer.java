@@ -30,8 +30,9 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     return new D8CfPostProcessingDesugaringEventConsumer(methodProcessor, instructionDesugaring);
   }
 
-  public static R8PostProcessingDesugaringEventConsumer createForR8(SyntheticAdditions additions) {
-    return new R8PostProcessingDesugaringEventConsumer(additions);
+  public static R8PostProcessingDesugaringEventConsumer createForR8(
+      SyntheticAdditions additions, CfInstructionDesugaringCollection desugaring) {
+    return new R8PostProcessingDesugaringEventConsumer(additions, desugaring);
   }
 
   public abstract void finalizeDesugaring() throws ExecutionException;
@@ -53,10 +54,8 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     private void addMethodToReprocess(ProgramMethod method) {
-      if (instructionDesugaring.needsDesugaring(method)) {
-        instructionDesugaring.needsDesugaring(method);
-      }
       assert !instructionDesugaring.needsDesugaring(method);
+      assert method.getDefinition().getCode().isCfCode();
       methodsToReprocess.add(method);
     }
 
@@ -71,13 +70,24 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
+    public void acceptEmulatedInterfaceMarkerInterface(
+        DexProgramClass clazz, DexClasspathClass newInterface) {
+      // Intentionally empty.
+    }
+
+    @Override
     public void acceptForwardingMethod(ProgramMethod method) {
       addMethodToReprocess(method);
     }
 
     @Override
     public void acceptCompanionClassClinit(ProgramMethod method) {
-      methodsToReprocess.add(method);
+      addMethodToReprocess(method);
+    }
+
+    @Override
+    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companion) {
+      // Intentionally empty. The method must be processed on the interface definition.
     }
 
     @Override
@@ -103,14 +113,24 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       extends CfPostProcessingDesugaringEventConsumer {
 
     private final SyntheticAdditions additions;
+    private final CfInstructionDesugaringCollection desugaring;
 
-    R8PostProcessingDesugaringEventConsumer(SyntheticAdditions additions) {
+    R8PostProcessingDesugaringEventConsumer(
+        SyntheticAdditions additions, CfInstructionDesugaringCollection desugaring) {
       this.additions = additions;
+      this.desugaring = desugaring;
     }
 
     @Override
-    public void finalizeDesugaring() throws ExecutionException {
+    public void finalizeDesugaring() {
       // Intentionally empty.
+    }
+
+    @Override
+    public void acceptEmulatedInterfaceMarkerInterface(
+        DexProgramClass clazz, DexClasspathClass newInterface) {
+      additions.injectInterface(clazz, newInterface);
+      additions.addLiveClasspathClass(newInterface);
     }
 
     @Override
@@ -130,11 +150,19 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptCompanionClassClinit(ProgramMethod method) {
-      assert false : "TODO(b/183998768): Support Interface processing in R8";
+      // Generation of this method must have been done during enqueuing.
+      assert false;
+    }
+
+    @Override
+    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companion) {
+      // Generation of this method must have been done during enqueuing.
+      assert false;
     }
 
     @Override
     public void acceptAPIConversionCallback(ProgramMethod method) {
+      assert !desugaring.needsDesugaring(method);
       additions.addLiveMethod(method);
     }
 

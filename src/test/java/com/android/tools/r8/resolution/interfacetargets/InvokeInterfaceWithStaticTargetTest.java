@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.resolution.interfacetargets;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 
@@ -17,7 +16,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -70,7 +68,7 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
         .addProgramClasses(A.class, I.class)
         .addProgramClassFileData(transformMain())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString(getExpected()));
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
   @Test
@@ -81,14 +79,7 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString(getExpected()));
-  }
-
-  private String getExpected() {
-    return parameters.isCfRuntime()
-            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
-        ? "IncompatibleClassChangeError"
-        : "NoSuchMethodError";
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
   private byte[] transformMain() throws IOException {

@@ -31,6 +31,8 @@ public class TestParameters {
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
     assert isCfRuntime() || isDexRuntime();
+    assert !isCfRuntime() || apiLevel == null
+        : "Use canUseDefaultAndStaticInterfaceMethodsWhenDesugaring when using CF api levels.";
     return isCfRuntime()
         || getApiLevel()
             .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());

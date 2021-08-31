@@ -9,7 +9,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class StaticAndInterfaceMethodCollisionTest extends HorizontalClassMergingTestBase {
@@ -24,7 +23,15 @@ public class StaticAndInterfaceMethodCollisionTest extends HorizontalClassMergin
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            i -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                i.assertNoClassesMerged();
+              } else {
+                // When desugaring the call to C.foo in main will be inlined to target the CC.
+                // With J.foo now unused the classes A and B are safe to merge.
+                i.assertIsCompleteMergeGroup(A.class, B.class);
+              }
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()

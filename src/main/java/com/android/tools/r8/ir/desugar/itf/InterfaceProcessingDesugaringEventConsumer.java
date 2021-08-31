@@ -4,12 +4,18 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 
-public interface InterfaceProcessingDesugaringEventConsumer {
+// TODO(b/183998768): Consider forcing the processing of interface methods in D8 akin to R8.
+//  That would avoid the need to reiterate the interface methods to collect info and this
+//  could avoid the "base" methods.
+public interface InterfaceProcessingDesugaringEventConsumer
+    extends InterfaceMethodDesugaringBaseEventConsumer {
 
   void acceptForwardingMethod(ProgramMethod method);
 
-  // TODO(b/183998768): Remove this once interface desugaring is moved to the R8 enqueuer.
-  void acceptCompanionClassClinit(ProgramMethod method);
+  void acceptEmulatedInterfaceMarkerInterface(
+      DexProgramClass clazz, DexClasspathClass newInterface);
 }

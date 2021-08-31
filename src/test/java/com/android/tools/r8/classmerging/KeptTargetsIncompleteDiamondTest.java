@@ -7,6 +7,7 @@ package com.android.tools.r8.classmerging;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -20,6 +21,7 @@ import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
@@ -43,18 +45,18 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
 
   private AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       Class<?> methodToBeKept, Class<?> classToBeKept) throws Exception {
-    return computeAppViewWithLiveness(
-        buildClasses(I.class, J.class, K.class, L.class, A.class, Main.class)
-            .addLibraryFile(ToolHelper.getJava8RuntimeJar())
-            .build(),
-        factory ->
-            buildConfigForRules(
-                factory,
+    return TestAppViewBuilder.builder()
+        .addProgramClasses(I.class, J.class, K.class, L.class, A.class, Main.class)
+        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+        .addKeepRuleBuilder(
+            factory ->
                 ImmutableList.<ProguardConfigurationRule>builder()
                     .addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory))
                     .addAll(buildKeepRuleForClass(classToBeKept, factory))
                     .addAll(buildKeepRuleForClassAndMethods(Main.class, factory))
-                    .build()));
+                    .build())
+        .setMinApi(AndroidApiLevel.N)
+        .buildWithLiveness();
   }
 
   @Test

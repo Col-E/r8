@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.outliner;
 
 import static com.android.tools.r8.references.Reference.methodFromMethod;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -16,11 +17,9 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,25 +64,22 @@ public class OutlineFromDefaultInterfaceMethodTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject interfaceSubject;
-    MethodSubject greetMethodSubject;
-    if (parameters.isCfRuntime()
-        || parameters
-            .getApiLevel()
-            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport())) {
-      interfaceSubject = inspector.clazz(I.class);
-      greetMethodSubject = interfaceSubject.uniqueMethodWithName("greet");
+    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      ClassSubject interfaceSubject = inspector.clazz(I.class);
+      MethodSubject greetMethodSubject = interfaceSubject.uniqueMethodWithName("greet");
+      assertThat(interfaceSubject, isPresent());
+      assertThat(greetMethodSubject, isPresent());
+      assertEquals(
+          1,
+          greetMethodSubject
+              .streamInstructions()
+              .filter(InstructionSubject::isInvokeStatic)
+              .count());
     } else {
-      interfaceSubject = inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(I.class));
-      List<FoundMethodSubject> companionMethods = interfaceSubject.allMethods();
-      assertEquals(1, companionMethods.size());
-      greetMethodSubject = companionMethods.get(0);
+      // The companion class method is inlined into main.
+      assertThat(
+          inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(I.class)), isAbsent());
     }
-    assertThat(interfaceSubject, isPresent());
-    assertThat(greetMethodSubject, isPresent());
-    assertEquals(
-        1,
-        greetMethodSubject.streamInstructions().filter(InstructionSubject::isInvokeStatic).count());
   }
 
   static class TestClass {

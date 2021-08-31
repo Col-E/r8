@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
-import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 import static com.android.tools.r8.ir.desugar.lambda.D8LambdaDesugaring.rewriteEnclosingLambdaMethodAttributes;
 
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
@@ -58,7 +57,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConve
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -362,23 +360,6 @@ public class IRConverter {
     }
   }
 
-  private void finalizeInterfaceMethodRewritingThroughIR(ExecutorService executorService)
-      throws ExecutionException {
-    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
-    if (interfaceMethodRewriter != null) {
-      interfaceMethodRewriter.finalizeInterfaceMethodRewritingThroughIR(this, executorService);
-    }
-  }
-
-  private void runInterfaceDesugaringProcessorsForR8(
-      Flavor includeAllResources, ExecutorService executorService) throws ExecutionException {
-    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
-    if (interfaceMethodRewriter != null) {
-      interfaceMethodRewriter.runInterfaceDesugaringProcessorsForR8(
-          this, includeAllResources, executorService);
-    }
-  }
-
   private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
     if (covariantReturnTypeAnnotationTransformer != null) {
       covariantReturnTypeAnnotationTransformer.process(builder);
@@ -460,10 +441,11 @@ public class IRConverter {
         CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor, instructionDesugaring);
     methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
-        instructionDesugaring.getInterfaceMethodPostProcessingDesugaring(ExcludeDexResources);
+        instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(ExcludeDexResources);
     CfPostProcessingDesugaringCollection.create(
             appView, interfaceDesugaring, instructionDesugaring.getRetargetingInfo())
-        .postProcessingDesugaring(appView.appInfo().classes(), eventConsumer, executorService);
+        .postProcessingDesugaring(
+            appView.appInfo().classes(), m -> true, eventConsumer, executorService);
     methodProcessor.awaitMethodProcessing();
     eventConsumer.finalizeDesugaring();
   }
@@ -788,11 +770,6 @@ public class IRConverter {
     // Build a new application with jumbo string info.
     Builder<?> builder = appView.appInfo().app().builder();
     builder.setHighestSortingString(highestSortingString);
-
-    printPhase("Interface method desugaring");
-    finalizeInterfaceMethodRewritingThroughIR(executorService);
-    runInterfaceDesugaringProcessorsForR8(IncludeAllResources, executorService);
-    feedback.updateVisibleOptimizationInfo();
 
     if (serviceLoaderRewriter != null) {
       processSynthesizedServiceLoaderMethods(
@@ -1466,14 +1443,6 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after class inlining (SSA)", previous);
 
-    // TODO(b/183998768): Enable interface method rewriter cf to cf also in R8.
-    if (interfaceMethodRewriter != null && appView.enableWholeProgramOptimizations()) {
-      timing.begin("Rewrite interface methods");
-      interfaceMethodRewriter.rewriteMethodReferences(
-          code, methodProcessor, methodProcessingContext);
-      timing.end();
-    }
-
     assert code.verifyTypes(appView);
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
@@ -1504,12 +1473,15 @@ public class IRConverter {
       timing.begin("Canonicalize constants");
       constantCanonicalizer.canonicalize(appView, code);
       timing.end();
+      previous = printMethod(code, "IR after constant canonicalization (SSA)", previous);
       timing.begin("Create constants for literal instructions");
       codeRewriter.useDedicatedConstantForLitInstruction(code);
       timing.end();
+      previous = printMethod(code, "IR after constant literals (SSA)", previous);
       timing.begin("Shorten live ranges");
       codeRewriter.shortenLiveRanges(code);
       timing.end();
+      previous = printMethod(code, "IR after shorten live ranges (SSA)", previous);
     }
 
     timing.begin("Canonicalize idempotent calls");

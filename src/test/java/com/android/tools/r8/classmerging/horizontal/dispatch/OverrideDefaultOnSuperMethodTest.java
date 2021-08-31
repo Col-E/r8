@@ -38,11 +38,17 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
                 inspector.assertNoClassesMerged();
               } else {
                 inspector
-                    .assertClassesNotMerged(A.class, B.class)
                     .assertIsCompleteMergeGroup(I.class, J.class)
-                    .assertIsCompleteMergeGroup(
-                        SyntheticItemsTestUtils.syntheticCompanionClass(I.class),
-                        SyntheticItemsTestUtils.syntheticCompanionClass(J.class))
+                    .applyIf(
+                        parameters.canUseDefaultAndStaticInterfaceMethods(),
+                        i ->
+                            i.assertClassesNotMerged(A.class, B.class)
+                                .assertIsCompleteMergeGroup(
+                                    SyntheticItemsTestUtils.syntheticCompanionClass(I.class),
+                                    SyntheticItemsTestUtils.syntheticCompanionClass(J.class)))
+                    .applyIf(
+                        !parameters.canUseDefaultAndStaticInterfaceMethods(),
+                        i -> i.assertClassesMerged(A.class, B.class))
                     .assertNoOtherClassesMerged();
               }
             })
@@ -56,7 +62,9 @@ public class OverrideDefaultOnSuperMethodTest extends HorizontalClassMergingTest
                   onlyIf(parameters.canUseDefaultAndStaticInterfaceMethods(), isPresent()));
               assertThat(codeInspector.clazz(Parent.class), isPresent());
               assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(B.class), isPresent());
+              assertThat(
+                  codeInspector.clazz(B.class),
+                  onlyIf(parameters.canUseDefaultAndStaticInterfaceMethods(), isPresent()));
               assertThat(codeInspector.clazz(C.class), isPresent());
             });
   }

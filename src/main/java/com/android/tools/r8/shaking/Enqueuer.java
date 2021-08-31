@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
+import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
@@ -59,6 +60,7 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GenericSignatureEnqueuerAnalysis;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
@@ -99,6 +101,8 @@ import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
@@ -120,6 +124,7 @@ import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -131,10 +136,10 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramFieldSet;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -423,7 +428,20 @@ public class Enqueuer {
   private final GraphReporter graphReporter;
 
   private final CfInstructionDesugaringCollection desugaring;
-  private final ProgramMethodSet pendingDesugaring = ProgramMethodSet.create();
+  private final ProgramMethodSet pendingCodeDesugaring = ProgramMethodSet.create();
+
+  // Collections for tracing progress on interface method desugaring.
+
+  // The pending method move set is all the methods that need to be moved to companions.
+  // They may or may not need desugaring.
+  private final ProgramMethodSet pendingMethodMove = ProgramMethodSet.create();
+
+  // The inverse map records references to companion methods that may now be active but yet to
+  // be moved.
+  private final ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse =
+      ProgramMethodMap.createConcurrent();
+
+  private final InterfaceProcessor interfaceProcessor;
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
@@ -466,10 +484,13 @@ public class Enqueuer {
     failedFieldResolutionTargets = SetUtils.newIdentityHashSet(0);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new LiveFieldsSet(graphReporter::registerField);
-    desugaring =
-        mode.isInitialTreeShaking()
-            ? CfInstructionDesugaringCollection.create(appView)
-            : CfInstructionDesugaringCollection.empty();
+    if (mode.isInitialTreeShaking()) {
+      desugaring = CfInstructionDesugaringCollection.create(appView);
+      interfaceProcessor = new InterfaceProcessor(appView);
+    } else {
+      desugaring = CfInstructionDesugaringCollection.empty();
+      interfaceProcessor = null;
+    }
 
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
@@ -3080,6 +3101,7 @@ public class Enqueuer {
   public EnqueuerResult traceApplication(
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     this.rootSet = rootSet;
+    rootSet.pendingMethodMoveInverse.forEach(pendingMethodMoveInverse::put);
     // Translate the result of root-set computation into enqueuer actions.
     if (mode.isTreeShaking()
         && appView.options().hasProguardConfiguration()
@@ -3355,7 +3377,7 @@ public class Enqueuer {
 
     public void addLiveClasspathClass(DexClasspathClass clazz) {
       DexClasspathClass old = syntheticClasspathClasses.put(clazz.type, clazz);
-      assert old == null;
+      assert old == null || old == clazz;
     }
 
     public void addLiveMethods(Iterable<ProgramMethod> methods) {
@@ -3364,8 +3386,12 @@ public class Enqueuer {
 
     public void addLiveMethod(ProgramMethod method) {
       DexMethod signature = method.getDefinition().getReference();
-      assert !liveMethods.containsKey(signature);
-      liveMethods.put(signature, method);
+      ProgramMethod old = liveMethods.put(signature, method);
+      assert old == null;
+    }
+
+    public void addMethodWithDesugaredCodeForTracing(ProgramMethod method) {
+      desugaredMethods.add(method);
     }
 
     public void injectInterface(DexProgramClass clazz, DexClass newInterface) {
@@ -3436,31 +3462,94 @@ public class Enqueuer {
     additions.enqueueWorkItems(this);
   }
 
+  private boolean mustMoveToInterfaceCompanionMethod(ProgramMethod method) {
+    return method.getHolder().isInterface()
+        && method.getDefinition().isNonAbstractNonNativeMethod()
+        && !method.getDefinition().isInitializer();
+  }
+
+  private boolean addToPendingDesugaring(ProgramMethod method) {
+    if (options.isInterfaceMethodDesugaringEnabled()) {
+      if (mustMoveToInterfaceCompanionMethod(method)) {
+        pendingMethodMove.add(method);
+        return true;
+      }
+      ProgramMethod nonMovedMethod = pendingMethodMoveInverse.get(method);
+      if (nonMovedMethod != null) {
+        // Any non-moved code must be a proper pending item.
+        assert InvalidCode.isInvalidCode(method.getDefinition().getCode());
+        assert !InvalidCode.isInvalidCode(nonMovedMethod.getDefinition().getCode());
+        pendingMethodMove.add(nonMovedMethod);
+        return true;
+      }
+    }
+    if (desugaring.needsDesugaring(method)) {
+      pendingCodeDesugaring.add(method);
+      return true;
+    }
+    return false;
+  }
+
   private void desugar(SyntheticAdditions additions) throws ExecutionException {
-    if (pendingDesugaring.isEmpty()) {
+    if (pendingCodeDesugaring.isEmpty() && pendingMethodMove.isEmpty()) {
       return;
     }
 
-    // Prepare desugaring by collecting all the synthetic methods required on program classes.
-    ProgramAdditions programAdditions = new ProgramAdditions();
-    ThreadUtils.processItems(
-        pendingDesugaring, method -> desugaring.prepare(method, programAdditions), executorService);
-    programAdditions.apply(executorService);
+    // All non-moving methods are ready for tracing post desugar.
+    pendingCodeDesugaring.forEach(additions::addMethodWithDesugaredCodeForTracing);
+    // Then amend the desugar set with the move methods that need desugaring.
+    for (ProgramMethod method : pendingMethodMove) {
+      if (desugaring.needsDesugaring(method)) {
+        pendingCodeDesugaring.add(method);
+      }
+    }
 
-    R8CfInstructionDesugaringEventConsumer desugaringEventConsumer =
+    R8CfInstructionDesugaringEventConsumer eventConsumer =
         CfInstructionDesugaringEventConsumer.createForR8(
             appView,
             this::recordLambdaSynthesizingContext,
             this::recordTwrCloseResourceMethodSynthesizingContext,
-            additions);
+            additions,
+            (method, companion) -> {
+              if (!isMethodLive(method)) {
+                // Record the original placement of the companion method such that we can desugar
+                // and transfer the code if and when the companion method becomes live.
+                pendingMethodMoveInverse.put(companion, method);
+              }
+            });
+
+    // Prepare desugaring by collecting all the synthetic methods required on program classes.
+    ProgramAdditions programAdditions = new ProgramAdditions();
     ThreadUtils.processItems(
-        pendingDesugaring,
-        method ->
-            desugaring.desugar(method, additions.getMethodContext(method), desugaringEventConsumer),
+        pendingCodeDesugaring,
+        method -> desugaring.prepare(method, programAdditions),
         executorService);
-    desugaringEventConsumer.finalizeDesugaring();
-    Iterables.addAll(additions.desugaredMethods, pendingDesugaring);
-    pendingDesugaring.clear();
+    programAdditions.apply(executorService);
+
+    // Then do the actual desugaring.
+    ThreadUtils.processItems(
+        pendingCodeDesugaring,
+        method -> desugaring.desugar(method, additions.getMethodContext(method), eventConsumer),
+        executorService);
+
+    // Move the pending methods and mark them live and ready for tracing.
+    for (ProgramMethod method : pendingMethodMove) {
+      ProgramMethod companion =
+          interfaceProcessor
+              .getHelper()
+              .ensureMethodOfProgramCompanionClassStub(method, eventConsumer);
+      interfaceProcessor.finalizeMoveToCompanionMethod(method, companion);
+      pendingMethodMoveInverse.remove(companion);
+      if (!isMethodLive(companion)) {
+        additions.addLiveMethod(companion);
+      }
+      additions.addMethodWithDesugaredCodeForTracing(companion);
+    }
+
+    eventConsumer.finalizeDesugaring();
+
+    pendingMethodMove.clear();
+    pendingCodeDesugaring.clear();
   }
 
   private void recordLambdaSynthesizingContext(LambdaClass lambdaClass, ProgramMethod context) {
@@ -3481,8 +3570,6 @@ public class Enqueuer {
       DexProgramClass holder = bridge.getHolder();
       DexEncodedMethod method = bridge.getDefinition();
       holder.addVirtualMethod(method);
-      additions.addLiveMethodWithKeepAction(
-          bridge, joiner -> joiner.disallowOptimization().disallowShrinking());
     }
     syntheticInterfaceMethodBridges.clear();
   }
@@ -3593,15 +3680,15 @@ public class Enqueuer {
             rootSet.mayHaveSideEffects,
             rootSet.noSideEffects,
             rootSet.assumedValues,
-            rootSet.alwaysInline,
-            rootSet.forceInline,
-            rootSet.neverInline,
-            rootSet.neverInlineDueToSingleCaller,
-            rootSet.whyAreYouNotInlining,
-            rootSet.keepConstantArguments,
-            rootSet.keepUnusedArguments,
-            rootSet.reprocess,
-            rootSet.neverReprocess,
+            amendWithCompanionMethods(rootSet.alwaysInline),
+            amendWithCompanionMethods(rootSet.forceInline),
+            amendWithCompanionMethods(rootSet.neverInline),
+            amendWithCompanionMethods(rootSet.neverInlineDueToSingleCaller),
+            amendWithCompanionMethods(rootSet.whyAreYouNotInlining),
+            amendWithCompanionMethods(rootSet.keepConstantArguments),
+            amendWithCompanionMethods(rootSet.keepUnusedArguments),
+            amendWithCompanionMethods(rootSet.reprocess),
+            amendWithCompanionMethods(rootSet.neverReprocess),
             rootSet.alwaysClassInline,
             rootSet.neverClassInline,
             noClassMerging,
@@ -3618,6 +3705,22 @@ public class Enqueuer {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
     }
     return new EnqueuerResult(appInfoWithLiveness);
+  }
+
+  private Set<DexMethod> amendWithCompanionMethods(Set<DexMethod> methods) {
+    if (methods.isEmpty() || interfaceProcessor == null) {
+      return methods;
+    }
+    BooleanBox changed = new BooleanBox(false);
+    ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
+    interfaceProcessor.forEachMethodToMove(
+        (method, companion) -> {
+          if (methods.contains(method)) {
+            changed.set(true);
+            builder.add(companion);
+          }
+        });
+    return changed.isTrue() ? builder.addAll(methods).build() : methods;
   }
 
   private boolean verifyReferences(DexApplication app) {
@@ -3762,6 +3865,16 @@ public class Enqueuer {
           continue;
         }
 
+        for (DelayedRootSetActionItem delayedRootSetActionItem :
+            rootSet.delayedRootSetActionItems) {
+          if (delayedRootSetActionItem.isInterfaceMethodSyntheticBridgeAction()) {
+            identifySyntheticInterfaceMethodBridges(
+                delayedRootSetActionItem.asInterfaceMethodSyntheticBridgeAction());
+          }
+        }
+
+        synthesize();
+
         ConsequentRootSet consequentRootSet = computeDelayedInterfaceMethodSyntheticBridges();
         addConsequentRootSet(consequentRootSet);
         rootSet
@@ -3769,11 +3882,6 @@ public class Enqueuer {
             .merge(consequentRootSet.getDependentMinimumKeepInfo());
         rootSet.delayedRootSetActionItems.clear();
 
-        if (!workList.isEmpty()) {
-          continue;
-        }
-
-        synthesize();
         if (!workList.isEmpty()) {
           continue;
         }
@@ -3808,9 +3916,14 @@ public class Enqueuer {
     assert workList.isEmpty();
 
     R8PostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForR8(syntheticAdditions);
-    CfPostProcessingDesugaringCollection.create(appView, null, desugaring.getRetargetingInfo())
-        .postProcessingDesugaring(liveTypes.items, eventConsumer, executorService);
+        CfPostProcessingDesugaringEventConsumer.createForR8(syntheticAdditions, desugaring);
+    InterfaceMethodProcessorFacade interfaceDesugaring =
+        desugaring.getInterfaceMethodPostProcessingDesugaringR8(
+            ExcludeDexResources, liveMethods::contains, interfaceProcessor);
+    CfPostProcessingDesugaringCollection.create(
+            appView, interfaceDesugaring, desugaring.getRetargetingInfo())
+        .postProcessingDesugaring(
+            liveTypes.items, liveMethods::contains, eventConsumer, executorService);
 
     if (syntheticAdditions.isEmpty()) {
       return;
@@ -3829,8 +3942,6 @@ public class Enqueuer {
       EnqueuerAction action = workList.poll();
       action.run(this);
     }
-
-    eventConsumer.finalizeDesugaring();
   }
 
   private long getNumberOfLiveItems() {
@@ -3846,6 +3957,7 @@ public class Enqueuer {
     //  enqueuer, similar to Enqueuer#dependentMinimumKeepClassInfo.
     rootSet.addConsequentRootSet(consequentRootSet);
     includeMinimumKeepInfo(consequentRootSet);
+    consequentRootSet.pendingMethodMoveInverse.forEach(pendingMethodMoveInverse::put);
 
     // Check for compatibility rules indicating that the holder must be implicitly kept.
     if (forceProguardCompatibility) {
@@ -3873,11 +3985,10 @@ public class Enqueuer {
   private final Map<DexMethod, ProgramMethod> syntheticInterfaceMethodBridges =
       new LinkedHashMap<>();
 
-  private void handleInterfaceMethodSyntheticBridgeAction(
-      InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
+  private void identifySyntheticInterfaceMethodBridges(
+      InterfaceMethodSyntheticBridgeAction action) {
     ProgramMethod methodToKeep = action.getMethodToKeep();
     ProgramMethod singleTarget = action.getSingleTarget();
-    DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
     if (rootSet.isShrinkingDisallowedUnconditionally(singleTarget, options)) {
       return;
     }
@@ -3886,20 +3997,19 @@ public class Enqueuer {
             methodToKeep.getDefinition().getReference())) {
       syntheticInterfaceMethodBridges.put(
           methodToKeep.getDefinition().getReference(), methodToKeep);
-      assert null
-          == methodToKeep.getHolder().lookupMethod(methodToKeep.getDefinition().getReference());
-      if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
-        methodToKeep.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
-      }
-      DexProgramClass singleTargetHolder = singleTarget.getHolder();
-      assert singleTargetHolder.isInterface();
-      markVirtualMethodAsReachable(
-          singleTargetMethod.getReference(),
-          singleTargetHolder.isInterface(),
-          singleTarget,
-          graphReporter.fakeReportShouldNotBeUsed());
-      workList.enqueueMarkMethodLiveAction(
-          singleTarget, singleTarget, graphReporter.fakeReportShouldNotBeUsed());
+    }
+  }
+
+  private void handleInterfaceMethodSyntheticBridgeAction(
+      InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
+    ProgramMethod methodToKeep = action.getMethodToKeep();
+    ProgramMethod singleTarget = action.getSingleTarget();
+    DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
+    if (rootSet.isShrinkingDisallowedUnconditionally(singleTarget, options)) {
+      return;
+    }
+    if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
+      methodToKeep.getDefinition().setLibraryMethodOverride(OptionalBool.TRUE);
     }
     action.getAction().accept(builder);
   }
@@ -3922,33 +4032,23 @@ public class Enqueuer {
     DexEncodedMethod definition = target.getDefinition();
     DexProgramClass holder = target.getHolder();
     DexMethod reference = target.getReference();
+    markMethodAsTargeted(target, reason);
     if (definition.isVirtualMethod()) {
       // A virtual method. Mark it as reachable so that subclasses, if instantiated, keep
       // their overrides. However, we don't mark it live, as a keep rule might not imply that
       // the corresponding class is live.
       markVirtualMethodAsReachable(reference, holder.isInterface(), target, reason);
-      if (holder.isInterface()) {
-        // Reachability for default methods is based on live subtypes in general. For keep rules,
-        // we need special handling as we essentially might have live subtypes that are outside of
-        // the current compilation unit. Keep either the default-method or its implementation
-        // method.
+      // When generating interface bridges the method may be inserted into a live hierarchy.
+      // If so we need to also mark it as live as the reachable check above will not reprocess the
+      // hierarchy.
+      // TODO(b/183998768): The check for isInterface here should be possible to remove now.
+      if (definition.isNonAbstractVirtualMethod()
+          && (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(holder)
+              || holder.isInterface())) {
         // TODO(b/120959039): Codify the kept-graph expectations for these cases in tests.
-        if (definition.isNonAbstractVirtualMethod()) {
-          markVirtualMethodAsLive(target, reason);
-        } else {
-          DexEncodedMethod implementation = definition.getDefaultInterfaceMethodImplementation();
-          if (implementation != null) {
-            DexProgramClass companion =
-                asProgramClassOrNull(appInfo().definitionFor(implementation.getHolderType()));
-            markTypeAsLive(companion, graphReporter.reportCompanionClass(holder, companion));
-            markVirtualMethodAsLive(
-                new ProgramMethod(companion, implementation),
-                graphReporter.reportCompanionMethod(definition, implementation));
-          }
-        }
+        markVirtualMethodAsLive(target, reason);
       }
     } else {
-      markMethodAsTargeted(target, reason);
       markDirectStaticOrConstructorMethodAsLive(target, reason);
     }
   }
@@ -4090,9 +4190,10 @@ public class Enqueuer {
   }
 
   private void traceNonDesugaredCode(ProgramMethod method) {
-    if (getMode().isInitialTreeShaking() && desugaring.needsDesugaring(method)) {
-      pendingDesugaring.add(method);
-      return;
+    if (getMode().isInitialTreeShaking()) {
+      if (addToPendingDesugaring(method)) {
+        return;
+      }
     }
 
     traceCode(method);

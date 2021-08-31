@@ -24,16 +24,19 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
+import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
@@ -50,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
 /**
@@ -344,6 +348,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private final InterfaceDesugaringSyntheticHelper helper;
   private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
   private final boolean needsLibraryInfo;
+  private final Predicate<ProgramMethod> isLiveMethod;
 
   // Mapping from program and classpath classes to their information summary.
   private final Map<DexClass, ClassInfo> classInfo = new ConcurrentHashMap<>();
@@ -358,7 +363,11 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
   private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
       new ConcurrentHashMap<>();
 
-  ClassProcessor(AppView<?> appView) {
+  // Mapping from actual program classes to the extra interfaces needed for emulated dispatch.
+  private final Map<DexProgramClass, List<ClassTypeSignature>> newExtraInterfaceSignatures =
+      new ConcurrentHashMap<>();
+
+  ClassProcessor(AppView<?> appView, Predicate<ProgramMethod> isLiveMethod) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.helper = new InterfaceDesugaringSyntheticHelper(appView);
@@ -369,6 +378,14 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
                 .desugaredLibraryConfiguration
                 .getRetargetCoreLibMember()
                 .isEmpty();
+    this.isLiveMethod = isLiveMethod;
+  }
+
+  private boolean isLiveMethod(DexClassAndMethod method) {
+    if (method.isProgramMethod()) {
+      return isLiveMethod.test(method.asProgramMethod());
+    }
+    return true;
   }
 
   private boolean needsLibraryInfo() {
@@ -395,6 +412,16 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
         (clazz, newForwardingMethods) -> {
           clazz.addVirtualMethods(newForwardingMethods.toDefinitionSet());
           newForwardingMethods.forEach(eventConsumer::acceptForwardingMethod);
+        });
+    newExtraInterfaceSignatures.forEach(
+        (clazz, extraInterfaceSignatures) -> {
+          if (!extraInterfaceSignatures.isEmpty()) {
+            for (ClassTypeSignature signature : extraInterfaceSignatures) {
+              eventConsumer.acceptEmulatedInterfaceMarkerInterface(
+                  clazz, helper.ensureEmulatedInterfaceMarkerInterface(signature.type()));
+            }
+            clazz.addExtraInterfaces(extraInterfaceSignatures);
+          }
         });
   }
 
@@ -533,7 +560,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
                 }
               }
             });
-    clazz.asProgramClass().addExtraInterfaces(extraInterfaceSignatures);
+    newExtraInterfaceSignatures.put(clazz.asProgramClass(), extraInterfaceSignatures);
   }
 
   private void collectEmulatedInterfaces(
@@ -637,7 +664,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
           clazz,
           wrapper.get(),
           target -> {
-            if (!superInfo.isTargetedByForwards(target)) {
+            if (isLiveMethod(target) && !superInfo.isTargetedByForwards(target)) {
               additionalForwards.add(target);
               addForwardingMethod(target, clazz);
             }
@@ -821,6 +848,10 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
             target, clazz, forwardMethod, dexItemFactory);
+    if (!target.isProgramDefinition()
+        || target.getDefinition().isLibraryMethodOverride().isTrue()) {
+      desugaringForwardingMethod.setLibraryMethodOverride(OptionalBool.TRUE);
+    }
     addSyntheticMethod(clazz.asProgramClass(), desugaringForwardingMethod);
   }
 

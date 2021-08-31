@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor.InterfaceProcessorNestedGraphLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingLens;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -477,14 +476,6 @@ public abstract class GraphLens {
   public abstract boolean isNonIdentityLens();
 
   public NonIdentityGraphLens asNonIdentityLens() {
-    return null;
-  }
-
-  public boolean isInterfaceProcessorLens() {
-    return false;
-  }
-
-  public InterfaceProcessorNestedGraphLens asInterfaceProcessorLens() {
     return null;
   }
 

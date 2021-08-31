@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,6 +37,11 @@ public class InvokeSuperInDefaultInterfaceMethodToNonImmediateInterfaceTest exte
   }
 
   @Test
+  @Ignore("b/197494749 and b/120130831")
+  // TODO(b/197494749): Update this test now that desugaring is moved up. In particular this must
+  //  be rewritten with CF based transformers as R8 does not support interface desugaring on DEX.
+  // TODO(b/120130831): With the move of desugaring this issue should be resolved. The bug indicates
+  //  that a workaround for issues related to the IR implementation can now be reverted.
   public void test() throws Exception {
     // Note that the expected output is independent of the presence of J.m().
     String expectedOutput = StringUtils.lines("I.m()", "JImpl.m()");

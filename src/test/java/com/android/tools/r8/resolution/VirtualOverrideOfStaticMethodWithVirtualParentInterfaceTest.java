@@ -4,22 +4,18 @@
 package com.android.tools.r8.resolution;
 
 import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Assert;
@@ -150,22 +146,11 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   @Test
   public void runJvmAndD8() throws Exception {
-    TestRunResult<?> runResult;
-    if (parameters.isCfRuntime()) {
-      runResult =
-          testForJvm()
-              .addProgramClasses(CLASSES)
-              .addProgramClassFileData(DUMP)
-              .run(parameters.getRuntime(), Main.class);
-    } else {
-      runResult =
-          testForD8()
-              .addProgramClasses(CLASSES)
-              .addProgramClassFileData(DUMP)
-              .setMinApi(parameters.getApiLevel())
-              .run(parameters.getRuntime(), Main.class);
-    }
-    checkResult(runResult);
+    testForRuntime(parameters)
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(DUMP)
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 
   @Test
@@ -179,33 +164,13 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
   }
 
   public void runR8(boolean enableVerticalClassMerging) throws Exception {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(CLASSES)
-            .addProgramClassFileData(DUMP)
-            .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
-            .run(parameters.getRuntime(), Main.class);
-    if (enableVerticalClassMerging) {
-      // Vertical class merging will merge B and C and change the instruction to invoke-virtual
-      // causing the legacy ART runtime behavior to match the expected error.
-      runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-    } else {
-      checkResult(runResult);
-    }
-  }
-
-  private void checkResult(TestRunResult<?> runResult) {
-    runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
-  }
-
-  private String expectedRuntimeError() {
-    if (parameters.isDexRuntime()
-        && parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-      // When desugaring default interface methods the error will be NoSuchMethodError.
-      return "NoSuchMethodError";
-    }
-    return "IncompatibleClassChangeError";
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(DUMP)
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
   }
 }

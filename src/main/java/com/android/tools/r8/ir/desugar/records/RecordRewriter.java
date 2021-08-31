@@ -413,7 +413,6 @@ public class RecordRewriter
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    assert !instruction.isInitClass();
     if (instruction.isInvokeDynamic()) {
       return needsDesugaring(instruction.asInvokeDynamic(), context);
     }

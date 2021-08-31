@@ -102,22 +102,21 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionInvokeVir
   private void checkResult(TestRunResult<?> result, boolean isR8) {
     // Invalid invoke case is where the invoke-virtual targets C.m.
     if (invalidInvoke) {
-      if (parameters.isCfRuntime()) {
-        result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-        return;
-      }
-      if (parameters.getDexRuntimeVersion().isInRangeInclusive(Version.V5_1_1, Version.V7_0_0)) {
+      if (parameters.isDexRuntimeVersion(Version.V7_0_0)
+          && parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
+        // The v7 VM incorrectly fails to throw.
         result.assertSuccessWithOutput(EXPECTED);
-        return;
+      } else {
+        result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
       }
-      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
       return;
     }
 
     if (isR8
         && parameters.isDexRuntime()
         && parameters.getDexRuntimeVersion().isNewerThan(Version.V6_0_1)
-        && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0)) {
+        && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0)
+        && parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
       // TODO(b/182255398): This should be EXPECTED.
       result.assertSuccessWithOutput(EXPECTED_R8);
       return;

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -61,11 +62,15 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
         .inspect(
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
-              assertThat(aClassSubject, isPresent());
-              if (parameters.isCfRuntime()) {
-                assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                assertThat(aClassSubject, isPresent());
+                if (parameters.isCfRuntime()) {
+                  assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+                } else {
+                  assertThat(aClassSubject, isImplementing(inspector.clazz(J.class)));
+                }
               } else {
-                assertThat(aClassSubject, isImplementing(inspector.clazz(J.class)));
+                assertThat(aClassSubject, isAbsent());
               }
             })
         .run(parameters.getRuntime(), Main.class)

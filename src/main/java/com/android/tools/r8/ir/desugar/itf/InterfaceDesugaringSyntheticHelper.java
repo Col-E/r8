@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -32,7 +33,9 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
+import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
@@ -41,7 +44,6 @@ import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
@@ -185,6 +187,17 @@ public class InterfaceDesugaringSyntheticHelper {
     return factory.createType(interfaceTypeDescriptor);
   }
 
+  // TODO(b/198273164): This should take the context class and not just a type.
+  DexClasspathClass ensureEmulatedInterfaceMarkerInterface(DexType type) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClasspathClassFromType(
+            SyntheticKind.EMULATED_INTERFACE_MARKER_CLASS,
+            type,
+            appView,
+            SyntheticClassBuilder::setInterface);
+  }
+
   DexClassAndMethod ensureEmulatedInterfaceMethod(
       DexClassAndMethod method, ClasspathEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
     DexMethod emulatedInterfaceMethod = emulateInterfaceLibraryMethod(method);
@@ -232,10 +245,10 @@ public class InterfaceDesugaringSyntheticHelper {
   }
 
   DexClassAndMethod ensureStaticAsMethodOfCompanionClassStub(
-      DexClassAndMethod method, Consumer<ProgramMethod> companionClinitConsumer) {
+      DexClassAndMethod method, CfInstructionDesugaringEventConsumer eventConsumer) {
     if (method.isProgramMethod()) {
       return ensureStaticAsMethodOfProgramCompanionClassStub(
-          method.asProgramMethod(), companionClinitConsumer);
+          method.asProgramMethod(), eventConsumer);
     } else {
       ClasspathOrLibraryClass context = method.getHolder().asClasspathOrLibraryClass();
       DexMethod companionMethodReference = staticAsMethodOfCompanionClass(method);
@@ -264,15 +277,7 @@ public class InterfaceDesugaringSyntheticHelper {
                       .methodParametersWithFakeThisArguments(appView.dexItemFactory()))
               .setParameterAnnotationsList(
                   virtual.getParameterAnnotations().withFakeThisParameter())
-              // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
-              //  code to ensure it is never used before desugared and installed.
-              .setCode(
-                  syntheticMethod ->
-                      appView.enableWholeProgramOptimizations()
-                          ? virtual
-                              .getCode()
-                              .getCodeAsInlining(syntheticMethod, method.getReference())
-                          : InvalidCode.getInstance());
+              .setCode(ignored -> InvalidCode.getInstance());
         },
         ignored -> {});
   }
@@ -297,15 +302,7 @@ public class InterfaceDesugaringSyntheticHelper {
               .setAnnotations(definition.annotations())
               // TODO(b/183998768): Should this not also be updating with a fake 'this'
               .setParameterAnnotationsList(definition.getParameterAnnotations())
-              // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
-              //  code to ensure it is never used before desugared and installed.
-              .setCode(
-                  syntheticMethod ->
-                      appView.enableWholeProgramOptimizations()
-                          ? definition
-                              .getCode()
-                              .getCodeAsInlining(syntheticMethod, method.getReference())
-                          : InvalidCode.getInstance());
+              .setCode(ignored -> InvalidCode.getInstance());
         },
         ignored -> {});
   }
@@ -368,9 +365,10 @@ public class InterfaceDesugaringSyntheticHelper {
   }
 
   ProgramMethod ensureStaticAsMethodOfProgramCompanionClassStub(
-      ProgramMethod method, Consumer<ProgramMethod> companionClinitConsumer) {
-    if (!method.getDefinition().isClassInitializer() && method.getHolder().hasClassInitializer()) {
-      ensureCompanionClassInitializesInterface(method.getHolder(), companionClinitConsumer);
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
+    assert !method.getDefinition().isClassInitializer();
+    if (method.getHolder().hasClassInitializer()) {
+      ensureCompanionClassInitializesInterface(method.getHolder(), eventConsumer);
     }
     DexMethod companionMethodReference = staticAsMethodOfCompanionClass(method);
     DexEncodedMethod definition = method.getDefinition();
@@ -387,21 +385,29 @@ public class InterfaceDesugaringSyntheticHelper {
               .setGenericSignature(definition.getGenericSignature())
               .setAnnotations(definition.annotations())
               .setParameterAnnotationsList(definition.getParameterAnnotations())
-              // TODO(b/183998768): Once R8 desugars in the enqueuer this should set an invalid
-              //  code to ensure it is never used before desugared and installed.
-              .setCode(
-                  syntheticMethod ->
-                      appView.enableWholeProgramOptimizations()
-                          ? definition
-                              .getCode()
-                              .getCodeAsInlining(syntheticMethod, method.getReference())
-                          : InvalidCode.getInstance());
+              .setCode(ignored -> InvalidCode.getInstance());
         },
-        ignored -> {});
+        companion -> eventConsumer.acceptCompanionMethod(method, companion));
+  }
+
+  public ProgramMethod ensureMethodOfProgramCompanionClassStub(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
+    DexEncodedMethod definition = method.getDefinition();
+    assert method.getHolder().isInterface();
+    assert definition.isNonAbstractNonNativeMethod();
+    assert definition.getCode() != null;
+    assert !InvalidCode.isInvalidCode(definition.getCode());
+    if (definition.isStatic()) {
+      return ensureStaticAsMethodOfProgramCompanionClassStub(method, eventConsumer);
+    }
+    if (definition.isPrivate()) {
+      return ensurePrivateAsMethodOfProgramCompanionClassStub(method);
+    }
+    return ensureDefaultAsMethodOfProgramCompanionClassStub(method);
   }
 
   private void ensureCompanionClassInitializesInterface(
-      DexProgramClass iface, Consumer<ProgramMethod> companionClinitConsumer) {
+      DexProgramClass iface, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     assert hasStaticMethodThatTriggersNonTrivialClassInitializer(iface);
     InterfaceProcessor.ensureCompanionMethod(
         iface,
@@ -409,7 +415,7 @@ public class InterfaceDesugaringSyntheticHelper {
         appView.dexItemFactory().createProto(appView.dexItemFactory().voidType),
         appView,
         methodBuilder -> createCompanionClassInitializer(iface, methodBuilder),
-        companionClinitConsumer);
+        eventConsumer::acceptCompanionClassClinit);
   }
 
   private DexEncodedField ensureStaticClinitFieldToTriggerInterfaceInitialization(

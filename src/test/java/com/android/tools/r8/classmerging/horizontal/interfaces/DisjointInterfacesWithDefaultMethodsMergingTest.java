@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,7 +41,13 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
+            inspector -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                inspector.assertIsCompleteMergeGroup(I.class, J.class);
+              } else {
+                inspector.assertNoClassesMerged();
+              }
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
@@ -50,8 +57,12 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
-              assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                assertThat(aClassSubject, isPresent());
+                assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+              } else {
+                assertThat(aClassSubject, isAbsent());
+              }
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("I", "J");

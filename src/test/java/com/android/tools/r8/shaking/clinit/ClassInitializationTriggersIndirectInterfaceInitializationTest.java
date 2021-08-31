@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.shaking.clinit;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -51,22 +51,27 @@ public class ClassInitializationTriggersIndirectInterfaceInitializationTest exte
         .compile()
         .inspect(
             inspector -> {
-              // Verify that I's class initializer is still present.
               ClassSubject iClassSubject = inspector.clazz(I.class);
-              assertThat(iClassSubject, isPresent());
-              assertThat(
-                  iClassSubject.clinit(),
-                  onlyIf(hasDefaultInterfaceMethodsSupport(parameters), isPresent()));
-
-              // Verify that J is still there.
               ClassSubject jClassSubject = inspector.clazz(J.class);
-              assertThat(jClassSubject, isPresent());
-
-              // Verify that A still implements J.
               ClassSubject aClassSubject = inspector.clazz(A.class);
-              assertThat(aClassSubject, isPresent());
-              assertEquals(1, aClassSubject.getDexProgramClass().getInterfaces().size());
-              assertTrue(aClassSubject.isImplementing(jClassSubject));
+              if (hasDefaultInterfaceMethodsSupport(parameters)) {
+                // Verify that I's class initializer is still present.
+                assertThat(iClassSubject, isPresent());
+                assertThat(iClassSubject.clinit(), isPresent());
+
+                // Verify that J is still there.
+                assertThat(jClassSubject, isPresent());
+
+                // Verify that A still implements J.
+                assertThat(aClassSubject, isPresent());
+                assertEquals(1, aClassSubject.getDexProgramClass().getInterfaces().size());
+                assertTrue(aClassSubject.isImplementing(jClassSubject));
+              } else {
+                // All interfaces are gone and the default methods companion call is inlined.
+                assertThat(iClassSubject, isAbsent());
+                assertThat(jClassSubject, isAbsent());
+                assertThat(aClassSubject, isAbsent());
+              }
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(

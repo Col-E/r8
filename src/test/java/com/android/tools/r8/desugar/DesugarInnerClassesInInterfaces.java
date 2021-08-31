@@ -4,11 +4,13 @@
 package com.android.tools.r8.desugar;
 
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -29,13 +31,6 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
           "true",
           WithLocalInner.class.getName() + getCompanionClassNameSuffix(),
           "true");
-
-  private final List<String> EXPECTED_RESULT_WITH_DESUGARING_B168697955 =
-      ImmutableList.of(
-          WithAnonymousInner.class.getName() + getCompanionClassNameSuffix(),
-          "false",
-          WithLocalInner.class.getName() + getCompanionClassNameSuffix(),
-          "false");
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -69,6 +64,7 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
 
   @Test
   public void testR8Compat() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel() == AndroidApiLevel.B);
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(DesugarInnerClassesInInterfaces.class)
         .setMinApi(parameters.getApiLevel())
@@ -78,37 +74,14 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            parameters.canUseDefaultAndStaticInterfaceMethods(),
+            parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods(),
             result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING),
-            // The static method which is moved to the companion class is inlined and causing
-            // this different output. The rule "-keep class * { *; }" does not keep the static
-            // method from being inlined after it has moved. Turning off inlining produces the
-            // expected result. The inlining cause the getEnclosingClass() to return null.
-            // See b/168697955.
-            result ->
-                result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITH_DESUGARING_B168697955));
-  }
-
-  @Test
-  public void testR8_B168697955() throws Exception {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(DesugarInnerClassesInInterfaces.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepAllClassesRule()
-        .addKeepAttributeInnerClassesAndEnclosingMethod()
-        // With inlining turned off we get the expected result.
-        .addOptionsModification(options -> options.enableInlining = false)
-        .compile()
-        .run(parameters.getRuntime(), TestClass.class)
-        .applyIf(
-            parameters.canUseDefaultAndStaticInterfaceMethods(),
-            result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING),
-            // TODO(b/187377562): We remove the attribute due to not pinning the moved methods.
-            result -> result.assertFailureWithErrorThatThrows(NullPointerException.class));
+            result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITH_DESUGARING));
   }
 
   @Test
   public void testR8Full() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel() == AndroidApiLevel.B);
     testForR8(parameters.getBackend())
         .addInnerClasses(DesugarInnerClassesInInterfaces.class)
         .setMinApi(parameters.getApiLevel())
@@ -117,10 +90,9 @@ public class DesugarInnerClassesInInterfaces extends TestBase {
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .applyIf(
-            parameters.canUseDefaultAndStaticInterfaceMethods(),
+            parameters.isCfRuntime() || parameters.canUseDefaultAndStaticInterfaceMethods(),
             result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITHOUT_DESUGARING),
-            // TODO(b/187377562): We remove the attribute due to not pinning the moved methods.
-            result -> result.assertFailureWithErrorThatThrows(NullPointerException.class));
+            result -> result.assertSuccessWithOutputLines(EXPECTED_RESULT_WITH_DESUGARING));
   }
 
   interface WithAnonymousInner {

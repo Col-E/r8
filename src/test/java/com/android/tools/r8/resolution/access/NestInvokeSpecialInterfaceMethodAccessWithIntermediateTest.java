@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
@@ -20,6 +21,7 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -52,6 +54,7 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
             .withCfRuntimesStartingFromIncluding(JDK11)
             .withDexRuntimes()
             .withAllApiLevels()
+            .enableApiLevelsForCf()
             .build(),
         BooleanUtils.values(),
         BooleanUtils.values());
@@ -132,7 +135,16 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
     MethodSubject foo = inspector.clazz(callerClass).uniqueMethodWithName("foo");
     assertTrue(
         foo.streamInstructions()
-            .anyMatch(i -> i.asCfInstruction().isInvokeSpecial() && i.getMethod() == method));
+            .anyMatch(
+                i -> {
+                  if (parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
+                    return i.asCfInstruction().isInvokeSpecial() && i.getMethod() == method;
+                  } else {
+                    return i.isInvokeStatic()
+                        && SyntheticItemsTestUtils.isInternalThrowNSME(
+                            i.getMethod().asMethodReference());
+                  }
+                }));
   }
 
   private DexMethod getTargetMethodSignature(Class<?> declaredClass, AppInfoWithLiveness appInfo) {
@@ -148,12 +160,13 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
   }
 
   private AppView<AppInfoWithLiveness> getAppView() throws Exception {
-    return computeAppViewWithLiveness(
-        buildClasses(getClasses())
-            .addClassProgramData(getTransformedClasses())
-            .addLibraryFile(TestBase.runtimeJar(parameters.getBackend()))
-            .build(),
-        Main.class);
+    return TestAppViewBuilder.builder()
+        .addProgramClasses(getClasses())
+        .addProgramClassFileData(getTransformedClasses())
+        .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .buildWithLiveness();
   }
 
   @Test

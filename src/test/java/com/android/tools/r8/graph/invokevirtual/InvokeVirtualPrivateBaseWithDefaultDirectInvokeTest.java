@@ -12,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,10 +37,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
     testForJvm()
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime(CfVm.JDK11),
-            r -> r.assertSuccessWithOutputLines("I::foo"),
-            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class));
+        .apply(r -> assertResultIsCorrect(r, true));
   }
 
   @Test
@@ -50,7 +46,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::assertResultIsCorrect);
+        .apply(r -> assertResultIsCorrect(r, false));
   }
 
   @Test
@@ -63,17 +59,23 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/182189123): This should have the same behavior as D8.
-        .assertSuccessWithOutputLines("I::foo");
+        .applyIf(
+            parameters.isCfRuntime(),
+            r -> r.assertSuccessWithOutputLines("I::foo"),
+            r -> assertResultIsCorrect(r, true));
   }
 
-  public void assertResultIsCorrect(SingleTestRunResult<?> result) {
-    if (parameters.isCfRuntime(CfVm.JDK11)
-        && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.M)) {
+  public void assertResultIsCorrect(SingleTestRunResult<?> result, boolean nonDesugaredCf) {
+    boolean isNotDesugared =
+        (nonDesugaredCf && parameters.isCfRuntime())
+            || parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring();
+    // JDK 11 allows this incorrect dispatch for some reason.
+    if (parameters.isCfRuntime(CfVm.JDK11) && isNotDesugared) {
       result.assertSuccessWithOutputLines("I::foo");
       return;
     }
-    // TODO(b/152199517): Should be illegal access for DEX.
-    if (parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThan(AndroidApiLevel.M)) {
+    // TODO(b/152199517): Should become an illegal access on future DEX VM.
+    if (parameters.isDexRuntime() && isNotDesugared) {
       result.assertSuccessWithOutputLines("I::foo");
       return;
     }

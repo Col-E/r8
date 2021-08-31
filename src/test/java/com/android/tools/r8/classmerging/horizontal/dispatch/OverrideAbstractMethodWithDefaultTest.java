@@ -30,7 +30,9 @@ public class OverrideAbstractMethodWithDefaultTest extends HorizontalClassMergin
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
-                    .assertIsCompleteMergeGroup(I.class, J.class)
+                    .applyIf(
+                        parameters.canUseDefaultAndStaticInterfaceMethods(),
+                        i -> i.assertIsCompleteMergeGroup(I.class, J.class))
                     .applyIf(
                         !parameters.canUseDefaultAndStaticInterfaceMethods(),
                         i -> i.assertIsCompleteMergeGroup(B1.class, B2.class))

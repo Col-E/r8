@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
-
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -40,6 +38,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.DirectClassNameMapperProguardMapProducer;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -328,7 +327,7 @@ public class CodeInspector {
   }
 
   public ClassSubject companionClassFor(Class<?> clazz) {
-    return clazz(Reference.classFromTypeName(clazz.getTypeName() + getCompanionClassNameSuffix()));
+    return clazz(SyntheticItemsTestUtils.syntheticCompanionClass(clazz));
   }
 
   public void forAllClasses(Consumer<FoundClassSubject> inspection) {

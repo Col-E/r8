@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.memberrebinding;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -17,7 +17,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,13 +59,7 @@ public class MemberRebindingRemoveInterfaceDefaultBridgeTest extends TestBase {
               assertTrue(clazz.allMethods().isEmpty());
               if (!parameters.canUseDefaultAndStaticInterfaceMethods()) {
                 ClassSubject classSubject = clazz.toCompanionClass();
-                assertThat(classSubject, isPresent());
-                // TODO(b/197851381): We should be able to remove the bridge but it is problematic
-                //   since this require rewriting the call sites. Moving desugaring to the enqueuer
-                //   will also fix this.
-                assertEquals(2, classSubject.allMethods().size());
-                assertTrue(
-                    classSubject.allMethods().stream().anyMatch(FoundMethodSubject::isBridge));
+                assertThat(classSubject, isAbsent());
               }
             });
   }

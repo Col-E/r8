@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.enclosingmethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -73,8 +72,6 @@ public class EnclosingMethodRewriteTest extends TestBase {
         "interface " + A.class.getTypeName(), "public int " + A.class.getTypeName() + ".def()", "42"
       };
 
-  private final String[] EXPECTED_FULL = new String[] {"null", "null", "42"};
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
@@ -102,7 +99,7 @@ public class EnclosingMethodRewriteTest extends TestBase {
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(inspector -> inspect(inspector, true))
+        .inspect(this::inspect)
         .run(parameters.getRuntime(), MAIN)
         .applyIf(
             parameters.canUseDefaultAndStaticInterfaceMethods(),
@@ -126,8 +123,7 @@ public class EnclosingMethodRewriteTest extends TestBase {
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(
-            inspector -> inspect(inspector, parameters.canUseDefaultAndStaticInterfaceMethods()))
+        .inspect(this::inspect)
         .run(parameters.getRuntime(), MAIN)
         .applyIf(
             parameters.canUseDefaultAndStaticInterfaceMethods(),
@@ -139,25 +135,21 @@ public class EnclosingMethodRewriteTest extends TestBase {
                 result.assertSuccessWithOutputLines(EXPECTED);
               }
             },
-            result -> result.assertSuccessWithOutputLines(EXPECTED_FULL));
+            result -> result.assertSuccessWithOutputLines(EXPECTED_CC));
   }
 
-  private void inspect(CodeInspector inspector, boolean hasEnclosingMethod) {
+  private void inspect(CodeInspector inspector) {
     ClassSubject cImplSubject = inspector.clazz(A.class.getTypeName() + "$1");
     assertThat(cImplSubject, isPresent());
     ClassSubject enclosingClassSubject =
         parameters.canUseDefaultAndStaticInterfaceMethods()
             ? inspector.clazz(A.class.getTypeName())
-            : inspector.clazz(A.class.getTypeName() + "$-CC");
+            : inspector.clazz(A.class.getTypeName()).toCompanionClass();
     assertThat(enclosingClassSubject, isPresent());
     EnclosingMethodAttribute enclosingMethodAttribute =
         cImplSubject.getDexProgramClass().getEnclosingMethodAttribute();
-    if (hasEnclosingMethod) {
-      assertEquals(
-          enclosingClassSubject.getDexProgramClass().getType(),
-          enclosingMethodAttribute.getEnclosingMethod().getHolderType());
-    } else {
-      assertNull(enclosingMethodAttribute);
-    }
+    assertEquals(
+        enclosingClassSubject.getDexProgramClass().getType(),
+        enclosingMethodAttribute.getEnclosingMethod().getHolderType());
   }
 }

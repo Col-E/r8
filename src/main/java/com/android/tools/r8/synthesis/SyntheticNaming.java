@@ -53,7 +53,8 @@ public class SyntheticNaming {
     SERVICE_LOADER("ServiceLoad", 18, true),
     OUTLINE("Outline", 19, true),
     API_CONVERSION("APIConversion", 26, true),
-    API_CONVERSION_PARAMETERS("APIConversionParameters", 28, true);
+    API_CONVERSION_PARAMETERS("APIConversionParameters", 28, true),
+    EMULATED_INTERFACE_MARKER_CLASS("", 29, false, true, true);
 
     static {
       assert verifyNoOverlappingIds();

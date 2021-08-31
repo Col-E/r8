@@ -100,9 +100,9 @@ public class DefaultLambdaWithUnderscoreThisTestRunner extends DebugTestBase {
         testForD8()
             .addProgramClassesAndInnerClasses(CLASS)
             .setMinApiThreshold(AndroidApiLevel.K)
-            .compile();
+            .compile()
+            .assertNoMessages();
     compileResult
-        // TODO(b/123506120): Add .assertNoMessages()
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED);
     runDebugger(compileResult.debugConfig(), true);

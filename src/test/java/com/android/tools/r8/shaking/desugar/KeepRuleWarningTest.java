@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.desugar;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -106,14 +104,8 @@ public class KeepRuleWarningTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { static void foo(); }")
-        .allowDiagnosticWarningMessages()
         .compile()
-        .inspectDiagnosticMessages(
-            m ->
-                m.assertWarningsCount(1)
-                    .assertWarningMessageThatMatches(containsString("static void foo()"))
-                    .assertWarningMessageThatMatches(containsString("is ignored"))
-                    .assertWarningMessageThatMatches(containsString("will be desugared")))
+        .inspectDiagnosticMessages(TestDiagnosticMessages::assertNoMessages)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }

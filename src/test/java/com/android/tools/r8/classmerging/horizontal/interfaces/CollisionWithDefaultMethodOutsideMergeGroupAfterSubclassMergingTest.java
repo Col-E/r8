@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,11 +56,10 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
                   .assertMergedInto(B.class, A.class);
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
                 inspector.assertClassesNotMerged(I.class, J.class, K.class);
-              } else {
-                inspector
-                    .assertIsCompleteMergeGroup(I.class, J.class)
-                    .assertClassesNotMerged(K.class);
+              } else if (enableInterfaceMergingInInitial) {
+                inspector.assertIsCompleteMergeGroup(I.class, J.class);
               }
+              inspector.assertNoOtherClassesMerged();
             })
         .addOptionsModification(
             options -> {
@@ -82,14 +82,12 @@ public class CollisionWithDefaultMethodOutsideMergeGroupAfterSubclassMergingTest
               assertThat(aClassSubject, isImplementing(inspector.clazz(K.class)));
 
               ClassSubject cClassSubject = inspector.clazz(C.class);
-              assertThat(cClassSubject, isPresent());
-              assertThat(
-                  cClassSubject,
-                  isImplementing(
-                      inspector.clazz(
-                          parameters.canUseDefaultAndStaticInterfaceMethods()
-                              ? J.class
-                              : I.class)));
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                assertThat(cClassSubject, isPresent());
+                assertThat(cClassSubject, isImplementing(inspector.clazz(J.class)));
+              } else {
+                assertThat(cClassSubject, isAbsent());
+              }
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "K", "J");

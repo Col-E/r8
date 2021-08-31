@@ -9,7 +9,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 
 public class PrivateAndInterfaceMethodCollisionTest extends HorizontalClassMergingTestBase {
@@ -24,7 +23,15 @@ public class PrivateAndInterfaceMethodCollisionTest extends HorizontalClassMergi
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            i -> {
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                i.assertClassesMerged();
+              } else {
+                // With default method desugaring all uses of J::foo are eliminated so A and B
+                // merge.
+                i.assertIsCompleteMergeGroup(A.class, B.class);
+              }
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()

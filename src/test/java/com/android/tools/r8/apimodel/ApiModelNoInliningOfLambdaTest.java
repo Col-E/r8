@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,6 +48,7 @@ public class ApiModelNoInliningOfLambdaTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    Assume.assumeTrue("b/197494749", parameters.canUseDefaultAndStaticInterfaceMethods());
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
     testForR8(parameters.getBackend())
         .addProgramClasses(ApiCaller.class, Action.class, Main.class)
@@ -57,7 +59,6 @@ public class ApiModelNoInliningOfLambdaTest extends TestBase {
         .apply(setMockApiLevelForMethod(apiMethod, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .allowAccessModification()
-        .noMinification()
         .compile()
         .inspect(
             inspector -> {

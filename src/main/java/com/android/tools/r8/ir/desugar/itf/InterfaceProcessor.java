@@ -9,7 +9,6 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
@@ -33,7 +32,6 @@ import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentat
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
-import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -44,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 // Default and static method interface desugaring processor for interfaces.
@@ -59,14 +58,22 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   private final Map<DexProgramClass, PostProcessingInterfaceInfo> postProcessingInterfaceInfos =
       new ConcurrentHashMap<>();
 
-  InterfaceProcessor(AppView<?> appView) {
+  public InterfaceProcessor(AppView<?> appView) {
     this.appView = appView;
     helper = new InterfaceDesugaringSyntheticHelper(appView);
+  }
+
+  public InterfaceDesugaringSyntheticHelper getHelper() {
+    return helper;
   }
 
   @Override
   public void process(
       DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+    if (appView.enableWholeProgramOptimizations()) {
+      // R8 populates all info as part of enqueuing.
+      return;
+    }
     if (!iface.isInterface()) {
       return;
     }
@@ -75,9 +82,9 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   private void analyzeBridges(DexProgramClass iface) {
+    assert !appView.enableWholeProgramOptimizations();
     for (ProgramMethod method : iface.virtualProgramMethods()) {
-      DexEncodedMethod virtual = method.getDefinition();
-      if (!interfaceMethodRemovalChangesApi(virtual, iface)) {
+      if (!interfaceMethodRemovalChangesApi(method, iface)) {
         getPostProcessingInterfaceInfo(iface).setHasBridgesToRemove();
         return;
       }
@@ -86,9 +93,6 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   private void ensureCompanionClassMethods(
       DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    // TODO(b/183998768): Once fixed, the methods should be added for processing.
-    // D8 and R8 don't need to optimize the methods since they are just moved from interfaces and
-    // don't need to be re-processed.
     processVirtualInterfaceMethods(iface);
     processDirectInterfaceMethods(iface, eventConsumer);
   }
@@ -121,96 +125,76 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   private void processVirtualInterfaceMethods(DexProgramClass iface) {
+    assert !appView.enableWholeProgramOptimizations();
     for (ProgramMethod method : iface.virtualProgramMethods()) {
       DexEncodedMethod virtual = method.getDefinition();
       if (helper.isCompatibleDefaultMethod(virtual)) {
-        if (!canMoveToCompanionClass(virtual)) {
-          throw new CompilationError(
-              "One or more instruction is preventing default interface "
-                  + "method from being desugared: "
-                  + method.toSourceString(),
-              iface.origin);
-        }
-        Code code = virtual.getCode();
-        if (code == null) {
-          throw new CompilationError(
-              "Code is missing for default " + "interface method: " + method.toSourceString(),
-              iface.origin);
-        }
         // Create a new method in a companion class to represent default method implementation.
         ProgramMethod companion = helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
-        DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-            code, companion.getReference().getArity(), appView);
         finalizeMoveToCompanionMethod(method, companion);
-        getPostProcessingInterfaceInfo(iface)
-            .mapDefaultMethodToCompanionMethod(virtual, companion.getDefinition());
       }
     }
   }
 
   private void processDirectInterfaceMethods(
       DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+    assert !appView.enableWholeProgramOptimizations();
     for (ProgramMethod method : iface.directProgramMethods()) {
       DexEncodedMethod definition = method.getDefinition();
-      if (definition.isClassInitializer()) {
-        continue;
+      if (!definition.isClassInitializer()) {
+        getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
+        ProgramMethod companion =
+            helper.ensureMethodOfProgramCompanionClassStub(method, eventConsumer);
+        finalizeMoveToCompanionMethod(method, companion);
       }
-      if (definition.isInstanceInitializer()) {
-        assert false
-            : "Unexpected interface instance initializer: "
-                + method.getReference().toSourceString();
-        continue;
-      }
-
-      getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
-
-      ProgramMethod companion;
-      if (isStaticMethod(definition)) {
-        assert definition.isPrivate() || definition.isPublic()
-            : "Static interface method "
-                + method.toSourceString()
-                + " is expected to "
-                + "either be public or private in "
-                + iface.origin;
-        companion =
-            helper.ensureStaticAsMethodOfProgramCompanionClassStub(
-                method, eventConsumer::acceptCompanionClassClinit);
-      } else {
-        assert definition.isPrivate();
-        Code code = definition.getCode();
-        if (code == null) {
-          throw new CompilationError(
-              "Code is missing for private instance "
-                  + "interface method: "
-                  + method.getReference().toSourceString(),
-              iface.origin);
-        }
-        companion = helper.ensurePrivateAsMethodOfProgramCompanionClassStub(method);
-        DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-            code, companion.getReference().getArity(), appView);
-      }
-
-      finalizeMoveToCompanionMethod(method, companion);
-      getPostProcessingInterfaceInfo(iface)
-          .moveMethod(method.getReference(), companion.getReference());
     }
   }
 
-  private void finalizeMoveToCompanionMethod(ProgramMethod method, ProgramMethod companion) {
-    // TODO(b/183998768): R8 should also install an "invalid code" object until the actual code
-    //  moves.
-    assert appView.enableWholeProgramOptimizations()
-        || InvalidCode.isInvalidCode(companion.getDefinition().getCode());
+  public void finalizeMoveToCompanionMethod(ProgramMethod method, ProgramMethod companion) {
+    assert InvalidCode.isInvalidCode(companion.getDefinition().getCode());
+    if (method.getDefinition().getCode() == null) {
+      throw new CompilationError(
+          "Code is missing for private instance "
+              + "interface method: "
+              + method.getReference().toSourceString(),
+          method.getOrigin());
+    }
+    if (!canMoveToCompanionClass(method)) {
+      throw new CompilationError(
+          "One or more instruction is preventing default interface "
+              + "method from being desugared: "
+              + method.toSourceString(),
+          method.getOrigin());
+    }
     DexProgramClass iface = method.getHolder();
     DexEncodedMethod definition = method.getDefinition();
+    assert !definition.isInitializer();
+    assert !definition.isStatic() || definition.isPrivate() || definition.isPublic()
+        : "Static interface method "
+            + method.toSourceString()
+            + " is expected to "
+            + "either be public or private in "
+            + method.getOrigin();
+
+    if (definition.isStatic() || definition.isPrivate()) {
+      getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
+      getPostProcessingInterfaceInfo(iface)
+          .moveMethod(method.getReference(), companion.getReference());
+    } else {
+      assert helper.isCompatibleDefaultMethod(definition);
+      getPostProcessingInterfaceInfo(iface)
+          .mapDefaultMethodToCompanionMethod(method.getDefinition(), companion.getDefinition());
+    }
     if (definition.hasClassFileVersion()) {
       companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
     }
-    companion
-        .getDefinition()
-        .setCode(
-            definition.getCode().getCodeAsInlining(companion.getReference(), method.getReference()),
-            appView);
+    Code code =
+        definition.getCode().getCodeAsInlining(companion.getReference(), method.getReference());
+    if (!definition.isStatic()) {
+      DexEncodedMethod.setDebugInfoWithFakeThisParameter(
+          code, companion.getReference().getArity(), appView);
+    }
+    companion.getDefinition().setCode(code, appView);
     definition.setCode(InvalidCode.getInstance(), appView);
   }
 
@@ -224,8 +208,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     }
   }
 
-  private boolean canMoveToCompanionClass(DexEncodedMethod method) {
-    Code code = method.getCode();
+  private static boolean canMoveToCompanionClass(ProgramMethod method) {
+    Code code = method.getDefinition().getCode();
     assert code != null;
     if (code.isDexCode()) {
       for (Instruction insn : code.asDexCode().instructions) {
@@ -254,13 +238,9 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   // implementation to the companion class of [iface]. This is always the case for non-bridge
   // methods. Bridge methods that does not override an implementation in a super-interface must
   // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
-  private boolean interfaceMethodRemovalChangesApi(DexEncodedMethod method, DexClass iface) {
-    if (appView.enableWholeProgramOptimizations()) {
-      if (appView.appInfo().withLiveness().isPinned(method.getReference())) {
-        return true;
-      }
-    }
-    if (method.accessFlags.isBridge()) {
+  private boolean interfaceMethodRemovalChangesApi(ProgramMethod method, DexClass iface) {
+    assert !appView.enableWholeProgramOptimizations();
+    if (method.getAccessFlags().isBridge()) {
       if (appView.options().cfToCfDesugar) {
         // TODO(b/187176895): Find the compilation causing this to not be removed.
         return false;
@@ -292,27 +272,22 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     }
   }
 
-  private boolean isStaticMethod(DexEncodedMethod method) {
-    if (method.accessFlags.isNative()) {
-      throw new Unimplemented("Native interface methods are not yet supported.");
-    }
-    return method.accessFlags.isStatic()
-        && !appView.dexItemFactory().isClassConstructor(method.getReference());
-  }
-
   private InterfaceProcessorNestedGraphLens postProcessInterfaces() {
     InterfaceProcessorNestedGraphLens.Builder graphLensBuilder =
         InterfaceProcessorNestedGraphLens.builder();
     postProcessingInterfaceInfos.forEach(
         (iface, info) -> {
-          if (info.hasNonClinitDirectMethods()) {
+          if (info.hasNonClinitDirectMethods() || appView.enableWholeProgramOptimizations()) {
             clearDirectMethods(iface);
           }
           if (info.hasDefaultMethodsToImplementationMap()) {
             info.getDefaultMethodsToImplementation()
                 .forEach(
                     (defaultMethod, companionMethod) -> {
-                      defaultMethod.setDefaultInterfaceMethodImplementation(companionMethod);
+                      assert InvalidCode.isInvalidCode(defaultMethod.getCode());
+                      assert !InvalidCode.isInvalidCode(companionMethod.getCode());
+                      defaultMethod.accessFlags.setAbstract();
+                      defaultMethod.removeCode();
                       graphLensBuilder.recordCodeMovedToCompanionClass(
                           defaultMethod.getReference(), companionMethod.getReference());
                     });
@@ -321,6 +296,8 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
             info.getMethodsToMove().forEach(graphLensBuilder::move);
           }
           if (info.hasBridgesToRemove()) {
+            // D8 can remove bridges at this point.
+            assert !appView.enableWholeProgramOptimizations();
             removeBridges(iface);
           }
         });
@@ -328,12 +305,12 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   }
 
   private void removeBridges(DexProgramClass iface) {
+    assert !appView.enableWholeProgramOptimizations();
     List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
     for (ProgramMethod method : iface.virtualProgramMethods()) {
-      DexEncodedMethod virtual = method.getDefinition();
       // Remove bridge methods.
-      if (interfaceMethodRemovalChangesApi(virtual, iface)) {
-        newVirtualMethods.add(virtual);
+      if (interfaceMethodRemovalChangesApi(method, iface)) {
+        newVirtualMethods.add(method.getDefinition());
       }
     }
 
@@ -350,20 +327,26 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   @Override
   public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+    // TODO(b/196337368): Simplify this fix-up to be specific for the move of companion methods
+    //  rather than be based on a graph lens.
     InterfaceProcessorNestedGraphLens graphLens = postProcessInterfaces();
     if (graphLens != null) {
-      if (appView.enableWholeProgramOptimizations()) {
-        appView.setGraphLens(graphLens);
-      }
       new InterfaceMethodRewriterFixup(appView, graphLens).run();
-
-      graphLens.moveToPending();
     }
   }
 
   private PostProcessingInterfaceInfo getPostProcessingInterfaceInfo(DexProgramClass iface) {
     return postProcessingInterfaceInfos.computeIfAbsent(
         iface, ignored -> new PostProcessingInterfaceInfo());
+  }
+
+  public void forEachMethodToMove(BiConsumer<DexMethod, DexMethod> fn) {
+    postProcessingInterfaceInfos.forEach(
+        (iface, info) -> {
+          if (info.methodsToMove != null) {
+            info.methodsToMove.forEach(fn);
+          }
+        });
   }
 
   static class PostProcessingInterfaceInfo {
@@ -422,14 +405,11 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
 
   // Specific lens which remaps invocation types to static since all rewrites performed here
   // are to static companion methods.
-  // TODO(b/167345026): Remove the use of this lens.
+  // TODO(b/196337368): Replace this by a desugaring lens shared for D8 and R8.
   public static class InterfaceProcessorNestedGraphLens extends NestedGraphLens {
 
-    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod> extraNewMethodSignatures;
-    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
-        pendingNewMethodSignatures;
-    private BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
-        pendingExtraNewMethodSignatures;
+    private final BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
+        extraNewMethodSignatures;
 
     public InterfaceProcessorNestedGraphLens(
         AppView<?> appView,
@@ -441,52 +421,9 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
       this.extraNewMethodSignatures = extraNewMethodSignatures;
     }
 
-    public void moveToPending() {
-      // These are "pending" and installed in the "toggled" state only.
-      pendingNewMethodSignatures = newMethodSignatures;
-      pendingExtraNewMethodSignatures = extraNewMethodSignatures;
-      // The interface methods do not contribute to renaming lens info anymore, so they are cleared.
-      newMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
-      this.extraNewMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
-    }
-
-    public static InterfaceProcessorNestedGraphLens find(GraphLens lens) {
-      if (lens.isInterfaceProcessorLens()) {
-        return lens.asInterfaceProcessorLens();
-      }
-      if (lens.isIdentityLens()) {
-        return null;
-      }
-      if (lens.isNonIdentityLens()) {
-        return find(lens.asNonIdentityLens().getPrevious());
-      }
-      assert false;
-      return null;
-    }
-
-    public void enableMapping() {
-      this.newMethodSignatures = pendingExtraNewMethodSignatures;
-      this.extraNewMethodSignatures = pendingNewMethodSignatures;
-    }
-
-    public void disableMapping() {
-      this.newMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
-      this.extraNewMethodSignatures = new EmptyBidirectionalOneToOneMap<>();
-    }
-
     public BidirectionalManyToManyRepresentativeMap<DexMethod, DexMethod>
         getExtraNewMethodSignatures() {
       return extraNewMethodSignatures;
-    }
-
-    @Override
-    public boolean isInterfaceProcessorLens() {
-      return true;
-    }
-
-    @Override
-    public InterfaceProcessorNestedGraphLens asInterfaceProcessorLens() {
-      return this;
     }
 
     @Override

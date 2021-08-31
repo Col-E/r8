@@ -731,6 +731,28 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return internalEnsureDexProgramClass(kind, fn, onCreationConsumer, outerContext, type, appView);
   }
 
+  public DexClasspathClass ensureFixedClasspathClassFromType(
+      SyntheticKind kind,
+      DexType contextType,
+      AppView<?> appView,
+      Consumer<SyntheticClasspathClassBuilder> fn) {
+    SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
+    synchronized (contextType) {
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz != null) {
+        assert clazz.isClasspathClass();
+        return clazz.asClasspathClass();
+      }
+      SyntheticClasspathClassBuilder classBuilder =
+          new SyntheticClasspathClassBuilder(type, kind, outerContext, appView.dexItemFactory());
+      fn.accept(classBuilder);
+      DexClasspathClass definition = classBuilder.build();
+      addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, definition));
+      return definition;
+    }
+  }
+
   /** Create a single synthetic method item. */
   public ProgramMethod createMethod(
       SyntheticKind kind,

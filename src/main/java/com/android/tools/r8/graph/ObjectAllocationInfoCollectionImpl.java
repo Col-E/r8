@@ -534,7 +534,8 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     private boolean verifyAllSuperTypesAreInHierarchy(
         DexDefinitionSupplier definitions, Iterable<DexType> dexTypes) {
       for (DexType supertype : dexTypes) {
-        assert typeIsInHierarchy(definitions, supertype);
+        assert typeIsInHierarchy(definitions, supertype)
+            : "Type not found in hierarchy: " + supertype;
       }
       return true;
     }

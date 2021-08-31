@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -355,6 +356,7 @@ public class VerticalClassMergerTest extends TestBase {
 
   @Test
   public void testNestedDefaultInterfaceMethodsTest() throws Throwable {
+    Assume.assumeTrue("b/197494749", parameters.canUseDefaultAndStaticInterfaceMethods());
     String main = "classmerging.NestedDefaultInterfaceMethodsTest";
     Path[] programFiles =
         new Path[] {

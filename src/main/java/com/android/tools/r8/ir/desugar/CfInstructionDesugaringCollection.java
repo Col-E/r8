@@ -11,9 +11,11 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConve
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Abstracts a collection of low-level desugarings (i.e., mappings from class-file instructions to
@@ -60,8 +62,11 @@ public abstract class CfInstructionDesugaringCollection {
   public abstract <T extends Throwable> void withD8NestBasedAccessDesugaring(
       ThrowingConsumer<D8NestBasedAccessDesugaring, T> consumer) throws T;
 
-  public abstract InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaring(
+  public abstract InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringD8(
       Flavor flavor);
+
+  public abstract InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringR8(
+      Flavor flavor, Predicate<ProgramMethod> isLiveMethod, InterfaceProcessor processor);
 
   public abstract RetargetingInfo getRetargetingInfo();
 

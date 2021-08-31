@@ -501,7 +501,8 @@ public abstract class EnqueuerWorklist {
 
     @Override
     boolean enqueueAssertAction(Action assertion) {
-      throw attemptToEnqueue();
+      assertion.execute();
+      return true;
     }
 
     @Override

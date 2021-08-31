@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.unusedinterfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -57,7 +58,9 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
     assertThat(iClassSubject, isPresent());
 
     ClassSubject jClassSubject = inspector.clazz(J.class);
-    assertThat(jClassSubject, isPresent());
+    assertThat(
+        jClassSubject,
+        parameters.canUseDefaultAndStaticInterfaceMethods() ? isPresent() : isAbsent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
@@ -66,7 +69,9 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
     // m() that happens to be used.
     assertEquals(1, aClassSubject.getDexProgramClass().interfaces.size());
     assertEquals(
-        jClassSubject.getDexProgramClass().type,
+        parameters.canUseDefaultAndStaticInterfaceMethods()
+            ? jClassSubject.getDexProgramClass().type
+            : iClassSubject.getDexProgramClass().type,
         aClassSubject.getDexProgramClass().interfaces.values[0]);
   }
 

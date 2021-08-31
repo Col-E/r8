@@ -25,7 +25,7 @@ public class ListUtils {
    * as the singleton list containing {@code v} (i.e., no changes should be made to the given
    * element).
    */
-  public static <T> List<T> flatMap(
+  public static <T> List<T> flatMapSameType(
       List<T> list, Function<T, Collection<T>> fn, List<T> defaultValue) {
     List<T> result = null;
     for (int i = 0; i < list.size(); i++) {
@@ -46,6 +46,12 @@ public class ListUtils {
       }
     }
     return result != null ? result : defaultValue;
+  }
+
+  public static <S, T> List<T> flatMap(List<S> list, Function<S, Collection<T>> fn) {
+    List<T> result = new ArrayList<>();
+    list.forEach(element -> result.addAll(fn.apply(element)));
+    return result;
   }
 
   public static <T> List<T> filter(List<T> list, Predicate<? super T> predicate) {

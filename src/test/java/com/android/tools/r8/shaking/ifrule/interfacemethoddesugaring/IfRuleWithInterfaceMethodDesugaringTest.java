@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.ifrule.interfacemethoddesugaring;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
@@ -12,6 +11,8 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -34,9 +35,17 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
 
   private final TestParameters parameters;
 
+  private static final String STATIC_STR = "In Interface.staticMethod()";
+  private static final String VIRTUAL_STR = "In Interface.virtualMethod()";
+  private static final String EXPECTED_OUTPUT = StringUtils.lines(STATIC_STR, VIRTUAL_STR);
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.M).build();
+    return getTestParameters()
+        .withCfRuntimes()
+        .withDexRuntimes()
+        .withApiLevel(AndroidApiLevel.M)
+        .build();
   }
 
   public IfRuleWithInterfaceMethodDesugaringTest(TestParameters parameters) {
@@ -44,50 +53,64 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
   }
 
   @Test
+  public void testReference() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
   public void test() throws Exception {
-    String expectedOutput =
-        StringUtils.lines("In Interface.staticMethod()", "In Interface.virtualMethod()");
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
-
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(IfRuleWithInterfaceMethodDesugaringTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 "-if class " + Interface.class.getTypeName() + " {",
-                "  !public static void staticMethod();",
+                "  static void staticMethod();",
                 "}",
                 "-keep class " + Unused1.class.getTypeName(),
                 "-if class " + Interface.class.getTypeName() + " {",
-                "  !public !static void virtualMethod();",
+                "  !static void virtualMethod();",
                 "}",
                 "-keep class " + Unused2.class.getTypeName())
-            .allowUnusedProguardConfigurationRules()
+            .allowUnusedProguardConfigurationRules(parameters.isDexRuntime())
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .setMinApi(parameters.getApiLevel())
-            .compile()
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
+            .assertSuccessWithOutput(EXPECTED_OUTPUT)
             .inspector();
 
-    ClassSubject classSubject =
-        inspector.clazz(Interface.class.getTypeName() + getCompanionClassNameSuffix());
-    assertThat(classSubject, isPresent());
-    assertEquals(2, classSubject.allMethods().size());
+    if (parameters.isCfRuntime()) {
+      ClassSubject itfClass = inspector.clazz(Interface.class.getTypeName());
+      assertThat(itfClass, isPresent());
+      assertThat(itfClass.uniqueMethodWithName("staticMethod"), isPresent());
+      assertThat(itfClass.uniqueMethodWithName("virtualMethod"), isPresent());
+      assertThat(inspector.clazz(Unused1.class), isPresent());
+      assertThat(inspector.clazz(Unused2.class), isPresent());
+      return;
+    }
 
+    ClassSubject classSubject = inspector.clazz(Interface.class.getTypeName()).toCompanionClass();
+    assertThat(classSubject, isPresent());
+
+    // NeverInline is only applicable to the static method at this point (could change).
+    assertEquals(1, classSubject.allMethods().size());
     MethodSubject staticMethodSubject = classSubject.uniqueMethodWithName("staticMethod");
     assertThat(staticMethodSubject, allOf(isPresent(), isPublic(), isStatic()));
+    assertTrue(staticMethodSubject.streamInstructions().anyMatch(i -> i.isConstString(STATIC_STR)));
 
-    // TODO(b/120764902): MethodSubject.getOriginalName() not working in presence of desugaring.
-    MethodSubject virtualMethodSubject =
-        classSubject.allMethods().stream()
-            .filter(subject -> subject != staticMethodSubject)
-            .findFirst()
-            .get();
-    assertThat(virtualMethodSubject, allOf(isPresent(), isPublic(), isStatic()));
+    // The virtual method is inlined as @NeverInline does not apply at this point (could change).
+    assertTrue(
+        inspector
+            .clazz(TestClass.class)
+            .mainMethod()
+            .streamInstructions()
+            .anyMatch(i -> i.isConstString(VIRTUAL_STR)));
 
     // TODO(b/122875545): The Unused class should be present due to the -if rule.
     assertThat(inspector.clazz(Unused1.class), not(isPresent()));

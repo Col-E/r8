@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming.applymapping.desugar;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -21,14 +22,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+// Reproduction for b/196345511.
 @RunWith(Parameterized.class)
-public class DefaultInterfaceMethodTest extends TestBase {
+public class StaticInterfaceMethodTest extends TestBase {
 
   public static final String OUTPUT = "Called LibraryInterface::foo";
   public static final String EXPECTED = StringUtils.lines(OUTPUT);
 
   public interface LibraryInterface {
-    default void foo() {
+    static void foo() {
       System.out.println(OUTPUT);
     }
   }
@@ -36,7 +38,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
   public static class ProgramClass implements LibraryInterface {
 
     public static void main(String[] args) {
-      new ProgramClass().foo();
+      LibraryInterface.foo();
     }
   }
 
@@ -47,7 +49,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public DefaultInterfaceMethodTest(TestParameters parameters) {
+  public StaticInterfaceMethodTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -79,12 +81,16 @@ public class DefaultInterfaceMethodTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .compile();
     CodeInspector inspector = libraryResult.inspector();
-    assertThat(inspector.clazz(LibraryInterface.class), isPresent());
-    assertThat(inspector.method(LibraryInterface.class.getMethod("foo")), isPresent());
-    if (!parameters.canUseDefaultAndStaticInterfaceMethods()) {
+    ClassSubject libraryInterface = inspector.clazz(LibraryInterface.class);
+    assertThat(libraryInterface, isPresent());
+    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      assertThat(libraryInterface.method(LibraryInterface.class.getMethod("foo")), isPresent());
+    } else {
+      // Desugaring must remove the static on the interface.
+      assertThat(libraryInterface.method(LibraryInterface.class.getMethod("foo")), isAbsent());
+      // Check that we included the companion class and method.
       ClassSubject companion =
           inspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(LibraryInterface.class));
-      // Check that we included the companion class and method.
       assertThat(companion, isPresent());
       assertEquals(1, companion.allMethods().size());
     }

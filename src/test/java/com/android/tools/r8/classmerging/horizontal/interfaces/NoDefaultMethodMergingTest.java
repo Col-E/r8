@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -17,6 +18,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,13 +44,7 @@ public class NoDefaultMethodMergingTest extends TestBase {
         .addKeepMainRule(Main.class)
         // I and J are not eligible for merging, since they declare the same default method.
         .addHorizontallyMergedClassesInspector(
-            inspector -> {
-              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-                inspector.assertNoClassesMerged();
-              } else {
-                inspector.assertIsCompleteMergeGroup(I.class, J.class);
-              }
-            })
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -59,10 +55,17 @@ public class NoDefaultMethodMergingTest extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
+              ClassSubject bClassSubject = inspector.clazz(B.class);
+              if (!parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                // When desugaring, the forwarding methods to the CC.m methods will be inlined and
+                // the class instances become dead code.
+                assertThat(aClassSubject, isAbsent());
+                assertThat(bClassSubject, isAbsent());
+                return;
+              }
               assertThat(aClassSubject, isPresent());
               assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
 
-              ClassSubject bClassSubject = inspector.clazz(B.class);
               assertThat(bClassSubject, isPresent());
               assertThat(
                   bClassSubject,

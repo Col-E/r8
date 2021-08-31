@@ -38,9 +38,9 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class)
         // TODO(b/144410139): Consider making this a compilation failure when generating DEX.
-        .assertSuccessWithOutputLinesIf(parameters.isDexRuntime(), "Hello World!")
-        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class);
+        .assertSuccessWithOutputLinesIf(parameters.isDexRuntime(), "Hello World!");
   }
 
   @Test
@@ -52,11 +52,14 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(
-            parameters.isCfRuntime()
-                ? VerifyError.class
-                // TODO(b/144410139): Consider making this a compilation failure.
-                : NullPointerException.class);
+        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class)
+        // TODO(b/144410139): Consider making this a compilation failure when generating DEX.
+        .assertSuccessWithOutputLinesIf(
+            parameters.isDexRuntime() && !parameters.canUseDefaultAndStaticInterfaceMethods(),
+            "Hello World!")
+        .assertFailureWithErrorThatThrowsIf(
+            parameters.isDexRuntime() && parameters.canUseDefaultAndStaticInterfaceMethods(),
+            NullPointerException.class);
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

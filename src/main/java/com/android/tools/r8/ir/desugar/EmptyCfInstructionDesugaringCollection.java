@@ -10,9 +10,11 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConve
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugaringCollection {
 
@@ -61,7 +63,14 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   }
 
   @Override
-  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaring(Flavor flavor) {
+  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringD8(
+      Flavor flavor) {
+    return null;
+  }
+
+  @Override
+  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringR8(
+      Flavor flavor, Predicate<ProgramMethod> isLiveMethod, InterfaceProcessor processor) {
     return null;
   }
 

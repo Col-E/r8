@@ -6,7 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbstract;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,22 +59,22 @@ public class ApiModelNoInliningOfDefaultInterfaceMethodsTest extends TestBase {
               } else {
                 ClassSubject aSubject = inspector.clazz(A.class);
                 ClassSubject apiCaller = inspector.clazz(ApiCaller.class);
-                assertThat(apiCaller, isPresent());
-                MethodSubject callApiLevel = apiCaller.uniqueMethodWithName("callApiLevel");
                 if (parameters.isCfRuntime()) {
+                  assert parameters.canUseDefaultAndStaticInterfaceMethods();
+                  assertThat(apiCaller, isPresent());
                   assertThat(aSubject, isPresent());
+                  MethodSubject callApiLevel = apiCaller.uniqueMethodWithName("callApiLevel");
                   assertThat(callApiLevel, CodeMatchers.invokesMethodWithName("apiLevel22"));
                 } else {
                   assert parameters.isDexRuntime();
-                  // TODO(b/191013385): A has a virtual method that calls callApiLevel on $CC, but
-                  //  that call should be inlined.
-                  assertThat(aSubject, isPresent());
-                  assertThat(callApiLevel, isAbstract());
-                  ClassSubject classSubject = apiCaller.toCompanionClass();
-                  assertThat(classSubject, isPresent());
-                  assertEquals(1, classSubject.allMethods().size());
+                  assert !parameters.canUseDefaultAndStaticInterfaceMethods();
+                  assertThat(apiCaller, isAbsent());
+                  assertThat(aSubject, isAbsent());
+                  ClassSubject companionClass = apiCaller.toCompanionClass();
+                  assertThat(companionClass, isPresent());
+                  assertEquals(1, companionClass.allMethods().size());
                   assertThat(
-                      classSubject.allMethods().get(0),
+                      companionClass.allMethods().get(0),
                       CodeMatchers.invokesMethodWithName("apiLevel22"));
                 }
               }

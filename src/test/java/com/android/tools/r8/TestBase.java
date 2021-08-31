@@ -775,17 +775,18 @@ public class TestBase {
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(AndroidApp app)
       throws Exception {
-    return computeAppViewWithLiveness(app, null, null);
+    return TestAppViewBuilder.builder().addAndroidApp(app).addKeepAllRule().buildWithLiveness();
   }
 
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       AndroidApp app, Class<?> mainClass) throws Exception {
-    return computeAppViewWithLiveness(
-        app,
-        factory ->
-            buildConfigForRules(factory, buildKeepRuleForClassAndMethods(mainClass, factory)));
+    return TestAppViewBuilder.builder()
+        .addAndroidApp(app)
+        .addKeepMainRule(mainClass)
+        .buildWithLiveness();
   }
 
+  // We should try to get rid of this usage of keep rule building which is very internal.
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       AndroidApp app, Function<DexItemFactory, ProguardConfiguration> keepConfig) throws Exception {
     return computeAppViewWithLiveness(app, keepConfig, null);

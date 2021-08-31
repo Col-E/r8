@@ -35,6 +35,16 @@ public class MutuallyRecursiveMethodsTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(MutuallyRecursiveMethodsTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestClass.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
   interface I {
     static boolean isEven(int i) {
       return i == 0 || isOdd(i - 1);

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -89,12 +90,17 @@ public class SingleTargetLookupTest extends AsmTestBase {
   @BeforeClass
   public static void computeAppInfo() throws Exception {
     appView =
-        computeAppViewWithLiveness(
-            buildClassesWithTestingAnnotations(CLASSES)
-                .addClassProgramData(ASM_CLASSES)
-                .addLibraryFile(getMostRecentAndroidJar())
-                .build(),
-            Main.class);
+        TestAppViewBuilder.builder()
+            .addAndroidApp(
+                buildClassesWithTestingAnnotations(CLASSES)
+                    .addClassProgramData(ASM_CLASSES)
+                    .addLibraryFile(getMostRecentAndroidJar())
+                    .build())
+            .addKeepMainRule(Main.class)
+            // Some of these tests resolve default methods.
+            // If desugared they will hit the forward methods and not the expected defaults.
+            .setMinApi(apiLevelWithDefaultInterfaceMethodsSupport())
+            .buildWithLiveness();
     appInfo = appView.appInfo();
   }
 

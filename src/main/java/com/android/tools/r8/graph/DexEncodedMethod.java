@@ -166,8 +166,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   /** Generic signature information if the attribute is present in the input */
   private MethodTypeSignature genericSignature;
 
-  private DexEncodedMethod defaultInterfaceMethodImplementation = null;
-
   private OptionalBool isLibraryMethodOverride = OptionalBool.unknown();
 
   private Int2ReferenceMap<DebugLocalInfo> parameterInfo = NO_PARAMETER_INFO;
@@ -209,21 +207,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public CompilationState getCompilationState() {
     return compilationState;
-  }
-
-  public DexEncodedMethod getDefaultInterfaceMethodImplementation() {
-    return defaultInterfaceMethodImplementation;
-  }
-
-  public void setDefaultInterfaceMethodImplementation(DexEncodedMethod implementation) {
-    assert defaultInterfaceMethodImplementation == null;
-    assert implementation != null;
-    assert code != null;
-    // TODO(b/183998768): Once R8 desugars in the enqueuer this should always be invalid code.
-    assert InvalidCode.isInvalidCode(code) || code == implementation.getCode();
-    accessFlags.setAbstract();
-    removeCode();
-    defaultInterfaceMethodImplementation = implementation;
   }
 
   /**

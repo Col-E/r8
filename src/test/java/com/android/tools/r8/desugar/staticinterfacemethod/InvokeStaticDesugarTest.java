@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.staticinterfacemethod;
 import static com.android.tools.r8.desugar.staticinterfacemethod.InvokeStaticDesugarTest.Library.foo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
@@ -151,12 +152,14 @@ public class InvokeStaticDesugarTest extends TestBase {
 
   private Set<FoundMethodSubject> getSyntheticMethods(CodeInspector inspector) {
     Set<FoundMethodSubject> methods = new HashSet<>();
-    assert inspector.allClasses().stream()
-        .allMatch(
+    inspector
+        .allClasses()
+        .forEach(
             c ->
-                !SyntheticItemsTestUtils.isExternalSynthetic(c.getFinalReference())
-                    || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(
-                        c.getFinalReference()));
+                assertTrue(
+                    !SyntheticItemsTestUtils.isExternalSynthetic(c.getFinalReference())
+                        || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(
+                            c.getFinalReference())));
     inspector.allClasses().stream()
         .filter(c -> SyntheticItemsTestUtils.isExternalStaticInterfaceCall(c.getFinalReference()))
         .forEach(c -> methods.addAll(c.allMethods(m -> !m.isInstanceInitializer())));

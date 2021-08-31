@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringForTesting.getCompanionClassNameSuffix;
-
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -13,11 +11,11 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.smali.SmaliBuilder;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -231,12 +229,7 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
   public abstract KotlinClassMetadata getKotlinClassMetadata();
 
   public ClassSubject toCompanionClass() {
-    String descriptor = reference.getDescriptor();
-    return codeInspector.clazz(
-        Reference.classFromDescriptor(
-            descriptor.substring(0, descriptor.length() - 1)
-                + getCompanionClassNameSuffix()
-                + ";"));
+    return codeInspector.clazz(SyntheticItemsTestUtils.syntheticCompanionClass(reference));
   }
 
   public abstract RetraceClassResult retrace();

@@ -14,6 +14,7 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.HorizontalClassMergingTestBase;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
@@ -23,6 +24,7 @@ public class OverrideDefaultMethodTest extends HorizontalClassMergingTestBase {
 
   @Test
   public void testR8() throws Exception {
+    Assume.assumeTrue("b/197494749", parameters.canUseDefaultAndStaticInterfaceMethods());
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)

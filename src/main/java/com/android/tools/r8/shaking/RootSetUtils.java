@@ -42,6 +42,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
+import com.android.tools.r8.ir.desugar.itf.InterfaceMethodDesugaringBaseEventConsumer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
@@ -58,6 +60,7 @@ import com.android.tools.r8.utils.OriginWithPosition;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -137,6 +140,10 @@ public class RootSetUtils {
 
     private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
 
+    private final InterfaceDesugaringSyntheticHelper interfaceDesugaringSyntheticHelper;
+    private final ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse =
+        ProgramMethodMap.create();
+
     private RootSetBuilder(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         SubtypingInfo subtypingInfo,
@@ -146,6 +153,10 @@ public class RootSetUtils {
       this.application = appView.appInfo().app().asDirect();
       this.rules = rules;
       this.options = appView.options();
+      interfaceDesugaringSyntheticHelper =
+          options.isInterfaceMethodDesugaringEnabled()
+              ? new InterfaceDesugaringSyntheticHelper(appView)
+              : null;
     }
 
     private RootSetBuilder(
@@ -383,7 +394,8 @@ public class RootSetUtils {
           dependentKeepClassCompatRule,
           identifierNameStrings,
           ifRules,
-          Lists.newArrayList(delayedRootSetActionItems));
+          Lists.newArrayList(delayedRootSetActionItems),
+          pendingMethodMoveInverse);
     }
 
     private void propagateAssumeRules(DexClass clazz) {
@@ -453,7 +465,8 @@ public class RootSetUtils {
           neverClassInline,
           dependentMinimumKeepInfo,
           dependentKeepClassCompatRule,
-          Lists.newArrayList(delayedRootSetActionItems));
+          Lists.newArrayList(delayedRootSetActionItems),
+          pendingMethodMoveInverse);
     }
 
     private static DexProgramClass testAndGetPrecondition(
@@ -1333,25 +1346,6 @@ public class RootSetUtils {
           // Don't keep lambda deserialization methods.
           return;
         }
-        // If desugaring is enabled, private and static interface methods will be moved to a
-        // companion class. So we don't need to add them to the root set in the beginning.
-        if (options.isInterfaceMethodDesugaringEnabled()
-            && method.getDefinition().hasCode()
-            && (method.getAccessFlags().isPrivate() || method.getAccessFlags().isStatic())) {
-          DexClass holder = appView.definitionFor(method.getHolderType());
-          if (holder != null && holder.isInterface()) {
-            if (rule.isSpecific()) {
-              options.reporter.warning(
-                  new StringDiagnostic(
-                      "The rule `"
-                          + rule
-                          + "` is ignored because the targeting interface method `"
-                          + method.getReference().toSourceString()
-                          + "` will be desugared."));
-            }
-            return;
-          }
-        }
       }
 
       // The reason for keeping should link to the conditional rule as a whole, if present.
@@ -1386,6 +1380,44 @@ public class RootSetUtils {
                 : new InstantiatedClassEnqueuerEvent(precondition);
       } else {
         preconditionEvent = UnconditionalKeepInfoEvent.get();
+      }
+
+      if (isInterfaceMethodNeedingDesugaring(item)) {
+        ProgramMethod method = item.asMethod();
+        ProgramMethod companion =
+            interfaceDesugaringSyntheticHelper.ensureMethodOfProgramCompanionClassStub(
+                method,
+                new InterfaceMethodDesugaringBaseEventConsumer() {
+                  @Override
+                  public void acceptCompanionClassClinit(ProgramMethod method) {
+                    // No processing of synthesized CC.<clinit>. They will be picked up by tracing.
+                  }
+
+                  @Override
+                  public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companion) {
+                    // The move will be included in the pending-inverse map below.
+                  }
+                });
+        // Add the method to the inverse map as tracing will now directly target the CC method.
+        pendingMethodMoveInverse.put(companion, method);
+        // Only shrinking and optimization are transferred for interface companion methods.
+        if (appView.options().isOptimizationEnabled() && !modifiers.allowsOptimization) {
+          dependentMinimumKeepInfo
+              .getOrCreateMinimumKeepInfoFor(preconditionEvent, companion.getReference())
+              .disallowOptimization();
+          context.markAsUsed();
+        }
+        if (appView.options().isShrinking() && !modifiers.allowsShrinking) {
+          dependentMinimumKeepInfo
+              .getOrCreateMinimumKeepInfoFor(preconditionEvent, companion.getReference())
+              .addRule(keepRule)
+              .disallowShrinking();
+          context.markAsUsed();
+        }
+        if (!item.asMethod().isDefaultMethod()) {
+          // Static and private methods do not apply to the original item.
+          return;
+        }
       }
 
       if (appView.options().isAccessModificationEnabled() && !modifiers.allowsAccessModification) {
@@ -1434,6 +1466,14 @@ public class RootSetUtils {
         includeDescriptorClasses(item, keepRule, preconditionEvent);
         context.markAsUsed();
       }
+    }
+
+    private boolean isInterfaceMethodNeedingDesugaring(ProgramDefinition item) {
+      return options.isInterfaceMethodDesugaringEnabled()
+          && item.isMethod()
+          && item.asMethod().getHolder().isInterface()
+          && !item.asMethod().getDefinition().isClassInitializer()
+          && item.asMethod().getDefinition().hasCode();
     }
 
     private void reportAssumeNoSideEffectsWarningForJavaLangClassMethod(
@@ -1486,6 +1526,7 @@ public class RootSetUtils {
     private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo;
     final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
     final List<DelayedRootSetActionItem> delayedRootSetActionItems;
+    public final ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse;
 
     RootSetBase(
         Set<DexMethod> neverInline,
@@ -1493,13 +1534,15 @@ public class RootSetUtils {
         Set<DexType> neverClassInline,
         DependentMinimumKeepInfoCollection dependentMinimumKeepInfo,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
-        List<DelayedRootSetActionItem> delayedRootSetActionItems) {
+        List<DelayedRootSetActionItem> delayedRootSetActionItems,
+        ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {
       this.neverInline = neverInline;
       this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
       this.neverClassInline = neverClassInline;
       this.dependentMinimumKeepInfo = dependentMinimumKeepInfo;
       this.dependentKeepClassCompatRule = dependentKeepClassCompatRule;
       this.delayedRootSetActionItems = delayedRootSetActionItems;
+      this.pendingMethodMoveInverse = pendingMethodMoveInverse;
     }
 
     Set<ProguardKeepRuleBase> getDependentKeepClassCompatRule(DexType type) {
@@ -1560,14 +1603,16 @@ public class RootSetUtils {
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         Set<DexReference> identifierNameStrings,
         Set<ProguardIfRule> ifRules,
-        List<DelayedRootSetActionItem> delayedRootSetActionItems) {
+        List<DelayedRootSetActionItem> delayedRootSetActionItems,
+        ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {
       super(
           neverInline,
           neverInlineDueToSingleCaller,
           neverClassInline,
           dependentMinimumKeepInfo,
           dependentKeepClassCompatRule,
-          delayedRootSetActionItems);
+          delayedRootSetActionItems,
+          pendingMethodMoveInverse);
       this.reasonAsked = reasonAsked;
       this.checkDiscarded = checkDiscarded;
       this.alwaysInline = alwaysInline;
@@ -1880,14 +1925,16 @@ public class RootSetUtils {
         Set<DexType> neverClassInline,
         DependentMinimumKeepInfoCollection dependentMinimumKeepInfo,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
-        List<DelayedRootSetActionItem> delayedRootSetActionItems) {
+        List<DelayedRootSetActionItem> delayedRootSetActionItems,
+        ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {
       super(
           neverInline,
           neverInlineDueToSingleCaller,
           neverClassInline,
           dependentMinimumKeepInfo,
           dependentKeepClassCompatRule,
-          delayedRootSetActionItems);
+          delayedRootSetActionItems,
+          pendingMethodMoveInverse);
     }
 
     static ConsequentRootSetBuilder builder(
@@ -1959,7 +2006,8 @@ public class RootSetUtils {
           emptyMap(),
           Collections.emptySet(),
           ifRules,
-          delayedRootSetActionItems);
+          delayedRootSetActionItems,
+          ProgramMethodMap.empty());
     }
 
     public static MainDexRootSetBuilder builder(

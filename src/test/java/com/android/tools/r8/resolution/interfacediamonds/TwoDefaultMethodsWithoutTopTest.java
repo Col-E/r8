@@ -5,17 +5,19 @@ package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestAppViewBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,21 +46,45 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
-    AppInfoWithLiveness appInfo =
-        computeAppViewWithLiveness(
-                buildClasses(CLASSES)
-                    .addClassProgramData(Collections.singletonList(transformB()))
-                    .addLibraryFile(parameters.getDefaultRuntimeLibrary())
-                    .build(),
-                Main.class)
-            .appInfo();
-    DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
-    Set<String> holders = new HashSet<>();
-    resolutionResult
-        .asFailedResolution()
-        .forEachFailureDependency(m -> holders.add(m.getHolderType().toSourceString()));
-    assertEquals(ImmutableSet.of(I.class.getTypeName(), J.class.getTypeName()), holders);
+    for (AndroidApiLevel minApi :
+        ImmutableList.of(AndroidApiLevel.B, apiLevelWithDefaultInterfaceMethodsSupport())) {
+      AppInfoWithLiveness appInfo =
+          TestAppViewBuilder.builder()
+              .addProgramClasses(CLASSES)
+              .addProgramClassFileData(transformB())
+              .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
+              .addKeepMainRule(Main.class)
+              .setMinApi(minApi)
+              .buildWithLiveness()
+              .appInfo();
+      DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
+      MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+      if (minApi.isLessThan(apiLevelWithDefaultInterfaceMethodsSupport())) {
+        // When desugaring a forwarding method throwing ICCE is inserted.
+        // Check that the resolved method throws such an exception.
+        assertTrue(
+            resolutionResult
+                .asSingleResolution()
+                .getResolvedMethod()
+                .getCode()
+                .asCfCode()
+                .getInstructions()
+                .stream()
+                .anyMatch(
+                    i ->
+                        i.isTypeInstruction()
+                            && i.asTypeInstruction().getType()
+                                == appInfo.dexItemFactory().icceType));
+      } else {
+        // When not desugaring resolution should fail. Check the failure dependencies are the two
+        // default methods in conflict.
+        Set<String> holders = new HashSet<>();
+        resolutionResult
+            .asFailedResolution()
+            .forEachFailureDependency(m -> holders.add(m.getHolderType().toSourceString()));
+        assertEquals(ImmutableSet.of(I.class.getTypeName(), J.class.getTypeName()), holders);
+      }
+    }
   }
 
   @Test

@@ -59,9 +59,12 @@ public class InterfaceEnumUnboxingTest extends EnumUnboxingTestBase {
                             SuccessUnusedDefaultMethod.EnumInterface.class,
                             SuccessUnusedDefaultMethodOverride.EnumInterface.class,
                             SuccessUnusedDefaultMethodOverrideEnum.EnumInterface.class)
-                        .assertNotUnboxed(
-                            FailureDefaultMethodUsed.EnumInterface.class,
-                            FailureUsedAsInterface.EnumInterface.class))
+                        .assertNotUnboxed(FailureUsedAsInterface.EnumInterface.class)
+                        // When desugaring interfaces the dispatch will inline the forwarding method
+                        // to the CC method allowing unboxing.
+                        .assertUnboxedIf(
+                            !parameters.canUseDefaultAndStaticInterfaceMethods(),
+                            FailureDefaultMethodUsed.EnumInterface.class))
             .noMinification()
             .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()

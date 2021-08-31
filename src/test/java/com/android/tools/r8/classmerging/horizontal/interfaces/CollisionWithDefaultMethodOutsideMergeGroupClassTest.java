@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -16,7 +17,9 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,6 +40,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
 
   @Test
   public void test() throws Exception {
+    Assume.assumeTrue("b/197494749", parameters.canUseDefaultAndStaticInterfaceMethods());
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -47,7 +51,10 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
                 inspector.assertNoClassesMerged();
               } else {
-                inspector.assertIsCompleteMergeGroup(I.class, J.class);
+                // J is removed as part of desugaring. This enables merging of its CC class.
+                inspector.assertIsCompleteMergeGroup(
+                    SyntheticItemsTestUtils.syntheticCompanionClass(J.class),
+                    SyntheticItemsTestUtils.syntheticCompanionClass(K.class));
               }
             })
         .enableInliningAnnotations()
@@ -60,19 +67,18 @@ public class CollisionWithDefaultMethodOutsideMergeGroupClassTest extends TestBa
         .inspect(
             inspector -> {
               ClassSubject aClassSubject = inspector.clazz(A.class);
-              assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
-              assertThat(aClassSubject, isImplementing(inspector.clazz(K.class)));
-
               ClassSubject bClassSubject = inspector.clazz(B.class);
-              assertThat(bClassSubject, isPresent());
-              assertThat(
-                  bClassSubject,
-                  isImplementing(
-                      inspector.clazz(
-                          parameters.canUseDefaultAndStaticInterfaceMethods()
-                              ? J.class
-                              : I.class)));
+              if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                assertThat(aClassSubject, isPresent());
+                assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
+                assertThat(aClassSubject, isImplementing(inspector.clazz(K.class)));
+                assertThat(bClassSubject, isPresent());
+                assertThat(bClassSubject, isImplementing(inspector.clazz(J.class)));
+              } else {
+                // When desugaring the calls in main will directly target the CC classes.
+                assertThat(aClassSubject, isAbsent());
+                assertThat(bClassSubject, isAbsent());
+              }
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("K", "J");

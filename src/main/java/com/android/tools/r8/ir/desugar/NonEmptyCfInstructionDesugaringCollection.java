@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.desugar.invokespecial.InvokeSpecialToSelfDesugari
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
@@ -35,6 +36,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesugaringCollection {
 
@@ -73,9 +75,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (appView.options().enableTryWithResourcesDesugaring()) {
       desugarings.add(new TwrInstructionDesugaring(appView));
     }
-    // TODO(b/183998768): Enable interface method rewriter cf to cf also in R8.
-    if (appView.options().isInterfaceMethodDesugaringEnabled()
-        && !appView.enableWholeProgramOptimizations()) {
+    if (appView.options().isInterfaceMethodDesugaringEnabled()) {
       interfaceMethodRewriter =
           new InterfaceMethodRewriter(
               appView, backportedMethodRewriter, desugaredLibraryRetargeter);
@@ -83,18 +83,11 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     } else {
       interfaceMethodRewriter = null;
     }
-    // In R8 interface method rewriting is performed in IR, we still need to filter
-    // out from API conversion methods desugared by the interface method rewriter.
-    InterfaceMethodRewriter enforcedInterfaceMethodRewriter =
-        interfaceMethodRewriter == null && appView.options().isInterfaceMethodDesugaringEnabled()
-            ? new InterfaceMethodRewriter(
-                appView, backportedMethodRewriter, desugaredLibraryRetargeter)
-            : interfaceMethodRewriter;
     desugaredLibraryAPIConverter =
         appView.rewritePrefix.isRewriting()
             ? new DesugaredLibraryAPIConverter(
                 appView,
-                enforcedInterfaceMethodRewriter,
+                interfaceMethodRewriter,
                 desugaredLibraryRetargeter,
                 backportedMethodRewriter)
             : null;
@@ -182,7 +175,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     IntBox maxStackForInstruction = new IntBox(cfCode.getMaxStack());
 
     List<CfInstruction> desugaredInstructions =
-        ListUtils.flatMap(
+        ListUtils.flatMapSameType(
             cfCode.getInstructions(),
             instruction -> {
               Collection<CfInstruction> replacement =
@@ -305,7 +298,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
           assert !alsoApplicable
                   || (appliedDesugaring instanceof InterfaceMethodRewriter
                       && (desugaring instanceof InvokeToPrivateRewriter
-                          || desugaring instanceof D8NestBasedAccessDesugaring))
+                          || desugaring instanceof NestBasedAccessDesugaring))
                   || (appliedDesugaring instanceof TwrInstructionDesugaring
                       && desugaring instanceof InterfaceMethodRewriter)
               : "Desugaring of "
@@ -330,9 +323,18 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   }
 
   @Override
-  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaring(Flavor flavor) {
+  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringD8(
+      Flavor flavor) {
     return interfaceMethodRewriter != null
-        ? interfaceMethodRewriter.getPostProcessingDesugaring(flavor)
+        ? interfaceMethodRewriter.getPostProcessingDesugaringD8(flavor)
+        : null;
+  }
+
+  @Override
+  public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringR8(
+      Flavor flavor, Predicate<ProgramMethod> isLiveMethod, InterfaceProcessor processor) {
+    return interfaceMethodRewriter != null
+        ? interfaceMethodRewriter.getPostProcessingDesugaringR8(flavor, isLiveMethod, processor)
         : null;
   }
 

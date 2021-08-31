@@ -107,7 +107,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
     assertFalse(clazz.method("int", "method", ImmutableList.of()).isPresent());
   }
 
-  private void staticMethodKeptB159987443(CodeInspector inspector) {
+  private void staticMethodKept(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithStaticMethods.class);
     assertThat(clazz, isPresent());
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());
@@ -117,13 +117,12 @@ public class StaticInterfaceMethodsTest extends TestBase {
       assertThat(companionClass, not(isPresent()));
     } else {
       assertThat(method, not(isPresent()));
-      // TODO(159987443): The companion class should be present.
-      assertThat(companionClass, not(isPresent()));
-      // Also check that method exists on companion class.
+      assertThat(companionClass, isPresent());
+      assertThat(companionClass.uniqueMethodWithName("method"), isPresent());
     }
   }
 
-  private void staticMethodKept(CodeInspector inspector) {
+  private void staticMethodKeptB160142903(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz(InterfaceWithStaticMethods.class);
     ClassSubject companionClass = clazz.toCompanionClass();
     MethodSubject method = clazz.method("int", "method", ImmutableList.of());
@@ -136,7 +135,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
       // after desugaring, only the companion class is left.
       assertThat(clazz, not(isPresent()));
       assertThat(method, not(isPresent()));
-      // TODO(159987443): The companion class should be present.
+      // TODO(160142903): The companion class should be present.
       assertThat(companionClass, not(isPresent()));
       // Also check that method exists on companion class.
     }
@@ -168,7 +167,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
             "-keep interface " + InterfaceWithStaticMethods.class.getTypeName() + "{",
             "  <methods>;",
             "}"),
-        this::staticMethodKeptB159987443);
+        this::staticMethodKept);
   }
 
   @Test
@@ -196,7 +195,7 @@ public class StaticInterfaceMethodsTest extends TestBase {
             "}");
       }
     }
-    runTest(builder.build(), this::staticMethodKept);
+    runTest(builder.build(), this::staticMethodKeptB160142903);
   }
 
   public static class TestClass {

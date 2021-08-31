@@ -1,15 +1,13 @@
 // Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.graph.ProgramMethod;
 
-public interface InterfaceMethodDesugaringEventConsumer
-    extends InterfaceMethodDesugaringBaseEventConsumer {
+public interface InterfaceMethodDesugaringBaseEventConsumer {
 
-  void acceptThrowMethod(ProgramMethod method, ProgramMethod context);
+  void acceptCompanionClassClinit(ProgramMethod method);
 
-  void acceptInvokeStaticInterfaceOutliningMethod(ProgramMethod method, ProgramMethod context);
+  void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod);
 }

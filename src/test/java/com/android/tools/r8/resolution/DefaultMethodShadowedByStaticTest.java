@@ -6,7 +6,6 @@ package com.android.tools.r8.resolution;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.resolution.shadowing1.AClassDump;
 import com.android.tools.r8.resolution.shadowing1.InterfaceDump;
@@ -39,22 +38,15 @@ public class DefaultMethodShadowedByStaticTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    TestRunResult<?> result =
-        testForRuntime(parameters)
-            .addProgramClassFileData(CLASSES)
-            .run(parameters.getRuntime(), "Main");
-    if (parameters.isDexRuntime()
-        && (parameters.getApiLevel().isLessThan(apiLevelWithStaticInterfaceMethodsSupport())
-            || parameters.getDexRuntimeVersion().equals(Version.V7_0_0))) {
-      // TODO(b/167535447): Desugaring should preserve the error.
-      result.assertSuccessWithOutputLines("42");
-    } else if (parameters.isDexRuntime()
-        && parameters.getDexRuntimeVersion().equals(Version.V7_0_0)) {
-      // Note: VM 7.0.0 without desugaring of defaults will incorrectly allow the virtual dispatch.
-      result.assertSuccessWithOutputLines("42");
-    } else {
-      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-    }
+    testForRuntime(parameters)
+        .addProgramClassFileData(CLASSES)
+        .run(parameters.getRuntime(), "Main")
+        .applyIf(
+            // When not desugaring interfaces, the v7 runtime fails to throw the correct error.
+            parameters.canUseDefaultAndStaticInterfaceMethods()
+                && parameters.isDexRuntimeVersion(Version.V7_0_0),
+            r -> r.assertSuccessWithOutputLines("42"),
+            r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));
   }
 
   @Test

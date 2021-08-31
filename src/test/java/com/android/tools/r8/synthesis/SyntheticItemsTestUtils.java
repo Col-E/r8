@@ -21,9 +21,12 @@ public class SyntheticItemsTestUtils {
   }
 
   public static ClassReference syntheticCompanionClass(Class<?> clazz) {
+    return syntheticCompanionClass(Reference.classFromClass(clazz));
+  }
+
+  public static ClassReference syntheticCompanionClass(ClassReference clazz) {
     return Reference.classFromDescriptor(
-        InterfaceDesugaringForTesting.getCompanionClassDescriptor(
-            Reference.classFromClass(clazz).getDescriptor()));
+        InterfaceDesugaringForTesting.getCompanionClassDescriptor(clazz.getDescriptor()));
   }
 
   private static ClassReference syntheticClass(Class<?> clazz, SyntheticKind kind, int id) {
@@ -72,7 +75,8 @@ public class SyntheticItemsTestUtils {
 
   public static boolean isExternalSynthetic(ClassReference reference) {
     for (SyntheticKind kind : SyntheticKind.values()) {
-      if (kind == SyntheticKind.RECORD_TAG) {
+      if (kind == SyntheticKind.RECORD_TAG
+          || kind == SyntheticKind.EMULATED_INTERFACE_MARKER_CLASS) {
         continue;
       }
       if (kind.isFixedSuffixSynthetic) {
@@ -133,5 +137,10 @@ public class SyntheticItemsTestUtils {
 
   public static Matcher<String> containsExternalSyntheticReference() {
     return containsString(SyntheticNaming.getPhaseSeparator(Phase.EXTERNAL));
+  }
+
+  public static boolean isInternalThrowNSME(MethodReference method) {
+    return SyntheticNaming.isSynthetic(
+        method.getHolderClass(), Phase.INTERNAL, SyntheticKind.THROW_NSME);
   }
 }

@@ -70,10 +70,9 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionOnClassTe
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/182335909): Ideally, this should also throw ICCE when desugaring.
         .applyIf(
-            !parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()
-                || parameters.isDexRuntimeVersion(Version.V7_0_0),
+            parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()
+                && parameters.isDexRuntimeVersion(Version.V7_0_0),
             r -> r.assertSuccessWithOutput(EXPECTED_INVALID),
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));
   }

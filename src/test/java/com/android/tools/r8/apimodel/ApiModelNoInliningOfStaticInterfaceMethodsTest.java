@@ -30,7 +30,7 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ApiModelNoInliningOfStaticInterfaceMethodsTest(TestParameters parameters) {

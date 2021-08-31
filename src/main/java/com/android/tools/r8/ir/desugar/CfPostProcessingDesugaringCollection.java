@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPICallbackSynthesizor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
@@ -15,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Predicate;
 
 public abstract class CfPostProcessingDesugaringCollection {
 
@@ -35,6 +37,7 @@ public abstract class CfPostProcessingDesugaringCollection {
 
   public abstract void postProcessingDesugaring(
       Collection<DexProgramClass> programClasses,
+      Predicate<ProgramMethod> isLiveMethod,
       CfPostProcessingDesugaringEventConsumer eventConsumer,
       ExecutorService executorService)
       throws ExecutionException;
@@ -83,6 +86,7 @@ public abstract class CfPostProcessingDesugaringCollection {
     @Override
     public void postProcessingDesugaring(
         Collection<DexProgramClass> programClasses,
+        Predicate<ProgramMethod> isLiveMethod,
         CfPostProcessingDesugaringEventConsumer eventConsumer,
         ExecutorService executorService)
         throws ExecutionException {
@@ -107,6 +111,7 @@ public abstract class CfPostProcessingDesugaringCollection {
     @Override
     public void postProcessingDesugaring(
         Collection<DexProgramClass> programClasses,
+        Predicate<ProgramMethod> isLiveMethod,
         CfPostProcessingDesugaringEventConsumer eventConsumer,
         ExecutorService executorService)
         throws ExecutionException {

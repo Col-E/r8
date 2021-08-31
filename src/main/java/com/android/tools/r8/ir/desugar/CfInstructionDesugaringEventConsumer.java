@@ -62,13 +62,27 @@ public abstract class CfInstructionDesugaringEventConsumer
       AppView<? extends AppInfoWithClassHierarchy> appView,
       BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
       BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
-      SyntheticAdditions additions) {
+      SyntheticAdditions additions,
+      BiConsumer<ProgramMethod, ProgramMethod> companionMethodConsumer) {
     return new R8CfInstructionDesugaringEventConsumer(
-        appView, lambdaClassConsumer, twrCloseResourceMethodConsumer, additions);
+        appView,
+        lambdaClassConsumer,
+        twrCloseResourceMethodConsumer,
+        additions,
+        companionMethodConsumer);
   }
 
+  // TODO(b/183998768): Remove this event consumer. It should be unneeded for R8 and for D8 the
+  //  desugaring of interface methods should be able to happen up front too avoiding the companion
+  //  callback on nest accessors.
   public static CfInstructionDesugaringEventConsumer createForDesugaredCode() {
     return new CfInstructionDesugaringEventConsumer() {
+
+      @Override
+      public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+        // A synthesized nest based accessor may itself be defined on an interface, in which case
+        // desugaring the accessor will result in a rewrite to the companion method.
+      }
 
       @Override
       public void acceptClasspathEmulatedInterface(DexClasspathClass clazz) {
@@ -164,6 +178,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     private D8CfInstructionDesugaringEventConsumer(D8MethodProcessor methodProcessor) {
       this.methodProcessor = methodProcessor;
+    }
+
+    @Override
+    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+      // Intentionally empty. Methods are moved when processing the interface definition.
     }
 
     @Override
@@ -321,15 +340,24 @@ public abstract class CfInstructionDesugaringEventConsumer
         new IdentityHashMap<>();
     private final List<InvokeSpecialBridgeInfo> pendingInvokeSpecialBridges = new ArrayList<>();
 
+    private final BiConsumer<ProgramMethod, ProgramMethod> onCompanionMethodCallback;
+
     public R8CfInstructionDesugaringEventConsumer(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         BiConsumer<LambdaClass, ProgramMethod> lambdaClassConsumer,
         BiConsumer<ProgramMethod, ProgramMethod> twrCloseResourceMethodConsumer,
-        SyntheticAdditions additions) {
+        SyntheticAdditions additions,
+        BiConsumer<ProgramMethod, ProgramMethod> onCompanionMethodCallback) {
       this.appView = appView;
       this.lambdaClassConsumer = lambdaClassConsumer;
       this.twrCloseResourceMethodConsumer = twrCloseResourceMethodConsumer;
       this.additions = additions;
+      this.onCompanionMethodCallback = onCompanionMethodCallback;
+    }
+
+    @Override
+    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companionMethod) {
+      onCompanionMethodCallback.accept(method, companionMethod);
     }
 
     @Override
@@ -344,7 +372,7 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptCompanionClassClinit(ProgramMethod method) {
-      // TODO(b/183998768): Update this once desugaring is moved to the enqueuer.
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override
@@ -354,19 +382,18 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptRecordMethod(ProgramMethod method) {
-      // Intentionally empty. The method will be hit by the tracing in R8 as if it was
-      // present in the input code, and thus nothing needs to be done.
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override
     public void acceptThrowMethod(ProgramMethod method, ProgramMethod context) {
-      assert false : "TODO(b/183998768): To be implemented";
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override
     public void acceptInvokeStaticInterfaceOutliningMethod(
         ProgramMethod method, ProgramMethod context) {
-      assert false : "TODO(b/183998768): To be implemented";
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override
@@ -376,14 +403,12 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptAPIConversion(ProgramMethod method) {
-      // Intentionally empty. The method will be hit by the tracing in R8 as if it was
-      // present in the input code, and thus nothing needs to be done.
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
-      // Intentionally empty. The backported method will be hit by the tracing in R8 as if it was
-      // present in the input code, and thus nothing needs to be done.
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override
@@ -420,8 +445,6 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
-      // Intentionally empty. The close method will be hit by the tracing in R8 as if they were
-      // present in the input code, and thus nothing needs to be done.
       // TODO(b/180091213): Remove the recording of the synthesizing context when this is accessible
       //  from synthetic items.
       twrCloseResourceMethodConsumer.accept(closeMethod, context);
