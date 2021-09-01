@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -35,9 +36,17 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
    * Note that calls to this method should generally be guarded by {@link
    * #isMaterializableInContext}.
    */
-  public abstract Instruction createMaterializingInstruction(
+  public final Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,
+      TypeAndLocalInfoSupplier info) {
+    return createMaterializingInstruction(appView, code.context(), code.valueNumberGenerator, info);
+  }
+
+  public abstract Instruction createMaterializingInstruction(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod context,
+      NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info);
 
   public abstract boolean isMaterializableInContext(

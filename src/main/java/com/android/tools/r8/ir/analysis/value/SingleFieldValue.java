@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
@@ -69,11 +69,12 @@ public abstract class SingleFieldValue extends SingleValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      IRCode code,
+      ProgramMethod context,
+      NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
     TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
     assert type.lessThanOrEqual(info.getOutType(), appView);
-    Value outValue = code.createValue(type, info.getLocalInfo());
+    Value outValue = new Value(valueNumberGenerator.next(), type, info.getLocalInfo());
     return new StaticGet(outValue, field);
   }
 

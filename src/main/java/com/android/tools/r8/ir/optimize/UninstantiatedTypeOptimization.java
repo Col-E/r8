@@ -310,7 +310,10 @@ public class UninstantiatedTypeOptimization {
       DexType type = proto.parameters.values[i];
       if (type.isAlwaysNull(appView)) {
         RemovedArgumentInfo removedArg =
-            RemovedArgumentInfo.builder().setIsAlwaysNull().setType(type).build();
+            RemovedArgumentInfo.builder()
+                .setSingleValue(appView.abstractValueFactory().createNullValue())
+                .setType(type)
+                .build();
         argInfosBuilder.addArgumentInfo(i + offset, removedArg);
       }
     }

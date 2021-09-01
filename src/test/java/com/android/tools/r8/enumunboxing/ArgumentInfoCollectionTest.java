@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import org.junit.Test;
 
 public class ArgumentInfoCollectionTest extends TestBase {
@@ -49,13 +50,22 @@ public class ArgumentInfoCollectionTest extends TestBase {
   @Test
   public void testCombineRemoved() {
     DexItemFactory factory = new DexItemFactory();
+    AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
 
     // Arguments removed: 0 1 2 3 4 -> 0 2 4.
     ArgumentInfoCollection.Builder builder1 = ArgumentInfoCollection.builder();
     builder1.addArgumentInfo(
-        1, RemovedArgumentInfo.builder().setType(factory.intType).setIsAlwaysNull().build());
+        1,
+        RemovedArgumentInfo.builder()
+            .setType(factory.intType)
+            .setSingleValue(abstractValueFactory.createNullValue())
+            .build());
     builder1.addArgumentInfo(
-        3, RemovedArgumentInfo.builder().setType(factory.intType).setIsAlwaysNull().build());
+        3,
+        RemovedArgumentInfo.builder()
+            .setType(factory.intType)
+            .setSingleValue(abstractValueFactory.createNullValue())
+            .build());
     ArgumentInfoCollection arguments1 = builder1.build();
 
     // Arguments removed: 0 2 4 -> 0. Arguments 2 and 4 are at position 1 and 2 after first removal.
@@ -69,27 +79,36 @@ public class ArgumentInfoCollectionTest extends TestBase {
 
     RemovedArgumentInfo arg1 = combine.getArgumentInfo(1).asRemovedArgumentInfo();
     assertEquals(arg1.getType(), factory.intType);
-    assertTrue(arg1.isAlwaysNull());
+    assertTrue(arg1.hasSingleValue());
     RemovedArgumentInfo arg2 = combine.getArgumentInfo(2).asRemovedArgumentInfo();
     assertEquals(arg2.getType(), factory.doubleType);
-    assertFalse(arg2.isAlwaysNull());
+    assertFalse(arg2.hasSingleValue());
     RemovedArgumentInfo arg3 = combine.getArgumentInfo(3).asRemovedArgumentInfo();
     assertEquals(arg3.getType(), factory.intType);
-    assertTrue(arg3.isAlwaysNull());
+    assertTrue(arg3.hasSingleValue());
     RemovedArgumentInfo arg4 = combine.getArgumentInfo(4).asRemovedArgumentInfo();
     assertEquals(arg4.getType(), factory.doubleType);
-    assertFalse(arg4.isAlwaysNull());
+    assertFalse(arg4.hasSingleValue());
   }
 
   @Test
   public void testCombineRemoveRewritten() {
     DexItemFactory factory = new DexItemFactory();
+    AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
 
     ArgumentInfoCollection.Builder builder1 = ArgumentInfoCollection.builder();
     builder1.addArgumentInfo(
-        1, RemovedArgumentInfo.builder().setType(factory.intType).setIsAlwaysNull().build());
+        1,
+        RemovedArgumentInfo.builder()
+            .setType(factory.intType)
+            .setSingleValue(abstractValueFactory.createNullValue())
+            .build());
     builder1.addArgumentInfo(
-        3, RemovedArgumentInfo.builder().setType(factory.intType).setIsAlwaysNull().build());
+        3,
+        RemovedArgumentInfo.builder()
+            .setType(factory.intType)
+            .setSingleValue(abstractValueFactory.createNullValue())
+            .build());
     ArgumentInfoCollection arguments1 = builder1.build();
 
     ArgumentInfoCollection.Builder builder2 = ArgumentInfoCollection.builder();
@@ -101,13 +120,13 @@ public class ArgumentInfoCollectionTest extends TestBase {
 
     RemovedArgumentInfo arg1 = combine.getArgumentInfo(1).asRemovedArgumentInfo();
     assertEquals(arg1.getType(), factory.intType);
-    assertTrue(arg1.isAlwaysNull());
+    assertTrue(arg1.hasSingleValue());
     RewrittenTypeInfo arg2 = combine.getArgumentInfo(2).asRewrittenTypeInfo();
     assertEquals(arg2.getOldType(), factory.floatType);
     assertEquals(arg2.getNewType(), factory.doubleType);
     RemovedArgumentInfo arg3 = combine.getArgumentInfo(3).asRemovedArgumentInfo();
     assertEquals(arg3.getType(), factory.intType);
-    assertTrue(arg3.isAlwaysNull());
+    assertTrue(arg3.hasSingleValue());
     RewrittenTypeInfo arg4 = combine.getArgumentInfo(4).asRewrittenTypeInfo();
     assertEquals(arg4.getOldType(), factory.floatType);
     assertEquals(arg4.getNewType(), factory.doubleType);

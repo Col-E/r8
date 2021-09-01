@@ -15,8 +15,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
@@ -74,7 +74,8 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      IRCode code,
+      ProgramMethod context,
+      NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
     TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
@@ -83,7 +84,10 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
         .isSubtype(appView.dexItemFactory().stringType, typeLattice.asClassType().getClassType())
         .isTrue();
     Value returnedValue =
-        code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);
+        new Value(
+            valueNumberGenerator.next(),
+            stringClassType(appView, definitelyNotNull()),
+            debugLocalInfo);
     DexItemBasedConstString instruction =
         new DexItemBasedConstString(returnedValue, item, nameComputationInfo);
     assert !instruction.instructionInstanceCanThrow();

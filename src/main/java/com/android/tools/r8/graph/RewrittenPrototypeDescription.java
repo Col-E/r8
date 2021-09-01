@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -68,11 +69,11 @@ public class RewrittenPrototypeDescription {
 
     public static class Builder {
 
-      private boolean isAlwaysNull = false;
-      private DexType type = null;
+      private SingleValue singleValue;
+      private DexType type;
 
-      public Builder setIsAlwaysNull() {
-        this.isAlwaysNull = true;
+      public Builder setSingleValue(SingleValue singleValue) {
+        this.singleValue = singleValue;
         return this;
       }
 
@@ -83,15 +84,15 @@ public class RewrittenPrototypeDescription {
 
       public RemovedArgumentInfo build() {
         assert type != null;
-        return new RemovedArgumentInfo(isAlwaysNull, type);
+        return new RemovedArgumentInfo(singleValue, type);
       }
     }
 
-    private final boolean isAlwaysNull;
+    private final SingleValue singleValue;
     private final DexType type;
 
-    private RemovedArgumentInfo(boolean isAlwaysNull, DexType type) {
-      this.isAlwaysNull = isAlwaysNull;
+    private RemovedArgumentInfo(SingleValue singleValue, DexType type) {
+      this.singleValue = singleValue;
       this.type = type;
     }
 
@@ -99,16 +100,20 @@ public class RewrittenPrototypeDescription {
       return new Builder();
     }
 
+    public boolean hasSingleValue() {
+      return singleValue != null;
+    }
+
+    public SingleValue getSingleValue() {
+      return singleValue;
+    }
+
     public DexType getType() {
       return type;
     }
 
-    public boolean isAlwaysNull() {
-      return isAlwaysNull;
-    }
-
     public boolean isNeverUsed() {
-      return !isAlwaysNull;
+      return !hasSingleValue();
     }
 
     @Override

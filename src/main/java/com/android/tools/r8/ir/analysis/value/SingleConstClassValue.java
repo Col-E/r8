@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstClass;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -64,7 +64,8 @@ public class SingleConstClassValue extends SingleConstValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      IRCode code,
+      ProgramMethod context,
+      NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
     TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
@@ -73,9 +74,12 @@ public class SingleConstClassValue extends SingleConstValue {
         .isSubtype(appView.dexItemFactory().classType, typeLattice.asClassType().getClassType())
         .isTrue();
     Value returnedValue =
-        code.createValue(classClassType(appView, definitelyNotNull()), debugLocalInfo);
+        new Value(
+            valueNumberGenerator.next(),
+            classClassType(appView, definitelyNotNull()),
+            debugLocalInfo);
     ConstClass instruction = new ConstClass(returnedValue, type);
-    assert !instruction.instructionMayHaveSideEffects(appView, code.context());
+    assert !instruction.instructionMayHaveSideEffects(appView, context);
     return instruction;
   }
 

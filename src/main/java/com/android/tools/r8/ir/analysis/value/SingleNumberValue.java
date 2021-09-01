@@ -11,8 +11,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -126,14 +126,17 @@ public class SingleNumberValue extends SingleConstValue
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      IRCode code,
+      ProgramMethod context,
+      NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
     TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert !typeLattice.isReferenceType() || value == 0;
     Value returnedValue =
-        code.createValue(
-            typeLattice.isReferenceType() ? TypeElement.getNull() : typeLattice, debugLocalInfo);
+        new Value(
+            valueNumberGenerator.next(),
+            typeLattice.isReferenceType() ? TypeElement.getNull() : typeLattice,
+            debugLocalInfo);
     return new ConstNumber(returnedValue, value);
   }
 

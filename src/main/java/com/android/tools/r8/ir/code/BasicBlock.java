@@ -123,6 +123,10 @@ public class BasicBlock {
     public static ThrowingInfo defaultForConstString(InternalOptions options) {
       return options.isGeneratingClassFiles() ? NO_THROW : CAN_THROW;
     }
+
+    public static ThrowingInfo defaultForInstruction(Instruction instruction) {
+      return instruction.instructionTypeCanThrow() ? CAN_THROW : NO_THROW;
+    }
   }
 
   public enum EdgeType {

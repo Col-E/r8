@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.Argument;
@@ -110,6 +111,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -1037,13 +1039,27 @@ public class IRBuilder {
   private void handleConstantOrUnusedArgument(
       int register, RemovedArgumentInfo removedArgumentInfo) {
     assert removedArgumentInfo != null;
-    if (removedArgumentInfo.isAlwaysNull()) {
+    if (removedArgumentInfo.hasSingleValue()) {
       if (pendingArgumentInstructions == null) {
         pendingArgumentInstructions = new ArrayList<>();
       }
       DebugLocalInfo local = getOutgoingLocal(register);
-      Value value = writeRegister(register, getNull(), ThrowingInfo.NO_THROW, local);
-      pendingArgumentInstructions.add(new ConstNumber(value, 0));
+      SingleValue singleValue = removedArgumentInfo.getSingleValue();
+      TypeElement type =
+          removedArgumentInfo.getType().isReferenceType() && singleValue.isNull()
+              ? getNull()
+              : removedArgumentInfo.getType().toTypeElement(appView);
+      Instruction materializingInstruction =
+          singleValue.createMaterializingInstruction(
+              appView.withClassHierarchy(),
+              method,
+              valueNumberGenerator,
+              TypeAndLocalInfoSupplier.create(type, local));
+      writeRegister(
+          register,
+          materializingInstruction.outValue(),
+          ThrowingInfo.defaultForInstruction(materializingInstruction));
+      pendingArgumentInstructions.add(materializingInstruction);
     } else {
       assert removedArgumentInfo.isNeverUsed();
     }
@@ -2339,8 +2355,12 @@ public class IRBuilder {
   // See addDebugLocalStart and addDebugLocalEnd.
   private Value writeRegister(
       int register, TypeElement typeLattice, ThrowingInfo throwing, DebugLocalInfo local) {
+    return writeRegister(
+        register, new Value(valueNumberGenerator.next(), typeLattice, local), throwing);
+  }
+
+  private Value writeRegister(int register, Value value, ThrowingInfo throwing) {
     checkRegister(register);
-    Value value = new Value(valueNumberGenerator.next(), typeLattice, local);
     currentBlock.writeCurrentDefinition(register, value, throwing);
     return value;
   }
