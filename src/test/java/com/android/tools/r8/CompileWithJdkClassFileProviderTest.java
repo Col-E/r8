@@ -1,8 +1,8 @@
 package com.android.tools.r8;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
@@ -10,7 +10,6 @@ import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
-import org.hamcrest.core.StringContains;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -81,6 +80,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
 
     TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder =
         testForR8(parameters.getBackend())
+            .setMinApi(AndroidApiLevel.B)
             .addLibraryProvider(provider)
             .addProgramClassFileData(dumpClassWhichUseJava9Flow())
             .addKeepMainRule("MySubscriber");
@@ -90,11 +90,18 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
         // java.util.concurrent.Flow$Subscriber is not present in JDK8 rt.jar.
         testBuilder.compileWithExpectedDiagnostics(
             diagnostics -> {
-              diagnostics.assertOnlyErrors();
-              diagnostics.assertErrorsCount(1);
-              assertThat(
-                  diagnostics.getErrors().get(0).getDiagnosticMessage(),
-                  StringContains.containsString("java.util.concurrent.Flow$Subscriber"));
+              diagnostics.assertErrorsMatch(
+                  diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber")));
+              if (parameters.isCfRuntime()) {
+                diagnostics.assertOnlyErrors();
+              } else {
+                // TODO(b/198368663): R8 will double report missing classes in itf desugaring.
+                diagnostics.assertWarningsMatch(
+                    diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber")));
+                diagnostics.assertErrorsCount(1);
+                diagnostics.assertWarningsCount(1);
+                diagnostics.assertInfosCount(0);
+              }
             });
       } catch (CompilationFailedException e) {
         return;

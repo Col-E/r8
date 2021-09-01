@@ -651,7 +651,7 @@ public abstract class R8RunArtTestsTest {
               "666-dex-cache-itf",
               TestCondition.match(
                   TestCondition.tools(DexTool.DX),
-                  TestCondition.R8_COMPILER,
+                  TestCondition.compilers(CompilerUnderTest.R8),
                   TestCondition.runtimes(DexVm.Version.DEFAULT)))
           // The growth limit test fails after processing by R8 because R8 will eliminate an
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
