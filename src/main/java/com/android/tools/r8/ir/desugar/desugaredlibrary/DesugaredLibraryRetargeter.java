@@ -19,11 +19,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
@@ -91,34 +86,6 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     return computeNewInvokeTarget(instruction, context).hasNewInvokeTarget();
   }
 
-  @Deprecated // Use Cf to Cf desugaring instead.
-  public void desugar(IRCode code) {
-    if (retargetLibraryMember.isEmpty()) {
-      return;
-    }
-
-    InstructionListIterator iterator = code.instructionListIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
-      if (!instruction.isInvokeMethod()) {
-        continue;
-      }
-
-      InvokeMethod invoke = instruction.asInvokeMethod();
-      DexMethod invokedMethod = invoke.getInvokedMethod();
-      boolean isInterface = invoke.getInterfaceBit();
-
-      InvokeRetargetingResult invokeRetargetingResult =
-          computeNewInvokeTarget(
-              invokedMethod, isInterface, invoke.isInvokeSuper(), code.context());
-      if (invokeRetargetingResult.hasNewInvokeTarget()) {
-        DexMethod newInvokeTarget = invokeRetargetingResult.getNewInvokeTarget(null);
-        iterator.replaceCurrentInstruction(
-            new InvokeStatic(newInvokeTarget, invoke.outValue(), invoke.inValues()));
-      }
-    }
-  }
-
   static class InvokeRetargetingResult {
 
     static InvokeRetargetingResult NO_REWRITING =
@@ -160,20 +127,14 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       return NO_REWRITING;
     }
     CfInvoke cfInvoke = instruction.asInvoke();
-    return computeNewInvokeTarget(
-        cfInvoke.getMethod(),
-        cfInvoke.isInterface(),
-        cfInvoke.isInvokeSuper(context.getHolderType()),
-        context);
-  }
-
-  private InvokeRetargetingResult computeNewInvokeTarget(
-      DexMethod invokedMethod, boolean isInterface, boolean isInvokeSuper, ProgramMethod context) {
-    InvokeRetargetingResult retarget = computeRetargetedMethod(invokedMethod, isInterface);
+    DexMethod invokedMethod = cfInvoke.getMethod();
+    InvokeRetargetingResult retarget =
+        computeRetargetedMethod(invokedMethod, cfInvoke.isInterface());
     if (!retarget.hasNewInvokeTarget()) {
       return NO_REWRITING;
     }
-    if (isInvokeSuper && matchesNonFinalHolderRewrite(invokedMethod)) {
+    if (cfInvoke.isInvokeSuper(context.getHolderType())
+        && matchesNonFinalHolderRewrite(invokedMethod)) {
       DexClassAndMethod superTarget =
           appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context);
       // Final methods can be rewritten as a normal invoke.
