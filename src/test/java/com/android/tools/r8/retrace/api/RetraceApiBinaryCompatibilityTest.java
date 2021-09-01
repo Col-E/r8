@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -75,6 +76,7 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
 
   @Test
   public void runCheckedInBinaryJar() throws Exception {
+    Assume.assumeFalse(ToolHelper.isWindows());
     for (CfRuntime cfRuntime : CfRuntime.getCheckedInCfRuntimes()) {
       RetraceApiTestHelper.runJunitOnTests(
           cfRuntime,
