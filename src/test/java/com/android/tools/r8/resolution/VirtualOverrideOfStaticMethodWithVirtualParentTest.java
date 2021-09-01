@@ -4,7 +4,6 @@
 package com.android.tools.r8.resolution;
 
 import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -13,8 +12,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -226,23 +224,18 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
   }
 
   private void checkResult(TestRunResult<?> runResult, boolean isCorrectedByR8) {
-    if (expectedToIncorrectlyRun(parameters.getRuntime(), isCorrectedByR8)) {
-      // Do to incorrect resolution, some Art VMs will resolve to Base.f (ignoring A.f) and thus
+    if (expectedToIncorrectlyRun(isCorrectedByR8)) {
+      // Do to incorrect resolution, some Art 7 will resolve to Base.f (ignoring A.f) and thus
       // virtual dispatch to C.f. See b/140013075.
       runResult.assertSuccessWithOutputLines("Called C.f");
     } else {
-      runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
+      runResult.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
     }
   }
 
-  private boolean expectedToIncorrectlyRun(TestRuntime runtime, boolean isCorrectedByR8) {
+  private boolean expectedToIncorrectlyRun(boolean isCorrectedByR8) {
     return !isCorrectedByR8
-        && runtime.isDex()
-        && runtime.asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST)
-        && runtime.asDex().getVm().isOlderThanOrEqual(DexVm.ART_7_0_0_HOST);
-  }
-
-  private static String expectedRuntimeError() {
-    return "IncompatibleClassChangeError";
+        && parameters.canUseDefaultAndStaticInterfaceMethods()
+        && parameters.isDexRuntimeVersion(Version.V7_0_0);
   }
 }
