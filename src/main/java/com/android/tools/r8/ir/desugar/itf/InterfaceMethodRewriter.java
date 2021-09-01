@@ -273,15 +273,14 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     return true;
   }
 
-  private boolean isAlreadyRewritten(
-      DexMethod method, boolean itfBit, boolean isSuper, ProgramMethod context) {
-
+  private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {
     // In Cf to Cf it is forbidden to desugar twice the same instruction, if the backported
     // method rewriter or the desugared library retargeter already desugar the instruction, they
     // take precedence and nothing has to be done here.
-    return (backportedMethodRewriter != null && backportedMethodRewriter.methodIsBackport(method))
+    return (backportedMethodRewriter != null
+            && backportedMethodRewriter.needsDesugaring(invoke, context))
         || (desugaredLibraryRetargeter != null
-            && desugaredLibraryRetargeter.hasNewInvokeTarget(method, itfBit, isSuper, context));
+            && desugaredLibraryRetargeter.needsDesugaring(invoke, context));
   }
 
   @Override
@@ -310,11 +309,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       }
       if (instruction.isInvoke()) {
         CfInvoke cfInvoke = instruction.asInvoke();
-        if (isAlreadyRewritten(
-            cfInvoke.getMethod(),
-            cfInvoke.isInterface(),
-            cfInvoke.isInvokeSuper(context.getHolderType()),
-            context)) {
+        if (isAlreadyDesugared(cfInvoke, context)) {
           continue;
         }
         if (cfInvoke.isInvokeStatic()) {
@@ -385,11 +380,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
-      if (isAlreadyRewritten(
-          cfInvoke.getMethod(),
-          cfInvoke.isInterface(),
-          cfInvoke.isInvokeSuper(context.getHolderType()),
-          context)) {
+      if (isAlreadyDesugared(cfInvoke, context)) {
         return false;
       }
       return needsRewriting(cfInvoke.getMethod(), cfInvoke.getInvokeType(context), context);
@@ -410,11 +401,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       return null;
     }
     CfInvoke invoke = instruction.asInvoke();
-    if (isAlreadyRewritten(
-        invoke.getMethod(),
-        invoke.isInterface(),
-        invoke.isInvokeSuper(context.getHolderType()),
-        context)) {
+    if (isAlreadyDesugared(invoke, context)) {
       return null;
     }
 
@@ -461,8 +448,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           };
       // TODO(b/192439456): Make a test to prove resolution is needed here and fix it.
       return rewriteInvokeStatic(
-          invoke.getMethod(),
-          invoke.isInterface(),
+          invoke,
           methodProcessingContext,
           context,
           staticOutliningMethodConsumer,
@@ -485,11 +471,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
-    if (isAlreadyRewritten(
-        invoke.getMethod(),
-        invoke.isInterface(),
-        invoke.isInvokeSuper(context.getHolderType()),
-        context)) {
+    if (isAlreadyDesugared(invoke, context)) {
       return null;
     }
 
@@ -672,14 +654,15 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private Collection<CfInstruction> rewriteInvokeStatic(
-      DexMethod invokedMethod,
-      boolean interfaceBit,
+      CfInvoke invoke,
       MethodProcessingContext methodProcessingContext,
       ProgramMethod context,
       Consumer<ProgramMethod> staticOutliningMethodConsumer,
       Function<DexMethod, Collection<CfInstruction>> rewriteInvoke,
       Function<SingleResolutionResult, Collection<CfInstruction>> rewriteToThrow,
       CfInstructionDesugaringEventConsumer eventConsumer) {
+    DexMethod invokedMethod = invoke.getMethod();
+    boolean interfaceBit = invoke.isInterface();
     if (appView.getSyntheticItems().isPendingSynthetic(invokedMethod.holder)) {
       // We did not create this code yet, but it will not require rewriting.
       return null;
@@ -727,7 +710,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           // to outline again the invoke-static. Just do nothing instead.
           return null;
         }
-        if (isAlreadyRewritten(invokedMethod, interfaceBit, false, context)) {
+        if (isAlreadyDesugared(invoke, context)) {
           return null;
         }
         ProgramMethod newProgramMethod =
