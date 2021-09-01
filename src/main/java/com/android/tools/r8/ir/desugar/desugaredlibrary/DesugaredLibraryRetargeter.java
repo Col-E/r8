@@ -154,12 +154,6 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
   }
 
-  public boolean hasNewInvokeTarget(
-      DexMethod invokedMethod, boolean isInterface, boolean isInvokeSuper, ProgramMethod context) {
-    return computeNewInvokeTarget(invokedMethod, isInterface, isInvokeSuper, context)
-        .hasNewInvokeTarget();
-  }
-
   private InvokeRetargetingResult computeNewInvokeTarget(
       CfInstruction instruction, ProgramMethod context) {
     if (retargetLibraryMember.isEmpty() || !instruction.isInvoke()) {

@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
@@ -126,9 +125,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (isAPIConversionSyntheticType(context.getHolderType(), wrapperSynthesizor, appView)) {
       return false;
     }
-    CfInvoke invoke = instruction.asInvoke();
-    return shouldRewriteInvoke(
-        invoke.getMethod(), invoke.getInvokeType(context), invoke.isInterface(), context);
+    return shouldRewriteInvoke(instruction.asInvoke(), context);
   }
 
   static boolean isAPIConversionSyntheticType(
@@ -141,26 +138,20 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     return type.descriptor.toString().startsWith(DESCRIPTOR_VIVIFIED_PREFIX);
   }
 
-  private DexClassAndMethod getMethodForDesugaring(
-      DexMethod invokedMethod, boolean isInvokeSuper, boolean isInterface, ProgramMethod context) {
+  private DexClassAndMethod getMethodForDesugaring(CfInvoke invoke, ProgramMethod context) {
+    DexMethod invokedMethod = invoke.getMethod();
     // TODO(b/191656218): Use lookupInvokeSpecial instead when this is all to Cf.
-    return isInvokeSuper
+    return invoke.isInvokeSuper(context.getHolderType())
         ? appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context)
         : appView
             .appInfoForDesugaring()
-            .resolveMethod(invokedMethod, isInterface)
+            .resolveMethod(invokedMethod, invoke.isInterface())
             .getResolutionPair();
   }
 
   // TODO(b/191656218): Consider caching the result.
-  private boolean shouldRewriteInvoke(
-      DexMethod unresolvedInvokedMethod,
-      Type invokeType,
-      boolean isInterface,
-      ProgramMethod context) {
-    DexClassAndMethod invokedMethod =
-        getMethodForDesugaring(
-            unresolvedInvokedMethod, invokeType == Type.SUPER, isInterface, context);
+  private boolean shouldRewriteInvoke(CfInvoke invoke, ProgramMethod context) {
+    DexClassAndMethod invokedMethod = getMethodForDesugaring(invoke, context);
     if (invokedMethod == null) {
       // Implies a resolution/look-up failure, we do not convert to keep the runtime error.
       return false;
@@ -176,7 +167,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (isEmulatedInterfaceOverride(invokedMethod)) {
       return false;
     }
-    if (isAlreadyDesugared(unresolvedInvokedMethod, invokeType, isInterface, context)) {
+    if (isAlreadyDesugared(invoke, context)) {
       return false;
     }
     return appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.getProto(), appView);
@@ -203,22 +194,16 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
             .containsKey(interfaceResult.getHolderType());
   }
 
-  private boolean isAlreadyDesugared(
-      DexMethod unresolvedInvokedMethod,
-      Type invokeType,
-      boolean isInterface,
-      ProgramMethod context) {
+  private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {
     if (interfaceMethodRewriter != null
-        && interfaceMethodRewriter.needsRewriting(unresolvedInvokedMethod, invokeType, context)) {
+        && interfaceMethodRewriter.needsDesugaring(invoke, context)) {
       return true;
     }
-    if (retargeter != null
-        && retargeter.hasNewInvokeTarget(
-            unresolvedInvokedMethod, isInterface, invokeType == Type.SUPER, context)) {
+    if (retargeter != null && retargeter.needsDesugaring(invoke, context)) {
       return true;
     }
     if (backportedMethodRewriter != null
-        && backportedMethodRewriter.methodIsBackport(unresolvedInvokedMethod)) {
+        && backportedMethodRewriter.needsDesugaring(invoke, context)) {
       return true;
     }
     return false;
@@ -378,8 +363,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (invoke.getMethod().isInstanceInitializer(appView.dexItemFactory())) {
       return false;
     }
-    DexClassAndMethod methodForDesugaring =
-        getMethodForDesugaring(invoke.getMethod(), false, invoke.isInterface(), context);
+    DexClassAndMethod methodForDesugaring = getMethodForDesugaring(invoke, context);
     assert methodForDesugaring != null;
     return methodForDesugaring.getAccessFlags().isPublic();
   }

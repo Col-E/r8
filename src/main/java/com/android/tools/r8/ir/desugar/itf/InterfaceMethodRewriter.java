@@ -243,7 +243,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                         + InterfaceDesugaringSyntheticHelper.COMPANION_CLASS_NAME_SUFFIX)));
   }
 
-  public boolean needsRewriting(DexMethod method, Type invokeType, ProgramMethod context) {
+  private boolean needsRewriting(DexMethod method, Type invokeType, ProgramMethod context) {
     return !isSyntheticMethodThatShouldNotBeDoubleProcessed(context)
         && invokeNeedsRewriting(method, invokeType);
   }
