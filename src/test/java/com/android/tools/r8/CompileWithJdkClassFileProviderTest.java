@@ -1,6 +1,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.fail;
@@ -8,6 +9,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
 import org.junit.Test;
@@ -92,15 +94,10 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
             diagnostics -> {
               diagnostics.assertErrorsMatch(
                   diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber")));
-              if (parameters.isCfRuntime()) {
-                diagnostics.assertOnlyErrors();
-              } else {
-                // TODO(b/198368663): R8 will double report missing classes in itf desugaring.
-                diagnostics.assertWarningsMatch(
-                    diagnosticMessage(containsString("java.util.concurrent.Flow$Subscriber")));
-                diagnostics.assertErrorsCount(1);
-                diagnostics.assertWarningsCount(1);
-                diagnostics.assertInfosCount(0);
+              diagnostics.assertOnlyErrors();
+              if (parameters.isDexRuntime()) {
+                // TODO(b/175659048): This should likely be a desugar diagnostic.
+                diagnostics.assertErrorsMatch(diagnosticType(MissingDefinitionsDiagnostic.class));
               }
             });
       } catch (CompilationFailedException e) {

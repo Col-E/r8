@@ -11,6 +11,7 @@ import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.diagnostic.internal.MissingClassInfoImpl;
 import com.android.tools.r8.diagnostic.internal.MissingDefinitionsDiagnosticImpl;
+import com.android.tools.r8.errors.DesugarDiagnostic;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -87,6 +88,17 @@ public class MissingClasses {
             .computeIfAbsent(type, ignore -> newProgramDerivedContextSet())
             .add(context);
       }
+    }
+
+    public void addNewMissingClassWithDesugarDiagnostic(
+        DexType type, ProgramDerivedContext context, DesugarDiagnostic diagnostic) {
+      // TODO(b/175659048): At this point we just throw out the diagnostic and report the
+      //  missing classes only. We should instead report the most specific diagnostic as the
+      //  information about missing for desugar is strictly more valuable than just missing.
+      //  Note that we should have deterministic reporting and so we should collect all of the
+      //  contexts for which desugaring needed the type and report all of those in the same
+      //  way as we do for missing classes.
+      addNewMissingClass(type, context);
     }
 
     public void legacyAddNewMissingClass(DexType type) {

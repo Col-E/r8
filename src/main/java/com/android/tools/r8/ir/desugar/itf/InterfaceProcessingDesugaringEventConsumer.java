@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 
 // TODO(b/183998768): Consider forcing the processing of interface methods in D8 akin to R8.
@@ -18,4 +19,7 @@ public interface InterfaceProcessingDesugaringEventConsumer
 
   void acceptEmulatedInterfaceMarkerInterface(
       DexProgramClass clazz, DexClasspathClass newInterface);
+
+  void warnMissingInterface(
+      DexProgramClass context, DexType missing, InterfaceDesugaringSyntheticHelper helper);
 }

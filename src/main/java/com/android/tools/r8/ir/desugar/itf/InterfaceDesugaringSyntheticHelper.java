@@ -526,7 +526,8 @@ public class InterfaceDesugaringSyntheticHelper {
     return shouldIgnoreFromReportsPredicate.test(missing);
   }
 
-  void warnMissingInterface(DexClass classToDesugar, DexClass implementing, DexType missing) {
+  public void warnMissingInterface(
+      DexClass classToDesugar, DexClass implementing, DexType missing) {
     // We use contains() on non hashed collection, but we know it's a 8 cases collection.
     // j$ interfaces won't be missing, they are in the desugared library.
     if (shouldIgnoreFromReports(missing)) {

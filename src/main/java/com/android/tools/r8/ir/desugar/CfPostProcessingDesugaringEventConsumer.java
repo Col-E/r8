@@ -6,14 +6,17 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessingDesugaringEventConsumer;
 import com.android.tools.r8.shaking.Enqueuer.SyntheticAdditions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiConsumer;
 
 /**
  * Specialized Event consumer for desugaring finalization. During finalization, it is not possible
@@ -31,8 +34,10 @@ public abstract class CfPostProcessingDesugaringEventConsumer
   }
 
   public static R8PostProcessingDesugaringEventConsumer createForR8(
-      SyntheticAdditions additions, CfInstructionDesugaringCollection desugaring) {
-    return new R8PostProcessingDesugaringEventConsumer(additions, desugaring);
+      SyntheticAdditions additions,
+      CfInstructionDesugaringCollection desugaring,
+      BiConsumer<DexProgramClass, DexType> missingClassConsumer) {
+    return new R8PostProcessingDesugaringEventConsumer(additions, desugaring, missingClassConsumer);
   }
 
   public abstract void finalizeDesugaring() throws ExecutionException;
@@ -57,6 +62,12 @@ public abstract class CfPostProcessingDesugaringEventConsumer
       assert !instructionDesugaring.needsDesugaring(method);
       assert method.getDefinition().getCode().isCfCode();
       methodsToReprocess.add(method);
+    }
+
+    @Override
+    public void warnMissingInterface(
+        DexProgramClass context, DexType missing, InterfaceDesugaringSyntheticHelper helper) {
+      helper.warnMissingInterface(context, context, missing);
     }
 
     @Override
@@ -114,11 +125,21 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     private final SyntheticAdditions additions;
     private final CfInstructionDesugaringCollection desugaring;
+    private final BiConsumer<DexProgramClass, DexType> missingClassConsumer;
 
     R8PostProcessingDesugaringEventConsumer(
-        SyntheticAdditions additions, CfInstructionDesugaringCollection desugaring) {
+        SyntheticAdditions additions,
+        CfInstructionDesugaringCollection desugaring,
+        BiConsumer<DexProgramClass, DexType> missingClassConsumer) {
       this.additions = additions;
       this.desugaring = desugaring;
+      this.missingClassConsumer = missingClassConsumer;
+    }
+
+    @Override
+    public void warnMissingInterface(
+        DexProgramClass context, DexType missing, InterfaceDesugaringSyntheticHelper helper) {
+      missingClassConsumer.accept(context, missing);
     }
 
     @Override

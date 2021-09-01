@@ -20,6 +20,7 @@ import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -108,6 +109,7 @@ import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringLookupResult;
 import com.android.tools.r8.naming.identifiernamestring.IdentifierNameStringTypeLookupResult;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AnnotationMatchResult.MatchedAnnotation;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerEvent.ClassEnqueuerEvent;
@@ -3933,7 +3935,19 @@ public class Enqueuer {
     assert workList.isEmpty();
 
     R8PostProcessingDesugaringEventConsumer eventConsumer =
-        CfPostProcessingDesugaringEventConsumer.createForR8(syntheticAdditions, desugaring);
+        CfPostProcessingDesugaringEventConsumer.createForR8(
+            syntheticAdditions,
+            desugaring,
+            (context, missing) ->
+                missingClassesBuilder.addNewMissingClassWithDesugarDiagnostic(
+                    missing,
+                    context,
+                    new InterfaceDesugarMissingTypeDiagnostic(
+                        context.getOrigin(),
+                        Position.UNKNOWN,
+                        missing.asClassReference(),
+                        context.getType().asClassReference(),
+                        null)));
     InterfaceMethodProcessorFacade interfaceDesugaring =
         desugaring.getInterfaceMethodPostProcessingDesugaringR8(
             ExcludeDexResources, liveMethods::contains, interfaceProcessor);
