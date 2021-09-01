@@ -62,7 +62,7 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
       assertEquals(existing.size(), generated.size());
       assertNotEquals(0, existing.size());
       for (Path classFile : generated) {
-        Path otherClassFile = binaryContents.resolve(classFile);
+        Path otherClassFile = binaryContents.resolve(generatedContents.relativize(classFile));
         assertTrue(Files.exists(otherClassFile));
         assertTrue(TestBase.filesAreEqual(classFile, otherClassFile));
       }
