@@ -51,6 +51,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
@@ -852,7 +853,12 @@ public class MainDexListTests extends TestBase {
                 DexString.EMPTY_ARRAY);
         Code code =
             new SynthesizedCode(
-                (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition));
+                (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition)) {
+              @Override
+              public Consumer<UseRegistry> getRegistryCallback() {
+                throw new Unreachable();
+              }
+            };
         DexEncodedMethod method =
             DexEncodedMethod.builder()
                 .setMethod(voidReturnMethod)

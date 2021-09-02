@@ -4,11 +4,13 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ListIterator;
 
 public abstract class UseRegistry {
 
   private DexItemFactory factory;
+  private TraversalContinuation continuation = TraversalContinuation.CONTINUE;
 
   public enum MethodHandleUse {
     ARGUMENT_TO_LAMBDA_METAFACTORY,
@@ -21,6 +23,15 @@ public abstract class UseRegistry {
 
   public final void accept(ProgramMethod method) {
     method.registerCodeReferences(this);
+  }
+
+  public void doBreak() {
+    assert continuation.shouldContinue();
+    continuation = TraversalContinuation.BREAK;
+  }
+
+  public TraversalContinuation getTraversalContinuation() {
+    return continuation;
   }
 
   public abstract void registerInitClass(DexType type);

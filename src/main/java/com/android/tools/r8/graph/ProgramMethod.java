@@ -62,6 +62,11 @@ public final class ProgramMethod extends DexClassAndMethod
     }
   }
 
+  public <T> T registerCodeReferencesWithResult(UseRegistryWithResult<T> registry) {
+    registerCodeReferences(registry);
+    return registry.getResult();
+  }
+
   @Override
   public ProgramMethod getContext() {
     return this;

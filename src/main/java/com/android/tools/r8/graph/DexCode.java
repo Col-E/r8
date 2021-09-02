@@ -301,12 +301,19 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   }
 
   private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
+    assert registry.getTraversalContinuation().shouldContinue();
     for (Instruction insn : instructions) {
       insn.registerUse(registry);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
     }
     for (TryHandler handler : handlers) {
       for (TypeAddrPair pair : handler.pairs) {
         registry.registerExceptionGuard(pair.type);
+        if (registry.getTraversalContinuation().shouldBreak()) {
+          return;
+        }
       }
     }
   }

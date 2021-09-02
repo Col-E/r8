@@ -42,8 +42,12 @@ public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCod
   }
 
   private void registerReachableDefinitions(UseRegistry registry) {
+    assert registry.getTraversalContinuation().shouldContinue();
     for (DexMethod typeConstructor : typeConstructors.values()) {
       registry.registerInvokeDirect(typeConstructor);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
     }
   }
 

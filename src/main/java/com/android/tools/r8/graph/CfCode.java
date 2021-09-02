@@ -551,12 +551,21 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   @Override
   public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
+    assert registry.getTraversalContinuation().shouldContinue();
     ListIterator<CfInstruction> iterator = instructions.listIterator();
     while (iterator.hasNext()) {
       CfInstruction instruction = iterator.next();
       instruction.registerUse(registry, method, iterator);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
     }
-    tryCatchRanges.forEach(tryCatch -> tryCatch.internalRegisterUse(registry, method));
+    for (CfTryCatch tryCatch : tryCatchRanges) {
+      tryCatch.internalRegisterUse(registry, method);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
+    }
   }
 
   @Override

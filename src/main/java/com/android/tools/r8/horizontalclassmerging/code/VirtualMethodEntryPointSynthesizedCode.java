@@ -17,8 +17,6 @@ import java.util.function.Consumer;
 public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
   private final Int2ReferenceSortedMap<DexMethod> mappedMethods;
 
-  private final DexItemFactory factory;
-
   public VirtualMethodEntryPointSynthesizedCode(
       Int2ReferenceSortedMap<DexMethod> mappedMethods,
       DexField classIdField,
@@ -35,7 +33,6 @@ public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
                 method,
                 position,
                 originalMethod));
-    this.factory = factory;
     this.mappedMethods = mappedMethods;
   }
 
@@ -55,8 +52,12 @@ public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
   }
 
   private void registerReachableDefinitions(UseRegistry registry) {
+    assert registry.getTraversalContinuation().shouldContinue();
     for (DexMethod mappedMethod : mappedMethods.values()) {
       registry.registerInvokeDirect(mappedMethod);
+      if (registry.getTraversalContinuation().shouldBreak()) {
+        return;
+      }
     }
   }
 

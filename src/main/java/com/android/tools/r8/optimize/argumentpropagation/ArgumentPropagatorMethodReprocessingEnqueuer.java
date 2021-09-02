@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.graph.UseRegistryWithResult;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
@@ -93,8 +93,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                   method -> {
                     AffectedMethodUseRegistry registry =
                         new AffectedMethodUseRegistry(appView, graphLens);
-                    method.registerCodeReferences(registry);
-                    if (registry.isAffected()) {
+                    if (method.registerCodeReferencesWithResult(registry)) {
                       methodsToReprocessInClass.add(method);
                     }
                   });
@@ -107,24 +106,20 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
             methodsToReprocessBuilder.addAll(methodsToReprocessForClass, currentGraphLens));
   }
 
-  static class AffectedMethodUseRegistry extends UseRegistry {
+  static class AffectedMethodUseRegistry extends UseRegistryWithResult<Boolean> {
 
     private final AppView<AppInfoWithLiveness> appView;
     private final ArgumentPropagatorGraphLens graphLens;
 
-    // Set to true if the given piece of code resolves to a method that needs rewriting according to
-    // the graph lens.
-    private boolean affected;
-
     AffectedMethodUseRegistry(
         AppView<AppInfoWithLiveness> appView, ArgumentPropagatorGraphLens graphLens) {
-      super(appView.dexItemFactory());
+      super(appView.dexItemFactory(), false);
       this.appView = appView;
       this.graphLens = graphLens;
     }
 
-    boolean isAffected() {
-      return affected;
+    private void markAffected() {
+      setResult(Boolean.TRUE);
     }
 
     @Override
@@ -163,8 +158,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
       DexMethod rewrittenMethodReference =
           graphLens.internalGetNextMethodSignature(resolvedMethod.getReference());
       if (rewrittenMethodReference != resolvedMethod.getReference()) {
-        affected = true;
-        // TODO(b/150583533): break/abort!
+        markAffected();
       }
     }
 

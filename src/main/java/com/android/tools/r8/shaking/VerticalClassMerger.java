@@ -2186,6 +2186,7 @@ public class VerticalClassMerger {
     @Override
     public Consumer<UseRegistry> getRegistryCallback() {
       return registry -> {
+        assert registry.getTraversalContinuation().shouldContinue();
         switch (type) {
           case DIRECT:
             registry.registerInvokeDirect(invocationTarget);
