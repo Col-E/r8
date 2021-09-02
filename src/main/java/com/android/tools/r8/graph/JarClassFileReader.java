@@ -668,7 +668,7 @@ public class JarClassFileReader<T extends DexClass> {
             createAnnotationSet(annotations, parent.application.options);
         DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
         DexEncodedField field =
-            new DexEncodedField(
+            DexEncodedField.create(
                 dexField,
                 flags,
                 fieldSignature,

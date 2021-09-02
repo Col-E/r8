@@ -35,7 +35,7 @@ public class LibraryFieldSynthesis {
             DexEncodedField definition = enumClass.lookupField(field);
             if (definition == null) {
               enumClass.appendInstanceField(
-                  new DexEncodedField(
+                  DexEncodedField.create(
                       field,
                       FieldAccessFlags.fromCfAccessFlags(
                           Constants.ACC_PRIVATE | Constants.ACC_FINAL),

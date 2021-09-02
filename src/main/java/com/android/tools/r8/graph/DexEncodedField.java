@@ -32,7 +32,6 @@ import java.util.function.Function;
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     implements StructuralItem<DexEncodedField> {
 
-  public static final boolean D8_R8_SYNTHESIZED = true;
   public static final boolean NOT_DEPRECATED = false;
   public static final DexValue NO_STATIC_VALUE = null;
   public static final DexEncodedField[] EMPTY_ARRAY = {};
@@ -56,38 +55,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     // TODO(b/171867022): Should the optimization info and member info be part of the definition?
   }
 
-  public DexEncodedField(DexField field, FieldAccessFlags accessFlags) {
-    this(field, accessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
-  }
-
-  public DexEncodedField(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue) {
-    this(field, accessFlags, genericSignature, annotations, staticValue, false);
-  }
-
-  public DexEncodedField(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue,
-      boolean deprecated) {
-    this(
-        field,
-        accessFlags,
-        genericSignature,
-        annotations,
-        staticValue,
-        deprecated,
-        false,
-        AndroidApiLevel.UNKNOWN);
-  }
-
-  public DexEncodedField(
+  private DexEncodedField(
       DexField field,
       FieldAccessFlags accessFlags,
       FieldTypeSignature genericSignature,
@@ -380,6 +348,91 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   private static Builder builder(DexEncodedField from) {
     return new Builder(from);
+  }
+
+  public static DexEncodedField create(DexField field, FieldAccessFlags accessFlags) {
+    return new DexEncodedField(
+        field,
+        accessFlags,
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        null,
+        false,
+        false,
+        AndroidApiLevel.UNKNOWN);
+  }
+
+  public static DexEncodedField create(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      FieldTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      DexValue staticValue) {
+    return new DexEncodedField(
+        field,
+        accessFlags,
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        staticValue,
+        false,
+        false,
+        AndroidApiLevel.UNKNOWN);
+  }
+
+  public static DexEncodedField create(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      FieldTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      DexValue staticValue,
+      boolean deprecated) {
+    return new DexEncodedField(
+        field,
+        accessFlags,
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        staticValue,
+        deprecated,
+        false,
+        AndroidApiLevel.UNKNOWN);
+  }
+
+  public static DexEncodedField create(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      FieldTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      DexValue staticValue,
+      boolean deprecated,
+      AndroidApiLevel apiLevel) {
+    return new DexEncodedField(
+        field,
+        accessFlags,
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        staticValue,
+        deprecated,
+        false,
+        apiLevel);
+  }
+
+  public static DexEncodedField createSynthetic(
+      DexField field,
+      FieldAccessFlags accessFlags,
+      FieldTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      DexValue staticValue,
+      boolean deprecated,
+      AndroidApiLevel apiLevel) {
+    return new DexEncodedField(
+        field,
+        accessFlags,
+        FieldTypeSignature.noSignature(),
+        DexAnnotationSet.empty(),
+        staticValue,
+        deprecated,
+        true,
+        apiLevel);
   }
 
   public static class Builder {

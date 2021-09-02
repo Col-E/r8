@@ -214,16 +214,14 @@ public class ClassMerger {
     assert mode.isInitial();
 
     boolean deprecated = false;
-    boolean d8R8Synthesized = true;
     DexEncodedField classIdField =
-        new DexEncodedField(
+        DexEncodedField.createSynthetic(
             group.getClassIdField(),
             FieldAccessFlags.createPublicFinalSynthetic(),
             FieldTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             null,
             deprecated,
-            d8R8Synthesized,
             minApiLevelIfEnabledOrUnknown(appView));
 
     // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may

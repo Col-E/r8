@@ -224,16 +224,14 @@ public final class LambdaClass {
     List<DexEncodedField> fields = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
       boolean deprecated = false;
-      boolean d8R8Synthesized = true;
       fields.add(
-          new DexEncodedField(
+          DexEncodedField.createSynthetic(
               getCaptureField(i),
               FieldAccessFlags.createPublicFinalSynthetic(),
               FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               null,
               deprecated,
-              d8R8Synthesized,
               // The api level is computed when tracing.
               AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView)));
     }
@@ -246,10 +244,9 @@ public final class LambdaClass {
       // Create instance field for stateless lambda.
       assert this.lambdaField != null;
       boolean deprecated = false;
-      boolean d8R8Synthesized = true;
       builder.setStaticFields(
           Collections.singletonList(
-              new DexEncodedField(
+              DexEncodedField.createSynthetic(
                   this.lambdaField,
                   FieldAccessFlags.fromSharedAccessFlags(
                       Constants.ACC_PUBLIC
@@ -260,7 +257,6 @@ public final class LambdaClass {
                   DexAnnotationSet.empty(),
                   DexValueNull.NULL,
                   deprecated,
-                  d8R8Synthesized,
                   // The api level is computed when tracing.
                   AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))));
     }

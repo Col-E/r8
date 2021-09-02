@@ -84,14 +84,13 @@ public class ClassInitFieldSynthesizer {
                   | Constants.ACC_STATIC);
       boolean deprecated = false;
       encodedClinitField =
-          new DexEncodedField(
+          DexEncodedField.createSynthetic(
               appView.dexItemFactory().createField(clazz.type, clinitField.type, clinitField.name),
               accessFlags,
               FieldTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               null,
               deprecated,
-              DexEncodedField.D8_R8_SYNTHESIZED,
               minApiLevelIfEnabledOrUnknown(appView));
       clazz.appendStaticField(encodedClinitField);
     }

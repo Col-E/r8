@@ -651,7 +651,7 @@ public class DexParser<T extends DexClass> {
         }
       }
       fields[i] =
-          new DexEncodedField(
+          DexEncodedField.create(
               field, accessFlags, fieldTypeSignature, fieldAnnotations, staticValue);
     }
     return fields;

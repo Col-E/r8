@@ -456,7 +456,7 @@ public class InterfaceDesugaringSyntheticHelper {
             dexItemFactory.intType,
             "$desugar$clinit",
             candidate -> iface.lookupField(candidate) == null);
-    return new DexEncodedField(
+    return DexEncodedField.create(
         clinitFieldReference,
         FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),
         FieldTypeSignature.noSignature(),

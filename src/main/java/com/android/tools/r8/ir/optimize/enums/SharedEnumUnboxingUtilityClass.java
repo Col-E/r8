@@ -226,7 +226,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
     private DexEncodedField createValuesField(DexType sharedUtilityClassType) {
       DexEncodedField valuesField =
-          new DexEncodedField(
+          DexEncodedField.createSynthetic(
               dexItemFactory.createField(
                   sharedUtilityClassType, dexItemFactory.intArrayType, "$VALUES"),
               FieldAccessFlags.createPublicStaticFinalSynthetic(),
@@ -234,7 +234,6 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               DexAnnotationSet.empty(),
               DexEncodedField.NO_STATIC_VALUE,
               DexEncodedField.NOT_DEPRECATED,
-              DexEncodedField.D8_R8_SYNTHESIZED,
               minApiLevelIfEnabledOrUnknown(appView));
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())

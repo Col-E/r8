@@ -686,7 +686,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     // Field is package private to be accessible from convert methods without a getter.
     FieldAccessFlags fieldAccessFlags =
         FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
-    return new DexEncodedField(
+    return DexEncodedField.create(
         field, fieldAccessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
   }
 
