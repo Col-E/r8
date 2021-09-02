@@ -38,16 +38,9 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
@@ -66,14 +59,12 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -918,61 +909,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       SingleResolutionResult resolutionResult, boolean isInvokeStatic) {
     return resolutionResult == null
         || resolutionResult.getResolvedMethod().isStatic() != isInvokeStatic;
-  }
-
-  private Collection<CfInstruction> rewriteInvokeToThrowIR(
-      InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
-      IRCode code,
-      ListIterator<BasicBlock> blockIterator,
-      InstructionListIterator instructions,
-      Set<Value> affectedValues,
-      Set<BasicBlock> blocksToRemove,
-      MethodProcessor methodProcessor,
-      MethodProcessingContext methodProcessingContext) {
-    MethodSynthesizerConsumer methodSynthesizerConsumer;
-    if (resolutionResult == null) {
-      methodSynthesizerConsumer =
-          UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
-    } else if (resolutionResult.getResolvedMethod().isStatic() != invoke.isInvokeStatic()) {
-      methodSynthesizerConsumer =
-          UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod;
-    } else {
-      assert false;
-      return null;
-    }
-
-    // Replace by throw new SomeException.
-    UtilityMethodForCodeOptimizations throwMethod =
-        methodSynthesizerConsumer.synthesizeMethod(appView, methodProcessingContext);
-    throwMethod.optimize(methodProcessor);
-
-    InvokeStatic throwInvoke =
-        InvokeStatic.builder()
-            .setMethod(throwMethod.getMethod())
-            .setFreshOutValue(appView, code)
-            .setPosition(invoke)
-            .build();
-    instructions.previous();
-
-    // Split the block before the invoke instruction, and position the block iterator at the newly
-    // created throw block (this involves rewinding the block iterator back over the blocks created
-    // as a result of critical edge splitting, if any).
-    BasicBlock throwBlock = instructions.splitCopyCatchHandlers(code, blockIterator, options);
-    IteratorUtils.previousUntil(blockIterator, block -> block == throwBlock);
-    blockIterator.next();
-
-    // Insert the `SomeException e = throwSomeException()` invoke before the goto
-    // instruction.
-    instructions.previous();
-    instructions.add(throwInvoke);
-
-    // Insert the `throw e` instruction in the newly created throw block.
-    InstructionListIterator throwBlockIterator = throwBlock.listIterator(code);
-    throwBlockIterator.next();
-    throwBlockIterator.replaceCurrentInstructionWithThrow(
-        appView, code, blockIterator, throwInvoke.outValue(), blocksToRemove, affectedValues);
-    return null;
   }
 
   private DexType maximallySpecificEmulatedInterfaceOrNull(DexMethod invokedMethod) {
