@@ -15,13 +15,7 @@ public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
     void acceptWrapperProgramClass(DexProgramClass clazz);
   }
 
-  interface DesugaredLibraryCustomConversionEventConsumer {
-
-    void acceptCustomConversionClasspathClass(DexClasspathClass clazz);
-  }
-
-  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer
-      extends DesugaredLibraryCustomConversionEventConsumer {
+  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
 
     void acceptWrapperClasspathClass(DexClasspathClass clazz);
   }

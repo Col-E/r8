@@ -77,13 +77,6 @@ public class CfInvoke extends CfInstruction {
     return method;
   }
 
-  public CfInvoke withMethod(DexMethod newMethod) {
-    if (method == newMethod) {
-      return this;
-    }
-    return new CfInvoke(opcode, newMethod, itf);
-  }
-
   public int getOpcode() {
     return opcode;
   }

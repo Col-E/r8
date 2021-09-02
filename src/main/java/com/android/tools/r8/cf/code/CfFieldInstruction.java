@@ -57,13 +57,6 @@ public class CfFieldInstruction extends CfInstruction {
     return field;
   }
 
-  public CfFieldInstruction withField(DexField newField) {
-    if (field == newField) {
-      return this;
-    }
-    return new CfFieldInstruction(opcode, newField, newField);
-  }
-
   public int getOpcode() {
     return opcode;
   }
