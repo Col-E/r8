@@ -856,13 +856,14 @@ public class MainDexListTests extends TestBase {
             new SynthesizedCode(
                 (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition));
         DexEncodedMethod method =
-            DexEncodedMethod.create(
-                voidReturnMethod,
-                access,
-                MethodTypeSignature.noSignature(),
-                DexAnnotationSet.empty(),
-                ParameterAnnotationsList.empty(),
-                code);
+            DexEncodedMethod.builder()
+                .setMethod(voidReturnMethod)
+                .setAccessFlags(access)
+                .setGenericSignature(MethodTypeSignature.noSignature())
+                .setAnnotations(DexAnnotationSet.empty())
+                .setParameterAnnotations(ParameterAnnotationsList.empty())
+                .setCode(code)
+                .build();
         ProgramMethod programMethod = new ProgramMethod(programClass, method);
         IRCode ir = code.buildIR(programMethod, appView, Origin.unknown());
         RegisterAllocator allocator = new LinearScanRegisterAllocator(appView, ir);

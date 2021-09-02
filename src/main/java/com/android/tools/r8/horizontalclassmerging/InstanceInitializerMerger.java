@@ -362,16 +362,18 @@ public class InstanceInitializerMerger {
 
     DexEncodedMethod representativeMethod = representative.getDefinition();
     DexEncodedMethod newInstanceInitializer =
-        DexEncodedMethod.createSynthetic(
-            newMethodReference,
-            getNewAccessFlags(),
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            getNewCode(newMethodReference, syntheticMethodReference, needsClassId, extraNulls),
-            getNewClassFileVersion(),
-            representativeMethod.getApiLevelForDefinition(),
-            representativeMethod.getApiLevelForCode());
+        DexEncodedMethod.syntheticBuilder()
+            .setMethod(newMethodReference)
+            .setAccessFlags(getNewAccessFlags())
+            .setGenericSignature(MethodTypeSignature.noSignature())
+            .setAnnotations(DexAnnotationSet.empty())
+            .setParameterAnnotations(ParameterAnnotationsList.empty())
+            .setCode(
+                getNewCode(newMethodReference, syntheticMethodReference, needsClassId, extraNulls))
+            .setClassFileVersion(getNewClassFileVersion())
+            .setApiLevelForDefinition(representativeMethod.getApiLevelForDefinition())
+            .setApiLevelForCode(representativeMethod.getApiLevelForCode())
+            .build();
     classMethodsBuilder.addDirectMethod(newInstanceInitializer);
 
     if (mode.isFinal()) {

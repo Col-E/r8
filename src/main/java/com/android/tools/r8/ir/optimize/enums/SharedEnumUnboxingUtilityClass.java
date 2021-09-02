@@ -248,16 +248,17 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
     private DexEncodedMethod createClassInitializer(
         DexType sharedUtilityClassType, DexEncodedField valuesField) {
-      return DexEncodedMethod.createSynthetic(
-          dexItemFactory.createClassInitializer(sharedUtilityClassType),
-          MethodAccessFlags.createForClassInitializer(),
-          MethodTypeSignature.noSignature(),
-          DexAnnotationSet.empty(),
-          ParameterAnnotationsList.empty(),
-          createClassInitializerCode(sharedUtilityClassType, valuesField),
-          CfVersion.V1_6,
-          minApiLevelIfEnabledOrUnknown(appView),
-          minApiLevelIfEnabledOrUnknown(appView));
+      return DexEncodedMethod.syntheticBuilder()
+          .setMethod(dexItemFactory.createClassInitializer(sharedUtilityClassType))
+          .setAccessFlags(MethodAccessFlags.createForClassInitializer())
+          .setGenericSignature(MethodTypeSignature.noSignature())
+          .setAnnotations(DexAnnotationSet.empty())
+          .setParameterAnnotations(ParameterAnnotationsList.empty())
+          .setCode(createClassInitializerCode(sharedUtilityClassType, valuesField))
+          .setClassFileVersion(CfVersion.V1_6)
+          .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+          .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
+          .build();
     }
 
     private CfCode createClassInitializerCode(
@@ -291,19 +292,22 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     private DexEncodedMethod createValuesMethod(
         DexType sharedUtilityClassType, DexEncodedField valuesField) {
       DexEncodedMethod valuesMethod =
-          DexEncodedMethod.createSynthetic(
-              dexItemFactory.createMethod(
-                  sharedUtilityClassType,
-                  dexItemFactory.createProto(dexItemFactory.intArrayType, dexItemFactory.intType),
-                  "values"),
-              MethodAccessFlags.createPublicStaticSynthetic(),
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              createValuesMethodCode(sharedUtilityClassType, valuesField),
-              CfVersion.V1_6,
-              minApiLevelIfEnabledOrUnknown(appView),
-              minApiLevelIfEnabledOrUnknown(appView));
+          DexEncodedMethod.syntheticBuilder()
+              .setMethod(
+                  dexItemFactory.createMethod(
+                      sharedUtilityClassType,
+                      dexItemFactory.createProto(
+                          dexItemFactory.intArrayType, dexItemFactory.intType),
+                      "values"))
+              .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+              .setGenericSignature(MethodTypeSignature.noSignature())
+              .setAnnotations(DexAnnotationSet.empty())
+              .setParameterAnnotations(ParameterAnnotationsList.empty())
+              .setCode(createValuesMethodCode(sharedUtilityClassType, valuesField))
+              .setClassFileVersion(CfVersion.V1_6)
+              .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+              .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
+              .build();
       this.valuesMethod = valuesMethod;
       return valuesMethod;
     }

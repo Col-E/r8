@@ -278,16 +278,17 @@ public class VirtualMethodMerger {
             bridgeMethodReference,
             appView.dexItemFactory());
     DexEncodedMethod newMethod =
-        DexEncodedMethod.createSynthetic(
-            newMethodReference,
-            getAccessFlags(),
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            synthesizedCode,
-            classFileVersion,
-            representativeMethod.getApiLevelForDefinition(),
-            representativeMethod.getApiLevelForCode());
+        DexEncodedMethod.syntheticBuilder()
+            .setMethod(newMethodReference)
+            .setAccessFlags(getAccessFlags())
+            .setGenericSignature(MethodTypeSignature.noSignature())
+            .setAnnotations(DexAnnotationSet.empty())
+            .setParameterAnnotations(ParameterAnnotationsList.empty())
+            .setCode(synthesizedCode)
+            .setClassFileVersion(classFileVersion)
+            .setApiLevelForDefinition(representativeMethod.getApiLevelForDefinition())
+            .setApiLevelForCode(representativeMethod.getApiLevelForCode())
+            .build();
     if (!representative.getDefinition().isLibraryMethodOverride().isUnknown()) {
       newMethod.setLibraryMethodOverride(representative.getDefinition().isLibraryMethodOverride());
     }

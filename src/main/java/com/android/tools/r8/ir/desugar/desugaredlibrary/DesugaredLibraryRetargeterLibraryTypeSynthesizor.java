@@ -140,14 +140,16 @@ public class DesugaredLibraryRetargeterLibraryTypeSynthesizor {
                       newClass,
                       ignore -> new TreeSet<>(Comparator.comparing(DexEncodedMethod::getReference)))
                   .add(
-                      DexEncodedMethod.createSynthetic(
-                          retargetMethod,
-                          MethodAccessFlags.fromCfAccessFlags(
-                              Constants.ACC_PUBLIC | Constants.ACC_STATIC, false),
-                          MethodTypeSignature.noSignature(),
-                          DexAnnotationSet.empty(),
-                          ParameterAnnotationsList.empty(),
-                          null));
+                      DexEncodedMethod.syntheticBuilder()
+                          .setMethod(retargetMethod)
+                          .setAccessFlags(
+                              MethodAccessFlags.fromCfAccessFlags(
+                                  Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
+                          .setGenericSignature(MethodTypeSignature.noSignature())
+                          .setAnnotations(DexAnnotationSet.empty())
+                          .setParameterAnnotations(ParameterAnnotationsList.empty())
+                          .setCode(null)
+                          .build());
             }
           });
     }

@@ -106,17 +106,19 @@ public class SyntheticMethodBuilder {
     assert name != null;
     DexMethod methodSignature = getMethodSignature();
     MethodAccessFlags accessFlags = getAccessFlags();
+    Code code = accessFlags.isAbstract() ? null : getCodeObject(methodSignature);
     DexEncodedMethod method =
-        DexEncodedMethod.createSynthetic(
-            methodSignature,
-            accessFlags,
-            genericSignature,
-            annotations,
-            parameterAnnotationsList,
-            accessFlags.isAbstract() ? null : getCodeObject(methodSignature),
-            classFileVersion,
-            AndroidApiLevel.UNKNOWN,
-            AndroidApiLevel.UNKNOWN);
+        DexEncodedMethod.syntheticBuilder()
+            .setMethod(methodSignature)
+            .setAccessFlags(accessFlags)
+            .setGenericSignature(genericSignature)
+            .setAnnotations(annotations)
+            .setParameterAnnotations(parameterAnnotationsList)
+            .setCode(code)
+            .setClassFileVersion(classFileVersion)
+            .setApiLevelForDefinition(AndroidApiLevel.UNKNOWN)
+            .setApiLevelForCode(AndroidApiLevel.UNKNOWN)
+            .build();
     assert isValidSyntheticMethod(method, syntheticKind);
     if (onBuildConsumer != null) {
       onBuildConsumer.accept(method);

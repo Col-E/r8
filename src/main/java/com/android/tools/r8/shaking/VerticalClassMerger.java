@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
 import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
+import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -1440,17 +1441,20 @@ public class VerticalClassMerger {
       // be updated by the end of vertical class merging.
       synthesizedBridges.add(code);
 
+      CfVersion classFileVersion =
+          method.hasClassFileVersion() ? method.getClassFileVersion() : null;
       DexEncodedMethod bridge =
-          DexEncodedMethod.createSynthetic(
-              newMethod,
-              accessFlags,
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              code,
-              method.hasClassFileVersion() ? method.getClassFileVersion() : null,
-              method.getApiLevelForDefinition(),
-              method.getApiLevelForDefinition());
+          DexEncodedMethod.syntheticBuilder()
+              .setMethod(newMethod)
+              .setAccessFlags(accessFlags)
+              .setGenericSignature(MethodTypeSignature.noSignature())
+              .setAnnotations(DexAnnotationSet.empty())
+              .setParameterAnnotations(ParameterAnnotationsList.empty())
+              .setCode(code)
+              .setClassFileVersion(classFileVersion)
+              .setApiLevelForDefinition(method.getApiLevelForDefinition())
+              .setApiLevelForCode(method.getApiLevelForDefinition())
+              .build();
       bridge.setLibraryMethodOverride(method.isLibraryMethodOverride());
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should

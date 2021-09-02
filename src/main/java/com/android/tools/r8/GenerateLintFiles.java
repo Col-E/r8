@@ -33,7 +33,6 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
@@ -153,17 +152,12 @@ public class GenerateLintFiles {
         code = buildEmptyThrowingCfCode(method.getReference());
       }
       DexEncodedMethod throwingMethod =
-          DexEncodedMethod.create(
-                  method.getReference(),
-                  method.accessFlags,
-                  MethodTypeSignature.noSignature(),
-                  DexAnnotationSet.empty(),
-                  ParameterAnnotationsList.empty(),
-                  code,
-                  CfVersion.V1_6,
-                  AndroidApiLevel.UNKNOWN,
-                  AndroidApiLevel.UNKNOWN,
-                  false)
+          DexEncodedMethod.builder()
+              .setMethod(method.getReference())
+              .setAccessFlags(method.accessFlags)
+              .setGenericSignature(MethodTypeSignature.noSignature())
+              .setCode(code)
+              .setClassFileVersion(CfVersion.V1_6)
               .build();
       if (method.isStatic() || method.isDirectMethod()) {
         directMethods.add(throwingMethod);

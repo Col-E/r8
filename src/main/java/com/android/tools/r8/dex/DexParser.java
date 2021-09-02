@@ -696,13 +696,14 @@ public class DexParser<T extends DexClass> {
         }
       }
       methods[i] =
-          DexEncodedMethod.create(
-              method,
-              accessFlags,
-              methodTypeSignature,
-              methodAnnotations,
-              parameterAnnotationsIterator.getNextFor(method),
-              code);
+          DexEncodedMethod.builder()
+              .setMethod(method)
+              .setAccessFlags(accessFlags)
+              .setGenericSignature(methodTypeSignature)
+              .setAnnotations(methodAnnotations)
+              .setParameterAnnotations(parameterAnnotationsIterator.getNextFor(method))
+              .setCode(code)
+              .build();
     }
     return methods;
   }

@@ -131,16 +131,17 @@ public class ClassMerger {
 
     AndroidApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
     DexEncodedMethod definition =
-        DexEncodedMethod.createSynthetic(
-            newMethodReference,
-            MethodAccessFlags.createForClassInitializer(),
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            classInitializerMerger.getCode(syntheticMethodReference),
-            classInitializerMerger.getCfVersion(),
-            apiReferenceLevel,
-            apiReferenceLevel);
+        DexEncodedMethod.syntheticBuilder()
+            .setMethod(newMethodReference)
+            .setAccessFlags(MethodAccessFlags.createForClassInitializer())
+            .setGenericSignature(MethodTypeSignature.noSignature())
+            .setAnnotations(DexAnnotationSet.empty())
+            .setParameterAnnotations(ParameterAnnotationsList.empty())
+            .setCode(classInitializerMerger.getCode(syntheticMethodReference))
+            .setClassFileVersion(classInitializerMerger.getCfVersion())
+            .setApiLevelForDefinition(apiReferenceLevel)
+            .setApiLevelForCode(apiReferenceLevel)
+            .build();
     classMethodsBuilder.addDirectMethod(definition);
 
     // In case we didn't synthesize CF code, we register the class initializer for conversion to dex

@@ -53,13 +53,14 @@ class CallGraphTestBase extends TestBase {
     ProgramMethod method =
         new ProgramMethod(
             clazz,
-            DexEncodedMethod.create(
-                signature,
-                MethodAccessFlags.fromDexAccessFlags(0),
-                MethodTypeSignature.noSignature(),
-                DexAnnotationSet.empty(),
-                ParameterAnnotationsList.empty(),
-                null));
+            DexEncodedMethod.builder()
+                .setMethod(signature)
+                .setAccessFlags(MethodAccessFlags.fromDexAccessFlags(0))
+                .setGenericSignature(MethodTypeSignature.noSignature())
+                .setAnnotations(DexAnnotationSet.empty())
+                .setParameterAnnotations(ParameterAnnotationsList.empty())
+                .setCode(null)
+                .build());
     return new Node(method);
   }
 

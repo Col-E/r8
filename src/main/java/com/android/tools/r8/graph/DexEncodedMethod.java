@@ -1253,17 +1253,19 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
     newFlags.unsetAbstract();
-    return DexEncodedMethod.createSynthetic(
-        newMethod,
-        newFlags,
-        MethodTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        ForwardMethodBuilder.builder(factory)
-            .setNonStaticSource(newMethod)
-            // Holder is companion class, or retarget method, not an interface.
-            .setStaticTarget(forwardMethod, false)
-            .build());
+    // Holder is companion class, or retarget method, not an interface.
+    return syntheticBuilder()
+        .setMethod(newMethod)
+        .setAccessFlags(newFlags)
+        .setGenericSignature(MethodTypeSignature.noSignature())
+        .setAnnotations(DexAnnotationSet.empty())
+        .setCode(
+            ForwardMethodBuilder.builder(factory)
+                .setNonStaticSource(newMethod)
+                // Holder is companion class, or retarget method, not an interface.
+                .setStaticTarget(forwardMethod, false)
+                .build())
+        .build();
   }
 
   public DexEncodedMethod toStaticMethodWithoutThis(AppView<AppInfoWithLiveness> appView) {
@@ -1403,134 +1405,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public void clearGenericSignature() {
     this.genericSignature = MethodTypeSignature.noSignature();
-  }
-
-  public static DexEncodedMethod create(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code) {
-    return builder()
-        .setMethod(method)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setParameterAnnotations(parameterAnnotationsList)
-        .setCode(code)
-        .build();
-  }
-
-  public static DexEncodedMethod createSynthetic(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code) {
-    return syntheticBuilder()
-        .setMethod(method)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setParameterAnnotations(parameterAnnotationsList)
-        .setCode(code)
-        .build();
-  }
-
-  public static DexEncodedMethod create(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      CfVersion classFileVersion,
-      AndroidApiLevel apiLevelForDefinition,
-      AndroidApiLevel apiLevelForCode) {
-    return builder()
-        .setMethod(method)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setParameterAnnotations(parameterAnnotationsList)
-        .setCode(code)
-        .setClassFileVersion(classFileVersion)
-        .setApiLevelForDefinition(apiLevelForDefinition)
-        .setApiLevelForCode(apiLevelForCode)
-        .build();
-  }
-
-  public static DexEncodedMethod createSynthetic(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      CfVersion classFileVersion,
-      AndroidApiLevel apiLevelForDefinition,
-      AndroidApiLevel apiLevelForCode) {
-    return syntheticBuilder()
-        .setMethod(method)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setParameterAnnotations(parameterAnnotationsList)
-        .setCode(code)
-        .setClassFileVersion(classFileVersion)
-        .setApiLevelForDefinition(apiLevelForDefinition)
-        .setApiLevelForCode(apiLevelForCode)
-        .build();
-  }
-
-  public static DexEncodedMethod.Builder create(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      CfVersion classFileVersion,
-      AndroidApiLevel apiLevelForDefinition,
-      AndroidApiLevel apiLevelForCode,
-      boolean deprecated) {
-    return builder()
-        .setMethod(method)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setParameterAnnotations(parameterAnnotationsList)
-        .setCode(code)
-        .setClassFileVersion(classFileVersion)
-        .setApiLevelForDefinition(apiLevelForDefinition)
-        .setApiLevelForCode(apiLevelForCode)
-        .setDeprecated(deprecated);
-  }
-
-  public static DexEncodedMethod.Builder createSynthetic(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      CfVersion classFileVersion,
-      AndroidApiLevel apiLevelForDefinition,
-      AndroidApiLevel apiLevelForCode,
-      boolean deprecated) {
-    return syntheticBuilder()
-        .setMethod(method)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setParameterAnnotations(parameterAnnotationsList)
-        .setCode(code)
-        .setClassFileVersion(classFileVersion)
-        .setApiLevelForDefinition(apiLevelForDefinition)
-        .setApiLevelForCode(apiLevelForCode)
-        .setDeprecated(deprecated);
   }
 
   public static Builder syntheticBuilder() {

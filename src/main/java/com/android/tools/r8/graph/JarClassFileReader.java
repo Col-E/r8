@@ -902,17 +902,17 @@ public class JarClassFileReader<T extends DexClass> {
             parent.application.getFactory()));
       }
       DexEncodedMethod dexMethod =
-          DexEncodedMethod.create(
-                  method,
-                  flags,
-                  genericSignature,
-                  createAnnotationSet(annotations, options),
-                  parameterAnnotationsList,
-                  code,
-                  parent.version,
-                  AndroidApiLevel.UNKNOWN,
-                  AndroidApiLevel.UNKNOWN,
-                  deprecated)
+          DexEncodedMethod.builder()
+              .setMethod(method)
+              .setAccessFlags(flags)
+              .setGenericSignature(genericSignature)
+              .setAnnotations(createAnnotationSet(annotations, options))
+              .setParameterAnnotations(parameterAnnotationsList)
+              .setCode(code)
+              .setClassFileVersion(parent.version)
+              .setApiLevelForDefinition(AndroidApiLevel.UNKNOWN)
+              .setApiLevelForCode(AndroidApiLevel.UNKNOWN)
+              .setDeprecated(deprecated)
               .disableParameterAnnotationListCheck()
               .build();
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
