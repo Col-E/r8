@@ -9,6 +9,7 @@ import static com.android.tools.r8.optimize.argumentpropagation.utils.StronglyCo
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
@@ -23,6 +24,8 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Ar
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -198,6 +201,14 @@ public class ArgumentPropagator {
    * postMethodProcessorBuilder}.
    */
   private void enqueueMethodsForProcessing(PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    // Before adding any methods to the reprocessing set, make sure that the set is rewritten up
+    // until the point of the current graph lens, such that all elements in the set are rewritten
+    // up until the same lens.
+    GraphLens currentGraphLens = appView.graphLens();
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder =
+        postMethodProcessorBuilder
+            .getMethodsToReprocessBuilder()
+            .rewrittenWithLens(currentGraphLens);
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethodMatching(
           DexEncodedMethod::hasCode,
@@ -206,7 +217,7 @@ public class ArgumentPropagator {
                 method.getDefinition().getCallSiteOptimizationInfo();
             if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()
                 && !appView.appInfo().isNeverReprocessMethod(method.getReference())) {
-              postMethodProcessorBuilder.add(method);
+              methodsToReprocessBuilder.add(method, currentGraphLens);
               appView.testing().callSiteOptimizationInfoInspector.accept(method);
             }
           });

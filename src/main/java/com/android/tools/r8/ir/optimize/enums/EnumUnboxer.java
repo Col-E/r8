@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
@@ -101,6 +102,7 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.HashMultiset;
@@ -135,18 +137,20 @@ public class EnumUnboxer {
   private final DexItemFactory factory;
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
-  private final EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
+  private EnumUnboxingCandidateInfoCollection enumUnboxingCandidatesInfo;
   private final Set<DexProgramClass> candidatesToRemoveInWave = Sets.newConcurrentHashSet();
   private final Map<DexType, EnumStaticFieldValues> staticFieldValuesMap =
       new ConcurrentHashMap<>();
-  private final ProgramMethodSet methodsDependingOnLibraryModelisation =
-      ProgramMethodSet.createConcurrent();
+
+  // Methods depending on library modelisation need to be reprocessed so they are peephole
+  // optimized.
+  private LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsDependingOnLibraryModelisation;
 
   // Map from checkNotNull() methods to the enums that use the given method.
   private final ProgramMethodMap<Set<DexProgramClass>> checkNotNullMethods =
       ProgramMethodMap.createConcurrent();
 
-  private final DexEncodedField ordinalField;
+  private final DexClassAndField ordinalField;
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
@@ -164,19 +168,16 @@ public class EnumUnboxer {
       debugLogs = null;
     }
     assert !appView.options().debug;
-    enumUnboxingCandidatesInfo = new EnumUnboxingCandidateAnalysis(appView, this).findCandidates();
-
     ordinalField =
-        appView.appInfo().resolveField(factory.enumMembers.ordinalField).getResolvedField();
-    if (ordinalField == null) {
-      // This can happen when compiling for non standard libraries, in that case, this effectively
-      // disables the enum unboxer.
-      enumUnboxingCandidatesInfo.clear();
-    }
+        appView.appInfo().resolveField(factory.enumMembers.ordinalField).getResolutionPair();
   }
 
   public static int ordinalToUnboxedInt(int ordinal) {
     return ordinal + 1;
+  }
+
+  public DexClassAndField getOrdinalField() {
+    return ordinalField;
   }
 
   public void updateEnumUnboxingCandidatesInfo() {
@@ -203,7 +204,7 @@ public class EnumUnboxer {
   }
 
   private void markMethodDependsOnLibraryModelisation(ProgramMethod method) {
-    methodsDependingOnLibraryModelisation.add(method);
+    methodsDependingOnLibraryModelisation.add(method, appView.graphLens());
   }
 
   private DexProgramClass getEnumUnboxingCandidateOrNull(TypeElement lattice) {
@@ -298,7 +299,7 @@ public class EnumUnboxer {
         enumUnboxingCandidatesInfo.addMethodDependency(eligibleEnum, code.context());
       }
     }
-    if (methodsDependingOnLibraryModelisation.contains(code.context())) {
+    if (methodsDependingOnLibraryModelisation.contains(code.context(), appView.graphLens())) {
       conversionOptions.disablePeepholeOptimizations();
     }
   }
@@ -555,6 +556,16 @@ public class EnumUnboxer {
     return result;
   }
 
+  public void initializeEnumUnboxingCandidates(GraphLens graphLensForPrimaryOptimizationPass) {
+    assert enumUnboxingCandidatesInfo == null;
+    enumUnboxingCandidatesInfo =
+        new EnumUnboxingCandidateAnalysis(appView, this)
+            .findCandidates(graphLensForPrimaryOptimizationPass);
+    methodsDependingOnLibraryModelisation =
+        LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet(
+            graphLensForPrimaryOptimizationPass);
+  }
+
   public void unboxEnums(
       IRConverter converter,
       PostMethodProcessor.Builder postBuilder,
@@ -577,7 +588,8 @@ public class EnumUnboxer {
     ImmutableSet<DexType> enumsToUnbox = enumUnboxingCandidatesInfo.candidates();
     ImmutableSet<DexProgramClass> enumClassesToUnbox =
         enumUnboxingCandidatesInfo.candidateClasses();
-    ProgramMethodSet dependencies = enumUnboxingCandidatesInfo.allMethodDependencies();
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> dependencies =
+        enumUnboxingCandidatesInfo.allMethodDependencies();
     enumUnboxingCandidatesInfo.clear();
     // Update keep info on any of the enum methods of the removed classes.
     updateKeepInfo(enumsToUnbox);
@@ -587,11 +599,32 @@ public class EnumUnboxer {
             .synthesizeEnumUnboxingUtilityClasses(enumClassesToUnbox, enumDataMap)
             .build(converter, executorService);
 
+    // Fixup the application.
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)
             .fixupTypeReferences(converter, executorService);
     EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
+    appView.setUnboxedEnums(enumDataMap);
+
+    // Update the graph lens.
+    appView.rewriteWithLens(enumUnboxingLens);
+
+    // Enqueue the (lens rewritten) methods that require reprocessing.
+    //
+    // Note that the reprocessing set must be rewritten to the new enum unboxing lens before pruning
+    // the builders with the methods removed by the tree fixer (since these methods references are
+    // already fully lens rewritten).
+    postBuilder
+        .getMethodsToReprocessBuilder()
+        .rewrittenWithLens(appView)
+        .merge(dependencies)
+        .merge(methodsDependingOnLibraryModelisation)
+        .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods());
+    methodsDependingOnLibraryModelisation.clear();
+
+    updateOptimizationInfos(executorService, feedback, treeFixerResult.getPrunedItems());
+
     enumUnboxerRewriter =
         new EnumUnboxingRewriter(
             appView,
@@ -600,17 +633,6 @@ public class EnumUnboxer {
             enumUnboxingLens,
             enumDataMap,
             utilityClasses);
-    appView.setUnboxedEnums(enumDataMap);
-    GraphLens previousLens = appView.graphLens();
-    appView.rewriteWithLens(enumUnboxingLens);
-    updateOptimizationInfos(executorService, feedback, treeFixerResult.getPrunedItems());
-    postBuilder.put(dependencies);
-    // Methods depending on library modelisation need to be reprocessed so they are peephole
-    // optimized.
-    postBuilder.put(methodsDependingOnLibraryModelisation);
-    methodsDependingOnLibraryModelisation.clear();
-    postBuilder.removePrunedMethods(treeFixerResult.getPrunedItems().getRemovedMethods());
-    postBuilder.rewrittenWithLens(appView, previousLens);
   }
 
   private void updateOptimizationInfos(
@@ -842,7 +864,7 @@ public class EnumUnboxer {
   }
 
   private OptionalInt getOrdinal(ObjectState state) {
-    AbstractValue field = state.getAbstractFieldValue(ordinalField);
+    AbstractValue field = state.getAbstractFieldValue(getOrdinalField().getDefinition());
     if (field.isSingleNumberValue()) {
       return OptionalInt.of(field.asSingleNumberValue().getIntValue());
     }

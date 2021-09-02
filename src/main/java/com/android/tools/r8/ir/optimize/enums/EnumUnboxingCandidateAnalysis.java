@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.optimize.enums.eligibility.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -35,10 +36,16 @@ class EnumUnboxingCandidateAnalysis {
     factory = appView.dexItemFactory();
   }
 
-  EnumUnboxingCandidateInfoCollection findCandidates() {
+  EnumUnboxingCandidateInfoCollection findCandidates(
+      GraphLens graphLensForPrimaryOptimizationPass) {
+    if (enumUnboxer.getOrdinalField() == null || enumUnboxer.getOrdinalField().isProgramField()) {
+      // This can happen when compiling for non standard libraries, in that case, this effectively
+      // disables the enum unboxer.
+      return enumToUnboxCandidates;
+    }
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (isEnumUnboxingCandidate(clazz)) {
-        enumToUnboxCandidates.addCandidate(clazz);
+        enumToUnboxCandidates.addCandidate(appView, clazz, graphLensForPrimaryOptimizationPass);
       }
     }
     removeEnumsInAnnotations();

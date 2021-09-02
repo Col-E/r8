@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.staticizer;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -57,6 +56,8 @@ public final class ClassStaticizer {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final IRConverter converter;
+
+  private GraphLens graphLensForOptimizationPass;
 
   // Represents a staticizing candidate with all information
   // needed for staticizing.
@@ -113,14 +114,36 @@ public final class ClassStaticizer {
     this.converter = converter;
   }
 
+  public void prepareForPrimaryOptimizationPass(GraphLens graphLensForPrimaryOptimizationPass) {
+    collectCandidates();
+    this.graphLensForOptimizationPass = graphLensForPrimaryOptimizationPass;
+  }
+
+  public void prepareForSecondaryOptimizationPass(GraphLens graphLensForSecondaryOptimizationPass) {
+    // Rewrite all the referenced from sets such that they are all rewritten up until the lens of
+    // the second optimization pass. This is needed to ensure all elements in the referenced from
+    // sets are rewritten up until the same graph lens, in case any referenced from sets are
+    // extended during the secondary optimization pass.
+    assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
+    referencedFrom
+        .values()
+        .forEach(
+            referencedFromBuilder ->
+                referencedFromBuilder.rewrittenWithLens(graphLensForSecondaryOptimizationPass));
+    this.graphLensForOptimizationPass = graphLensForSecondaryOptimizationPass;
+  }
+
   // Before doing any usage-based analysis we collect a set of classes that can be
   // candidates for staticizing. This analysis is very simple, but minimizes the
   // set of eligible classes staticizer tracks and thus time and memory it needs.
-  public final void collectCandidates(DexApplication app) {
+  public final void collectCandidates() {
     Set<DexType> notEligible = Sets.newIdentityHashSet();
     Map<DexType, DexEncodedField> singletonFields = new HashMap<>();
 
-    app.classes()
+    assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
+    appView
+        .appInfo()
+        .classes()
         .forEach(
             cls -> {
               // We only consider classes eligible for staticizing if there is just
@@ -169,20 +192,26 @@ public final class ClassStaticizer {
             });
 
     // Finalize the set of the candidates.
-    app.classes().forEach(cls -> {
-      DexType type = cls.type;
-      if (!notEligible.contains(type)) {
-        DexEncodedField field = singletonFields.get(type);
-        if (field != null && // Singleton field found
-            !field.accessFlags.isVolatile() && // Don't remove volatile fields.
-            !isPinned(cls, field)) { // Don't remove pinned objects.
-          assert field.accessFlags.isStatic();
-          // Note: we don't check that the field is final, since we will analyze
-          //       later how and where it is initialized.
-          new CandidateInfo(cls, field); // will self-register
-        }
-      }
-    });
+    appView
+        .appInfo()
+        .classes()
+        .forEach(
+            cls -> {
+              DexType type = cls.type;
+              if (!notEligible.contains(type)) {
+                DexEncodedField field = singletonFields.get(type);
+                if (field != null
+                    && // Singleton field found
+                    !field.accessFlags.isVolatile()
+                    && // Don't remove volatile fields.
+                    !isPinned(cls, field)) { // Don't remove pinned objects.
+                  assert field.accessFlags.isStatic();
+                  // Note: we don't check that the field is final, since we will analyze
+                  //       later how and where it is initialized.
+                  new CandidateInfo(cls, field); // will self-register
+                }
+              }
+            });
   }
 
   private void markNotEligible(DexType type, Set<DexType> notEligible) {
@@ -374,9 +403,13 @@ public final class ClassStaticizer {
   }
 
   private void addReferencedFrom(CandidateInfo info, ProgramMethod context) {
+    GraphLens currentGraphLens = appView.graphLens();
+    assert currentGraphLens == graphLensForOptimizationPass;
     LongLivedProgramMethodSetBuilder<?> builder =
         referencedFrom.computeIfAbsent(
-            info, ignore -> LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet());
+            info,
+            ignore ->
+                LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet(currentGraphLens));
     builder.add(context);
   }
 
@@ -689,9 +722,8 @@ public final class ClassStaticizer {
   //  3. Rewrite methods referencing staticized members, also remove instance creation
   //
   public final void staticizeCandidates(
-      OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
-      throws ExecutionException {
-    new StaticizingProcessor(appView, this, converter, applied).run(feedback, executorService);
+      OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
+    new StaticizingProcessor(appView, this, converter).run(feedback, executorService);
   }
 
   private class CallSiteReferencesInvalidator extends UseRegistry {

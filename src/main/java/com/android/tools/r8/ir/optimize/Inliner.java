@@ -48,7 +48,7 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.conversion.PostOptimization;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
@@ -64,6 +64,7 @@ import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -77,7 +78,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
-public class Inliner implements PostOptimization {
+public class Inliner {
 
   protected final AppView<AppInfoWithLiveness> appView;
   private final Set<DexMethod> extraNeverInlineMethods;
@@ -86,7 +87,7 @@ public class Inliner implements PostOptimization {
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
-  private final ProgramMethodSet doubleInlineCallers = ProgramMethodSet.create();
+  private LongLivedProgramMethodSetBuilder<ProgramMethodSet> doubleInlineCallers;
   private final ProgramMethodSet doubleInlineSelectedTargets = ProgramMethodSet.create();
   private final Map<DexEncodedMethod, ProgramMethod> doubleInlineeCandidates =
       new IdentityHashMap<>();
@@ -226,9 +227,10 @@ public class Inliner implements PostOptimization {
 
     if (doubleInlineeCandidates.containsKey(target.getDefinition())) {
       // Both calls can be inlined.
+      GraphLens currentGraphLens = appView.graphLens();
       ProgramMethod doubleInlineeCandidate = doubleInlineeCandidates.get(target.getDefinition());
-      doubleInlineCallers.add(doubleInlineeCandidate);
-      doubleInlineCallers.add(method);
+      doubleInlineCallers.add(doubleInlineeCandidate, currentGraphLens);
+      doubleInlineCallers.add(method, currentGraphLens);
       doubleInlineSelectedTargets.add(target);
     } else {
       // First call can be inlined.
@@ -236,10 +238,20 @@ public class Inliner implements PostOptimization {
     }
   }
 
-  @Override
-  public ProgramMethodSet methodsToRevisit() {
+  public void initializeDoubleInlineCallers(GraphLens graphLensForPrimaryOptimizationPass) {
+    assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
+    doubleInlineCallers =
+        LongLivedProgramMethodSetBuilder.createForIdentitySet(graphLensForPrimaryOptimizationPass);
+  }
+
+  public void enqueueMethodsForReprocessing(
+      PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    // The double inline callers are always rewritten up until the graph lens of the primary
+    // optimization pass, so we can safely merge them into the methods to reprocess (which may be
+    // rewritten with a newer graph lens).
+    postMethodProcessorBuilder.getMethodsToReprocessBuilder().merge(doubleInlineCallers);
+    doubleInlineCallers = null;
     applyDoubleInlining = true;
-    return doubleInlineCallers;
   }
 
   /**

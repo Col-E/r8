@@ -19,6 +19,12 @@ public class ConsumerUtils {
     return curry(function).apply(arg);
   }
 
+  public static <T> void acceptIfNotNull(T element, Consumer<T> consumer) {
+    if (element != null) {
+      consumer.accept(element);
+    }
+  }
+
   public static <T> Consumer<T> acceptIfNotSeen(Consumer<T> consumer, Set<T> seen) {
     return element -> {
       if (seen.add(element)) {

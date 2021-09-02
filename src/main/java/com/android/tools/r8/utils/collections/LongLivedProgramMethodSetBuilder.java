@@ -10,75 +10,152 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.SetUtils;
 import java.util.Set;
 import java.util.function.IntFunction;
 
 public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
 
+  // Factory for creating the final ProgramMethodSet.
   private final IntFunction<T> factory;
-  private final Set<DexMethod> methods;
 
-  private LongLivedProgramMethodSetBuilder(IntFunction<T> factory, Set<DexMethod> methods) {
+  // Factory for creating a Set<DexMethod>.
+  private final IntFunction<Set<DexMethod>> factoryForBuilder;
+
+  // The graph lens that this collection has been rewritten up until.
+  private GraphLens appliedGraphLens;
+
+  // The methods in this collection.
+  private Set<DexMethod> methods;
+
+  private LongLivedProgramMethodSetBuilder(
+      GraphLens currentGraphLens,
+      IntFunction<T> factory,
+      IntFunction<Set<DexMethod>> factoryBuilder) {
+    this.appliedGraphLens = currentGraphLens;
     this.factory = factory;
-    this.methods = methods;
+    this.factoryForBuilder = factoryBuilder;
+    this.methods = factoryBuilder.apply(2);
   }
 
-  public static LongLivedProgramMethodSetBuilder<?> createForIdentitySet() {
+  public static LongLivedProgramMethodSetBuilder<ProgramMethodSet> createForIdentitySet(
+      GraphLens currentGraphLens) {
     return new LongLivedProgramMethodSetBuilder<>(
-        ProgramMethodSet::create, Sets.newIdentityHashSet());
+        currentGraphLens, ProgramMethodSet::create, SetUtils::newIdentityHashSet);
   }
 
-  public static LongLivedProgramMethodSetBuilder<SortedProgramMethodSet> createForSortedSet() {
+  public static LongLivedProgramMethodSetBuilder<ProgramMethodSet> createConcurrentForIdentitySet(
+      GraphLens currentGraphLens) {
     return new LongLivedProgramMethodSetBuilder<>(
-        ignore -> SortedProgramMethodSet.create(), Sets.newIdentityHashSet());
+        currentGraphLens, ProgramMethodSet::create, SetUtils::newConcurrentHashSet);
   }
 
-  public static LongLivedProgramMethodSetBuilder<?> createConcurrentForIdentitySet() {
-    return new LongLivedProgramMethodSetBuilder<>(
-        ignore -> ProgramMethodSet.create(), Sets.newConcurrentHashSet());
-  }
-
+  @Deprecated
   public void add(ProgramMethod method) {
     methods.add(method.getReference());
   }
 
+  public void add(ProgramMethod method, GraphLens currentGraphLens) {
+    // All methods in a long lived program method set should be rewritten up until the same graph
+    // lens.
+    assert verifyIsRewrittenWithLens(currentGraphLens);
+    methods.add(method.getReference());
+  }
+
+  @Deprecated
   public void addAll(Iterable<ProgramMethod> methods) {
     methods.forEach(this::add);
+  }
+
+  public void clear() {
+    methods.clear();
+  }
+
+  public boolean contains(ProgramMethod method, GraphLens currentGraphLens) {
+    // We can only query a long lived program method set that is fully lens rewritten.
+    assert verifyIsRewrittenWithLens(currentGraphLens);
+    return methods.contains(method.getReference());
+  }
+
+  public boolean isRewrittenWithLens(GraphLens graphLens) {
+    return appliedGraphLens == graphLens;
+  }
+
+  public LongLivedProgramMethodSetBuilder<T> merge(LongLivedProgramMethodSetBuilder<T> builder) {
+    // Check that the two builders are rewritten up until the same lens (if not we could rewrite the
+    // methods in the given builder up until the applied graph lens of this builder, but it must be
+    // such that this builder has the same or a newer graph lens than the given builder).
+    if (isRewrittenWithLens(builder.appliedGraphLens)) {
+      methods.addAll(builder.methods);
+    } else {
+      // Rewrite the methods in the given builder up until the applied graph lens of this builder.
+      // Note that this builder must have a newer graph lens than the given builder.
+      assert verifyIsRewrittenWithNewerLens(builder.appliedGraphLens);
+      for (DexMethod method : builder.methods) {
+        methods.add(appliedGraphLens.getRenamedMethodSignature(method, builder.appliedGraphLens));
+      }
+    }
+    return this;
   }
 
   public void remove(DexMethod method) {
     methods.remove(method);
   }
 
-  public void removeAll(Iterable<DexMethod> methods) {
+  public LongLivedProgramMethodSetBuilder<T> removeAll(Iterable<DexMethod> methods) {
     methods.forEach(this::remove);
+    return this;
   }
 
-  public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
-    Set<DexMethod> newMethods = Sets.newIdentityHashSet();
-    for (DexMethod method : methods) {
-      newMethods.add(appView.graphLens().getRenamedMethodSignature(method, applied));
+  public LongLivedProgramMethodSetBuilder<T> rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView) {
+    return rewrittenWithLens(appView.graphLens());
+  }
+
+  public LongLivedProgramMethodSetBuilder<T> rewrittenWithLens(GraphLens newGraphLens) {
+    // Check if the graph lens has changed (otherwise lens rewriting is not needed).
+    if (newGraphLens == appliedGraphLens) {
+      return this;
     }
-    methods.clear();
-    methods.addAll(newMethods);
+
+    // Rewrite the backing.
+    Set<DexMethod> newMethods = factoryForBuilder.apply(methods.size());
+    for (DexMethod method : methods) {
+      newMethods.add(newGraphLens.getRenamedMethodSignature(method, appliedGraphLens));
+    }
+    methods = newMethods;
+
+    // Record that this collection is now rewritten up until the given graph lens.
+    appliedGraphLens = newGraphLens;
+    return this;
   }
 
   public T build(AppView<AppInfoWithLiveness> appView) {
-    return build(appView, null);
-  }
-
-  public T build(AppView<AppInfoWithLiveness> appView, GraphLens appliedGraphLens) {
     T result = factory.apply(methods.size());
-    for (DexMethod oldMethod : methods) {
-      DexMethod method = appView.graphLens().getRenamedMethodSignature(oldMethod, appliedGraphLens);
-      DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
-      result.createAndAdd(holder, holder.lookupMethod(method));
+    for (DexMethod method : methods) {
+      DexMethod rewrittenMethod =
+          appView.graphLens().getRenamedMethodSignature(method, appliedGraphLens);
+      DexProgramClass holder = appView.definitionForHolder(rewrittenMethod).asProgramClass();
+      result.createAndAdd(holder, holder.lookupMethod(rewrittenMethod));
     }
     return result;
   }
 
   public boolean isEmpty() {
     return methods.isEmpty();
+  }
+
+  public boolean verifyIsRewrittenWithLens(GraphLens graphLens) {
+    assert isRewrittenWithLens(graphLens);
+    return true;
+  }
+
+  public boolean verifyIsRewrittenWithNewerLens(GraphLens graphLens) {
+    assert appliedGraphLens != graphLens;
+    assert appliedGraphLens.isNonIdentityLens();
+    assert graphLens.isIdentityLens()
+        || appliedGraphLens.asNonIdentityLens().findPrevious(previous -> previous == graphLens)
+            != null;
+    return true;
   }
 }

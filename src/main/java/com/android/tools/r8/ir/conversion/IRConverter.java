@@ -56,7 +56,6 @@ import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -100,6 +99,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -136,7 +136,6 @@ public class IRConverter {
   private final StringOptimizer stringOptimizer;
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
-  private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
   private final InternalOptions options;
@@ -220,7 +219,6 @@ public class IRConverter {
       // - invoke-special desugaring.
       assert options.desugarState.isOn();
       this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
-      this.interfaceMethodRewriter = null;
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -246,10 +244,6 @@ public class IRConverter {
         appView.enableWholeProgramOptimizations()
             ? CfInstructionDesugaringCollection.empty()
             : CfInstructionDesugaringCollection.create(appView);
-    this.interfaceMethodRewriter =
-        options.isInterfaceMethodDesugaringEnabled() && appView.enableWholeProgramOptimizations()
-            ? new InterfaceMethodRewriter(appView, this)
-            : null;
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
@@ -346,17 +340,10 @@ public class IRConverter {
         D8NestBasedAccessDesugaring::clearNestAttributes);
   }
 
-  private void staticizeClasses(
-      OptimizationFeedback feedback, ExecutorService executorService, GraphLens applied)
+  private void staticizeClasses(OptimizationFeedback feedback, ExecutorService executorService)
       throws ExecutionException {
     if (classStaticizer != null) {
-      classStaticizer.staticizeCandidates(feedback, executorService, applied);
-    }
-  }
-
-  private void collectStaticizerCandidates(DexApplication application) {
-    if (classStaticizer != null) {
-      classStaticizer.collectCandidates(application);
+      classStaticizer.staticizeCandidates(feedback, executorService);
     }
   }
 
@@ -627,7 +614,6 @@ public class IRConverter {
     DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
-    collectStaticizerCandidates(application);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(
         executorService, simpleOptimizationFeedback);
 
@@ -639,7 +625,9 @@ public class IRConverter {
 
     printPhase("Primary optimization pass");
 
-    // Setup the argument propagator for the primary optimization pass.
+    GraphLens graphLensForPrimaryOptimizationPass = appView.graphLens();
+
+    // Setup optimizations for the primary optimization pass.
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.initializeCodeScanner(executorService, timing));
     appView.withCallSiteOptimizationInfoPropagator(
@@ -649,16 +637,26 @@ public class IRConverter {
           optimization.abandonCallSitePropagationForPinnedMethodsAndOverrides(
               executorService, timing);
         });
+    ConsumerUtils.acceptIfNotNull(
+        enumUnboxer,
+        enumUnboxer ->
+            enumUnboxer.initializeEnumUnboxingCandidates(graphLensForPrimaryOptimizationPass));
+    ConsumerUtils.acceptIfNotNull(
+        classStaticizer,
+        classStaticizer ->
+            classStaticizer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass));
+    ConsumerUtils.acceptIfNotNull(
+        inliner,
+        inliner -> inliner.initializeDoubleInlineCallers(graphLensForPrimaryOptimizationPass));
 
     if (fieldAccessAnalysis != null) {
       fieldAccessAnalysis.fieldAssignmentTracker().initialize();
     }
 
     // Process the application identifying outlining candidates.
-    GraphLens initialGraphLensForIR = appView.graphLens();
-    GraphLens graphLensForIR = initialGraphLensForIR;
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
-    PostMethodProcessor.Builder postMethodProcessorBuilder = new PostMethodProcessor.Builder();
+    PostMethodProcessor.Builder postMethodProcessorBuilder =
+        new PostMethodProcessor.Builder(graphLensForPrimaryOptimizationPass);
     {
       timing.begin("Build primary method processor");
       PrimaryMethodProcessor primaryMethodProcessor =
@@ -669,6 +667,7 @@ public class IRConverter {
       if (outliner != null) {
         outliner.createOutlineMethodIdentifierGenerator();
       }
+      assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
       primaryMethodProcessor.forEachMethod(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
@@ -677,8 +676,8 @@ public class IRConverter {
           this::waveDone,
           timing,
           executorService);
+      assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
       timing.end();
-      assert graphLensForIR == appView.graphLens();
     }
 
     // The field access info collection is not maintained during IR processing.
@@ -696,42 +695,54 @@ public class IRConverter {
     // Commit synthetics from the primary optimization pass.
     commitPendingSyntheticItemsR8(appView);
 
+    // Post processing:
+    //   1) Second pass for methods whose collected call site information become more precise.
+    //   2) Second inlining pass for dealing with double inline callers.
+    printPhase("Post optimization pass");
+
     // Analyze the data collected by the argument propagator, use the analysis result to update
     // the parameter optimization infos, and rewrite the application.
     appView.withArgumentPropagator(
         argumentPropagator ->
             argumentPropagator.tearDownCodeScanner(
                 postMethodProcessorBuilder, executorService, timing));
+    appView.withCallSiteOptimizationInfoPropagator(
+        callSiteOptimizationInfoPropagator ->
+            callSiteOptimizationInfoPropagator.enqueueMethodsForReprocessing(
+                postMethodProcessorBuilder));
 
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
     }
 
-    // Post processing:
-    //   1) Second pass for methods whose collected call site information become more precise.
-    //   2) Second inlining pass for dealing with double inline callers.
-    printPhase("Post optimization pass");
-    appView.withCallSiteOptimizationInfoPropagator(
-        optimization ->
-            postMethodProcessorBuilder.put(appView.callSiteOptimizationInfoPropagator()));
-    if (inliner != null) {
-      postMethodProcessorBuilder.put(inliner);
-    }
+    ConsumerUtils.acceptIfNotNull(
+        inliner, inliner -> inliner.enqueueMethodsForReprocessing(postMethodProcessorBuilder));
+
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
           .run(executorService, feedback, timing);
     }
+
     if (enumUnboxer != null) {
       enumUnboxer.unboxEnums(this, postMethodProcessorBuilder, executorService, feedback);
     } else {
       appView.setUnboxedEnums(EnumDataMap.empty());
     }
+
+    GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
+
+    ConsumerUtils.acceptIfNotNull(
+        classStaticizer,
+        classStaticizer ->
+            classStaticizer.prepareForSecondaryOptimizationPass(
+                graphLensForSecondaryOptimizationPass));
+
     timing.begin("IR conversion phase 2");
-    graphLensForIR = appView.graphLens();
     PostMethodProcessor postMethodProcessor =
         postMethodProcessorBuilder.build(appView, executorService, timing);
     if (postMethodProcessor != null) {
       assert !options.debug;
+      assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
       postMethodProcessor.forEachMethod(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
@@ -739,7 +750,7 @@ public class IRConverter {
           feedback,
           executorService);
       feedback.updateVisibleOptimizationInfo();
-      assert graphLensForIR == appView.graphLens();
+      assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
     }
     timing.end();
 
@@ -756,7 +767,7 @@ public class IRConverter {
     if (!options.isGeneratingClassFiles()) {
       printPhase("Class staticizer post processing");
       // TODO(b/127694949): Adapt to PostOptimization.
-      staticizeClasses(feedback, executorService, initialGraphLensForIR);
+      staticizeClasses(feedback, executorService);
       feedback.updateVisibleOptimizationInfo();
       // The class staticizer lens shall not be applied through lens code rewriting or it breaks
       // the lambda merger.

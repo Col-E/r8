@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -19,7 +20,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.conversion.PostOptimization;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.logging.Log;
@@ -31,6 +32,7 @@ import com.android.tools.r8.utils.InternalOptions.CallSiteOptimizationOptions;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -38,7 +40,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
-public class CallSiteOptimizationInfoPropagator implements PostOptimization {
+public class CallSiteOptimizationInfoPropagator {
 
   // TODO(b/139246447): should we revisit new targets over and over again?
   //   Maybe piggy-back on MethodProcessor's wave/batch processing?
@@ -61,8 +63,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   private final AppView<AppInfoWithLiveness> appView;
   private final InternalOptions options;
   private final CallSiteOptimizationOptions optimizationOptions;
-  private ProgramMethodSet revisitedMethods = null;
   private Mode mode = Mode.COLLECT;
+
+  private ProgramMethodSet revisitedMethodsForTesting = null;
 
   public CallSiteOptimizationInfoPropagator(AppView<AppInfoWithLiveness> appView) {
     assert appView.enableWholeProgramOptimizations();
@@ -70,7 +73,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     this.options = appView.options();
     this.optimizationOptions = appView.options().callSiteOptimizationOptions();
     if (Log.isLoggingEnabledFor(CallSiteOptimizationInfoPropagator.class)) {
-      revisitedMethods = ProgramMethodSet.create();
+      revisitedMethodsForTesting = ProgramMethodSet.create();
     }
   }
 
@@ -80,9 +83,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
 
   public void logResults() {
     assert Log.ENABLED;
-    if (revisitedMethods != null) {
-      Log.info(getClass(), "# of methods to revisit: %s", revisitedMethods.size());
-      for (ProgramMethod m : revisitedMethods) {
+    if (revisitedMethodsForTesting != null) {
+      Log.info(getClass(), "# of methods to revisit: %s", revisitedMethodsForTesting.size());
+      for (ProgramMethod m : revisitedMethodsForTesting) {
         Log.info(
             getClass(),
             "%s: %s",
@@ -379,10 +382,19 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     return callSiteOptimizationInfo;
   }
 
-  @Override
-  public ProgramMethodSet methodsToRevisit() {
+  public void enqueueMethodsForReprocessing(
+      PostMethodProcessor.Builder postMethodProcessorBuilder) {
+    postMethodProcessorBuilder
+        .getMethodsToReprocessBuilder()
+        .rewrittenWithLens(appView.graphLens())
+        .merge(methodsToRevisit());
+  }
+
+  private LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToRevisit() {
     mode = Mode.REVISIT;
-    ProgramMethodSet targetsToRevisit = ProgramMethodSet.create();
+    GraphLens currentGraphLens = appView.graphLens();
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> builder =
+        LongLivedProgramMethodSetBuilder.createForIdentitySet(currentGraphLens);
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethodMatching(
           definition -> {
@@ -398,14 +410,14 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
             return callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, definition);
           },
           method -> {
-            targetsToRevisit.add(method);
+            builder.add(method, currentGraphLens);
             appView.options().testing.callSiteOptimizationInfoInspector.accept(method);
           });
     }
-    if (revisitedMethods != null) {
-      revisitedMethods.addAll(targetsToRevisit);
+    if (revisitedMethodsForTesting != null) {
+      revisitedMethodsForTesting.addAll(builder.build(appView));
     }
-    return targetsToRevisit;
+    return builder;
   }
 
   private synchronized boolean verifyAllProgramDispatchTargetsHaveBeenAbandoned(

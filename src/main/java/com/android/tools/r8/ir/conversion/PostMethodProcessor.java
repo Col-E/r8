@@ -55,13 +55,20 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
 
   public static class Builder {
 
-    private final LongLivedProgramMethodSetBuilder<?> methodsToReprocessBuilder =
-        LongLivedProgramMethodSetBuilder.createForIdentitySet();
+    private final LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder;
 
-    Builder() {}
+    Builder(GraphLens graphLensForPrimaryOptimizationPass) {
+      this.methodsToReprocessBuilder =
+          LongLivedProgramMethodSetBuilder.createForIdentitySet(
+              graphLensForPrimaryOptimizationPass);
+    }
 
     public void add(ProgramMethod method) {
       methodsToReprocessBuilder.add(method);
+    }
+
+    public LongLivedProgramMethodSetBuilder<ProgramMethodSet> getMethodsToReprocessBuilder() {
+      return methodsToReprocessBuilder;
     }
 
     public void put(ProgramMethodSet methodsToRevisit) {
@@ -72,15 +79,11 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       put(postOptimization.methodsToRevisit());
     }
 
-    public void removePrunedMethods(Iterable<DexMethod> prunedMethod) {
-      methodsToReprocessBuilder.removeAll(prunedMethod);
-    }
-
     // Some optimizations may change methods, creating new instances of the encoded methods with a
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.
-    public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens applied) {
-      methodsToReprocessBuilder.rewrittenWithLens(appView, applied);
+    public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView) {
+      methodsToReprocessBuilder.rewrittenWithLens(appView);
     }
 
     PostMethodProcessor build(
@@ -103,8 +106,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
         // Nothing to revisit.
         return null;
       }
-      ProgramMethodSet methodsToReprocess =
-          methodsToReprocessBuilder.build(appView, appView.graphLens());
+      ProgramMethodSet methodsToReprocess = methodsToReprocessBuilder.build(appView);
       CallGraph callGraph =
           new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
       return new PostMethodProcessor(appView, callGraph);

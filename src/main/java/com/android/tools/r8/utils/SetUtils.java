@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class SetUtils {
@@ -21,6 +22,10 @@ public class SetUtils {
       }
     }
     return false;
+  }
+
+  public static <T> Set<T> newConcurrentHashSet(int capacity) {
+    return Collections.newSetFromMap(new ConcurrentHashMap<>(capacity));
   }
 
   public static <T> HashSet<T> newHashSet(T element) {

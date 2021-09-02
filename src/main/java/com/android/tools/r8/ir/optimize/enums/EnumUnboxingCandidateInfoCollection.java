@@ -4,13 +4,18 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,9 +26,14 @@ public class EnumUnboxingCandidateInfoCollection {
 
   private final Map<DexType, EnumUnboxingCandidateInfo> enumTypeToInfo = new ConcurrentHashMap<>();
 
-  public void addCandidate(DexProgramClass enumClass) {
+  public void addCandidate(
+      AppView<AppInfoWithLiveness> appView,
+      DexProgramClass enumClass,
+      GraphLens graphLensForPrimaryOptimizationPass) {
     assert !enumTypeToInfo.containsKey(enumClass.type);
-    enumTypeToInfo.put(enumClass.type, new EnumUnboxingCandidateInfo(enumClass));
+    enumTypeToInfo.put(
+        enumClass.type,
+        new EnumUnboxingCandidateInfo(appView, enumClass, graphLensForPrimaryOptimizationPass));
   }
 
   public void removeCandidate(DexProgramClass enumClass) {
@@ -62,10 +72,13 @@ public class EnumUnboxingCandidateInfoCollection {
     return info.enumClass;
   }
 
-  public ProgramMethodSet allMethodDependencies() {
-    ProgramMethodSet allMethodDependencies = ProgramMethodSet.create();
-    for (EnumUnboxingCandidateInfo info : enumTypeToInfo.values()) {
-      allMethodDependencies.addAll(info.methodDependencies);
+  public LongLivedProgramMethodSetBuilder<ProgramMethodSet> allMethodDependencies() {
+    Iterator<EnumUnboxingCandidateInfo> candidateInfoIterator = enumTypeToInfo.values().iterator();
+    assert candidateInfoIterator.hasNext();
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> allMethodDependencies =
+        candidateInfoIterator.next().methodDependencies;
+    while (candidateInfoIterator.hasNext()) {
+      allMethodDependencies.merge(candidateInfoIterator.next().methodDependencies);
     }
     return allMethodDependencies;
   }
@@ -111,20 +124,27 @@ public class EnumUnboxingCandidateInfoCollection {
   private static class EnumUnboxingCandidateInfo {
 
     private final DexProgramClass enumClass;
-    private final ProgramMethodSet methodDependencies = ProgramMethodSet.createConcurrent();
+    private final LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodDependencies;
     private final Set<DexField> requiredInstanceFieldData = Sets.newConcurrentHashSet();
 
-    public EnumUnboxingCandidateInfo(DexProgramClass enumClass) {
+    public EnumUnboxingCandidateInfo(
+        AppView<AppInfoWithLiveness> appView,
+        DexProgramClass enumClass,
+        GraphLens graphLensForPrimaryOptimizationPass) {
       assert enumClass != null;
+      assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
       this.enumClass = enumClass;
+      this.methodDependencies =
+          LongLivedProgramMethodSetBuilder.createConcurrentForIdentitySet(
+              graphLensForPrimaryOptimizationPass);
     }
 
     public DexProgramClass getEnumClass() {
       return enumClass;
     }
 
-    public void addMethodDependency(ProgramMethod programMethod) {
-      methodDependencies.add(programMethod);
+    public void addMethodDependency(ProgramMethod method) {
+      methodDependencies.add(method);
     }
 
     public void addRequiredInstanceFieldData(DexField field) {

@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
@@ -87,17 +86,14 @@ final class StaticizingProcessor {
   private final Map<DexField, CandidateInfo> singletonFields = new IdentityHashMap<>();
   private final Map<DexMethod, CandidateInfo> singletonGetters = new IdentityHashMap<>();
   private final Map<DexType, DexType> candidateToHostMapping = new IdentityHashMap<>();
-  private final GraphLens applied;
 
   StaticizingProcessor(
       AppView<AppInfoWithLiveness> appView,
       ClassStaticizer classStaticizer,
-      IRConverter converter,
-      GraphLens applied) {
+      IRConverter converter) {
     this.appView = appView;
     this.classStaticizer = classStaticizer;
     this.converter = converter;
-    this.applied = applied;
   }
 
   final void run(OptimizationFeedback feedback, ExecutorService executorService)
@@ -238,7 +234,7 @@ final class StaticizingProcessor {
         LongLivedProgramMethodSetBuilder<?> referencedFromBuilder =
             classStaticizer.referencedFrom.remove(info);
         assert referencedFromBuilder != null;
-        referencedFrom = referencedFromBuilder.build(appView, applied);
+        referencedFrom = referencedFromBuilder.build(appView);
         materializedReferencedFromCollections.put(info, referencedFrom);
       } else {
         referencedFrom = ProgramMethodSet.empty();
