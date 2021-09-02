@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 
 public class ArgumentPropagatorProgramOptimizer {
@@ -68,7 +70,8 @@ public class ArgumentPropagatorProgramOptimizer {
   //  also enqueue the caller's callers for reprocessing. This would propagate the throwing
   //  information to all call sites.
   public ArgumentPropagatorGraphLens.Builder optimize(
-      Set<DexProgramClass> stronglyConnectedProgramClasses) {
+      Set<DexProgramClass> stronglyConnectedProgramClasses,
+      Consumer<DexProgramClass> affectedClassConsumer) {
     // First reserve pinned method signatures.
     reservePinnedMethodSignatures(stronglyConnectedProgramClasses);
 
@@ -83,7 +86,9 @@ public class ArgumentPropagatorProgramOptimizer {
     ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder =
         ArgumentPropagatorGraphLens.builder(appView);
     for (DexProgramClass clazz : stronglyConnectedProgramClasses) {
-      visitClass(clazz, partialGraphLensBuilder);
+      if (visitClass(clazz, partialGraphLensBuilder)) {
+        affectedClassConsumer.accept(clazz);
+      }
     }
     return partialGraphLensBuilder;
   }
@@ -200,8 +205,10 @@ public class ArgumentPropagatorProgramOptimizer {
     return true;
   }
 
-  private void visitClass(
+  // Returns true if the class was changed as a result of argument propagation.
+  private boolean visitClass(
       DexProgramClass clazz, ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder) {
+    BooleanBox affected = new BooleanBox();
     clazz.forEachProgramMethod(
         method -> {
           ArgumentInfoCollection removableParameters =
@@ -209,9 +216,13 @@ public class ArgumentPropagatorProgramOptimizer {
                   ? computeRemovableParametersFromDirectMethod(method)
                   : computeRemovableParametersFromVirtualMethod(method);
           DexMethod newMethodSignature = getNewMethodSignature(method, removableParameters);
-          partialGraphLensBuilder.recordMove(
-              method.getReference(), newMethodSignature, removableParameters);
+          if (newMethodSignature != method.getReference()) {
+            partialGraphLensBuilder.recordMove(
+                method.getReference(), newMethodSignature, removableParameters);
+            affected.set();
+          }
         });
+    return affected.get();
   }
 
   private DexMethod getNewMethodSignature(

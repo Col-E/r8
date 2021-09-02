@@ -21,11 +21,13 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Ar
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 /** Optimization that propagates information about arguments from call sites to method entries. */
 public class ArgumentPropagator {
@@ -139,8 +141,10 @@ public class ArgumentPropagator {
 
     // Using the computed optimization info, build a graph lens that describes the mapping from
     // methods with constant parameters to methods with the constant parameters removed.
+    Set<DexProgramClass> affectedClasses = Sets.newConcurrentHashSet();
     ArgumentPropagatorGraphLens graphLens =
-        optimizeMethodParameters(stronglyConnectedProgramComponents, executorService);
+        optimizeMethodParameters(
+            stronglyConnectedProgramComponents, affectedClasses::add, executorService);
 
     // Find all the code objects that need reprocessing.
     new ArgumentPropagatorMethodReprocessingEnqueuer(appView)
@@ -148,7 +152,8 @@ public class ArgumentPropagator {
 
     // Finally, apply the graph lens to the program (i.e., remove constant parameters from method
     // definitions).
-    new ArgumentPropagatorApplicationFixer(appView, graphLens).fixupApplication(executorService);
+    new ArgumentPropagatorApplicationFixer(appView, graphLens)
+        .fixupApplication(affectedClasses, executorService);
 
     timing.end();
   }
@@ -184,12 +189,15 @@ public class ArgumentPropagator {
   /** Called by {@link IRConverter} to optimize method definitions. */
   private ArgumentPropagatorGraphLens optimizeMethodParameters(
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
+      Consumer<DexProgramClass> affectedClassConsumer,
       ExecutorService executorService)
       throws ExecutionException {
     Collection<ArgumentPropagatorGraphLens.Builder> partialGraphLensBuilders =
         ThreadUtils.processItemsWithResults(
             stronglyConnectedProgramComponents,
-            classes -> new ArgumentPropagatorProgramOptimizer(appView).optimize(classes),
+            classes ->
+                new ArgumentPropagatorProgramOptimizer(appView)
+                    .optimize(classes, affectedClassConsumer),
             executorService);
 
     // Merge all the partial, disjoint graph lens builders into a single graph lens.

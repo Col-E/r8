@@ -83,13 +83,10 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
 
     public Builder recordMove(
         DexMethod from, DexMethod to, ArgumentInfoCollection removedParametersForMethod) {
-      if (from != to) {
-        newMethodSignatures.put(from, to);
-        if (!removedParametersForMethod.isEmpty()) {
-          removedParameters.put(to, removedParametersForMethod);
-        }
-      } else {
-        assert removedParametersForMethod.isEmpty();
+      assert from != to;
+      newMethodSignatures.put(from, to);
+      if (!removedParametersForMethod.isEmpty()) {
+        removedParameters.put(to, removedParametersForMethod);
       }
       return this;
     }

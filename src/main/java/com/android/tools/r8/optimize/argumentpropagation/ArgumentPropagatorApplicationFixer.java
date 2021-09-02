@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -33,15 +34,19 @@ public class ArgumentPropagatorApplicationFixer {
     this.graphLens = graphLens;
   }
 
-  public void fixupApplication(ExecutorService executorService) throws ExecutionException {
+  public void fixupApplication(
+      Set<DexProgramClass> affectedClasses, ExecutorService executorService)
+      throws ExecutionException {
     // If the graph lens is null, argument propagation did not lead to any parameter removals. In
     // this case there is no needed to fixup the program.
     if (graphLens == null) {
+      assert affectedClasses.isEmpty();
       return;
     }
 
-    // TODO(b/190154391): Do not naively visit all classes, when only few require changes.
-    ThreadUtils.processItems(appView.appInfo().classes(), this::fixupClass, executorService);
+    assert !affectedClasses.isEmpty();
+
+    ThreadUtils.processItems(affectedClasses, this::fixupClass, executorService);
     appView.setGraphLens(graphLens);
   }
 
