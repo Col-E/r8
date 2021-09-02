@@ -63,8 +63,10 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
       assertNotEquals(0, existing.size());
       for (Path classFile : generated) {
         Path otherClassFile = binaryContents.resolve(generatedContents.relativize(classFile));
-        assertTrue(Files.exists(otherClassFile));
-        assertTrue(TestBase.filesAreEqual(classFile, otherClassFile));
+        assertTrue("Could not find file: " + otherClassFile, Files.exists(otherClassFile));
+        assertTrue(
+            "Non-equal files: " + otherClassFile,
+            TestBase.filesAreEqual(classFile, otherClassFile));
       }
     }
   }
@@ -75,10 +77,12 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
 
   @Test
   public void runCheckedInBinaryJar() throws Exception {
+    // The retrace jar is only built when building r8lib.
+    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
     for (CfRuntime cfRuntime : CfRuntime.getCheckedInCfRuntimes()) {
       RetraceApiTestHelper.runJunitOnTests(
           cfRuntime,
-          ToolHelper.R8_RETRACE_JAR,
+          jar,
           BINARY_COMPATIBILITY_JAR,
           RetraceApiTestHelper.getBinaryCompatibilityTests());
     }

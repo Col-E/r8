@@ -63,7 +63,7 @@ public class RetraceApiTestHelper {
             classPaths,
             "org.junit.runner.JUnitCore",
             StringUtils.join(" ", tests, Class::getTypeName));
-    assertEquals(0, processResult.exitCode);
+    assertEquals(processResult.toString(), 0, processResult.exitCode);
     assertThat(processResult.stdout, containsString("OK (" + tests.size() + " test"));
   }
 
