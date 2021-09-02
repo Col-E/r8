@@ -661,7 +661,6 @@ public final class LambdaClass {
                     // its accessibility and make it virtual.
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.unsetPrivate();
-                    newAccessFlags.setPublic();
                     DexEncodedMethod newMethod =
                         new DexEncodedMethod(
                             callTarget,
