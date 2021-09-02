@@ -305,7 +305,7 @@ public class UninstantiatedTypeOptimization {
 
     ArgumentInfoCollection.Builder argInfosBuilder = ArgumentInfoCollection.builder();
     DexProto proto = encodedMethod.getReference().proto;
-    int offset = encodedMethod.isStatic() ? 0 : 1;
+    int offset = encodedMethod.getFirstNonReceiverArgumentIndex();
     for (int i = 0; i < proto.parameters.size(); ++i) {
       DexType type = proto.parameters.values[i];
       if (type.isAlwaysNull(appView)) {

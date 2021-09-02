@@ -542,7 +542,7 @@ public class IRBuilder {
     int originalNumberOfArguments =
         method.getReference().proto.parameters.values.length
             + argumentsInfo.numberOfRemovedArguments()
-            + (method.isStatic() ? 0 : 1)
+            + method.getFirstNonReceiverArgumentIndex()
             - prototypeChanges.numberOfExtraParameters();
 
     int usedArgumentIndex = 0;

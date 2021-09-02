@@ -85,7 +85,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   private TypeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod method) {
-    int argOffset = method.isStatic() ? 0 : 1;
+    int argOffset = method.getFirstNonReceiverArgumentIndex();
     int size = method.getReference().getArity() + argOffset;
     TypeElement[] staticTypes = new TypeElement[size];
     if (!method.isStatic()) {

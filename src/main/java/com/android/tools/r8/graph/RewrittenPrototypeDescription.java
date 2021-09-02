@@ -12,7 +12,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -306,7 +305,7 @@ public class RewrittenPrototypeDescription {
         return params;
       }
       DexType[] newParams = new DexType[params.length - numberOfRemovedArguments()];
-      int offset = encodedMethod.isStatic() ? 0 : 1;
+      int offset = encodedMethod.getFirstNonReceiverArgumentIndex();
       int newParamIndex = 0;
       for (int oldParamIndex = 0; oldParamIndex < params.length; oldParamIndex++) {
         ArgumentInfo argInfo = argumentInfos.get(oldParamIndex + offset);
@@ -369,7 +368,7 @@ public class RewrittenPrototypeDescription {
         DexEncodedMethod method) {
       if (numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
         return builder -> {
-          int firstArgumentIndex = BooleanUtils.intValue(!method.isStatic());
+          int firstArgumentIndex = method.getFirstNonReceiverArgumentIndex();
           builder.removeParameterAnnotations(
               oldIndex -> getArgumentInfo(oldIndex + firstArgumentIndex).isRemovedArgumentInfo());
         };

@@ -282,7 +282,7 @@ public class UnusedArgumentsCollector {
         return null;
       }
     }
-    int offset = method.accessFlags.isStatic() ? 0 : 1;
+    int offset = method.getFirstNonReceiverArgumentIndex();
     int argumentCount = method.getReference().proto.parameters.size() + offset;
     CollectUsedArguments collector = new CollectUsedArguments();
     if (!method.accessFlags.isStatic()) {
