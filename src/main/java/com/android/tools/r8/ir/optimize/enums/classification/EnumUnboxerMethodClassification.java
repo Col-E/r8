@@ -4,11 +4,16 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+
 public abstract class EnumUnboxerMethodClassification {
 
   public static UnknownEnumUnboxerMethodClassification unknown() {
     return UnknownEnumUnboxerMethodClassification.getInstance();
   }
+
+  public abstract EnumUnboxerMethodClassification fixupAfterParameterRemoval(
+      ArgumentInfoCollection removedParameters);
 
   public EnumUnboxerMethodClassification fixupAfterRemovingThisParameter() {
     // Only static methods are currently classified by the enum unboxer.

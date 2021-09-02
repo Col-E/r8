@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+
 public final class UnknownEnumUnboxerMethodClassification extends EnumUnboxerMethodClassification {
 
   private static final UnknownEnumUnboxerMethodClassification INSTANCE =
@@ -13,6 +15,12 @@ public final class UnknownEnumUnboxerMethodClassification extends EnumUnboxerMet
 
   static UnknownEnumUnboxerMethodClassification getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public EnumUnboxerMethodClassification fixupAfterParameterRemoval(
+      ArgumentInfoCollection removedParameters) {
+    return this;
   }
 
   @Override

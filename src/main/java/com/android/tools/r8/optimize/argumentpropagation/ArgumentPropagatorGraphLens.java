@@ -32,6 +32,11 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     return new Builder(appView);
   }
 
+  public ArgumentInfoCollection getRemovedParameters(DexMethod method) {
+    assert method != internalGetPreviousMethodSignature(method);
+    return removedParameters.getOrDefault(method, ArgumentInfoCollection.empty());
+  }
+
   @Override
   protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
@@ -40,8 +45,7 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       assert !removedParameters.containsKey(method);
       return prototypeChanges;
     }
-    return prototypeChanges.withRemovedArguments(
-        removedParameters.getOrDefault(method, ArgumentInfoCollection.empty()));
+    return prototypeChanges.withRemovedArguments(getRemovedParameters(method));
   }
 
   @Override

@@ -261,6 +261,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.enumUnboxerMethodClassification = enumUnboxerMethodClassification;
   }
 
+  void unsetEnumUnboxerMethodClassification() {
+    this.enumUnboxerMethodClassification = EnumUnboxerMethodClassification.unknown();
+  }
+
   @Override
   public TypeElement getDynamicUpperBoundType() {
     return returnsObjectWithUpperBoundType;

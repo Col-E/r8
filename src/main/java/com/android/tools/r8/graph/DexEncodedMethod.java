@@ -88,6 +88,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -1627,12 +1628,19 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
     public Builder adjustOptimizationInfoAfterRemovingThisParameter(
         AppView<AppInfoWithLiveness> appView) {
-      if (optimizationInfo.isMutableOptimizationInfo()) {
-        optimizationInfo
-            .asMutableMethodOptimizationInfo()
-            .adjustOptimizationInfoAfterRemovingThisParameter(appView);
-      }
-      return this;
+      return modifyOptimizationInfo(
+          (newMethod, optimizationInfo) ->
+              optimizationInfo.adjustOptimizationInfoAfterRemovingThisParameter(appView));
+    }
+
+    public Builder modifyOptimizationInfo(
+        BiConsumer<DexEncodedMethod, MutableMethodOptimizationInfo> consumer) {
+      return addBuildConsumer(
+          newMethod -> {
+            if (optimizationInfo.isMutableOptimizationInfo()) {
+              consumer.accept(newMethod, optimizationInfo.asMutableMethodOptimizationInfo());
+            }
+          });
     }
 
     public Builder setCode(Code code) {

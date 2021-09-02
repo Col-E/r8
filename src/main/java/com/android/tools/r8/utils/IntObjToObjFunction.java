@@ -6,5 +6,5 @@ package com.android.tools.r8.utils;
 
 public interface IntObjToObjFunction<S, T> {
 
-  S apply(int i, T obj);
+  T apply(int i, S obj);
 }

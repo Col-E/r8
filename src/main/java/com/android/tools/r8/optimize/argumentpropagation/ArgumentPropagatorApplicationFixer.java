@@ -8,6 +8,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodCollection;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
@@ -55,6 +60,25 @@ public class ArgumentPropagatorApplicationFixer {
               methodReferenceAfterParameterRemoval,
               builder -> {
                 // TODO(b/190154391): fixup parameter annotations, if any.
+                ArgumentInfoCollection removedParameters =
+                    graphLens.getRemovedParameters(methodReferenceAfterParameterRemoval);
+                builder.modifyOptimizationInfo(
+                    (newMethod, optimizationInfo) -> {
+                      OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
+                      ProgramMethod programMethod = new ProgramMethod(clazz, newMethod);
+                      // TODO(b/190154391): test this.
+                      EnumUnboxerMethodClassification rewrittenEnumUnboxerMethodClassification =
+                          optimizationInfo
+                              .getEnumUnboxerMethodClassification()
+                              .fixupAfterParameterRemoval(removedParameters);
+                      if (rewrittenEnumUnboxerMethodClassification.isCheckNotNullClassification()) {
+                        feedback.setEnumUnboxerMethodClassification(
+                            programMethod, rewrittenEnumUnboxerMethodClassification);
+                      } else {
+                        // Bypass monotonicity check.
+                        feedback.unsetEnumUnboxerMethodClassification(programMethod);
+                      }
+                    });
               });
         });
   }

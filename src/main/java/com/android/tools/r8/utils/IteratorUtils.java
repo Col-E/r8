@@ -165,6 +165,16 @@ public class IteratorUtils {
     return !anyRemainingMatch(iterator, remaining -> !predicate.test(remaining));
   }
 
+  public static <T> boolean allRemainingMatchDestructive(
+      Iterator<T> iterator, Predicate<T> predicate) {
+    while (iterator.hasNext()) {
+      if (!predicate.test(iterator.next())) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static <T> boolean anyRemainingMatch(ListIterator<T> iterator, Predicate<T> predicate) {
     T state = peekNext(iterator);
     boolean result = false;

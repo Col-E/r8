@@ -187,7 +187,15 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setEnumUnboxerMethodClassification(
       ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification) {
-    // Ignored.
+    method
+        .getDefinition()
+        .getMutableOptimizationInfo()
+        .setEnumUnboxerMethodClassification(enumUnboxerMethodClassification);
+  }
+
+  @Override
+  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {
+    method.getDefinition().getMutableOptimizationInfo().unsetEnumUnboxerMethodClassification();
   }
 
   @Override

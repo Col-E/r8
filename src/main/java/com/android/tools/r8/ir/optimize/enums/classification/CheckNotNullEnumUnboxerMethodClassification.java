@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.IteratorUtils;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import java.util.Iterator;
 
 public final class CheckNotNullEnumUnboxerMethodClassification
     extends EnumUnboxerMethodClassification {
@@ -28,6 +33,47 @@ public final class CheckNotNullEnumUnboxerMethodClassification
       }
     }
     return invoke.hasUnusedOutValue();
+  }
+
+  @Override
+  public EnumUnboxerMethodClassification fixupAfterParameterRemoval(
+      ArgumentInfoCollection removedParameters) {
+    if (removedParameters.getArgumentInfo(argumentIndex).isRemovedArgumentInfo()) {
+      // If the null-checked argument is removed from the parameters of the method, then we can no
+      // longer classify this method as a check-not-null method. This is OK in terms of enum
+      // unboxing, since after the parameter removal enums at the call site will no longer have the
+      // check-not-null invoke instruction as a user.
+      //
+      // Note that when we materialize the enum instance in the check-not-null method, it is
+      // important that this method is reprocessed by enum unboxing (or that materialized instance
+      // would not be unboxed). This is guaranteed by argument removal: Since we have removed a
+      // parameter from the method, we will need to reprocess its code in the second optimization
+      // pass.
+      return unknown();
+    }
+
+    int numberOfArgumentsRemovedBeforeThis = 0;
+
+    Iterator<Entry<ArgumentInfo>> iterator = removedParameters.iterator();
+    while (iterator.hasNext()) {
+      Entry<ArgumentInfo> entry = iterator.next();
+      int argumentIndexForInfo = entry.getIntKey();
+      if (argumentIndexForInfo >= getArgumentIndex()) {
+        break;
+      }
+      ArgumentInfo argumentInfo = entry.getValue();
+      if (argumentInfo.isRemovedArgumentInfo()) {
+        numberOfArgumentsRemovedBeforeThis++;
+      }
+    }
+
+    assert IteratorUtils.allRemainingMatchDestructive(
+        iterator, entry -> entry.getIntKey() >= getArgumentIndex());
+
+    return numberOfArgumentsRemovedBeforeThis > 0
+        ? new CheckNotNullEnumUnboxerMethodClassification(
+            getArgumentIndex() - numberOfArgumentsRemovedBeforeThis)
+        : this;
   }
 
   @Override

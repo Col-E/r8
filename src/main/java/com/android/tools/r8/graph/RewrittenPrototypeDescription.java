@@ -15,12 +15,14 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
 import it.unimi.dsi.fastutil.ints.IntSortedSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -220,6 +222,10 @@ public class RewrittenPrototypeDescription {
 
     public boolean isEmpty() {
       return this == EMPTY;
+    }
+
+    public Iterator<Entry<ArgumentInfo>> iterator() {
+      return argumentInfos.int2ReferenceEntrySet().iterator();
     }
 
     public boolean hasRemovedArguments() {
