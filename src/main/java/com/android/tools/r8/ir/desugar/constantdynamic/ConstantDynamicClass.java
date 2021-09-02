@@ -141,11 +141,10 @@ public class ConstantDynamicClass {
   private void synthesizeDirectMethods(SyntheticProgramClassBuilder builder) {
     builder.setDirectMethods(
         ImmutableList.of(
-            DexEncodedMethod.builder()
+            DexEncodedMethod.syntheticBuilder()
                 .setMethod(getConstMethod)
                 .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                 .setCode(generateGetterCode(builder))
-                .setD8R8Synthesized()
                 .setApiLevelForDefinition(AndroidApiLevel.S)
                 .setApiLevelForCode(AndroidApiLevel.S)
                 .build()));

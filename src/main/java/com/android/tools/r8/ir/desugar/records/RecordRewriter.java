@@ -289,14 +289,13 @@ public class RecordRewriter
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_PRIVATE, false);
     DexEncodedMethod encodedMethod =
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             method,
             methodAccessFlags,
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            null,
-            true);
+            null);
     encodedMethod.setCode(provider.generateCfCode(), appView);
     return new ProgramMethod(clazz, encodedMethod);
   }
@@ -589,14 +588,13 @@ public class RecordRewriter
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_PROTECTED, true);
     DexEncodedMethod init =
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             factory.recordMembers.init,
             methodAccessFlags,
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            null,
-            true);
+            null);
     init.setCode(
         new CallObjectInitCfCodeProvider(appView, factory.recordTagType).generateCfCode(), appView);
     return init;

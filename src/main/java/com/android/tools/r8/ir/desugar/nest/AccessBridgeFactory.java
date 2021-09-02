@@ -21,7 +21,7 @@ public class AccessBridgeFactory {
     assert field.getAccessFlags().isPrivate();
     return new ProgramMethod(
         field.getHolder(),
-        DexEncodedMethod.builder()
+        DexEncodedMethod.syntheticBuilder()
             .setAccessFlags(
                 MethodAccessFlags.builder()
                     .setBridge()
@@ -37,7 +37,6 @@ public class AccessBridgeFactory {
                     .setSourceMethod(bridgeMethodReference)
                     .build())
             .setMethod(bridgeMethodReference)
-            .setD8R8Synthesized()
             .setApiLevelForDefinition(field.getDefinition().getApiLevel())
             .setApiLevelForCode(field.getDefinition().getApiLevel())
             .build());
@@ -51,7 +50,7 @@ public class AccessBridgeFactory {
     assert !method.getHolder().isInterface();
     return new ProgramMethod(
         method.getHolder(),
-        DexEncodedMethod.builder()
+        DexEncodedMethod.syntheticBuilder()
             // Not setting the 'bridge' flag as this fails verification.
             .setAccessFlags(MethodAccessFlags.builder().setConstructor().setSynthetic().build())
             .setCode(
@@ -60,7 +59,6 @@ public class AccessBridgeFactory {
                     .setConstructorTarget(method.getReference())
                     .build())
             .setMethod(bridgeMethodReference)
-            .setD8R8Synthesized()
             .setApiLevelForDefinition(method.getDefinition().getApiLevelForDefinition())
             .setApiLevelForCode(method.getDefinition().getApiLevelForCode())
             .build());
@@ -74,7 +72,7 @@ public class AccessBridgeFactory {
     boolean isInterface = method.getHolder().isInterface();
     return new ProgramMethod(
         method.getHolder(),
-        DexEncodedMethod.builder()
+        DexEncodedMethod.syntheticBuilder()
             .setAccessFlags(
                 MethodAccessFlags.builder()
                     .setBridge()
@@ -93,7 +91,6 @@ public class AccessBridgeFactory {
             .setMethod(bridgeMethodReference)
             .setApiLevelForDefinition(method.getDefinition().getApiLevelForDefinition())
             .setApiLevelForCode(method.getDefinition().getApiLevelForDefinition())
-            .setD8R8Synthesized()
             .build());
   }
 }

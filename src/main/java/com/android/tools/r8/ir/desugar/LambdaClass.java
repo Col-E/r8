@@ -159,22 +159,21 @@ public final class LambdaClass {
 
     // Synthesize main method.
     methods.add(
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             mainMethod,
             MethodAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            LambdaMainMethodSourceCode.build(this, mainMethod),
-            true));
+            LambdaMainMethodSourceCode.build(this, mainMethod)));
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
       DexMethod bridgeMethod =
           appView.dexItemFactory().createMethod(type, bridgeProto, descriptor.name);
       methods.add(
-          DexEncodedMethod.create(
+          DexEncodedMethod.createSynthetic(
               bridgeMethod,
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_PUBLIC
@@ -185,8 +184,7 @@ public final class LambdaClass {
               MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              LambdaBridgeMethodSourceCode.build(this, bridgeMethod, mainMethod),
-              true));
+              LambdaBridgeMethodSourceCode.build(this, bridgeMethod, mainMethod)));
     }
     builder.setVirtualMethods(methods);
   }
@@ -198,7 +196,7 @@ public final class LambdaClass {
 
     // Constructor.
     methods.add(
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             constructor,
             MethodAccessFlags.fromSharedAccessFlags(
                 (stateless ? Constants.ACC_PRIVATE : Constants.ACC_PUBLIC)
@@ -207,21 +205,19 @@ public final class LambdaClass {
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            LambdaConstructorSourceCode.build(this),
-            true));
+            LambdaConstructorSourceCode.build(this)));
 
     // Class constructor for stateless lambda classes.
     if (stateless) {
       methods.add(
-          DexEncodedMethod.create(
+          DexEncodedMethod.createSynthetic(
               classConstructor,
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              LambdaClassConstructorSourceCode.build(this),
-              true));
+              LambdaClassConstructorSourceCode.build(this)));
       feedback.classInitializerMayBePostponed(methods.get(1));
     }
     builder.setDirectMethods(methods);
@@ -579,14 +575,13 @@ public final class LambdaClass {
                     // Always make the method public to provide access.
                     newAccessFlags.setPublic();
                     DexEncodedMethod newMethod =
-                        DexEncodedMethod.create(
+                        DexEncodedMethod.createSynthetic(
                             callTarget,
                             newAccessFlags,
                             encodedMethod.getGenericSignature(),
                             encodedMethod.annotations(),
                             encodedMethod.parameterAnnotationsList,
-                            encodedMethod.getCode(),
-                            true);
+                            encodedMethod.getCode());
                     newMethod.copyMetadata(encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
                         encodedMethod.getReference(), callTarget);
@@ -662,14 +657,13 @@ public final class LambdaClass {
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.unsetPrivate();
                     DexEncodedMethod newMethod =
-                        DexEncodedMethod.create(
+                        DexEncodedMethod.createSynthetic(
                             callTarget,
                             newAccessFlags,
                             encodedMethod.getGenericSignature(),
                             encodedMethod.annotations(),
                             encodedMethod.parameterAnnotationsList,
-                            encodedMethod.getCode(),
-                            true);
+                            encodedMethod.getCode());
                     newMethod.copyMetadata(encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
                         encodedMethod.getReference(), callTarget);
@@ -726,14 +720,13 @@ public final class LambdaClass {
       ProgramMethod accessorMethod =
           new ProgramMethod(
               accessorClass,
-              DexEncodedMethod.create(
+              DexEncodedMethod.createSynthetic(
                   callTarget,
                   MethodAccessFlags.createPublicStaticSynthetic(),
                   MethodTypeSignature.noSignature(),
                   DexAnnotationSet.empty(),
                   ParameterAnnotationsList.empty(),
-                  AccessorMethodSourceCode.build(LambdaClass.this, callTarget),
-                  true));
+                  AccessorMethodSourceCode.build(LambdaClass.this, callTarget)));
       accessorClass.addDirectMethod(accessorMethod.getDefinition());
       if (appView.options().isDesugaredLibraryCompilation()
           || appView.options().isGeneratingDex()) {

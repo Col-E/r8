@@ -97,8 +97,6 @@ import org.objectweb.asm.Opcodes;
 public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod>
     implements StructuralItem<DexEncodedMethod> {
 
-  public static final boolean D8_R8_SYNTHESIZED = true;
-
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
   /**
@@ -1255,7 +1253,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
     newFlags.unsetAbstract();
-    return DexEncodedMethod.create(
+    return DexEncodedMethod.createSynthetic(
         newMethod,
         newFlags,
         MethodTypeSignature.noSignature(),
@@ -1265,8 +1263,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             .setNonStaticSource(newMethod)
             // Holder is companion class, or retarget method, not an interface.
             .setStaticTarget(forwardMethod, false)
-            .build(),
-        true);
+            .build());
   }
 
   public DexEncodedMethod toStaticMethodWithoutThis(AppView<AppInfoWithLiveness> appView) {
@@ -1415,18 +1412,31 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code) {
-    return DexEncodedMethod.create(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        false,
-        null,
-        AndroidApiLevel.UNKNOWN,
-        AndroidApiLevel.UNKNOWN,
-        false);
+    return builder()
+        .setMethod(method)
+        .setAccessFlags(accessFlags)
+        .setGenericSignature(genericSignature)
+        .setAnnotations(annotations)
+        .setParameterAnnotations(parameterAnnotationsList)
+        .setCode(code)
+        .build();
+  }
+
+  public static DexEncodedMethod createSynthetic(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code) {
+    return syntheticBuilder()
+        .setMethod(method)
+        .setAccessFlags(accessFlags)
+        .setGenericSignature(genericSignature)
+        .setAnnotations(annotations)
+        .setParameterAnnotations(parameterAnnotationsList)
+        .setCode(code)
+        .build();
   }
 
   public static DexEncodedMethod create(
@@ -1436,82 +1446,107 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
-      boolean d8R8Synthesized) {
-    return DexEncodedMethod.create(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        d8R8Synthesized,
-        null,
-        AndroidApiLevel.UNKNOWN,
-        AndroidApiLevel.UNKNOWN,
-        false);
-  }
-
-  public static DexEncodedMethod create(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      boolean d8R8Synthesized,
       CfVersion classFileVersion,
       AndroidApiLevel apiLevelForDefinition,
       AndroidApiLevel apiLevelForCode) {
-    return DexEncodedMethod.create(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        d8R8Synthesized,
-        classFileVersion,
-        apiLevelForDefinition,
-        apiLevelForCode,
-        false);
+    return builder()
+        .setMethod(method)
+        .setAccessFlags(accessFlags)
+        .setGenericSignature(genericSignature)
+        .setAnnotations(annotations)
+        .setParameterAnnotations(parameterAnnotationsList)
+        .setCode(code)
+        .setClassFileVersion(classFileVersion)
+        .setApiLevelForDefinition(apiLevelForDefinition)
+        .setApiLevelForCode(apiLevelForCode)
+        .build();
   }
 
-  public static DexEncodedMethod create(
+  public static DexEncodedMethod createSynthetic(
       DexMethod method,
       MethodAccessFlags accessFlags,
       MethodTypeSignature genericSignature,
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
-      boolean d8R8Synthesized,
+      CfVersion classFileVersion,
+      AndroidApiLevel apiLevelForDefinition,
+      AndroidApiLevel apiLevelForCode) {
+    return syntheticBuilder()
+        .setMethod(method)
+        .setAccessFlags(accessFlags)
+        .setGenericSignature(genericSignature)
+        .setAnnotations(annotations)
+        .setParameterAnnotations(parameterAnnotationsList)
+        .setCode(code)
+        .setClassFileVersion(classFileVersion)
+        .setApiLevelForDefinition(apiLevelForDefinition)
+        .setApiLevelForCode(apiLevelForCode)
+        .build();
+  }
+
+  public static DexEncodedMethod.Builder create(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code,
       CfVersion classFileVersion,
       AndroidApiLevel apiLevelForDefinition,
       AndroidApiLevel apiLevelForCode,
       boolean deprecated) {
-    return new DexEncodedMethod(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        d8R8Synthesized,
-        classFileVersion,
-        apiLevelForDefinition,
-        apiLevelForCode,
-        deprecated);
+    return builder()
+        .setMethod(method)
+        .setAccessFlags(accessFlags)
+        .setGenericSignature(genericSignature)
+        .setAnnotations(annotations)
+        .setParameterAnnotations(parameterAnnotationsList)
+        .setCode(code)
+        .setClassFileVersion(classFileVersion)
+        .setApiLevelForDefinition(apiLevelForDefinition)
+        .setApiLevelForCode(apiLevelForCode)
+        .setDeprecated(deprecated);
+  }
+
+  public static DexEncodedMethod.Builder createSynthetic(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code,
+      CfVersion classFileVersion,
+      AndroidApiLevel apiLevelForDefinition,
+      AndroidApiLevel apiLevelForCode,
+      boolean deprecated) {
+    return syntheticBuilder()
+        .setMethod(method)
+        .setAccessFlags(accessFlags)
+        .setGenericSignature(genericSignature)
+        .setAnnotations(annotations)
+        .setParameterAnnotations(parameterAnnotationsList)
+        .setCode(code)
+        .setClassFileVersion(classFileVersion)
+        .setApiLevelForDefinition(apiLevelForDefinition)
+        .setApiLevelForCode(apiLevelForCode)
+        .setDeprecated(deprecated);
+  }
+
+  public static Builder syntheticBuilder() {
+    return new Builder(true);
   }
 
   private static Builder syntheticBuilder(DexEncodedMethod from) {
-    return new Builder(from, true);
+    return new Builder(true, from);
   }
 
   public static Builder builder() {
-    return new Builder();
+    return new Builder(false);
   }
 
   private static Builder builder(DexEncodedMethod from) {
-    return new Builder(from);
+    return new Builder(from.isD8R8Synthesized(), from);
   }
 
   public static class Builder {
@@ -1519,7 +1554,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private MethodAccessFlags accessFlags;
     private Code code;
     private DexMethod method;
-
     private MethodTypeSignature genericSignature = MethodTypeSignature.noSignature();
     private DexAnnotationSet annotations = DexAnnotationSet.empty();
     private OptionalBool isLibraryMethodOverride = OptionalBool.UNKNOWN;
@@ -1528,19 +1562,23 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
     private KotlinMethodLevelInfo kotlinInfo = getNoKotlinInfo();
     private CfVersion classFileVersion = null;
-    private AndroidApiLevel apiLevelForDefinition = null;
-    private AndroidApiLevel apiLevelForCode = null;
-    private boolean d8R8Synthesized = false;
+    private AndroidApiLevel apiLevelForDefinition = AndroidApiLevel.UNKNOWN;
+    private AndroidApiLevel apiLevelForCode = AndroidApiLevel.UNKNOWN;
+    private final boolean d8R8Synthesized;
+    private boolean deprecated = false;
+
+    // Checks to impose on the built method. They should always be active to start with and be
+    // lowered on the use site.
+    private boolean checkMethodNotNull = true;
+    private boolean checkParameterAnnotationList = true;
 
     private Consumer<DexEncodedMethod> buildConsumer = ConsumerUtils.emptyConsumer();
 
-    private Builder() {}
-
-    private Builder(DexEncodedMethod from) {
-      this(from, from.isD8R8Synthesized());
+    private Builder(boolean d8R8Synthesized) {
+      this.d8R8Synthesized = d8R8Synthesized;
     }
 
-    private Builder(DexEncodedMethod from, boolean d8R8Synthesized) {
+    private Builder(boolean d8R8Synthesized, DexEncodedMethod from) {
       // Copy all the mutable state of a DexEncodedMethod here.
       method = from.getReference();
       accessFlags = from.getAccessFlags().copy();
@@ -1556,6 +1594,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       kotlinInfo = from.getKotlinInfo();
       classFileVersion = from.classFileVersion;
       this.d8R8Synthesized = d8R8Synthesized;
+      deprecated = from.isDeprecated();
 
       if (from.getParameterAnnotations().isEmpty()
           || from.getParameterAnnotations().size() == from.getParameters().size()) {
@@ -1604,11 +1643,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
     public Builder setAccessFlags(MethodAccessFlags accessFlags) {
       this.accessFlags = accessFlags;
-      return this;
-    }
-
-    public Builder setD8R8Synthesized() {
-      this.d8R8Synthesized = true;
       return this;
     }
 
@@ -1732,37 +1766,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return setCode(null);
     }
 
-    public DexEncodedMethod build() {
-      assert method != null;
-      assert accessFlags != null;
-      assert annotations != null;
-      assert parameterAnnotations != null;
-      assert parameterAnnotations.isEmpty()
-          || parameterAnnotations.size() == method.proto.parameters.size();
-      assert apiLevelForDefinition != null;
-      assert apiLevelForCode != null;
-      DexEncodedMethod result =
-          DexEncodedMethod.create(
-              method,
-              accessFlags,
-              genericSignature,
-              annotations,
-              parameterAnnotations,
-              code,
-              d8R8Synthesized,
-              classFileVersion,
-              apiLevelForDefinition,
-              apiLevelForCode);
-      result.setKotlinMemberInfo(kotlinInfo);
-      result.compilationState = compilationState;
-      result.optimizationInfo = optimizationInfo;
-      if (!isLibraryMethodOverride.isUnknown()) {
-        result.setLibraryMethodOverride(isLibraryMethodOverride);
-      }
-      buildConsumer.accept(result);
-      return result;
-    }
-
     public Builder setGenericSignature(MethodTypeSignature methodSignature) {
       this.genericSignature = methodSignature;
       return this;
@@ -1776,6 +1779,59 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     public Builder setApiLevelForCode(AndroidApiLevel apiLevelForCode) {
       this.apiLevelForCode = apiLevelForCode;
       return this;
+    }
+
+    public Builder setDeprecated(boolean deprecated) {
+      this.deprecated = deprecated;
+      return this;
+    }
+
+    public Builder setClassFileVersion(CfVersion version) {
+      classFileVersion = version;
+      return this;
+    }
+
+    public Builder disableMethodNotNullCheck() {
+      checkMethodNotNull = false;
+      return this;
+    }
+
+    public Builder disableParameterAnnotationListCheck() {
+      checkParameterAnnotationList = false;
+      return this;
+    }
+
+    public DexEncodedMethod build() {
+      assert !checkMethodNotNull || method != null;
+      assert accessFlags != null;
+      assert annotations != null;
+      assert parameterAnnotations != null;
+      assert !checkParameterAnnotationList
+          || parameterAnnotations.isEmpty()
+          || parameterAnnotations.size() == method.proto.parameters.size();
+      assert apiLevelForDefinition != null;
+      assert apiLevelForCode != null;
+      DexEncodedMethod result =
+          new DexEncodedMethod(
+              method,
+              accessFlags,
+              genericSignature,
+              annotations,
+              parameterAnnotations,
+              code,
+              d8R8Synthesized,
+              classFileVersion,
+              apiLevelForDefinition,
+              apiLevelForCode,
+              deprecated);
+      result.setKotlinMemberInfo(kotlinInfo);
+      result.compilationState = compilationState;
+      result.optimizationInfo = optimizationInfo;
+      if (!isLibraryMethodOverride.isUnknown()) {
+        result.setLibraryMethodOverride(isLibraryMethodOverride);
+      }
+      buildConsumer.accept(result);
+      return result;
     }
   }
 }

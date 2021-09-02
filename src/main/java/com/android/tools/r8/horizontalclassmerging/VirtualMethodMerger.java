@@ -278,14 +278,13 @@ public class VirtualMethodMerger {
             bridgeMethodReference,
             appView.dexItemFactory());
     DexEncodedMethod newMethod =
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             newMethodReference,
             getAccessFlags(),
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
             synthesizedCode,
-            true,
             classFileVersion,
             representativeMethod.getApiLevelForDefinition(),
             representativeMethod.getApiLevelForCode());

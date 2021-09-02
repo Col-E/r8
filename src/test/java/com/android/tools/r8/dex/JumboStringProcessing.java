@@ -17,16 +17,13 @@ import com.android.tools.r8.code.IfNe;
 import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -155,13 +152,11 @@ public class JumboStringProcessing extends TestBase {
     DexCode code = new DexCode(1, 0, 0, instructions, new Try[0], new TryHandler[0], null);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method =
-        DexEncodedMethod.create(
-            null,
-            flags,
-            MethodTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            code);
+        DexEncodedMethod.builder()
+            .setAccessFlags(flags)
+            .setCode(code)
+            .disableMethodNotNullCheck()
+            .build();
     return new JumboStringRewriter(method, string, factory).rewrite();
   }
 }

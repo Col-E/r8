@@ -800,14 +800,13 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     MethodAccessFlags accessFlags = MethodAccessFlags.builder().setPublic().build();
     DexMethod newMethod = method.withHolder(clazz.getType(), dexItemFactory);
     DexEncodedMethod newEncodedMethod =
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             newMethod,
             accessFlags,
             MethodTypeSignature.noSignature(),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory),
-            true);
+            createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory));
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
   }
 

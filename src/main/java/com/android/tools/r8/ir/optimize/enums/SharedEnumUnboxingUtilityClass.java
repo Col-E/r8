@@ -248,14 +248,13 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
     private DexEncodedMethod createClassInitializer(
         DexType sharedUtilityClassType, DexEncodedField valuesField) {
-      return DexEncodedMethod.create(
+      return DexEncodedMethod.createSynthetic(
           dexItemFactory.createClassInitializer(sharedUtilityClassType),
           MethodAccessFlags.createForClassInitializer(),
           MethodTypeSignature.noSignature(),
           DexAnnotationSet.empty(),
           ParameterAnnotationsList.empty(),
           createClassInitializerCode(sharedUtilityClassType, valuesField),
-          DexEncodedMethod.D8_R8_SYNTHESIZED,
           CfVersion.V1_6,
           minApiLevelIfEnabledOrUnknown(appView),
           minApiLevelIfEnabledOrUnknown(appView));
@@ -292,7 +291,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     private DexEncodedMethod createValuesMethod(
         DexType sharedUtilityClassType, DexEncodedField valuesField) {
       DexEncodedMethod valuesMethod =
-          DexEncodedMethod.create(
+          DexEncodedMethod.createSynthetic(
               dexItemFactory.createMethod(
                   sharedUtilityClassType,
                   dexItemFactory.createProto(dexItemFactory.intArrayType, dexItemFactory.intType),
@@ -302,7 +301,6 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               createValuesMethodCode(sharedUtilityClassType, valuesField),
-              DexEncodedMethod.D8_R8_SYNTHESIZED,
               CfVersion.V1_6,
               minApiLevelIfEnabledOrUnknown(appView),
               minApiLevelIfEnabledOrUnknown(appView));

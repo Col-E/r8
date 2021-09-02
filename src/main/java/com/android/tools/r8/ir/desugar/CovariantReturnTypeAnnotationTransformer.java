@@ -164,7 +164,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
             .setVirtualTarget(methodReference, methodHolder.isInterface())
             .setCastResult();
     DexEncodedMethod newVirtualMethod =
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             newMethod,
             newAccessFlags,
             methodDefinition.getGenericSignature(),
@@ -172,8 +172,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
                 .annotations()
                 .keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
             methodDefinition.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
-            forwardMethodBuilder.build(),
-            true);
+            forwardMethodBuilder.build());
     // Optimize to generate DexCode instead of CfCode.
     ProgramMethod programMethod = new ProgramMethod(methodHolder, newVirtualMethod);
     converter.optimizeSynthesizedMethod(programMethod);

@@ -1441,14 +1441,13 @@ public class VerticalClassMerger {
       synthesizedBridges.add(code);
 
       DexEncodedMethod bridge =
-          DexEncodedMethod.create(
+          DexEncodedMethod.createSynthetic(
               newMethod,
               accessFlags,
               MethodTypeSignature.noSignature(),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               code,
-              true,
               method.hasClassFileVersion() ? method.getClassFileVersion() : null,
               method.getApiLevelForDefinition(),
               method.getApiLevelForDefinition());

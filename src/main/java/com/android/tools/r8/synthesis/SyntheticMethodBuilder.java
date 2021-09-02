@@ -104,18 +104,16 @@ public class SyntheticMethodBuilder {
 
   DexEncodedMethod build() {
     assert name != null;
-    boolean isCompilerSynthesized = true;
     DexMethod methodSignature = getMethodSignature();
     MethodAccessFlags accessFlags = getAccessFlags();
     DexEncodedMethod method =
-        DexEncodedMethod.create(
+        DexEncodedMethod.createSynthetic(
             methodSignature,
             accessFlags,
             genericSignature,
             annotations,
             parameterAnnotationsList,
             accessFlags.isAbstract() ? null : getCodeObject(methodSignature),
-            isCompilerSynthesized,
             classFileVersion,
             AndroidApiLevel.UNKNOWN,
             AndroidApiLevel.UNKNOWN);

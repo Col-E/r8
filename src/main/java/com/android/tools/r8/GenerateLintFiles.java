@@ -154,17 +154,17 @@ public class GenerateLintFiles {
       }
       DexEncodedMethod throwingMethod =
           DexEncodedMethod.create(
-              method.getReference(),
-              method.accessFlags,
-              MethodTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              ParameterAnnotationsList.empty(),
-              code,
-              false,
-              CfVersion.V1_6,
-              AndroidApiLevel.UNKNOWN,
-              AndroidApiLevel.UNKNOWN,
-              false);
+                  method.getReference(),
+                  method.accessFlags,
+                  MethodTypeSignature.noSignature(),
+                  DexAnnotationSet.empty(),
+                  ParameterAnnotationsList.empty(),
+                  code,
+                  CfVersion.V1_6,
+                  AndroidApiLevel.UNKNOWN,
+                  AndroidApiLevel.UNKNOWN,
+                  false)
+              .build();
       if (method.isStatic() || method.isDirectMethod()) {
         directMethods.add(throwingMethod);
       } else {

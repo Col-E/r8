@@ -903,17 +903,18 @@ public class JarClassFileReader<T extends DexClass> {
       }
       DexEncodedMethod dexMethod =
           DexEncodedMethod.create(
-              method,
-              flags,
-              genericSignature,
-              createAnnotationSet(annotations, options),
-              parameterAnnotationsList,
-              code,
-              false,
-              parent.version,
-              AndroidApiLevel.UNKNOWN,
-              AndroidApiLevel.UNKNOWN,
-              deprecated);
+                  method,
+                  flags,
+                  genericSignature,
+                  createAnnotationSet(annotations, options),
+                  parameterAnnotationsList,
+                  code,
+                  parent.version,
+                  AndroidApiLevel.UNKNOWN,
+                  AndroidApiLevel.UNKNOWN,
+                  deprecated)
+              .disableParameterAnnotationListCheck()
+              .build();
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
       if (parent.methodSignatures.add(signature)) {
         parent.hasReachabilitySensitiveMethod |= isReachabilitySensitive();
