@@ -22,12 +22,10 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.NestHostClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.Comparator;
@@ -145,9 +143,6 @@ public class DesugaredLibraryRetargeterLibraryTypeSynthesizor {
                           .setAccessFlags(
                               MethodAccessFlags.fromCfAccessFlags(
                                   Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
-                          .setGenericSignature(MethodTypeSignature.noSignature())
-                          .setAnnotations(DexAnnotationSet.empty())
-                          .setParameterAnnotations(ParameterAnnotationsList.empty())
                           .setCode(null)
                           .build());
             }

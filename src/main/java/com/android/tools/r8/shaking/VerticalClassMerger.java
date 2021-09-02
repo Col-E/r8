@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -47,7 +46,6 @@ import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -1447,9 +1445,6 @@ public class VerticalClassMerger {
           DexEncodedMethod.syntheticBuilder()
               .setMethod(newMethod)
               .setAccessFlags(accessFlags)
-              .setGenericSignature(MethodTypeSignature.noSignature())
-              .setAnnotations(DexAnnotationSet.empty())
-              .setParameterAnnotations(ParameterAnnotationsList.empty())
               .setCode(code)
               .setClassFileVersion(classFileVersion)
               .setApiLevelForDefinition(method.getApiLevelForDefinition())

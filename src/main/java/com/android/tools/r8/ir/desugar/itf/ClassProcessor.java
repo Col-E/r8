@@ -13,7 +13,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -25,11 +24,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.BooleanBox;
@@ -803,9 +800,6 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethod)
             .setAccessFlags(accessFlags)
-            .setGenericSignature(MethodTypeSignature.noSignature())
-            .setAnnotations(DexAnnotationSet.empty())
-            .setParameterAnnotations(ParameterAnnotationsList.empty())
             .setCode(
                 createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory))
             .build();

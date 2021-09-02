@@ -11,15 +11,12 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeUtils;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ConstructorEntryPointSynthesizedCode;
@@ -365,9 +362,6 @@ public class InstanceInitializerMerger {
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
             .setAccessFlags(getNewAccessFlags())
-            .setGenericSignature(MethodTypeSignature.noSignature())
-            .setAnnotations(DexAnnotationSet.empty())
-            .setParameterAnnotations(ParameterAnnotationsList.empty())
             .setCode(
                 getNewCode(newMethodReference, syntheticMethodReference, needsClassId, extraNulls))
             .setClassFileVersion(getNewClassFileVersion())

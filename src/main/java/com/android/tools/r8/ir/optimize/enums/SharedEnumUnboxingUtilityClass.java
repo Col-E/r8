@@ -32,9 +32,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
@@ -251,9 +249,6 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
       return DexEncodedMethod.syntheticBuilder()
           .setMethod(dexItemFactory.createClassInitializer(sharedUtilityClassType))
           .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-          .setGenericSignature(MethodTypeSignature.noSignature())
-          .setAnnotations(DexAnnotationSet.empty())
-          .setParameterAnnotations(ParameterAnnotationsList.empty())
           .setCode(createClassInitializerCode(sharedUtilityClassType, valuesField))
           .setClassFileVersion(CfVersion.V1_6)
           .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
@@ -300,9 +295,6 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                           dexItemFactory.intArrayType, dexItemFactory.intType),
                       "values"))
               .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-              .setGenericSignature(MethodTypeSignature.noSignature())
-              .setAnnotations(DexAnnotationSet.empty())
-              .setParameterAnnotations(ParameterAnnotationsList.empty())
               .setCode(createValuesMethodCode(sharedUtilityClassType, valuesField))
               .setClassFileVersion(CfVersion.V1_6)
               .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))

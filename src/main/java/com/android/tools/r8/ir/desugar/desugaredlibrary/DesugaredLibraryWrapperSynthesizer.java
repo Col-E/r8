@@ -22,9 +22,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
@@ -564,9 +562,6 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return DexEncodedMethod.syntheticBuilder()
         .setMethod(methodToInstall)
         .setAccessFlags(newFlags)
-        .setGenericSignature(MethodTypeSignature.noSignature())
-        .setAnnotations(DexAnnotationSet.empty())
-        .setParameterAnnotations(ParameterAnnotationsList.empty())
         .setCode(code)
         .build();
   }

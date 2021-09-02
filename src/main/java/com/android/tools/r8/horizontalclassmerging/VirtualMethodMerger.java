@@ -7,16 +7,13 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.code.VirtualMethodEntryPointSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
@@ -281,9 +278,6 @@ public class VirtualMethodMerger {
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
             .setAccessFlags(getAccessFlags())
-            .setGenericSignature(MethodTypeSignature.noSignature())
-            .setAnnotations(DexAnnotationSet.empty())
-            .setParameterAnnotations(ParameterAnnotationsList.empty())
             .setCode(synthesizedCode)
             .setClassFileVersion(classFileVersion)
             .setApiLevelForDefinition(representativeMethod.getApiLevelForDefinition())

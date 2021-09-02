@@ -13,9 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -56,9 +54,6 @@ class CallGraphTestBase extends TestBase {
             DexEncodedMethod.builder()
                 .setMethod(signature)
                 .setAccessFlags(MethodAccessFlags.fromDexAccessFlags(0))
-                .setGenericSignature(MethodTypeSignature.noSignature())
-                .setAnnotations(DexAnnotationSet.empty())
-                .setParameterAnnotations(ParameterAnnotationsList.empty())
                 .setCode(null)
                 .build());
     return new Node(method);

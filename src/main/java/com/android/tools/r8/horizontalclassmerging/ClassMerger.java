@@ -22,9 +22,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
@@ -134,9 +132,6 @@ public class ClassMerger {
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
             .setAccessFlags(MethodAccessFlags.createForClassInitializer())
-            .setGenericSignature(MethodTypeSignature.noSignature())
-            .setAnnotations(DexAnnotationSet.empty())
-            .setParameterAnnotations(ParameterAnnotationsList.empty())
             .setCode(classInitializerMerger.getCode(syntheticMethodReference))
             .setClassFileVersion(classInitializerMerger.getCfVersion())
             .setApiLevelForDefinition(apiReferenceLevel)
