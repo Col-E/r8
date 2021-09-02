@@ -28,6 +28,7 @@ public class SyntheticNaming {
     ENUM_UNBOXING_LOCAL_UTILITY_CLASS("$EnumUnboxingLocalUtility", 24, false, true),
     ENUM_UNBOXING_SHARED_UTILITY_CLASS("$EnumUnboxingSharedUtility", 25, false, true),
     RECORD_TAG("", 1, false, true, true),
+    CUSTOM_CONVERSION("", 31, false, true),
     COMPANION_CLASS("$-CC", 2, false, true),
     EMULATED_INTERFACE_CLASS("$-EL", 3, false, true),
     RETARGET_CLASS("RetargetClass", 20, false, true),

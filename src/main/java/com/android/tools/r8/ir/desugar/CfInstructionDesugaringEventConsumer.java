@@ -100,6 +100,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       }
 
       @Override
+      public void acceptCustomConversionClasspathClass(DexClasspathClass clazz) {
+        assert false;
+      }
+
+      @Override
       public void acceptAPIConversion(ProgramMethod method) {
         assert false;
       }
@@ -282,6 +287,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptCustomConversionClasspathClass(DexClasspathClass clazz) {
+      // Intentionally empty.
+    }
+
+    @Override
     public void acceptAPIConversion(ProgramMethod method) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
@@ -432,6 +442,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptCustomConversionClasspathClass(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
     }
 

@@ -157,6 +157,10 @@ public class SyntheticMethodBuilder {
   }
 
   private Code getCodeObject(DexMethod methodSignature) {
+    if (codeGenerator == null) {
+      // The codeGenerator may be null on classpath classes.
+      return null;
+    }
     return codeGenerator.generate(methodSignature);
   }
 }

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -26,6 +27,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryCustomConversionEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterThrowRuntimeExceptionCfCodeProvider;
@@ -124,13 +126,28 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       DexType srcType,
       DexType destType,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
-    DexMethod customConversion = getCustomConversion(type, srcType, destType);
-    if (customConversion != null) {
-      return customConversion;
+    if (hasCustomConversion(type)) {
+      return getCustomConversion(type, srcType, destType, eventConsumer);
     }
     assert canGenerateWrapper(type) : type;
-    DexClass clazz = getValidClassToWrap(type);
-    WrapperConversions wrapperConversions = ensureWrappers(clazz, eventConsumer);
+    WrapperConversions wrapperConversions =
+        ensureWrappers(getValidClassToWrap(type), eventConsumer);
+    return extractConversion(type, srcType, destType, wrapperConversions);
+  }
+
+  public DexMethod getExistingProgramConversionMethod(
+      DexType type, DexType srcType, DexType destType) {
+    if (hasCustomConversion(type)) {
+      return getExistingProgramCustomConversion(type, srcType, destType);
+    }
+    assert canGenerateWrapper(type) : type;
+    WrapperConversions wrapperConversions =
+        getExistingProgramWrapperConversions(getValidClassToWrap(type));
+    return extractConversion(type, srcType, destType, wrapperConversions);
+  }
+
+  private DexMethod extractConversion(
+      DexType type, DexType srcType, DexType destType, WrapperConversions wrapperConversions) {
     DexMethod conversion =
         type == srcType
             ? wrapperConversions.getConversion()
@@ -140,32 +157,80 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return conversion;
   }
 
-  public DexMethod getExistingProgramConversionMethod(
-      DexType type, DexType srcType, DexType destType) {
-    DexMethod customConversion = getCustomConversion(type, srcType, destType);
-    if (customConversion != null) {
-      return customConversion;
-    }
-    WrapperConversions wrapperConversions =
-        getExistingProgramWrapperConversions(getValidClassToWrap(type));
-    DexMethod conversion =
-        type == srcType
-            ? wrapperConversions.getConversion()
-            : wrapperConversions.getVivifiedConversion();
-    assert srcType == conversion.getArgumentType(0, true);
-    return conversion;
+  private boolean hasCustomConversion(DexType type) {
+    return appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type) != null;
   }
 
-  private DexMethod getCustomConversion(DexType type, DexType srcType, DexType destType) {
-    // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
-    // But everything is going to be rewritten, so we need to use vivifiedType and type".
+  private DexMethod getCustomConversion(
+      DexType type,
+      DexType srcType,
+      DexType destType,
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
+    assert hasCustomConversion(type);
     DexType conversionHolder =
         appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
-    if (conversionHolder != null) {
-      return factory.createMethod(
-          conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
+    assert conversionHolder != null;
+    DexClass dexClass = appView.definitionFor(conversionHolder);
+    if (dexClass != null && dexClass.isProgramClass()) {
+      return getExistingProgramCustomConversion(type, srcType, destType);
     }
-    return null;
+    return ensureClasspathCustomConversion(srcType, destType, eventConsumer, conversionHolder)
+        .getReference();
+  }
+
+  public DexClassAndMethod ensureClasspathCustomConversion(
+      DexType srcType,
+      DexType destType,
+      DesugaredLibraryCustomConversionEventConsumer eventConsumer,
+      DexType conversionHolder) {
+    return appView
+        .getSyntheticItems()
+        .ensureFixedClasspathClassFromTypeMethod(
+            factory.convertMethodName,
+            factory.createProto(destType, srcType),
+            SyntheticKind.CUSTOM_CONVERSION,
+            conversionHolder,
+            appView,
+            ignored -> {},
+            eventConsumer::acceptCustomConversionClasspathClass,
+            methodBuilder ->
+                methodBuilder
+                    .setAccessFlags(
+                        MethodAccessFlags.fromSharedAccessFlags(
+                            Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
+                    .setCode(null));
+  }
+
+  private DexMethod getExistingProgramCustomConversion(
+      DexType type, DexType srcType, DexType destType) {
+    assert hasCustomConversion(type);
+    DexType conversionHolder =
+        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
+    assert conversionHolder != null;
+    DexClass dexClass = appView.definitionFor(conversionHolder);
+    assert dexClass != null;
+    // Note: DexClass can unfortunately be a non program class on broken set-ups.
+    DexMethod conversionMethod =
+        conversionMethod(dexClass.type, srcType, destType, appView.dexItemFactory());
+    assert conversionEncodedMethod(dexClass, srcType, destType, appView.dexItemFactory())
+            .getReference()
+        == conversionMethod;
+    return conversionMethod;
+  }
+
+  public static DexEncodedMethod conversionEncodedMethod(
+      DexClass conversionHolder, DexType srcType, DexType destType, DexItemFactory factory) {
+    DexMethod method = conversionMethod(conversionHolder.type, srcType, destType, factory);
+    DexEncodedMethod conversionMethod = conversionHolder.lookupDirectMethod(method);
+    assert conversionMethod != null;
+    return conversionMethod;
+  }
+
+  private static DexMethod conversionMethod(
+      DexType conversionHolder, DexType srcType, DexType destType, DexItemFactory factory) {
+    DexProto proto = factory.createProto(destType, srcType);
+    DexMethod method = factory.createMethod(conversionHolder, proto, factory.convertMethodName);
+    return method;
   }
 
   private boolean canConvert(DexType type) {
@@ -276,10 +341,12 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private DexMethod getConversion(DexClass wrapper, DexType returnType, DexType argType) {
-    DexMethod convertMethod =
-        factory.createMethod(
-            wrapper.type, factory.createProto(returnType, argType), factory.convertMethodName);
-    return wrapper.lookupDirectMethod(convertMethod).getReference();
+    DexMethod conversionMethod =
+        conversionMethod(wrapper.type, argType, returnType, appView.dexItemFactory());
+    assert conversionEncodedMethod(wrapper, argType, returnType, appView.dexItemFactory())
+            .getReference()
+        == conversionMethod;
+    return conversionMethod;
   }
 
   private DexEncodedField getWrapperUniqueEncodedField(DexClass wrapper) {
@@ -630,6 +697,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
+    new DesugaredLibraryCustomConversionRewriter(appView, this).synthesizeClasses(eventConsumer);
     List<DexProgramClass> validClassesToWrap = new ArrayList<>();
     for (DexType type : conf.getWrapperConversions()) {
       assert !conf.getCustomConversions().containsKey(type);

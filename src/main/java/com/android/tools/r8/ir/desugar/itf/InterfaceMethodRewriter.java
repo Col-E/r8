@@ -165,7 +165,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     DesugaredLibraryConfiguration config = options.desugaredLibraryConfiguration;
     BiConsumer<DexType, DexType> registerEntry = registerMapEntry(appInfo);
     config.getEmulateLibraryInterface().forEach(registerEntry);
-    config.getCustomConversions().forEach(registerEntry);
     config.getRetargetCoreLibMember().forEach((method, types) -> types.forEach(registerEntry));
   }
 

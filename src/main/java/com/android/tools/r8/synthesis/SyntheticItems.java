@@ -644,29 +644,84 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       AppView<?> appView,
       Consumer<SyntheticClasspathClassBuilder> classConsumer,
       Consumer<DexClasspathClass> onCreationConsumer) {
+    // Obtain the outer synthesizing context in the case the context itself is synthetic.
+    // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
+    return internalEnsureDexClasspathClass(
+        kind, classConsumer, onCreationConsumer, outerContext, type, appView);
+  }
+
+  private DexClasspathClass internalEnsureDexClasspathClass(
+      SyntheticKind kind,
+      Consumer<SyntheticClasspathClassBuilder> classConsumer,
+      Consumer<DexClasspathClass> onCreationConsumer,
+      SynthesizingContext outerContext,
+      DexType type,
+      AppView<?> appView) {
     DexClass dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
     if (dexClass != null) {
       assert dexClass.isClasspathClass();
       return dexClass.asClasspathClass();
     }
-    synchronized (context) {
+    synchronized (type) {
       dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
       if (dexClass != null) {
         assert dexClass.isClasspathClass();
         return dexClass.asClasspathClass();
       }
-      // Obtain the outer synthesizing context in the case the context itself is synthetic.
-      // This is to ensure a flat input-type -> synthetic-item mapping.
-      SyntheticClasspathClassBuilder classBuilder =
-          new SyntheticClasspathClassBuilder(type, kind, outerContext, appView.dexItemFactory());
-      classConsumer.accept(classBuilder);
-      DexClasspathClass clazz = classBuilder.build();
-      addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
+      DexClasspathClass clazz =
+          internalCreateClasspathClass(
+              kind, classConsumer, outerContext, type, appView.dexItemFactory());
       onCreationConsumer.accept(clazz);
       return clazz;
     }
+  }
+
+  private DexClasspathClass internalCreateClasspathClass(
+      SyntheticKind kind,
+      Consumer<SyntheticClasspathClassBuilder> fn,
+      SynthesizingContext outerContext,
+      DexType type,
+      DexItemFactory factory) {
+    SyntheticClasspathClassBuilder classBuilder =
+        new SyntheticClasspathClassBuilder(type, kind, outerContext, factory);
+    fn.accept(classBuilder);
+      DexClasspathClass clazz = classBuilder.build();
+      addPendingDefinition(new SyntheticClasspathClassDefinition(kind, outerContext, clazz));
+      return clazz;
+    }
+
+  public DexClasspathClass ensureFixedClasspathClassFromType(
+      SyntheticKind kind,
+      DexType contextType,
+      AppView<?> appView,
+      Consumer<SyntheticClasspathClassBuilder> classConsumer,
+      Consumer<DexClasspathClass> onCreationConsumer) {
+    SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
+    DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
+    return internalEnsureDexClasspathClass(
+        kind, classConsumer, onCreationConsumer, outerContext, type, appView);
+  }
+
+  public DexClassAndMethod ensureFixedClasspathClassFromTypeMethod(
+      DexString methodName,
+      DexProto methodProto,
+      SyntheticKind kind,
+      DexType contextType,
+      AppView<?> appView,
+      Consumer<SyntheticClasspathClassBuilder> classConsumer,
+      Consumer<DexClasspathClass> onCreationConsumer,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+    DexClasspathClass clazz =
+        ensureFixedClasspathClassFromType(
+            kind, contextType, appView, classConsumer, onCreationConsumer);
+    DexMethod methodReference =
+        appView.dexItemFactory().createMethod(clazz.getType(), methodProto, methodName);
+    DexEncodedMethod methodDefinition =
+        internalEnsureMethod(
+            methodReference, clazz, kind, appView, buildMethodCallback, emptyConsumer());
+    return DexClassAndMethod.create(clazz, methodDefinition);
   }
 
   public DexClassAndMethod ensureFixedClasspathClassMethod(

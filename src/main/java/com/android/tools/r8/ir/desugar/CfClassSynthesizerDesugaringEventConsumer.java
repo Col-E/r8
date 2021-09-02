@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryCustomConversionEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer;
@@ -16,6 +18,7 @@ public class CfClassSynthesizerDesugaringEventConsumer
     implements L8ProgramEmulatedInterfaceSynthesizerEventConsumer,
         DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer,
         DesugaredLibraryRetargeterL8SynthesizerEventConsumer,
+        DesugaredLibraryCustomConversionEventConsumer,
         RecordDesugaringEventConsumer {
 
   private Set<DexProgramClass> synthesizedClasses = Sets.newConcurrentHashSet();
@@ -38,6 +41,11 @@ public class CfClassSynthesizerDesugaringEventConsumer
   @Override
   public void acceptRecordClass(DexProgramClass clazz) {
     synthesizedClasses.add(clazz);
+  }
+
+  @Override
+  public void acceptCustomConversionClasspathClass(DexClasspathClass clazz) {
+    // Intentionally empty.
   }
 
   public Set<DexProgramClass> getSynthesizedClasses() {

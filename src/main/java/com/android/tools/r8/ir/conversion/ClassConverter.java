@@ -53,9 +53,9 @@ public abstract class ClassConverter {
       throws ExecutionException {
     List<DexProgramClass> classes = appView.appInfo().classes();
 
-      CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
-          new CfClassSynthesizerDesugaringEventConsumer();
-      converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
+    CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
+        new CfClassSynthesizerDesugaringEventConsumer();
+    converter.classSynthesisDesugaring(executorService, classSynthesizerEventConsumer);
     if (!classSynthesizerEventConsumer.getSynthesizedClasses().isEmpty()) {
       classes =
           ImmutableList.<DexProgramClass>builder()

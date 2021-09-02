@@ -118,6 +118,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
       // Intentionally empty.
     }
+
+    @Override
+    public void acceptCustomConversionClasspathClass(DexClasspathClass clazz) {
+      // Intentionally empty.
+    }
   }
 
   public static class R8PostProcessingDesugaringEventConsumer
@@ -189,6 +194,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptCustomConversionClasspathClass(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
     }
   }

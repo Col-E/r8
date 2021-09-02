@@ -1419,7 +1419,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new Builder(false);
   }
 
-  private static Builder builder(DexEncodedMethod from) {
+  public static Builder builder(DexEncodedMethod from) {
     return new Builder(from.isD8R8Synthesized(), from);
   }
 
