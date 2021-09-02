@@ -54,7 +54,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
             o -> {
               o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
               o.callSiteOptimizationOptions()
-                  .setEnableConstantPropagation()
+                  .setEnableLegacyConstantPropagation()
                   .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
             })
         .enableNoVerticalClassMergingAnnotations()

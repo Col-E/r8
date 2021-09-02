@@ -42,7 +42,6 @@ public class UnboxedEnumUserInMethodWithConstantArgumentTest extends TestBase {
             options ->
                 options
                     .callSiteOptimizationOptions()
-                    .setEnableConstantPropagation()
                     .setEnableExperimentalArgumentPropagation(true))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .enableInliningAnnotations()

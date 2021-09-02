@@ -43,7 +43,6 @@ public class StaticMethodWithConstantArgumentThroughCallChainTest extends TestBa
             options ->
                 options
                     .callSiteOptimizationOptions()
-                    .setEnableConstantPropagation()
                     .setEnableExperimentalArgumentPropagation(true))
         .enableInliningAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.

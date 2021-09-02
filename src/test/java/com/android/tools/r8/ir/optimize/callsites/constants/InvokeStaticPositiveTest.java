@@ -56,7 +56,7 @@ public class InvokeStaticPositiveTest extends TestBase {
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
               }
               o.callSiteOptimizationOptions()
-                  .setEnableConstantPropagation()
+                  .setEnableLegacyConstantPropagation()
                   .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
             })
         .enableInliningAnnotations()

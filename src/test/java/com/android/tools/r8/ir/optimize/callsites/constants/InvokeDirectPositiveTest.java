@@ -57,7 +57,7 @@ public class InvokeDirectPositiveTest extends TestBase {
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
               }
               o.callSiteOptimizationOptions()
-                  .setEnableConstantPropagation()
+                  .setEnableLegacyConstantPropagation()
                   .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
             })
         .enableInliningAnnotations()
