@@ -76,7 +76,6 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
 
   @Test
   public void runCheckedInBinaryJar() throws Exception {
-    Assume.assumeFalse(ToolHelper.isWindows());
     for (CfRuntime cfRuntime : CfRuntime.getCheckedInCfRuntimes()) {
       RetraceApiTestHelper.runJunitOnTests(
           cfRuntime,

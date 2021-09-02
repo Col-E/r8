@@ -69,7 +69,7 @@ public class RetraceApiTestHelper {
 
   private static Path getJunitDependency() {
     String junitPath =
-        Arrays.stream(System.getProperty("java.class.path").split(":"))
+        Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
             .filter(cp -> cp.endsWith(JUNIT_JAR))
             .collect(Collectors.toSingle());
     return Paths.get(junitPath);
@@ -77,7 +77,7 @@ public class RetraceApiTestHelper {
 
   private static Path getHamcrest() {
     String junitPath =
-        Arrays.stream(System.getProperty("java.class.path").split(":"))
+        Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
             .filter(cp -> cp.endsWith(HAMCREST))
             .collect(Collectors.toSingle());
     return Paths.get(junitPath);
