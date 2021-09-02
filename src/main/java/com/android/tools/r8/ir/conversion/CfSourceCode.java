@@ -848,6 +848,8 @@ public class CfSourceCode implements SourceCode {
   @Override
   public boolean verifyCurrentInstructionCanThrow() {
     return isCurrentlyGeneratingMethodSynchronization()
+        // In the prelude we may be materializing arguments from call sites in R8.
+        || inPrelude
         || code.getInstructions().get(currentInstructionIndex).canThrow();
   }
 

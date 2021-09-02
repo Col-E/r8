@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.optimize.callsites.constants;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -14,7 +15,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -50,15 +50,19 @@ public class InvokeStaticPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeStaticPositiveTest.class)
         .addKeepMainRule(MAIN)
-        .enableInliningAnnotations()
         .addOptionsModification(
             o -> {
-              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+              if (!enableExperimentalArgumentPropagation) {
+                o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+              }
               o.callSiteOptimizationOptions()
+                  .setEnableConstantPropagation()
                   .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
             })
+        .enableInliningAnnotations()
+        // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
+        .minification(!enableExperimentalArgumentPropagation)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(InternalOptions::enableConstantArgumentPropagationForTesting)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
         .inspect(this::inspect);
@@ -78,8 +82,20 @@ public class InvokeStaticPositiveTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
+
+    if (enableExperimentalArgumentPropagation) {
+      // Verify that the "nul" argument has been propagated to the test() method.
+      MethodSubject mainMethodSubject = main.mainMethod();
+      assertThat(mainMethodSubject, isPresent());
+      assertTrue(
+          mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isConstString));
+    }
+
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
+    assertEquals(
+        1 - BooleanUtils.intValue(enableExperimentalArgumentPropagation),
+        test.getProgramMethod().getReference().getArity());
     // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
     assertTrue(test.streamInstructions().noneMatch(InstructionSubject::isIf));
   }

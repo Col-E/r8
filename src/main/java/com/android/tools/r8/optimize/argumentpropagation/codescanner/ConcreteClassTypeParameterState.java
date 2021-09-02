@@ -51,12 +51,12 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
     return this;
   }
 
-  public AbstractValue getAbstractValue() {
-    return abstractValue;
-  }
-
   @Override
   public AbstractValue getAbstractValue(AppView<AppInfoWithLiveness> appView) {
+    if (getDynamicType().getNullability().isDefinitelyNull()) {
+      assert abstractValue == null || abstractValue.isNull();
+      return appView.abstractValueFactory().createNullValue();
+    }
     return abstractValue;
   }
 

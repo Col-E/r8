@@ -62,9 +62,9 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
     methods.add(method.getReference());
   }
 
-  @Deprecated
-  public void addAll(Iterable<ProgramMethod> methods) {
-    methods.forEach(this::add);
+  public void addAll(Iterable<ProgramMethod> methodsToAdd, GraphLens currentGraphLens) {
+    assert verifyIsRewrittenWithLens(currentGraphLens);
+    methodsToAdd.forEach(method -> methods.add(method.getReference()));
   }
 
   public void clear() {

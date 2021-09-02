@@ -66,6 +66,7 @@ public class DexSourceCode implements SourceCode {
   private Try currentTryRange = null;
   private CatchHandlers<Integer> currentCatchHandlers = null;
   private Instruction currentDexInstruction = null;
+  private boolean isBuildingPrelude;
 
   private Position currentPosition = null;
   private final CanonicalPositions canonicalPositions;
@@ -134,14 +135,16 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public void buildPrelude(IRBuilder builder) {
+    assert !isBuildingPrelude;
+    isBuildingPrelude = true;
     currentPosition = canonicalPositions.getPreamblePosition();
-    if (code.incomingRegisterSize == 0) {
-      return;
+    if (code.incomingRegisterSize > 0) {
+      builder.buildArgumentsWithRewrittenPrototypeChanges(
+          code.registerSize - code.incomingRegisterSize,
+          method.getDefinition(),
+          DexSourceCode::doNothingWriteConsumer);
     }
-    builder.buildArgumentsWithRewrittenPrototypeChanges(
-        code.registerSize - code.incomingRegisterSize,
-        method.getDefinition(),
-        DexSourceCode::doNothingWriteConsumer);
+    isBuildingPrelude = false;
   }
 
   public static void doNothingWriteConsumer(Integer register, DexType type) {
@@ -198,7 +201,8 @@ public class DexSourceCode implements SourceCode {
 
   @Override
   public boolean verifyCurrentInstructionCanThrow() {
-    return currentDexInstruction.canThrow();
+    // In the prelude we may be materializing arguments from call sites in R8.
+    return isBuildingPrelude || currentDexInstruction.canThrow();
   }
 
   @Override

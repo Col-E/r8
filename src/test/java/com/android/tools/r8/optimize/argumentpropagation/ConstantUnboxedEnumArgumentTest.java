@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,7 +23,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class StaticMethodWithConstantArgumentTest extends TestBase {
+public class ConstantUnboxedEnumArgumentTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -45,6 +44,7 @@ public class StaticMethodWithConstantArgumentTest extends TestBase {
                     .callSiteOptimizationOptions()
                     .setEnableConstantPropagation()
                     .setEnableExperimentalArgumentPropagation(true))
+        .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
         .enableInliningAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
         .noMinification()
@@ -55,39 +55,41 @@ public class StaticMethodWithConstantArgumentTest extends TestBase {
               ClassSubject mainClassSubject = inspector.clazz(Main.class);
               assertThat(mainClassSubject, isPresent());
 
-              // The test() method has been optimized.
+              MethodSubject mainMethodSubject = mainClassSubject.mainMethod();
+              assertThat(mainMethodSubject, isPresent());
+              assertTrue(
+                  mainMethodSubject
+                      .streamInstructions()
+                      .noneMatch(InstructionSubject::isStaticGet));
+
               MethodSubject testMethodSubject = mainClassSubject.uniqueMethodWithName("test");
               assertThat(testMethodSubject, isPresent());
-              assertEquals(0, testMethodSubject.getProgramMethod().getParameters().size());
+              assertEquals(0, testMethodSubject.getProgramMethod().getReference().getArity());
               assertTrue(
-                  testMethodSubject.streamInstructions().noneMatch(InstructionSubject::isIf));
-
-              assertThat(mainClassSubject.uniqueMethodWithName("dead"), isAbsent());
+                  testMethodSubject
+                      .streamInstructions()
+                      .anyMatch(instruction -> instruction.isConstString("A")));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello", "Hello", "Hello");
+        .assertSuccessWithOutputLines("A");
   }
 
   static class Main {
 
     public static void main(String[] args) {
-      test(42);
-      test(42);
-      test(42);
+      // Argument should be removed by argument propagation.
+      test(MyEnum.A);
     }
 
     @NeverInline
-    static void test(int x) {
-      if (x == 42) {
-        System.out.println("Hello");
-      } else {
-        dead();
-      }
+    static void test(MyEnum myEnum) {
+      // Argument propagation should remove the parameter `myEnum` and materialize an access to
+      // `MyEnum.A`, which should subsequently be rewritten by enum unboxing.
+      System.out.println(myEnum.name());
     }
+  }
 
-    @NeverInline
-    static void dead() {
-      System.out.println("Unreachable");
-    }
+  enum MyEnum {
+    A
   }
 }

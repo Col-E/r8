@@ -46,8 +46,9 @@ class EnumUnboxingLens extends NestedGraphLens {
     // During the second IR processing enum unboxing is the only optimization rewriting
     // prototype description, if this does not hold, remove the assertion and merge
     // the two prototype changes.
-    assert prototypeChanges.isEmpty();
-    return prototypeChangesPerMethod.getOrDefault(method, RewrittenPrototypeDescription.none());
+    RewrittenPrototypeDescription enumUnboxingPrototypeChanges =
+        prototypeChangesPerMethod.getOrDefault(method, RewrittenPrototypeDescription.none());
+    return prototypeChanges.combine(enumUnboxingPrototypeChanges);
   }
 
   @Override

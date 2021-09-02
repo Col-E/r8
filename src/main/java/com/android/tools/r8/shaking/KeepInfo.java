@@ -70,6 +70,10 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     return allowAnnotationRemoval;
   }
 
+  public boolean isParameterRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration) && isShrinkingAllowed(configuration);
+  }
+
   /**
    * True if an item must be present in the output.
    *

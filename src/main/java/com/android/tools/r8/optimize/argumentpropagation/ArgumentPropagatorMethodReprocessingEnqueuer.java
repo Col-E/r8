@@ -1,0 +1,189 @@
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.optimize.argumentpropagation;
+
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+
+/** Finds the methods in the program that should be reprocessed due to argument propagation. */
+public class ArgumentPropagatorMethodReprocessingEnqueuer {
+
+  private final AppView<AppInfoWithLiveness> appView;
+
+  public ArgumentPropagatorMethodReprocessingEnqueuer(AppView<AppInfoWithLiveness> appView) {
+    this.appView = appView;
+  }
+
+  /**
+   * Called indirectly from {@link IRConverter} to add all methods that require reprocessing to
+   * {@param postMethodProcessorBuilder}.
+   */
+  public void enqueueMethodForReprocessing(
+      ArgumentPropagatorGraphLens graphLens,
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
+      ExecutorService executorService)
+      throws ExecutionException {
+    // Bring the methods to reprocess set up-to-date with the current graph lens (i.e., the one
+    // prior to the argument propagator lens, which has not yet been installed!).
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder =
+        postMethodProcessorBuilder
+            .getMethodsToReprocessBuilder()
+            .rewrittenWithLens(appView.graphLens());
+    enqueueMethodsWithNonTrivialOptimizationInfo(methodsToReprocessBuilder);
+    if (graphLens != null) {
+      enqueueAffectedCallers(graphLens, methodsToReprocessBuilder, executorService);
+    }
+  }
+
+  private void enqueueMethodsWithNonTrivialOptimizationInfo(
+      LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder) {
+    GraphLens currentGraphLens = appView.graphLens();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.forEachProgramMethodMatching(
+          DexEncodedMethod::hasCode,
+          method -> {
+            CallSiteOptimizationInfo callSiteOptimizationInfo =
+                method.getDefinition().getCallSiteOptimizationInfo();
+            if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()
+                && !appView.appInfo().isNeverReprocessMethod(method.getReference())) {
+              methodsToReprocessBuilder.add(method, currentGraphLens);
+              appView.testing().callSiteOptimizationInfoInspector.accept(method);
+            }
+          });
+    }
+  }
+
+  // TODO(b/190154391): This could invalidate the @NeverReprocessMethod testing annotations (non
+  //  critical). If @NeverReprocessMethod is used, we would need to scan the application to mark
+  //  methods as unoptimizable prior to removing parameters from the application.
+  private void enqueueAffectedCallers(
+      ArgumentPropagatorGraphLens graphLens,
+      LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder,
+      ExecutorService executorService)
+      throws ExecutionException {
+    Collection<List<ProgramMethod>> methodsToReprocess =
+        ThreadUtils.processItemsWithResults(
+            appView.appInfo().classes(),
+            clazz -> {
+              List<ProgramMethod> methodsToReprocessInClass = new ArrayList<>();
+              clazz.forEachProgramMethodMatching(
+                  DexEncodedMethod::hasCode,
+                  method -> {
+                    AffectedMethodUseRegistry registry =
+                        new AffectedMethodUseRegistry(appView, graphLens);
+                    method.registerCodeReferences(registry);
+                    if (registry.isAffected()) {
+                      methodsToReprocessInClass.add(method);
+                    }
+                  });
+              return methodsToReprocessInClass;
+            },
+            executorService);
+    GraphLens currentGraphLens = appView.graphLens();
+    methodsToReprocess.forEach(
+        methodsToReprocessForClass ->
+            methodsToReprocessBuilder.addAll(methodsToReprocessForClass, currentGraphLens));
+  }
+
+  static class AffectedMethodUseRegistry extends UseRegistry {
+
+    private final AppView<AppInfoWithLiveness> appView;
+    private final ArgumentPropagatorGraphLens graphLens;
+
+    // Set to true if the given piece of code resolves to a method that needs rewriting according to
+    // the graph lens.
+    private boolean affected;
+
+    AffectedMethodUseRegistry(
+        AppView<AppInfoWithLiveness> appView, ArgumentPropagatorGraphLens graphLens) {
+      super(appView.dexItemFactory());
+      this.appView = appView;
+      this.graphLens = graphLens;
+    }
+
+    boolean isAffected() {
+      return affected;
+    }
+
+    @Override
+    public void registerInvokeDirect(DexMethod method) {
+      registerInvokeMethod(method);
+    }
+
+    @Override
+    public void registerInvokeInterface(DexMethod method) {
+      registerInvokeMethod(method);
+    }
+
+    @Override
+    public void registerInvokeStatic(DexMethod method) {
+      registerInvokeMethod(method);
+    }
+
+    @Override
+    public void registerInvokeSuper(DexMethod method) {
+      registerInvokeMethod(method);
+    }
+
+    @Override
+    public void registerInvokeVirtual(DexMethod method) {
+      registerInvokeMethod(method);
+    }
+
+    private void registerInvokeMethod(DexMethod method) {
+      SingleResolutionResult resolutionResult =
+          appView.appInfo().unsafeResolveMethodDueToDexFormat(method).asSingleResolution();
+      if (resolutionResult == null || !resolutionResult.getResolvedHolder().isProgramClass()) {
+        return;
+      }
+
+      ProgramMethod resolvedMethod = resolutionResult.getResolvedProgramMethod();
+      DexMethod rewrittenMethodReference =
+          graphLens.internalGetNextMethodSignature(resolvedMethod.getReference());
+      if (rewrittenMethodReference != resolvedMethod.getReference()) {
+        affected = true;
+        // TODO(b/150583533): break/abort!
+      }
+    }
+
+    @Override
+    public void registerInitClass(DexType type) {}
+
+    @Override
+    public void registerInstanceFieldRead(DexField field) {}
+
+    @Override
+    public void registerInstanceFieldWrite(DexField field) {}
+
+    @Override
+    public void registerStaticFieldRead(DexField field) {}
+
+    @Override
+    public void registerStaticFieldWrite(DexField field) {}
+
+    @Override
+    public void registerTypeReference(DexType type) {}
+  }
+}

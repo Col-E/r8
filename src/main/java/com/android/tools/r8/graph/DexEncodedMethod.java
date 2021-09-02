@@ -204,6 +204,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return getReference().getArgumentType(argumentIndex, isStatic());
   }
 
+  public int getFirstNonReceiverArgumentIndex() {
+    return isStatic() ? 0 : 1;
+  }
+
   public int getNumberOfArguments() {
     return getReference().getArity() + BooleanUtils.intValue(isInstance());
   }

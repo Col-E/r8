@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -51,17 +50,17 @@ public class InvokeVirtualPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualPositiveTest.class)
         .addKeepMainRule(MAIN)
-        .enableNoVerticalClassMergingAnnotations()
-        .enableNeverClassInliningAnnotations()
-        .enableInliningAnnotations()
         .addOptionsModification(
             o -> {
               o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
               o.callSiteOptimizationOptions()
+                  .setEnableConstantPropagation()
                   .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
             })
+        .enableNoVerticalClassMergingAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(InternalOptions::enableConstantArgumentPropagationForTesting)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null", "null")
         .inspect(this::inspect);

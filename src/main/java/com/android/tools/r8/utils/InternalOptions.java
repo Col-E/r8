@@ -1248,9 +1248,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enableDynamicTypePropagation;
     }
 
-    public void setEnableConstantPropagation() {
+    public CallSiteOptimizationOptions setEnableConstantPropagation() {
       assert !isConstantPropagationEnabled();
       enableConstantPropagation = true;
+      return this;
     }
 
     public CallSiteOptimizationOptions setEnableExperimentalArgumentPropagation(
