@@ -81,13 +81,6 @@ public class JacocoConstantDynamicTest extends TestBase {
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
 
-    // Run instrumented code without an agent.
-    testForRuntime(parameters)
-        .addProgramFiles(testClasses.getInstrumented())
-        .addProgramFiles(ToolHelper.JACOCO_AGENT)
-        .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
-
     // Run non-instrumented code with an agent causing on the fly instrumentation on the JVM.
     Path output = temp.newFolder().toPath();
     Path agentOutputOnTheFly = output.resolve("on-the-fly");
@@ -99,11 +92,11 @@ public class JacocoConstantDynamicTest extends TestBase {
     List<String> onTheFlyReport = testClasses.generateReport(agentOutputOnTheFly);
     assertEquals(2, onTheFlyReport.size());
 
-    // Run the instrumented code with offline instrumentation turned on.
+    // Run the instrumented code.
     Path agentOutputOffline = output.resolve("offline");
     testForJvm()
         .addProgramFiles(testClasses.getInstrumented())
-        .enableJaCoCoAgentForOfflineInstrumentedCode(ToolHelper.JACOCO_AGENT, agentOutputOffline)
+        .configureJaCoCoAgentForOfflineInstrumentedCode(ToolHelper.JACOCO_AGENT, agentOutputOffline)
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
     List<String> offlineReport = testClasses.generateReport(agentOutputOffline);

@@ -158,7 +158,8 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return self();
   }
 
-  public JvmTestBuilder enableJaCoCoAgentForOfflineInstrumentedCode(Path jacocoAgent, Path output) {
+  public JvmTestBuilder configureJaCoCoAgentForOfflineInstrumentedCode(
+      Path jacocoAgent, Path output) {
     addProgramFiles(jacocoAgent);
     addVmArguments(
         "-Djacoco-agent.destfile=" + output.toString(),
