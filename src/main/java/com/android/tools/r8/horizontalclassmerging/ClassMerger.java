@@ -9,7 +9,6 @@ import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -21,7 +20,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -213,16 +211,12 @@ public class ClassMerger {
     assert appView.hasLiveness();
     assert mode.isInitial();
 
-    boolean deprecated = false;
     DexEncodedField classIdField =
-        DexEncodedField.createSynthetic(
-            group.getClassIdField(),
-            FieldAccessFlags.createPublicFinalSynthetic(),
-            FieldTypeSignature.noSignature(),
-            DexAnnotationSet.empty(),
-            null,
-            deprecated,
-            minApiLevelIfEnabledOrUnknown(appView));
+        DexEncodedField.syntheticBuilder()
+            .setField(group.getClassIdField())
+            .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
+            .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+            .build();
 
     // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may
     // have. For example, for a merge group of size 4, we may compute the set {0, 2, 3}, if the

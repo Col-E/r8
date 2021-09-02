@@ -32,8 +32,6 @@ import java.util.function.Function;
 public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     implements StructuralItem<DexEncodedField> {
 
-  public static final boolean NOT_DEPRECATED = false;
-  public static final DexValue NO_STATIC_VALUE = null;
   public static final DexEncodedField[] EMPTY_ARRAY = {};
 
   public final FieldAccessFlags accessFlags;
@@ -354,87 +352,13 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return new Builder(true);
   }
 
-  public static DexEncodedField create(DexField field, FieldAccessFlags accessFlags) {
-    return builder().setField(field).setAccessFlags(accessFlags).build();
-  }
-
-  public static DexEncodedField create(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue) {
-    return builder()
-        .setField(field)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setStaticValue(staticValue)
-        .build();
-  }
-
-  public static DexEncodedField create(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue,
-      boolean deprecated) {
-    return builder()
-        .setField(field)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setStaticValue(staticValue)
-        .setDeprecated(deprecated)
-        .build();
-  }
-
-  public static DexEncodedField create(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue,
-      boolean deprecated,
-      AndroidApiLevel apiLevel) {
-    return builder()
-        .setField(field)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setStaticValue(staticValue)
-        .setDeprecated(deprecated)
-        .setApiLevel(apiLevel)
-        .build();
-  }
-
-  public static DexEncodedField createSynthetic(
-      DexField field,
-      FieldAccessFlags accessFlags,
-      FieldTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      DexValue staticValue,
-      boolean deprecated,
-      AndroidApiLevel apiLevel) {
-    return syntheticBuilder()
-        .setField(field)
-        .setAccessFlags(accessFlags)
-        .setGenericSignature(genericSignature)
-        .setAnnotations(annotations)
-        .setStaticValue(staticValue)
-        .setDeprecated(deprecated)
-        .setApiLevel(apiLevel)
-        .build();
-  }
-
   public static class Builder {
 
     private DexField field;
     private DexAnnotationSet annotations = DexAnnotationSet.empty();
     private FieldAccessFlags accessFlags;
     private FieldTypeSignature genericSignature = FieldTypeSignature.noSignature();
-    private DexValue staticValue;
+    private DexValue staticValue = null;
     private AndroidApiLevel apiLevel = AndroidApiLevel.UNKNOWN;
     private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
     private boolean deprecated;

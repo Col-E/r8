@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -22,7 +21,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
@@ -686,8 +684,10 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     // Field is package private to be accessible from convert methods without a getter.
     FieldAccessFlags fieldAccessFlags =
         FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
-    return DexEncodedField.create(
-        field, fieldAccessFlags, FieldTypeSignature.noSignature(), DexAnnotationSet.empty(), null);
+    return DexEncodedField.syntheticBuilder()
+        .setField(field)
+        .setAccessFlags(fieldAccessFlags)
+        .build();
   }
 
   // Program wrappers are harder to deal with than classpath wrapper because generating a method's

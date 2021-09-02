@@ -8,12 +8,10 @@ import static com.android.tools.r8.graph.DexLibraryClass.asLibraryClassOrNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 
 /**
  * This class synthesizes library fields that we rely on for modeling.
@@ -35,13 +33,12 @@ public class LibraryFieldSynthesis {
             DexEncodedField definition = enumClass.lookupField(field);
             if (definition == null) {
               enumClass.appendInstanceField(
-                  DexEncodedField.create(
-                      field,
-                      FieldAccessFlags.fromCfAccessFlags(
-                          Constants.ACC_PRIVATE | Constants.ACC_FINAL),
-                      FieldTypeSignature.noSignature(),
-                      DexAnnotationSet.empty(),
-                      null));
+                  DexEncodedField.syntheticBuilder()
+                      .setField(field)
+                      .setAccessFlags(
+                          FieldAccessFlags.fromCfAccessFlags(
+                              Constants.ACC_PRIVATE | Constants.ACC_FINAL))
+                      .build());
             }
           });
     }

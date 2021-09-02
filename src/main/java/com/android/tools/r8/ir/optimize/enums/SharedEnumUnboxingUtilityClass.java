@@ -22,7 +22,6 @@ import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -31,7 +30,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.MemberType;
@@ -226,15 +224,13 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
     private DexEncodedField createValuesField(DexType sharedUtilityClassType) {
       DexEncodedField valuesField =
-          DexEncodedField.createSynthetic(
-              dexItemFactory.createField(
-                  sharedUtilityClassType, dexItemFactory.intArrayType, "$VALUES"),
-              FieldAccessFlags.createPublicStaticFinalSynthetic(),
-              FieldTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.NO_STATIC_VALUE,
-              DexEncodedField.NOT_DEPRECATED,
-              minApiLevelIfEnabledOrUnknown(appView));
+          DexEncodedField.syntheticBuilder()
+              .setField(
+                  dexItemFactory.createField(
+                      sharedUtilityClassType, dexItemFactory.intArrayType, "$VALUES"))
+              .setAccessFlags(FieldAccessFlags.createPublicStaticFinalSynthetic())
+              .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+              .build();
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())
           .recordFieldWriteInUnknownContext(valuesField.getReference());

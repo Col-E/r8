@@ -10,13 +10,11 @@ import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrU
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Visibility;
@@ -82,16 +80,15 @@ public class ClassInitFieldSynthesizer {
                   | Constants.ACC_FINAL
                   | Constants.ACC_PUBLIC
                   | Constants.ACC_STATIC);
-      boolean deprecated = false;
       encodedClinitField =
-          DexEncodedField.createSynthetic(
-              appView.dexItemFactory().createField(clazz.type, clinitField.type, clinitField.name),
-              accessFlags,
-              FieldTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              null,
-              deprecated,
-              minApiLevelIfEnabledOrUnknown(appView));
+          DexEncodedField.syntheticBuilder()
+              .setField(
+                  appView
+                      .dexItemFactory()
+                      .createField(clazz.type, clinitField.type, clinitField.name))
+              .setAccessFlags(accessFlags)
+              .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+              .build();
       clazz.appendStaticField(encodedClinitField);
     }
     lensBuilder.map(type, encodedClinitField.getReference());

@@ -668,13 +668,14 @@ public class JarClassFileReader<T extends DexClass> {
             createAnnotationSet(annotations, parent.application.options);
         DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
         DexEncodedField field =
-            DexEncodedField.create(
-                dexField,
-                flags,
-                fieldSignature,
-                annotationSet,
-                staticValue,
-                AsmUtils.isDeprecated(access));
+            DexEncodedField.builder()
+                .setField(dexField)
+                .setAccessFlags(flags)
+                .setGenericSignature(fieldSignature)
+                .setAnnotations(annotationSet)
+                .setStaticValue(staticValue)
+                .setDeprecated(AsmUtils.isDeprecated(access))
+                .build();
         if (flags.isStatic()) {
           parent.staticFields.add(field);
         } else {

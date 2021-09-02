@@ -14,7 +14,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -28,7 +27,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -456,12 +454,12 @@ public class InterfaceDesugaringSyntheticHelper {
             dexItemFactory.intType,
             "$desugar$clinit",
             candidate -> iface.lookupField(candidate) == null);
-    return DexEncodedField.create(
-        clinitFieldReference,
-        FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build(),
-        FieldTypeSignature.noSignature(),
-        DexAnnotationSet.empty(),
-        DexValueInt.DEFAULT);
+    return DexEncodedField.syntheticBuilder()
+        .setField(clinitFieldReference)
+        .setAccessFlags(
+            FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build())
+        .setStaticValue(DexValueInt.DEFAULT)
+        .build();
   }
 
   private void createCompanionClassInitializer(

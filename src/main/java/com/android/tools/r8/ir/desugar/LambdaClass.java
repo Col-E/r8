@@ -12,7 +12,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -26,7 +25,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
-import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -223,17 +221,13 @@ public final class LambdaClass {
     int fieldCount = fieldTypes.length;
     List<DexEncodedField> fields = new ArrayList<>(fieldCount);
     for (int i = 0; i < fieldCount; i++) {
-      boolean deprecated = false;
       fields.add(
-          DexEncodedField.createSynthetic(
-              getCaptureField(i),
-              FieldAccessFlags.createPublicFinalSynthetic(),
-              FieldTypeSignature.noSignature(),
-              DexAnnotationSet.empty(),
-              null,
-              deprecated,
+          DexEncodedField.syntheticBuilder()
+              .setField(getCaptureField(i))
+              .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
               // The api level is computed when tracing.
-              AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView)));
+              .setApiLevel(AndroidApiLevel.UNKNOWN)
+              .build());
     }
     builder.setInstanceFields(fields);
   }
@@ -243,22 +237,20 @@ public final class LambdaClass {
     if (isStateless()) {
       // Create instance field for stateless lambda.
       assert this.lambdaField != null;
-      boolean deprecated = false;
       builder.setStaticFields(
           Collections.singletonList(
-              DexEncodedField.createSynthetic(
-                  this.lambdaField,
-                  FieldAccessFlags.fromSharedAccessFlags(
-                      Constants.ACC_PUBLIC
-                          | Constants.ACC_FINAL
-                          | Constants.ACC_SYNTHETIC
-                          | Constants.ACC_STATIC),
-                  FieldTypeSignature.noSignature(),
-                  DexAnnotationSet.empty(),
-                  DexValueNull.NULL,
-                  deprecated,
+              DexEncodedField.syntheticBuilder()
+                  .setField(this.lambdaField)
+                  .setAccessFlags(
+                      FieldAccessFlags.fromSharedAccessFlags(
+                          Constants.ACC_PUBLIC
+                              | Constants.ACC_FINAL
+                              | Constants.ACC_SYNTHETIC
+                              | Constants.ACC_STATIC))
+                  .setStaticValue(DexValueNull.NULL)
                   // The api level is computed when tracing.
-                  AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))));
+                  .setApiLevel(AndroidApiLevel.UNKNOWN)
+                  .build()));
     }
   }
 
