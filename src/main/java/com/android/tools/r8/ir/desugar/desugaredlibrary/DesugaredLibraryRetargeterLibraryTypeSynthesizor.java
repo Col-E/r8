@@ -140,7 +140,7 @@ public class DesugaredLibraryRetargeterLibraryTypeSynthesizor {
                       newClass,
                       ignore -> new TreeSet<>(Comparator.comparing(DexEncodedMethod::getReference)))
                   .add(
-                      new DexEncodedMethod(
+                      DexEncodedMethod.create(
                           retargetMethod,
                           MethodAccessFlags.fromCfAccessFlags(
                               Constants.ACC_PUBLIC | Constants.ACC_STATIC, false),

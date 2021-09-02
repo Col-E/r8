@@ -131,7 +131,7 @@ public class ClassMerger {
 
     AndroidApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
     DexEncodedMethod definition =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             newMethodReference,
             MethodAccessFlags.createForClassInitializer(),
             MethodTypeSignature.noSignature(),

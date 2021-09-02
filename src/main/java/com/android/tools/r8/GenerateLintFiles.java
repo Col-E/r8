@@ -153,7 +153,7 @@ public class GenerateLintFiles {
         code = buildEmptyThrowingCfCode(method.getReference());
       }
       DexEncodedMethod throwingMethod =
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               method.getReference(),
               method.accessFlags,
               MethodTypeSignature.noSignature(),

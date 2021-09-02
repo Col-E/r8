@@ -696,7 +696,7 @@ public class DexParser<T extends DexClass> {
         }
       }
       methods[i] =
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               method,
               accessFlags,
               methodTypeSignature,

@@ -902,7 +902,7 @@ public class JarClassFileReader<T extends DexClass> {
             parent.application.getFactory()));
       }
       DexEncodedMethod dexMethod =
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               method,
               flags,
               genericSignature,

@@ -248,7 +248,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
     private DexEncodedMethod createClassInitializer(
         DexType sharedUtilityClassType, DexEncodedField valuesField) {
-      return new DexEncodedMethod(
+      return DexEncodedMethod.create(
           dexItemFactory.createClassInitializer(sharedUtilityClassType),
           MethodAccessFlags.createForClassInitializer(),
           MethodTypeSignature.noSignature(),
@@ -292,7 +292,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
     private DexEncodedMethod createValuesMethod(
         DexType sharedUtilityClassType, DexEncodedField valuesField) {
       DexEncodedMethod valuesMethod =
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               dexItemFactory.createMethod(
                   sharedUtilityClassType,
                   dexItemFactory.createProto(dexItemFactory.intArrayType, dexItemFactory.intType),

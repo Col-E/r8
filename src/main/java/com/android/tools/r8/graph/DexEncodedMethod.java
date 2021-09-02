@@ -145,7 +145,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
           MethodTypeSignature.noSignature(),
           DexAnnotationSet.empty(),
           ParameterAnnotationsList.empty(),
-          null);
+          null,
+          false,
+          null,
+          AndroidApiLevel.UNKNOWN,
+          AndroidApiLevel.UNKNOWN,
+          false);
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
 
@@ -222,73 +227,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     obsolete = false;
   }
 
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code) {
-    this(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        false,
-        null,
-        AndroidApiLevel.UNKNOWN,
-        AndroidApiLevel.UNKNOWN);
-  }
-
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      boolean d8R8Synthesized) {
-    this(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        d8R8Synthesized,
-        null,
-        AndroidApiLevel.UNKNOWN,
-        AndroidApiLevel.UNKNOWN);
-  }
-
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      MethodTypeSignature genericSignature,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      boolean d8R8Synthesized,
-      CfVersion classFileVersion,
-      AndroidApiLevel apiLevelForDefinition,
-      AndroidApiLevel apiLevelForCode) {
-    this(
-        method,
-        accessFlags,
-        genericSignature,
-        annotations,
-        parameterAnnotationsList,
-        code,
-        d8R8Synthesized,
-        classFileVersion,
-        apiLevelForDefinition,
-        apiLevelForCode,
-        false);
-  }
-
-  public DexEncodedMethod(
+  private DexEncodedMethod(
       DexMethod method,
       MethodAccessFlags accessFlags,
       MethodTypeSignature genericSignature,
@@ -1316,7 +1255,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
     newFlags.unsetAbstract();
-    return new DexEncodedMethod(
+    return DexEncodedMethod.create(
         newMethod,
         newFlags,
         MethodTypeSignature.noSignature(),
@@ -1467,6 +1406,100 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public void clearGenericSignature() {
     this.genericSignature = MethodTypeSignature.noSignature();
+  }
+
+  public static DexEncodedMethod create(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code) {
+    return DexEncodedMethod.create(
+        method,
+        accessFlags,
+        genericSignature,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        false,
+        null,
+        AndroidApiLevel.UNKNOWN,
+        AndroidApiLevel.UNKNOWN,
+        false);
+  }
+
+  public static DexEncodedMethod create(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code,
+      boolean d8R8Synthesized) {
+    return DexEncodedMethod.create(
+        method,
+        accessFlags,
+        genericSignature,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        d8R8Synthesized,
+        null,
+        AndroidApiLevel.UNKNOWN,
+        AndroidApiLevel.UNKNOWN,
+        false);
+  }
+
+  public static DexEncodedMethod create(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code,
+      boolean d8R8Synthesized,
+      CfVersion classFileVersion,
+      AndroidApiLevel apiLevelForDefinition,
+      AndroidApiLevel apiLevelForCode) {
+    return DexEncodedMethod.create(
+        method,
+        accessFlags,
+        genericSignature,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        d8R8Synthesized,
+        classFileVersion,
+        apiLevelForDefinition,
+        apiLevelForCode,
+        false);
+  }
+
+  public static DexEncodedMethod create(
+      DexMethod method,
+      MethodAccessFlags accessFlags,
+      MethodTypeSignature genericSignature,
+      DexAnnotationSet annotations,
+      ParameterAnnotationsList parameterAnnotationsList,
+      Code code,
+      boolean d8R8Synthesized,
+      CfVersion classFileVersion,
+      AndroidApiLevel apiLevelForDefinition,
+      AndroidApiLevel apiLevelForCode,
+      boolean deprecated) {
+    return new DexEncodedMethod(
+        method,
+        accessFlags,
+        genericSignature,
+        annotations,
+        parameterAnnotationsList,
+        code,
+        d8R8Synthesized,
+        classFileVersion,
+        apiLevelForDefinition,
+        apiLevelForCode,
+        deprecated);
   }
 
   private static Builder syntheticBuilder(DexEncodedMethod from) {
@@ -1709,7 +1742,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       assert apiLevelForDefinition != null;
       assert apiLevelForCode != null;
       DexEncodedMethod result =
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               method,
               accessFlags,
               genericSignature,

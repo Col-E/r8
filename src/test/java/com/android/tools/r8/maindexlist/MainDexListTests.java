@@ -856,7 +856,7 @@ public class MainDexListTests extends TestBase {
             new SynthesizedCode(
                 (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition));
         DexEncodedMethod method =
-            new DexEncodedMethod(
+            DexEncodedMethod.create(
                 voidReturnMethod,
                 access,
                 MethodTypeSignature.noSignature(),

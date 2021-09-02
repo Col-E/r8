@@ -561,7 +561,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     // TODO(b/146114533): Fix inlining in synthetic methods and remove unsetBridge.
     newFlags.unsetBridge();
     newFlags.setSynthetic();
-    return new DexEncodedMethod(
+    return DexEncodedMethod.create(
         methodToInstall,
         newFlags,
         MethodTypeSignature.noSignature(),

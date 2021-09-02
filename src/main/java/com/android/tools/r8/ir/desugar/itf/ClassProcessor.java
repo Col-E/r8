@@ -800,7 +800,7 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     MethodAccessFlags accessFlags = MethodAccessFlags.builder().setPublic().build();
     DexMethod newMethod = method.withHolder(clazz.getType(), dexItemFactory);
     DexEncodedMethod newEncodedMethod =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             newMethod,
             accessFlags,
             MethodTypeSignature.noSignature(),

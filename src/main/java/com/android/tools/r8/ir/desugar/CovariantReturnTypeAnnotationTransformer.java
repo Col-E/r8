@@ -164,7 +164,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
             .setVirtualTarget(methodReference, methodHolder.isInterface())
             .setCastResult();
     DexEncodedMethod newVirtualMethod =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             newMethod,
             newAccessFlags,
             methodDefinition.getGenericSignature(),

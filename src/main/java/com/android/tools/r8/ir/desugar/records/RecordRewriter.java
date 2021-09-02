@@ -289,7 +289,7 @@ public class RecordRewriter
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_PRIVATE, false);
     DexEncodedMethod encodedMethod =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             method,
             methodAccessFlags,
             MethodTypeSignature.noSignature(),
@@ -589,7 +589,7 @@ public class RecordRewriter
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_PROTECTED, true);
     DexEncodedMethod init =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             factory.recordMembers.init,
             methodAccessFlags,
             MethodTypeSignature.noSignature(),

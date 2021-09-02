@@ -108,7 +108,7 @@ public class SyntheticMethodBuilder {
     DexMethod methodSignature = getMethodSignature();
     MethodAccessFlags accessFlags = getAccessFlags();
     DexEncodedMethod method =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             methodSignature,
             accessFlags,
             genericSignature,

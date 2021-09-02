@@ -159,7 +159,7 @@ public final class LambdaClass {
 
     // Synthesize main method.
     methods.add(
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             mainMethod,
             MethodAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
@@ -174,7 +174,7 @@ public final class LambdaClass {
       DexMethod bridgeMethod =
           appView.dexItemFactory().createMethod(type, bridgeProto, descriptor.name);
       methods.add(
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               bridgeMethod,
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_PUBLIC
@@ -198,7 +198,7 @@ public final class LambdaClass {
 
     // Constructor.
     methods.add(
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             constructor,
             MethodAccessFlags.fromSharedAccessFlags(
                 (stateless ? Constants.ACC_PRIVATE : Constants.ACC_PUBLIC)
@@ -213,7 +213,7 @@ public final class LambdaClass {
     // Class constructor for stateless lambda classes.
     if (stateless) {
       methods.add(
-          new DexEncodedMethod(
+          DexEncodedMethod.create(
               classConstructor,
               MethodAccessFlags.fromSharedAccessFlags(
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
@@ -579,7 +579,7 @@ public final class LambdaClass {
                     // Always make the method public to provide access.
                     newAccessFlags.setPublic();
                     DexEncodedMethod newMethod =
-                        new DexEncodedMethod(
+                        DexEncodedMethod.create(
                             callTarget,
                             newAccessFlags,
                             encodedMethod.getGenericSignature(),
@@ -662,7 +662,7 @@ public final class LambdaClass {
                     MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
                     newAccessFlags.unsetPrivate();
                     DexEncodedMethod newMethod =
-                        new DexEncodedMethod(
+                        DexEncodedMethod.create(
                             callTarget,
                             newAccessFlags,
                             encodedMethod.getGenericSignature(),
@@ -726,7 +726,7 @@ public final class LambdaClass {
       ProgramMethod accessorMethod =
           new ProgramMethod(
               accessorClass,
-              new DexEncodedMethod(
+              DexEncodedMethod.create(
                   callTarget,
                   MethodAccessFlags.createPublicStaticSynthetic(),
                   MethodTypeSignature.noSignature(),

@@ -53,7 +53,7 @@ class CallGraphTestBase extends TestBase {
     ProgramMethod method =
         new ProgramMethod(
             clazz,
-            new DexEncodedMethod(
+            DexEncodedMethod.create(
                 signature,
                 MethodAccessFlags.fromDexAccessFlags(0),
                 MethodTypeSignature.noSignature(),

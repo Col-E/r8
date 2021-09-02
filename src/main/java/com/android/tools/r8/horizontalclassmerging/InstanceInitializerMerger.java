@@ -362,7 +362,7 @@ public class InstanceInitializerMerger {
 
     DexEncodedMethod representativeMethod = representative.getDefinition();
     DexEncodedMethod newInstanceInitializer =
-        new DexEncodedMethod(
+        DexEncodedMethod.create(
             newMethodReference,
             getNewAccessFlags(),
             MethodTypeSignature.noSignature(),
