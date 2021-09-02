@@ -124,17 +124,15 @@ public class ConstantDynamicClass {
   private void synthesizeStaticFields(SyntheticProgramClassBuilder builder) {
     builder.setStaticFields(
         ImmutableList.of(
-            DexEncodedField.builder()
+            DexEncodedField.syntheticBuilder()
                 .setField(this.initializedValueField)
                 .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
                 .setApiLevel(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))
-                .setD8R8Synthesized()
                 .build(),
-            DexEncodedField.builder()
+            DexEncodedField.syntheticBuilder()
                 .setField(this.constantValueField)
                 .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
                 .setApiLevel(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))
-                .setD8R8Synthesized()
                 .build()));
   }
 
