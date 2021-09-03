@@ -118,7 +118,7 @@ public class Inliner {
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod singleTargetReference = singleTarget.getReference();
-    if (!appView.getKeepInfo(singleTarget).isInliningAllowed(appView.options())) {
+    if (appInfo.isPinned(singleTargetReference)) {
       whyAreYouNotInliningReporter.reportPinned();
       return true;
     }
