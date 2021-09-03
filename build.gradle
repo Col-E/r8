@@ -2103,6 +2103,7 @@ def setUpTestingState(Test task) {
             // Print the new index content.
             index << "<html><head><title>${title}</title>"
             index << "<style> * { font-family: monospace; }</style>"
+            index << "<meta http-equiv='refresh' content='10' />"
             index << "</head><body><h1>${title}</h1>"
             index << "<p>Run on: ${new Date()}</p>"
             index << "<p>Git branch: ${branch}</p>"
@@ -2111,7 +2112,7 @@ def setUpTestingState(Test task) {
             }
             index << "<p><a href=\"file://${index}\">Most recent result index</a></p>"
             index << "<p><a href=\"file://${reportDir}\">Test directories</a></p>"
-            index << "<h2>Failing tests (reload to refresh)</h2><ul>"
+            index << "<h2>Failing tests (refreshing automatically every 10 seconds)</h2><ul>"
         }
     }
 
