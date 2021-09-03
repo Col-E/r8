@@ -5,7 +5,6 @@
 package com.android.tools.r8.bridgeremoval;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -53,15 +52,13 @@ public class KeepAbstractMethodShadowingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(A.class)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/198542172): Should be AbstractMethodError.
-        .assertSuccessWithOutputLines("Hello World")
-        .inspect(
+        .assertFailureWithErrorThatThrows(AbstractMethodError.class)
+        .inspectFailure(
             inspector -> {
               ClassSubject clazz = inspector.clazz(B.class);
               assertThat(clazz, isPresent());
               MethodSubject foo = clazz.uniqueMethodWithName("foo");
-              // TODO(b/198542172): Should be present.
-              assertThat(foo, not(isPresent()));
+              assertThat(foo, isPresent());
             });
   }
 

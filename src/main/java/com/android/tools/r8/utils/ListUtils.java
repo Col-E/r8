@@ -159,6 +159,14 @@ public class ListUtils {
     return mapOrElse(list, fn, list);
   }
 
+  /**
+   * Takes elements from the input list depending on the predicate being true. Returns the filtered
+   * list otherwise returns the original list of none were removed.
+   */
+  public static <T> List<T> filterOrElse(List<T> list, Predicate<T> predicate) {
+    return mapOrElse(list, element -> predicate.test(element) ? element : null, list);
+  }
+
   public static <T> ArrayList<T> newArrayList(T element) {
     ArrayList<T> list = new ArrayList<>(1);
     list.add(element);
