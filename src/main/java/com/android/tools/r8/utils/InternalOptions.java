@@ -307,7 +307,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public int classInliningInstructionLimit = 10;
   public int classInliningInstructionAllowance = 50;
   // This defines the limit of instructions in the inlinee
-  public int inliningInstructionLimit = 3;
+  public int inliningInstructionLimit =
+      !Version.isDevelopmentVersion()
+          ? 3
+          : System.getProperty("com.android.tools.r8.inliningInstructionLimit") != null
+              ? Integer.parseInt(
+                  System.getProperty("com.android.tools.r8.inliningInstructionLimit"))
+              : 3;
   // This defines how many instructions of inlinees we can inlinee overall.
   public int inliningInstructionAllowance = 1500;
   // Maximum number of distinct values in a method that may be used in a monitor-enter instruction.
