@@ -175,8 +175,6 @@ public final class CovariantReturnTypeAnnotationTransformer {
             .setParameterAnnotations(
                 methodDefinition.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()))
             .setCode(forwardMethodBuilder.build())
-            .setApiLevelForDefinition(methodDefinition.getApiLevelForDefinition())
-            .setApiLevelForCode(methodDefinition.getApiLevelForCode())
             .build();
     // Optimize to generate DexCode instead of CfCode.
     ProgramMethod programMethod = new ProgramMethod(methodHolder, newVirtualMethod);

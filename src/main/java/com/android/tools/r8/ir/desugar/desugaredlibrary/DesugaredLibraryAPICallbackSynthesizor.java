@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingDesugaring {
+public class DesugaredLibraryAPICallbackSynthesizor implements CfPostProcessingDesugaring {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
@@ -38,7 +38,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
   private final Set<DexMethod> trackedCallBackAPIs;
 
-  public DesugaredLibraryAPICallbackSynthesizer(AppView<?> appView) {
+  public DesugaredLibraryAPICallbackSynthesizor(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView);

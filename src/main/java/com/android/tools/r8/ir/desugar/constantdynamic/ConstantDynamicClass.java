@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.constantdynamic;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.PUTSTATIC;
@@ -128,12 +127,12 @@ public class ConstantDynamicClass {
             DexEncodedField.syntheticBuilder()
                 .setField(this.initializedValueField)
                 .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
-                .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+                .setApiLevel(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))
                 .build(),
             DexEncodedField.syntheticBuilder()
                 .setField(this.constantValueField)
                 .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
-                .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+                .setApiLevel(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView))
                 .build()));
   }
 

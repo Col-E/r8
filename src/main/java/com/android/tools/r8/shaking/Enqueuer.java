@@ -3051,8 +3051,6 @@ public class Enqueuer {
     DexClassAndMethod target = resolution.lookupInvokeSuperTarget(from.getHolder(), appInfo);
     if (target == null) {
       failedMethodResolutionTargets.add(resolution.getResolvedMethod().getReference());
-      analyses.forEach(
-          analyses -> analyses.notifyFailedMethodResolutionTarget(resolution.getResolvedMethod()));
       return;
     }
 
@@ -3119,7 +3117,9 @@ public class Enqueuer {
         && appView.options().getProguardConfiguration().getKeepAttributes().signature) {
       registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
-    registerAnalysis(new ApiModelAnalysis(appView, apiReferenceLevelCache));
+    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      registerAnalysis(new ApiModelAnalysis(appView, apiReferenceLevelCache));
+    }
 
     // Transfer the minimum keep info from the root set into the Enqueuer state.
     includeMinimumKeepInfo(rootSet);

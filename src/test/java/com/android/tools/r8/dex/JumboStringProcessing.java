@@ -156,7 +156,6 @@ public class JumboStringProcessing extends TestBase {
             .setAccessFlags(flags)
             .setCode(code)
             .disableMethodNotNullCheck()
-            .disableAndroidApiLevelCheck()
             .build();
     return new JumboStringRewriter(method, string, factory).rewrite();
   }

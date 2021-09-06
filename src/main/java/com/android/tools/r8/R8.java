@@ -48,7 +48,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterLibraryTypeSynthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterLibraryTypeSynthesizor;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -310,8 +310,8 @@ public class R8 {
         MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());
       }
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
-        DesugaredLibraryRetargeterLibraryTypeSynthesizer.checkForAssumedLibraryTypes(appView);
-        DesugaredLibraryRetargeterLibraryTypeSynthesizer.amendLibraryWithRetargetedMembers(appView);
+        DesugaredLibraryRetargeterLibraryTypeSynthesizor.checkForAssumedLibraryTypes(appView);
+        DesugaredLibraryRetargeterLibraryTypeSynthesizor.amendLibraryWithRetargetedMembers(appView);
       }
       InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
       BackportedMethodRewriter.registerAssumedLibraryTypes(options);
@@ -438,8 +438,6 @@ public class R8 {
           annotationRemover.ensureValid().run(executorService);
           new GenericSignatureRewriter(appView, NamingLens.getIdentityLens(), genericContextBuilder)
               .run(appView.appInfo().classes(), executorService);
-
-          assert appView.checkForTesting(() -> allReferencesAssignedApiLevel(appViewWithLiveness));
         }
       } finally {
         timing.end();
@@ -890,8 +888,7 @@ public class R8 {
   }
 
   private static boolean allReferencesAssignedApiLevel(AppView<?> appView) {
-    if (!appView.options().apiModelingOptions().checkAllApiReferencesAreSet
-        || appView.options().configurationDebugging) {
+    if (!appView.options().apiModelingOptions().checkAllApiReferencesAreSet) {
       return true;
     }
     // This will return false if we find anything in the library which is not modeled.
@@ -900,11 +897,12 @@ public class R8 {
         .classes()
         .forEach(
             clazz -> {
-              assert clazz.getMembersApiReferenceLevel(appView) != AndroidApiLevel.NOT_SET
-                  : "Every member should have been analyzed";
-              if (!appView.options().apiModelingOptions().enableApiCallerIdentification) {
+              if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+                assert clazz.getMembersApiReferenceLevel(appView) != AndroidApiLevel.UNKNOWN
+                    : "Every member should have been analyzed";
+              } else {
                 assert clazz.getMembersApiReferenceLevel(appView) == AndroidApiLevel.UNKNOWN
-                    : "Every member should have level NOT_SET";
+                    : "Every member should have level UNKNOWN";
               }
             });
     return true;

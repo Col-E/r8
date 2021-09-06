@@ -36,7 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class DesugaredLibraryRetargeterLibraryTypeSynthesizer {
+public class DesugaredLibraryRetargeterLibraryTypeSynthesizor {
 
   public static void checkForAssumedLibraryTypes(AppView<?> appView) {
     Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
@@ -144,7 +144,6 @@ public class DesugaredLibraryRetargeterLibraryTypeSynthesizer {
                               MethodAccessFlags.fromCfAccessFlags(
                                   Constants.ACC_PUBLIC | Constants.ACC_STATIC, false))
                           .setCode(null)
-                          .setApiLevelForDefinition(method.getApiLevelForDefinition())
                           .build());
             }
           });

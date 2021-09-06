@@ -869,7 +869,6 @@ public class ToolHelper {
       case J_MR2:
       case K_WATCH:
       case UNKNOWN:
-      case NOT_SET:
         return false;
       default:
         return true;

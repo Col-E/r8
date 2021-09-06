@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.function.Consumer;
 
 public class SyntheticMethodBuilder {
@@ -115,8 +116,8 @@ public class SyntheticMethodBuilder {
             .setParameterAnnotations(parameterAnnotationsList)
             .setCode(code)
             .setClassFileVersion(classFileVersion)
-            // TODO(b/188388130): This should pass in api level directly.
-            .disableAndroidApiLevelCheck()
+            .setApiLevelForDefinition(AndroidApiLevel.UNKNOWN)
+            .setApiLevelForCode(AndroidApiLevel.UNKNOWN)
             .build();
     assert isValidSyntheticMethod(method, syntheticKind);
     if (onBuildConsumer != null) {

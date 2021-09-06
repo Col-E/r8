@@ -290,8 +290,6 @@ public class RecordRewriter
             .setMethod(method)
             .setAccessFlags(methodAccessFlags)
             .setCode(null)
-            // Will be traced by the enqueuer.
-            .disableAndroidApiLevelCheck()
             .build();
     encodedMethod.setCode(provider.generateCfCode(), appView);
     return new ProgramMethod(clazz, encodedMethod);
@@ -589,8 +587,6 @@ public class RecordRewriter
             .setMethod(factory.recordMembers.init)
             .setAccessFlags(methodAccessFlags)
             .setCode(null)
-            // Will be traced by the enqueuer.
-            .disableAndroidApiLevelCheck()
             .build();
     init.setCode(
         new CallObjectInitCfCodeProvider(appView, factory.recordTagType).generateCfCode(), appView);
