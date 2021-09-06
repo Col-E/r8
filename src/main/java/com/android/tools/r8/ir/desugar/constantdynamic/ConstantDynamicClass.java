@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.desugar.constantdynamic;
 
 import static org.objectweb.asm.Opcodes.GETSTATIC;
+import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.PUTSTATIC;
 
@@ -23,6 +24,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfMonitor;
+import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
@@ -148,10 +150,19 @@ public class ConstantDynamicClass {
                 .build()));
   }
 
-  private void invokeBootstrapMethod(
-      ConstantDynamicReference reference, ImmutableList.Builder<CfInstruction> instructions) {
+  private void invokeBootstrapMethod(ImmutableList.Builder<CfInstruction> instructions) {
     assert reference.getBootstrapMethod().type.isInvokeStatic();
+    DexMethodHandle bootstrapMethodHandle = reference.getBootstrapMethod();
+    DexMethod bootstrapMethodReference = bootstrapMethodHandle.asMethod();
+    // TODO(b/178172809): Use MethodHandle.invokeWithArguments if supported.
+    instructions.add(new CfConstNull());
+    instructions.add(new CfConstString(reference.getName()));
+    instructions.add(new CfConstClass(reference.getType()));
+    instructions.add(new CfInvoke(INVOKESTATIC, bootstrapMethodReference, false));
+    instructions.add(new CfCheckCast(reference.getType()));
+  }
 
+  private CfCode generateGetterCode(SyntheticProgramClassBuilder builder) {
     // TODO(b/178172809): Use MethodHandle.invokeWithArguments if supported.
     DexMethodHandle bootstrapMethodHandle = reference.getBootstrapMethod();
     DexMethod bootstrapMethodReference = bootstrapMethodHandle.asMethod();
@@ -159,25 +170,24 @@ public class ConstantDynamicClass {
         appView
             .appInfoForDesugaring()
             .resolveMethod(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
-    if (resolution.isFailedResolution()) {
-      // TODO(b/178172809): Generate code which throws ICCE.
+    if ((resolution.isSingleResolution()
+            && resolution.asSingleResolution().getResolvedMethod().isStatic())
+        || resolution.isFailedResolution()) {
+      if (resolution.isSingleResolution()) {
+        // Ensure that the bootstrap method is accessible from the generated class.
+        SingleResolutionResult result = resolution.asSingleResolution();
+        MethodAccessFlags flags = result.getResolvedMethod().getAccessFlags();
+        flags.unsetPrivate();
+        flags.setPublic();
+      }
+      return generateGetterCodeInvokingBootstrapMethod(builder);
+    } else {
+      // Unconditionally throw ICCE as the RI.
+      return generateGetterCodeThrowingICCE(builder);
     }
-    SingleResolutionResult result = resolution.asSingleResolution();
-    assert result.getResolvedMethod().isStatic();
-    assert result.getResolvedHolder().isProgramClass();
-    instructions.add(new CfConstNull());
-    instructions.add(new CfConstString(reference.getName()));
-    instructions.add(new CfConstClass(reference.getType()));
-    instructions.add(new CfInvoke(INVOKESTATIC, bootstrapMethodReference, false));
-    instructions.add(new CfCheckCast(reference.getType()));
-
-    // Ensure that the bootstrap method is accessible from the generated class.
-    MethodAccessFlags flags = result.getResolvedMethod().getAccessFlags();
-    flags.unsetPrivate();
-    flags.setPublic();
   }
 
-  private CfCode generateGetterCode(SyntheticProgramClassBuilder builder) {
+  private CfCode generateGetterCodeInvokingBootstrapMethod(SyntheticProgramClassBuilder builder) {
     int maxStack = 3;
     int maxLocals = 2;
     ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
@@ -202,7 +212,7 @@ public class ConstantDynamicClass {
     instructions.add(new CfFieldInstruction(GETSTATIC, initializedValueField));
     instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrueSecond));
 
-    invokeBootstrapMethod(reference, instructions);
+    invokeBootstrapMethod(instructions);
     instructions.add(new CfFieldInstruction(PUTSTATIC, constantValueField));
     instructions.add(new CfConstNumber(1, ValueType.INT));
     instructions.add(new CfFieldInstruction(PUTSTATIC, initializedValueField));
@@ -250,6 +260,33 @@ public class ConstantDynamicClass {
                 tryCatchEndFinally,
                 ImmutableList.of(builder.getFactory().throwableType),
                 ImmutableList.of(tryCatchTarget)));
+    return new CfCode(
+        builder.getType(),
+        maxStack,
+        maxLocals,
+        instructions.build(),
+        tryCatchRanges,
+        localVariables);
+  }
+
+  private CfCode generateGetterCodeThrowingICCE(SyntheticProgramClassBuilder builder) {
+    int maxStack = 2;
+    int maxLocals = 0;
+    ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
+    ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
+    ImmutableList.Builder<CfInstruction> instructions = ImmutableList.builder();
+    DexItemFactory factory = builder.getFactory();
+    instructions.add(new CfNew(factory.icceType));
+    instructions.add(new CfStackInstruction(Opcode.Dup));
+    instructions.add(
+        new CfInvoke(
+            INVOKESPECIAL,
+            factory.createMethod(
+                factory.icceType,
+                factory.createProto(factory.voidType),
+                factory.constructorMethodName),
+            false));
+    instructions.add(new CfThrow());
     return new CfCode(
         builder.getType(),
         maxStack,
