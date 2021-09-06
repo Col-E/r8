@@ -31,19 +31,39 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
   }
 
   /**
-   * Default entry point for creating a retrace designed for string input and output.
+   * Default entry point for creating a retracer designed for string input and output.
    *
    * @param command the command with information about creating the StringRetrace
    * @return a StringRetrace object
    */
   public static StringRetrace create(RetraceOptions command) {
-    Retracer retracer =
-        Retracer.createDefault(command.getProguardMapProducer(), command.getDiagnosticsHandler());
-    return new StringRetrace(
-        StackTraceLineParser.createRegularExpressionParser(command.getRegularExpression()),
-        StackTraceElementProxyRetracer.createDefault(retracer),
+    return create(
+        Retracer.createDefault(command.getProguardMapProducer(), command.getDiagnosticsHandler()),
         command.getDiagnosticsHandler(),
+        command.getRegularExpression(),
         command.isVerbose());
+  }
+
+  /**
+   * Entry point for creating a retracer designed for string input and output where the mapping file
+   * has already been parsed.
+   *
+   * @param retracer a loaded retracer with parsed mapping
+   * @param diagnosticsHandler a diagnosticshandler for emitting information
+   * @param regularExpression the regular expression to use for identifying information in strings
+   * @param isVerbose specify to emit verbose information
+   * @return a StringRetrace object
+   */
+  public static StringRetrace create(
+      Retracer retracer,
+      DiagnosticsHandler diagnosticsHandler,
+      String regularExpression,
+      boolean isVerbose) {
+    return new StringRetrace(
+        StackTraceLineParser.createRegularExpressionParser(regularExpression),
+        StackTraceElementProxyRetracer.createDefault(retracer),
+        diagnosticsHandler,
+        isVerbose);
   }
 
   /**
