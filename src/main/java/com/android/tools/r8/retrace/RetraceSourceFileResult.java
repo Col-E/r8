@@ -10,7 +10,7 @@ import com.android.tools.r8.Keep;
 @Keep
 public interface RetraceSourceFileResult {
 
-  boolean isSynthesized();
+  boolean isInferred();
 
   String getFilename();
 }

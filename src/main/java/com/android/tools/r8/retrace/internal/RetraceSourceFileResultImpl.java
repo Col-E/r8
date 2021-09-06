@@ -17,7 +17,7 @@ public class RetraceSourceFileResultImpl implements RetraceSourceFileResult {
   }
 
   @Override
-  public boolean isSynthesized() {
+  public boolean isInferred() {
     return synthesized;
   }
 

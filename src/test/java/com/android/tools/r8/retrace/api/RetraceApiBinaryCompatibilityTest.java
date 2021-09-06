@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.api;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -15,6 +16,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -79,15 +81,31 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
   public void runCheckedInBinaryJar() throws Exception {
     // The retrace jar is only built when building r8lib.
     Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
-    for (CfRuntime cfRuntime : CfRuntime.getCheckedInCfRuntimes()) {
-      RetraceApiTestHelper.runJunitOnTests(
-          cfRuntime,
-          jar,
-          BINARY_COMPATIBILITY_JAR,
-          RetraceApiTestHelper.getBinaryCompatibilityTests());
-    }
+    RetraceApiTestHelper.runJunitOnTests(
+        CfRuntime.getSystemRuntime(),
+        jar,
+        BINARY_COMPATIBILITY_JAR,
+        RetraceApiTestHelper.getBinaryCompatibilityTests());
   }
 
+  @Test
+  public void runCheckedInWithNonExistingTest() {
+    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
+    assertThrows(
+        AssertionError.class,
+        () -> {
+          RetraceApiTestHelper.runJunitOnTests(
+              CfRuntime.getSystemRuntime(),
+              jar,
+              BINARY_COMPATIBILITY_JAR,
+              ImmutableList.of(new RetraceApiBinaryTest() {}.getClass()));
+        });
+  }
+
+  /**
+   * To produce a new tests.jar run the code below. This will generate a new jar overwriting the
+   * existing one. Remember to upload to cloud storage afterwards.
+   */
   public static void main(String[] args) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();

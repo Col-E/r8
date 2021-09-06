@@ -13,16 +13,17 @@ import com.android.tools.r8.Collectors;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.retrace.api.RetraceApiInferSourceFileTest.ApiTest;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.transformers.ClassFileTransformer.InnerClassPredicate;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -34,7 +35,10 @@ public class RetraceApiTestHelper {
   private static final String HAMCREST = "hamcrest-core-1.3.jar";
 
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_FOR_BINARY_COMPATIBILITY =
-      ImmutableList.of(RetraceApiEmptyTest.RetraceTest.class);
+      ImmutableList.of(
+          RetraceApiEmptyTest.RetraceTest.class,
+          RetraceApiSourceFileTest.ApiTest.class,
+          ApiTest.class);
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of();
 
@@ -57,12 +61,11 @@ public class RetraceApiTestHelper {
       Collection<Class<? extends RetraceApiBinaryTest>> tests)
       throws Exception {
     List<Path> classPaths = ImmutableList.of(getJunitDependency(), getHamcrest(), r8Jar, testJar);
+    List<String> args = new ArrayList<>();
+    args.add("org.junit.runner.JUnitCore");
+    tests.forEach(test -> args.add(test.getTypeName()));
     ProcessResult processResult =
-        ToolHelper.runJava(
-            runtime,
-            classPaths,
-            "org.junit.runner.JUnitCore",
-            StringUtils.join(" ", tests, Class::getTypeName));
+        ToolHelper.runJava(runtime, classPaths, args.toArray(new String[0]));
     assertEquals(processResult.toString(), 0, processResult.exitCode);
     assertThat(processResult.stdout, containsString("OK (" + tests.size() + " test"));
   }
