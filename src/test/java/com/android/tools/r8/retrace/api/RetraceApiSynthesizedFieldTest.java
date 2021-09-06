@@ -1,0 +1,56 @@
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.retrace.api;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.RetraceFieldElement;
+import com.android.tools.r8.retrace.Retracer;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+@RunWith(Parameterized.class)
+public class RetraceApiSynthesizedFieldTest extends RetraceApiTestBase {
+
+  public RetraceApiSynthesizedFieldTest(TestParameters parameters) {
+    super(parameters);
+  }
+
+  @Override
+  protected Class<? extends RetraceApiBinaryTest> binaryTestClass() {
+    return ApiTest.class;
+  }
+
+  public static class ApiTest implements RetraceApiBinaryTest {
+
+    private final String mapping =
+        "# { id: 'com.android.tools.r8.mapping', version: '1.0' }\n"
+            + "some.Class -> a:\n"
+            + "  int foo -> a\n"
+            + "  # { id: 'com.android.tools.r8.synthesized' }";
+
+    @Test
+    public void testSyntheticClass() {
+      List<RetraceFieldElement> fieldResults =
+          Retracer.createDefault(
+                  ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
+              .retraceClass(Reference.classFromTypeName("a"))
+              .stream()
+              .flatMap(element -> element.lookupField("a").stream())
+              .collect(Collectors.toList());
+      assertEquals(1, fieldResults.size());
+      // TODO(b/172014416): Should report if synthesized.
+      assertThrows(RuntimeException.class, () -> fieldResults.get(0).isCompilerSynthesized());
+    }
+  }
+}

@@ -13,7 +13,6 @@ import com.android.tools.r8.Collectors;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.retrace.api.RetraceApiInferSourceFileTest.ApiTest;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.transformers.ClassFileTransformer.InnerClassPredicate;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -38,7 +37,12 @@ public class RetraceApiTestHelper {
       ImmutableList.of(
           RetraceApiEmptyTest.RetraceTest.class,
           RetraceApiSourceFileTest.ApiTest.class,
-          ApiTest.class);
+          RetraceApiInferSourceFileTest.ApiTest.class,
+          RetraceApiSynthesizedClassTest.ApiTest.class,
+          RetraceApiSynthesizedFieldTest.ApiTest.class,
+          RetraceApiSynthesizedMethodTest.ApiTest.class,
+          RetraceApiSynthesizedFrameTest.ApiTest.class,
+          RetraceApiSynthesizedInnerFrameTest.ApiTest.class);
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of();
 
