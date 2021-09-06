@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -561,6 +563,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .setMethod(methodToInstall)
         .setAccessFlags(newFlags)
         .setCode(code)
+        .setApiLevelForDefinition(template.getApiLevelForDefinition())
+        .setApiLevelForCode(code == null ? NOT_SET : template.getApiLevelForCode())
         .build();
   }
 
@@ -620,6 +624,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return DexEncodedField.syntheticBuilder()
         .setField(field)
         .setAccessFlags(fieldAccessFlags)
+        // The api level is computed when tracing.
+        .disableAndroidApiLevelCheck()
         .build();
   }
 

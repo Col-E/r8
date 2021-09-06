@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPICallbackSynthesizor;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPICallbackSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterPostProcessor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
@@ -64,9 +64,9 @@ public abstract class CfPostProcessingDesugaringCollection {
       if (interfaceMethodProcessorFacade != null) {
         desugarings.add(interfaceMethodProcessorFacade);
       }
-      DesugaredLibraryAPICallbackSynthesizor apiCallbackSynthesizor =
+      DesugaredLibraryAPICallbackSynthesizer apiCallbackSynthesizor =
           appView.rewritePrefix.isRewriting()
-              ? new DesugaredLibraryAPICallbackSynthesizor(appView)
+              ? new DesugaredLibraryAPICallbackSynthesizer(appView)
               : null;
       // At this point the desugaredLibraryAPIConverter is required to be last to generate
       // call-backs on the forwarding methods.

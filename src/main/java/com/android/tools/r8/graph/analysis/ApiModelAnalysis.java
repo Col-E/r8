@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMember;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
@@ -47,7 +48,12 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
           .accept(method.getMethodReference(), registry.getMaxApiReferenceLevel());
     }
     computeApiLevelForDefinition(method);
-    method.getDefinition().setApiLevelForCode(registry.getMaxApiReferenceLevel());
+    method
+        .getDefinition()
+        .setApiLevelForCode(
+            appView.options().apiModelingOptions().enableApiCallerIdentification
+                ? registry.getMaxApiReferenceLevel()
+                : AndroidApiLevel.UNKNOWN);
   }
 
   @Override
@@ -69,7 +75,17 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
         });
   }
 
+  @Override
+  public void notifyFailedMethodResolutionTarget(DexEncodedMethod method) {
+    // We may not trace into failed resolution targets.
+    method.setApiLevelForCode(AndroidApiLevel.UNKNOWN);
+  }
+
   private void computeApiLevelForDefinition(DexClassAndMember<?, ?> member) {
+    if (!appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      member.getDefinition().setApiLevelForDefinition(AndroidApiLevel.UNKNOWN);
+      return;
+    }
     member
         .getDefinition()
         .setApiLevelForDefinition(

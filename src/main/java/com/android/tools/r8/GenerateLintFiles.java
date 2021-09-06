@@ -158,6 +158,7 @@ public class GenerateLintFiles {
               .setGenericSignature(MethodTypeSignature.noSignature())
               .setCode(code)
               .setClassFileVersion(CfVersion.V1_6)
+              .disableAndroidApiLevelCheck()
               .build();
       if (method.isStatic() || method.isDirectMethod()) {
         directMethods.add(throwingMethod);

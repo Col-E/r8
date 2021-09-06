@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph.analysis;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ProgramDefinition;
@@ -36,6 +37,8 @@ public abstract class EnqueuerAnalysis {
   public void notifyMarkFieldAsReachable(ProgramField field) {}
 
   public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {}
+
+  public void notifyFailedMethodResolutionTarget(DexEncodedMethod method) {}
 
   /**
    * Called when the Enqueuer reaches a fixpoint. This may happen multiple times, since each

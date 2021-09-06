@@ -11,6 +11,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
+import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.cf.CfVersion;
@@ -45,6 +46,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
+import com.android.tools.r8.graph.DexEncodedMethod.CompilationState;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.code.IRCode;
@@ -146,9 +148,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
           ParameterAnnotationsList.empty(),
           null,
           false,
+          NOT_SET,
+          NOT_SET,
           null,
-          AndroidApiLevel.UNKNOWN,
-          AndroidApiLevel.UNKNOWN,
           false);
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
@@ -238,9 +240,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized,
-      CfVersion classFileVersion,
       AndroidApiLevel apiLevelForDefinition,
       AndroidApiLevel apiLevelForCode,
+      CfVersion classFileVersion,
       boolean deprecated) {
     super(method, annotations, d8R8Synthesized, apiLevelForDefinition);
     this.accessFlags = accessFlags;
@@ -253,7 +255,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert accessFlags != null;
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
-    assert apiLevelForCode != null && apiLevelForDefinition != null;
+    assert apiLevelForDefinition != null;
+    assert apiLevelForCode != null;
   }
 
   public static DexEncodedMethod toMethodDefinitionOrNull(DexClassAndMethod method) {
@@ -1270,6 +1273,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                 // Holder is companion class, or retarget method, not an interface.
                 .setStaticTarget(forwardMethod, false)
                 .build())
+        .setApiLevelForDefinition(target.getDefinition().getApiLevelForDefinition())
+        .setApiLevelForCode(target.getDefinition().getApiLevelForCode())
         .build();
   }
 
@@ -1358,7 +1363,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   @Override
   public AndroidApiLevel getApiLevel() {
-    return (isAbstract() ? AndroidApiLevel.B : getApiLevelForCode())
+    return (shouldNotHaveCode() ? AndroidApiLevel.B : getApiLevelForCode())
         .max(getApiLevelForDefinition());
   }
 
@@ -1441,8 +1446,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
     private KotlinMethodLevelInfo kotlinInfo = getNoKotlinInfo();
     private CfVersion classFileVersion = null;
-    private AndroidApiLevel apiLevelForDefinition = AndroidApiLevel.UNKNOWN;
-    private AndroidApiLevel apiLevelForCode = AndroidApiLevel.UNKNOWN;
+    private AndroidApiLevel apiLevelForDefinition = NOT_SET;
+    private AndroidApiLevel apiLevelForCode = NOT_SET;
     private final boolean d8R8Synthesized;
     private boolean deprecated = false;
 
@@ -1450,6 +1455,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     // lowered on the use site.
     private boolean checkMethodNotNull = true;
     private boolean checkParameterAnnotationList = true;
+    private boolean checkAndroidApiLevels = true;
 
     private Consumer<DexEncodedMethod> buildConsumer = ConsumerUtils.emptyConsumer();
 
@@ -1687,6 +1693,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
+    public Builder disableAndroidApiLevelCheck() {
+      checkAndroidApiLevels = false;
+      return this;
+    }
+
     public DexEncodedMethod build() {
       assert !checkMethodNotNull || method != null;
       assert accessFlags != null;
@@ -1695,8 +1706,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       assert !checkParameterAnnotationList
           || parameterAnnotations.isEmpty()
           || parameterAnnotations.size() == method.proto.parameters.size();
-      assert apiLevelForDefinition != null;
-      assert apiLevelForCode != null;
+      assert !checkAndroidApiLevels || apiLevelForDefinition != null;
+      assert !checkAndroidApiLevels || apiLevelForCode != null;
       DexEncodedMethod result =
           new DexEncodedMethod(
               method,
@@ -1706,9 +1717,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
               parameterAnnotations,
               code,
               d8R8Synthesized,
-              classFileVersion,
               apiLevelForDefinition,
               apiLevelForCode,
+              classFileVersion,
               deprecated);
       result.setKotlinMemberInfo(kotlinInfo);
       result.compilationState = compilationState;

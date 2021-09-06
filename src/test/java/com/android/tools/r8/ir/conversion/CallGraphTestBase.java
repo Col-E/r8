@@ -55,6 +55,7 @@ class CallGraphTestBase extends TestBase {
                 .setMethod(signature)
                 .setAccessFlags(MethodAccessFlags.fromDexAccessFlags(0))
                 .setCode(null)
+                .disableAndroidApiLevelCheck()
                 .build());
     return new Node(method);
   }

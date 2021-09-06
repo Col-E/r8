@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInitClass;
@@ -459,6 +460,8 @@ public class InterfaceDesugaringSyntheticHelper {
         .setAccessFlags(
             FieldAccessFlags.builder().setPackagePrivate().setStatic().setSynthetic().build())
         .setStaticValue(DexValueInt.DEFAULT)
+        // The api level is computed when tracing.
+        .disableAndroidApiLevelCheck()
         .build();
   }
 

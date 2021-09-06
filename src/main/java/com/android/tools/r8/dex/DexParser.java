@@ -657,6 +657,7 @@ public class DexParser<T extends DexClass> {
               .setGenericSignature(fieldTypeSignature)
               .setAnnotations(fieldAnnotations)
               .setStaticValue(staticValue)
+              .disableAndroidApiLevelCheck()
               .build();
     }
     return fields;
@@ -708,6 +709,7 @@ public class DexParser<T extends DexClass> {
               .setAnnotations(methodAnnotations)
               .setParameterAnnotations(parameterAnnotationsIterator.getNextFor(method))
               .setCode(code)
+              .disableAndroidApiLevelCheck()
               .build();
     }
     return methods;
