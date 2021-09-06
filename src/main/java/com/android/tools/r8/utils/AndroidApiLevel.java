@@ -42,7 +42,8 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   Q(29),
   R(30),
   S(31),
-  UNKNOWN(10000);
+  UNKNOWN(10000),
+  NOT_SET(10001);
 
   // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
   // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
@@ -77,8 +78,9 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   }
 
   public static AndroidApiLevel minApiLevelIfEnabledOrUnknown(AppView<?> appView) {
-    return appView.options().apiModelingOptions().enableApiCallerIdentification
-        ? appView.options().minApiLevel
+    InternalOptions options = appView.options();
+    return options.apiModelingOptions().enableApiCallerIdentification
+        ? options.minApiLevel
         : UNKNOWN;
   }
 

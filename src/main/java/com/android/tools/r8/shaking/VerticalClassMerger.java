@@ -1449,8 +1449,8 @@ public class VerticalClassMerger {
               .setClassFileVersion(classFileVersion)
               .setApiLevelForDefinition(method.getApiLevelForDefinition())
               .setApiLevelForCode(method.getApiLevelForDefinition())
+              .setIsLibraryMethodOverride(method.isLibraryMethodOverride())
               .build();
-      bridge.setLibraryMethodOverride(method.isLibraryMethodOverride());
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.

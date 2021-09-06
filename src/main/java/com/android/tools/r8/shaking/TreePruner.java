@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -333,6 +334,11 @@ public class TreePruner {
         // Private methods and static methods can only be targeted yet non-live as the result of
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.
+        if (!allowAbstract) {
+          // If the method was not marked as live and we cannot make it abstract, set the api level
+          // to be min or unknown.
+          method.setApiLevelForCode(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView));
+        }
         reachableMethods.add(
             allowAbstract ? method.toAbstractMethod() : method.toEmptyThrowingMethod(options));
       } else {

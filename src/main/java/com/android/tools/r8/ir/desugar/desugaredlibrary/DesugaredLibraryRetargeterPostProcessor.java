@@ -133,8 +133,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
   }
 
   private DexEncodedMethod createForwardingMethod(DexClassAndMethod target, DexClass clazz) {
-    // NOTE: Never add a forwarding method to methods of classes unknown or coming from
-    // android.jar
+    // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod =

@@ -864,6 +864,7 @@ public class MainDexListTests extends TestBase {
                 .setMethod(voidReturnMethod)
                 .setAccessFlags(access)
                 .setCode(code)
+                .disableAndroidApiLevelCheck()
                 .build();
         ProgramMethod programMethod = new ProgramMethod(programClass, method);
         IRCode ir = code.buildIR(programMethod, appView, Origin.unknown());

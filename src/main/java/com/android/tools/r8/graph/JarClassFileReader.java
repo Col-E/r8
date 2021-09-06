@@ -38,7 +38,6 @@ import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.synthesis.SyntheticMarker;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -675,6 +674,7 @@ public class JarClassFileReader<T extends DexClass> {
                 .setAnnotations(annotationSet)
                 .setStaticValue(staticValue)
                 .setDeprecated(AsmUtils.isDeprecated(access))
+                .disableAndroidApiLevelCheck()
                 .build();
         if (flags.isStatic()) {
           parent.staticFields.add(field);
@@ -911,10 +911,9 @@ public class JarClassFileReader<T extends DexClass> {
               .setParameterAnnotations(parameterAnnotationsList)
               .setCode(code)
               .setClassFileVersion(parent.version)
-              .setApiLevelForDefinition(AndroidApiLevel.UNKNOWN)
-              .setApiLevelForCode(AndroidApiLevel.UNKNOWN)
               .setDeprecated(deprecated)
               .disableParameterAnnotationListCheck()
+              .disableAndroidApiLevelCheck()
               .build();
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);
       if (parent.methodSignatures.add(signature)) {

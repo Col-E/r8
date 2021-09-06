@@ -15,7 +15,6 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -96,7 +95,7 @@ public class ConfigurationDebuggingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ConfigurationDebuggingTest(TestParameters parameters) {
@@ -111,7 +110,7 @@ public class ConfigurationDebuggingTest extends TestBase {
             .addKeepRules("-addconfigurationdebugging")
             .addKeepRules("-keep class **.TestClass { <init>(); }")
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::inspect)
             .writeToZip();
@@ -119,10 +118,10 @@ public class ConfigurationDebuggingTest extends TestBase {
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addLibraryClasses(BaseClass.class, UninstantiatedClass.class, TestClass.class)
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+            .addDefaultRuntimeLibrary(parameters)
             .addProgramClasses(Caller.class)
             .addKeepMainRule(Caller.class)
-            .setMinApi(parameters.getRuntime());
+            .setMinApi(parameters.getApiLevel());
     R8TestRunResult result =
         builder
             .compile()

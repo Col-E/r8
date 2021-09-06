@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -161,6 +160,8 @@ public final class LambdaClass {
                 MethodAccessFlags.fromSharedAccessFlags(
                     Constants.ACC_PUBLIC | Constants.ACC_FINAL, false))
             .setCode(LambdaMainMethodSourceCode.build(this, mainMethod))
+            // The api level is computed when tracing.
+            .disableAndroidApiLevelCheck()
             .build());
 
     // Synthesize bridge methods.
@@ -178,6 +179,8 @@ public final class LambdaClass {
                           | Constants.ACC_BRIDGE,
                       false))
               .setCode(LambdaBridgeMethodSourceCode.build(this, bridgeMethod, mainMethod))
+              // The api level is computed when tracing.
+              .disableAndroidApiLevelCheck()
               .build());
     }
     builder.setVirtualMethods(methods);
@@ -198,6 +201,8 @@ public final class LambdaClass {
             .setMethod(constructor)
             .setAccessFlags(accessFlags)
             .setCode(LambdaConstructorSourceCode.build(this))
+            // The api level is computed when tracing.
+            .disableAndroidApiLevelCheck()
             .build());
 
     // Class constructor for stateless lambda classes.
@@ -209,6 +214,8 @@ public final class LambdaClass {
                   MethodAccessFlags.fromSharedAccessFlags(
                       Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true))
               .setCode(LambdaClassConstructorSourceCode.build(this))
+              // The api level is computed when tracing.
+              .disableAndroidApiLevelCheck()
               .build());
       feedback.classInitializerMayBePostponed(methods.get(1));
     }
@@ -226,7 +233,7 @@ public final class LambdaClass {
               .setField(getCaptureField(i))
               .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
               // The api level is computed when tracing.
-              .setApiLevel(AndroidApiLevel.UNKNOWN)
+              .disableAndroidApiLevelCheck()
               .build());
     }
     builder.setInstanceFields(fields);
@@ -249,7 +256,7 @@ public final class LambdaClass {
                               | Constants.ACC_STATIC))
                   .setStaticValue(DexValueNull.NULL)
                   // The api level is computed when tracing.
-                  .setApiLevel(AndroidApiLevel.UNKNOWN)
+                  .disableAndroidApiLevelCheck()
                   .build()));
     }
   }
@@ -564,6 +571,8 @@ public final class LambdaClass {
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
                             .setCode(encodedMethod.getCode())
+                            .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
+                            .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();
                     newMethod.copyMetadata(encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
@@ -647,6 +656,8 @@ public final class LambdaClass {
                             .setAnnotations(encodedMethod.annotations())
                             .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
                             .setCode(encodedMethod.getCode())
+                            .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
+                            .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();
                     newMethod.copyMetadata(encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
@@ -708,6 +719,8 @@ public final class LambdaClass {
                   .setMethod(callTarget)
                   .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                   .setCode(AccessorMethodSourceCode.build(LambdaClass.this, callTarget))
+                  // The api level is computed when tracing.
+                  .disableAndroidApiLevelCheck()
                   .build());
       accessorClass.addDirectMethod(accessorMethod.getDefinition());
       if (appView.options().isDesugaredLibraryCompilation()

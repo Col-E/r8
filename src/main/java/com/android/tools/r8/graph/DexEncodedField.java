@@ -59,9 +59,9 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       FieldTypeSignature genericSignature,
       DexAnnotationSet annotations,
       DexValue staticValue,
+      AndroidApiLevel apiLevel,
       boolean deprecated,
-      boolean d8R8Synthesized,
-      AndroidApiLevel apiLevel) {
+      boolean d8R8Synthesized) {
     super(field, annotations, d8R8Synthesized, apiLevel);
     this.accessFlags = accessFlags;
     this.staticValue = staticValue;
@@ -365,6 +365,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private final boolean d8R8Synthesized;
     private Consumer<DexEncodedField> buildConsumer = ConsumerUtils.emptyConsumer();
 
+    // Checks to impose on the built method. They should always be active to start with and be
+    // lowered on the use site.
+    private boolean checkAndroidApiLevel = true;
+
     private Builder(boolean d8R8Synthesized) {
       this.d8R8Synthesized = d8R8Synthesized;
     }
@@ -448,11 +452,17 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       return this;
     }
 
+    public Builder disableAndroidApiLevelCheck() {
+      checkAndroidApiLevel = false;
+      return this;
+    }
+
     public DexEncodedField build() {
       assert field != null;
       assert accessFlags != null;
       assert genericSignature != null;
       assert annotations != null;
+      assert !checkAndroidApiLevel || apiLevel != AndroidApiLevel.NOT_SET;
       DexEncodedField dexEncodedField =
           new DexEncodedField(
               field,
@@ -460,9 +470,9 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
               genericSignature,
               annotations,
               staticValue,
+              apiLevel,
               deprecated,
-              d8R8Synthesized,
-              apiLevel);
+              d8R8Synthesized);
       dexEncodedField.optimizationInfo = optimizationInfo;
       buildConsumer.accept(dexEncodedField);
       return dexEncodedField;
