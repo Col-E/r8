@@ -3482,7 +3482,10 @@ public class Enqueuer {
   private boolean addToPendingDesugaring(ProgramMethod method) {
     if (options.isInterfaceMethodDesugaringEnabled()) {
       if (mustMoveToInterfaceCompanionMethod(method)) {
-        pendingMethodMove.add(method);
+        // TODO(b/199043500): Once "live moved methods" are tracked this can avoid the code check.
+        if (!InvalidCode.isInvalidCode(method.getDefinition().getCode())) {
+          pendingMethodMove.add(method);
+        }
         return true;
       }
       ProgramMethod nonMovedMethod = pendingMethodMoveInverse.get(method);
@@ -3552,6 +3555,7 @@ public class Enqueuer {
               .ensureMethodOfProgramCompanionClassStub(method, eventConsumer);
       interfaceProcessor.finalizeMoveToCompanionMethod(method, companion);
       pendingMethodMoveInverse.remove(companion);
+      // TODO(b/199043500): Once "live moved methods" are tracked this can be removed.
       if (!isMethodLive(companion)) {
         additions.addLiveMethod(companion);
       }
