@@ -18,6 +18,7 @@ import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.Retracer;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -141,29 +142,48 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappings = new ArrayList<>();
     internalStream()
         .forEach(
-            element ->
-                mappings.add(
-                    new Pair<>(element, getMappedRangesForFrame(element, definition, position))));
+            element -> {
+              getMappedRangesForFrame(element, definition, position)
+                  .forEach(
+                      mappedRanges -> {
+                        mappings.add(new Pair<>(element, mappedRanges));
+                      });
+            });
     return new RetraceFrameResultImpl(this, mappings, definition, position, retracer);
   }
 
-  private List<MappedRange> getMappedRangesForFrame(
+  private List<List<MappedRange>> getMappedRangesForFrame(
       RetraceClassElementImpl element, MethodDefinition definition, int position) {
+    List<List<MappedRange>> overloadedRanges = new ArrayList<>();
     if (mapper == null) {
-      return null;
+      overloadedRanges.add(null);
+      return overloadedRanges;
     }
     assert element.mapper != null;
     MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(definition.getName());
     if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
-      return null;
+      overloadedRanges.add(null);
+      return overloadedRanges;
     }
-    if (position < 0) {
-      return mappedRanges.getMappedRanges();
+    List<MappedRange> mappedRangesForPosition = null;
+    if (position >= 0) {
+      mappedRangesForPosition = mappedRanges.allRangesForLine(position, false);
     }
-    List<MappedRange> mappedRangesForPosition = mappedRanges.allRangesForLine(position, false);
-    return mappedRangesForPosition.isEmpty()
-        ? mappedRanges.getMappedRanges()
-        : mappedRangesForPosition;
+    if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
+      mappedRangesForPosition = mappedRanges.getMappedRanges();
+    }
+    assert mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty();
+    // Mapped ranges can have references to overloaded signatures. We distinguish those by looking
+    // at the cardinal mapping range.
+    for (MappedRange mappedRange : mappedRangesForPosition) {
+      if (overloadedRanges.isEmpty()
+          || mappedRange.originalRange == null
+          || !mappedRange.originalRange.isCardinal) {
+        overloadedRanges.add(new ArrayList<>());
+      }
+      ListUtils.last(overloadedRanges).add(mappedRange);
+    }
+    return overloadedRanges;
   }
 
   @Override
@@ -334,14 +354,16 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     private RetraceFrameResultImpl lookupFrame(MethodDefinition definition, int position) {
       MethodDefinition methodDefinition =
           MethodDefinition.create(classReference.getClassReference(), definition.getName());
+      ImmutableList.Builder<Pair<RetraceClassElementImpl, List<MappedRange>>> builder =
+          ImmutableList.builder();
+      classResult
+          .getMappedRangesForFrame(this, methodDefinition, position)
+          .forEach(
+              mappedRanges -> {
+                builder.add(new Pair<>(this, mappedRanges));
+              });
       return new RetraceFrameResultImpl(
-          classResult,
-          ImmutableList.of(
-              new Pair<>(
-                  this, classResult.getMappedRangesForFrame(this, methodDefinition, position))),
-          methodDefinition,
-          position,
-          classResult.retracer);
+          classResult, builder.build(), methodDefinition, position, classResult.retracer);
     }
   }
 }

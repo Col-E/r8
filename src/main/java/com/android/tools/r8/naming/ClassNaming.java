@@ -26,7 +26,7 @@ public interface ClassNaming {
     public abstract MappedRange addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
-        Object originalRange,
+        Range originalRange,
         String obfuscatedName);
 
     public abstract void addMappingInformation(

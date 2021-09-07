@@ -3,16 +3,28 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import java.util.Objects;
+
 /** Represents a line number range. */
 public class Range {
 
   public final int from;
   public final int to;
+  public final boolean isCardinal;
+
+  public Range(int line) {
+    this(line, line, true);
+  }
 
   public Range(int from, int to) {
+    this(from, to, false);
+  }
+
+  private Range(int from, int to, boolean isCardinal) {
     this.from = from;
     this.to = to;
-    // TODO(b/145897713): Seems like we should be able to assert from <= to.
+    this.isCardinal = isCardinal;
+    assert from <= to;
   }
 
   public boolean contains(int value) {
@@ -21,7 +33,7 @@ public class Range {
 
   @Override
   public String toString() {
-    return from + ":" + to;
+    return isCardinal ? (from + "") : (from + ":" + to);
   }
 
   @Override
@@ -34,13 +46,11 @@ public class Range {
     }
 
     Range range = (Range) o;
-    return from == range.from && to == range.to;
+    return from == range.from && to == range.to && isCardinal == range.isCardinal;
   }
 
   @Override
   public int hashCode() {
-    int result = from;
-    result = 31 * result + to;
-    return result;
+    return Objects.hash(from, to, isCardinal);
   }
 }

@@ -32,8 +32,8 @@ public class OverloadSameLineTest implements StackTraceForTest {
         "Exception in thread \"main\" java.lang.NullPointerException",
         // TODO(b/199058242): Should be ambiguous and not inline frames
         "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:7)",
-        "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:13)",
-        "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:15)");
+        "\t<OR> at com.android.tools.r8.naming.retrace.Main.overload(Main.java:15)",
+        "\t<OR> at com.android.tools.r8.naming.retrace.Main.overload(Main.java:13)");
   }
 
   @Override

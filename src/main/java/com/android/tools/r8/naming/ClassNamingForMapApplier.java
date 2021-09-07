@@ -88,7 +88,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     public MappedRange addMappedRange(
         Range obfuscatedRange,
         MemberNaming.MethodSignature originalSignature,
-        Object originalRange,
+        Range originalRange,
         String obfuscatedName) {
       return null;
     }

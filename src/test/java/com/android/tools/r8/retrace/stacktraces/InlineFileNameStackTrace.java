@@ -33,8 +33,8 @@ public class InlineFileNameStackTrace implements StackTraceForTest {
         "com.android.tools.r8.naming.retrace.Main -> com.android.tools.r8.naming.retrace.Main:",
         "    3:3:void foo.Bar$Baz.baz(long):0:0 -> main",
         "    3:3:void Foo$Bar.bar(int):2 -> main",
-        "    3:3:void com.android.tools.r8.naming.retrace.Main$Foo.method1(java.lang.String):8:8"
-            + " -> main",
+        "    3:3:void com.android.tools.r8.naming.retrace.Main$Foo.method1(java.lang.String):8 ->"
+            + " main",
         "    3:3:void main(java.lang.String[]):7 -> main");
   }
 

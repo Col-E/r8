@@ -293,8 +293,7 @@ public class ProguardMapReader implements AutoCloseable {
     MappedRange activeMappedRange = null;
     Range previousMappedRange = null;
     do {
-      Object originalRange = null;
-      Range mappedRange = null;
+      Range originalRange = null;
       // Try to parse any information added in comments above member namings
       if (isCommentLineWithJsonBrace()) {
         final MemberNaming currentMember = activeMemberNaming;
@@ -326,13 +325,12 @@ public class ProguardMapReader implements AutoCloseable {
         break;
       }
       skipWhitespace();
-      Object maybeRangeOrInt = maybeParseRangeOrInt();
-      if (maybeRangeOrInt != null) {
-        if (!(maybeRangeOrInt instanceof Range)) {
+      Range mappedRange = parseRange();
+      if (mappedRange != null) {
+        if (mappedRange.isCardinal) {
           throw new ParseException(
-              String.format("Invalid obfuscated line number range (%s).", maybeRangeOrInt));
+              String.format("Invalid obfuscated line number range (%s).", mappedRange));
         }
-        mappedRange = (Range) maybeRangeOrInt;
         skipWhitespace();
         expect(':');
       }
@@ -343,7 +341,7 @@ public class ProguardMapReader implements AutoCloseable {
         // This is a mapping or inlining definition
         nextChar();
         skipWhitespace();
-        originalRange = maybeParseRangeOrInt();
+        originalRange = parseRange();
         if (originalRange == null) {
           throw new ParseException("No number follows the colon after the method signature.");
         }
@@ -371,7 +369,11 @@ public class ProguardMapReader implements AutoCloseable {
       if (activeMemberNaming != null) {
         boolean changedName = !activeMemberNaming.getRenamedName().equals(renamedName);
         boolean changedMappedRange = !Objects.equals(previousMappedRange, mappedRange);
-        if (changedName || previousMappedRange == null || changedMappedRange) {
+        boolean originalRangeChange = originalRange == null || !originalRange.isCardinal;
+        if (changedName
+            || previousMappedRange == null
+            || changedMappedRange
+            || originalRangeChange) {
           if (lastAddedNaming == null
               || !lastAddedNaming.getOriginalSignature().equals(activeMemberNaming.signature)) {
             classNamingBuilder.addMemberEntry(activeMemberNaming);
@@ -407,7 +409,7 @@ public class ProguardMapReader implements AutoCloseable {
       nextChar();
       isInit = true;
     }
-    // Progard sometimes outputs a ? as a method name. We have tools (dexsplitter) that depends
+    // Proguard sometimes outputs a ? as a method name. We have tools (dexsplitter) that depends
     // on being able to map class names back to the original, but does not care if methods are
     // correctly mapped. Using this on proguard output for anything else might not give correct
     // remappings.
@@ -530,14 +532,14 @@ public class ProguardMapReader implements AutoCloseable {
     return '0' <= c && c <= '9';
   }
 
-  private Object maybeParseRangeOrInt() {
+  private Range parseRange() {
     if (!isSimpleDigit(peekChar(0))) {
       return null;
     }
     int from = parseNumber();
     skipWhitespace();
     if (peekChar(0) != ':') {
-      return from;
+      return new Range(from);
     }
     expect(':');
     skipWhitespace();

@@ -85,7 +85,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     public MappedRange addMappedRange(
         Range minifiedRange,
         MemberNaming.MethodSignature originalSignature,
-        Object originalRange,
+        Range originalRange,
         String renamedName) {
       MappedRange range =
           new MappedRange(minifiedRange, originalSignature, originalRange, renamedName);
@@ -413,7 +413,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     public final Range minifiedRange; // Can be null, if so then originalRange must also be null.
     public final MethodSignature signature;
-    public final Object originalRange; // null, Integer or Range.
+    public final Range originalRange;
     public final String renamedName;
 
     /**
@@ -425,11 +425,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
     private List<MappingInformation> additionalMappingInfo = new ArrayList<>();
 
     private MappedRange(
-        Range minifiedRange, MethodSignature signature, Object originalRange, String renamedName) {
-
-      assert originalRange == null
-          || originalRange instanceof Integer
-          || originalRange instanceof Range;
+        Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
 
       this.minifiedRange = minifiedRange;
       this.signature = signature;
@@ -466,13 +462,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
       if (originalRange == null) {
         // Concrete identity mapping: "x:y:a() -> b"
         return lineNumberAfterMinification;
-      } else if (originalRange instanceof Integer) {
-        // Inlinee: "x:y:a():u -> b"
-        return (int) originalRange;
       } else {
         // "x:y:a():u:v -> b"
-        assert originalRange instanceof Range;
-        Range originalRange = (Range) this.originalRange;
         if (originalRange.to == originalRange.from) {
           // This is a single line mapping which we should report as the actual line.
           return originalRange.to;
@@ -484,10 +475,8 @@ public class ClassNamingForNameMapper implements ClassNaming {
     public int getFirstLineNumberOfOriginalRange() {
       if (originalRange == null) {
         return 0;
-      } else if (originalRange instanceof Integer) {
-        return (int) originalRange;
       } else {
-        return ((Range) originalRange).from;
+        return originalRange.from;
       }
     }
 

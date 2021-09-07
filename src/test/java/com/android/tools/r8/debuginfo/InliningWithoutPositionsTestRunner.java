@@ -195,8 +195,10 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
       MappedRange range) {
     assertEquals(function, range.signature.name);
     int expectedLineNumber = hasPosition ? location.line : 0;
-    Object expectedOriginalRange =
-        innermostFrame ? new Range(expectedLineNumber, expectedLineNumber) : expectedLineNumber;
+    Range expectedOriginalRange =
+        innermostFrame
+            ? new Range(expectedLineNumber, expectedLineNumber)
+            : new Range(expectedLineNumber);
     assertEquals(expectedOriginalRange, range.originalRange);
   }
 }

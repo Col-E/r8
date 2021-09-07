@@ -482,7 +482,7 @@ public class LineNumberOptimizer {
                   classNamingBuilder.addMappedRange(
                       obfuscatedRange,
                       getOriginalMethodSignature.apply(caller.method),
-                      Math.max(caller.line, 0), // Prevent against "no-position".
+                      new Range(Math.max(caller.line, 0)), // Prevent against "no-position".
                       obfuscatedName);
               caller = caller.callerPosition;
             }
