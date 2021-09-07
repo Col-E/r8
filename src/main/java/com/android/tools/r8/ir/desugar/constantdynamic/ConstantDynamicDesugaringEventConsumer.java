@@ -8,4 +8,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 public interface ConstantDynamicDesugaringEventConsumer {
 
   void acceptConstantDynamicClass(ConstantDynamicClass lambdaClass, ProgramMethod context);
+
+  void acceptThrowMethod(ProgramMethod method, ProgramMethod context);
 }

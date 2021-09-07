@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar.constantdynamic;
 
 import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -19,12 +18,10 @@ import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.Box;
-import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.objectweb.asm.Opcodes;
 
 public class ConstantDynamicInstructionDesugaring implements CfInstructionDesugaring {
 
@@ -71,8 +68,13 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
       MethodProcessingContext methodProcessingContext) {
     ConstantDynamicClass constantDynamicClass =
         ensureConstantDynamicClass(invoke, context, methodProcessingContext, eventConsumer);
-    return ImmutableList.of(
-        new CfInvoke(Opcodes.INVOKESTATIC, constantDynamicClass.getConstMethod, false));
+    return constantDynamicClass.desugarConstDynamicInstruction(
+        invoke,
+        freshLocalProvider,
+        localStackAllocator,
+        eventConsumer,
+        context,
+        methodProcessingContext);
   }
 
   // Creates a class corresponding to the constant dynamic symbolic reference and context.

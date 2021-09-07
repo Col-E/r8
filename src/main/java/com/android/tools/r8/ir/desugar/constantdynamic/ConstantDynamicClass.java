@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.constantdynamic;
 
+import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.CACHE_CONSTANT;
+import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.THROW_ICCE;
+import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.THROW_NSME;
 import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static org.objectweb.asm.Opcodes.GETSTATIC;
-import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.PUTSTATIC;
 
@@ -25,13 +27,13 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfMonitor;
-import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -41,7 +43,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -50,24 +51,38 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.desugar.FreshLocalProvider;
+import com.android.tools.r8.ir.desugar.LocalStackAllocator;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
+import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.List;
+import org.objectweb.asm.Opcodes;
 
 public class ConstantDynamicClass {
+  enum Behaviour {
+    CACHE_CONSTANT,
+    THROW_NSME,
+    THROW_ICCE
+  }
+
   public static final String INITIALIZED_FIELD_NAME = "INITIALIZED";
   public static final String CONST_FIELD_NAME = "CONST";
 
-  final AppView<?> appView;
-  final ConstantDynamicInstructionDesugaring desugaring;
-  private final DexType accessedFrom;
-  public ConstantDynamicReference reference;
+  private final AppView<?> appView;
+  private final ConstantDynamicInstructionDesugaring desugaring;
+  private final ProgramMethod context;
+  public final ConstantDynamicReference reference;
   public final DexField initializedValueField;
   public final DexField constantValueField;
-  final DexMethod getConstMethod;
+  private final DexMethod getConstMethod;
+  private final Behaviour behaviour;
 
   // Considered final but is set after due to circularity in allocation.
   private DexProgramClass clazz = null;
@@ -76,12 +91,12 @@ public class ConstantDynamicClass {
       SyntheticProgramClassBuilder builder,
       AppView<?> appView,
       ConstantDynamicInstructionDesugaring desugaring,
-      ProgramMethod accessedFrom,
+      ProgramMethod context,
       CfConstDynamic constantDynamic) {
     DexItemFactory factory = appView.dexItemFactory();
     this.appView = appView;
     this.desugaring = desugaring;
-    this.accessedFrom = accessedFrom.getHolderType();
+    this.context = context;
     this.reference = constantDynamic.getReference();
     this.constantValueField =
         factory.createField(
@@ -95,7 +110,57 @@ public class ConstantDynamicClass {
             factory.createProto(constantDynamic.getType()),
             factory.createString("get"));
 
-    synthesizeConstantDynamicClass(builder);
+    DexMethodHandle bootstrapMethodHandle = reference.getBootstrapMethod();
+    DexMethod bootstrapMethodReference = bootstrapMethodHandle.asMethod();
+    MethodResolutionResult resolution =
+        appView
+            .appInfoForDesugaring()
+            .resolveMethod(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
+    if (resolution.isSingleResolution()
+        && resolution.asSingleResolution().getResolvedMethod().isStatic()) {
+      // Ensure that the bootstrap method is accessible from the generated class.
+      SingleResolutionResult result = resolution.asSingleResolution();
+      MethodAccessFlags flags = result.getResolvedMethod().getAccessFlags();
+      flags.unsetPrivate();
+      flags.setPublic();
+      behaviour = CACHE_CONSTANT;
+      synthesizeConstantDynamicClass(builder);
+    } else {
+      // Unconditionally throw as the RI.
+      behaviour = resolution.isFailedResolution() ? THROW_NSME : THROW_ICCE;
+    }
+  }
+
+  public Collection<CfInstruction> desugarConstDynamicInstruction(
+      CfConstDynamic invoke,
+      FreshLocalProvider freshLocalProvider,
+      LocalStackAllocator localStackAllocator,
+      ConstantDynamicDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
+    assert invoke.getReference().equals(reference);
+    if (behaviour == CACHE_CONSTANT) {
+      return ImmutableList.of(new CfInvoke(Opcodes.INVOKESTATIC, getConstMethod, false));
+    }
+    return desugarToThrow(
+        behaviour == THROW_NSME
+            ? UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod
+            : UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod,
+        eventConsumer,
+        context,
+        methodProcessingContext);
+  }
+
+  private Collection<CfInstruction> desugarToThrow(
+      MethodSynthesizerConsumer methodSynthesizerConsumer,
+      ConstantDynamicDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
+    UtilityMethodForCodeOptimizations throwMethod =
+        methodSynthesizerConsumer.synthesizeMethod(appView, methodProcessingContext);
+    ProgramMethod throwProgramMethod = throwMethod.uncheckedGetMethod();
+    eventConsumer.acceptThrowMethod(throwProgramMethod, context);
+    return ImmutableList.of(new CfInvoke(INVOKESTATIC, throwProgramMethod.getReference(), false));
   }
 
   /*
@@ -165,30 +230,6 @@ public class ConstantDynamicClass {
 
   private CfCode generateGetterCode(SyntheticProgramClassBuilder builder) {
     // TODO(b/178172809): Use MethodHandle.invokeWithArguments if supported.
-    DexMethodHandle bootstrapMethodHandle = reference.getBootstrapMethod();
-    DexMethod bootstrapMethodReference = bootstrapMethodHandle.asMethod();
-    MethodResolutionResult resolution =
-        appView
-            .appInfoForDesugaring()
-            .resolveMethod(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
-    if ((resolution.isSingleResolution()
-            && resolution.asSingleResolution().getResolvedMethod().isStatic())
-        || resolution.isFailedResolution()) {
-      if (resolution.isSingleResolution()) {
-        // Ensure that the bootstrap method is accessible from the generated class.
-        SingleResolutionResult result = resolution.asSingleResolution();
-        MethodAccessFlags flags = result.getResolvedMethod().getAccessFlags();
-        flags.unsetPrivate();
-        flags.setPublic();
-      }
-      return generateGetterCodeInvokingBootstrapMethod(builder);
-    } else {
-      // Unconditionally throw ICCE as the RI.
-      return generateGetterCodeThrowingICCE(builder);
-    }
-  }
-
-  private CfCode generateGetterCodeInvokingBootstrapMethod(SyntheticProgramClassBuilder builder) {
     int maxStack = 3;
     int maxLocals = 2;
     ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
@@ -261,33 +302,6 @@ public class ConstantDynamicClass {
                 tryCatchEndFinally,
                 ImmutableList.of(builder.getFactory().throwableType),
                 ImmutableList.of(tryCatchTarget)));
-    return new CfCode(
-        builder.getType(),
-        maxStack,
-        maxLocals,
-        instructions.build(),
-        tryCatchRanges,
-        localVariables);
-  }
-
-  private CfCode generateGetterCodeThrowingICCE(SyntheticProgramClassBuilder builder) {
-    int maxStack = 2;
-    int maxLocals = 0;
-    ImmutableList<CfTryCatch> tryCatchRanges = ImmutableList.of();
-    ImmutableList<CfCode.LocalVariableInfo> localVariables = ImmutableList.of();
-    ImmutableList.Builder<CfInstruction> instructions = ImmutableList.builder();
-    DexItemFactory factory = builder.getFactory();
-    instructions.add(new CfNew(factory.icceType));
-    instructions.add(new CfStackInstruction(Opcode.Dup));
-    instructions.add(
-        new CfInvoke(
-            INVOKESPECIAL,
-            factory.createMethod(
-                factory.icceType,
-                factory.createProto(factory.voidType),
-                factory.constructorMethodName),
-            false));
-    instructions.add(new CfThrow());
     return new CfCode(
         builder.getType(),
         maxStack,

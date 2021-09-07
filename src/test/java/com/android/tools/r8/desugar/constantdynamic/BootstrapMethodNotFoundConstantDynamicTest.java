@@ -88,11 +88,6 @@ public class BootstrapMethodNotFoundConstantDynamicTest extends TestBase {
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(A.class)
-        // TODO(b/198142613): There should not be a warnings on class references which are
-        //  desugared away.
-        .applyIf(
-            parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
-            b -> b.addDontWarn("java.lang.invoke.MethodHandles$Lookup"))
         // TODO(b/198142625): Support CONSTANT_Dynamic output for class files.
         .applyIf(
             parameters.isCfRuntime(),
