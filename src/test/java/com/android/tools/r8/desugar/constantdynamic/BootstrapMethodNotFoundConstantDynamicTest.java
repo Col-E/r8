@@ -49,7 +49,7 @@ public class BootstrapMethodNotFoundConstantDynamicTest extends TestBase {
   }
 
   @Test
-  public void TestD8Cf() throws Exception {
+  public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)
@@ -67,17 +67,6 @@ public class BootstrapMethodNotFoundConstantDynamicTest extends TestBase {
         .applyIf(
             DesugarTestConfiguration::isDesugared,
             r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
-  }
-
-  @Test
-  public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-
-    testForD8(parameters.getBackend())
-        .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
   }
 
   @Test

@@ -54,7 +54,7 @@ public class MultipleNamedConstantDynamicTest extends TestBase {
   }
 
   @Test
-  public void TestD8Cf() throws Exception {
+  public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)
@@ -71,17 +71,6 @@ public class MultipleNamedConstantDynamicTest extends TestBase {
             })
         .applyIf(
             DesugarTestConfiguration::isDesugared, r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
-  }
-
-  @Test
-  public void testD8() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-
-    testForD8(parameters.getBackend())
-        .addProgramClassFileData(getTransformedClasses())
-        .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test

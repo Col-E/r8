@@ -59,7 +59,7 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
   }
 
   @Test
-  public void TestD8Cf() throws Exception {
+  public void testD8Cf() throws Exception {
     assertThrows(
         CompilationFailedException.class,
         () ->
