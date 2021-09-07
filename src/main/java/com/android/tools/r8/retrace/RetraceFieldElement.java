@@ -14,5 +14,5 @@ public interface RetraceFieldElement extends RetraceElement<RetraceFieldResult> 
 
   RetraceClassElement getClassElement();
 
-  RetraceSourceFileResult retraceSourceFile(String sourceFile);
+  RetraceSourceFileResult getSourceFile();
 }

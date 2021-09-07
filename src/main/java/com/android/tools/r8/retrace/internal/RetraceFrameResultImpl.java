@@ -216,10 +216,9 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public RetraceSourceFileResult retraceSourceFile(
-        RetracedClassMemberReference frame, String sourceFile) {
-      return RetraceUtils.getSourceFile(
-          classElement, frame.getHolderClass(), sourceFile, retraceFrameResult.retracer);
+    public RetraceSourceFileResult getSourceFile(RetracedClassMemberReference frame) {
+      return RetraceUtils.getSourceFileOrLookup(
+          frame.getHolderClass(), classElement, retraceFrameResult.retracer);
     }
 
     @Override

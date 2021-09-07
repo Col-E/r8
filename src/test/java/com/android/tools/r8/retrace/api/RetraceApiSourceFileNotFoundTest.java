@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
@@ -20,9 +20,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class RetraceApiInferSourceFileTest extends RetraceApiTestBase {
+public class RetraceApiSourceFileNotFoundTest extends RetraceApiTestBase {
 
-  public RetraceApiInferSourceFileTest(TestParameters parameters) {
+  public RetraceApiSourceFileNotFoundTest(TestParameters parameters) {
     super(parameters);
   }
 
@@ -36,7 +36,7 @@ public class RetraceApiInferSourceFileTest extends RetraceApiTestBase {
     private final String mapping =
         "some.Class -> a:\n"
             + "  1:3:int strawberry(int):99:101 -> s\n"
-            + "  4:5:int mango(float):121:122 -> s";
+            + "  4:5:int mango(float):121:122 -> s\n";
 
     @Test
     public void testRetracingSourceFile() {
@@ -45,7 +45,7 @@ public class RetraceApiInferSourceFileTest extends RetraceApiTestBase {
           .retraceClass(Reference.classFromTypeName("a"))
           .forEach(clazz -> sourceFileResults.add(clazz.getSourceFile()));
       assertEquals(1, sourceFileResults.size());
-      assertFalse(sourceFileResults.get(0).hasRetraceResult());
+      assertNull(sourceFileResults.get(0));
     }
   }
 }

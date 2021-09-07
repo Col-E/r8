@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.function.BiConsumer;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class SourceFileTest extends TestBase {
               inspector
                   .clazz(ClassWithCustomFileName.class)
                   .retraceUnique()
-                  .retraceSourceFile("nofile.java")
+                  .getSourceFile()
                   .getFilename());
         }));
   }
@@ -73,13 +74,12 @@ public class SourceFileTest extends TestBase {
         ((stackTrace, inspector) -> {
           // Since the type has a mapping, the file is inferred from the class name.
           assertEquals("SourceFileTest.java", stackTrace.getStackTraceLines().get(0).fileName);
+          RetraceClassElement retraceClassElement =
+              inspector.clazz(ClassWithoutCustomFileName.class).retraceUnique();
           assertEquals(
               "SourceFileTest.java",
-              inspector
-                  .clazz(ClassWithoutCustomFileName.class)
-                  .retraceUnique()
-                  .retraceSourceFile("nofile.java")
-                  .getFilename());
+              RetraceUtils.inferFileName(
+                  retraceClassElement.getRetracedClass().getTypeName(), "nofile.java", true));
         }));
   }
 
