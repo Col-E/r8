@@ -74,10 +74,6 @@ PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')
 SAMPLE_LIBRARIES_SHA_FILE = os.path.join(
     THIRD_PARTY, 'sample_libraries.tar.gz.sha1')
-OPENSOURCE_APPS_SHA_FILE = os.path.join(
-    THIRD_PARTY, 'opensource_apps.tar.gz.sha1')
-# TODO(b/152155164): Remove this when all apps has been migrated.
-OPENSOURCE_APPS_FOLDER = os.path.join(THIRD_PARTY, 'opensource_apps')
 OPENSOURCE_DUMPS_DIR = os.path.join(THIRD_PARTY, 'opensource-apps')
 INTERNAL_DUMPS_DIR = os.path.join(THIRD_PARTY, 'internal-apps')
 BAZEL_SHA_FILE = os.path.join(THIRD_PARTY, 'bazel.tar.gz.sha1')

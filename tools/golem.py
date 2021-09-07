@@ -17,7 +17,6 @@ LINKED_THIRD_PARTY_DIRECTORIES = [
     'gradle',
     'gradle-plugin',
     'openjdk',
-    'opensource_apps',
     'proguard',
     'proguardsettings',
     'r8',
