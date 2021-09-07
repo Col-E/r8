@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import static com.android.tools.r8.retrace.internal.RetraceUtils.synthesizeFileName;
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
@@ -16,7 +17,6 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
@@ -239,18 +239,6 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     @Override
-    public RetraceSourceFileResult getSourceFile() {
-      if (classResult.mapper != null) {
-        for (MappingInformation info : classResult.mapper.getAdditionalMappingInfo()) {
-          if (info.isFileNameInformation()) {
-            return new RetraceSourceFileResultImpl(info.asFileNameInformation().getFileName());
-          }
-        }
-      }
-      return new RetraceSourceFileResultImpl(null);
-    }
-
-    @Override
     public RetraceClassResultImpl getRetraceResultContext() {
       return classResult;
     }
@@ -265,6 +253,25 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         }
       }
       return false;
+    }
+
+    @Override
+    public RetraceSourceFileResultImpl retraceSourceFile(String sourceFile) {
+      if (classResult.mapper != null) {
+        for (MappingInformation info : classResult.mapper.getAdditionalMappingInfo()) {
+          if (info.isFileNameInformation()) {
+            return new RetraceSourceFileResultImpl(
+                info.asFileNameInformation().getFileName(), false);
+          }
+        }
+      }
+      return new RetraceSourceFileResultImpl(
+          synthesizeFileName(
+              classReference.getTypeName(),
+              classResult.obfuscatedReference.getTypeName(),
+              sourceFile,
+              mapper != null),
+          true);
     }
 
     @Override

@@ -133,8 +133,9 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     }
 
     @Override
-    public RetraceSourceFileResult getSourceFile() {
-      return classElement.getSourceFile();
+    public RetraceSourceFileResult retraceSourceFile(String sourceFile) {
+      return RetraceUtils.getSourceFile(
+          classElement, fieldReference.getHolderClass(), sourceFile, retraceFieldResult.retracer);
     }
   }
 }

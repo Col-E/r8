@@ -75,19 +75,42 @@ public class RetraceUtils {
     return clazz.substring(lastIndexOfPeriod + 1, endIndex);
   }
 
-  public static RetraceSourceFileResult getSourceFileOrLookup(
-      RetracedClassReference holder, RetraceClassElement context, Retracer retracer) {
-    if (holder.equals(context.getRetracedClass())) {
-      return context.getSourceFile();
+  static RetraceSourceFileResult getSourceFile(
+      RetraceClassElement classElement,
+      RetracedClassReference context,
+      String sourceFile,
+      Retracer retracer) {
+    // If no context is specified always retrace using the found class element.
+    if (context == null) {
+      return classElement.retraceSourceFile(sourceFile);
     }
-    RetraceClassResult contextClassResult = retracer.retraceClass(holder.getClassReference());
-    Box<RetraceSourceFileResult> retraceSourceFile = new Box<>();
-    contextClassResult.forEach(element -> retraceSourceFile.set(element.getSourceFile()));
-    return retraceSourceFile.get();
+    if (context.equals(classElement.getRetracedClass())) {
+      return classElement.retraceSourceFile(sourceFile);
+    } else {
+      RetraceClassResult contextClassResult = retracer.retraceClass(context.getClassReference());
+      assert !contextClassResult.isAmbiguous();
+      if (contextClassResult.hasRetraceResult()) {
+        Box<RetraceSourceFileResult> retraceSourceFile = new Box<>();
+        contextClassResult.forEach(
+            element -> retraceSourceFile.set(element.retraceSourceFile(sourceFile)));
+        return retraceSourceFile.get();
+      } else {
+        return new RetraceSourceFileResultImpl(
+            synthesizeFileName(
+                context.getTypeName(),
+                classElement.getRetracedClass().getTypeName(),
+                sourceFile,
+                true),
+            true);
+      }
+    }
   }
 
-  public static String inferFileName(
-      String retracedClassName, String sourceFile, boolean hasRetraceResult) {
+  public static String synthesizeFileName(
+      String retracedClassName,
+      String minifiedClassName,
+      String sourceFile,
+      boolean hasRetraceResult) {
     if (!hasRetraceResult || KEEP_SOURCEFILE_NAMES.contains(sourceFile)) {
       return sourceFile;
     }

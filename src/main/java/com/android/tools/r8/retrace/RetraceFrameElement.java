@@ -20,7 +20,7 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   void visitNonCompilerSynthesizedFrames(BiConsumer<RetracedMethodReference, Integer> consumer);
 
-  RetraceSourceFileResult getSourceFile(RetracedClassMemberReference frame);
+  RetraceSourceFileResult retraceSourceFile(RetracedClassMemberReference frame, String sourceFile);
 
   List<? extends RetracedMethodReference> getOuterFrames();
 }

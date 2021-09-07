@@ -37,7 +37,6 @@ public class RetraceApiTestHelper {
       ImmutableList.of(
           RetraceApiEmptyTest.RetraceTest.class,
           RetraceApiSourceFileTest.ApiTest.class,
-          RetraceApiSourceFileNotFoundTest.ApiTest.class,
           RetraceApiInferSourceFileTest.ApiTest.class,
           RetraceApiSynthesizedClassTest.ApiTest.class,
           RetraceApiSynthesizedFieldTest.ApiTest.class,

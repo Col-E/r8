@@ -5,7 +5,7 @@
 package com.android.tools.r8.retrace.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
@@ -44,9 +44,9 @@ public class RetraceApiSourceFileTest extends RetraceApiTestBase {
       List<RetraceSourceFileResult> sourceFileResults = new ArrayList<>();
       Retracer.createDefault(ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
           .retraceClass(Reference.classFromTypeName("a"))
-          .forEach(clazz -> sourceFileResults.add(clazz.getSourceFile()));
+          .forEach(clazz -> sourceFileResults.add(clazz.retraceSourceFile("")));
       assertEquals(1, sourceFileResults.size());
-      assertTrue(sourceFileResults.get(0).hasRetraceResult());
+      assertFalse(sourceFileResults.get(0).isInferred());
       assertEquals("SomeFileName.kt", sourceFileResults.get(0).getFilename());
     }
   }
