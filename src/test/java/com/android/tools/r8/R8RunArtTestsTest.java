@@ -31,6 +31,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
@@ -57,6 +58,7 @@ import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -2480,9 +2482,15 @@ public abstract class R8RunArtTestsTest {
     }
     return ObjectArrays.concat(
         files,
-        com.google.common.io.Files.fileTreeTraverser().breadthFirstTraversal(directory)
-            .filter(f -> !f.isDirectory())
-            .toArray(File.class),
+        Iterables.toArray(
+            StreamSupport.stream(
+                    com.google.common.io.Files.fileTraverser()
+                        .breadthFirst(directory)
+                        .spliterator(),
+                    false)
+                .filter(f -> !f.isDirectory())
+                .collect(Collectors.toList()),
+            File.class),
         File.class);
   }
 

@@ -14,8 +14,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
@@ -113,6 +115,10 @@ public class BootstrapTest extends TestBase {
             .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar, true))
             .addProgramFiles(R8_STABLE_JAR)
             .addProguardConfigurationFiles(pgConfigFile, DONTWARN_R8)
+            // The R8_STABLE_JAR is from when Guava 23.0 was used, and that included
+            // javax.annotation.Nullable annotations in the retained code.
+            .addProguardConfiguration(
+                ImmutableList.of("-dontwarn javax.annotation.Nullable"), Origin.unknown())
             .build());
     return outputJar;
   }

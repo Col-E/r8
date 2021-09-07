@@ -3,6 +3,19 @@
   copyrightHolder: The Guava Authors
   license: The Apache Software License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/google/guava
+- artifact: com.google.guava:failureaccess:+
+  name: Guava InternalFutureFailureAccess and InternalFutures
+  copyrightHolder: The Guava Authors
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/google/guava
+- artifact: com.google.guava:listenablefuture
+  name: Guava ListenableFuture only
+  copyrightHolder: The Guava Authors
+  license: The Apache Software License, Version 2.0
+  licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  url: https://github.com/google/guava
 - artifact: com.google.code.gson:gson:+
   name: Gson
   license: The Apache Software License, Version 2.0
@@ -72,3 +85,9 @@
   license: The Apache Software License, Version 2.0
   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
   url: http://www.jetbrains.org
+- artifact: org.checkerframework:checker-qual
+  name: Checker Qual
+  copyrightHolder: Checker Framework developers
+  license: The MIT License
+  licenseUrl: http://opensource.org/licenses/MIT
+  url: https://github.com/typetools/checker-framework.git

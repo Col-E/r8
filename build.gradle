@@ -38,7 +38,7 @@ ext {
     asmVersion = '9.2'  // When updating update tools/asmifier.py and Toolhelper as well.
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.0'
-    guavaVersion = '23.0'
+    guavaVersion = '30.1.1-jre'
     joptSimpleVersion = '4.6'
     gsonVersion = '2.7'
     junitVersion = '4.13-beta-2'
@@ -748,6 +748,7 @@ task repackageDepsNew(type: ShadowJar) {
     mergeServiceFiles(it)
     exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }
     exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
+    exclude { it.getRelativePath().getPathString().equals("META-INF/LICENSE.txt") }
     baseName 'deps_all'
 }
 
@@ -816,7 +817,9 @@ def r8RelocateTask(r8Task, output) {
                 "--map",
                 "org.jetbrains->com.android.tools.r8.org.jetbrains",
                 "--map",
-                "org.intellij->com.android.tools.r8.org.intellij"
+                "org.intellij->com.android.tools.r8.org.intellij",
+                "--map",
+                "org.checkerframework->com.android.tools.r8.org.checkerframework"
         ])
     }
 }
