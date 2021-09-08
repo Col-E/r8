@@ -2404,58 +2404,6 @@ public class IRBuilder {
     }
   }
 
-  /**
-   * Ensure that the current block can hold a throwing instruction. This will create a new current
-   * block if the current block has handlers and already has one throwing instruction.
-   */
-  void ensureBlockForThrowingInstruction() {
-    if (!throwingInstructionInCurrentBlock) {
-      return;
-    }
-    // Note that when splitting the block in two we must update the CFG information so that we can
-    // correctly identify if the normal exits of the constructed block must be split once it is
-    // closed.
-    int currentBlockOffset = getOffset(currentBlock);
-    BlockInfo currentBlockInfo = getBlockInfo(currentBlockOffset);
-
-    BlockInfo info = new BlockInfo();
-    BasicBlock block = info.block;
-    block.setNumber(basicBlockNumberGenerator.next());
-    blocks.add(block);
-
-    // Compute some unused offset for the new block and link it in the CFG.
-    int freshOffset = INITIAL_BLOCK_OFFSET - 1;
-    while (targets.containsKey(freshOffset)) {
-      freshOffset--;
-    }
-    targets.put(freshOffset, info);
-    offsets.put(block, freshOffset);
-
-    // Copy over the exceptional successors.
-    for (int offset : source.getCurrentCatchHandlers(this).getUniqueTargets()) {
-      info.addExceptionalSuccessor(offset);
-      BlockInfo target = targets.get(offset);
-      assert !target.block.isSealed();
-      target.block.incrementUnfilledPredecessorCount();
-      target.addExceptionalPredecessor(freshOffset);
-    }
-
-    // Move all normal successors to the new block.
-    currentBlockInfo.normalSuccessors.forEach(info::addNormalSuccessor);
-    currentBlockInfo.normalSuccessors.clear();
-
-    // Link the two blocks.
-    addInstruction(new Goto());
-    currentBlock.link(block);
-    block.incrementUnfilledPredecessorCount();
-    currentBlockInfo.addNormalSuccessor(freshOffset);
-    info.addNormalPredecessor(currentBlockOffset);
-
-    // The new block can only have a single predecessor and so we don't need to split between them.
-    closeCurrentBlockGuaranteedNotToNeedEdgeSplitting();
-    setCurrentBlock(block);
-  }
-
   // Private instruction helpers.
   private void addInstruction(Instruction ir) {
     addInstruction(ir, source.getCurrentPosition());
