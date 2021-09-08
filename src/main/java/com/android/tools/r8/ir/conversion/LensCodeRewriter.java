@@ -643,10 +643,11 @@ public class LensCodeRewriter {
                     // Non-null assumptions on a class array type being converted to a primitive
                     // array type remains, but dynamic type becomes irrelevant.
                     assume.unsetDynamicTypeAssumption();
+                    affectedPhis.addAll(assume.outValue().uniquePhiUsers());
                     if (assume.hasNonNullAssumption()) {
-                      current.outValue().setType(substituted);
-                      affectedPhis.addAll(current.outValue().uniquePhiUsers());
+                      assume.outValue().setType(substituted);
                     } else {
+                      assume.outValue().replaceUsers(assume.src());
                       iterator.removeOrReplaceByDebugLocalRead();
                     }
                   } else {
