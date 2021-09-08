@@ -355,6 +355,8 @@ public class RootSetUtils {
         BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
             .visit(appView.appInfo().classes(), this::propagateAssumeRules);
       }
+      appView.withGeneratedMessageLiteShrinker(
+          shrinker -> shrinker.extendRootSet(dependentMinimumKeepInfo));
       if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
         GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
             appView,

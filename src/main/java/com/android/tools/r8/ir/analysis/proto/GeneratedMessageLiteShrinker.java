@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
@@ -11,6 +12,7 @@ import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueF
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
@@ -30,7 +32,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.List;
@@ -40,7 +42,7 @@ import java.util.function.Consumer;
 
 public class GeneratedMessageLiteShrinker {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
   private final RawMessageInfoDecoder decoder;
   private final RawMessageInfoEncoder encoder;
   private final ProtoReferences references;
@@ -49,9 +51,7 @@ public class GeneratedMessageLiteShrinker {
   private final TypeElement stringType;
 
   public GeneratedMessageLiteShrinker(
-      AppView<AppInfoWithLiveness> appView,
-      RawMessageInfoDecoder decoder,
-      ProtoReferences references) {
+      AppView<?> appView, RawMessageInfoDecoder decoder, ProtoReferences references) {
     this.appView = appView;
     this.decoder = decoder;
     this.encoder = new RawMessageInfoEncoder(appView.dexItemFactory());
@@ -62,6 +62,45 @@ public class GeneratedMessageLiteShrinker {
         TypeElement.fromDexType(
             appView.dexItemFactory().objectArrayType, Nullability.definitelyNotNull(), appView);
     this.stringType = TypeElement.stringClassType(appView, Nullability.definitelyNotNull());
+  }
+
+  public void extendRootSet(DependentMinimumKeepInfoCollection dependentMinimumKeepInfo) {
+    // Disable optimizations for various methods that are modeled, to ensure that we can still
+    // recognize the uses of these methods even after optimizations have been run.
+    DexProgramClass generatedMessageLiteClass =
+        asProgramClassOrNull(
+            appView
+                .appInfo()
+                .definitionForWithoutExistenceAssert(references.generatedMessageLiteType));
+    if (generatedMessageLiteClass != null) {
+      ProgramMethod dynamicMethod =
+          generatedMessageLiteClass.lookupProgramMethod(references.dynamicMethod);
+      if (dynamicMethod != null) {
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(dynamicMethod.getReference())
+            .disallowOptimization();
+      }
+
+      ProgramMethod newRepeatedGeneratedExtensionMethod =
+          generatedMessageLiteClass.lookupProgramMethod(
+              references.generatedMessageLiteMethods.newRepeatedGeneratedExtension);
+      if (newRepeatedGeneratedExtensionMethod != null) {
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(
+                newRepeatedGeneratedExtensionMethod.getReference())
+            .disallowOptimization();
+      }
+
+      ProgramMethod newSingularGeneratedExtensionMethod =
+          generatedMessageLiteClass.lookupProgramMethod(
+              references.generatedMessageLiteMethods.newSingularGeneratedExtension);
+      if (newSingularGeneratedExtensionMethod != null) {
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(
+                newSingularGeneratedExtensionMethod.getReference())
+            .disallowOptimization();
+      }
+    }
   }
 
   public void run(IRCode code) {
@@ -91,7 +130,7 @@ public class GeneratedMessageLiteShrinker {
   private void forEachDynamicMethod(Consumer<ProgramMethod> consumer) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     appView
-        .appInfo()
+        .appInfoWithLiveness()
         .forEachInstantiatedSubType(
             references.generatedMessageLiteType,
             clazz -> {
