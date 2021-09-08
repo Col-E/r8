@@ -5,7 +5,7 @@
 package com.android.tools.r8.tracereferences.internal;
 
 import com.android.tools.r8.diagnostic.DefinitionContext;
-import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.tracereferences.TraceReferencesConsumer.MethodAccessFlags;
@@ -17,9 +17,9 @@ public class TracedMethodImpl extends TracedReferenceBase<MethodReference, Metho
     this(method.asMethodReference(), referencedFrom, null);
   }
 
-  public TracedMethodImpl(DexClassAndMethod method, DefinitionContext referencedFrom) {
+  public TracedMethodImpl(DexEncodedMethod method, DefinitionContext referencedFrom) {
     this(
-        method.getMethodReference(),
+        method.getReference().asMethodReference(),
         referencedFrom,
         new MethodAccessFlagsImpl(method.getAccessFlags()));
   }

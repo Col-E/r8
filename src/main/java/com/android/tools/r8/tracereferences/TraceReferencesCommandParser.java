@@ -48,7 +48,6 @@ class TraceReferencesCommandParser {
                   "                          # outside of library are treated as a missing",
                   "                          # references.",
                   "  --output <file>         # Output result in <outfile>. If not passed the",
-                  "                          # result will go to standard out.",
                   "                          # result will go to standard out."),
               BaseCompilerCommandParser.MAP_DIAGNOSTICS_USAGE_MESSAGE,
               Arrays.asList(

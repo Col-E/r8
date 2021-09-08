@@ -200,7 +200,7 @@ public class Tracer {
       // - The holder type is registered from visiting the extends/implements clause of the sub
       //   class.
 
-      TracedMethodImpl tracedMethod = new TracedMethodImpl(method, referencedFrom);
+      TracedMethodImpl tracedMethod = new TracedMethodImpl(method.getDefinition(), referencedFrom);
       if (isTargetType(method.getHolderType())) {
         consumer.acceptMethod(tracedMethod, diagnostics);
         if (method.getAccessFlags().isVisibilityDependingOnPackage()) {
@@ -323,9 +323,8 @@ public class Tracer {
         MethodLookupResult lookupResult = graphLens.lookupInvokeStatic(method, context);
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
-        DexClassAndMethod resolvedMethod =
-            appInfo.unsafeResolveMethodDueToDexFormat(rewrittenMethod).getResolutionPair();
-        handleRewrittenMethodReference(rewrittenMethod, resolvedMethod);
+        handleRewrittenMethodResolution(
+            rewrittenMethod, appInfo.unsafeResolveMethodDueToDexFormat(rewrittenMethod));
       }
 
       @Override
@@ -333,8 +332,16 @@ public class Tracer {
         MethodLookupResult lookupResult = graphLens.lookupInvokeSuper(method, context);
         assert lookupResult.getType().isSuper();
         DexMethod rewrittenMethod = lookupResult.getReference();
-        DexClassAndMethod superTarget = appInfo.lookupSuperTarget(rewrittenMethod, context);
-        handleRewrittenMethodReference(rewrittenMethod, superTarget);
+        MethodResolutionResult resolutionResult =
+            appInfo.unsafeResolveMethodDueToDexFormat(rewrittenMethod);
+        if (resolutionResult.isFailedResolution()
+            && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
+          handleRewrittenMethodResolution(rewrittenMethod, resolutionResult);
+          return;
+        }
+        handleRewrittenMethodReference(
+            rewrittenMethod,
+            resolutionResult.lookupInvokeSuperTarget(context.getHolder(), appInfo));
       }
 
       @Override
@@ -352,18 +359,39 @@ public class Tracer {
           return;
         }
         assert lookupResult.getType().isInterface() || lookupResult.getType().isVirtual();
-        MethodResolutionResult resolutionResult =
+        handleRewrittenMethodResolution(
+            method,
             lookupResult.getType().isInterface()
                 ? appInfo.resolveMethodOnInterface(method)
-                : appInfo.resolveMethodOnClass(method);
-        DexClassAndMethod resolvedMethod =
-            resolutionResult.isVirtualTarget() ? resolutionResult.getResolutionPair() : null;
-        handleRewrittenMethodReference(method, resolvedMethod);
+                : appInfo.resolveMethodOnClass(method));
+      }
+
+      private void handleRewrittenMethodResolution(
+          DexMethod method, MethodResolutionResult resolutionResult) {
+        if (resolutionResult.isFailedResolution()
+            && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
+          resolutionResult
+              .asFailedResolution()
+              .forEachFailureDependency(
+                  methodCausingFailure -> {
+                    handleRewrittenMethodReference(method, methodCausingFailure);
+                  });
+          return;
+        }
+        handleRewrittenMethodReference(method, resolutionResult.getResolutionPair());
       }
 
       private void handleRewrittenMethodReference(
           DexMethod method, DexClassAndMethod resolvedMethod) {
-        assert resolvedMethod == null || resolvedMethod.getReference().match(method);
+        handleRewrittenMethodReference(
+            method, resolvedMethod == null ? null : resolvedMethod.getDefinition());
+      }
+
+      private void handleRewrittenMethodReference(
+          DexMethod method, DexEncodedMethod resolvedMethod) {
+        assert resolvedMethod == null
+            || resolvedMethod.getReference().match(method)
+            || DexClass.isSignaturePolymorphicMethod(resolvedMethod, factory);
         addType(method.getHolderType(), referencedFrom);
         addTypes(method.getParameters(), referencedFrom);
         addType(method.getReturnType(), referencedFrom);
