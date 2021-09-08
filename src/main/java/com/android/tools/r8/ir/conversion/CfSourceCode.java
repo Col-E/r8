@@ -828,6 +828,9 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
+    if (inPrelude) {
+      return null;
+    }
     if (isCurrentlyGeneratingMethodSynchronization()) {
       return null;
     }
