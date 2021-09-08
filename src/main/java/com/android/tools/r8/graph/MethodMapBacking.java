@@ -115,7 +115,11 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   DexEncodedMethod getMethod(DexProto methodProto, DexString methodName) {
-    return methodMap.get(DexMethodSignature.create(methodName, methodProto));
+    return getMethod(DexMethodSignature.create(methodName, methodProto));
+  }
+
+  DexEncodedMethod getMethod(DexMethodSignature method) {
+    return methodMap.get(method);
   }
 
   private DexEncodedMethod getMethod(Predicate<DexEncodedMethod> predicate) {
@@ -200,7 +204,11 @@ public class MethodMapBacking extends MethodCollectionBacking {
 
   @Override
   DexEncodedMethod removeMethod(DexMethod method) {
-    return methodMap.remove(method.getSignature());
+    return removeMethod(method.getSignature());
+  }
+
+  DexEncodedMethod removeMethod(DexMethodSignature method) {
+    return methodMap.remove(method);
   }
 
   @Override
@@ -263,8 +271,11 @@ public class MethodMapBacking extends MethodCollectionBacking {
     for (DexEncodedMethod method : initialValues) {
       DexEncodedMethod newMethod = replacement.apply(method);
       if (newMethod != method) {
-        removeMethod(method.getReference());
-        addMethod(newMethod);
+        DexMethodSignature signature = method.getSignature();
+        if (getMethod(signature) == method) {
+          removeMethod(signature);
+        }
+        methodMap.put(newMethod.getSignature(), newMethod);
       }
     }
   }
