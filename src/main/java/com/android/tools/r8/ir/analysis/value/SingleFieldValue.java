@@ -73,7 +73,7 @@ public abstract class SingleFieldValue extends SingleValue {
       NumberGenerator valueNumberGenerator,
       TypeAndLocalInfoSupplier info) {
     TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
-    assert type.lessThanOrEqual(info.getOutType(), appView);
+    assert type.lessThanOrEqual(info.getOutType(), appView) || type.isBasedOnMissingClass(appView);
     Value outValue = new Value(valueNumberGenerator.next(), type, info.getLocalInfo());
     return new StaticGet(outValue, field);
   }
