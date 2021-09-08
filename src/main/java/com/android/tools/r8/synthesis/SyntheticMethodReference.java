@@ -57,7 +57,8 @@ class SyntheticMethodReference
     DexMethod rewritten = lens.getRenamedMethodSignature(method);
     // If the reference has been non-trivially rewritten the compiler has changed it and it can no
     // longer be considered a synthetic. The context may or may not have changed.
-    if (method != rewritten && !lens.isSimpleRenaming(method, rewritten)) {
+    if (method.getHolderType() != rewritten.getHolderType()
+        && !lens.isSimpleRenaming(method, rewritten)) {
       // If the referenced item is rewritten, it should be moved to a non-internal synthetic holder
       // as the synthetic holder is no longer part of the synthetic collection.
       assert SyntheticNaming.verifyNotInternalSynthetic(rewritten.holder);
