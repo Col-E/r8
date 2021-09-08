@@ -16,9 +16,9 @@ exit -1
 # Prepare README.google
 # Update JDK_VERSION below
 
-# Now run script wit fingers crossed!
+# Now run script with fingers crossed!
 
-JDK_VERSION=16.0.2
+JDK_VERSION=11.0.2
 
 tar xf ~/Downloads/openjdk-${JDK_VERSION}_linux-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION} linux
