@@ -1243,10 +1243,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                                                 .getHolderType()
                                                 .isInterface(definitions)))
                             .build())
-                    .modifyAccessFlags(MethodAccessFlags::setBridge)
-                    .setIsLibraryMethodOverrideIf(
-                        !isStatic() && !isLibraryMethodOverride().isUnknown(),
-                        isLibraryMethodOverride()))
+                    .modifyAccessFlags(MethodAccessFlags::setBridge))
+        .setIsLibraryMethodOverrideIf(
+            !isStatic() && !isLibraryMethodOverride().isUnknown(), isLibraryMethodOverride())
         .build();
   }
 
