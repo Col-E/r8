@@ -5,6 +5,8 @@ package com.android.tools.r8.ir.optimize.info;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.utils.MapUtils.canonicalizeEmptyMap;
+import static java.util.Objects.requireNonNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -23,8 +25,11 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterSt
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntCollection;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.List;
-import java.util.Objects;
 
 // Accumulated optimization info from call sites.
 public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
@@ -36,10 +41,82 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   private final Int2ReferenceMap<AbstractValue> constants;
 
   private ConcreteCallSiteOptimizationInfo(int size, boolean allowConstantPropagation) {
+    this(
+        size,
+        new Int2ReferenceArrayMap<>(size),
+        allowConstantPropagation
+            ? new Int2ReferenceArrayMap<>(size)
+            : Int2ReferenceMaps.emptyMap());
+  }
+
+  private ConcreteCallSiteOptimizationInfo(
+      int size,
+      Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes,
+      Int2ReferenceMap<AbstractValue> constants) {
     assert size > 0;
     this.size = size;
-    this.dynamicUpperBoundTypes = new Int2ReferenceArrayMap<>(size);
-    this.constants = allowConstantPropagation ? new Int2ReferenceArrayMap<>(size) : null;
+    this.dynamicUpperBoundTypes = requireNonNull(dynamicUpperBoundTypes);
+    this.constants = requireNonNull(constants);
+  }
+
+  private static CallSiteOptimizationInfo create(
+      int size,
+      Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes,
+      Int2ReferenceMap<AbstractValue> constants) {
+    return constants.isEmpty() && dynamicUpperBoundTypes.isEmpty()
+        ? top()
+        : new ConcreteCallSiteOptimizationInfo(
+            size, canonicalizeEmptyMap(dynamicUpperBoundTypes), canonicalizeEmptyMap(constants));
+  }
+
+  public CallSiteOptimizationInfo fixupAfterExtraNullParameters(int extraNullParameters) {
+    return extraNullParameters > 0
+        ? new ConcreteCallSiteOptimizationInfo(
+            size + extraNullParameters, dynamicUpperBoundTypes, constants)
+        : this;
+  }
+
+  public CallSiteOptimizationInfo fixupAfterParameterRemoval(int removedParameterIndex) {
+    IntList removedParameterIndices = new IntArrayList(1);
+    removedParameterIndices.add(removedParameterIndex);
+    return fixupAfterParameterRemoval(removedParameterIndices);
+  }
+
+  public CallSiteOptimizationInfo fixupAfterParameterRemoval(
+      IntCollection removedParameterIndices) {
+    if (removedParameterIndices.isEmpty()) {
+      return this;
+    }
+
+    assert removedParameterIndices.stream()
+        .allMatch(removedParameterIndex -> removedParameterIndex < size);
+
+    int newSize = size - removedParameterIndices.size();
+    if (newSize == 0) {
+      return top();
+    }
+
+    Int2ReferenceMap<AbstractValue> rewrittenConstants = new Int2ReferenceArrayMap<>(newSize);
+    Int2ReferenceMap<TypeElement> rewrittenDynamicUpperBoundTypes =
+        new Int2ReferenceArrayMap<>(newSize);
+    for (int parameterIndex = 0, rewrittenParameterIndex = 0;
+        parameterIndex < size;
+        parameterIndex++) {
+      if (!removedParameterIndices.contains(parameterIndex)) {
+        AbstractValue abstractValue =
+            constants.getOrDefault(parameterIndex, AbstractValue.unknown());
+        if (!abstractValue.isUnknown()) {
+          rewrittenConstants.put(rewrittenParameterIndex, abstractValue);
+        }
+        TypeElement dynamicUpperBoundType = dynamicUpperBoundTypes.get(parameterIndex);
+        if (dynamicUpperBoundType != null) {
+          rewrittenDynamicUpperBoundTypes.put(rewrittenParameterIndex, dynamicUpperBoundType);
+        }
+        rewrittenParameterIndex++;
+      }
+    }
+    return ConcreteCallSiteOptimizationInfo.create(
+        newSize, rewrittenDynamicUpperBoundTypes, rewrittenConstants);
   }
 
   CallSiteOptimizationInfo join(
@@ -52,7 +129,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         new ConcreteCallSiteOptimizationInfo(size, allowConstantPropagation);
     for (int i = 0; i < result.size; i++) {
       if (allowConstantPropagation) {
-        assert result.constants != null;
         AbstractValue abstractValue =
             getAbstractArgumentValue(i)
                 .join(
@@ -137,17 +213,12 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   @Override
   public TypeElement getDynamicUpperBoundType(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
-    assert dynamicUpperBoundTypes != null;
     return dynamicUpperBoundTypes.getOrDefault(argIndex, null);
   }
 
   @Override
   public AbstractValue getAbstractArgumentValue(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
-    // TODO(b/69963623): Remove this once enabled.
-    if (constants == null) {
-      return UnknownValue.getInstance();
-    }
     return constants.getOrDefault(argIndex, UnknownValue.getInstance());
   }
 
@@ -162,13 +233,11 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         new ConcreteCallSiteOptimizationInfo(arguments.size(), allowConstantPropagation);
     boolean hasReceiver = arguments.size() > invokedMethod.getArity();
     boolean isTop = true;
-    assert newCallSiteInfo.dynamicUpperBoundTypes != null;
     for (int i = 0; i < newCallSiteInfo.size; i++) {
       Value arg = arguments.get(i);
 
       // Constant propagation.
       if (allowConstantPropagation) {
-        assert newCallSiteInfo.constants != null;
         Value aliasedValue = arg.getAliasedValue();
         if (!aliasedValue.isPhi()) {
           AbstractValue abstractValue = aliasedValue.definition.getAbstractValue(appView, context);
@@ -278,13 +347,12 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       return false;
     }
     ConcreteCallSiteOptimizationInfo otherInfo = (ConcreteCallSiteOptimizationInfo) other;
-    return Objects.equals(this.dynamicUpperBoundTypes, otherInfo.dynamicUpperBoundTypes)
-        && Objects.equals(this.constants, otherInfo.constants);
+    return dynamicUpperBoundTypes.equals(otherInfo.dynamicUpperBoundTypes)
+        && constants.equals(otherInfo.constants);
   }
 
   @Override
   public int hashCode() {
-    assert this.dynamicUpperBoundTypes != null;
     return System.identityHashCode(dynamicUpperBoundTypes) * 7 + System.identityHashCode(constants);
   }
 

@@ -519,6 +519,10 @@ class EnumUnboxingTreeFixer {
         newMethod,
         builder ->
             builder
+                .fixupCallSiteOptimizationInfo(
+                    callSiteOptimizationInfo ->
+                        callSiteOptimizationInfo.fixupAfterExtraNullParameters(
+                            numberOfExtraNullParameters))
                 .setCompilationState(method.getCompilationState())
                 .setIsLibraryMethodOverrideIf(
                     method.isNonPrivateVirtualMethod(), OptionalBool.FALSE)

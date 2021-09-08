@@ -5,6 +5,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -13,6 +15,10 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 public class MapUtils {
+
+  public static <V> Int2ReferenceMap<V> canonicalizeEmptyMap(Int2ReferenceMap<V> map) {
+    return map.isEmpty() ? Int2ReferenceMaps.emptyMap() : map;
+  }
 
   public static <K, V> Map<K, V> clone(
       Map<K, V> mapToClone, Map<K, V> newMap, Function<V, V> valueCloner) {

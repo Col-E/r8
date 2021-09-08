@@ -67,23 +67,27 @@ public class ArgumentPropagatorApplicationFixer {
                 // TODO(b/190154391): fixup parameter annotations, if any.
                 ArgumentInfoCollection removedParameters =
                     graphLens.getRemovedParameters(methodReferenceAfterParameterRemoval);
-                builder.modifyOptimizationInfo(
-                    (newMethod, optimizationInfo) -> {
-                      OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
-                      ProgramMethod programMethod = new ProgramMethod(clazz, newMethod);
-                      // TODO(b/190154391): test this.
-                      EnumUnboxerMethodClassification rewrittenEnumUnboxerMethodClassification =
-                          optimizationInfo
-                              .getEnumUnboxerMethodClassification()
-                              .fixupAfterParameterRemoval(removedParameters);
-                      if (rewrittenEnumUnboxerMethodClassification.isCheckNotNullClassification()) {
-                        feedback.setEnumUnboxerMethodClassification(
-                            programMethod, rewrittenEnumUnboxerMethodClassification);
-                      } else {
-                        // Bypass monotonicity check.
-                        feedback.unsetEnumUnboxerMethodClassification(programMethod);
-                      }
-                    });
+                builder
+                    .fixupCallSiteOptimizationInfo(
+                        removedParameters.createCallSiteOptimizationInfoFixer())
+                    .modifyOptimizationInfo(
+                        (newMethod, optimizationInfo) -> {
+                          OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
+                          ProgramMethod programMethod = new ProgramMethod(clazz, newMethod);
+                          // TODO(b/190154391): test this.
+                          EnumUnboxerMethodClassification rewrittenEnumUnboxerMethodClassification =
+                              optimizationInfo
+                                  .getEnumUnboxerMethodClassification()
+                                  .fixupAfterParameterRemoval(removedParameters);
+                          if (rewrittenEnumUnboxerMethodClassification
+                              .isCheckNotNullClassification()) {
+                            feedback.setEnumUnboxerMethodClassification(
+                                programMethod, rewrittenEnumUnboxerMethodClassification);
+                          } else {
+                            // Bypass monotonicity check.
+                            feedback.unsetEnumUnboxerMethodClassification(programMethod);
+                          }
+                        });
               });
         });
   }

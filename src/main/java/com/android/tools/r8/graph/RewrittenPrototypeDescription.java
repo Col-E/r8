@@ -11,19 +11,26 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
+import it.unimi.dsi.fastutil.ints.IntCollection;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.ints.IntSortedSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class RewrittenPrototypeDescription {
 
@@ -219,6 +226,25 @@ public class RewrittenPrototypeDescription {
       return argumentInfos.keySet();
     }
 
+    public IntCollection getRemovedParameterIndices() {
+      int numberOfRemovedArguments = numberOfRemovedArguments();
+      if (numberOfRemovedArguments == 0) {
+        return IntLists.EMPTY_LIST;
+      }
+      if (numberOfRemovedArguments == argumentInfos.size()) {
+        return getKeys();
+      }
+      IntList removedParameterIndices = new IntArrayList(numberOfRemovedArguments);
+      Iterator<Entry<ArgumentInfo>> iterator = iterator();
+      while (iterator.hasNext()) {
+        Entry<ArgumentInfo> entry = iterator.next();
+        if (entry.getValue().isRemovedArgumentInfo()) {
+          removedParameterIndices.add(entry.getIntKey());
+        }
+      }
+      return removedParameterIndices;
+    }
+
     public boolean isEmpty() {
       return this == EMPTY;
     }
@@ -362,6 +388,12 @@ public class RewrittenPrototypeDescription {
         return i;
       }
       return Integer.MAX_VALUE;
+    }
+
+    public Function<ConcreteCallSiteOptimizationInfo, ? extends CallSiteOptimizationInfo>
+        createCallSiteOptimizationInfoFixer() {
+      return callSiteOptimizationInfo ->
+          callSiteOptimizationInfo.fixupAfterParameterRemoval(getRemovedParameterIndices());
     }
 
     public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
