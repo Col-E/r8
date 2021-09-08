@@ -46,12 +46,12 @@ public class ImmediateProgramSubtypingInfo {
   }
 
   public void forEachImmediateSuperClass(
-      DexProgramClass clazz, BiConsumer<? super DexType, ? super DexClass> consumer) {
+      DexClass clazz, BiConsumer<? super DexType, ? super DexClass> consumer) {
     forEachImmediateSuperClassMatching(clazz, (supertype, superclass) -> true, consumer);
   }
 
   public void forEachImmediateSuperClassMatching(
-      DexProgramClass clazz,
+      DexClass clazz,
       BiPredicate<? super DexType, ? super DexClass> predicate,
       BiConsumer<? super DexType, ? super DexClass> consumer) {
     clazz.forEachImmediateSupertype(

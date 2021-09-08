@@ -82,10 +82,13 @@ public class ArgumentPropagatorReprocessingCriteriaCollection {
     }
 
     ParameterReprocessingCriteria.Builder builder = ParameterReprocessingCriteria.builder();
-    for (Instruction instruction : argument.outValue().aliasedUsers()) {
-      // TODO(b/190154391): Introduce analysis for usefulness of abstract value and nullability.
-      builder.setReprocessDueToAbstractValue().setReprocessDueToNullability();
 
+    // TODO(b/190154391): Introduce analysis for usefulness of abstract value and nullability.
+    if (argument.outValue().hasAnyUsers()) {
+      builder.setReprocessDueToAbstractValue().setReprocessDueToNullability();
+    }
+
+    for (Instruction instruction : argument.outValue().aliasedUsers()) {
       switch (instruction.opcode()) {
         case ASSUME:
         case IF:
