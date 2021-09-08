@@ -390,6 +390,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .setAccessFlags(
             MethodAccessFlags.fromCfAccessFlags(
                 Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false))
+        // Will be traced by the enqueuer.
+        .disableAndroidApiLevelCheck()
         .setCode(methodSignature -> cfCode);
   }
 
@@ -420,6 +422,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .setAccessFlags(
             MethodAccessFlags.fromCfAccessFlags(
                 Constants.ACC_PRIVATE | Constants.ACC_SYNTHETIC, true))
+        // Will be traced by the enqueuer.
+        .disableAndroidApiLevelCheck()
         .setCode(
             codeSynthesizor ->
                 new APIConverterConstructorCfCodeProvider(appView, wrappedValueField.getReference())

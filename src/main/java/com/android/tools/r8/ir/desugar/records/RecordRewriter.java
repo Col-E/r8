@@ -345,7 +345,8 @@ public class RecordRewriter
                 builder
                     .setProto(helperProto)
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setCode(methodSig -> codeGenerator.apply(appView.options(), methodSig)));
+                    .setCode(methodSig -> codeGenerator.apply(appView.options(), methodSig))
+                    .disableAndroidApiLevelCheck());
   }
 
   private List<CfInstruction> desugarInvokeRecordHashCode(

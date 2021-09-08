@@ -715,6 +715,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                         syntheticMethodBuilder
                             .setProto(invokedMethod.proto)
                             .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                            // Will be traced by the enqueuer.
+                            .disableAndroidApiLevelCheck()
                             .setCode(
                                 m ->
                                     ForwardMethodBuilder.builder(factory)

@@ -4,12 +4,10 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import java.util.function.BiFunction;
 
 public interface EnqueuerUseRegistryFactory {
 
@@ -17,5 +15,5 @@ public interface EnqueuerUseRegistryFactory {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod currentMethod,
       Enqueuer enqueuer,
-      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelReferenceMap);
+      AndroidApiLevelCompute apiLevelReferenceMap);
 }

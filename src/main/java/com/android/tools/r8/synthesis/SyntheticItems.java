@@ -685,7 +685,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         appView.dexItemFactory().createMethod(clazz.getType(), methodProto, methodName);
     DexEncodedMethod methodDefinition =
         internalEnsureMethod(
-            methodReference, clazz, kind, appView, buildMethodCallback, emptyConsumer());
+            methodReference,
+            clazz,
+            kind,
+            appView,
+            methodBuilder -> {
+              // For class path classes we always disable api level checks because we never trace
+              // the code and it cannot be inlined.
+              buildMethodCallback.accept(methodBuilder.disableAndroidApiLevelCheck());
+            },
+            emptyConsumer());
     return DexClassAndMethod.create(clazz, methodDefinition);
   }
 

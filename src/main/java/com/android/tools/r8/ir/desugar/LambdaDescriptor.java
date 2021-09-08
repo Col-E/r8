@@ -182,6 +182,10 @@ public final class LambdaDescriptor {
     return implHandle.asMethod().getName().startsWith(factory.javacLambdaMethodPrefix);
   }
 
+  public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {
+    return enforcedProto.getBaseTypes(dexItemFactory);
+  }
+
   /** Is a stateless lambda, i.e. lambda does not capture any values */
   final boolean isStateless() {
     return captures.isEmpty();

@@ -889,7 +889,8 @@ public class R8 {
     }
   }
 
-  private static boolean allReferencesAssignedApiLevel(AppView<?> appView) {
+  private static boolean allReferencesAssignedApiLevel(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     if (!appView.options().apiModelingOptions().checkAllApiReferencesAreSet
         || appView.options().configurationDebugging) {
       return true;
@@ -900,12 +901,14 @@ public class R8 {
         .classes()
         .forEach(
             clazz -> {
-              assert clazz.getMembersApiReferenceLevel(appView) != AndroidApiLevel.NOT_SET
-                  : "Every member should have been analyzed";
-              if (!appView.options().apiModelingOptions().enableApiCallerIdentification) {
-                assert clazz.getMembersApiReferenceLevel(appView) == AndroidApiLevel.UNKNOWN
-                    : "Every member should have level NOT_SET";
-              }
+              clazz.forEachProgramMember(
+                  member -> {
+                    assert member.getDefinition().getApiLevel() != AndroidApiLevel.NOT_SET
+                        : "Every member should have been analyzed";
+                    assert appView.options().apiModelingOptions().enableApiCallerIdentification
+                            || member.getDefinition().getApiLevel() == AndroidApiLevel.UNKNOWN
+                        : "Every member should have level UNKNOWN";
+                  });
             });
     return true;
   }

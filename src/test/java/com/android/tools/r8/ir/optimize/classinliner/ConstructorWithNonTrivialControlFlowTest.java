@@ -29,7 +29,8 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
 
   @Parameters(name = "{1}, enable class inlining: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public ConstructorWithNonTrivialControlFlowTest(
@@ -46,7 +47,7 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyClassInliningRemovesCandidate)
         .run(parameters.getRuntime(), TestClass.class)
@@ -56,6 +57,8 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
   private void verifyClassInliningRemovesCandidate(CodeInspector inspector) {
     ClassSubject candidateClassSubject = inspector.clazz(Candidate.class);
     if (enableClassInlining) {
+      // TODO(b/188388130): String.empty was added in AndroidApiLevel.G, so if this fails after
+      //  enabling api modeling then check for api level.
       assertThat(candidateClassSubject, not(isPresent()));
     } else {
       assertThat(candidateClassSubject, isPresent());

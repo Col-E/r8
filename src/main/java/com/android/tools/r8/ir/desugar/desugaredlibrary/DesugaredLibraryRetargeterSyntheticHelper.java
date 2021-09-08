@@ -138,6 +138,8 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
               methodBuilder
                   .setName(emulatedDispatchMethod.getName())
                   .setProto(emulatedDispatchMethod.getProto())
+                  // Will be traced by the enqueuer.
+                  .disableAndroidApiLevelCheck()
                   .setAccessFlags(flags);
             });
   }
@@ -157,6 +159,8 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
               .setName(emulatedDispatchMethod.getName())
               .setProto(desugarMethod.proto)
               .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+              // Will be traced by the enqueuer.
+              .disableAndroidApiLevelCheck()
               .setCode(
                   methodSig ->
                       appView.options().isDesugaredLibraryCompilation()

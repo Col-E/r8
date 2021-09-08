@@ -13,7 +13,7 @@ import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
-import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.CfOrDexInstruction;
@@ -261,7 +261,7 @@ public class Enqueuer {
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
-  private final AndroidApiReferenceLevelCache apiReferenceLevelCache;
+  private final AndroidApiLevelCompute apiLevelCompute;
 
   /**
    * Tracks the dependency between a method and the super-method it calls, if any. Used to make
@@ -487,8 +487,9 @@ public class Enqueuer {
     failedFieldResolutionTargets = SetUtils.newIdentityHashSet(0);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new LiveFieldsSet(graphReporter::registerField);
+    apiLevelCompute = AndroidApiLevelCompute.create(appView);
     if (mode.isInitialTreeShaking()) {
-      desugaring = CfInstructionDesugaringCollection.create(appView);
+      desugaring = CfInstructionDesugaringCollection.create(appView, apiLevelCompute);
       interfaceProcessor = new InterfaceProcessor(appView);
     } else {
       desugaring = CfInstructionDesugaringCollection.empty();
@@ -497,8 +498,6 @@ public class Enqueuer {
 
     objectAllocationInfoCollection =
         ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
-
-    apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
   }
 
   private AppInfoWithClassHierarchy appInfo() {
@@ -3119,7 +3118,7 @@ public class Enqueuer {
         && appView.options().getProguardConfiguration().getKeepAttributes().signature) {
       registerAnalysis(new GenericSignatureEnqueuerAnalysis(enqueuerDefinitionSupplier));
     }
-    registerAnalysis(new ApiModelAnalysis(appView, apiReferenceLevelCache));
+    registerAnalysis(new ApiModelAnalysis(appView, apiLevelCompute));
 
     // Transfer the minimum keep info from the root set into the Enqueuer state.
     includeMinimumKeepInfo(rootSet);
@@ -4236,7 +4235,7 @@ public class Enqueuer {
 
   void traceCode(ProgramMethod method) {
     DefaultEnqueuerUseRegistry registry =
-        useRegistryFactory.create(appView, method, this, apiReferenceLevelCache::lookupMax);
+        useRegistryFactory.create(appView, method, this, apiLevelCompute);
     method.registerCodeReferences(registry);
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processTracedCode(method, registry));

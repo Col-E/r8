@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
-
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.Unreachable;
@@ -49,9 +49,12 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
+  private final AndroidApiLevelCompute apiLevelCompute;
 
-  NonEmptyCfInstructionDesugaringCollection(AppView<?> appView) {
+  NonEmptyCfInstructionDesugaringCollection(
+      AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
+    this.apiLevelCompute = apiLevelCompute;
     if (appView.options().desugarState.isOff()) {
       this.nestBasedAccessDesugaring = null;
       this.recordRewriter = null;
@@ -113,22 +116,24 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     }
   }
 
-  static NonEmptyCfInstructionDesugaringCollection createForCfToCfNonDesugar(AppView<?> appView) {
+  static NonEmptyCfInstructionDesugaringCollection createForCfToCfNonDesugar(
+      AppView<?> appView, AndroidApiLevelCompute computeApiLevel) {
     assert appView.options().desugarState.isOff();
     assert appView.options().isGeneratingClassFiles();
     NonEmptyCfInstructionDesugaringCollection desugaringCollection =
-        new NonEmptyCfInstructionDesugaringCollection(appView);
+        new NonEmptyCfInstructionDesugaringCollection(appView, computeApiLevel);
     // TODO(b/145775365): special constructor for cf-to-cf compilations with desugaring disabled.
     //  This should be removed once we can represent invoke-special instructions in the IR.
     desugaringCollection.desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
     return desugaringCollection;
   }
 
-  static NonEmptyCfInstructionDesugaringCollection createForCfToDexNonDesugar(AppView<?> appView) {
+  static NonEmptyCfInstructionDesugaringCollection createForCfToDexNonDesugar(
+      AppView<?> appView, AndroidApiLevelCompute computeApiLevel) {
     assert appView.options().desugarState.isOff();
     assert appView.options().isGeneratingDex();
     NonEmptyCfInstructionDesugaringCollection desugaringCollection =
-        new NonEmptyCfInstructionDesugaringCollection(appView);
+        new NonEmptyCfInstructionDesugaringCollection(appView, computeApiLevel);
     desugaringCollection.desugarings.add(new InvokeSpecialToSelfDesugaring(appView));
     desugaringCollection.desugarings.add(new InvokeToPrivateRewriter());
     return desugaringCollection;

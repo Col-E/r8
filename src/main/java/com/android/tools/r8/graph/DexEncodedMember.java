@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
+
 import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -101,6 +103,10 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
 
   public void setApiLevelForDefinition(AndroidApiLevel apiLevelForDefinition) {
     this.apiLevelForDefinition = apiLevelForDefinition;
+  }
+
+  public boolean hasComputedApiReferenceLevel() {
+    return getApiLevel() != NOT_SET;
   }
 
   @Override

@@ -270,6 +270,8 @@ public class InterfaceDesugaringSyntheticHelper {
           methodBuilder
               .setAccessFlags(newFlags)
               .setGenericSignature(MethodTypeSignature.noSignature())
+              // Will be traced by the enqueuer.
+              .disableAndroidApiLevelCheck()
               .setAnnotations(
                   virtual
                       .annotations()
@@ -299,6 +301,8 @@ public class InterfaceDesugaringSyntheticHelper {
               .setAccessFlags(newFlags)
               .setGenericSignature(definition.getGenericSignature())
               .setAnnotations(definition.annotations())
+              // Will be traced by the enqueuer.
+              .disableAndroidApiLevelCheck()
               // TODO(b/183998768): Should this not also be updating with a fake 'this'
               .setParameterAnnotationsList(definition.getParameterAnnotations())
               .setCode(ignored -> InvalidCode.getInstance());
@@ -384,6 +388,8 @@ public class InterfaceDesugaringSyntheticHelper {
               .setGenericSignature(definition.getGenericSignature())
               .setAnnotations(definition.annotations())
               .setParameterAnnotationsList(definition.getParameterAnnotations())
+              // Will be traced by the enqueuer.
+              .disableAndroidApiLevelCheck()
               .setCode(ignored -> InvalidCode.getInstance());
         },
         companion -> eventConsumer.acceptCompanionMethod(method, companion));

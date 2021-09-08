@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.graph.analysis;
 
-import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,22 +19,22 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   private final AppView<?> appView;
   private final AndroidApiLevel minApiLevel;
-  private final AndroidApiReferenceLevelCache referenceLevelCache;
+  private final AndroidApiLevelCompute apiCompute;
 
-  public ApiModelAnalysis(AppView<?> appView, AndroidApiReferenceLevelCache referenceLevelCache) {
+  public ApiModelAnalysis(AppView<?> appView, AndroidApiLevelCompute apiCompute) {
     this.appView = appView;
     this.minApiLevel = appView.options().minApiLevel;
-    this.referenceLevelCache = referenceLevelCache;
+    this.apiCompute = apiCompute;
   }
 
   @Override
   public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {
-    computeApiLevelForDefinition(field);
+    computeAndSetApiLevelForDefinition(field);
   }
 
   @Override
   public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
-    computeApiLevelForDefinition(method);
+    computeAndSetApiLevelForDefinition(method);
   }
 
   @Override
@@ -47,29 +47,24 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
           .tracedMethodApiLevelCallback
           .accept(method.getMethodReference(), registry.getMaxApiReferenceLevel());
     }
-    computeApiLevelForDefinition(method);
-    method
-        .getDefinition()
-        .setApiLevelForCode(
-            appView.options().apiModelingOptions().enableApiCallerIdentification
-                ? registry.getMaxApiReferenceLevel()
-                : AndroidApiLevel.UNKNOWN);
+    computeAndSetApiLevelForDefinition(method);
+    method.getDefinition().setApiLevelForCode(registry.getMaxApiReferenceLevel());
   }
 
   @Override
   public void notifyMarkMethodAsTargeted(ProgramMethod method) {
-    computeApiLevelForDefinition(method);
+    computeAndSetApiLevelForDefinition(method);
   }
 
   @Override
   public void notifyMarkFieldAsReachable(ProgramField field) {
-    computeApiLevelForDefinition(field);
+    computeAndSetApiLevelForDefinition(field);
   }
 
   @Override
   public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {
     target.accept(
-        this::computeApiLevelForDefinition,
+        this::computeAndSetApiLevelForDefinition,
         lookupLambdaTarget -> {
           // The implementation method will be assigned an api level when visited.
         });
@@ -81,16 +76,11 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
     method.setApiLevelForCode(AndroidApiLevel.UNKNOWN);
   }
 
-  private void computeApiLevelForDefinition(DexClassAndMember<?, ?> member) {
-    if (!appView.options().apiModelingOptions().enableApiCallerIdentification) {
-      member.getDefinition().setApiLevelForDefinition(AndroidApiLevel.UNKNOWN);
-      return;
-    }
+  private void computeAndSetApiLevelForDefinition(DexClassAndMember<?, ?> member) {
     member
         .getDefinition()
         .setApiLevelForDefinition(
-            member
-                .getReference()
-                .computeApiLevelForReferencedTypes(appView, referenceLevelCache::lookupMax));
+            apiCompute.computeApiLevelForDefinition(
+                member.getReference(), appView.dexItemFactory()));
   }
 }

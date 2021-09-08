@@ -437,6 +437,8 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
                     builder
                         .setProto(newProto)
                         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        // Will be traced by the enqueuer.
+                        .disableAndroidApiLevelCheck()
                         .setCode(
                             methodSignature ->
                                 computeParameterConversionCfCode(
@@ -537,6 +539,8 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
                     builder
                         .setProto(newProto)
                         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        // Will be traced by the enqueuer.
+                        .disableAndroidApiLevelCheck()
                         .setCode(
                             methodSignature ->
                                 new APIConversionCfCodeProvider(

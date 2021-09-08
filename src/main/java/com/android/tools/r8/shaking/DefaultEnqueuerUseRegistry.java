@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -19,26 +20,25 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
-import java.util.function.BiFunction;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   protected final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProgramMethod context;
   protected final Enqueuer enqueuer;
-  private final BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiReferenceMapping;
+  private final AndroidApiLevelCompute computeApiLevel;
   private AndroidApiLevel maxApiReferenceLevel;
 
   public DefaultEnqueuerUseRegistry(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod context,
       Enqueuer enqueuer,
-      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiReferenceMapping) {
+      AndroidApiLevelCompute computeApiLevel) {
     super(appView.dexItemFactory());
     this.appView = appView;
     this.context = context;
     this.enqueuer = enqueuer;
-    this.apiReferenceMapping = apiReferenceMapping;
+    this.computeApiLevel = computeApiLevel;
     this.maxApiReferenceLevel = appView.options().minApiLevel;
   }
 
@@ -190,11 +190,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
     if (reference.isDexMember()) {
       maxApiReferenceLevel =
           maxApiReferenceLevel.max(
-              reference
-                  .asDexMember()
-                  .computeApiLevelForReferencedTypes(appView, apiReferenceMapping));
+              computeApiLevel.computeApiLevelForDefinition(
+                  reference.asDexMember(), appView.dexItemFactory()));
     }
-    maxApiReferenceLevel = apiReferenceMapping.apply(reference, maxApiReferenceLevel);
+    maxApiReferenceLevel =
+        maxApiReferenceLevel.max(computeApiLevel.computeApiLevelForLibraryReference(reference));
   }
 
   public AndroidApiLevel getMaxApiReferenceLevel() {

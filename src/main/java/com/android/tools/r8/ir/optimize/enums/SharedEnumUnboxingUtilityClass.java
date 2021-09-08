@@ -148,6 +148,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(codeGenerator)
                     .setClassFileVersion(CfVersion.V1_6));
   }

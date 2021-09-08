@@ -6,21 +6,19 @@ package com.android.tools.r8.ir.analysis.proto;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerUseRegistryFactory;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
-import java.util.function.BiFunction;
 
 public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
 
@@ -32,8 +30,8 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod currentMethod,
       Enqueuer enqueuer,
-      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelReferenceMap) {
-    super(appView, currentMethod, enqueuer, apiLevelReferenceMap);
+      AndroidApiLevelCompute apiLevelCompute) {
+    super(appView, currentMethod, enqueuer, apiLevelCompute);
     this.references = appView.protoShrinker().references;
   }
 

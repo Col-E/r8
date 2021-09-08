@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
+
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -25,6 +28,7 @@ import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -62,9 +66,12 @@ public class ServiceLoaderRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final List<ProgramMethod> serviceLoadMethods = new ArrayList<>();
+  private final AndroidApiLevelCompute apiLevelCompute;
 
-  public ServiceLoaderRewriter(AppView<AppInfoWithLiveness> appView) {
+  public ServiceLoaderRewriter(
+      AppView<AppInfoWithLiveness> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
+    this.apiLevelCompute = apiLevelCompute;
   }
 
   public List<ProgramMethod> getServiceLoadMethods() {
@@ -199,6 +206,10 @@ public class ServiceLoaderRewriter {
                     builder
                         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                         .setProto(proto)
+                        .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                        .setApiLevelForCode(
+                            apiLevelCompute.computeApiLevelForDefinition(
+                                ListUtils.map(classes, clazz -> clazz.type)))
                         .setCode(
                             m ->
                                 ServiceLoaderSourceCode.generate(

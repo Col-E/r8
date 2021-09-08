@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
+
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
@@ -1467,6 +1469,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               appView,
               builder ->
                   builder
+                      .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                      .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                       .setProto(getProto(appView.dexItemFactory()))
                       .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                       .setCode(methodSig -> generateTemplateMethod(appView.options(), methodSig)));

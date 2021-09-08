@@ -110,6 +110,8 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setProto(twrCloseResourceProto)
+                    // Will be traced by the enqueuer.
+                    .disableAndroidApiLevelCheck()
                     .setCode(
                         m ->
                             BackportedMethods.CloseResourceMethod_closeResourceImpl(

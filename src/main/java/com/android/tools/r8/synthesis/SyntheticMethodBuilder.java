@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -16,7 +18,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import java.util.function.Consumer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
 public class SyntheticMethodBuilder {
 
@@ -35,7 +37,10 @@ public class SyntheticMethodBuilder {
   private MethodTypeSignature genericSignature = MethodTypeSignature.noSignature();
   private DexAnnotationSet annotations = DexAnnotationSet.empty();
   private ParameterAnnotationsList parameterAnnotationsList = ParameterAnnotationsList.empty();
-  private Consumer<DexEncodedMethod> onBuildConsumer = null;
+  private AndroidApiLevel apiLevelForDefinition = NOT_SET;
+  private AndroidApiLevel apiLevelForCode = NOT_SET;
+
+  private boolean checkAndroidApiLevels = true;
 
   SyntheticMethodBuilder(SyntheticClassBuilder<?, ?> parent) {
     this.factory = parent.getFactory();
@@ -96,8 +101,18 @@ public class SyntheticMethodBuilder {
     return this;
   }
 
-  public SyntheticMethodBuilder setOnBuildConsumer(Consumer<DexEncodedMethod> onBuildConsumer) {
-    this.onBuildConsumer = onBuildConsumer;
+  public SyntheticMethodBuilder setApiLevelForDefinition(AndroidApiLevel apiLevelForDefinition) {
+    this.apiLevelForDefinition = apiLevelForDefinition;
+    return this;
+  }
+
+  public SyntheticMethodBuilder setApiLevelForCode(AndroidApiLevel apiLevelForCode) {
+    this.apiLevelForCode = apiLevelForCode;
+    return this;
+  }
+
+  public SyntheticMethodBuilder disableAndroidApiLevelCheck() {
+    checkAndroidApiLevels = false;
     return this;
   }
 
@@ -115,13 +130,11 @@ public class SyntheticMethodBuilder {
             .setParameterAnnotations(parameterAnnotationsList)
             .setCode(code)
             .setClassFileVersion(classFileVersion)
-            // TODO(b/188388130): This should pass in api level directly.
-            .disableAndroidApiLevelCheck()
+            .setApiLevelForDefinition(apiLevelForDefinition)
+            .setApiLevelForCode(apiLevelForCode)
+            .applyIf(!checkAndroidApiLevels, DexEncodedMethod.Builder::disableAndroidApiLevelCheck)
             .build();
     assert isValidSyntheticMethod(method, syntheticKind);
-    if (onBuildConsumer != null) {
-      onBuildConsumer.accept(method);
-    }
     return method;
   }
 
