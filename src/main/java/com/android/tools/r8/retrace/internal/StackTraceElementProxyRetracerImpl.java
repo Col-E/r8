@@ -9,6 +9,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFieldResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetraceStackTraceProxy;
 import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetracedClassReference;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -73,9 +75,11 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                       fieldOrReturnTypeConsumer.accept(proxy);
                                       if (element.hasFileName()) {
                                         proxy.setSourceFile(
-                                            classElement
-                                                .retraceSourceFile(element.getFileName())
-                                                .getFilename());
+                                            getSourceFile(
+                                                classElement::getSourceFile,
+                                                classElement.getRetracedClass(),
+                                                element.getFileName(),
+                                                classResult.hasRetraceResult()));
                                       }
                                       return proxy.build();
                                     })));
@@ -116,9 +120,11 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                           }
                                           if (element.hasFileName()) {
                                             proxy.setSourceFile(
-                                                frameElement
-                                                    .retraceSourceFile(frame, element.getFileName())
-                                                    .getFilename());
+                                                getSourceFile(
+                                                    () -> frameElement.getSourceFile(frame),
+                                                    frame.getHolderClass(),
+                                                    element.getFileName(),
+                                                    classResult.hasRetraceResult()));
                                           }
                                           fieldOrReturnTypeConsumer.accept(proxy);
                                           argumentsConsumer.accept(proxy);
@@ -151,15 +157,30 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                             .setTopFrame(true);
                                     if (element.hasFileName()) {
                                       proxy.setSourceFile(
-                                          fieldElement
-                                              .retraceSourceFile(element.getFileName())
-                                              .getFilename());
+                                          getSourceFile(
+                                              // May not be fieldElement::getSourceFile since this
+                                              // throws off the jdk11 compiler,
+                                              () -> fieldElement.getSourceFile(),
+                                              fieldElement.getField().getHolderClass(),
+                                              element.getFileName(),
+                                              classResult.hasRetraceResult()));
                                     }
                                     fieldOrReturnTypeConsumer.accept(proxy);
                                     argumentsConsumer.accept(proxy);
                                     return proxy.build();
                                   });
                         }));
+  }
+
+  private String getSourceFile(
+      Supplier<RetraceSourceFileResult> sourceFile,
+      RetracedClassReference classReference,
+      String fileName,
+      boolean hasRetraceResult) {
+    RetraceSourceFileResult sourceFileResult = sourceFile.get();
+    return sourceFileResult.hasRetraceResult()
+        ? sourceFileResult.getFilename()
+        : RetraceUtils.inferFileName(classReference.getTypeName(), fileName, hasRetraceResult);
   }
 
   private Stream<Consumer<RetraceStackTraceProxyImpl.Builder<T, ST>>> retraceFieldOrReturnType(

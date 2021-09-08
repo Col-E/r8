@@ -9,16 +9,14 @@ import com.android.tools.r8.retrace.RetraceSourceFileResult;
 public class RetraceSourceFileResultImpl implements RetraceSourceFileResult {
 
   private final String filename;
-  private final boolean synthesized;
 
-  RetraceSourceFileResultImpl(String filename, boolean synthesized) {
+  RetraceSourceFileResultImpl(String filename) {
     this.filename = filename;
-    this.synthesized = synthesized;
   }
 
   @Override
-  public boolean isInferred() {
-    return synthesized;
+  public boolean hasRetraceResult() {
+    return filename != null;
   }
 
   @Override

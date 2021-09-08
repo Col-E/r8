@@ -166,10 +166,9 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     }
 
     @Override
-    public com.android.tools.r8.retrace.RetraceSourceFileResult retraceSourceFile(
-        String sourceFile) {
-      return RetraceUtils.getSourceFile(
-          classElement, methodReference.getHolderClass(), sourceFile, retraceMethodResult.retracer);
+    public com.android.tools.r8.retrace.RetraceSourceFileResult getSourceFile() {
+      return RetraceUtils.getSourceFileOrLookup(
+          methodReference.getHolderClass(), classElement, retraceMethodResult.retracer);
     }
   }
 }
