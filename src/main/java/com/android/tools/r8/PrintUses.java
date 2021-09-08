@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -296,11 +294,11 @@ public class PrintUses {
       List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
       if (directInterfaces != null) {
         for (DexType directInterface : directInterfaces) {
-          DexProgramClass clazz = asProgramClassOrNull(appInfo.definitionFor(directInterface));
+          DexClass clazz = appInfo.definitionFor(directInterface);
           if (clazz != null) {
-            clazz.forEachProgramVirtualMethodMatching(
-                definition -> definition.getReference().name.equals(callSite.methodName),
-                this::registerMethod);
+            clazz.forEachClassMethodMatching(
+                definition -> definition.getName().equals(callSite.methodName),
+                method -> addMethod(method.getReference()));
           }
         }
       }

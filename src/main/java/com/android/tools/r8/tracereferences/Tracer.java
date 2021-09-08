@@ -12,13 +12,16 @@ import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
@@ -31,6 +34,7 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -447,6 +451,36 @@ public class Tracer {
       @Override
       public void registerTypeReference(DexType type) {
         addType(graphLens.lookupType(type), referencedFrom);
+      }
+
+      // Call sites.
+
+      @Override
+      public void registerCallSite(DexCallSite callSite) {
+        super.registerCallSite(callSite);
+
+        // For lambdas that implement an interface, also keep the interface method by simulating an
+        // invoke to it from the current context.
+        LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context);
+        if (descriptor != null) {
+          for (DexType interfaceType : descriptor.interfaces) {
+            DexClass interfaceDefinition = appInfo.definitionFor(interfaceType);
+            if (interfaceDefinition != null) {
+              DexEncodedMethod mainMethod =
+                  interfaceDefinition.lookupMethod(descriptor.getMainMethod());
+              if (mainMethod != null) {
+                registerInvokeInterface(mainMethod.getReference());
+              }
+              for (DexProto bridgeProto : descriptor.bridges) {
+                DexEncodedMethod bridgeMethod =
+                    interfaceDefinition.lookupMethod(bridgeProto, descriptor.name);
+                if (bridgeMethod != null) {
+                  registerInvokeInterface(bridgeMethod.getReference());
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

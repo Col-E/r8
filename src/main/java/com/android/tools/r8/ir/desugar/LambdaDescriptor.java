@@ -43,7 +43,7 @@ public final class LambdaDescriptor {
   public final DexMethodHandle implHandle;
 
   public final List<DexType> interfaces = new ArrayList<>();
-  final Set<DexProto> bridges = Sets.newIdentityHashSet();
+  public final Set<DexProto> bridges = Sets.newIdentityHashSet();
   public final DexTypeList captures;
 
   // Used for accessibility analysis and few assertions only.
