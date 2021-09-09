@@ -8,7 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
+import com.android.tools.r8.ir.optimize.OutlinerImpl.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
