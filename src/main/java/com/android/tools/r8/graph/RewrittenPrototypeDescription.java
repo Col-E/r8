@@ -14,6 +14,8 @@ import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -405,7 +407,26 @@ public class RewrittenPrototypeDescription {
               oldIndex -> getArgumentInfo(oldIndex + firstArgumentIndex).isRemovedArgumentInfo());
         };
       }
-      return null;
+      return ConsumerUtils.emptyConsumer();
+    }
+
+    public int getNewArgumentIndex(int argumentIndex) {
+      int numberOfArgumentsRemovedBeforeArgument = 0;
+      Iterator<Entry<ArgumentInfo>> iterator = iterator();
+      while (iterator.hasNext()) {
+        Entry<ArgumentInfo> entry = iterator.next();
+        int argumentIndexForInfo = entry.getIntKey();
+        if (argumentIndexForInfo >= argumentIndex) {
+          break;
+        }
+        ArgumentInfo argumentInfo = entry.getValue();
+        if (argumentInfo.isRemovedArgumentInfo()) {
+          numberOfArgumentsRemovedBeforeArgument++;
+        }
+      }
+      assert IteratorUtils.allRemainingMatchDestructive(
+          iterator, entry -> entry.getIntKey() >= argumentIndex);
+      return argumentIndex - numberOfArgumentsRemovedBeforeArgument;
     }
   }
 

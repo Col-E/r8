@@ -4,13 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.utils.IteratorUtils;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
-import java.util.Iterator;
 
 public final class CheckNotNullEnumUnboxerMethodClassification
     extends EnumUnboxerMethodClassification {
@@ -52,27 +48,9 @@ public final class CheckNotNullEnumUnboxerMethodClassification
       return unknown();
     }
 
-    int numberOfArgumentsRemovedBeforeThis = 0;
-
-    Iterator<Entry<ArgumentInfo>> iterator = removedParameters.iterator();
-    while (iterator.hasNext()) {
-      Entry<ArgumentInfo> entry = iterator.next();
-      int argumentIndexForInfo = entry.getIntKey();
-      if (argumentIndexForInfo >= getArgumentIndex()) {
-        break;
-      }
-      ArgumentInfo argumentInfo = entry.getValue();
-      if (argumentInfo.isRemovedArgumentInfo()) {
-        numberOfArgumentsRemovedBeforeThis++;
-      }
-    }
-
-    assert IteratorUtils.allRemainingMatchDestructive(
-        iterator, entry -> entry.getIntKey() >= getArgumentIndex());
-
-    return numberOfArgumentsRemovedBeforeThis > 0
-        ? new CheckNotNullEnumUnboxerMethodClassification(
-            getArgumentIndex() - numberOfArgumentsRemovedBeforeThis)
+    int newArgumentIndex = removedParameters.getNewArgumentIndex(argumentIndex);
+    return newArgumentIndex != argumentIndex
+        ? new CheckNotNullEnumUnboxerMethodClassification(newArgumentIndex)
         : this;
   }
 
