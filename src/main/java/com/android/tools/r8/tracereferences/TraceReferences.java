@@ -58,7 +58,7 @@ public class TraceReferences {
       throws IOException, ResourceException {
     AndroidApp.Builder builder = AndroidApp.builder();
     command.getLibrary().forEach(builder::addLibraryResourceProvider);
-    command.getTarget().forEach(builder::addLibraryResourceProvider);
+    command.getTarget().forEach(builder::addClasspathResourceProvider);
     command.getSource().forEach(builder::addProgramResourceProvider);
     Set<String> targetDescriptors = new HashSet<>();
     command
