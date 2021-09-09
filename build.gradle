@@ -742,7 +742,7 @@ static mergeServiceFiles(ShadowJar task) {
     }
 }
 
-task repackageDepsNew(type: ShadowJar) {
+task repackageDeps(type: ShadowJar) {
     dependsOn downloadCloudDeps
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
@@ -752,7 +752,16 @@ task repackageDepsNew(type: ShadowJar) {
     baseName 'deps_all'
 }
 
-task repackageSourcesNew(type: ShadowJar) {
+task repackageTestDeps(type: ShadowJar) {
+    dependsOn downloadCloudDeps
+    configurations = [project.configurations.testCompile]
+    mergeServiceFiles(it)
+    exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }
+    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
+    baseName 'test_deps_all'
+}
+
+task repackageSources(type: ShadowJar) {
     // If this fails then remove all generated folders from
     // build/classes/java/test that is not {com,dalvik}
     from sourceSets.main.output
@@ -760,7 +769,7 @@ task repackageSourcesNew(type: ShadowJar) {
     baseName 'sources_main'
 }
 
-task repackageSources11New(type: ShadowJar) {
+task repackageSources11(type: ShadowJar) {
     dependsOn compileMainWithJava11
     from file(java11ClassFiles)
     mergeServiceFiles(it)
@@ -825,26 +834,26 @@ def r8RelocateTask(r8Task, output) {
 }
 
 task r8WithDeps {
-    dependsOn repackageSourcesNew
-    dependsOn repackageDepsNew
-    inputs.files ([repackageSourcesNew.outputs, repackageDepsNew.outputs])
+    dependsOn repackageSources
+    dependsOn repackageDeps
+    inputs.files ([repackageSources.outputs, repackageDeps.outputs])
     def r8Task = r8CreateTask(
             'WithDeps',
             'r8_with_deps',
-            repackageSourcesNew.outputs.files + repackageDepsNew.outputs.files,
+            repackageSources.outputs.files + repackageDeps.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
 task r8WithDeps11 {
-    dependsOn repackageSources11New
-    dependsOn repackageDepsNew
-    inputs.files ([repackageSources11New.outputs, repackageDepsNew.outputs])
+    dependsOn repackageSources11
+    dependsOn repackageDeps
+    inputs.files ([repackageSources11.outputs, repackageDeps.outputs])
     def r8Task = r8CreateTask(
             'WithDeps11',
             'r8_with_deps_11',
-            repackageSources11New.outputs.files + repackageDepsNew.outputs.files,
+            repackageSources11.outputs.files + repackageDeps.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -865,12 +874,12 @@ task r8WithRelocatedDeps11 {
 }
 
 task r8WithoutDeps {
-    dependsOn repackageSourcesNew
-    inputs.files repackageSourcesNew.outputs
+    dependsOn repackageSources
+    inputs.files repackageSources.outputs
     def r8Task = r8CreateTask(
             'WithoutDeps',
             'r8_without_deps',
-            repackageSourcesNew.outputs.files,
+            repackageSources.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -887,24 +896,24 @@ task r8(type: Copy) {
 }
 
 task r8NoManifestWithoutDeps {
-    dependsOn repackageSourcesNew
-    inputs.files repackageSourcesNew.outputs
+    dependsOn repackageSources
+    inputs.files repackageSources.outputs
     def r8Task = r8CreateTask(
             'NoManifestWithoutDeps',
             'r8_no_manifest_without_deps',
-            repackageSourcesNew.outputs.files,
+            repackageSources.outputs.files,
             false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
 task r8NoManifestWithDeps {
-    dependsOn repackageSourcesNew
-    inputs.files ([repackageSourcesNew.outputs, repackageDepsNew.outputs])
+    dependsOn repackageSources
+    inputs.files ([repackageSources.outputs, repackageDeps.outputs])
     def r8Task = r8CreateTask(
             'NoManifestWithDeps',
             'r8_no_manifest_with_deps',
-            repackageSourcesNew.outputs.files + repackageDepsNew.outputs.files,
+            repackageSources.outputs.files + repackageDeps.outputs.files,
             false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -1030,26 +1039,36 @@ task buildDesugaredLibrary(type: Exec) {
 }
 
 task generateR8LibKeepRules(type: Exec) {
-    doFirst {
-        // TODO(b/154785341): We should remove this.
-        standardOutput new FileOutputStream(r8LibGeneratedKeepRulesPath)
-    }
-    // Depend on r8WithDeps for running baseCompilerCommandLine.
+    // Depend on r8WithRelocatedDeps to ensure that we do not have external
+    // dependencies crossing the boundary.
     dependsOn r8WithDeps
     dependsOn r8NoManifestWithRelocatedDeps
     dependsOn testJar
+    dependsOn repackageTestDeps
     dependsOn downloadOpenJDKrt
     inputs.files ([
             r8WithDeps.outputs,
             r8NoManifestWithRelocatedDeps.outputs,
+            repackageDeps.outputs,
+            repackageTestDeps.outputs,
             testJar.outputs])
     outputs.file r8LibGeneratedKeepRulesPath
     commandLine baseCompilerCommandLine([
-            "printuses",
-            "--keeprules-allowobfuscation",
+            "tracereferences",
+            "--keep-rules",
+            "--allowobfuscation",
+            "--lib",
             "third_party/openjdk/openjdk-rt-1.8/rt.jar",
+            "--lib",
+            repackageDeps.outputs.files[0],
+            "--lib",
+            repackageTestDeps.outputs.files[0],
+            "--target",
             r8NoManifestWithRelocatedDeps.outputs.files[0],
-            testJar.outputs.files[0]])
+            "--source",
+            testJar.outputs.files[0],
+            "--output",
+            r8LibGeneratedKeepRulesPath])
     workingDir = projectDir
 }
 
@@ -1076,9 +1095,9 @@ task R8LibNoDeps {
             r8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
             "--release",
-            repackageDepsNew.outputs.files
-    ).dependsOn(repackageDepsNew)
-    inputs.files ([r8NoManifestWithoutDeps.outputs, repackageDepsNew.outputs])
+            repackageDeps.outputs.files
+    ).dependsOn(repackageDeps)
+    inputs.files ([r8NoManifestWithoutDeps.outputs, repackageDeps.outputs])
     outputs.file r8LibExludeDepsPath
 }
 
@@ -1113,7 +1132,7 @@ task R8RetraceNoDeps {
             R8LibNoDeps,
             r8RetraceExludeDepsPath,
             "--release",
-            repackageDepsNew.outputs.files
+            repackageDeps.outputs.files
     ).dependsOn(R8LibNoDeps)
     outputs.file r8RetraceExludeDepsPath
 }

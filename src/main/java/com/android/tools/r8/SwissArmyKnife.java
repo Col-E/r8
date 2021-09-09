@@ -59,12 +59,6 @@ public class SwissArmyKnife {
       case "maindex":
         GenerateMainDexList.main(shift(args));
         break;
-      case "printseeds":
-        PrintSeeds.main(shift(args));
-        break;
-      case "printuses":
-        PrintUses.main(shift(args));
-        break;
       case "r8":
         R8.main(shift(args));
         break;
