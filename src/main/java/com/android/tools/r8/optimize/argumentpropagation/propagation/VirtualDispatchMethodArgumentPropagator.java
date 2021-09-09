@@ -118,10 +118,16 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                     // Propagate the argument information to the method on the super class.
                     if (resolutionResult != null
                         && resolutionResult.getResolvedHolder().isProgramClass()
-                        && resolutionResult.getResolvedHolder() != clazz) {
+                        && resolutionResult.getResolvedHolder() != clazz
+                        && resolutionResult.getResolvedMethod().hasCode()) {
+                      DexProgramClass resolvedHolder =
+                          resolutionResult.getResolvedHolder().asProgramClass();
                       propagationStates
-                          .get(resolutionResult.getResolvedHolder().asProgramClass())
-                          .active
+                          .get(resolvedHolder)
+                          .activeUntilLowerBound
+                          .computeIfAbsent(
+                              resolvedHolder.getType(),
+                              ignoreKey(MethodStateCollectionBySignature::create))
                           .addMethodState(
                               appView, resolutionResult.getResolvedProgramMethod(), methodState);
                     }
