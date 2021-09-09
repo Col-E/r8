@@ -56,12 +56,14 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile()
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -74,6 +76,7 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())
@@ -82,6 +85,7 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);

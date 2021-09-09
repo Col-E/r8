@@ -99,7 +99,8 @@ public class RecordTestUtils {
   }
 
   public static void assertRecordsAreRecords(Path output) throws IOException {
-    CodeInspector inspector = new CodeInspector(output);
+    CodeInspector inspector =
+        new CodeInspector(output, opt -> opt.testing.enableExperimentalRecordDesugaring = true);
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.getDexProgramClass().superType.toString().equals("java.lang.Record")) {
         assertTrue(clazz.getDexProgramClass().isRecord());

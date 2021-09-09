@@ -67,6 +67,7 @@ public class RecordReflectionTest extends TestBase {
             .addKeepMainRule(MAIN_TYPE)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile()
             .writeToZip();
     RecordTestUtils.assertRecordsAreRecords(output);

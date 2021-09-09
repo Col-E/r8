@@ -56,6 +56,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile()
             .writeToZip();
     Path output2 =
@@ -63,6 +64,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile()
             .writeToZip();
     D8TestCompileResult result =
@@ -82,6 +84,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile()
             .writeToZip();
     D8TestCompileResult result =
@@ -90,6 +93,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
             .compile();
     result.run(parameters.getRuntime(), MAIN_TYPE_1).assertSuccessWithOutput(EXPECTED_RESULT_1);
     result.run(parameters.getRuntime(), MAIN_TYPE_2).assertSuccessWithOutput(EXPECTED_RESULT_2);

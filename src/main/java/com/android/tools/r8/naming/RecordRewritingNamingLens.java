@@ -83,16 +83,6 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   @Override
-  public boolean hasPrefixRewritingLogic() {
-    return namingLens.hasPrefixRewritingLogic();
-  }
-
-  @Override
-  public DexString prefixRewrittenType(DexType type) {
-    return namingLens.prefixRewrittenType(type);
-  }
-
-  @Override
   public String lookupPackageName(String packageName) {
     return namingLens.lookupPackageName(packageName);
   }
