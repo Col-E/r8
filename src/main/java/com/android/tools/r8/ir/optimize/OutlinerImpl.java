@@ -128,7 +128,7 @@ public class OutlinerImpl extends Outliner {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final InliningConstraints inliningConstraints;
-  
+
   private abstract static class OutlineInstruction {
 
     // Value signaling that this is the one allowed temporary register for an outline.
@@ -1385,6 +1385,7 @@ public class OutlinerImpl extends Outliner {
         executorService);
   }
 
+  @Override
   public void rewriteWithLens() {
     // Rewrite the outline collection with the graph lens, such that the reprocessing of methods
     // will correctly delete/rewrite entries in the outline collection.
