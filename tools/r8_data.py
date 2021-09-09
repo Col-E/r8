@@ -13,6 +13,7 @@ VERSIONS = {
           'inputs': [utils.PINNED_R8_JAR],
           'pgconf': [os.path.join(utils.REPO_ROOT, 'src', 'main', 'keep.txt')],
           'libraries' : [utils.RT_JAR],
+          'pgconf_extra': '-dontwarn javax.annotation.Nullable',
           'flags': '--classfile',
       },
       'proguarded': {

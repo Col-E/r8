@@ -597,6 +597,11 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             sanitized_lib_path, values['libraries'], values['inputs'])
           libraries = [sanitized_lib_path]
       app_provided_pg_conf = True
+      if 'pgconf_extra' in values:
+        extra_conf = os.path.join(os.path.abspath(outdir), 'pgconf_extra')
+        with open(extra_conf, 'w') as extra_f:
+          extra_f.write(values['pgconf_extra'])
+        args.extend(['--pg-conf', extra_conf])
     if options.k:
       args.extend(['--pg-conf', options.k])
     if 'maindexrules' in values:
