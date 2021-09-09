@@ -37,44 +37,43 @@ public class Regress199142666 extends TestBase {
     return transformer(VirtualA.class).setClassDescriptor(descriptor(StaticA.class)).transform();
   }
 
-  private byte[] getStaticAAsVirtualA() throws IOException {
-    return transformer(StaticA.class).setClassDescriptor(descriptor(VirtualA.class)).transform();
-  }
-
   @Test
-  public void testInliningWhenInvalidTarget() throws Exception {
+  public void testInliningWhenInvalidCaller() throws Exception {
     R8TestRunResult run =
         testForR8(parameters.getBackend())
-            .addProgramClasses(B.class)
+            .addProgramClasses(HasInvalidStaticCall.class)
             .addProgramClassFileData(getVirtualAAsStaticA())
-            .addKeepMainRule(B.class)
+            .addKeepMainRule(HasInvalidStaticCall.class)
             .addKeepMethodRules(StaticA.class, "void foo()")
             .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), B.class);
+            .run(parameters.getRuntime(), HasInvalidStaticCall.class);
     if (parameters.getRuntime().asDex().getVm().getVersion().isDalvik()) {
       // TODO(b/199142666): We should not inline to provoke this error.
       run.assertFailureWithErrorThatMatches(
           containsString("invoke type does not match method type of"));
     } else {
+      // TODO(b/199142666): We should consider if we want to inline in this case (there are no
+      // verification errors)
       run.assertSuccessWithOutputLines("foochanged")
-          .inspect(inspector -> ensureThisNumberOfCalls(inspector, B.class));
+          .inspect(inspector -> ensureThisNumberOfCalls(inspector, HasInvalidStaticCall.class, 2));
     }
   }
 
   @Test
-  public void testInliningWhenInvalidCaller() throws Exception {
+  public void testInliningWhenInvalidTarget() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(C.class)
-        .addProgramClassFileData(getStaticAAsVirtualA())
-        .addKeepMainRule(C.class)
-        .addKeepMethodRules(VirtualA.class, "static void foo()")
+        .addProgramClasses(TargetHasInvalidStaticCall.class, CallsStaticFoo.class)
+        .addProgramClassFileData(getVirtualAAsStaticA())
+        .addKeepMainRule(TargetHasInvalidStaticCall.class)
+        .addKeepMethodRules(StaticA.class, "void foo()")
         .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), C.class)
-        .assertSuccessWithOutputLines("foo")
-        .inspect(inspector -> ensureThisNumberOfCalls(inspector, C.class));
+        .run(parameters.getRuntime(), TargetHasInvalidStaticCall.class)
+        .assertSuccessWithEmptyOutput()
+        .inspect(
+            inspector -> ensureThisNumberOfCalls(inspector, TargetHasInvalidStaticCall.class, 1));
   }
 
-  private void ensureThisNumberOfCalls(CodeInspector inspector, Class clazz) {
+  private void ensureThisNumberOfCalls(CodeInspector inspector, Class clazz, int fooCalls) {
     long count =
         inspector
             .clazz(clazz)
@@ -83,8 +82,7 @@ public class Regress199142666 extends TestBase {
             .filter(InstructionSubject::isInvoke)
             .filter(invoke -> invoke.getMethod().name.toString().equals("foo"))
             .count();
-    // TODO(b/199142666): We should not inline, so count should be 1.
-    assertEquals(2, count);
+    assertEquals(fooCalls, count);
   }
 
   static class StaticA {
@@ -107,7 +105,13 @@ public class Regress199142666 extends TestBase {
     }
   }
 
-  static class B {
+  static class CallsStaticFoo {
+    public static void callStaticFoo() {
+      StaticA.foo();
+    }
+  }
+
+  static class HasInvalidStaticCall {
     public static void main(String[] args) {
       StaticA.callFoo();
       try {
@@ -120,11 +124,19 @@ public class Regress199142666 extends TestBase {
     }
   }
 
-  static class C {
+  static class TargetHasInvalidStaticCall {
     public static void main(String[] args) {
-      VirtualA.callFoo();
+      boolean didThrow = false;
       try {
-        new VirtualA().foo();
+        CallsStaticFoo.callStaticFoo();
+      } catch (IncompatibleClassChangeError e) {
+        didThrow = true;
+      }
+      if (!didThrow) {
+        throw new RuntimeException("Should have thrown ICCE");
+      }
+      try {
+        StaticA.foo();
       } catch (IncompatibleClassChangeError e) {
         return;
       }
