@@ -34,8 +34,10 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -155,7 +157,11 @@ public class ArgumentPropagatorProgramOptimizer {
       //  (non-interface) classes in top-down order to reduce the amount of reserved names.
       ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder =
           ArgumentPropagatorGraphLens.builder(appView);
-      for (DexProgramClass clazz : stronglyConnectedProgramClasses) {
+      List<DexProgramClass> stronglyConnectedProgramClassesWithDeterministicOrder =
+          new ArrayList<>(stronglyConnectedProgramClasses);
+      stronglyConnectedProgramClassesWithDeterministicOrder.sort(
+          Comparator.comparing(DexClass::getType));
+      for (DexProgramClass clazz : stronglyConnectedProgramClassesWithDeterministicOrder) {
         if (visitClass(clazz, partialGraphLensBuilder)) {
           affectedClassConsumer.accept(clazz);
         }
