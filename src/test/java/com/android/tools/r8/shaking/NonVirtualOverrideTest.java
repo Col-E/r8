@@ -105,9 +105,9 @@ public class NonVirtualOverrideTest extends TestBase {
           "In C.m3()",
           "In A.m4()",
           "In A.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
-          "Caught IncompatibleClassChangeError when calling B.m3()",
+          "In A.m3()", // With Java: Caught IncompatibleClassChangeError when calling B.m3()
           "In C.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
-          "Caught IncompatibleClassChangeError when calling B.m3()",
+          "In C.m3()", // With Java: Caught IncompatibleClassChangeError when calling B.m3()
           "In C.m1()",
           "In C.m3()",
           "");
@@ -179,9 +179,7 @@ public class NonVirtualOverrideTest extends TestBase {
       assertThat(classSubject, isPresentAndRenamed());
       assertThat(classSubject.method("void", "m1", ImmutableList.of()), isPresent());
       assertThat(classSubject.method("void", "m2", ImmutableList.of()), isAbsent());
-      assertThat(
-          classSubject.method("void", "m3", ImmutableList.of()),
-          parameters.isCfRuntime() ? isPresent() : isAbsent());
+      assertThat(classSubject.method("void", "m3", ImmutableList.of()), isPresent());
       assertThat(classSubject.method("void", "m4", ImmutableList.of()), isAbsent());
     }
   }
@@ -265,8 +263,7 @@ public class NonVirtualOverrideTest extends TestBase {
       System.out.println("In B.m2()");
     }
 
-    // Made static in the dump below. Ends up dead as the targeting call is replaced by throw ICCE.
-    // Except in non-desugaring CF the method will remain instead of inserting a stub.
+    // Made static in the dump below. This method is targeted and can therefore not be removed.
     @Override
     public void m3() {
       System.out.println("In B.m3()");

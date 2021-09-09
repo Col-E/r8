@@ -5,18 +5,20 @@
 package com.android.tools.r8.desugar.staticinterfacemethod;
 
 import static com.android.tools.r8.desugar.staticinterfacemethod.InvokeStaticInterfaceNestedTest.Library.foo;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.util.List;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,38 +28,63 @@ import org.junit.runners.Parameterized.Parameters;
 public class InvokeStaticInterfaceNestedTest extends TestBase {
 
   private final TestParameters parameters;
-  private final boolean cfToCfDesugar;
-  private final String EXPECTED = "Hello World!";
+  private final String UNEXPECTED_SUCCESS = "Hello World!";
 
-  @Parameters(name = "{0}, desugar: {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
-  public InvokeStaticInterfaceNestedTest(TestParameters parameters, boolean cfToCfDesugar) {
+  public InvokeStaticInterfaceNestedTest(TestParameters parameters) {
     this.parameters = parameters;
-    this.cfToCfDesugar = cfToCfDesugar;
   }
 
-  @Test
-  public void testRuntime() throws Exception {
-    final SingleTestRunResult<?> runResult =
-        testForRuntime(parameters)
-            .addProgramClassFileData(
-                rewriteToUseNonInterfaceMethodReference(Main.class, "main"),
-                rewriteToUseNonInterfaceMethodReference(Library.class, "foo"))
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isCfRuntime() && parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK9)) {
-      runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
+  private void checkDexResult(TestRunResult<?> runResult, boolean isDesugared) {
+    boolean didDesugarInterfaceMethods =
+        isDesugared && !parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring();
+    if (parameters.isCfRuntime()) {
+      if (parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK9)) {
+        // The correct expected behavior is ICCE.
+        runResult.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+      } else if (didDesugarInterfaceMethods) {
+        runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+      } else {
+        // Dex VMs and JDK 8 will just dispatch (this is not the intended behavior).
+        runResult.assertSuccessWithOutputLines(UNEXPECTED_SUCCESS);
+      }
+      return;
+    }
+    if (parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
+      // Dex VMs and JDK 8 will just dispatch (this is not the intended behavior).
+      runResult.assertSuccessWithOutputLines(UNEXPECTED_SUCCESS);
+      return;
+    }
+    Version version = parameters.getRuntime().asDex().getVm().getVersion();
+    if (version.isOlderThanOrEqual(Version.V4_4_4)) {
+      runResult.assertFailureWithErrorThatThrows(VerifyError.class);
     } else {
-      // TODO(b/166247515): This should be ICCE.
-      runResult.assertSuccessWithOutputLines(EXPECTED);
+      runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     }
   }
 
   @Test
+  public void testDesugar() throws Exception {
+    testForDesugaring(parameters)
+        .addProgramClassFileData(
+            rewriteToUseNonInterfaceMethodReference(Main.class, "main"),
+            rewriteToUseNonInterfaceMethodReference(Library.class, "foo"))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(
+            result ->
+                result.applyIf(
+                    DesugarTestConfiguration::isDesugared,
+                    r -> checkDexResult(r, true),
+                    r -> checkDexResult(r, false)));
+  }
+
+  @Test
   public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel() == AndroidApiLevel.B);
     final R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(
@@ -65,16 +92,12 @@ public class InvokeStaticInterfaceNestedTest extends TestBase {
                 rewriteToUseNonInterfaceMethodReference(Library.class, "foo"))
             .addKeepAllClassesRule()
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Main.class)
-            .addOptionsModification(
-                options -> {
-                  options.cfToCfDesugar = cfToCfDesugar;
-                });
-    if (parameters.isCfRuntime()) {
+            .addKeepMainRule(Main.class);
+    if (parameters.isDexRuntime()) {
+      checkDexResult(testBuilder.run(parameters.getRuntime(), Main.class), true);
+    } else {
       // TODO(b/166213037): Should not throw an error.
       assertThrows(CompilationFailedException.class, testBuilder::compile);
-    } else {
-      testBuilder.run(parameters.getRuntime(), Main.class).assertSuccessWithOutputLines(EXPECTED);
     }
   }
 

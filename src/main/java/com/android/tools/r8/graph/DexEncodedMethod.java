@@ -1268,6 +1268,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     newFlags.setSynthetic();
     newFlags.unsetAbstract();
     // Holder is companion class, or retarget method, not an interface.
+    boolean isInterfaceMethodReference = false;
     return syntheticBuilder()
         .setMethod(newMethod)
         .setAccessFlags(newFlags)
@@ -1276,8 +1277,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         .setCode(
             ForwardMethodBuilder.builder(factory)
                 .setNonStaticSource(newMethod)
-                // Holder is companion class, or retarget method, not an interface.
-                .setStaticTarget(forwardMethod, false)
+                .setStaticTarget(forwardMethod, isInterfaceMethodReference)
                 .build())
         .setApiLevelForDefinition(target.getDefinition().getApiLevelForDefinition())
         .setApiLevelForCode(target.getDefinition().getApiLevelForCode())

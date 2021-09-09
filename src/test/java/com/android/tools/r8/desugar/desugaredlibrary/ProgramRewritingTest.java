@@ -155,7 +155,6 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
-    assertEquals(22, invokes.size());
     assertInvokeStaticMatching(invokes, 0, "Set$-EL;->spliterator");
     assertInvokeStaticMatching(invokes, 1, "Collection$-EL;->stream");
     assertInvokeInterfaceMatching(invokes, 2, "Set;->iterator");
@@ -173,6 +172,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
     assertInvokeStaticMatching(invokes, 19, "Comparator$-CC;->comparingInt");
     assertInvokeStaticMatching(invokes, 20, "List$-EL;->sort");
     assertInvokeStaticMatching(invokes, 21, "Collection$-EL;->stream");
+    assertEquals(22, invokes.size());
   }
 
   private void assertInvokeInterfaceMatching(List<InstructionSubject> invokes, int i, String s) {

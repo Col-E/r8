@@ -16,20 +16,21 @@ public class AccessorMethodSourceCode {
     DexMethod target = lambda.descriptor.implHandle.asMethod();
     ForwardMethodBuilder forwardMethodBuilder =
         ForwardMethodBuilder.builder(lambda.appView.dexItemFactory()).setStaticSource(accessor);
+    boolean isInterface = lambda.descriptor.implHandle.isInterface;
     switch (lambda.descriptor.implHandle.type) {
       case INVOKE_INSTANCE:
         {
-          forwardMethodBuilder.setVirtualTarget(target, false);
+          forwardMethodBuilder.setVirtualTarget(target, isInterface);
           break;
         }
       case INVOKE_STATIC:
         {
-          forwardMethodBuilder.setStaticTarget(target, false);
+          forwardMethodBuilder.setStaticTarget(target, isInterface);
           break;
         }
       case INVOKE_DIRECT:
         {
-          forwardMethodBuilder.setDirectTarget(target, false);
+          forwardMethodBuilder.setDirectTarget(target, isInterface);
           break;
         }
       case INVOKE_CONSTRUCTOR:

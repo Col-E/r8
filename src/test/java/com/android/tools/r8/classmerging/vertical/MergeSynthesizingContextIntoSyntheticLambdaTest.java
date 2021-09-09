@@ -26,6 +26,14 @@ public class MergeSynthesizingContextIntoSyntheticLambdaTest extends TestBase {
   }
 
   @Test
+  public void testReference() throws Exception {
+    testForRuntime(parameters)
+        .addInnerClasses(getClass())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("I", "J");
+  }
+
+  @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())

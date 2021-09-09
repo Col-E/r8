@@ -11,11 +11,11 @@ import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,17 +27,14 @@ public class InvokeSpecialInterfaceWithBridge3Test extends TestBase {
   private static final String EXPECTED = StringUtils.lines("Hello World!");
 
   private final TestParameters parameters;
-  private final boolean isInterface;
 
-  @Parameters(name = "{0}, itf:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InvokeSpecialInterfaceWithBridge3Test(TestParameters parameters, boolean isInterface) {
+  public InvokeSpecialInterfaceWithBridge3Test(TestParameters parameters) {
     this.parameters = parameters;
-    this.isInterface = isInterface;
   }
 
   @Test
@@ -47,12 +44,26 @@ public class InvokeSpecialInterfaceWithBridge3Test extends TestBase {
             .addProgramClasses(I.class, A.class, Main.class)
             .addProgramClassFileData(getClassWithTransformedInvoked())
             .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()) {
-      // TODO(b/166210854): Runs but should have failed.
+    if (parameters.isDexRuntime() && parameters.canUseDefaultAndStaticInterfaceMethods()) {
+      // TODO(b/166210854): Runs really should fail, but since DEX does not have interface
+      //  method references the VM will just dispatch.
       result.assertSuccessWithOutput(EXPECTED);
     } else {
-      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+      result.assertFailureWithErrorThatThrows(getExpectedException());
     }
+  }
+
+  private Class<? extends Throwable> getExpectedException() {
+    if (parameters.isDexRuntime()) {
+      Version version = parameters.getRuntime().asDex().getVm().getVersion();
+      if (version.isOlderThanOrEqual(Version.V4_4_4)) {
+        return VerifyError.class;
+      }
+      if (version.isNewerThanOrEqual(Version.V7_0_0)) {
+        return AbstractMethodError.class;
+      }
+    }
+    return IncompatibleClassChangeError.class;
   }
 
   @Test
