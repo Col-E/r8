@@ -292,44 +292,16 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private DesugarDescription computeDescription(CfInstruction instruction, ProgramMethod context) {
+    // Interface desugaring is only interested in invokes and should not be double processed.
     CfInvoke invoke = instruction.asInvoke();
     if (invoke == null || isAlreadyDesugared(invoke, context)) {
       return DesugarDescription.nothing();
     }
-    if (invoke.isInvokeStatic()) {
-      return computeInvokeStatic(invoke, context);
-    }
-    if (invoke.isInvokeSpecial()) {
-      return computeInvokeSpecial(invoke, context);
-    }
-    if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
-      return computeInvokeVirtualDispatch(invoke, context);
-    }
-    return DesugarDescription.nothing();
-  }
-
-  private DesugarDescription computeInvokeSpecial(CfInvoke invoke, ProgramMethod context) {
-    if (invoke.isInvokeConstructor(factory)) {
+    // There should never be any calls to interface initializers.
+    if (invoke.isInvokeSpecial() && invoke.isInvokeConstructor(factory)) {
       return DesugarDescription.nothing();
     }
-    DexClass holder = appView.definitionForHolder(invoke.getMethod(), context);
-    if (holder == null) {
-      // NOTE: For invoke-super, this leaves unchanged those calls to undefined targets.
-      // This may lead to runtime exception but we can not report it as error since it can also be
-      // the intended behavior.
-      // For invoke-direct, this reports the missing class since we don't know if it is an
-      // interface.
-      return DesugarDescription.builder()
-          .addScanEffect(() -> warnMissingType(context, invoke.getMethod().getHolderType()))
-          .build();
-    }
-    if (invoke.isInvokeSuper(context.getHolderType())) {
-      return rewriteInvokeSuper(invoke, context);
-    }
-    return computeInvokeDirect(invoke, context);
-  }
-
-  private DesugarDescription computeInvokeStatic(CfInvoke invoke, ProgramMethod context) {
+    // If the target holder does not resolve we may want to issue diagnostics.
     DexClass holder = appView.definitionForHolder(invoke.getMethod(), context);
     if (holder == null) {
       // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
@@ -339,13 +311,38 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         return DesugarDescription.builder()
             .addScanEffect(
                 () -> {
-                  leavingStaticInvokeToInterface(context);
+                  if (invoke.isInvokeStatic()) {
+                    leavingStaticInvokeToInterface(context);
+                  }
                   warnMissingType(context, invoke.getMethod().getHolderType());
                 })
             .build();
       }
       return DesugarDescription.nothing();
     }
+    // Continue with invoke type logic.
+    if (invoke.isInvokeStatic()) {
+      return computeInvokeStatic(holder, invoke, context);
+    }
+    if (invoke.isInvokeSpecial()) {
+      return computeInvokeSpecial(holder, invoke, context);
+    }
+    if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
+      return computeInvokeVirtualDispatch(holder, invoke, context);
+    }
+    return DesugarDescription.nothing();
+  }
+
+  private DesugarDescription computeInvokeSpecial(
+      DexClass holder, CfInvoke invoke, ProgramMethod context) {
+    if (invoke.isInvokeSuper(context.getHolderType())) {
+      return rewriteInvokeSuper(invoke, context);
+    }
+    return computeInvokeDirect(holder, invoke, context);
+  }
+
+  private DesugarDescription computeInvokeStatic(
+      DexClass holder, CfInvoke invoke, ProgramMethod context) {
     if (!holder.isInterface()) {
       if (invoke.isInterface()) {
         return DesugarDescription.builder()
@@ -449,7 +446,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         .build();
   }
 
-  private DesugarDescription computeInvokeVirtualDispatch(CfInvoke invoke, ProgramMethod context) {
+  private DesugarDescription computeInvokeVirtualDispatch(
+      DexClass holder, CfInvoke invoke, ProgramMethod context) {
     AppInfoWithClassHierarchy appInfoForDesugaring = appView.appInfoForDesugaring();
     SingleResolutionResult resolution =
         appInfoForDesugaring
@@ -459,12 +457,11 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         && resolution.getResolvedMethod().isPrivate()
         && resolution.isAccessibleFrom(context, appInfoForDesugaring).isTrue()) {
       // TODO(b/198267586): What about the private in-accessible case?
-      return computeInvokeDirect(invoke, context);
+      return computeInvokeDirect(holder, invoke, context);
     }
     if (resolution != null && resolution.getResolvedMethod().isStatic()) {
       return computeInvokeAsThrowRewrite(invoke, resolution);
     }
-    // TODO(b/198267586): What about an invoke <init>?
     DexClassAndMethod defaultMethod =
         defaultMethodForEmulatedDispatchOrNull(invoke.getMethod(), invoke.isInterface());
     if (defaultMethod != null) {
@@ -485,18 +482,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     return DesugarDescription.nothing();
   }
 
-  private DesugarDescription computeInvokeDirect(CfInvoke invoke, ProgramMethod context) {
-    if (invoke.isInvokeConstructor(factory)) {
-      return DesugarDescription.nothing();
-    }
+  private DesugarDescription computeInvokeDirect(
+      DexClass clazz, CfInvoke invoke, ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
-    DexClass clazz = appView.definitionForHolder(invokedMethod, context);
-    if (clazz == null) {
-      // Report missing class since we don't know if it is an interface.
-      return DesugarDescription.builder()
-          .addScanEffect(() -> warnMissingType(context, invokedMethod.getHolderType()))
-          .build();
-    }
     if (!clazz.isInterface()) {
       return DesugarDescription.nothing();
     }
