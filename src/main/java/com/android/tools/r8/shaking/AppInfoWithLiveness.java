@@ -651,6 +651,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return whyAreYouNotInlining.isEmpty();
   }
 
+  public boolean isKeepConstantArgumentsMethod(ProgramMethod method) {
+    return isKeepConstantArgumentsMethod(method.getReference());
+  }
+
   public boolean isKeepConstantArgumentsMethod(DexMethod method) {
     return keepConstantArguments.contains(method);
   }

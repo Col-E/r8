@@ -1244,7 +1244,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public boolean isEnabled() {
-      if (!isOptimizing()) {
+      if (!isOptimizing() || !isShrinking()) {
         return false;
       }
       return enableLegacyConstantPropagation || enableDynamicTypePropagation;

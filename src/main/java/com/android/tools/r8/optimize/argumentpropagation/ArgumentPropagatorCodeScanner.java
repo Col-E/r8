@@ -163,6 +163,13 @@ public class ArgumentPropagatorCodeScanner {
       return;
     }
 
+    if (invoke.isInvokeInterface()) {
+      if (!resolutionResult.getInitialResolutionHolder().isInterface()) {
+        // Nothing to propagate; the invoke instruction fails.
+        return;
+      }
+    }
+
     if (invoke.isInvokeSuper()) {
       // Use the super target instead of the resolved method to ensure that we propagate the
       // argument information to the targeted method.

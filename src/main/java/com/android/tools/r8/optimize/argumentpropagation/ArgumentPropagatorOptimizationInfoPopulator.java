@@ -203,11 +203,15 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       return;
     }
 
+    // Do not optimize @KeepConstantArgument methods.
+    if (appView.appInfo().isKeepConstantArgumentsMethod(method)) {
+      return;
+    }
+
     method
         .getDefinition()
-        .joinCallSiteOptimizationInfo(
+        .setCallSiteOptimizationInfo(
             ConcreteCallSiteOptimizationInfo.fromMethodState(
-                appView, method, monomorphicMethodState),
-            appView);
+                appView, method, monomorphicMethodState));
   }
 }

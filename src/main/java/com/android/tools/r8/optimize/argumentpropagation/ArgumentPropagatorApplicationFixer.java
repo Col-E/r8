@@ -47,7 +47,7 @@ public class ArgumentPropagatorApplicationFixer {
     assert !affectedClasses.isEmpty();
 
     ThreadUtils.processItems(affectedClasses, this::fixupClass, executorService);
-    appView.setGraphLens(graphLens);
+    appView.rewriteWithLens(graphLens);
   }
 
   private void fixupClass(DexProgramClass clazz) {

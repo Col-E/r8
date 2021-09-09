@@ -82,24 +82,17 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
 
   @Override
   public String toString() {
-    return "Method Signature " + getName() + " " + getProto();
-  }
-
-  private String toSourceString() {
-    return toSourceString(false);
-  }
-
-  private String toSourceString(boolean includeReturnType) {
-    StringBuilder builder = new StringBuilder();
-    if (includeReturnType) {
-      builder.append(getReturnType().toSourceString()).append(" ");
-    }
-    builder.append(getName()).append("(");
+    StringBuilder builder =
+        new StringBuilder()
+            .append(getReturnType().getTypeName())
+            .append(" ")
+            .append(getName())
+            .append("(");
     for (int i = 0; i < getArity(); i++) {
       if (i != 0) {
         builder.append(", ");
       }
-      builder.append(getProto().parameters.values[i].toSourceString());
+      builder.append(getParameter(i).getTypeName());
     }
     return builder.append(")").toString();
   }
