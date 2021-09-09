@@ -127,6 +127,7 @@ public class OutlinerImpl extends Outliner {
   static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory dexItemFactory;
   private final InliningConstraints inliningConstraints;
 
   private abstract static class OutlineInstruction {
@@ -598,7 +599,7 @@ public class OutlinerImpl extends Outliner {
     DexProto buildProto() {
       if (proto == null) {
         DexType[] argumentTypesArray = argumentTypes.toArray(DexType.EMPTY_ARRAY);
-        proto = appView.dexItemFactory().createProto(returnType, argumentTypesArray);
+        proto = dexItemFactory.createProto(returnType, argumentTypesArray);
       }
       return proto;
     }
@@ -741,7 +742,7 @@ public class OutlinerImpl extends Outliner {
         builder.append(instruction.getDetailsString());
         builder.append("\n");
       }
-      if (returnType == appView.dexItemFactory().voidType) {
+      if (returnType == dexItemFactory.voidType) {
         builder.append("Return-Void");
       } else {
         StringUtils.appendRightPadded(builder, "Return", 20);
@@ -898,7 +899,7 @@ public class OutlinerImpl extends Outliner {
         return false;
       }
       InvokeMethod invoke = instruction.asInvokeMethod();
-      boolean constructor = appView.dexItemFactory().isConstructor(invoke.getInvokedMethod());
+      boolean constructor = dexItemFactory.isConstructor(invoke.getInvokedMethod());
 
       // See whether we could move this invoke somewhere else. We reuse the logic from inlining
       // here, as the constraints are the same.
@@ -945,7 +946,8 @@ public class OutlinerImpl extends Outliner {
           offset++;
           previous = instructions.get(index - offset);
         } while (previous.isConstInstruction());
-        if (!previous.isNewInstance()) {
+        if (!previous.isNewInstance()
+            || invoke != previous.asNewInstance().getUniqueConstructorInvoke(dexItemFactory)) {
           return false;
         }
         if (returnValue == null || returnValue != previous.outValue()) {
@@ -1088,8 +1090,7 @@ public class OutlinerImpl extends Outliner {
             if (instruction.isInvokeMethod()) {
               argumentTypes.add(argumentTypeFromValue(value, instruction.asInvokeMethod(), i));
             } else {
-              argumentTypes.add(
-                  instruction.asBinop().getNumericType().dexTypeFor(appView.dexItemFactory()));
+              argumentTypes.add(instruction.asBinop().getNumericType().dexTypeFor(dexItemFactory));
             }
             argumentsMap.add(argumentTypes.size() - 1);
           }
@@ -1104,7 +1105,7 @@ public class OutlinerImpl extends Outliner {
         } else {
           updateReturnValueState(
               instruction.outValue(),
-              instruction.asBinop().getNumericType().dexTypeFor(appView.dexItemFactory()));
+              instruction.asBinop().getNumericType().dexTypeFor(dexItemFactory));
         }
       }
     }
@@ -1114,7 +1115,7 @@ public class OutlinerImpl extends Outliner {
       // If the return value is not used don't track it.
       if (returnValueUniqueUsersLeft == 0) {
         returnValue = null;
-        returnType = appView.dexItemFactory().voidType;
+        returnType = dexItemFactory.voidType;
       } else {
         returnValue = newReturnValue;
         returnType = newReturnType;
@@ -1126,7 +1127,7 @@ public class OutlinerImpl extends Outliner {
       assert returnValueUniqueUsersLeft >= 0;
       if (returnValueUniqueUsersLeft == 0) {
         returnValue = null;
-        returnType = appView.dexItemFactory().voidType;
+        returnType = dexItemFactory.voidType;
       }
     }
 
@@ -1174,7 +1175,7 @@ public class OutlinerImpl extends Outliner {
       argumentTypes = new ArrayList<>(MAX_IN_SIZE);
       argumentsMap = new ArrayList<>(MAX_IN_SIZE);
       argumentRegisters = 0;
-      returnType = appView.dexItemFactory().voidType;
+      returnType = dexItemFactory.voidType;
       returnValue = null;
       returnValueUniqueUsersLeft = 0;
       pendingNewInstanceIndex = -1;
@@ -1312,6 +1313,7 @@ public class OutlinerImpl extends Outliner {
 
   public OutlinerImpl(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.inliningConstraints = new InliningConstraints(appView, GraphLens.getIdentityLens());
   }
 
@@ -1604,7 +1606,7 @@ public class OutlinerImpl extends Outliner {
     public void buildInstruction(
         IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
       if (instructionIndex == outline.templateInstructions.size()) {
-        if (outline.returnType == appView.dexItemFactory().voidType) {
+        if (outline.returnType == dexItemFactory.voidType) {
           builder.addReturn();
         } else {
           builder.addReturn(outline.argumentCount());
