@@ -11,7 +11,6 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.io.IOException;
@@ -58,28 +57,24 @@ public class Regress199142666 extends TestBase {
           containsString("invoke type does not match method type of"));
     } else {
       run.assertSuccessWithOutputLines("foochanged")
-          .inspect(inspector -> ensureThisNumberOfCalls(inspector, B.class, 2));
+          .inspect(inspector -> ensureThisNumberOfCalls(inspector, B.class));
     }
   }
 
   @Test
   public void testInliningWhenInvalidCaller() throws Exception {
-    // On pre 7 we do interface desugaring, where we insert ICCE directly if that would happen
-    // at runtime, even when there are no interfaces involved. Tracked in b/199135051
-    int assumedFooCalls = parameters.getApiLevel().isLessThan(AndroidApiLevel.N) ? 1 : 2;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(C.class)
-            .addProgramClassFileData(getStaticAAsVirtualA())
-            .addKeepMainRule(C.class)
-            .addKeepMethodRules(VirtualA.class, "static void foo()")
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), C.class)
-            .assertSuccessWithOutputLines("foo")
-            .inspect(inspector -> ensureThisNumberOfCalls(inspector, C.class, assumedFooCalls));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(C.class)
+        .addProgramClassFileData(getStaticAAsVirtualA())
+        .addKeepMainRule(C.class)
+        .addKeepMethodRules(VirtualA.class, "static void foo()")
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), C.class)
+        .assertSuccessWithOutputLines("foo")
+        .inspect(inspector -> ensureThisNumberOfCalls(inspector, C.class));
   }
 
-  private void ensureThisNumberOfCalls(CodeInspector inspector, Class clazz, int fooCalls) {
+  private void ensureThisNumberOfCalls(CodeInspector inspector, Class clazz) {
     long count =
         inspector
             .clazz(clazz)
@@ -89,7 +84,7 @@ public class Regress199142666 extends TestBase {
             .filter(invoke -> invoke.getMethod().name.toString().equals("foo"))
             .count();
     // TODO(b/199142666): We should not inline, so count should be 1.
-    assertEquals(count, fooCalls);
+    assertEquals(2, count);
   }
 
   static class StaticA {

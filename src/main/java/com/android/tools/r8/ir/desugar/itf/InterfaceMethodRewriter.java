@@ -544,8 +544,21 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           getMethodOrigin(context.getReference()));
     }
 
+    MethodResolutionResult resolution =
+        appView.appInfoForDesugaring().resolveMethod(invokedMethod, invoke.isInterface());
+    if (resolution.isFailedResolution()) {
+      return computeInvokeAsThrowRewrite(invoke, null);
+    }
+
+    SingleResolutionResult singleResolution = resolution.asSingleResolution();
+    if (singleResolution == null) {
+      return DesugarDescription.nothing();
+    }
+
     DexClassAndMethod directTarget = clazz.lookupClassMethod(invokedMethod);
     if (directTarget != null) {
+      // TODO(b/199135051): Replace this by use of the resolution result.
+      assert directTarget.getDefinition() == singleResolution.getResolutionPair().getDefinition();
       return DesugarDescription.builder()
           .setDesugarRewrite(
               (freshLocalProvider,
@@ -585,6 +598,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       DexClassAndMethod virtualTarget =
           appView.appInfoForDesugaring().lookupMaximallySpecificMethod(clazz, invokedMethod);
       if (virtualTarget != null) {
+        // TODO(b/199135051): Replace this by use of the resolution result.
+        assert virtualTarget.getDefinition()
+            == singleResolution.getResolutionPair().getDefinition();
         return DesugarDescription.builder()
             .setDesugarRewrite(
                 (freshLocalProvider,

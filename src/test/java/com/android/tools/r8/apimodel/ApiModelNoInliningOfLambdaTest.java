@@ -6,8 +6,8 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.utils.AndroidApiLevel.L_MR1;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -68,17 +68,20 @@ public class ApiModelNoInliningOfLambdaTest extends TestBase {
               } else {
                 action = inspector.companionClassFor(Action.class);
               }
-              assertThat(action, isPresent());
-              MethodSubject action$lambda$getAction$0 =
-                  action.uniqueMethodWithName("lambda$getAction$0");
-              assertThat(action$lambda$getAction$0, isPresent());
-              assertThat(
-                  action$lambda$getAction$0, CodeMatchers.invokesMethodWithName("apiLevel22"));
               ClassSubject apiCaller = inspector.clazz(ApiCaller.class);
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {
-                assertThat(apiCaller, not(isPresent()));
+                // Both Action and ApiCaller have been optimized out.
+                assertThat(action, isAbsent());
+                assertThat(apiCaller, isAbsent());
               } else {
+                assertThat(action, isPresent());
+                MethodSubject action$lambda$getAction$0 =
+                    action.uniqueMethodWithName("lambda$getAction$0");
+                assertThat(action$lambda$getAction$0, isPresent());
+                assertThat(
+                    action$lambda$getAction$0, CodeMatchers.invokesMethodWithName("apiLevel22"));
+
                 assertThat(apiCaller, isPresent());
                 MethodSubject callApi = apiCaller.uniqueMethodWithName("callApi");
                 assertThat(callApi, isPresent());

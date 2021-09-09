@@ -26,7 +26,15 @@ public class B161735546 extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testReference() throws Exception {
+    testForRuntime(parameters)
+        .addInnerClasses(B161735546.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("1", "2", "3");
+  }
+
+  @Test
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(B161735546.class)
         .addKeepMainRule(TestClass.class)
