@@ -1776,6 +1776,10 @@ public class TestBase {
     return AndroidApiLevel.O;
   }
 
+  public static AndroidApiLevel apiLevelWithConstMethodHandleSupport() {
+    return AndroidApiLevel.P;
+  }
+
   public static AndroidApiLevel apiLevelWithNativeMultiDexSupport() {
     return AndroidApiLevel.L;
   }

@@ -35,8 +35,6 @@ interface I2 {
   }
 }
 
-// TODO(116283747): Add the same test where the interface method is not overriden but inherited
-// from the interface. Currently, that works on the reference implementation but fails on Art.
 class Impl implements I2 {
   @Override
   public ReturnType targetMethodTest5(ArgumentType arg) {
