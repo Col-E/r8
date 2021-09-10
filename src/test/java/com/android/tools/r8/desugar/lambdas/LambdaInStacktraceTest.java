@@ -102,7 +102,6 @@ public class LambdaInStacktraceTest extends TestBase {
             .addKeepAttributeSourceFile()
             .addKeepRules("-renamesourcefileattribute SourceFile")
             .noTreeShaking()
-            .addDontOptimize()
             .run(parameters.getRuntime(), TestRunner.class, Boolean.toString(isDalvik))
             .assertSuccess()
             .getStdOut();

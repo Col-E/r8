@@ -937,8 +937,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (!options().enableValuePropagation || neverPropagateValue.contains(method)) {
       return false;
     }
-    if (!method.getReturnType().isAlwaysNull(this)
-        && !getKeepInfo().getMethodInfo(method, this).isInliningAllowed(options())) {
+    if (isPinned(method) && !method.getReturnType().isAlwaysNull(this)) {
       return false;
     }
     return true;
@@ -1320,11 +1319,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       if (refinedReceiverClass.isProgramClass()) {
         DexClassAndMethod clazzAndMethod =
             resolution.lookupVirtualDispatchTarget(refinedReceiverClass.asProgramClass(), this);
-        if (clazzAndMethod == null
-            || (clazzAndMethod.isProgramMethod()
-                && !getKeepInfo()
-                    .getMethodInfo(clazzAndMethod.asProgramMethod())
-                    .isOptimizationAllowed(options()))) {
+        if (clazzAndMethod == null || isPinned(clazzAndMethod.getDefinition().getReference())) {
           // TODO(b/150640456): We should maybe only consider program methods.
           return DexEncodedMethod.SENTINEL;
         }
