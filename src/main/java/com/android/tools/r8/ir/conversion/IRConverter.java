@@ -1288,6 +1288,7 @@ public class IRConverter {
           .libraryMethodOptimizer()
           .optimize(code, feedback, methodProcessor, methodProcessingContext);
       timing.end();
+      previous = printMethod(code, "IR after class library method optimizer (SSA)", previous);
       assert code.isConsistentSSA();
     }
 
@@ -1298,6 +1299,7 @@ public class IRConverter {
       timing.begin("Devirtualize invoke interface");
       devirtualizer.devirtualizeInvokeInterface(code);
       timing.end();
+      previous = printMethod(code, "IR after devirtualizer (SSA)", previous);
     }
 
     assert code.verifyTypes(appView);
@@ -1374,12 +1376,14 @@ public class IRConverter {
       timing.begin("Rewrite throw NPE");
       codeRewriter.rewriteThrowNullPointerException(code);
       timing.end();
+      previous = printMethod(code, "IR after rewrite throw null (SSA)", previous);
     }
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =
         classInitializerDefaultsOptimization.optimize(code, feedback);
     timing.end();
+    previous = printMethod(code, "IR after class initializer optimisation (SSA)", previous);
 
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
@@ -1391,7 +1395,7 @@ public class IRConverter {
     deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA();
 
-    previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
+    previous = printMethod(code, "IR after dead code removal (SSA)", previous);
 
     assert code.verifyTypes(appView);
 
@@ -1572,7 +1576,7 @@ public class IRConverter {
       timing.end();
     }
 
-    if (appView.getKeepInfo().getMethodInfo(code.context()).isPinned(options)) {
+    if (appView.getKeepInfo(code.context()).isPinned(options)) {
       return;
     }
 
@@ -1694,8 +1698,7 @@ public class IRConverter {
         || definition.getOptimizationInfo().isReachabilitySensitive()) {
       return false;
     }
-    if (appView.appInfo().hasLiveness()
-        && appView.appInfo().withLiveness().isPinned(method.getReference())) {
+    if (!appView.getKeepInfo(method).isInliningAllowed(options)) {
       return false;
     }
     return true;

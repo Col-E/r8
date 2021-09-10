@@ -792,6 +792,13 @@ public abstract class R8RunArtTestsTest {
                   TestCondition.tools(DexTool.DX),
                   TestCondition.compilers(CompilerUnderTest.D8),
                   TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          // TODO(b/199142666): Reenable after we fix R8 to not inline into methods with invalid
+          // calls.
+          .put(
+              "077-method-override",
+              TestCondition.match(
+                  TestCondition.compilers(CompilerUnderTest.R8),
+                  TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4)))
           .build();
 
   // Tests where the output of R8/D8 runs in Art but produces different output than the expected.txt

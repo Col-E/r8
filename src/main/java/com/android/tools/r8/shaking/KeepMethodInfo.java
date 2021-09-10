@@ -54,6 +54,10 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return this.equals(bottom());
   }
 
+  public boolean isInliningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration);
+  }
+
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
 
     private Builder() {
