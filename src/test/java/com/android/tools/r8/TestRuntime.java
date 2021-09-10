@@ -248,6 +248,10 @@ public abstract class TestRuntime {
       return vm;
     }
 
+    public DexVm.Version getVersion() {
+      return vm.getVersion();
+    }
+
     @Override
     public AndroidApiLevel maxSupportedApiLevel() {
       return getMinApiLevel();

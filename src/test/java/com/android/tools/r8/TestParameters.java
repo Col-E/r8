@@ -7,7 +7,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -55,12 +57,20 @@ public class TestParameters {
     return runtime.isDex();
   }
 
+  public DexRuntime asDexRuntime() {
+    return getRuntime().asDex();
+  }
+
   public boolean isCfRuntime() {
     return runtime.isCf();
   }
 
   public boolean isCfRuntime(CfVm vm) {
     return runtime.isCf() && runtime.asCf().getVm() == vm;
+  }
+
+  public CfRuntime asCfRuntime() {
+    return getRuntime().asCf();
   }
 
   public boolean isDexRuntimeVersion(DexVm.Version vm) {

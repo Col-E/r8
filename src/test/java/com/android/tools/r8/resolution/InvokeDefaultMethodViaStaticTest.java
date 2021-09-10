@@ -6,6 +6,7 @@ package com.android.tools.r8.resolution;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.resolution.invokestaticinterfacedefault.InterfaceDump;
 import com.android.tools.r8.resolution.invokestaticinterfacedefault.MainDump;
 import com.google.common.collect.ImmutableList;
@@ -32,12 +33,19 @@ public class InvokeDefaultMethodViaStaticTest extends TestBase {
     this.parameters = parameters;
   }
 
+  private Class<? extends Throwable> getExpectedError() {
+    return parameters.isDexRuntime()
+            && parameters.asDexRuntime().getVersion().isOlderThanOrEqual(Version.V4_4_4)
+        ? VerifyError.class
+        : IncompatibleClassChangeError.class;
+  }
+
   @Test
   public void testReference() throws Exception {
     testForRuntime(parameters)
         .addProgramClassFileData(CLASSES)
         .run(parameters.getRuntime(), "Main")
-        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+        .assertFailureWithErrorThatThrows(getExpectedError());
   }
 
   @Test
@@ -48,6 +56,6 @@ public class InvokeDefaultMethodViaStaticTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
         .run(parameters.getRuntime(), "Main")
-        .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+        .assertFailureWithErrorThatThrows(getExpectedError());
   }
 }
