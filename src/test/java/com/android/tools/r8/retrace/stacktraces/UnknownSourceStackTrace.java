@@ -27,13 +27,13 @@ public class UnknownSourceStackTrace implements StackTraceForTest {
     return Arrays.asList(
         "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.bar(R8.java)",
-        "    <OR> at com.android.tools.r8.R8.foo(R8.java)",
+        "    <OR #1> at com.android.tools.r8.R8.foo(R8.java)",
         "    at com.android.tools.r8.R8.bar(R8.java)",
-        "    <OR> at com.android.tools.r8.R8.foo(R8.java)",
+        "    <OR #1> at com.android.tools.r8.R8.foo(R8.java)",
         "    at com.android.tools.r8.R8.main(Unknown Source)",
         "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.bar(R8.java)",
-        "    <OR> at com.android.tools.r8.R8.foo(R8.java)",
+        "    <OR #1> at com.android.tools.r8.R8.foo(R8.java)",
         "    ... 42 more");
   }
 

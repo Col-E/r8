@@ -9,6 +9,7 @@ import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSp
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
+import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -97,28 +98,29 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
       // The result is empty, likely it maps to compiler synthesized items.
       return;
     }
-    List<String> initialResult = retracedResult.get(0);
-    initialResult.forEach(joinedConsumer);
-    if (retracedResult.size() <= 1) {
-      // The result is not ambiguous.
-      return;
-    }
-    Set<String> reportedFrames = new HashSet<>(initialResult);
-    for (int i = 1; i < retracedResult.size(); i++) {
-      List<String> ambiguousResult = retracedResult.get(i);
-      assert !ambiguousResult.isEmpty();
-      String topFrame = ambiguousResult.get(0);
-      if (reportedFrames.add(topFrame)) {
-        ambiguousResult.forEach(
-            retracedString -> {
-              int firstCharIndex = firstNonWhiteSpaceCharacterFromIndex(retracedString, 0);
-              retracedString =
-                  retracedString.substring(0, firstCharIndex)
-                      + "<OR> "
-                      + retracedString.substring(firstCharIndex);
-              joinedConsumer.accept(retracedString);
-            });
-      }
-    }
+    Set<String> reportedFrames = new HashSet<>();
+    ListUtils.forEachWithIndex(
+        retracedResult,
+        (potentialResults, index) -> {
+          assert !potentialResults.isEmpty();
+          // Check if we already reported position.
+          if (reportedFrames.add(potentialResults.get(0))) {
+            boolean isAmbiguous = potentialResults != retracedResult.get(0);
+            potentialResults.forEach(
+                retracedString -> {
+                  if (isAmbiguous) {
+                    int firstCharIndex = firstNonWhiteSpaceCharacterFromIndex(retracedString, 0);
+                    joinedConsumer.accept(
+                        retracedString.substring(0, firstCharIndex)
+                            + "<OR #"
+                            + (index)
+                            + "> "
+                            + retracedString.substring(firstCharIndex));
+                  } else {
+                    joinedConsumer.accept(retracedString);
+                  }
+                });
+          }
+        });
   }
 }

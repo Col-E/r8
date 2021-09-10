@@ -114,7 +114,11 @@ public final class StackTraceElementStringProxy
       return -1;
     }
     try {
-      return Integer.parseInt(getEntryInLine(lineNumber));
+      String lineNumberString = getEntryInLine(lineNumber);
+      if (lineNumberString.isEmpty()) {
+        return -1;
+      }
+      return Integer.parseInt(lineNumberString);
     } catch (NumberFormatException nfe) {
       return -1;
     }
@@ -226,15 +230,16 @@ public final class StackTraceElementStringProxy
       return this;
     }
 
-    public StackTraceElementStringProxyBuilder registerLineNumber(int startIndex, int endIndex) {
+    public StackTraceElementStringProxyBuilder registerLineNumber(
+        int startIndex, int endIndex, boolean insertSeparatorForRetraced) {
       lineNumber =
           new StringIndex(
               startIndex,
               endIndex,
               (retraced, original, verbose) ->
-                  retraced.hasLineNumber()
-                      ? retraced.getLineNumber() + ""
-                      : original.lineNumberAsString());
+                  (retraced.hasLineNumber()
+                      ? ((insertSeparatorForRetraced ? ":" : "") + retraced.getLineNumber())
+                      : original.lineNumberAsString()));
       orderedIndices.add(lineNumber);
       return this;
     }
@@ -296,6 +301,9 @@ public final class StackTraceElementStringProxy
     }
 
     public StackTraceElementStringProxy build() {
+      if (!lineNumber.hasIndex() && sourceFile.hasIndex()) {
+        registerLineNumber(sourceFile.endIndex, sourceFile.endIndex, true);
+      }
       return new StackTraceElementStringProxy(
           line,
           orderedIndices,

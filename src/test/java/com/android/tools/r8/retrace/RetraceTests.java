@@ -35,6 +35,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleDotsInFileNameStackTrace;
+import com.android.tools.r8.retrace.stacktraces.MultipleLinesNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NoObfuscatedLineNumberWithOverrideTest;
 import com.android.tools.r8.retrace.stacktraces.NoObfuscationRangeMappingWithStackTrace;
@@ -274,6 +275,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testSingleLineNoLineNumberStackTrace() throws Exception {
     runRetraceTest(new SingleLineNoLineNumberStackTrace());
+  }
+
+  @Test
+  public void testMultipleLinesNoLineNumberStackTrace() throws Exception {
+    runRetraceTest(new MultipleLinesNoLineNumberStackTrace());
   }
 
   private void inspectRetraceTest(

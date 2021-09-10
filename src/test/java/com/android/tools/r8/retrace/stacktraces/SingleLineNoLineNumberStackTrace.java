@@ -16,7 +16,8 @@ public class SingleLineNoLineNumberStackTrace implements StackTraceForTest {
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat foo.a.a(Unknown Source)",
         "\tat foo.a.b(Unknown Source)",
-        "\tat foo.a.c(Unknown Source)");
+        "\tat foo.a.c(Unknown Source)",
+        "\tat foo.a.d(Unknown Source)");
   }
 
   @Override
@@ -26,20 +27,23 @@ public class SingleLineNoLineNumberStackTrace implements StackTraceForTest {
         "    0:0:void method1(java.lang.String):42:42 -> a",
         "    0:0:void main(java.lang.String[]):28 -> a",
         "    0:0:void method2(java.lang.String):42:48 -> b",
-        "    0:0:void main2(java.lang.String[]):28 -> b",
-        "    void main3(java.lang.String[]):153 -> c");
+        "    0:0:void main2(java.lang.String[]):29 -> b",
+        "    void method3(java.lang.String):72:72 -> c",
+        "    void main3(java.lang.String[]):30 -> c",
+        "    void main4(java.lang.String[]):153 -> d");
   }
 
   @Override
   public List<String> retracedStackTrace() {
-    // TODO(b/191513686): Should have line-numbers for main, method1, main2 and main3.
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main2(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.main3(Main.java)");
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:28)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java:42)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main2(Main.java:29)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main3(Main.java:30)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.method3(Main.java:72)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main4(Main.java:153)");
   }
 
   @Override

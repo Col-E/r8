@@ -36,11 +36,11 @@ public class NoObfuscatedLineNumberWithOverrideTest implements StackTraceForTest
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        // TODO(b/191513686): Could be retrace to ...Main.main(Main.java:3)
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.overload1(Main.java)",
-        "\t<OR> at com.android.tools.r8.naming.retrace.Main.overload2(Main.java)",
-        "\tat com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:3)",
+        "\tat com.android.tools.r8.naming.retrace.Main.overload1(Main.java:7)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.overload2(Main.java:11)",
+        "\tat com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java:7)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java:11)",
         "\tat com.android.tools.r8.naming.retrace.Main.mainPC(Main.java:42)");
   }
 

@@ -17,6 +17,7 @@ import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -34,6 +35,8 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
   private final Retracer retracer;
 
+  private OptionalBool isAmbiguousCache = OptionalBool.UNKNOWN;
+
   public RetraceFrameResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
@@ -49,22 +52,27 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
 
   @Override
   public boolean isAmbiguous() {
-    if (mappedRanges.size() > 1) {
-      return true;
-    }
-    List<MappedRange> methodRanges = mappedRanges.get(0).getSecond();
-    if (methodRanges == null || methodRanges.isEmpty()) {
-      return false;
-    }
-    MappedRange lastRange = methodRanges.get(0);
-    for (MappedRange mappedRange : methodRanges) {
-      if (mappedRange != lastRange
-          && (mappedRange.minifiedRange == null
-              || !mappedRange.minifiedRange.equals(lastRange.minifiedRange))) {
+    if (isAmbiguousCache.isUnknown()) {
+      if (mappedRanges.size() > 1) {
+        isAmbiguousCache = OptionalBool.TRUE;
         return true;
       }
+      List<MappedRange> methodRanges = mappedRanges.get(0).getSecond();
+      if (methodRanges != null && !methodRanges.isEmpty()) {
+        MappedRange lastRange = methodRanges.get(0);
+        for (MappedRange mappedRange : methodRanges) {
+          if (mappedRange != lastRange
+              && (mappedRange.minifiedRange == null
+                  || !mappedRange.minifiedRange.equals(lastRange.minifiedRange))) {
+            isAmbiguousCache = OptionalBool.TRUE;
+            return true;
+          }
+        }
+      }
+      isAmbiguousCache = OptionalBool.FALSE;
     }
-    return false;
+    assert !isAmbiguousCache.isUnknown();
+    return isAmbiguousCache.isTrue();
   }
 
   @Override
@@ -120,12 +128,12 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
 
   private RetracedMethodReferenceImpl getRetracedMethod(
       MethodReference methodReference, MappedRange mappedRange, int obfuscatedPosition) {
-    if (mappedRange.minifiedRange == null) {
+    if (mappedRange.minifiedRange == null || (obfuscatedPosition == -1 && !isAmbiguous())) {
       int originalLineNumber = mappedRange.getFirstLineNumberOfOriginalRange();
       return RetracedMethodReferenceImpl.create(
           methodReference, originalLineNumber > 0 ? originalLineNumber : obfuscatedPosition);
     }
-    if (obfuscatedPosition == -1 || !mappedRange.minifiedRange.contains(obfuscatedPosition)) {
+    if (!mappedRange.minifiedRange.contains(obfuscatedPosition)) {
       return RetracedMethodReferenceImpl.create(methodReference);
     }
     return RetracedMethodReferenceImpl.create(

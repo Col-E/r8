@@ -309,7 +309,7 @@ public class StackTraceRegularExpressionParser
         if (startOfGroup == NO_MATCH) {
           return false;
         }
-        builder.registerLineNumber(startOfGroup, matcher.end(captureGroup));
+        builder.registerLineNumber(startOfGroup, matcher.end(captureGroup), false);
         return true;
       };
     }
