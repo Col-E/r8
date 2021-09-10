@@ -304,6 +304,11 @@ public abstract class RunExamplesAndroidOTest<
             ImmutableList.of(
                 // TODO(120402963): Triage.
                 "invokecustom", "invokecustom2"))
+        .put(
+            DexVm.Version.V12_0_0,
+            ImmutableList.of(
+                // TODO(120402963): Triage.
+                "invokecustom", "invokecustom2"))
         .put(DexVm.Version.DEFAULT, ImmutableList.of());
     failsOn = builder.build();
   }

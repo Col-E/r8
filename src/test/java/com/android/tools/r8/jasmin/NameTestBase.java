@@ -109,12 +109,17 @@ class NameTestBase extends JasminTestBase {
     }
 
     if (validForArt) {
-      String artResult = runOnArtD8(jasminBuilder, mainClassName);
+      String artResult =
+          runOnArtD8(
+              jasminBuilder,
+              mainClassName,
+              o -> o.minApiLevel = ToolHelper.getMinApiLevelForDexVm());
       assertEquals(expectedResult, artResult);
     } else {
       // Make sure the compiler fails.
       try {
-        runOnArtD8(jasminBuilder, mainClassName);
+        runOnArtD8(
+            jasminBuilder, mainClassName, o -> o.minApiLevel = ToolHelper.getMinApiLevelForDexVm());
         fail("D8 should have rejected this case.");
       } catch (CompilationFailedException t) {
         assertTrue(t.getCause().getMessage().contains(expectedNameInFailingD8Message));
@@ -127,6 +132,7 @@ class NameTestBase extends JasminTestBase {
             mainClassName,
             options -> {
               options.itemFactory.setSkipNameValidationForTesting(true);
+              options.minApiLevel = ToolHelper.getMinApiLevelForDexVm();
             });
         fail("Art should have failed.");
       } catch (AssertionError e) {
