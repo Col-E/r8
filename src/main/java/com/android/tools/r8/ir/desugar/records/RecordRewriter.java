@@ -421,6 +421,7 @@ public class RecordRewriter
   }
 
   private void ensureRecordClass(RecordDesugaringEventConsumer eventConsumer) {
+    appView.setRequiresRecordNamingLens();
     DexItemFactory factory = appView.dexItemFactory();
     checkRecordTagNotPresent(factory);
     appView
@@ -613,6 +614,7 @@ public class RecordRewriter
       throws ExecutionException {
     for (DexProgramClass clazz : programClasses) {
       if (clazz.isRecord()) {
+        assert appView.requiresRecordNamingLens();
         assert clazz.superType == factory.recordType;
         clazz.accessFlags.unsetRecord();
       }

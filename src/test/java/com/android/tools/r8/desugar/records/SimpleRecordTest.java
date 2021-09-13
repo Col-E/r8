@@ -56,7 +56,6 @@ public class SimpleRecordTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -73,7 +72,6 @@ public class SimpleRecordTest extends TestBase {
               .addKeepMainRule(MAIN_TYPE)
               .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
               .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-              .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
               .compile()
               .writeToZip();
       RecordTestUtils.assertRecordsAreRecords(output);
@@ -90,7 +88,6 @@ public class SimpleRecordTest extends TestBase {
         .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .addOptionsModification(opt -> opt.testing.enableExperimentalRecordDesugaring = true)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);

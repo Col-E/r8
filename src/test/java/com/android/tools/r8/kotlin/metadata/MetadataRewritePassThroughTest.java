@@ -75,9 +75,6 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
     testForD8(Backend.DEX)
         .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
         .setMinApi(AndroidApiLevel.B)
-        // Enable record desugaring support to force a non-identity naming lens
-        .addOptionsModification(
-            options -> options.testing.enableExperimentalRecordDesugaring = true)
         .compile()
         .inspect(
             inspector ->

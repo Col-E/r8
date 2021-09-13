@@ -259,7 +259,7 @@ public final class D8 {
       if (appView.rewritePrefix.isRewriting()) {
         namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
       }
-      if (appView.options().shouldDesugarRecords()) {
+      if (appView.requiresRecordNamingLens()) {
         namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
       }
       if (options.isGeneratingClassFiles()) {
