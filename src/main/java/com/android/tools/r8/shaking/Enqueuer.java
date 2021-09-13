@@ -564,8 +564,10 @@ public class Enqueuer {
   }
 
   public void addDeadProtoTypeCandidate(DexType type) {
-    assert type.isProgramType(appView);
-    addDeadProtoTypeCandidate(appView.definitionFor(type).asProgramClass());
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+    if (clazz != null) {
+      addDeadProtoTypeCandidate(clazz);
+    }
   }
 
   public void addDeadProtoTypeCandidate(DexProgramClass clazz) {
