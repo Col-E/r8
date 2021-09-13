@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -32,6 +33,17 @@ public class ContextInsensitiveInstanceInitializerInfoCollection
   @Override
   public boolean isEmpty() {
     return false;
+  }
+
+  @Override
+  public InstanceInitializerInfoCollection fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection) {
+    NonTrivialInstanceInitializerInfo rewrittenInfo =
+        info.fixupAfterParametersChanged(appView, argumentInfoCollection);
+    if (rewrittenInfo != info) {
+      return new ContextInsensitiveInstanceInitializerInfoCollection(rewrittenInfo);
+    }
+    return this;
   }
 
   @Override

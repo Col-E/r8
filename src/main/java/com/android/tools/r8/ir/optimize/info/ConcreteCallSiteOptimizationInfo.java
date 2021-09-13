@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -26,9 +28,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntCollection;
-import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.List;
 
 // Accumulated optimization info from call sites.
@@ -76,33 +75,37 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         : this;
   }
 
-  public CallSiteOptimizationInfo fixupAfterParameterRemoval(int removedParameterIndex) {
-    IntList removedParameterIndices = new IntArrayList(1);
-    removedParameterIndices.add(removedParameterIndex);
-    return fixupAfterParameterRemoval(removedParameterIndices);
-  }
-
-  public CallSiteOptimizationInfo fixupAfterParameterRemoval(
-      IntCollection removedParameterIndices) {
-    if (removedParameterIndices.isEmpty()) {
+  public CallSiteOptimizationInfo fixupAfterParametersChanged(
+      RewrittenPrototypeDescription prototypeChanges) {
+    if (prototypeChanges.isEmpty()) {
       return this;
     }
 
-    assert removedParameterIndices.stream()
+    ArgumentInfoCollection parameterChanges = prototypeChanges.getArgumentInfoCollection();
+    if (parameterChanges.isEmpty()) {
+      if (prototypeChanges.hasExtraParameters()) {
+        return new ConcreteCallSiteOptimizationInfo(
+            size + prototypeChanges.numberOfExtraParameters(), dynamicUpperBoundTypes, constants);
+      }
+      return this;
+    }
+
+    assert parameterChanges.getRemovedParameterIndices().stream()
         .allMatch(removedParameterIndex -> removedParameterIndex < size);
 
-    int newSize = size - removedParameterIndices.size();
-    if (newSize == 0) {
+    int newSizeAfterParameterRemoval = size - parameterChanges.numberOfRemovedArguments();
+    if (newSizeAfterParameterRemoval == 0) {
       return top();
     }
 
-    Int2ReferenceMap<AbstractValue> rewrittenConstants = new Int2ReferenceArrayMap<>(newSize);
+    Int2ReferenceMap<AbstractValue> rewrittenConstants =
+        new Int2ReferenceArrayMap<>(newSizeAfterParameterRemoval);
     Int2ReferenceMap<TypeElement> rewrittenDynamicUpperBoundTypes =
-        new Int2ReferenceArrayMap<>(newSize);
+        new Int2ReferenceArrayMap<>(newSizeAfterParameterRemoval);
     for (int parameterIndex = 0, rewrittenParameterIndex = 0;
         parameterIndex < size;
         parameterIndex++) {
-      if (!removedParameterIndices.contains(parameterIndex)) {
+      if (!parameterChanges.isArgumentRemoved(parameterIndex)) {
         AbstractValue abstractValue =
             constants.getOrDefault(parameterIndex, AbstractValue.unknown());
         if (!abstractValue.isUnknown()) {
@@ -116,7 +119,9 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       }
     }
     return ConcreteCallSiteOptimizationInfo.create(
-        newSize, rewrittenDynamicUpperBoundTypes, rewrittenConstants);
+        newSizeAfterParameterRemoval + prototypeChanges.numberOfExtraParameters(),
+        rewrittenDynamicUpperBoundTypes,
+        rewrittenConstants);
   }
 
   CallSiteOptimizationInfo join(

@@ -122,9 +122,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification) {}
 
   @Override
-  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {}
-
-  @Override
   public void setInstanceInitializerInfoCollection(
       DexEncodedMethod method,
       InstanceInitializerInfoCollection instanceInitializerInfoCollection) {}

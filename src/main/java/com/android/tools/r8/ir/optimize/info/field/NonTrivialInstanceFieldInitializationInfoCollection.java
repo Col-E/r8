@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
@@ -67,17 +68,24 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
   }
 
   @Override
+  public InstanceFieldInitializationInfoCollection fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
+    Builder builder = InstanceFieldInitializationInfoCollection.builder();
+    infos.forEach(
+        (field, info) ->
+            builder.recordInitializationInfo(
+                field, info.fixupAfterParametersChanged(argumentInfoCollection)));
+    return builder.build();
+  }
+
+  @Override
   public InstanceFieldInitializationInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     Builder builder = InstanceFieldInitializationInfoCollection.builder();
     infos.forEach(
-        (field, info) -> {
-          DexField rewrittenField = lens.lookupField(field);
-          InstanceFieldInitializationInfo rewrittenInfo = info.rewrittenWithLens(appView, lens);
-          if (!rewrittenInfo.isUnknown()) {
-            builder.recordInitializationInfo(rewrittenField, rewrittenInfo);
-          }
-        });
+        (field, info) ->
+            builder.recordInitializationInfo(
+                lens.lookupField(field), info.rewrittenWithLens(appView, lens)));
     return builder.build();
   }
 

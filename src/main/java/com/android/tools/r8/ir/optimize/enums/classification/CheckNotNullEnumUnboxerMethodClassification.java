@@ -32,7 +32,7 @@ public final class CheckNotNullEnumUnboxerMethodClassification
   }
 
   @Override
-  public EnumUnboxerMethodClassification fixupAfterParameterRemoval(
+  public EnumUnboxerMethodClassification fixupAfterParametersChanged(
       ArgumentInfoCollection removedParameters) {
     if (removedParameters.getArgumentInfo(argumentIndex).isRemovedArgumentInfo()) {
       // If the null-checked argument is removed from the parameters of the method, then we can no

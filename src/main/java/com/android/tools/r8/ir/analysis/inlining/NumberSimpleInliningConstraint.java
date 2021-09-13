@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import it.unimi.dsi.fastutil.ints.IntList;
 
 public abstract class NumberSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
 
@@ -23,6 +25,27 @@ public abstract class NumberSimpleInliningConstraint extends SimpleInliningArgum
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterParametersChanged(
+      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
+    if (changes.isArgumentRemoved(getArgumentIndex())) {
+      RemovedArgumentInfo removedArgumentInfo =
+          changes.getArgumentInfo(getArgumentIndex()).asRemovedArgumentInfo();
+      if (!removedArgumentInfo.hasSingleValue()) {
+        // We should never have constraints for unused arguments.
+        assert false;
+        return NeverSimpleInliningConstraint.getInstance();
+      }
+      SingleValue singleValue = removedArgumentInfo.getSingleValue();
+      return singleValue.isSingleNumberValue() && test(singleValue.asSingleNumberValue().getValue())
+          ? AlwaysSimpleInliningConstraint.getInstance()
+          : NeverSimpleInliningConstraint.getInstance();
+    } else {
+      assert !changes.hasArgumentInfo(getArgumentIndex());
+    }
+    return withArgumentIndex(changes.getNewArgumentIndex(getArgumentIndex()), factory);
+  }
+
+  @Override
   public final boolean isSatisfied(InvokeMethod invoke) {
     Value argumentRoot = getArgument(invoke).getAliasedValue();
     return argumentRoot.isDefinedByInstructionSatisfying(Instruction::isConstNumber)
@@ -30,10 +53,4 @@ public abstract class NumberSimpleInliningConstraint extends SimpleInliningArgum
   }
 
   abstract boolean test(long argumentValue);
-
-  @Override
-  public final SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
-    return this;
-  }
 }

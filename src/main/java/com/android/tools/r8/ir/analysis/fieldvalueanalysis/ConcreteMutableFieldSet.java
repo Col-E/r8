@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -67,6 +69,22 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
   @Override
   public boolean contains(DexEncodedField field) {
     return fields.contains(field);
+  }
+
+  @Override
+  public AbstractFieldSet fixupReadSetAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection) {
+    assert !isEmpty();
+
+    if (argumentInfoCollection.isEmpty()) {
+      return this;
+    }
+
+    // Find the new field gets that are introduced as a result of constant parameter removal.
+    AbstractFieldSet newReadSet =
+        EmptyFieldSet.getInstance()
+            .fixupReadSetAfterParametersChanged(appView, argumentInfoCollection);
+    return newReadSet.isEmpty() ? this : newReadSet.asConcreteFieldSet().addAll(this);
   }
 
   @Override

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
+import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -156,6 +157,18 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     enumUnboxerMethodClassification = template.enumUnboxerMethodClassification;
   }
 
+  public MutableMethodOptimizationInfo fixup(
+      AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
+    return fixupBridgeInfo(fixer)
+        .fixupClassInlinerMethodConstraint(fixer)
+        .fixupEnumUnboxerMethodClassification(fixer)
+        .fixupInstanceInitializerInfo(appView, fixer)
+        .fixupNonNullParamOnNormalExits(fixer)
+        .fixupNonNullParamOrThrow(fixer)
+        .fixupReturnedArgumentIndex(fixer)
+        .fixupSimpleInliningConstraint(fixer, appView.simpleInliningConstraintFactory());
+  }
+
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
       AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
     return fixupClassTypeReferences(appView, lens, emptySet());
@@ -240,6 +253,12 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return classInlinerConstraint;
   }
 
+  public MutableMethodOptimizationInfo fixupClassInlinerMethodConstraint(
+      MethodOptimizationInfoFixer fixer) {
+    classInlinerConstraint = fixer.fixupClassInlinerMethodConstraint(classInlinerConstraint);
+    return this;
+  }
+
   void setClassInlinerMethodConstraint(ClassInlinerMethodConstraint classInlinerConstraint) {
     this.classInlinerConstraint = classInlinerConstraint;
   }
@@ -261,8 +280,11 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.enumUnboxerMethodClassification = enumUnboxerMethodClassification;
   }
 
-  void unsetEnumUnboxerMethodClassification() {
-    this.enumUnboxerMethodClassification = EnumUnboxerMethodClassification.unknown();
+  public MutableMethodOptimizationInfo fixupEnumUnboxerMethodClassification(
+      MethodOptimizationInfoFixer fixer) {
+    enumUnboxerMethodClassification =
+        fixer.fixupEnumUnboxerMethodClassification(enumUnboxerMethodClassification);
+    return this;
   }
 
   @Override
@@ -290,14 +312,40 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return instanceInitializerInfoCollection.get(invoke);
   }
 
+  public MutableMethodOptimizationInfo fixupInstanceInitializerInfo(
+      AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
+    instanceInitializerInfoCollection =
+        fixer.fixupInstanceInitializerInfo(appView, instanceInitializerInfoCollection);
+    return this;
+  }
+
   @Override
   public BitSet getNonNullParamOrThrow() {
     return nonNullParamOrThrow;
   }
 
+  public MutableMethodOptimizationInfo fixupNonNullParamOrThrow(MethodOptimizationInfoFixer fixer) {
+    nonNullParamOrThrow = fixer.fixupNonNullParamOrThrow(nonNullParamOrThrow);
+    return this;
+  }
+
+  void setNonNullParamOrThrow(BitSet facts) {
+    this.nonNullParamOrThrow = facts;
+  }
+
   @Override
   public BitSet getNonNullParamOnNormalExits() {
     return nonNullParamOnNormalExits;
+  }
+
+  public MutableMethodOptimizationInfo fixupNonNullParamOnNormalExits(
+      MethodOptimizationInfoFixer fixer) {
+    nonNullParamOnNormalExits = fixer.fixupNonNullParamOnNormalExits(nonNullParamOnNormalExits);
+    return this;
+  }
+
+  void setNonNullParamOnNormalExits(BitSet facts) {
+    this.nonNullParamOnNormalExits = facts;
   }
 
   @Override
@@ -333,6 +381,14 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   @Override
   public BridgeInfo getBridgeInfo() {
     return bridgeInfo;
+  }
+
+  public MutableMethodOptimizationInfo fixupBridgeInfo(MethodOptimizationInfoFixer fixer) {
+    if (bridgeInfo != null) {
+      assert bridgeInfo.isVirtualBridgeInfo();
+      bridgeInfo = fixer.fixupBridgeInfo(bridgeInfo.asVirtualBridgeInfo());
+    }
+    return this;
   }
 
   void setBridgeInfo(BridgeInfo bridgeInfo) {
@@ -408,20 +464,19 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return isFlagSet(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
   }
 
-  void setNonNullParamOrThrow(BitSet facts) {
-    this.nonNullParamOrThrow = facts;
-  }
-
-  void setNonNullParamOnNormalExits(BitSet facts) {
-    this.nonNullParamOnNormalExits = facts;
-  }
-
   public void setReachabilitySensitive(boolean reachabilitySensitive) {
     setFlag(REACHABILITY_SENSITIVE_FLAG, reachabilitySensitive);
   }
 
   void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {
     this.simpleInliningConstraint = constraint;
+  }
+
+  public MutableMethodOptimizationInfo fixupSimpleInliningConstraint(
+      MethodOptimizationInfoFixer fixer, SimpleInliningConstraintFactory factory) {
+    simpleInliningConstraint =
+        fixer.fixupSimpleInliningConstraint(simpleInliningConstraint, factory);
+    return this;
   }
 
   void setInstanceInitializerInfoCollection(
@@ -437,10 +492,16 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.initializedClassesOnNormalExit = initializedClassesOnNormalExit;
   }
 
-  void markReturnsArgument(int argument) {
-    assert argument >= 0;
-    assert returnedArgument == -1 || returnedArgument == argument;
-    returnedArgument = argument;
+  void markReturnsArgument(int returnedArgumentIndex) {
+    assert returnedArgumentIndex >= 0;
+    assert returnedArgument == -1 || returnedArgument == returnedArgumentIndex;
+    returnedArgument = returnedArgumentIndex;
+  }
+
+  public MutableMethodOptimizationInfo fixupReturnedArgumentIndex(
+      MethodOptimizationInfoFixer fixer) {
+    returnedArgument = fixer.fixupReturnedArgumentIndex(returnedArgument);
+    return this;
   }
 
   void markMayNotHaveSideEffects() {
@@ -549,65 +610,5 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   public MutableMethodOptimizationInfo mutableCopy() {
     return new MutableMethodOptimizationInfo(this);
-  }
-
-  public void adjustOptimizationInfoAfterRemovingThisParameter(
-      AppView<AppInfoWithLiveness> appView) {
-    classInlinerConstraint = classInlinerConstraint.fixupAfterRemovingThisParameter();
-    enumUnboxerMethodClassification =
-        enumUnboxerMethodClassification.fixupAfterRemovingThisParameter();
-    simpleInliningConstraint =
-        simpleInliningConstraint.fixupAfterRemovingThisParameter(
-            appView.simpleInliningConstraintFactory());
-    // cannotBeKept: doesn't depend on `this`
-    // classInitializerMayBePostponed: `this` could trigger <clinit> of the previous holder.
-    clearFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
-    // hasBeenInlinedIntoSingleCallSite: then it should not be staticized.
-    clearFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
-    // initializedClassesOnNormalExit: `this` could trigger <clinit> of the previous holder.
-    initializedClassesOnNormalExit =
-        DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
-    // At least, `this` pointer is not used in `returnedArgument`.
-    assert returnedArgument == DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
-        || returnedArgument > 0;
-    returnedArgument =
-        returnedArgument == DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
-            ? DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
-            : returnedArgument - 1;
-    // mayHaveSideEffects: `this` Argument didn't have side effects, so removing it doesn't affect
-    //   whether or not the method may have side effects.
-    // returnValueOnlyDependsOnArguments:
-    //   if the method did before, so it does even after removing `this` Argument
-    // code is not changed, and thus the following *return* info is not changed either.
-    //   * neverReturnsNull
-    //   * neverReturnsNormally
-    //   * constantValue
-    //   * returnsObjectWithUpperBoundType
-    //   * returnsObjectWithLowerBoundType
-    // inlining: it is not inlined, and thus staticized. No more chance of inlining, though.
-    inlining = InlinePreference.Default;
-    // checksNullReceiverBeforeAnySideEffect: no more receiver.
-    markCheckNullReceiverBeforeAnySideEffect(
-        DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT);
-    // triggersClassInitBeforeAnySideEffect: code is not changed.
-    markTriggerClassInitBeforeAnySideEffect(
-        DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT);
-    // initializerInfo: the computed initializer info may become invalid.
-    instanceInitializerInfoCollection = InstanceInitializerInfoCollection.empty();
-    // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
-    setFlag(
-        INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG,
-        DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS);
-    nonNullParamOrThrow =
-        nonNullParamOrThrow == DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS
-            ? DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS
-            : nonNullParamOrThrow.get(1, nonNullParamOrThrow.length());
-    nonNullParamOnNormalExits =
-        nonNullParamOnNormalExits
-                == DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS
-            ? DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS
-            : nonNullParamOnNormalExits.get(1, nonNullParamOnNormalExits.length());
-    // reachabilitySensitive: doesn't depend on `this`
-    // returnValueHasBeenPropagated: doesn't depend on `this`
   }
 }

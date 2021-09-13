@@ -9,6 +9,9 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.analysis.value.SingleConstValue;
@@ -32,7 +35,7 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
   }
 
   @Override
-  public ClassInlinerMethodConstraint fixupAfterRemovingThisParameter() {
+  public ClassInlinerMethodConstraint fixupAfterParametersChanged(ArgumentInfoCollection changes) {
     if (usages.isBottom()) {
       return this;
     }
@@ -40,10 +43,22 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
     usages
         .asNonEmpty()
         .forEach(
-            (parameter, usagePerContext) -> {
-              if (parameter > 0) {
-                backing.put(parameter - 1, usagePerContext);
+            (argumentIndex, usagePerContext) -> {
+              ArgumentInfo argumentInfo = changes.getArgumentInfo(argumentIndex);
+              if (argumentInfo.isRemovedArgumentInfo()) {
+                // When removing a parameter from a method, we no longer need information about the
+                // usages of that parameter for class inlining.
+                return;
               }
+              if (argumentInfo.isRewrittenTypeInfo()) {
+                // This is due to enum unboxing. After enum unboxing, we no longer need information
+                // about the usages of this parameter for class inlining.
+                RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
+                assert rewrittenTypeInfo.getOldType().isClassType();
+                assert rewrittenTypeInfo.getNewType().isIntType();
+                return;
+              }
+              backing.put(changes.getNewArgumentIndex(argumentIndex), usagePerContext);
             });
     return new ConditionalClassInlinerMethodConstraint(NonEmptyParameterUsages.create(backing));
   }

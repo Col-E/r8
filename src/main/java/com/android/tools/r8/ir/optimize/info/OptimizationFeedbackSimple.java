@@ -194,11 +194,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {
-    method.getDefinition().getMutableOptimizationInfo().unsetEnumUnboxerMethodClassification();
-  }
-
-  @Override
   public void setInstanceInitializerInfoCollection(
       DexEncodedMethod method,
       InstanceInitializerInfoCollection instanceInitializerInfoCollection) {

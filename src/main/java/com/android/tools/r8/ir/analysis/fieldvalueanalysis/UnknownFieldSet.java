@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class UnknownFieldSet extends AbstractFieldSet {
 
@@ -32,6 +34,12 @@ public class UnknownFieldSet extends AbstractFieldSet {
   @Override
   public boolean isTop() {
     return true;
+  }
+
+  @Override
+  public AbstractFieldSet fixupReadSetAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection) {
+    return this;
   }
 
   @Override

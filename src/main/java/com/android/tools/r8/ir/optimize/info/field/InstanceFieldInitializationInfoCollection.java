@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
@@ -38,6 +39,9 @@ public abstract class InstanceFieldInitializationInfoCollection {
 
   public abstract boolean isEmpty();
 
+  public abstract InstanceFieldInitializationInfoCollection fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection);
+
   public abstract InstanceFieldInitializationInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens);
 
@@ -52,7 +56,9 @@ public abstract class InstanceFieldInitializationInfoCollection {
 
     public Builder recordInitializationInfo(DexField field, InstanceFieldInitializationInfo info) {
       assert !infos.containsKey(field);
-      infos.put(field, info);
+      if (!info.isUnknown()) {
+        infos.put(field, info);
+      }
       return this;
     }
 

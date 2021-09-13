@@ -48,6 +48,8 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumericType;
@@ -57,9 +59,9 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
@@ -1287,11 +1289,16 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public DexEncodedMethod toStaticMethodWithoutThis(AppView<AppInfoWithLiveness> appView) {
     checkIfObsolete();
     assert !accessFlags.isStatic();
+
+    ArgumentInfoCollection prototypeChanges =
+        ArgumentInfoCollection.builder()
+            .addArgumentInfo(0, RemovedArgumentInfo.builder().setType(getHolderType()).build())
+            .build();
     Builder builder =
         builder(this)
             .promoteToStatic()
             .withoutThisParameter()
-            .adjustOptimizationInfoAfterRemovingThisParameter(appView)
+            .fixupOptimizationInfo(appView, prototypeChanges.createMethodOptimizationInfoFixer())
             .setGenericSignature(MethodTypeSignature.noSignature());
     DexEncodedMethod method = builder.build();
     method.copyMetadata(this);
@@ -1525,13 +1532,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public Builder fixupCallSiteOptimizationInfo(
-        Function<ConcreteCallSiteOptimizationInfo, ? extends CallSiteOptimizationInfo> fn) {
+    public Builder fixupCallSiteOptimizationInfo(MethodOptimizationInfoFixer fixer) {
       if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
         callSiteOptimizationInfo =
-            fn.apply(callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
+            fixer.fixupCallSiteOptimizationInfo(
+                callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
       }
       return this;
+    }
+
+    public Builder fixupOptimizationInfo(
+        AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
+      return fixupCallSiteOptimizationInfo(fixer)
+          .modifyOptimizationInfo(
+              (newMethod, optimizationInfo) -> optimizationInfo.fixup(appView, fixer));
     }
 
     public Builder setSimpleInliningConstraint(
@@ -1659,15 +1673,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         throw new Unreachable("Code " + code.getClass().getSimpleName() + " is not supported.");
       }
       return this;
-    }
-
-    public Builder adjustOptimizationInfoAfterRemovingThisParameter(
-        AppView<AppInfoWithLiveness> appView) {
-      return fixupCallSiteOptimizationInfo(
-              callSiteOptimizationInfo -> callSiteOptimizationInfo.fixupAfterParameterRemoval(0))
-          .modifyOptimizationInfo(
-              (newMethod, optimizationInfo) ->
-                  optimizationInfo.adjustOptimizationInfoAfterRemovingThisParameter(appView));
     }
 
     public Builder modifyOptimizationInfo(

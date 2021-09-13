@@ -24,7 +24,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
-import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -48,7 +48,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ImmutableArrayUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
@@ -56,8 +55,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -516,38 +513,18 @@ class EnumUnboxingTreeFixer {
     newMethod = ensureUniqueMethod(method, newMethod);
     int numberOfExtraNullParameters = newMethod.getArity() - method.getReference().getArity();
     boolean isStatic = method.isStatic();
-    lensBuilder.move(
-        method.getReference(), newMethod, isStatic, isStatic, numberOfExtraNullParameters);
+    RewrittenPrototypeDescription prototypeChanges =
+        lensBuilder.move(
+            method.getReference(), newMethod, isStatic, isStatic, numberOfExtraNullParameters);
     return method.toTypeSubstitutedMethod(
         newMethod,
         builder ->
             builder
-                .fixupCallSiteOptimizationInfo(
-                    callSiteOptimizationInfo ->
-                        callSiteOptimizationInfo.fixupAfterExtraNullParameters(
-                            numberOfExtraNullParameters))
+                .fixupOptimizationInfo(
+                    appView, prototypeChanges.createMethodOptimizationInfoFixer())
                 .setCompilationState(method.getCompilationState())
                 .setIsLibraryMethodOverrideIf(
-                    method.isNonPrivateVirtualMethod(), OptionalBool.FALSE)
-                .setSimpleInliningConstraint(
-                    holder, getRewrittenSimpleInliningConstraint(method, oldProto, newProto)));
-  }
-
-  private SimpleInliningConstraint getRewrittenSimpleInliningConstraint(
-      DexEncodedMethod method, DexProto oldProto, DexProto newProto) {
-    IntList unboxedArgumentIndices = new IntArrayList();
-    int offset = BooleanUtils.intValue(method.isInstance());
-    for (int i = 0; i < method.getReference().getArity(); i++) {
-      if (oldProto.getParameter(i).isReferenceType()
-          && newProto.getParameter(i).isPrimitiveType()) {
-        unboxedArgumentIndices.add(i + offset);
-      }
-    }
-    return method
-        .getOptimizationInfo()
-        .getSimpleInliningConstraint()
-        .rewrittenWithUnboxedArguments(
-            unboxedArgumentIndices, appView.simpleInliningConstraintFactory());
+                    method.isNonPrivateVirtualMethod(), OptionalBool.FALSE));
   }
 
   private DexMethod ensureUniqueMethod(DexEncodedMethod encodedMethod, DexMethod newMethod) {

@@ -4,12 +4,15 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import it.unimi.dsi.fastutil.ints.IntList;
 
 /** Constraint that is satisfied if a specific argument is always null. */
 public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
@@ -29,6 +32,34 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterParametersChanged(
+      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
+    ArgumentInfo argumentInfo = changes.getArgumentInfo(getArgumentIndex());
+    if (argumentInfo.isRemovedArgumentInfo()) {
+      RemovedArgumentInfo removedArgumentInfo =
+          changes.getArgumentInfo(getArgumentIndex()).asRemovedArgumentInfo();
+      if (!removedArgumentInfo.hasSingleValue()) {
+        // We should never have constraints for unused arguments.
+        assert false;
+        return NeverSimpleInliningConstraint.getInstance();
+      }
+      return removedArgumentInfo.getSingleValue().isNull() && nullability.isDefinitelyNull()
+          ? AlwaysSimpleInliningConstraint.getInstance()
+          : NeverSimpleInliningConstraint.getInstance();
+    } else if (argumentInfo.isRewrittenTypeInfo()) {
+      RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
+      // We should only get here as a result of enum unboxing.
+      assert rewrittenTypeInfo.getOldType().isClassType();
+      assert rewrittenTypeInfo.getNewType().isIntType();
+      // Rewrite definitely-null constraints to definitely-zero constraints.
+      return nullability.isDefinitelyNull()
+          ? factory.createEqualToNumberConstraint(getArgumentIndex(), 0)
+          : factory.createNotEqualToNumberConstraint(getArgumentIndex(), 0);
+    }
+    return withArgumentIndex(changes.getNewArgumentIndex(getArgumentIndex()), factory);
+  }
+
+  @Override
   public final boolean isSatisfied(InvokeMethod invoke) {
     Value argument = getArgument(invoke);
     TypeElement argumentType = argument.getType();
@@ -44,17 +75,6 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
     //   v1 <- AssumeNotNull v0
     return argument.isDefinedByInstructionSatisfying(Instruction::isAssume)
         && argument.getAliasedValue().getType().nullability() == nullability;
-  }
-
-  @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
-    if (unboxedArgumentIndices.contains(getArgumentIndex())) {
-      return nullability.isDefinitelyNull()
-          ? factory.createEqualToNumberConstraint(getArgumentIndex(), 0)
-          : factory.createNotEqualToNumberConstraint(getArgumentIndex(), 0);
-    }
-    return this;
   }
 
   @Override

@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import it.unimi.dsi.fastutil.ints.IntList;
 
 /** Constraint that is always satisfied. */
 public class AlwaysSimpleInliningConstraint extends SimpleInliningConstraint {
@@ -30,14 +30,8 @@ public class AlwaysSimpleInliningConstraint extends SimpleInliningConstraint {
   }
 
   @Override
-  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
-      SimpleInliningConstraintFactory factory) {
-    return this;
-  }
-
-  @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
+  public SimpleInliningConstraint fixupAfterParametersChanged(
+      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
     return this;
   }
 }

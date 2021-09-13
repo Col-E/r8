@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import it.unimi.dsi.fastutil.ints.IntList;
 
 /** Constraint that is satisfied if a specific argument is always true. */
 public class EqualToBooleanSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
@@ -26,16 +28,32 @@ public class EqualToBooleanSimpleInliningConstraint extends SimpleInliningArgume
   }
 
   @Override
+  public SimpleInliningConstraint fixupAfterParametersChanged(
+      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
+    if (changes.isArgumentRemoved(getArgumentIndex())) {
+      RemovedArgumentInfo removedArgumentInfo =
+          changes.getArgumentInfo(getArgumentIndex()).asRemovedArgumentInfo();
+      if (!removedArgumentInfo.hasSingleValue()) {
+        // We should never have constraints for unused arguments.
+        assert false;
+        return NeverSimpleInliningConstraint.getInstance();
+      }
+      SingleValue singleValue = removedArgumentInfo.getSingleValue();
+      return singleValue.isSingleNumberValue()
+              && singleValue.asSingleNumberValue().getBooleanValue() == value
+          ? AlwaysSimpleInliningConstraint.getInstance()
+          : NeverSimpleInliningConstraint.getInstance();
+    } else {
+      assert !changes.hasArgumentInfo(getArgumentIndex());
+    }
+    return withArgumentIndex(changes.getNewArgumentIndex(getArgumentIndex()), factory);
+  }
+
+  @Override
   public boolean isSatisfied(InvokeMethod invoke) {
     Value argumentRoot = getArgument(invoke).getAliasedValue();
     return argumentRoot.isDefinedByInstructionSatisfying(Instruction::isConstNumber)
         && argumentRoot.getDefinition().asConstNumber().getBooleanValue() == value;
-  }
-
-  @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
-    return this;
   }
 
   @Override

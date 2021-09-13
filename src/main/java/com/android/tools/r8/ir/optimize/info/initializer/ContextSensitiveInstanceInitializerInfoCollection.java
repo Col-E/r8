@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
@@ -46,6 +47,17 @@ public class ContextSensitiveInstanceInitializerInfoCollection
   @Override
   public boolean isEmpty() {
     return false;
+  }
+
+  @Override
+  public InstanceInitializerInfoCollection fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection) {
+    Builder builder = builder();
+    infos.forEach(
+        (context, info) ->
+            builder.put(
+                context, info.fixupAfterParametersChanged(appView, argumentInfoCollection)));
+    return builder.build();
   }
 
   @Override

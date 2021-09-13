@@ -11,10 +11,10 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
-import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class RewrittenPrototypeDescription {
 
@@ -224,6 +223,12 @@ public class RewrittenPrototypeDescription {
       return EMPTY;
     }
 
+    public void forEach(IntObjConsumer<ArgumentInfo> consumer) {
+      for (Entry<ArgumentInfo> entry : argumentInfos.int2ReferenceEntrySet()) {
+        consumer.accept(entry.getIntKey(), entry.getValue());
+      }
+    }
+
     public IntSortedSet getKeys() {
       return argumentInfos.keySet();
     }
@@ -245,6 +250,10 @@ public class RewrittenPrototypeDescription {
         }
       }
       return removedParameterIndices;
+    }
+
+    public boolean isArgumentRemoved(int argumentIndex) {
+      return getArgumentInfo(argumentIndex).isRemovedArgumentInfo();
     }
 
     public boolean isEmpty() {
@@ -274,6 +283,10 @@ public class RewrittenPrototypeDescription {
       return removed;
     }
 
+    public boolean hasArgumentInfo(int argumentIndex) {
+      return argumentInfos.containsKey(argumentIndex);
+    }
+
     public ArgumentInfo getArgumentInfo(int argumentIndex) {
       return argumentInfos.getOrDefault(argumentIndex, ArgumentInfo.NO_INFO);
     }
@@ -290,12 +303,13 @@ public class RewrittenPrototypeDescription {
 
       private Int2ReferenceSortedMap<ArgumentInfo> argumentInfos;
 
-      public void addArgumentInfo(int argIndex, ArgumentInfo argInfo) {
+      public Builder addArgumentInfo(int argIndex, ArgumentInfo argInfo) {
         if (argumentInfos == null) {
           argumentInfos = new Int2ReferenceRBTreeMap<>();
         }
         assert !argumentInfos.containsKey(argIndex);
         argumentInfos.put(argIndex, argInfo);
+        return this;
       }
 
       public ArgumentInfoCollection build() {
@@ -392,12 +406,16 @@ public class RewrittenPrototypeDescription {
       return Integer.MAX_VALUE;
     }
 
-    public Function<ConcreteCallSiteOptimizationInfo, ? extends CallSiteOptimizationInfo>
-        createCallSiteOptimizationInfoFixer() {
-      return callSiteOptimizationInfo ->
-          callSiteOptimizationInfo.fixupAfterParameterRemoval(getRemovedParameterIndices());
+    public MethodOptimizationInfoFixer createMethodOptimizationInfoFixer() {
+      RewrittenPrototypeDescription prototypeChanges =
+          RewrittenPrototypeDescription.create(Collections.emptyList(), null, this);
+      return prototypeChanges.createMethodOptimizationInfoFixer();
     }
 
+    /**
+     * Returns a function for rewriting the parameter annotations on a method info after prototype
+     * changes were made.
+     */
     public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
         DexEncodedMethod method) {
       if (numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
@@ -483,6 +501,10 @@ public class RewrittenPrototypeDescription {
     return NONE;
   }
 
+  public MethodOptimizationInfoFixer createMethodOptimizationInfoFixer() {
+    return new RewrittenPrototypeDescriptionMethodOptimizationInfoFixer(this);
+  }
+
   public RewrittenPrototypeDescription combine(RewrittenPrototypeDescription other) {
     if (isEmpty()) {
       return other;
@@ -512,6 +534,10 @@ public class RewrittenPrototypeDescription {
     return extraParameters.isEmpty()
         && rewrittenReturnInfo == null
         && argumentInfoCollection.isEmpty();
+  }
+
+  public boolean hasExtraParameters() {
+    return !extraParameters.isEmpty();
   }
 
   public List<ExtraParameter> getExtraParameters() {

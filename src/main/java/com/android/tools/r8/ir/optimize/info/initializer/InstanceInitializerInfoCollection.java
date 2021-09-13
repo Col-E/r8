@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MapUtils;
@@ -35,6 +36,9 @@ public abstract class InstanceInitializerInfoCollection {
   public abstract InstanceInitializerInfo get(InvokeDirect invoke);
 
   public abstract boolean isEmpty();
+
+  public abstract InstanceInitializerInfoCollection fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection);
 
   public abstract InstanceInitializerInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems);

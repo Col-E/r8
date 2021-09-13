@@ -4,10 +4,11 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import com.google.common.collect.Iterables;
 import java.util.List;
 
 public class SimpleInliningConstraintConjunction extends SimpleInliningConstraint {
@@ -66,26 +67,38 @@ public class SimpleInliningConstraintConjunction extends SimpleInliningConstrain
   }
 
   @Override
-  public SimpleInliningConstraint fixupAfterRemovingThisParameter(
-      SimpleInliningConstraintFactory factory) {
-    List<SimpleInliningConstraint> rewrittenConstraints =
-        ListUtils.mapOrElse(
-            constraints, constraint -> constraint.fixupAfterRemovingThisParameter(factory), null);
-    return rewrittenConstraints != null
-        ? new SimpleInliningConstraintConjunction(rewrittenConstraints)
-        : this;
-  }
-
-  @Override
-  public SimpleInliningConstraint rewrittenWithUnboxedArguments(
-      IntList unboxedArgumentIndices, SimpleInliningConstraintFactory factory) {
+  public SimpleInliningConstraint fixupAfterParametersChanged(
+      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
     List<SimpleInliningConstraint> rewrittenConstraints =
         ListUtils.mapOrElse(
             constraints,
-            constraint -> constraint.rewrittenWithUnboxedArguments(unboxedArgumentIndices, factory),
+            constraint -> {
+              SimpleInliningConstraint rewrittenConstraint =
+                  constraint.fixupAfterParametersChanged(changes, factory);
+              if (rewrittenConstraint.isAlways()) {
+                // Remove 'always' from conjunctions.
+                return null;
+              }
+              return rewrittenConstraint;
+            },
             null);
-    return rewrittenConstraints != null
-        ? new SimpleInliningConstraintConjunction(rewrittenConstraints)
-        : this;
+
+    if (rewrittenConstraints == null) {
+      return this;
+    }
+
+    if (rewrittenConstraints.isEmpty()) {
+      return AlwaysSimpleInliningConstraint.getInstance();
+    }
+
+    if (rewrittenConstraints.size() == 1) {
+      return ListUtils.first(rewrittenConstraints);
+    }
+
+    if (Iterables.any(rewrittenConstraints, SimpleInliningConstraint::isNever)) {
+      return NeverSimpleInliningConstraint.getInstance();
+    }
+
+    return new SimpleInliningConstraintConjunction(rewrittenConstraints);
   }
 }

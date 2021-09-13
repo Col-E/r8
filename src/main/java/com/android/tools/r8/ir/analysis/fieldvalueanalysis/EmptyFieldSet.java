@@ -8,6 +8,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
@@ -37,6 +40,35 @@ public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
   @Override
   public boolean isBottom() {
     return true;
+  }
+
+  @Override
+  public AbstractFieldSet fixupReadSetAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection) {
+    if (argumentInfoCollection.isEmpty()) {
+      return this;
+    }
+
+    // Find the new field gets that are introduced as a result of constant parameter removal.
+    ConcreteMutableFieldSet newReadSet = new ConcreteMutableFieldSet();
+    argumentInfoCollection.forEach(
+        (argumentIndex, argumentInfo) -> {
+          if (argumentInfo.isRemovedArgumentInfo()) {
+            RemovedArgumentInfo removedArgumentInfo = argumentInfo.asRemovedArgumentInfo();
+            if (removedArgumentInfo.hasSingleValue()
+                && removedArgumentInfo.getSingleValue().isSingleFieldValue()) {
+              DexEncodedField definition =
+                  removedArgumentInfo.getSingleValue().asSingleFieldValue().getField(appView);
+              if (definition != null) {
+                newReadSet.add(definition);
+              } else {
+                assert false;
+              }
+            }
+          }
+        });
+
+    return newReadSet.isEmpty() ? this : newReadSet;
   }
 
   @Override

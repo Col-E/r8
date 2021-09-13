@@ -6,6 +6,9 @@ package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /**
@@ -33,6 +36,28 @@ public class InstanceFieldArgumentInitializationInfo implements InstanceFieldIni
   @Override
   public InstanceFieldArgumentInitializationInfo asArgumentInitializationInfo() {
     return this;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
+    ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(argumentIndex);
+    if (argumentInfo.isRemovedArgumentInfo()) {
+      RemovedArgumentInfo removedArgumentInfo = argumentInfo.asRemovedArgumentInfo();
+      if (!removedArgumentInfo.hasSingleValue()) {
+        // This should only happen if the argument is unused, but here the argument is used to
+        // initialize an instance field on the enclosing class.
+        assert false;
+        return UnknownInstanceFieldInitializationInfo.getInstance();
+      }
+      // Now the constant is used to initialize the field instead of the argument.
+      return removedArgumentInfo.getSingleValue();
+    }
+
+    int newArgumentIndex = argumentInfoCollection.getNewArgumentIndex(argumentIndex);
+    return newArgumentIndex != argumentIndex
+        ? new InstanceFieldArgumentInitializationInfo(newArgumentIndex)
+        : this;
   }
 
   @Override

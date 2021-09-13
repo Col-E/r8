@@ -13,12 +13,14 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Objects;
@@ -103,6 +105,12 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
   @Override
   public boolean isMaterializableInAllContexts(AppView<AppInfoWithLiveness> appView) {
     return true;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
+    return this;
   }
 
   @Override

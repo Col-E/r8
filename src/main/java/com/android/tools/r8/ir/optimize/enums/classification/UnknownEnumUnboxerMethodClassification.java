@@ -18,7 +18,7 @@ public final class UnknownEnumUnboxerMethodClassification extends EnumUnboxerMet
   }
 
   @Override
-  public EnumUnboxerMethodClassification fixupAfterParameterRemoval(
+  public EnumUnboxerMethodClassification fixupAfterParametersChanged(
       ArgumentInfoCollection removedParameters) {
     return this;
   }

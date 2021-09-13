@@ -9,12 +9,14 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Instruction;
@@ -23,6 +25,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class SingleFieldValue extends SingleValue {
@@ -35,6 +38,11 @@ public abstract class SingleFieldValue extends SingleValue {
 
   public DexField getField() {
     return field;
+  }
+
+  public DexEncodedField getField(DexDefinitionSupplier definitions) {
+    DexClass holder = definitions.definitionFor(field.getHolderType());
+    return field.lookupOnClass(holder);
   }
 
   public abstract ObjectState getState();
@@ -102,6 +110,12 @@ public abstract class SingleFieldValue extends SingleValue {
       return false;
     }
     return holder.isPublic();
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
+    return this;
   }
 
   @Override

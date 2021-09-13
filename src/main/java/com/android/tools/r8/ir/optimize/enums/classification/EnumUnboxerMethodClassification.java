@@ -12,14 +12,8 @@ public abstract class EnumUnboxerMethodClassification {
     return UnknownEnumUnboxerMethodClassification.getInstance();
   }
 
-  public abstract EnumUnboxerMethodClassification fixupAfterParameterRemoval(
+  public abstract EnumUnboxerMethodClassification fixupAfterParametersChanged(
       ArgumentInfoCollection removedParameters);
-
-  public EnumUnboxerMethodClassification fixupAfterRemovingThisParameter() {
-    // Only static methods are currently classified by the enum unboxer.
-    assert isUnknownClassification();
-    return unknown();
-  }
 
   public boolean isCheckNotNullClassification() {
     return false;

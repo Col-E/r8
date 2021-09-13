@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /**
  * Implements a lifted subset lattice for fields.
@@ -70,6 +72,9 @@ public abstract class AbstractFieldSet {
   public final boolean strictlyLessThan(AbstractFieldSet other) {
     return lessThanOrEqual(other) && !equals(other);
   }
+
+  public abstract AbstractFieldSet fixupReadSetAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection);
 
   public abstract AbstractFieldSet rewrittenWithLens(
       AppView<?> appView, GraphLens lens, PrunedItems prunedItems);

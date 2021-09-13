@@ -100,7 +100,7 @@ class EnumUnboxingLens extends NestedGraphLens {
       move(from, to, fromStatic, toStatic, 0);
     }
 
-    public void move(
+    public RewrittenPrototypeDescription move(
         DexMethod from,
         DexMethod to,
         boolean fromStatic,
@@ -134,10 +134,11 @@ class EnumUnboxingLens extends NestedGraphLens {
               ? null
               : new RewrittenPrototypeDescription.RewrittenTypeInfo(
                   from.proto.returnType, to.proto.returnType);
-      prototypeChangesPerMethod.put(
-          to,
+      RewrittenPrototypeDescription prototypeChanges =
           RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
-              .withExtraUnusedNullParameters(numberOfExtraNullParameters));
+              .withExtraUnusedNullParameters(numberOfExtraNullParameters);
+      prototypeChangesPerMethod.put(to, prototypeChanges);
+      return prototypeChanges;
     }
 
     void recordCheckNotZeroMethod(

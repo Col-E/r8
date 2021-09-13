@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
@@ -96,6 +97,16 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
   @Override
   public boolean receiverNeverEscapesOutsideConstructorChain() {
     return (data & RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN) != 0;
+  }
+
+  @Override
+  public NonTrivialInstanceInitializerInfo fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection) {
+    return new NonTrivialInstanceInitializerInfo(
+        data,
+        fieldInitializationInfos.fixupAfterParametersChanged(argumentInfoCollection),
+        readSet.fixupReadSetAfterParametersChanged(appView, argumentInfoCollection),
+        parent);
   }
 
   @Override

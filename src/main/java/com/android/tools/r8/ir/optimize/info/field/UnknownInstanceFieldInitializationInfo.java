@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /**
@@ -26,6 +27,12 @@ public class UnknownInstanceFieldInitializationInfo implements InstanceFieldInit
   @Override
   public boolean isUnknown() {
     return true;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
+    return this;
   }
 
   @Override

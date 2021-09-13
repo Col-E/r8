@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -43,6 +44,12 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
 
   @Override
   public InstanceFieldTypeInitializationInfo asTypeInitializationInfo() {
+    return this;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
     return this;
   }
 

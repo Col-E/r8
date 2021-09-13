@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.BiConsumer;
 
@@ -49,6 +50,12 @@ public class EmptyInstanceFieldInitializationInfoCollection
   @Override
   public boolean isEmpty() {
     return true;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfoCollection fixupAfterParametersChanged(
+      ArgumentInfoCollection argumentInfoCollection) {
+    return this;
   }
 
   @Override
