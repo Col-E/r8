@@ -36,7 +36,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isArgumentPropagationAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration);
+    return isParameterRemovalAllowed(configuration);
   }
 
   public Joiner joiner() {
