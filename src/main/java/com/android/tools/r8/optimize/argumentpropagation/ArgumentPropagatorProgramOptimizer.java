@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Iterables;
@@ -64,20 +65,27 @@ public class ArgumentPropagatorProgramOptimizer {
   public ArgumentPropagatorGraphLens run(
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       Consumer<DexProgramClass> affectedClassConsumer,
-      ExecutorService executorService)
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
+    timing.begin("Optimize components");
     Collection<Builder> partialGraphLensBuilders =
         ThreadUtils.processItemsWithResults(
             stronglyConnectedProgramComponents,
             classes ->
                 new StronglyConnectedComponentOptimizer().optimize(classes, affectedClassConsumer),
             executorService);
+    timing.end();
 
     // Merge all the partial, disjoint graph lens builders into a single graph lens.
+    timing.begin("Build graph lens");
     ArgumentPropagatorGraphLens.Builder graphLensBuilder =
         ArgumentPropagatorGraphLens.builder(appView);
     partialGraphLensBuilders.forEach(graphLensBuilder::mergeDisjoint);
-    return graphLensBuilder.build();
+    ArgumentPropagatorGraphLens graphLens = graphLensBuilder.build();
+    timing.end();
+
+    return graphLens;
   }
 
   private DexMethodSignatureSet getOrComputeLibraryMethods(DexClass clazz) {

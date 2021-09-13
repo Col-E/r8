@@ -128,10 +128,12 @@ public class ArgumentPropagator {
     timing.begin("Argument propagator");
 
     // Compute the strongly connected program components for parallel execution.
+    timing.begin("Compute components");
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
     List<Set<DexProgramClass>> stronglyConnectedProgramComponents =
         computeStronglyConnectedProgramClasses(appView, immediateSubtypingInfo);
+    timing.end();
 
     // Set the optimization info on each method.
     populateParameterOptimizationInfo(
@@ -142,16 +144,17 @@ public class ArgumentPropagator {
     Set<DexProgramClass> affectedClasses = Sets.newConcurrentHashSet();
     ArgumentPropagatorGraphLens graphLens =
         new ArgumentPropagatorProgramOptimizer(appView, immediateSubtypingInfo)
-            .run(stronglyConnectedProgramComponents, affectedClasses::add, executorService);
+            .run(stronglyConnectedProgramComponents, affectedClasses::add, executorService, timing);
 
     // Find all the code objects that need reprocessing.
     new ArgumentPropagatorMethodReprocessingEnqueuer(appView)
-        .enqueueMethodForReprocessing(graphLens, postMethodProcessorBuilder, executorService);
+        .enqueueMethodForReprocessing(
+            graphLens, postMethodProcessorBuilder, executorService, timing);
 
     // Finally, apply the graph lens to the program (i.e., remove constant parameters from method
     // definitions).
     new ArgumentPropagatorApplicationFixer(appView, graphLens)
-        .fixupApplication(affectedClasses, executorService);
+        .fixupApplication(affectedClasses, executorService, timing);
 
     timing.end();
   }

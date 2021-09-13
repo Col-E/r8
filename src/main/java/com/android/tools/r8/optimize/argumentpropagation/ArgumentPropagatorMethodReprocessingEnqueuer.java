@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayList;
@@ -43,18 +44,31 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
   public void enqueueMethodForReprocessing(
       ArgumentPropagatorGraphLens graphLens,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
-      ExecutorService executorService)
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
+    timing.begin("Enqueue methods for reprocessing");
+
     // Bring the methods to reprocess set up-to-date with the current graph lens (i.e., the one
     // prior to the argument propagator lens, which has not yet been installed!).
+    timing.begin("Rewrite methods to reprocess");
     LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder =
         postMethodProcessorBuilder
             .getMethodsToReprocessBuilder()
             .rewrittenWithLens(appView.graphLens());
+    timing.end();
+
+    timing.begin("Enqueue methods with non-trivial info");
     enqueueMethodsWithNonTrivialOptimizationInfo(methodsToReprocessBuilder);
+    timing.end();
+
+    timing.begin("Enqueue affected methods");
     if (graphLens != null) {
       enqueueAffectedCallers(graphLens, methodsToReprocessBuilder, executorService);
     }
+    timing.end();
+
+    timing.end();
   }
 
   private void enqueueMethodsWithNonTrivialOptimizationInfo(

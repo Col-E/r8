@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,7 +32,7 @@ public class ArgumentPropagatorApplicationFixer {
   }
 
   public void fixupApplication(
-      Set<DexProgramClass> affectedClasses, ExecutorService executorService)
+      Set<DexProgramClass> affectedClasses, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     // If the graph lens is null, argument propagation did not lead to any parameter removals. In
     // this case there is no needed to fixup the program.
@@ -42,8 +43,13 @@ public class ArgumentPropagatorApplicationFixer {
 
     assert !affectedClasses.isEmpty();
 
+    timing.begin("Fixup application");
     ThreadUtils.processItems(affectedClasses, this::fixupClass, executorService);
+    timing.end();
+
+    timing.begin("Rewrite AppView");
     appView.rewriteWithLens(graphLens);
+    timing.end();
   }
 
   private void fixupClass(DexProgramClass clazz) {
