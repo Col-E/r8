@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.DiagnosticsMatcher.diagnosticException;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigurationRuleDoesNotMatch;
 import static com.android.tools.r8.utils.codeinspector.Matchers.typeVariableNotInScope;
@@ -13,7 +12,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
@@ -76,8 +74,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
     assertThat(method, isPresent());
   }
 
-  // TODO(b/159966986): A general keep rule should not cause compiler assertion errors.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testPresentAnnotation() throws Exception {
     testForR8(Backend.CF)
         .addProgramFiles(R8_JAR)
@@ -85,10 +82,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
         .addDontWarnGoogle()
         .addDontWarnJavax()
         .addDontWarn("org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement")
-        .allowDiagnosticInfoMessages()
-        .compileWithExpectedDiagnostics(
-            diagnostics -> diagnostics.assertErrorsMatch(diagnosticException(AssertionError.class)))
-        .apply(TestBase::verifyAllInfoFromGenericSignatureTypeParameterValidation);
+        .compile();
   }
 
   @Test

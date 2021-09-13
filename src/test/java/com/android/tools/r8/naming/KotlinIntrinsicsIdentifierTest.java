@@ -97,7 +97,12 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
                 getKotlinAnnotationJar(kotlinc))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(mainClassName)
+            .addKeepRules(
+                "-keepconstantarguments class kotlin.jvm.internal.Intrinsics {",
+                "  *** checkParameterIsNotNull(...);",
+                "}")
             .allowDiagnosticWarningMessages()
+            .enableProguardTestOptions()
             .minification(minification)
             .compile()
             .assertAllWarningMessagesMatch(
@@ -158,7 +163,10 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
                     "-neverclassinline class **." + targetClassName,
                     "-" + NoVerticalClassMergingRule.RULE_NAME + " class **." + targetClassName,
                     "-" + NoHorizontalClassMergingRule.RULE_NAME + " class **." + targetClassName,
-                    "-neverinline class **." + targetClassName + " { <methods>; }"))
+                    "-neverinline class **." + targetClassName + " { <methods>; }",
+                    "-keepconstantarguments class kotlin.jvm.internal.Intrinsics {",
+                    "  *** checkParameterIsNotNull(...);",
+                    "}"))
             .allowDiagnosticWarningMessages()
             .minification(minification)
             .compile()

@@ -158,12 +158,14 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      testRemoveStaticFromStart(null, "Hello", " world!");
-      testRemoveStaticFromMiddle("Hello", null, " world!");
-      testRemoveStaticFromEnd("Hello", " world!", null);
-      new TestClass().testRemoveVirtualFromStart(null, "Hello", " world!");
-      new TestClass().testRemoveVirtualFromMiddle("Hello", null, " world!");
-      new TestClass().testRemoveVirtualFromEnd("Hello", " world!", null);
+      String hello = System.currentTimeMillis() > 0 ? "Hello" : null;
+      String world = System.currentTimeMillis() > 0 ? " world!" : null;
+      testRemoveStaticFromStart(null, hello, world);
+      testRemoveStaticFromMiddle(hello, null, world);
+      testRemoveStaticFromEnd(hello, world, null);
+      new TestClass().testRemoveVirtualFromStart(null, hello, world);
+      new TestClass().testRemoveVirtualFromMiddle(hello, null, world);
+      new TestClass().testRemoveVirtualFromEnd(hello, world, null);
     }
 
     @KeepConstantArguments

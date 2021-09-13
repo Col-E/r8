@@ -240,7 +240,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
     SingleTestRunResult<?> result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
-            .enableProguardTestOptions()
+            .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .addKeepMainRule(main)

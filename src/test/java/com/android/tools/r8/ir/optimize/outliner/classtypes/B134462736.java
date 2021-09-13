@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.outliner.classtypes;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -64,6 +65,7 @@ public class B134462736 extends TestBase {
         .enableInliningAnnotations()
         .addInnerClasses(B134462736.class)
         .addKeepMainRule(TestClass.class)
+        .enableConstantArgumentAnnotations()
         .setMinApi(parameters.getApiLevel())
         .noMinification()
         .addOptionsModification(
@@ -78,11 +80,14 @@ public class B134462736 extends TestBase {
   }
 
   public static class TestClass {
+
+    @KeepConstantArguments
     @NeverInline
     public void consumer(String arg1, String arg2) {
       System.out.println(arg1 + " " + arg2);
     }
 
+    @KeepConstantArguments
     @NeverInline
     public void method1(StringBuilder builder, String arg1, String arg2) {
       builder.append(arg1);
@@ -90,6 +95,7 @@ public class B134462736 extends TestBase {
       consumer(builder.toString(), null);
     }
 
+    @KeepConstantArguments
     @NeverInline
     public void method2(StringBuilder builder, String arg1, String arg2) {
       builder.append(arg1);

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -173,6 +174,7 @@ public class KeepParameterNamesTest extends TestBase {
         .addInnerClasses(KeepParameterNamesTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class " + Api.class.getTypeName() + "{ api*(...); }")
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableUnusedArgumentAnnotations()
@@ -209,6 +211,7 @@ public class KeepParameterNamesTest extends TestBase {
             "In Api.api2",
             "In Api.api3");
     testForR8(parameters.getBackend())
+        .enableConstantArgumentAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableUnusedArgumentAnnotations()
@@ -253,6 +256,7 @@ public class KeepParameterNamesTest extends TestBase {
     }
 
     @NeverInline
+    @KeepConstantArguments
     @KeepUnusedArguments
     void api1(int parameter1, String parameter2) {
       try {
@@ -264,12 +268,14 @@ public class KeepParameterNamesTest extends TestBase {
     }
 
     @NeverInline
+    @KeepConstantArguments
     @KeepUnusedArguments
     void api2(long parameter1, double parameter2) {
       System.out.println("In Api.api2");
     }
 
     @NeverInline
+    @KeepConstantArguments
     @KeepUnusedArguments
     void api3(List<String> parameter1, Map<String, Object> parameter2) {
       System.out.println("In Api.api3");

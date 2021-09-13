@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
@@ -80,6 +81,7 @@ public class KeepSignatureTest extends TestBase {
             ProguardKeepAttributes.INNER_CLASSES,
             ProguardKeepAttributes.ENCLOSING_METHOD)
         .setMinApi(parameters.getApiLevel())
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), KeptClass.class)
@@ -137,6 +139,7 @@ public class KeepSignatureTest extends TestBase {
 
     public List<P> notKeptField;
 
+    @KeepConstantArguments
     @NeverInline
     public List<P> notKeptMethod(P p1, P p2) {
       if (notKeptField != null) {
@@ -163,6 +166,7 @@ public class KeepSignatureTest extends TestBase {
       return (R) keptField;
     }
 
+    @KeepConstantArguments
     @NeverInline
     @SuppressWarnings("unchecked")
     public <R> R notKeptMethod(T t) {

@@ -444,10 +444,12 @@ public class ValidNameConflictTest extends JasminTestBase {
     ProcessResult javaOutput = runOnJavaNoVerifyRaw(builder, CLASS_NAME);
     assertEquals(0, javaOutput.exitCode);
 
-    List<String> pgConfigs = ImmutableList.of(
-        keepMainProguardConfiguration(CLASS_NAME),
-        "-overloadaggressively",
-        "-dontshrink");
+    List<String> pgConfigs =
+        ImmutableList.of(
+            keepMainProguardConfiguration(CLASS_NAME),
+            "-overloadaggressively",
+            "-dontoptimize",
+            "-dontshrink");
     AndroidApp app = compileWithR8(builder, pgConfigs, null, backend);
 
     CodeInspector codeInspector = new CodeInspector(app);

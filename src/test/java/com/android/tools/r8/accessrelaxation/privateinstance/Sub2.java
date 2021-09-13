@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.accessrelaxation.privateinstance;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -16,6 +17,7 @@ public class Sub2 extends Base implements Itf2 {
     return "Sub2::foo2()";
   }
 
+  @KeepConstantArguments
   @NeverInline
   private String bar1(int i) {
     return "Sub2::bar1(" + i + ")";
@@ -25,6 +27,7 @@ public class Sub2 extends Base implements Itf2 {
     return bar1(1);
   }
 
+  @KeepConstantArguments
   @NeverInline
   private String bar2(int i) {
     return "Sub2::bar2(" + i + ")";

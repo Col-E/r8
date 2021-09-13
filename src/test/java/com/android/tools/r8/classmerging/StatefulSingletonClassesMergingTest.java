@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.classmerging;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
@@ -35,6 +36,7 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class))
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -58,6 +60,9 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
 
     @NeverPropagateValue private final String data;
 
+    // TODO(b/198758663): With argument propagation the constructors end up not being equivalent,
+    //  which prevents merging in the final round of horizontal class merging.
+    @KeepConstantArguments
     A(String data) {
       this.data = data;
     }
@@ -75,6 +80,9 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
 
     @NeverPropagateValue private final String data;
 
+    // TODO(b/198758663): With argument propagation the constructors end up not being equivalent,
+    //  which prevents merging in the final round of horizontal class merging.
+    @KeepConstantArguments
     B(String data) {
       this.data = data;
     }

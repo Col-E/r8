@@ -10,3 +10,4 @@
 
 # allow access modification to enable minifcation
 -allowaccessmodification
+-keepconstantarguments class * { @shaking14.KeepConstantArguments *; }

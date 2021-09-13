@@ -58,7 +58,6 @@ public class StringIsEmptyTest extends TestBase {
     // This test wants to check if compile-time computation is not applied to non-null,
     // non-constant value. In a simple test setting, call-site optimization knows the argument is
     // always a non-null, specific constant, but that is beyond the scope of this test.
-    assert !options.callSiteOptimizationOptions().isConstantPropagationEnabled();
   }
 
   private void test(SingleTestRunResult result, int expectedStringIsEmptyCount) throws Exception {

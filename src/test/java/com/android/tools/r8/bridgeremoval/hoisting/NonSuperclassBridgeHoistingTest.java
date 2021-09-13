@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -42,6 +43,7 @@ public class NonSuperclassBridgeHoistingTest extends TestBase {
                 .setBridge(B.class.getDeclaredMethod("bridge", Object.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -76,6 +78,7 @@ public class NonSuperclassBridgeHoistingTest extends TestBase {
   @NeverClassInline
   static class B extends A {
 
+    @KeepConstantArguments
     @NeverInline
     public Object m(String arg) {
       return System.currentTimeMillis() >= 0 ? arg : null;
@@ -83,6 +86,7 @@ public class NonSuperclassBridgeHoistingTest extends TestBase {
 
     // This bridge cannot be hoisted to A, since it targets a method on the enclosing class.
     // Hoisting the bridge to A would lead to a NoSuchMethodError.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String bridge(Object o) {
       return (String) m((String) o);

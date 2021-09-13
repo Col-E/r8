@@ -6,6 +6,7 @@ package com.android.tools.r8.bridgeremoval.hoisting;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -71,6 +72,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
                         int.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -119,6 +121,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
 
     // This bridge cannot be hoisted to A, since it would then become inaccessible to the call site
     // in TestClass.main().
+    @KeepConstantArguments
     @NeverInline
     /*bridge*/ String bridgeB(Object o) {
       return (String) m((String) o);
@@ -131,6 +134,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // This bridge is invoked from another package. However, this does not prevent us from hoisting
     // the bridge to B, although B is not public, since users from outside this package can still
     // access bridgeC() via class C. From B, the bridge can be hoisted again to A.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String bridgeC(Object o) {
       return (String) m((String) o);
@@ -142,6 +146,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
 
     // This bridge cannot be hoisted to A, since it would then become inaccessible to the call site
     // in TestClass.main().
+    @KeepConstantArguments
     @NeverInline
     /*bridge*/ String bridgeB(Object o, int a, int b, int c, int d, int e) {
       return (String) m((String) o, a, b, c, d, e);
@@ -154,6 +159,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // This bridge is invoked from another package. However, this does not prevent us from hoisting
     // the bridge to B, although B is not public, since users from outside this package can still
     // access bridgeC() via class C. From B, the bridge can be hoisted again to A.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String bridgeC(Object o, int a, int b, int c, int d, int e) {
       return (String) m((String) o, a, b, c, d, e);
