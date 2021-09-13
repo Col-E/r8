@@ -8,7 +8,6 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
-import com.android.tools.r8.naming.ProguardMap.Builder;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
@@ -231,11 +230,13 @@ public class ProguardMapReader implements AutoCloseable {
       if (isCommentLineWithJsonBrace()) {
         parseMappingInformation(
             info -> {
-              assert info.isMetaInfMappingInformation();
+              assert info.isMapVersionMappingInformation()
+                  || info.isUnknownJsonMappingInformation();
             });
         // Skip reading the rest of the line.
         lineOffset = line.length();
         nextLine();
+        continue;
       }
       String before = parseType(false);
       skipWhitespace();
@@ -257,7 +258,7 @@ public class ProguardMapReader implements AutoCloseable {
           mapBuilder.classNamingBuilder(after, before, getPosition());
       skipWhitespace();
       if (nextLine()) {
-        parseMemberMappings(mapBuilder, currentClassBuilder);
+        parseMemberMappings(currentClassBuilder);
       }
     }
   }
@@ -269,7 +270,7 @@ public class ProguardMapReader implements AutoCloseable {
         diagnosticsHandler,
         lineNo,
         info -> {
-          MapVersionMappingInformation generatorInfo = info.asMetaInfMappingInformation();
+          MapVersionMappingInformation generatorInfo = info.asMapVersionMappingInformation();
           if (generatorInfo != null) {
             if (generatorInfo.getMapVersion().equals(MapVersion.MAP_VERSION_EXPERIMENTAL)) {
               // A mapping file that is marked "experimental" will be treated as an unversioned
@@ -286,8 +287,7 @@ public class ProguardMapReader implements AutoCloseable {
         });
   }
 
-  private void parseMemberMappings(Builder mapBuilder, ClassNaming.Builder classNamingBuilder)
-      throws IOException {
+  private void parseMemberMappings(ClassNaming.Builder classNamingBuilder) throws IOException {
     MemberNaming lastAddedNaming = null;
     MemberNaming activeMemberNaming = null;
     MappedRange activeMappedRange = null;

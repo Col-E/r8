@@ -20,7 +20,6 @@ public class MapVersionMappingInformation extends MappingInformation {
   private final MapVersion mapVersion;
 
   public MapVersionMappingInformation(MapVersion mapVersion) {
-    super();
     this.mapVersion = mapVersion;
   }
 
@@ -30,12 +29,12 @@ public class MapVersionMappingInformation extends MappingInformation {
   }
 
   @Override
-  public boolean isMetaInfMappingInformation() {
+  public boolean isMapVersionMappingInformation() {
     return true;
   }
 
   @Override
-  public MapVersionMappingInformation asMetaInfMappingInformation() {
+  public MapVersionMappingInformation asMapVersionMappingInformation() {
     return this;
   }
 

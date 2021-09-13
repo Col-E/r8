@@ -18,27 +18,35 @@ public abstract class MappingInformation {
 
   public abstract String serialize();
 
-  public boolean isMetaInfMappingInformation() {
+  public boolean isMapVersionMappingInformation() {
     return false;
   }
 
-  public MapVersionMappingInformation asMetaInfMappingInformation() {
-    return null;
+  public boolean isUnknownJsonMappingInformation() {
+    return false;
   }
 
   public boolean isFileNameInformation() {
     return false;
   }
 
-  public FileNameInformation asFileNameInformation() {
-    return null;
-  }
-
   public boolean isCompilerSynthesizedMappingInformation() {
     return false;
   }
 
+  public MapVersionMappingInformation asMapVersionMappingInformation() {
+    return null;
+  }
+
+  public FileNameInformation asFileNameInformation() {
+    return null;
+  }
+
   public CompilerSynthesizedMappingInformation asCompilerSynthesizedMappingInformation() {
+    return null;
+  }
+
+  public UnknownJsonMappingInformation asUnknownJsonMappingInformation() {
     return null;
   }
 
@@ -92,11 +100,11 @@ public abstract class MappingInformation {
             version, object, diagnosticsHandler, lineNumber, onMappingInfo);
         return;
       case CompilerSynthesizedMappingInformation.ID:
-        CompilerSynthesizedMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber, onMappingInfo);
+        CompilerSynthesizedMappingInformation.deserialize(version, onMappingInfo);
         return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));
+        UnknownJsonMappingInformation.deserialize(id, object, onMappingInfo);
     }
   }
 

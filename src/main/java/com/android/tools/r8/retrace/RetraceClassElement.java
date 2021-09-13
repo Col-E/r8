@@ -24,4 +24,6 @@ public interface RetraceClassElement extends RetraceElement<RetraceClassResult> 
 
   RetraceFrameResult lookupFrame(
       String methodName, int position, List<TypeReference> formalTypes, TypeReference returnType);
+
+  RetraceUnknownJsonMappingInformationResult getUnknownJsonMappingInformation();
 }

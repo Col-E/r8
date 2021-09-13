@@ -45,7 +45,7 @@ public class RetraceApiTestHelper {
           RetraceApiSynthesizedFrameTest.ApiTest.class,
           RetraceApiSynthesizedInnerFrameTest.ApiTest.class);
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of();
+      ImmutableList.of(RetraceApiUnknownJsonTest.ApiTest.class);
 
   public static void runJunitOnTests(
       CfRuntime runtime,

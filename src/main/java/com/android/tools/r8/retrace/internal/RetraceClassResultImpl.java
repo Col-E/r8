@@ -17,6 +17,7 @@ import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.RetraceUnknownJsonMappingInformationResult;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
@@ -342,6 +343,12 @@ public class RetraceClassResultImpl implements RetraceClassResult {
               Reference.method(
                   classReference.getClassReference(), methodName, formalTypes, returnType)),
           position);
+    }
+
+    @Override
+    public RetraceUnknownJsonMappingInformationResult getUnknownJsonMappingInformation() {
+      return RetraceUnknownJsonMappingInformationResultImpl.build(
+          mapper.getAdditionalMappingInfo());
     }
 
     private RetraceFrameResultImpl lookupFrame(MethodDefinition definition, int position) {
