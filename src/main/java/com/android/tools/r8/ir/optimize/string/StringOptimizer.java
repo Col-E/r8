@@ -143,7 +143,10 @@ public class StringOptimizer {
         continue;
       }
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (invokedMethod.name == factory.substringName) {
+      if (invokedMethod.getHolderType() != factory.stringType) {
+        continue;
+      }
+      if (invokedMethod.getName() == factory.substringName) {
         assert invoke.inValues().size() == 2 || invoke.inValues().size() == 3;
         Value rcv = invoke.getReceiver().getAliasedValue();
         if (rcv.definition == null

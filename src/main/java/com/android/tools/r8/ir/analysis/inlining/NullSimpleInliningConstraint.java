@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -13,6 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /** Constraint that is satisfied if a specific argument is always null. */
 public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
@@ -33,7 +35,9 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
 
   @Override
   public SimpleInliningConstraint fixupAfterParametersChanged(
-      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
+      AppView<AppInfoWithLiveness> appView,
+      ArgumentInfoCollection changes,
+      SimpleInliningConstraintFactory factory) {
     ArgumentInfo argumentInfo = changes.getArgumentInfo(getArgumentIndex());
     if (argumentInfo.isRemovedArgumentInfo()) {
       RemovedArgumentInfo removedArgumentInfo =
@@ -49,8 +53,7 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
     } else if (argumentInfo.isRewrittenTypeInfo()) {
       RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
       // We should only get here as a result of enum unboxing.
-      assert rewrittenTypeInfo.getOldType().isClassType();
-      assert rewrittenTypeInfo.getNewType().isIntType();
+      assert rewrittenTypeInfo.verifyIsDueToUnboxing(appView.dexItemFactory());
       // Rewrite definitely-null constraints to definitely-zero constraints.
       return nullability.isDefinitelyNull()
           ? factory.createEqualToNumberConstraint(getArgumentIndex(), 0)

@@ -200,6 +200,12 @@ public class RewrittenPrototypeDescription {
       assert newType == rewrittenTypeInfo.oldType;
       return new RewrittenTypeInfo(oldType, rewrittenTypeInfo.newType);
     }
+
+    public boolean verifyIsDueToUnboxing(DexItemFactory dexItemFactory) {
+      assert oldType.toBaseType(dexItemFactory).isClassType();
+      assert newType.toBaseType(dexItemFactory).isIntType();
+      return true;
+    }
   }
 
   public static class ArgumentInfoCollection {

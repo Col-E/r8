@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -68,13 +70,15 @@ public class SimpleInliningConstraintConjunction extends SimpleInliningConstrain
 
   @Override
   public SimpleInliningConstraint fixupAfterParametersChanged(
-      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
+      AppView<AppInfoWithLiveness> appView,
+      ArgumentInfoCollection changes,
+      SimpleInliningConstraintFactory factory) {
     List<SimpleInliningConstraint> rewrittenConstraints =
         ListUtils.mapOrElse(
             constraints,
             constraint -> {
               SimpleInliningConstraint rewrittenConstraint =
-                  constraint.fixupAfterParametersChanged(changes, factory);
+                  constraint.fixupAfterParametersChanged(appView, changes, factory);
               if (rewrittenConstraint.isAlways()) {
                 // Remove 'always' from conjunctions.
                 return null;

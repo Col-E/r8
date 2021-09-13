@@ -35,7 +35,8 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
   }
 
   @Override
-  public ClassInlinerMethodConstraint fixupAfterParametersChanged(ArgumentInfoCollection changes) {
+  public ClassInlinerMethodConstraint fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection changes) {
     if (usages.isBottom()) {
       return this;
     }
@@ -54,8 +55,7 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
                 // This is due to enum unboxing. After enum unboxing, we no longer need information
                 // about the usages of this parameter for class inlining.
                 RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-                assert rewrittenTypeInfo.getOldType().isClassType();
-                assert rewrittenTypeInfo.getNewType().isIntType();
+                assert rewrittenTypeInfo.verifyIsDueToUnboxing(appView.dexItemFactory());
                 return;
               }
               backing.put(changes.getNewArgumentIndex(argumentIndex), usagePerContext);

@@ -64,11 +64,13 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
    */
   @Override
   public ClassInlinerMethodConstraint fixupClassInlinerMethodConstraint(
+      AppView<AppInfoWithLiveness> appView,
       ClassInlinerMethodConstraint classInlinerMethodConstraint) {
     if (getArgumentInfoCollection().isEmpty()) {
       return classInlinerMethodConstraint;
     }
-    return classInlinerMethodConstraint.fixupAfterParametersChanged(getArgumentInfoCollection());
+    return classInlinerMethodConstraint.fixupAfterParametersChanged(
+        appView, getArgumentInfoCollection());
   }
 
   /**
@@ -157,10 +159,12 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
    */
   @Override
   public SimpleInliningConstraint fixupSimpleInliningConstraint(
-      SimpleInliningConstraint constraint, SimpleInliningConstraintFactory factory) {
+      AppView<AppInfoWithLiveness> appView,
+      SimpleInliningConstraint constraint,
+      SimpleInliningConstraintFactory factory) {
     if (getArgumentInfoCollection().isEmpty()) {
       return constraint;
     }
-    return constraint.fixupAfterParametersChanged(getArgumentInfoCollection(), factory);
+    return constraint.fixupAfterParametersChanged(appView, getArgumentInfoCollection(), factory);
   }
 }

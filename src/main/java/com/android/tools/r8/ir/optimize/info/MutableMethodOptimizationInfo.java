@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -160,13 +159,13 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   public MutableMethodOptimizationInfo fixup(
       AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
     return fixupBridgeInfo(fixer)
-        .fixupClassInlinerMethodConstraint(fixer)
+        .fixupClassInlinerMethodConstraint(appView, fixer)
         .fixupEnumUnboxerMethodClassification(fixer)
         .fixupInstanceInitializerInfo(appView, fixer)
         .fixupNonNullParamOnNormalExits(fixer)
         .fixupNonNullParamOrThrow(fixer)
         .fixupReturnedArgumentIndex(fixer)
-        .fixupSimpleInliningConstraint(fixer, appView.simpleInliningConstraintFactory());
+        .fixupSimpleInliningConstraint(appView, fixer);
   }
 
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
@@ -254,8 +253,9 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupClassInlinerMethodConstraint(
-      MethodOptimizationInfoFixer fixer) {
-    classInlinerConstraint = fixer.fixupClassInlinerMethodConstraint(classInlinerConstraint);
+      AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
+    classInlinerConstraint =
+        fixer.fixupClassInlinerMethodConstraint(appView, classInlinerConstraint);
     return this;
   }
 
@@ -473,9 +473,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupSimpleInliningConstraint(
-      MethodOptimizationInfoFixer fixer, SimpleInliningConstraintFactory factory) {
+      AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
     simpleInliningConstraint =
-        fixer.fixupSimpleInliningConstraint(simpleInliningConstraint, factory);
+        fixer.fixupSimpleInliningConstraint(
+            appView, simpleInliningConstraint, appView.simpleInliningConstraintFactory());
     return this;
   }
 

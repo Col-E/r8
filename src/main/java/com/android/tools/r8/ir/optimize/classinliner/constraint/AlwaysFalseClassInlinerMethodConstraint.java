@@ -23,7 +23,8 @@ public class AlwaysFalseClassInlinerMethodConstraint implements ClassInlinerMeth
   }
 
   @Override
-  public ClassInlinerMethodConstraint fixupAfterParametersChanged(ArgumentInfoCollection changes) {
+  public ClassInlinerMethodConstraint fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection changes) {
     return this;
   }
 

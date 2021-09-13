@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.ir.analysis.inlining;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /** Constraint that is satisfied if a specific argument is always true. */
 public class EqualToBooleanSimpleInliningConstraint extends SimpleInliningArgumentConstraint {
@@ -29,7 +31,9 @@ public class EqualToBooleanSimpleInliningConstraint extends SimpleInliningArgume
 
   @Override
   public SimpleInliningConstraint fixupAfterParametersChanged(
-      ArgumentInfoCollection changes, SimpleInliningConstraintFactory factory) {
+      AppView<AppInfoWithLiveness> appView,
+      ArgumentInfoCollection changes,
+      SimpleInliningConstraintFactory factory) {
     if (changes.isArgumentRemoved(getArgumentIndex())) {
       RemovedArgumentInfo removedArgumentInfo =
           changes.getArgumentInfo(getArgumentIndex()).asRemovedArgumentInfo();

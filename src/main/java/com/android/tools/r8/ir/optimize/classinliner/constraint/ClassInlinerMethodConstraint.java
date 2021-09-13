@@ -13,7 +13,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public interface ClassInlinerMethodConstraint {
 
-  ClassInlinerMethodConstraint fixupAfterParametersChanged(ArgumentInfoCollection changes);
+  ClassInlinerMethodConstraint fixupAfterParametersChanged(
+      AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection changes);
 
   ParameterUsage getParameterUsage(int parameter);
 

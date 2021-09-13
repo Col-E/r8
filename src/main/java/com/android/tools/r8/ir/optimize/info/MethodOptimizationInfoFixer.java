@@ -23,6 +23,7 @@ public abstract class MethodOptimizationInfoFixer {
       ConcreteCallSiteOptimizationInfo callSiteOptimizationInfo);
 
   public abstract ClassInlinerMethodConstraint fixupClassInlinerMethodConstraint(
+      AppView<AppInfoWithLiveness> appView,
       ClassInlinerMethodConstraint classInlinerMethodConstraint);
 
   public abstract EnumUnboxerMethodClassification fixupEnumUnboxerMethodClassification(
@@ -39,5 +40,7 @@ public abstract class MethodOptimizationInfoFixer {
   public abstract int fixupReturnedArgumentIndex(int returnedArgumentIndex);
 
   public abstract SimpleInliningConstraint fixupSimpleInliningConstraint(
-      SimpleInliningConstraint constraint, SimpleInliningConstraintFactory factory);
+      AppView<AppInfoWithLiveness> appView,
+      SimpleInliningConstraint constraint,
+      SimpleInliningConstraintFactory factory);
 }
