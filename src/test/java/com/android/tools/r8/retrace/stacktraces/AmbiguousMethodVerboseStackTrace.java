@@ -35,7 +35,7 @@ public class AmbiguousMethodVerboseStackTrace implements StackTraceForTest {
         "\tat com.android.tools.r8.naming.retrace.Main.c(Main.java)",
         "\tat com.android.tools.r8.naming.retrace.Main.com.android.Foo main("
             + "java.lang.String[])(Main.java)",
-        "\t<OR> at com.android.tools.r8.naming.retrace.Main.void main("
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.void main("
             + "com.android.Bar)(Main.java)",
         "\tat com.android.tools.r8.naming.retrace.Main.com.android.Foo main("
             + "java.lang.String[],com.android.Bar)(Main.java)");

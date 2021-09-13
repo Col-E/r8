@@ -416,7 +416,7 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("com.android.tools.r8.R8.foo()");
+            return ImmutableList.of("com.android.tools.r8.R8.foo(7)");
           }
 
           @Override
