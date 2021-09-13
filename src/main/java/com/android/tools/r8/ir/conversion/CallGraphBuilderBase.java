@@ -144,10 +144,11 @@ abstract class CallGraphBuilderBase {
         // We don't care about calls to native methods.
         return;
       }
-      if (appView.appInfo().isPinned(callee.getReference())) {
-        // Since the callee is kept, we cannot inline it into the caller, and we also cannot collect
-        // any optimization info for the method. Therefore, we drop the call edge to reduce the
-        // total number of call graph edges, which should lead to fewer call graph cycles.
+      if (!appView.getKeepInfo(callee).isInliningAllowed(appView.options())) {
+        // Since the callee is kept and optimizations are disallowed, we cannot inline it into the
+        // caller, and we also cannot collect any optimization info for the method. Therefore, we
+        // drop the call edge to reduce the total number of call graph edges, which should lead to
+        // fewer call graph cycles.
         return;
       }
       getOrCreateNode(callee).addCallerConcurrently(currentMethod, likelySpuriousCallEdge);

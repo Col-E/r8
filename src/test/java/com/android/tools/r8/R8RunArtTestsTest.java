@@ -1901,6 +1901,7 @@ public abstract class R8RunArtTestsTest {
                   .setDisableTreeShaking(true)
                   .setDisableMinification(true)
                   .setDisableDesugaring(compilationOptions.disableDesugaring)
+                  .addProguardConfiguration(ImmutableList.of("-dontoptimize"), Origin.unknown())
                   .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .addProguardConfiguration(compilationOptions.keepRules, Origin.unknown())
                   .setOutput(

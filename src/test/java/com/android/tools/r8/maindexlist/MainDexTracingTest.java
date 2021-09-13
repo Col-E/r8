@@ -391,6 +391,7 @@ public class MainDexTracingTest extends TestBase {
         .setMinApi(minSdk)
         .noMinification()
         .noTreeShaking()
+        .addDontOptimize()
         .setMainDexListConsumer(ToolHelper.consumeString(r8MainDexListOutput::set))
         .allowDiagnosticMessages()
         .compileWithExpectedDiagnostics(
