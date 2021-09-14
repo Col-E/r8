@@ -343,12 +343,13 @@ public abstract class CfInstructionDesugaringEventConsumer
       for (ConstantDynamicClass constantDynamicClass : synthesizedConstantDynamicClasses) {
         constantDynamicClass.getConstantDynamicProgramClass().forEachProgramMethod(needsProcessing);
       }
-      synthesizedLambdaClasses.clear();
+      synthesizedConstantDynamicClasses.clear();
     }
 
     public boolean verifyNothingToFinalize() {
       assert pendingInvokeSpecialBridges.isEmpty();
       assert synthesizedLambdaClasses.isEmpty();
+      assert synthesizedConstantDynamicClasses.isEmpty();
       return true;
     }
   }
