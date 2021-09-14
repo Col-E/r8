@@ -315,9 +315,11 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     // If the target holder does not resolve we may want to issue diagnostics.
     DexClass holder = appView.definitionForHolder(invoke.getMethod(), context);
     if (holder == null) {
-      // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
-      // exception but we can not report it as error since it can also be the intended
-      // behavior.
+      if (invoke.isInvokeVirtual() || invoke.isInvokeInterface()) {
+        // For virtual targets we should not report anything as any virtual dispatch just remains.
+        return DesugarDescription.nothing();
+      }
+      // For static, private and special invokes, they may require desugaring and should warn.
       return DesugarDescription.builder()
           .addScanEffect(
               () -> {
