@@ -54,6 +54,13 @@ public class MetadataPrunedFieldsTest extends KotlinMetadataTestBase {
         .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addOptionsModification(
+            internalOptions -> {
+              // When checking for metadata being equal if not rewritten, we parse the original data
+              // again. However, for this particular test, a field of the metadata has been removed
+              // and we cannot parse the metadata again.
+              internalOptions.testing.keepMetadataInR8IfNotRewritten = false;
+            })
         .compile()
         .inspect(
             codeInspector -> {
