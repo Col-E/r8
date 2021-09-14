@@ -3,6 +3,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 from os import path
+import datetime
 from subprocess import check_output, Popen, PIPE, STDOUT
 
 FMT_CMD = path.join(
@@ -78,14 +79,15 @@ def CheckForCopyRight(input_api, output_api, branch):
       continue
     if not CopyRightInContents(f, contents):
       results.append(
-          output_api.PresubmitError('Could not find Copyright in file: %s' % f))
+          output_api.PresubmitError('Could not find correctly formatted '
+                                    'copyright in file: %s' % f))
   return results
 
 def CopyRightInContents(f, contents):
   expected = '//'
   if f.LocalPath().endswith('.py') or f.LocalPath().endswith('.sh'):
     expected = '#'
-  expected = expected + ' Copyright'
+  expected = expected + ' Copyright (c) ' + str(datetime.datetime.now().year)
   for content_line in contents:
     if expected in content_line:
       return True
