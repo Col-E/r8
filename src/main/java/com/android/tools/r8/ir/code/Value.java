@@ -832,6 +832,10 @@ public class Value implements Comparable<Value> {
       return UnknownValue.getInstance();
     }
 
+    if (getType().nullability().isDefinitelyNull()) {
+      return appView.abstractValueFactory().createNullValue();
+    }
+
     Value root = getAliasedValue();
     if (root.isPhi()) {
       return UnknownValue.getInstance();
