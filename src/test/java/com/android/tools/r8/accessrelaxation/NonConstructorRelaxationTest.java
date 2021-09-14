@@ -78,7 +78,6 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
-            .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .enableMemberValuePropagationAnnotations()
@@ -163,7 +162,6 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .addKeepMainRule(mainClass)
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
-            .enableConstantArgumentAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()

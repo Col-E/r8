@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -43,7 +42,6 @@ public class FinalBridgeHoistingTest extends TestBase {
                 .transform())
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(B1.class)
-        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -87,7 +85,6 @@ public class FinalBridgeHoistingTest extends TestBase {
   @NeverClassInline
   static class B1 extends A {
 
-    @KeepConstantArguments
     public String virtualBridge(Object o) {
       return (String) m((String) o);
     }
@@ -96,7 +93,6 @@ public class FinalBridgeHoistingTest extends TestBase {
   @NeverClassInline
   static class B2 extends A {
 
-    @KeepConstantArguments
     @NeverInline
     public final /*bridge*/ String virtualBridge(Object o) {
       return (String) m((String) o);

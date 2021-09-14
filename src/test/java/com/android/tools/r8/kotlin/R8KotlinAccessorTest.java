@@ -14,7 +14,6 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -29,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -111,7 +111,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+                checkMethodIsKept(outerClass, setterAccessor);
               }
             });
   }
@@ -146,7 +146,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
 
                 checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+                checkMethodIsKept(outerClass, setterAccessor);
               }
             });
   }
@@ -180,7 +180,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+                checkMethodIsKept(outerClass, setterAccessor);
               }
             });
   }
@@ -214,7 +214,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+                checkMethodIsKept(outerClass, setterAccessor);
               }
             });
   }
@@ -247,7 +247,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+                checkMethodIsKept(outerClass, setterAccessor);
               }
             });
   }
@@ -340,6 +340,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
+  @Ignore("b/74103342")
   public void testAccessorFromPrivate() throws Exception {
     TestKotlinCompanionClass testedClass = ACCESSOR_COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("accessors.AccessorKt",
@@ -347,8 +348,28 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest("accessors", mainClass)
         .inspect(
             inspector -> {
-              checkClassIsRemoved(inspector, testedClass.getOuterClassName());
-              checkClassIsRemoved(inspector, testedClass.getClassName());
+              ClassSubject outerClass =
+                  checkClassIsKept(inspector, testedClass.getOuterClassName());
+              ClassSubject companionClass = checkClassIsKept(inspector, testedClass.getClassName());
+              String propertyName = "property";
+              FieldSubject fieldSubject =
+                  checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
+              assertTrue(fieldSubject.getField().accessFlags.isStatic());
+
+              // We cannot inline the getter because we don't know if NPE is preserved.
+              MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
+              checkMethodIsKept(companionClass, getter);
+
+              // We should always inline the static accessor method.
+              MemberNaming.MethodSignature getterAccessor =
+                  testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_INNER);
+              checkMethodIsRemoved(companionClass, getterAccessor);
+
+              if (allowAccessModification) {
+                assertTrue(fieldSubject.getField().accessFlags.isPublic());
+              } else {
+                assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+              }
             });
   }
 
@@ -368,6 +389,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
   }
 
   @Test
+  @Ignore("b/74103342")
   public void testPrivatePropertyAccessorForInnerClassCanBeInlined() throws Exception {
     TestKotlinClass testedClass = PROPERTY_ACCESS_FOR_INNER_CLASS;
     String mainClass = addMainToClasspath(testedClass.className + "Kt",
@@ -375,13 +397,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest("accessors", mainClass)
         .inspect(
             inspector -> {
-              if (allowAccessModification
-                  && (testParameters.isCfRuntime()
-                      || !kotlinParameters.is(KOTLINC_1_5_0, KotlinTargetVersion.JAVA_8))) {
-                checkClassIsRemoved(inspector, testedClass.getClassName());
-                return;
-              }
-
               ClassSubject classSubject = checkClassIsKept(inspector, testedClass.getClassName());
 
               String propertyName = "privateProp";
@@ -400,12 +415,13 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(classSubject, getterAccessor);
-                checkMethodIsRemoved(classSubject, setterAccessor);
+                checkMethodIsKept(classSubject, setterAccessor);
               }
             });
   }
 
   @Test
+  @Ignore("b/74103342")
   public void testPrivateLateInitPropertyAccessorForInnerClassCanBeInlined() throws Exception {
     TestKotlinClass testedClass = PROPERTY_ACCESS_FOR_INNER_CLASS;
     String mainClass = addMainToClasspath(testedClass.className + "Kt",
@@ -413,15 +429,31 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest("accessors", mainClass)
         .inspect(
             inspector -> {
-              if (kotlinc.getCompilerVersion() == KOTLINC_1_5_0 && testParameters.isDexRuntime()) {
-                checkClassIsKept(inspector, testedClass.getClassName());
+              ClassSubject classSubject = checkClassIsKept(inspector, testedClass.getClassName());
+
+              String propertyName = "privateLateInitProp";
+              FieldSubject fieldSubject =
+                  checkFieldIsKept(classSubject, JAVA_LANG_STRING, propertyName);
+              assertFalse(fieldSubject.getField().accessFlags.isStatic());
+
+              MemberNaming.MethodSignature getterAccessor =
+                  testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_INNER);
+              MemberNaming.MethodSignature setterAccessor =
+                  testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_INNER);
+              if (allowAccessModification) {
+                assertTrue(fieldSubject.getField().accessFlags.isPublic());
+                checkMethodIsRemoved(classSubject, getterAccessor);
+                checkMethodIsRemoved(classSubject, setterAccessor);
               } else {
-                checkClassIsRemoved(inspector, testedClass.getClassName());
+                assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+                checkMethodIsKept(classSubject, getterAccessor);
+                checkMethodIsKept(classSubject, setterAccessor);
               }
             });
   }
 
   @Test
+  @Ignore("b/74103342")
   public void testAccessorForLambdaIsRemovedWhenNotUsed() throws Exception {
     TestKotlinClass testedClass = PROPERTY_ACCESS_FOR_LAMBDA_CLASS;
     String mainClass = addMainToClasspath(testedClass.className + "Kt",
@@ -429,11 +461,21 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest("accessors", mainClass)
         .inspect(
             inspector -> {
-              checkClassIsRemoved(inspector, testedClass.getClassName());
+              ClassSubject classSubject = checkClassIsKept(inspector, testedClass.getClassName());
+              String propertyName = "property";
+
+              MemberNaming.MethodSignature getterAccessor =
+                  testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_LAMBDA);
+              MemberNaming.MethodSignature setterAccessor =
+                  testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_LAMBDA);
+
+              checkMethodIsRemoved(classSubject, getterAccessor);
+              checkMethodIsRemoved(classSubject, setterAccessor);
             });
   }
 
   @Test
+  @Ignore("b/74103342")
   public void testAccessorForLambdaCanBeInlined() throws Exception {
     TestKotlinClass testedClass = PROPERTY_ACCESS_FOR_LAMBDA_CLASS;
     String mainClass = addMainToClasspath(testedClass.className + "Kt",
@@ -441,25 +483,16 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest("accessors", mainClass)
         .inspect(
             inspector -> {
-              if (allowAccessModification) {
-                checkClassIsRemoved(inspector, testedClass.getClassName());
-                return;
-              }
-
               ClassSubject classSubject = checkClassIsKept(inspector, testedClass.getClassName());
               String propertyName = "property";
               FieldSubject fieldSubject =
                   checkFieldIsKept(classSubject, JAVA_LANG_STRING, propertyName);
               assertFalse(fieldSubject.getField().accessFlags.isStatic());
 
-              AccessorKind accessorKind =
-                  kotlinc.getCompilerVersion() == KOTLINC_1_5_0
-                      ? AccessorKind.FROM_INNER
-                      : AccessorKind.FROM_LAMBDA;
               MemberNaming.MethodSignature getterAccessor =
-                  testedClass.getGetterAccessorForProperty(propertyName, accessorKind);
+                  testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_LAMBDA);
               MemberNaming.MethodSignature setterAccessor =
-                  testedClass.getSetterAccessorForProperty(propertyName, accessorKind);
+                  testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_LAMBDA);
               if (allowAccessModification) {
                 assertTrue(fieldSubject.getField().accessFlags.isPublic());
                 checkMethodIsRemoved(classSubject, getterAccessor);

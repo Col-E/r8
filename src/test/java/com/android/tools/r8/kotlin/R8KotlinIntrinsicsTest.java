@@ -54,7 +54,9 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
             "intrinsics",
             "intrinsics.IntrinsicsKt",
             testBuilder ->
-                testBuilder.addKeepRules(extraRules).noHorizontalClassMerging(Intrinsics.class))
+                testBuilder
+                    .addKeepRules(extraRules)
+                    .noHorizontalClassMerging(Intrinsics.class))
         .inspect(
             inspector -> {
               ClassSubject intrinsicsClass =
@@ -73,7 +75,8 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
                               "checkParameterIsNotNull",
                               "void",
                               Lists.newArrayList("java.lang.Object", "java.lang.String")),
-                          !allowAccessModification)
+                          // TODO(b/179866251): This is also different on CF
+                          !allowAccessModification || testParameters.isCfRuntime())
                       .build());
             });
   }

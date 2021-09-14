@@ -4,13 +4,10 @@
 package shaking14;
 
 public class Subclass extends Superclass {
-
-  @KeepConstantArguments
   static int aMethod(int value) {
     return value + 42;
   }
 
-  @KeepConstantArguments
   static double anotherMethod(double value) {
     return value + 42;
   }

@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -51,7 +50,6 @@ public class UnusedArgumentsCollisionMappingTest extends TestBase {
             .addProgramClasses(Main.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(Main.class)
-            .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()
             .addKeepAttributeLineNumberTable()
             .run(parameters.getRuntime(), Main.class)
@@ -94,7 +92,6 @@ public class UnusedArgumentsCollisionMappingTest extends TestBase {
       System.out.println("test with unused");
     }
 
-    @KeepConstantArguments
     @NeverInline
     public static void test(String used, String unused) {
       System.out.println("test with used: " + used);

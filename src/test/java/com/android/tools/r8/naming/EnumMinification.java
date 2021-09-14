@@ -102,7 +102,7 @@ public class EnumMinification extends TestBase {
 class Main {
 
   public static void main(String[] args) {
-    Enum e = Enum.valueOf(System.currentTimeMillis() > 0 ? "VALUE1" : null);
+    Enum e = Enum.valueOf("VALUE1");
     System.out.print(e);
   }
 }

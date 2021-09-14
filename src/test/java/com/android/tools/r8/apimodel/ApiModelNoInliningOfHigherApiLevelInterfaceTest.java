@@ -7,7 +7,6 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -45,7 +44,6 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
-        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
@@ -65,7 +63,6 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   @NoHorizontalClassMerging
   public static class ApiCaller {
 
-    @KeepConstantArguments
     public static void callInterfaceMethod(Api api) {
       System.out.println("ApiCaller::callInterfaceMethod");
       if (api != null) {

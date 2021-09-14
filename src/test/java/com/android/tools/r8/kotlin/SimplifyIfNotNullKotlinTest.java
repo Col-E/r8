@@ -11,7 +11,6 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -48,13 +47,7 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
             ImmutableList.of("java.util.Collection", STRING, STRING, "java.lang.Integer"));
 
     final String mainClassName = ex1.getClassName();
-    final String extraRules =
-        StringUtils.lines(
-            neverInlineMethod(mainClassName, testMethodSignature),
-            // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
-            "-keepclassmembers,allowoptimization,allowshrinking class non_null.Example1Kt {",
-            "  *** forMakeAndModel(...);",
-            "}");
+    final String extraRules = neverInlineMethod(mainClassName, testMethodSignature);
     runTest(
             FOLDER,
             mainClassName,
@@ -63,11 +56,7 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex1.getClassName());
 
-              // Verify forMakeAndModel(...) is present in the input.
-              checkMethodPresenceInInput(clazz.getOriginalName(), testMethodSignature, true);
-
-              // Find forMakeAndModel(...) after parameter removal.
-              MethodSubject testMethod = clazz.uniqueMethodWithName(testMethodSignature.name);
+              MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
               long ifzCount =
                   testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
               long paramNullCheckCount =

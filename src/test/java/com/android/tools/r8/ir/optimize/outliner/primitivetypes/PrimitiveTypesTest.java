@@ -5,23 +5,20 @@
 package com.android.tools.r8.ir.optimize.outliner.primitivetypes;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,30 +26,18 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class PrimitiveTypesTest extends TestBase {
 
-  private final boolean enableArgumentPropagation;
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{1}, argument propagation: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public PrimitiveTypesTest(boolean keepConstantArguments, TestParameters parameters) {
-    this.enableArgumentPropagation = keepConstantArguments;
+  public PrimitiveTypesTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   private void validateOutlining(CodeInspector inspector, Class<?> testClass, String argumentType) {
-    boolean isStringBuilderOptimized =
-        enableArgumentPropagation
-            && parameters.isDexRuntime()
-            && (argumentType.equals("char") || argumentType.equals("boolean"));
-    if (isStringBuilderOptimized) {
-      assertEquals(1, inspector.allClasses().size());
-      return;
-    }
-
     ClassSubject outlineClass =
         inspector.clazz(SyntheticItemsTestUtils.syntheticOutlineClass(testClass, 0));
     MethodSubject outline0Method =
@@ -71,8 +56,6 @@ public class PrimitiveTypesTest extends TestBase {
   public void runTest(Class<?> testClass, String argumentType, String expectedOutput)
       throws Exception {
     testForR8(parameters.getBackend())
-        .addConstantArgumentAnnotations()
-        .enableConstantArgumentAnnotations(!enableArgumentPropagation)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addProgramClasses(testClass)
@@ -137,7 +120,6 @@ public class PrimitiveTypesTest extends TestBase {
 
   static class TestClassBoolean {
 
-    @KeepConstantArguments
     @NeverInline
     public static String method1(boolean b) {
       StringBuilder sb = new StringBuilder();
@@ -146,7 +128,6 @@ public class PrimitiveTypesTest extends TestBase {
       return sb.toString();
     }
 
-    @KeepConstantArguments
     @NeverInline
     public static String method2(boolean b) {
       StringBuilder sb = new StringBuilder();
@@ -163,7 +144,6 @@ public class PrimitiveTypesTest extends TestBase {
 
   static class TestClassByte {
 
-    @KeepConstantArguments
     @NeverInline
     public static String method1(byte b) {
       MyStringBuilder sb = new MyStringBuilder();
@@ -172,7 +152,6 @@ public class PrimitiveTypesTest extends TestBase {
       return sb.toString();
     }
 
-    @KeepConstantArguments
     @NeverInline
     public static String method2(byte b) {
       MyStringBuilder sb = new MyStringBuilder();
@@ -189,7 +168,6 @@ public class PrimitiveTypesTest extends TestBase {
 
   static class TestClassShort {
 
-    @KeepConstantArguments
     @NeverInline
     public static String method1(short s) {
       MyStringBuilder sb = new MyStringBuilder();
@@ -198,7 +176,6 @@ public class PrimitiveTypesTest extends TestBase {
       return sb.toString();
     }
 
-    @KeepConstantArguments
     @NeverInline
     public static String method2(short s) {
       MyStringBuilder sb = new MyStringBuilder();
@@ -215,7 +192,6 @@ public class PrimitiveTypesTest extends TestBase {
 
   static class TestClassChar {
 
-    @KeepConstantArguments
     @NeverInline
     public static String method1(char c) {
       StringBuilder sb = new StringBuilder();
@@ -224,7 +200,6 @@ public class PrimitiveTypesTest extends TestBase {
       return sb.toString();
     }
 
-    @KeepConstantArguments
     @NeverInline
     public static String method2(char c) {
       StringBuilder sb = new StringBuilder();

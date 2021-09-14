@@ -1219,7 +1219,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     // TODO(b/69963623): enable if everything is ready, including signature rewriting at call sites.
     private boolean enableLegacyConstantPropagation = false;
-    private boolean enableExperimentalArgumentPropagation = true;
+    private boolean enableExperimentalArgumentPropagation = false;
     private boolean enableDynamicTypePropagation = true;
 
     public void disableOptimization() {
@@ -1255,7 +1255,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
 
     public CallSiteOptimizationOptions setEnableLegacyConstantPropagation() {
-      assert !enableLegacyConstantPropagation;
+      assert !isConstantPropagationEnabled();
       enableLegacyConstantPropagation = true;
       return this;
     }

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.invalidroot;
 
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 
@@ -73,7 +72,6 @@ public class InvalidRootsTestClass {
     }
   }
 
-  @KeepConstantArguments
   private void neverReturnsNormallyExtra(String prefix, NeverReturnsNormally a) {
     throw new RuntimeException("neverReturnsNormallyExtra(" +
         prefix + ", " + (a == null ? "null" : a.foo()) + "): " + next());

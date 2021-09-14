@@ -253,7 +253,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
             PACKAGE_NAME,
             mainClass,
-            testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
               ClassSubject classSubject =
@@ -270,7 +272,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(classSubject, getter);
-                checkMethodIsRemoved(classSubject, setter);
+                checkMethodIsKept(classSubject, setter);
               }
             });
   }
@@ -648,7 +650,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
             PACKAGE_NAME,
             mainClass,
-            testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
               ClassSubject objectClass = checkClassIsKept(inspector, testedClass.getClassName());
@@ -667,7 +671,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
                 checkMethodIsRemoved(objectClass, setter);
               } else {
                 checkMethodIsKept(objectClass, getter);
-                checkMethodIsRemoved(objectClass, setter);
+                checkMethodIsKept(objectClass, setter);
               }
 
               if (allowAccessModification) {
@@ -720,7 +724,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
             PACKAGE_NAME,
             mainClass,
-            testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
               ClassSubject objectClass = checkClassIsKept(inspector, testedClass.getClassName());
@@ -740,7 +746,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
                 checkMethodIsRemoved(objectClass, setter);
               } else {
                 checkMethodIsKept(objectClass, getter);
-                checkMethodIsRemoved(objectClass, setter);
+                checkMethodIsKept(objectClass, setter);
               }
 
               if (allowAccessModification) {
@@ -759,7 +765,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
             PACKAGE_NAME,
             mainClass,
-            testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
               ClassSubject objectClass = checkClassIsKept(inspector, testedClass.getClassName());
@@ -779,7 +787,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
                 checkMethodIsRemoved(objectClass, setter);
               } else {
                 checkMethodIsKept(objectClass, getter);
-                checkMethodIsRemoved(objectClass, setter);
+                checkMethodIsKept(objectClass, setter);
               }
 
               if (allowAccessModification) {
@@ -888,7 +896,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
             PACKAGE_NAME,
             mainClass,
-            testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(disableAggressiveClassOptimizations))
         .inspect(
             inspector -> {
               ClassSubject objectClass = checkClassIsKept(inspector, testedClass.getClassName());
@@ -906,7 +916,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
               } else {
                 assertTrue(fieldSubject.getField().accessFlags.isPrivate());
                 checkMethodIsKept(objectClass, getter);
-                checkMethodIsRemoved(objectClass, setter);
+                checkMethodIsKept(objectClass, setter);
               }
             });
   }

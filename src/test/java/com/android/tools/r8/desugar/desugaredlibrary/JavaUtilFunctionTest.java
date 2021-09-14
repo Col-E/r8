@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -90,7 +89,6 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(TestClass.class)
         .addInnerClasses(JavaUtilFunctionTest.class)
         .setMinApi(parameters.getApiLevel())
-        .enableConstantArgumentAnnotations()
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::checkRewrittenArguments)
@@ -105,7 +103,6 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
 
   static class TestClass {
 
-    @KeepConstantArguments
     @NeverInline
     private static String applyFunction(Function<String, String> f) {
       return f.apply("Hello, world");

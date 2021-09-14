@@ -1287,16 +1287,8 @@ public abstract class R8RunArtTestsTest {
 
   private static Map<String, List<String>> keepRules =
       ImmutableMap.of(
-          "021-string2",
-          ImmutableList.of("-dontwarn junit.framework.**"),
-          "082-inline-execute",
-          ImmutableList.of("-dontwarn junit.framework.**"),
-          // Constructor MakeBoundType.<init>(int) is called using reflection.
-          "476-checker-ctor-fence-redun-elim",
-          ImmutableList.of(
-              "-keep class TestDontOptimizeAcrossEscape$MakeBoundTypeTest$MakeBoundType {",
-              "  void <init>(int);",
-              "}"));
+          "021-string2", ImmutableList.of("-dontwarn junit.framework.**"),
+          "082-inline-execute", ImmutableList.of("-dontwarn junit.framework.**"));
 
   private static Map<String, Consumer<InternalOptions>> configurations =
       ImmutableMap.of(

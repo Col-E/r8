@@ -410,7 +410,6 @@ public class ClassStaticizerTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
-            .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()
             .addKeepMainRule(main)
             .allowAccessModification()

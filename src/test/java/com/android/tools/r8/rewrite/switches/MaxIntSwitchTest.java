@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
@@ -105,7 +104,6 @@ public class MaxIntSwitchTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(this.getClass())
         .addKeepMainRule(TestClass.class)
-        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -127,7 +125,6 @@ public class MaxIntSwitchTest extends TestBase {
           "?");
 
   static class TestClass {
-    @KeepConstantArguments
     @NeverInline
     @NeverPropagateValue
     public static void f(int i) {
@@ -146,7 +143,6 @@ public class MaxIntSwitchTest extends TestBase {
       }
     }
 
-    @KeepConstantArguments
     @NeverInline
     @NeverPropagateValue
     public static void g(int i) {
@@ -166,7 +162,6 @@ public class MaxIntSwitchTest extends TestBase {
       }
     }
 
-    @KeepConstantArguments
     @NeverInline
     @NeverPropagateValue
     public static void h(int i) {
@@ -179,7 +174,6 @@ public class MaxIntSwitchTest extends TestBase {
       }
     }
 
-    @KeepConstantArguments
     @NeverInline
     @NeverPropagateValue
     public static void s(String s) {
