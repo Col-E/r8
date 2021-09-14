@@ -10,7 +10,6 @@ import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
 import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNull;
@@ -18,6 +17,7 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -128,9 +128,7 @@ public class MetadataRewriteUnitPrimitiveTest extends KotlinMetadataTestBase {
             getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
         .addClasspath(main)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
-        // TODO(b/196179629): Should not fail.
-        .assertFailureWithErrorThatMatches(
-            containsString("Could not compute caller for function: public final fun testUnit()"));
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) throws IOException {
@@ -150,10 +148,11 @@ public class MetadataRewriteUnitPrimitiveTest extends KotlinMetadataTestBase {
       KotlinClassHeader rewrittenHeader = rewrittenMetadata.getHeader();
       TestCase.assertEquals(originalHeader.getKind(), rewrittenHeader.getKind());
       TestCase.assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
-      // TODO(b/196179629): There should not be any rewriting of the data since the return type
-      //  should not change. Therefore we should be able to assert everything to be equal.
-      Assert.assertNotEquals(originalHeader.getData1(), rewrittenHeader.getData1());
-      Assert.assertNotEquals(originalHeader.getData2(), rewrittenHeader.getData2());
+      Assert.assertArrayEquals(originalHeader.getData1(), rewrittenHeader.getData1());
+      Assert.assertArrayEquals(originalHeader.getData2(), rewrittenHeader.getData2());
+      String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
+      String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
+      TestCase.assertEquals(expected, actual);
     }
   }
 }

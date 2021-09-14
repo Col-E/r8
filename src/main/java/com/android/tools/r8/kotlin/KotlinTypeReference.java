@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -79,8 +80,16 @@ class KotlinTypeReference implements EnqueuerMetadataTraceable {
     }
     DexType rewrittenType = toRewrittenTypeOrNull(appView, known);
     if (rewrittenType == null) {
-      rewrittenConsumer.accept(defaultValue);
-      return true;
+      String knownDescriptor = known.toDescriptorString();
+      // Static known kotlin types can be pruned without rewriting to Any since the types are known
+      // by kotlinc and kotlin reflect.
+      if (ClassClassifiers.kotlinStaticallyKnownTypes.contains(knownDescriptor)) {
+        rewrittenConsumer.accept(knownDescriptor);
+        return false;
+      } else {
+        rewrittenConsumer.accept(defaultValue);
+        return true;
+      }
     }
     String renamedString = namingLens.lookupDescriptor(rewrittenType).toString();
     rewrittenConsumer.accept(renamedString);

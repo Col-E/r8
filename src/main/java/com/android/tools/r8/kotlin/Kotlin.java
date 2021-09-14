@@ -9,8 +9,10 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -33,8 +35,59 @@ public final class Kotlin {
   public static final class ClassClassifiers {
 
     public static final String arrayBinaryName = NAME + "/Array";
+    public static final String arrayDescriptor = PACKAGE_PREFIX + "Array;";
     public static final String anyDescriptor = PACKAGE_PREFIX + "Any;";
+    public static final String unitDescriptor = PACKAGE_PREFIX + "Unit;";
+    public static final String booleanDescriptor = PACKAGE_PREFIX + "Boolean";
+    public static final String charDescriptor = PACKAGE_PREFIX + "Char";
+    public static final String byteDescriptor = PACKAGE_PREFIX + "Byte";
+    public static final String uByteDescriptor = PACKAGE_PREFIX + "UByte";
+    public static final String shortDescriptor = PACKAGE_PREFIX + "Short;";
+    public static final String uShortDescriptor = PACKAGE_PREFIX + "UShort;";
+    public static final String intDescriptor = PACKAGE_PREFIX + "Int;";
+    public static final String uIntDescriptor = PACKAGE_PREFIX + "UInt;";
+    public static final String floatDescriptor = PACKAGE_PREFIX + "Float;";
+    public static final String longDescriptor = PACKAGE_PREFIX + "Long;";
+    public static final String uLongDescriptor = PACKAGE_PREFIX + "ULong;";
+    public static final String doubleDescriptor = PACKAGE_PREFIX + "Double;";
+    public static final String functionDescriptor = PACKAGE_PREFIX + "Function;";
+    public static final String kFunctionDescriptor = PACKAGE_PREFIX + "KFunction;";
     public static final String anyName = NAME + "/Any";
+
+    public static final Set<String> kotlinPrimitivesDescriptors =
+        ImmutableSet.<String>builder()
+            .add(booleanDescriptor)
+            .add(charDescriptor)
+            .add(byteDescriptor)
+            .add(uByteDescriptor)
+            .add(shortDescriptor)
+            .add(uShortDescriptor)
+            .add(intDescriptor)
+            .add(uIntDescriptor)
+            .add(floatDescriptor)
+            .add(longDescriptor)
+            .add(uLongDescriptor)
+            .add(doubleDescriptor)
+            .build();
+
+    // Kotlin static known types is a possible not complete collection of descriptors that kotlinc
+    // and kotlin reflect know and expect the existence of.
+    public static final Set<String> kotlinStaticallyKnownTypes;
+
+    static {
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      kotlinPrimitivesDescriptors.forEach(
+          primitive -> {
+            builder.add(primitive);
+            builder.add(primitive.substring(0, primitive.length() - 1) + "Array;");
+          });
+      builder.add(unitDescriptor);
+      builder.add(anyDescriptor);
+      builder.add(arrayDescriptor);
+      builder.add(functionDescriptor);
+      builder.add(kFunctionDescriptor);
+      kotlinStaticallyKnownTypes = builder.build();
+    }
   }
 
   public Kotlin(DexItemFactory factory) {
