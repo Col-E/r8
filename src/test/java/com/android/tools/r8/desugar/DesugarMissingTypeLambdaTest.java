@@ -3,10 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
-import static com.android.tools.r8.references.Reference.classFromClass;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestBuilder;
@@ -19,6 +16,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.DesugarDiagnostic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -77,12 +75,12 @@ public class DesugarMissingTypeLambdaTest extends TestBase {
         assertTrue(diagnostic instanceof DesugarDiagnostic);
         assertTrue(diagnostic instanceof InterfaceDesugarMissingTypeDiagnostic);
         InterfaceDesugarMissingTypeDiagnostic desugarWarning = (InterfaceDesugarMissingTypeDiagnostic) diagnostic;
-        assertEquals(classFromClass(MissingInterface.class), desugarWarning.getMissingType());
-        // TODO(b/132671303): The diagnostics should also contain the lambda context, but it should
-        //  not be the synthesized lambda class.
-        assertFalse(SyntheticItemsTestUtils.isInternalLambda(desugarWarning.getContextType()));
-        assertEquals(classFromClass(TestClass.class), desugarWarning.getContextType());
-        assertNotEquals(Position.UNKNOWN, desugarWarning.getPosition());
+        assertEquals(
+            Reference.classFromClass(MissingInterface.class), desugarWarning.getMissingType());
+        // TODO(b/132671303): The context class should not be the synthesized lambda class.
+        assertTrue(SyntheticItemsTestUtils.isInternalLambda(desugarWarning.getContextType()));
+        // TODO(b/132671303): The position info should be the method context.
+        assertEquals(Position.UNKNOWN, desugarWarning.getPosition());
       }
     }
   }

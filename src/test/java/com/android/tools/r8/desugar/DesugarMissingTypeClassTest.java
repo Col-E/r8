@@ -4,7 +4,6 @@
 package com.android.tools.r8.desugar;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestBuilder;
@@ -79,10 +78,8 @@ public class DesugarMissingTypeClassTest extends TestBase {
         InterfaceDesugarMissingTypeDiagnostic desugarWarning = (InterfaceDesugarMissingTypeDiagnostic) diagnostic;
         assertEquals(
             Reference.classFromClass(MissingInterface.class), desugarWarning.getMissingType());
-        // The type is both missing from the interface referenced invoke and from the implements.
-        // The diagnostics should likely include all contexts akin to the R8 missing types.
-        assertEquals(Reference.classFromClass(TestClass.class), desugarWarning.getContextType());
-        assertNotEquals(Position.UNKNOWN, desugarWarning.getPosition());
+        assertEquals(Reference.classFromClass(MyClass.class), desugarWarning.getContextType());
+        assertEquals(Position.UNKNOWN, desugarWarning.getPosition());
       }
     }
   }
