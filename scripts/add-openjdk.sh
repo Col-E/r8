@@ -16,9 +16,9 @@ exit -1
 # Prepare README.google
 # Update JDK_VERSION below
 
-# Now run script wit fingers crossed!
+# Now run script with fingers crossed!
 
-JDK_VERSION=16.0.2
+JDK_VERSION=17
 
 tar xf ~/Downloads/openjdk-${JDK_VERSION}_linux-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION} linux
@@ -28,7 +28,7 @@ rm -rf jdk-${JDK_VERSION}
 rm -rf linux
 rm linux.tar.gz
 
-tar xf ~/Downloads/openjdk-${JDK_VERSION}_osx-x64_bin.tar.gz
+tar xf ~/Downloads/openjdk-${JDK_VERSION}_macos-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION}.jdk osx
 cp README.google osx
 upload_to_google_storage.py -a --bucket r8-deps osx
@@ -43,3 +43,7 @@ upload_to_google_storage.py -a --bucket r8-deps windows
 rm -rf windows
 rm -rf jdk-${JDK_VERSION}
 rm windows.tar.gz
+
+git add *.sha1
+
+echo "Update additional files, see https://r8-review.googlesource.com/c/r8/+/61909"

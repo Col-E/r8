@@ -13,7 +13,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.examples.jdk16.Sealed;
+import com.android.tools.r8.examples.jdk17.Sealed;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
 import org.junit.Test;
@@ -28,9 +28,9 @@ public class SealedAttributeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk16).
+    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
     return buildParameters(
-        getTestParameters().withCustomRuntime(TestRuntime.getCheckedInJdk16()).build(),
+        getTestParameters().withCustomRuntime(TestRuntime.getCheckedInJdk17()).build(),
         Backend.values());
   }
 
@@ -43,8 +43,7 @@ public class SealedAttributeTest extends TestBase {
     assumeTrue(backend == Backend.CF);
     testForJvm()
         .addRunClasspathFiles(Sealed.jar())
-        .enablePreview()
-        .run(TestRuntime.getCheckedInJdk16(), Sealed.Main.typeName())
+        .run(TestRuntime.getCheckedInJdk17(), Sealed.Main.typeName())
         .assertSuccessWithOutputLines("R8 compiler", "D8 compiler");
   }
 

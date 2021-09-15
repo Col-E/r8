@@ -33,7 +33,7 @@ import org.junit.rules.TemporaryFolder;
  */
 public class RecordTestUtils {
 
-  private static final String EXAMPLE_FOLDER = "examplesJava16";
+  private static final String EXAMPLE_FOLDER = "examplesJava17";
   private static final String RECORD_FOLDER = "records";
 
   public static Path jar() {

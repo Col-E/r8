@@ -29,7 +29,7 @@ public abstract class TestRuntime {
     JDK9("jdk9", 53),
     JDK10("jdk10", 54),
     JDK11("jdk11", 55),
-    JDK16("jdk16", 60),
+    JDK17("jdk17", 61),
     ;
 
     private final String name;
@@ -70,13 +70,13 @@ public abstract class TestRuntime {
   private static final Path JDK9_PATH =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "openjdk-9.0.4");
   private static final Path JDK11_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-11");
-  private static final Path JDK16_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-16");
+  private static final Path JDK17_PATH = Paths.get(ToolHelper.THIRD_PARTY_DIR, "openjdk", "jdk-17");
   private static final Map<CfVm, Path> jdkPaths =
       ImmutableMap.of(
           CfVm.JDK8, JDK8_PATH,
           CfVm.JDK9, JDK9_PATH,
           CfVm.JDK11, JDK11_PATH,
-          CfVm.JDK16, JDK16_PATH);
+          CfVm.JDK17, JDK17_PATH);
 
   public static CfRuntime getCheckedInJdk(CfVm vm) {
     if (vm == CfVm.JDK8) {
@@ -121,9 +121,9 @@ public abstract class TestRuntime {
     return new CfRuntime(CfVm.JDK11, getCheckedInJdkHome(CfVm.JDK11));
   }
 
-  // TODO(b/169692487): Add this to 'getCheckedInCfRuntimes' when we start having support for JDK16.
-  public static CfRuntime getCheckedInJdk16() {
-    return new CfRuntime(CfVm.JDK16, getCheckedInJdkHome(CfVm.JDK16));
+  // TODO(b/169692487): Add this to 'getCheckedInCfRuntimes' when we start having support for JDK17.
+  public static CfRuntime getCheckedInJdk17() {
+    return new CfRuntime(CfVm.JDK17, getCheckedInJdkHome(CfVm.JDK17));
   }
 
   public static List<CfRuntime> getCheckedInCfRuntimes() {

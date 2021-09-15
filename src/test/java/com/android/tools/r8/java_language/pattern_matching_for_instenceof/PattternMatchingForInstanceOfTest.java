@@ -8,7 +8,7 @@ import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.examples.jdk16.PatternMatchingForInstenceof;
+import com.android.tools.r8.examples.jdk17.PatternMatchingForInstanceof;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -26,15 +26,15 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
 
   private static List<String> EXPECTED = ImmutableList.of("Hello, world!");
 
-  private static final Path JAR = PatternMatchingForInstenceof.jar();
-  private static final String MAIN = PatternMatchingForInstenceof.Main.typeName();
+  private static final Path JAR = PatternMatchingForInstanceof.jar();
+  private static final String MAIN = PatternMatchingForInstanceof.Main.typeName();
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk16).
+    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk16())
+            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());
@@ -45,7 +45,6 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addRunClasspathFiles(JAR)
-          .enablePreview()
           .run(parameters.getRuntime(), MAIN)
           .assertSuccessWithOutputLines(EXPECTED);
     }
@@ -71,7 +70,6 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
     } else {
       testForJvm()
           .addRunClasspathFiles(builder.compile().writeToZip())
-          .enablePreview()
           .run(parameters.getRuntime(), MAIN)
           .assertSuccessWithOutputLines(EXPECTED);
     }

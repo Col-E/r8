@@ -33,10 +33,10 @@ public class SimpleRecordTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk16).
+    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk16())
+            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());
@@ -47,7 +47,6 @@ public class SimpleRecordTest extends TestBase {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addProgramClassFileData(PROGRAM_DATA)
-          .enablePreview()
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT);
     }
