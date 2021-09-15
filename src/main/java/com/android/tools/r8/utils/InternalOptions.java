@@ -1557,6 +1557,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Consumer<IRCode> inlineeIrModifier = null;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
     public boolean dontReportFailingCheckDiscarded = false;
+    public boolean disableRecordApplicationReaderMap = false;
     public PrintStream whyAreYouNotInliningConsumer = System.out;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;

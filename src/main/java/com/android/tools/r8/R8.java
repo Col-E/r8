@@ -71,6 +71,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
@@ -842,15 +843,14 @@ public class R8 {
         options.syntheticProguardRulesConsumer.accept(synthesizedProguardRules);
       }
 
-      NamingLens prefixRewritingNamingLens =
-          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
+      namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
+      namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
 
       timing.begin("MinifyKotlinMetadata");
-      new KotlinMetadataRewriter(appView, prefixRewritingNamingLens).runForR8(executorService);
+      new KotlinMetadataRewriter(appView, namingLens).runForR8(executorService);
       timing.end();
 
-      new GenericSignatureRewriter(
-              appView, prefixRewritingNamingLens, genericContextBuilderBeforeFinalMerging)
+      new GenericSignatureRewriter(appView, namingLens, genericContextBuilderBeforeFinalMerging)
           .run(appView.appInfo().classes(), executorService);
 
       assert appView.checkForTesting(
@@ -862,8 +862,7 @@ public class R8 {
                           .isValid())
           : "Could not validate generic signatures";
 
-      new DesugaredLibraryKeepRuleGenerator(appView, prefixRewritingNamingLens)
-          .runIfNecessary(timing);
+      new DesugaredLibraryKeepRuleGenerator(appView, namingLens).runIfNecessary(timing);
 
       // Generate the resulting application resources.
       writeApplication(
@@ -871,7 +870,7 @@ public class R8 {
           appView,
           appView.graphLens(),
           appView.initClassLens(),
-          prefixRewritingNamingLens,
+          namingLens,
           options,
           ProguardMapSupplier.create(classNameMapper, options));
 

@@ -256,12 +256,9 @@ public final class D8 {
 
       InspectorImpl.runInspections(options.outputInspections, appView.appInfo().classes());
       NamingLens namingLens = NamingLens.getIdentityLens();
-      if (appView.rewritePrefix.isRewriting()) {
-        namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
-      }
-      if (appView.requiresRecordNamingLens()) {
-        namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
-      }
+      namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
+      namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
+
       if (options.isGeneratingClassFiles()) {
         ProguardMapSupplier proguardMapSupplier =
             finalizeApplication(inputApp, appView, namingLens);

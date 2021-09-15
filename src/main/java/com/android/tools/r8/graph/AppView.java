@@ -81,7 +81,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   // Desugaring.
   public final PrefixRewritingMapper rewritePrefix;
-  private boolean requiresRecordNamingLens = false;
 
   // Modeling.
   private final LibraryMethodSideEffectModelCollection libraryMethodSideEffectModelCollection;
@@ -146,14 +145,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public boolean verifyMainThread() {
     assert mainThread == Thread.currentThread();
     return true;
-  }
-
-  public boolean requiresRecordNamingLens() {
-    return requiresRecordNamingLens;
-  }
-
-  public void setRequiresRecordNamingLens() {
-    requiresRecordNamingLens = true;
   }
 
   @Override

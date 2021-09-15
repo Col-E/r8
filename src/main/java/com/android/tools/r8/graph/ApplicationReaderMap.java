@@ -12,7 +12,7 @@ public class ApplicationReaderMap {
 
   public static Map<String, String> getDescriptorMap(InternalOptions options) {
     ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
-    if (options.shouldDesugarRecords()) {
+    if (options.shouldDesugarRecords() && !options.testing.disableRecordApplicationReaderMap) {
       builder.put(DexItemFactory.recordTagDescriptorString, DexItemFactory.recordDescriptorString);
     }
     return builder.build();

@@ -21,16 +21,16 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
   final NamingLens namingLens;
   private final DexItemFactory factory;
 
-  public static NamingLens createRecordRewritingNamingLens(AppView<?> appView) {
-    return createRecordRewritingNamingLens(appView, NamingLens.getIdentityLens());
-  }
-
   public static NamingLens createRecordRewritingNamingLens(
       AppView<?> appView, NamingLens namingLens) {
-    if (!appView.options().shouldDesugarRecords()) {
-      return namingLens;
+    if (appView.options().shouldDesugarRecords()
+        && appView
+                .appInfo()
+                .definitionForWithoutExistenceAssert(appView.dexItemFactory().recordType)
+            != null) {
+      return new RecordRewritingNamingLens(namingLens, appView);
     }
-    return new RecordRewritingNamingLens(namingLens, appView);
+    return namingLens;
   }
 
   public RecordRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {

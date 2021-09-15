@@ -5,6 +5,8 @@
 package com.android.tools.r8.desugar.records;
 
 import static com.android.tools.r8.TestRuntime.getCheckedInJdk8;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.JavaCompilerTool;
@@ -105,5 +107,12 @@ public class RecordTestUtils {
         assertTrue(clazz.getDexProgramClass().isRecord());
       }
     }
+  }
+
+  public static void assertNoJavaLangRecord(Path output) throws IOException {
+    CodeInspector inspector =
+        new CodeInspector(
+            output, options -> options.testing.disableRecordApplicationReaderMap = true);
+    assertThat(inspector.clazz("java.lang.Record"), isAbsent());
   }
 }
