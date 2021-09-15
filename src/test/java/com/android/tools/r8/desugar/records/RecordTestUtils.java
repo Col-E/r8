@@ -100,8 +100,7 @@ public class RecordTestUtils {
     return result.toArray(new byte[0][0]);
   }
 
-  public static void assertRecordsAreRecords(Path output) throws IOException {
-    CodeInspector inspector = new CodeInspector(output);
+  public static void assertRecordsAreRecords(CodeInspector inspector) {
     for (FoundClassSubject clazz : inspector.allClasses()) {
       if (clazz.getDexProgramClass().superType.toString().equals("java.lang.Record")) {
         assertTrue(clazz.getDexProgramClass().isRecord());
@@ -109,10 +108,7 @@ public class RecordTestUtils {
     }
   }
 
-  public static void assertNoJavaLangRecord(Path output) throws IOException {
-    CodeInspector inspector =
-        new CodeInspector(
-            output, options -> options.testing.disableRecordApplicationReaderMap = true);
+  public static void assertNoJavaLangRecord(CodeInspector inspector) {
     assertThat(inspector.clazz("java.lang.Record"), isAbsent());
   }
 }

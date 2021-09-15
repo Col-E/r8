@@ -11,7 +11,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.utils.StringUtils;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,20 +62,16 @@ public class EmptyRecordTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     if (parameters.isCfRuntime()) {
-      Path output =
-          testForR8(parameters.getBackend())
-              .addProgramClassFileData(PROGRAM_DATA)
-              .setMinApi(parameters.getApiLevel())
-              .addKeepRules(RECORD_KEEP_RULE)
-              .addKeepMainRule(MAIN_TYPE)
-              .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-              .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-              .compile()
-              .writeToZip();
-      RecordTestUtils.assertRecordsAreRecords(output);
-      testForJvm()
-          .addRunClasspathFiles(output)
-          .enablePreview()
+      testForR8(parameters.getBackend())
+          .addProgramClassFileData(PROGRAM_DATA)
+          .setMinApi(parameters.getApiLevel())
+          .addKeepRules(RECORD_KEEP_RULE)
+          .addKeepMainRule(MAIN_TYPE)
+          .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+          .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+          .compile()
+          .inspect(RecordTestUtils::assertRecordsAreRecords)
+          .enableJVMPreview()
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT);
       return;

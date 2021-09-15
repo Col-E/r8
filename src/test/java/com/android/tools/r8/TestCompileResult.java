@@ -283,6 +283,14 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR enableJVMPreview() {
+    assert getBackend() == Backend.CF;
+    if (!vmArguments.contains("--enable-preview")) {
+      vmArguments.add("--enable-preview");
+    }
+    return self();
+  }
+
   public CR enableRuntimeAssertions(boolean enable) {
     if (getBackend() == Backend.CF) {
       if (enable) {
@@ -357,6 +365,13 @@ public abstract class TestCompileResult<
   public <E extends Throwable> CR inspect(ThrowingConsumer<CodeInspector, E> consumer)
       throws IOException, E {
     consumer.accept(inspector());
+    return self();
+  }
+
+  public <E extends Throwable> CR inspectWithOptions(
+      ThrowingConsumer<CodeInspector, E> consumer, Consumer<InternalOptions> debugOptionsConsumer)
+      throws IOException, E {
+    consumer.accept(inspector(debugOptionsConsumer));
     return self();
   }
 
