@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE;
+import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 
 import com.android.tools.r8.TestBase;
@@ -69,9 +69,8 @@ public class EmptyRecordAnnotationTest extends TestBase {
       testForR8(parameters.getBackend())
           .addProgramClassFileData(PROGRAM_DATA)
           .setMinApi(parameters.getApiLevel())
-          .addKeepRules("-keepattributes *Annotation*")
           .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
-          .addKeepRules(RECORD_KEEP_RULE)
+          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addKeepMainRule(MAIN_TYPE)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
@@ -87,8 +86,8 @@ public class EmptyRecordAnnotationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepRules("-keepattributes *Annotation*")
         .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
+        .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")
         .addKeepRules("-keep class java.lang.Record")
-        .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()

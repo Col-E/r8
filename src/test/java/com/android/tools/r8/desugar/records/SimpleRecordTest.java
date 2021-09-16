@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE;
+import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -68,7 +68,7 @@ public class SimpleRecordTest extends TestBase {
       testForR8(parameters.getBackend())
           .addProgramClassFileData(PROGRAM_DATA)
           .setMinApi(parameters.getApiLevel())
-          .addKeepRules(RECORD_KEEP_RULE)
+          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addKeepMainRule(MAIN_TYPE)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
@@ -82,7 +82,6 @@ public class SimpleRecordTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
@@ -100,7 +99,7 @@ public class SimpleRecordTest extends TestBase {
           .addProgramClassFileData(PROGRAM_DATA)
           .noMinification()
           .setMinApi(parameters.getApiLevel())
-          .addKeepRules(RECORD_KEEP_RULE)
+          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addKeepMainRule(MAIN_TYPE)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
@@ -115,7 +114,6 @@ public class SimpleRecordTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .noMinification()
         .setMinApi(parameters.getApiLevel())
-        .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()

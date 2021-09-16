@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE;
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
@@ -79,7 +77,6 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters.getApiLevel())
-        .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()

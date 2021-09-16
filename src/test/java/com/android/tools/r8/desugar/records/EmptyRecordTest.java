@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE;
+import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 
 import com.android.tools.r8.TestBase;
@@ -64,7 +64,7 @@ public class EmptyRecordTest extends TestBase {
       testForR8(parameters.getBackend())
           .addProgramClassFileData(PROGRAM_DATA)
           .setMinApi(parameters.getApiLevel())
-          .addKeepRules(RECORD_KEEP_RULE)
+          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addKeepMainRule(MAIN_TYPE)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
@@ -78,7 +78,6 @@ public class EmptyRecordTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addKeepRules(RECORD_KEEP_RULE)
         .addKeepMainRule(MAIN_TYPE)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()

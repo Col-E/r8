@@ -40,8 +40,11 @@ public class RecordTestUtils {
     return Paths.get(ToolHelper.TESTS_BUILD_DIR, EXAMPLE_FOLDER, RECORD_FOLDER + ".jar");
   }
 
-  // TODO(b/169645628): Consider if that keep rule should be required or not.
-  public static final String RECORD_KEEP_RULE =
+  // TODO(b/197081367): Rediscuss if we want to maintain the toString() method.
+  // In R8 Cf to Cf we need to maintain the record component attributes, the class name and fields
+  // so the mapping between the record components and fields is valid and the toString() prints
+  // the record as specified (including the class name).
+  public static final String RECORD_KEEP_RULE_R8_CF_TO_CF =
       "-keepattributes *\n" + "-keep class * extends java.lang.Record { private final <fields>; }";
 
   public static Path[] getJdk15LibraryFiles(TemporaryFolder temp) throws IOException {
