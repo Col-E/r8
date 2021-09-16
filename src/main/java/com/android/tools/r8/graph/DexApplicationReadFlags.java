@@ -9,15 +9,15 @@ public class DexApplicationReadFlags {
 
   private final boolean hasReadProgramClassFromDex;
   private final boolean hasReadProgramClassFromCf;
-  private final boolean hasReadProgramRecord;
+  private final boolean hasReadRecordReferenceFromProgramClass;
 
   public DexApplicationReadFlags(
       boolean hasReadProgramClassFromDex,
       boolean hasReadProgramClassFromCf,
-      boolean hasReadProgramRecord) {
+      boolean hasReadRecordReferenceFromProgramClass) {
     this.hasReadProgramClassFromDex = hasReadProgramClassFromDex;
     this.hasReadProgramClassFromCf = hasReadProgramClassFromCf;
-    this.hasReadProgramRecord = hasReadProgramRecord;
+    this.hasReadRecordReferenceFromProgramClass = hasReadRecordReferenceFromProgramClass;
   }
 
   public boolean hasReadProgramClassFromCf() {
@@ -28,7 +28,7 @@ public class DexApplicationReadFlags {
     return hasReadProgramClassFromDex;
   }
 
-  public boolean hasReadProgramRecord() {
-    return hasReadProgramRecord;
+  public boolean hasReadRecordReferenceFromProgramClass() {
+    return hasReadRecordReferenceFromProgramClass;
   }
 }

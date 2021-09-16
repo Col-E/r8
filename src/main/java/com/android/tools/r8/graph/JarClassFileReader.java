@@ -512,9 +512,13 @@ public class JarClassFileReader<T extends DexClass> {
     }
 
     private void checkRecord() {
+      if (!application.options.shouldDesugarRecords()) {
+        return;
+      }
       if (!accessFlags.isRecord()) {
         return;
       }
+      application.setHasReadRecordReferenceFromProgramClass();
       // TODO(b/169645628): Change this logic if we start stripping the record components.
       // Another approach would be to mark a bit in fields that are record components instead.
       String message = "Records are expected to have one record component per instance field.";
@@ -661,6 +665,7 @@ public class JarClassFileReader<T extends DexClass> {
     public void visitEnd() {
       FieldAccessFlags flags = createFieldAccessFlags(access);
       DexField dexField = parent.application.getField(parent.type, name, desc);
+      parent.application.checkFieldForRecord(dexField);
       Wrapper<DexField> signature = FieldSignatureEquivalence.get().wrap(dexField);
       if (parent.fieldSignatures.add(signature)) {
         DexAnnotationSet annotationSet =
@@ -878,6 +883,7 @@ public class JarClassFileReader<T extends DexClass> {
     @Override
     public void visitEnd() {
       InternalOptions options = parent.application.options;
+      parent.application.checkMethodForRecord(method);
       if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
         code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
       }

@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
@@ -25,6 +26,8 @@ public class JarApplicationReader {
   private final ConcurrentHashMap<String, Type> asmTypeCache = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, DexString> stringCache = new ConcurrentHashMap<>();
   private final Map<String, String> typeDescriptorMap;
+
+  private boolean hasReadRecordReferenceFromProgramClass = false;
 
   public JarApplicationReader(InternalOptions options) {
     this.options = options;
@@ -148,5 +151,25 @@ public class JarApplicationReader {
 
   public Type getReturnType(final String methodDescriptor) {
     return getAsmType(DescriptorUtils.getReturnTypeDescriptor(methodDescriptor));
+  }
+
+  public void setHasReadRecordReferenceFromProgramClass() {
+    hasReadRecordReferenceFromProgramClass = true;
+  }
+
+  public boolean hasReadRecordReferenceFromProgramClass() {
+    return hasReadRecordReferenceFromProgramClass;
+  }
+
+  public void checkFieldForRecord(DexField dexField) {
+    if (options.shouldDesugarRecords() && RecordRewriter.refersToRecord(dexField, getFactory())) {
+      setHasReadRecordReferenceFromProgramClass();
+    }
+  }
+
+  public void checkMethodForRecord(DexMethod dexMethod) {
+    if (options.shouldDesugarRecords() && RecordRewriter.refersToRecord(dexMethod, getFactory())) {
+      setHasReadRecordReferenceFromProgramClass();
+    }
   }
 }

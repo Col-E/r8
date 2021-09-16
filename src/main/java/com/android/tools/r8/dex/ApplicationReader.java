@@ -331,7 +331,6 @@ public class ApplicationReader {
     // as there was a dex resource.
     private boolean hasReadProgramResourceFromCf = false;
     private boolean hasReadProgramResourceFromDex = false;
-    private boolean hasReadProgramRecord = false;
 
     ClassReader(ExecutorService executorService, List<Future<?>> futures) {
       this.executorService = executorService;
@@ -340,7 +339,9 @@ public class ApplicationReader {
 
     public DexApplicationReadFlags getDexApplicationReadFlags() {
       return new DexApplicationReadFlags(
-          hasReadProgramResourceFromDex, hasReadProgramResourceFromCf, hasReadProgramRecord);
+          hasReadProgramResourceFromDex,
+          hasReadProgramResourceFromCf,
+          application.hasReadRecordReferenceFromProgramClass());
     }
 
     private void readDexSources(List<ProgramResource> dexSources, Queue<DexProgramClass> classes)
@@ -382,15 +383,7 @@ public class ApplicationReader {
       }
       hasReadProgramResourceFromCf = true;
       JarClassFileReader<DexProgramClass> reader =
-          new JarClassFileReader<>(
-              application,
-              clazz -> {
-                classes.add(clazz);
-                if (clazz.isRecord()) {
-                  hasReadProgramRecord = true;
-                }
-              },
-              PROGRAM);
+          new JarClassFileReader<>(application, classes::add, PROGRAM);
       // Read classes in parallel.
       for (ProgramResource input : classSources) {
         futures.add(

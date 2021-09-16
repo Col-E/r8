@@ -137,21 +137,21 @@ public class RecordRewriter
     assert !instruction.isInitClass();
     if (instruction.isInvoke()) {
       CfInvoke cfInvoke = instruction.asInvoke();
-      if (refersToRecord(cfInvoke.getMethod())) {
+      if (refersToRecord(cfInvoke.getMethod(), factory)) {
         ensureRecordClass(eventConsumer);
       }
       return;
     }
     if (instruction.isFieldInstruction()) {
       CfFieldInstruction fieldInstruction = instruction.asFieldInstruction();
-      if (refersToRecord(fieldInstruction.getField())) {
+      if (refersToRecord(fieldInstruction.getField(), factory)) {
         ensureRecordClass(eventConsumer);
       }
       return;
     }
     if (instruction.isTypeInstruction()) {
       CfTypeInstruction typeInstruction = instruction.asTypeInstruction();
-      if (refersToRecord(typeInstruction.getType())) {
+      if (refersToRecord(typeInstruction.getType(), factory)) {
         ensureRecordClass(eventConsumer);
       }
       return;
@@ -452,35 +452,35 @@ public class RecordRewriter
     }
   }
 
-  private boolean refersToRecord(DexField field) {
-    assert !refersToRecord(field.holder) : "The java.lang.Record class has no fields.";
-    return refersToRecord(field.type);
+  public static boolean refersToRecord(DexField field, DexItemFactory factory) {
+    assert !refersToRecord(field.holder, factory) : "The java.lang.Record class has no fields.";
+    return refersToRecord(field.type, factory);
   }
 
-  private boolean refersToRecord(DexMethod method) {
-    if (refersToRecord(method.holder)) {
+  public static boolean refersToRecord(DexMethod method, DexItemFactory factory) {
+    if (refersToRecord(method.holder, factory)) {
       return true;
     }
-    return refersToRecord(method.proto);
+    return refersToRecord(method.proto, factory);
   }
 
-  private boolean refersToRecord(DexProto proto) {
-    if (refersToRecord(proto.returnType)) {
+  private static boolean refersToRecord(DexProto proto, DexItemFactory factory) {
+    if (refersToRecord(proto.returnType, factory)) {
       return true;
     }
-    return refersToRecord(proto.parameters.values);
+    return refersToRecord(proto.parameters.values, factory);
   }
 
-  private boolean refersToRecord(DexType[] types) {
+  private static boolean refersToRecord(DexType[] types, DexItemFactory factory) {
     for (DexType type : types) {
-      if (refersToRecord(type)) {
+      if (refersToRecord(type, factory)) {
         return true;
       }
     }
     return false;
   }
 
-  private boolean refersToRecord(DexType type) {
+  private static boolean refersToRecord(DexType type, DexItemFactory factory) {
     return type == factory.recordType;
   }
 
@@ -600,7 +600,7 @@ public class RecordRewriter
 
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
-    if (appView.appInfo().app().getFlags().hasReadProgramRecord()) {
+    if (appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
       ensureRecordClass(eventConsumer);
     }
   }
