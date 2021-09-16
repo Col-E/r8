@@ -12,7 +12,7 @@ public interface RetraceClassElement extends RetraceElement<RetraceClassResult> 
 
   RetracedClassReference getRetracedClass();
 
-  RetraceSourceFileResult getSourceFile();
+  RetracedSourceFile getSourceFile();
 
   RetraceFieldResult lookupField(String fieldName);
 

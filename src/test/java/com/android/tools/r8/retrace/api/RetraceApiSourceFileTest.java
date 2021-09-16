@@ -11,7 +11,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,13 +41,13 @@ public class RetraceApiSourceFileTest extends RetraceApiTestBase {
 
     @Test
     public void testRetracingSourceFile() {
-      List<RetraceSourceFileResult> sourceFileResults = new ArrayList<>();
+      List<RetracedSourceFile> sourceFileResults = new ArrayList<>();
       Retracer.createDefault(ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
           .retraceClass(Reference.classFromTypeName("a"))
           .forEach(clazz -> sourceFileResults.add(clazz.getSourceFile()));
       assertEquals(1, sourceFileResults.size());
       assertTrue(sourceFileResults.get(0).hasRetraceResult());
-      assertEquals("SomeFileName.kt", sourceFileResults.get(0).getFilename());
+      assertEquals("SomeFileName.kt", sourceFileResults.get(0).getSourceFile());
     }
   }
 }

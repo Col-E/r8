@@ -14,10 +14,10 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetracedClassReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedMethodReference.KnownRetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -75,18 +75,18 @@ public class RetraceUtils {
     return clazz.substring(lastIndexOfPeriod + 1, endIndex);
   }
 
-  public static RetraceSourceFileResult getSourceFileOrLookup(
+  public static RetracedSourceFile getSourceFileOrLookup(
       RetracedClassReference holder, RetraceClassElement context, Retracer retracer) {
     if (holder.equals(context.getRetracedClass())) {
       return context.getSourceFile();
     }
     RetraceClassResult contextClassResult = retracer.retraceClass(holder.getClassReference());
-    Box<RetraceSourceFileResult> retraceSourceFile = new Box<>();
+    Box<RetracedSourceFile> retraceSourceFile = new Box<>();
     contextClassResult.forEach(element -> retraceSourceFile.set(element.getSourceFile()));
     return retraceSourceFile.get();
   }
 
-  public static String inferFileName(
+  public static String inferSourceFile(
       String retracedClassName, String sourceFile, boolean hasRetraceResult) {
     if (!hasRetraceResult || KEEP_SOURCEFILE_NAMES.contains(sourceFile)) {
       return sourceFile;

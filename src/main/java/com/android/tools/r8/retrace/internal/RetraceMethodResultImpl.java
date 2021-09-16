@@ -11,6 +11,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.Pair;
@@ -166,7 +167,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     }
 
     @Override
-    public com.android.tools.r8.retrace.RetraceSourceFileResult getSourceFile() {
+    public RetracedSourceFile getSourceFile() {
       return RetraceUtils.getSourceFileOrLookup(
           methodReference.getHolderClass(), classElement, retraceMethodResult.retracer);
     }

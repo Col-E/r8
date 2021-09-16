@@ -11,9 +11,9 @@ import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceFrameResult;
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetracedClassMemberReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.ListUtils;
@@ -224,7 +224,7 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public RetraceSourceFileResult getSourceFile(RetracedClassMemberReference frame) {
+    public RetracedSourceFile getSourceFile(RetracedClassMemberReference frame) {
       return RetraceUtils.getSourceFileOrLookup(
           frame.getHolderClass(), classElement, retraceFrameResult.retracer);
     }

@@ -16,8 +16,8 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
 import com.android.tools.r8.retrace.RetraceUnknownJsonMappingInformationResult;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
@@ -240,15 +240,15 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     @Override
-    public RetraceSourceFileResult getSourceFile() {
+    public RetracedSourceFile getSourceFile() {
       if (classResult.mapper != null) {
         for (MappingInformation info : classResult.mapper.getAdditionalMappingInfo()) {
           if (info.isFileNameInformation()) {
-            return new RetraceSourceFileResultImpl(info.asFileNameInformation().getFileName());
+            return new RetracedSourceFileImpl(info.asFileNameInformation().getFileName());
           }
         }
       }
-      return new RetraceSourceFileResultImpl(null);
+      return new RetracedSourceFileImpl(null);
     }
 
     @Override

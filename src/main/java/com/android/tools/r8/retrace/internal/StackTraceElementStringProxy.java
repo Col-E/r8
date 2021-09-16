@@ -69,7 +69,7 @@ public final class StackTraceElementStringProxy
   }
 
   @Override
-  public boolean hasFileName() {
+  public boolean hasSourceFile() {
     return sourceFile.hasIndex();
   }
 
@@ -104,8 +104,8 @@ public final class StackTraceElementStringProxy
   }
 
   @Override
-  public String getFileName() {
-    return hasFileName() ? getEntryInLine(sourceFile) : null;
+  public String getSourceFile() {
+    return hasSourceFile() ? getEntryInLine(sourceFile) : null;
   }
 
   @Override
@@ -225,7 +225,7 @@ public final class StackTraceElementStringProxy
               startIndex,
               endIndex,
               (retraced, original, verbose) ->
-                  retraced.hasSourceFile() ? retraced.getSourceFile() : original.getFileName());
+                  retraced.hasSourceFile() ? retraced.getSourceFile() : original.getSourceFile());
       orderedIndices.add(sourceFile);
       return this;
     }

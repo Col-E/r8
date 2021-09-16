@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 @Keep
 public interface StackTraceElementProxyRetracer<T, ST extends StackTraceElementProxy<T, ST>> {
 
-  Stream<RetraceStackTraceProxy<T, ST>> retrace(ST element);
+  Stream<? extends RetraceStackTraceProxy<T, ST>> retrace(ST element);
 
   static <T, ST extends StackTraceElementProxy<T, ST>>
       StackTraceElementProxyRetracer<T, ST> createDefault(Retracer retracer) {

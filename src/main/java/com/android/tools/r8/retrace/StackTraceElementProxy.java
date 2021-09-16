@@ -14,7 +14,7 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
 
   public abstract boolean hasMethodName();
 
-  public abstract boolean hasFileName();
+  public abstract boolean hasSourceFile();
 
   public abstract boolean hasLineNumber();
 
@@ -28,7 +28,7 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
 
   public abstract String getMethodName();
 
-  public abstract String getFileName();
+  public abstract String getSourceFile();
 
   public abstract int getLineNumber();
 

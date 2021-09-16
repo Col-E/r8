@@ -11,7 +11,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class RetraceApiSourceFileNotFoundTest extends RetraceApiTestBase {
 
     @Test
     public void testRetracingSourceFile() {
-      List<RetraceSourceFileResult> sourceFileResults = new ArrayList<>();
+      List<RetracedSourceFile> sourceFileResults = new ArrayList<>();
       Retracer.createDefault(ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
           .retraceClass(Reference.classFromTypeName("a"))
           .forEach(clazz -> sourceFileResults.add(clazz.getSourceFile()));

@@ -63,7 +63,7 @@ public class SourceFileTest extends TestBase {
                   .clazz(ClassWithCustomFileName.class)
                   .retraceUnique()
                   .getSourceFile()
-                  .getFilename());
+                  .getSourceFile());
         }));
   }
 
@@ -78,7 +78,7 @@ public class SourceFileTest extends TestBase {
               inspector.clazz(ClassWithoutCustomFileName.class).retraceUnique();
           assertEquals(
               "SourceFileTest.java",
-              RetraceUtils.inferFileName(
+              RetraceUtils.inferSourceFile(
                   retraceClassElement.getRetracedClass().getTypeName(), "nofile.java", true));
         }));
   }

@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.retrace.internal;
 
-import com.android.tools.r8.retrace.RetraceSourceFileResult;
+import com.android.tools.r8.retrace.RetracedSourceFile;
 
-public class RetraceSourceFileResultImpl implements RetraceSourceFileResult {
+public class RetracedSourceFileImpl implements RetracedSourceFile {
 
   private final String filename;
 
-  RetraceSourceFileResultImpl(String filename) {
+  RetracedSourceFileImpl(String filename) {
     this.filename = filename;
   }
 
@@ -20,7 +20,7 @@ public class RetraceSourceFileResultImpl implements RetraceSourceFileResult {
   }
 
   @Override
-  public String getFilename() {
+  public String getSourceFile() {
     return filename;
   }
 }
