@@ -23,22 +23,22 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
-import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConversionCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -67,31 +67,24 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-  // This is used to filter out double desugaring on backported methods.
-  private final BackportedMethodRewriter backportedMethodRewriter;
-  private final InterfaceMethodRewriter interfaceMethodRewriter;
-  private final DesugaredLibraryRetargeter retargeter;
+  private final Set<CfInstructionDesugaring> precedingDesugarings;
+  private final Set<DexString> emulatedMethods;
 
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
-  private final Set<DexMethod> trackedCallBackAPIs;
   private final Set<DexMethod> trackedAPIs;
 
   public DesugaredLibraryAPIConverter(
       AppView<?> appView,
-      InterfaceMethodRewriter interfaceMethodRewriter,
-      DesugaredLibraryRetargeter retargeter,
-      BackportedMethodRewriter backportedMethodRewriter) {
+      Set<CfInstructionDesugaring> precedingDesugarings,
+      Set<DexString> emulatedMethods) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.interfaceMethodRewriter = interfaceMethodRewriter;
-    this.retargeter = retargeter;
-    this.backportedMethodRewriter = backportedMethodRewriter;
+    this.precedingDesugarings = precedingDesugarings;
+    this.emulatedMethods = emulatedMethods;
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView);
     if (appView.options().testing.trackDesugaredAPIConversions) {
-      trackedCallBackAPIs = Sets.newConcurrentHashSet();
       trackedAPIs = Sets.newConcurrentHashSet();
     } else {
-      trackedCallBackAPIs = null;
       trackedAPIs = null;
     }
   }
@@ -176,10 +169,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   // The problem is that a method can resolve into a library method which is not present at runtime,
   // the code relies in that case on emulated interface dispatch. We should not convert such API.
   private boolean isEmulatedInterfaceOverride(DexClassAndMethod invokedMethod) {
-    if (interfaceMethodRewriter == null) {
-      return false;
-    }
-    if (!interfaceMethodRewriter.getEmulatedMethods().contains(invokedMethod.getName())) {
+    if (!emulatedMethods.contains(invokedMethod.getName())) {
       return false;
     }
     DexClassAndMethod interfaceResult =
@@ -195,18 +185,8 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   }
 
   private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {
-    if (interfaceMethodRewriter != null
-        && interfaceMethodRewriter.needsDesugaring(invoke, context)) {
-      return true;
-    }
-    if (retargeter != null && retargeter.needsDesugaring(invoke, context)) {
-      return true;
-    }
-    if (backportedMethodRewriter != null
-        && backportedMethodRewriter.needsDesugaring(invoke, context)) {
-      return true;
-    }
-    return false;
+    return Iterables.any(
+        precedingDesugarings, desugaring -> desugaring.needsDesugaring(invoke, context));
   }
 
   public static DexMethod methodWithVivifiedTypeInSignature(

@@ -89,6 +89,16 @@ public class SetUtils {
     return builder.build();
   }
 
+  public static <T> ImmutableSet<T> newImmutableSetExcludingNullItems(T... items) {
+    ImmutableSet.Builder<T> builder = ImmutableSet.builder();
+    for (T item : items) {
+      if (item != null) {
+        builder.add(item);
+      }
+    }
+    return builder.build();
+  }
+
   public static <T, S> Set<T> mapIdentityHashSet(Set<S> set, Function<S, T> fn) {
     Set<T> out = newIdentityHashSet(set.size());
     for (S element : set) {

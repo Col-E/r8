@@ -34,15 +34,12 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
@@ -56,6 +53,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,8 +106,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
 
   // This is used to filter out double desugaring on backported methods.
-  private final BackportedMethodRewriter backportedMethodRewriter;
-  private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
+  private final Set<CfInstructionDesugaring> precedingDesugarings;
 
   /** Defines a minor variation in desugaring. */
   public enum Flavor {
@@ -119,26 +116,10 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     ExcludeDexResources
   }
 
-  // Constructor for cf to cf desugaring.
   public InterfaceMethodRewriter(
-      AppView<?> appView,
-      BackportedMethodRewriter rewriter,
-      DesugaredLibraryRetargeter desugaredLibraryRetargeter) {
+      AppView<?> appView, Set<CfInstructionDesugaring> precedingDesugarings) {
     this.appView = appView;
-    this.backportedMethodRewriter = rewriter;
-    this.desugaredLibraryRetargeter = desugaredLibraryRetargeter;
-    this.options = appView.options();
-    this.factory = appView.dexItemFactory();
-    this.helper = new InterfaceDesugaringSyntheticHelper(appView);
-    initializeEmulatedInterfaceVariables();
-  }
-
-  // Constructor for IR desugaring.
-  public InterfaceMethodRewriter(AppView<?> appView, IRConverter converter) {
-    assert converter != null;
-    this.appView = appView;
-    this.backportedMethodRewriter = null;
-    this.desugaredLibraryRetargeter = null;
+    this.precedingDesugarings = precedingDesugarings;
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
     this.helper = new InterfaceDesugaringSyntheticHelper(appView);
@@ -228,13 +209,8 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {
-    // In Cf to Cf it is forbidden to desugar twice the same instruction, if the backported
-    // method rewriter or the desugared library retargeter already desugar the instruction, they
-    // take precedence and nothing has to be done here.
-    return (backportedMethodRewriter != null
-            && backportedMethodRewriter.needsDesugaring(invoke, context))
-        || (desugaredLibraryRetargeter != null
-            && desugaredLibraryRetargeter.needsDesugaring(invoke, context));
+    return Iterables.any(
+        precedingDesugarings, desugaring -> desugaring.needsDesugaring(invoke, context));
   }
 
   @Override

@@ -29,8 +29,10 @@ import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesug
 import com.android.tools.r8.ir.desugar.twr.TwrInstructionDesugaring;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,14 +77,15 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (appView.options().enableBackportedMethodRewriting()) {
       backportedMethodRewriter = new BackportedMethodRewriter(appView);
     }
-    // Place TWR before Interface desugaring to eliminate potential $closeResource interface calls.
     if (appView.options().enableTryWithResourcesDesugaring()) {
       desugarings.add(new TwrInstructionDesugaring(appView));
     }
     if (appView.options().isInterfaceMethodDesugaringEnabled()) {
       interfaceMethodRewriter =
           new InterfaceMethodRewriter(
-              appView, backportedMethodRewriter, desugaredLibraryRetargeter);
+              appView,
+              SetUtils.newImmutableSetExcludingNullItems(
+                  backportedMethodRewriter, desugaredLibraryRetargeter));
       desugarings.add(interfaceMethodRewriter);
     } else {
       interfaceMethodRewriter = null;
@@ -91,9 +94,11 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
         appView.rewritePrefix.isRewriting()
             ? new DesugaredLibraryAPIConverter(
                 appView,
-                interfaceMethodRewriter,
-                desugaredLibraryRetargeter,
-                backportedMethodRewriter)
+                SetUtils.newImmutableSetExcludingNullItems(
+                    interfaceMethodRewriter, desugaredLibraryRetargeter, backportedMethodRewriter),
+                interfaceMethodRewriter != null
+                    ? interfaceMethodRewriter.getEmulatedMethods()
+                    : ImmutableSet.of())
             : null;
     if (desugaredLibraryAPIConverter != null) {
       desugarings.add(desugaredLibraryAPIConverter);
