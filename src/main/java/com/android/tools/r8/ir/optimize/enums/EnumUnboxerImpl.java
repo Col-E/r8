@@ -76,7 +76,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
@@ -131,7 +131,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class EnumUnboxerImpl {
+public class EnumUnboxerImpl extends EnumUnboxer {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
@@ -157,7 +157,7 @@ public class EnumUnboxerImpl {
   private final boolean debugLogEnabled;
   private final Map<DexType, List<Reason>> debugLogs;
 
-  public EnumUnboxerImpl(AppView<AppInfoWithLiveness> appView) {
+  EnumUnboxerImpl(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     if (appView.options().testing.enableEnumUnboxingDebugLogs) {
@@ -180,6 +180,7 @@ public class EnumUnboxerImpl {
     return ordinalField;
   }
 
+  @Override
   public void updateEnumUnboxingCandidatesInfo() {
     for (DexProgramClass candidate : candidatesToRemoveInWave) {
       enumUnboxingCandidatesInfo.removeCandidate(candidate);
@@ -232,6 +233,7 @@ public class EnumUnboxerImpl {
     return enumUnboxingCandidatesInfo.getCandidateClassOrNull(type);
   }
 
+  @Override
   public void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions) {
     Set<DexType> eligibleEnums = Sets.newIdentityHashSet();
     for (BasicBlock block : code.blocks) {
@@ -556,7 +558,12 @@ public class EnumUnboxerImpl {
     return result;
   }
 
-  public void initializeEnumUnboxingCandidates(GraphLens graphLensForPrimaryOptimizationPass) {
+  @Override
+  public void prepareForPrimaryOptimizationPass(GraphLens graphLensForPrimaryOptimizationPass) {
+    initializeEnumUnboxingCandidates(graphLensForPrimaryOptimizationPass);
+  }
+
+  private void initializeEnumUnboxingCandidates(GraphLens graphLensForPrimaryOptimizationPass) {
     assert enumUnboxingCandidatesInfo == null;
     enumUnboxingCandidatesInfo =
         new EnumUnboxingCandidateAnalysis(appView, this)
@@ -566,9 +573,11 @@ public class EnumUnboxerImpl {
             graphLensForPrimaryOptimizationPass);
   }
 
+  @Override
   public void unboxEnums(
+      AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
-      PostMethodProcessor.Builder postBuilder,
+      Builder postBuilder,
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback)
       throws ExecutionException {
@@ -871,6 +880,7 @@ public class EnumUnboxerImpl {
     return OptionalInt.empty();
   }
 
+  @Override
   public void recordEnumState(DexProgramClass clazz, StaticFieldValues staticFieldValues) {
     if (staticFieldValues == null || !staticFieldValues.isEnumStaticFieldValues()) {
       return;
@@ -1560,6 +1570,7 @@ public class EnumUnboxerImpl {
     return false;
   }
 
+  @Override
   public Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor) {
     // This has no effect during primary processing since the enumUnboxerRewriter is set
     // in between primary and post processing.
@@ -1569,6 +1580,7 @@ public class EnumUnboxerImpl {
     return Sets.newIdentityHashSet();
   }
 
+  @Override
   public void unsetRewriter() {
     enumUnboxerRewriter = null;
   }

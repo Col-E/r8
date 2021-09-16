@@ -78,8 +78,7 @@ import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
-import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -153,7 +152,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   private final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
-  private final EnumUnboxerImpl enumUnboxer;
+  private final EnumUnboxer enumUnboxer;
 
   public final AssumeInserter assumeInserter;
   private final DynamicTypeOptimization dynamicTypeOptimization;
@@ -239,7 +238,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
-      this.enumUnboxer = null;
+      this.enumUnboxer = EnumUnboxer.empty();
       this.assumeInserter = null;
       return;
     }
@@ -267,8 +266,7 @@ public class IRConverter {
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
               : null;
-      this.enumUnboxer =
-          options.enableEnumUnboxing ? new EnumUnboxerImpl(appViewWithLiveness) : null;
+      this.enumUnboxer = EnumUnboxer.create(appViewWithLiveness);
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
       this.inliner = new Inliner(appViewWithLiveness, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);
@@ -307,7 +305,7 @@ public class IRConverter {
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumValueOptimizer = null;
-      this.enumUnboxer = null;
+      this.enumUnboxer = EnumUnboxer.empty();
     }
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()
@@ -641,10 +639,7 @@ public class IRConverter {
           optimization.abandonCallSitePropagationForPinnedMethodsAndOverrides(
               executorService, timing);
         });
-    ConsumerUtils.acceptIfNotNull(
-        enumUnboxer,
-        enumUnboxer ->
-            enumUnboxer.initializeEnumUnboxingCandidates(graphLensForPrimaryOptimizationPass));
+    enumUnboxer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
     ConsumerUtils.acceptIfNotNull(
         classStaticizer,
         classStaticizer ->
@@ -725,12 +720,8 @@ public class IRConverter {
           .run(executorService, feedback, timing);
     }
 
-    if (enumUnboxer != null) {
-      outliner.rewriteWithLens();
-      enumUnboxer.unboxEnums(this, postMethodProcessorBuilder, executorService, feedback);
-    } else {
-      appView.setUnboxedEnums(EnumDataMap.empty());
-    }
+    outliner.rewriteWithLens();
+    enumUnboxer.unboxEnums(appView, this, postMethodProcessorBuilder, executorService, feedback);
 
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
 
@@ -758,9 +749,7 @@ public class IRConverter {
     }
     timing.end();
 
-    if (enumUnboxer != null) {
-      enumUnboxer.unsetRewriter();
-    }
+    enumUnboxer.unsetRewriter();
 
     // All the code that should be impacted by the lenses inserted between phase 1 and phase 2
     // have now been processed and rewritten, we clear code lens rewriting so that the class
@@ -849,9 +838,7 @@ public class IRConverter {
     if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
       appView.protoShrinker().protoEnumSwitchMapRemover.updateVisibleStaticFieldValues();
     }
-    if (enumUnboxer != null) {
-      enumUnboxer.updateEnumUnboxingCandidatesInfo();
-    }
+    enumUnboxer.updateEnumUnboxingCandidatesInfo();
     assert delayedOptimizationFeedback.noUpdatesLeft();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;
@@ -1549,7 +1536,7 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor, timing));
 
-    if (enumUnboxer != null && methodProcessor.isPrimaryMethodProcessor()) {
+    if (methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, conversionOptions);
     }
 
@@ -1594,9 +1581,7 @@ public class IRConverter {
                 appView, code, classInitializerDefaultsResult, feedback, timing);
       }
     }
-    if (enumUnboxer != null) {
-      enumUnboxer.recordEnumState(method.getHolder(), staticFieldValues);
-    }
+    enumUnboxer.recordEnumState(method.getHolder(), staticFieldValues);
     if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
       appView
           .protoShrinker()
