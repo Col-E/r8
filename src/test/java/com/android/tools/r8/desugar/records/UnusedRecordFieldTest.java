@@ -34,7 +34,7 @@ public class UnusedRecordFieldTest extends TestBase {
     // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk16).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk16())
+            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());
