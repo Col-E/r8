@@ -89,6 +89,7 @@ public class SetUtils {
     return builder.build();
   }
 
+  @SafeVarargs
   public static <T> ImmutableSet<T> newImmutableSetExcludingNullItems(T... items) {
     ImmutableSet.Builder<T> builder = ImmutableSet.builder();
     for (T item : items) {
