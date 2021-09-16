@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.records;
 
 import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -58,16 +57,14 @@ public class RecordReflectionTest extends TestBase {
 
   @Test
   public void testR8Cf() throws Exception {
-    R8TestCompileResult compile =
-        testForR8(parameters.getBackend())
-            .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE)
-            .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
-            .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .compile();
-    compile
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(PROGRAM_DATA)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_TYPE)
+        .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
+        .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .compile()
         .inspect(RecordTestUtils::assertRecordsAreRecords)
         .enableJVMPreview()
         .run(parameters.getRuntime(), MAIN_TYPE)

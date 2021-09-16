@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.records;
 import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -60,28 +61,22 @@ public class EmptyRecordTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    R8FullTestBuilder builder =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(PROGRAM_DATA)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(MAIN_TYPE)
+            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
     if (parameters.isCfRuntime()) {
-      testForR8(parameters.getBackend())
-          .addProgramClassFileData(PROGRAM_DATA)
-          .setMinApi(parameters.getApiLevel())
+      builder
           .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
-          .addKeepMainRule(MAIN_TYPE)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-          .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
-          .enableJVMPreview()
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT);
       return;
     }
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .compile()
-        .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+    builder.run(parameters.getRuntime(), MAIN_TYPE).assertSuccessWithOutput(EXPECTED_RESULT);
   }
 }

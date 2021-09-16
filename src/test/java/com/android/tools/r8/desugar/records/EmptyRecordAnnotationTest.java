@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.records;
 import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -50,7 +51,6 @@ public class EmptyRecordAnnotationTest extends TestBase {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addProgramClassFileData(PROGRAM_DATA)
-          .enablePreview()
           .run(parameters.getRuntime(), MAIN_TYPE)
           .assertSuccessWithOutput(EXPECTED_RESULT_CF);
     }
@@ -65,15 +65,17 @@ public class EmptyRecordAnnotationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    R8FullTestBuilder builder =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(PROGRAM_DATA)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
+            .addKeepMainRule(MAIN_TYPE)
+            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
     if (parameters.isCfRuntime()) {
-      testForR8(parameters.getBackend())
-          .addProgramClassFileData(PROGRAM_DATA)
-          .setMinApi(parameters.getApiLevel())
-          .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
+      builder
           .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
-          .addKeepMainRule(MAIN_TYPE)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-          .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
           .enableJVMPreview()
@@ -81,16 +83,10 @@ public class EmptyRecordAnnotationTest extends TestBase {
           .assertSuccessWithOutput(EXPECTED_RESULT_CF);
       return;
     }
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
+    builder
         .addKeepRules("-keepattributes *Annotation*")
-        .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
         .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")
         .addKeepRules("-keep class java.lang.Record")
-        .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_DEX);
   }
