@@ -10,15 +10,18 @@ import static com.android.tools.r8.ir.code.Opcodes.ARRAY_LENGTH;
 import static com.android.tools.r8.ir.code.Opcodes.ARRAY_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
 import static com.android.tools.r8.ir.code.Opcodes.IF;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_CUSTOM;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
@@ -42,7 +45,6 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
@@ -69,7 +71,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.Opcodes;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -102,6 +103,8 @@ import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
+import com.android.tools.r8.utils.collections.LongLivedClassSetBuilder;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodMapBuilder;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -147,8 +150,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   private LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsDependingOnLibraryModelisation;
 
   // Map from checkNotNull() methods to the enums that use the given method.
-  private final ProgramMethodMap<Set<DexProgramClass>> checkNotNullMethods =
-      ProgramMethodMap.createConcurrent();
+  private LongLivedProgramMethodMapBuilder<LongLivedClassSetBuilder<DexProgramClass>>
+      checkNotNullMethodsBuilder;
 
   private final DexClassAndField ordinalField;
 
@@ -261,21 +264,21 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           }
         }
         switch (instruction.opcode()) {
-          case Opcodes.CONST_CLASS:
+          case CONST_CLASS:
             analyzeConstClass(instruction.asConstClass(), eligibleEnums, code.context());
             break;
-          case Opcodes.CHECK_CAST:
+          case CHECK_CAST:
             analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
             break;
-          case Opcodes.INVOKE_CUSTOM:
+          case INVOKE_CUSTOM:
             analyzeInvokeCustom(instruction.asInvokeCustom(), eligibleEnums);
             break;
           case INVOKE_STATIC:
             analyzeInvokeStatic(instruction.asInvokeStatic(), eligibleEnums, code.context());
             break;
-          case Opcodes.STATIC_GET:
-          case Opcodes.INSTANCE_GET:
-          case Opcodes.STATIC_PUT:
+          case STATIC_GET:
+          case INSTANCE_GET:
+          case STATIC_PUT:
           case INSTANCE_PUT:
             analyzeFieldInstruction(
                 instruction.asFieldInstruction(), eligibleEnums, code.context());
@@ -560,7 +563,16 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
   @Override
   public void prepareForPrimaryOptimizationPass(GraphLens graphLensForPrimaryOptimizationPass) {
+    assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
+    initializeCheckNotNullMethods(graphLensForPrimaryOptimizationPass);
     initializeEnumUnboxingCandidates(graphLensForPrimaryOptimizationPass);
+  }
+
+  private void initializeCheckNotNullMethods(GraphLens graphLensForPrimaryOptimizationPass) {
+    assert checkNotNullMethodsBuilder == null;
+    checkNotNullMethodsBuilder =
+        LongLivedProgramMethodMapBuilder.createConcurrentBuilderForNonConcurrentMap(
+            graphLensForPrimaryOptimizationPass);
   }
 
   private void initializeEnumUnboxingCandidates(GraphLens graphLensForPrimaryOptimizationPass) {
@@ -577,10 +589,12 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   public void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
-      Builder postBuilder,
+      Builder postMethodProcessorBuilder,
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback)
       throws ExecutionException {
+    assert feedback.noUpdatesLeft();
+
     assert candidatesToRemoveInWave.isEmpty();
     EnumDataMap enumDataMap = finishAnalysis();
     assert candidatesToRemoveInWave.isEmpty();
@@ -588,9 +602,10 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     // At this point the enum unboxing candidates are no longer candidates, they will all be
     // unboxed. We extract the now immutable enums to unbox information and clear the candidate
     // info.
+    appView.setUnboxedEnums(enumDataMap);
+
     if (enumUnboxingCandidatesInfo.isEmpty()) {
       assert enumDataMap.isEmpty();
-      appView.setUnboxedEnums(enumDataMap);
       return;
     }
 
@@ -609,12 +624,15 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             .build(converter, executorService);
 
     // Fixup the application.
+    ProgramMethodMap<Set<DexProgramClass>> checkNotNullMethods =
+        checkNotNullMethodsBuilder
+            .rewrittenWithLens(appView, (enumClasses, appliedGraphLens) -> enumClasses)
+            .build(appView, builder -> builder.build(appView));
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)
             .fixupTypeReferences(converter, executorService);
     EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
-    appView.setUnboxedEnums(enumDataMap);
 
     // Update the graph lens.
     appView.rewriteWithLens(enumUnboxingLens);
@@ -624,7 +642,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     // Note that the reprocessing set must be rewritten to the new enum unboxing lens before pruning
     // the builders with the methods removed by the tree fixer (since these methods references are
     // already fully lens rewritten).
-    postBuilder
+    postMethodProcessorBuilder
         .getMethodsToReprocessBuilder()
         .rewrittenWithLens(appView)
         .merge(dependencies)
@@ -632,7 +650,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods());
     methodsDependingOnLibraryModelisation.clear();
 
-    updateOptimizationInfos(executorService, feedback, treeFixerResult.getPrunedItems());
+    updateOptimizationInfos(executorService, feedback, treeFixerResult);
 
     enumUnboxerRewriter =
         new EnumUnboxingRewriter(
@@ -647,7 +665,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   private void updateOptimizationInfos(
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback,
-      PrunedItems prunedItems)
+      EnumUnboxingTreeFixer.Result treeFixerResult)
       throws ExecutionException {
     feedback.fixupOptimizationInfos(
         appView,
@@ -666,7 +684,16 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             optimizationInfo
                 .fixupClassTypeReferences(appView, appView.graphLens())
                 .fixupAbstractReturnValue(appView, appView.graphLens())
-                .fixupInstanceInitializerInfo(appView, appView.graphLens(), prunedItems);
+                .fixupInstanceInitializerInfo(
+                    appView, appView.graphLens(), treeFixerResult.getPrunedItems());
+
+            // Clear the enum unboxer method classification for check-not-null methods (these
+            // classifications are transferred to the synthesized check-not-zero methods by now).
+            if (!treeFixerResult
+                .getCheckNotNullToCheckNotZeroMapping()
+                .containsValue(method.getReference())) {
+              optimizationInfo.unsetEnumUnboxerMethodClassification();
+            }
           }
         });
   }
@@ -1316,10 +1343,16 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             classification.asCheckNotNullClassification();
         if (checkNotNullClassification.isUseEligibleForUnboxing(
             invoke.asInvokeStatic(), enumValue)) {
-          checkNotNullMethods
+          GraphLens graphLens = appView.graphLens();
+          checkNotNullMethodsBuilder
               .computeIfAbsent(
-                  singleTarget.asProgramMethod(), ignoreKey(Sets::newConcurrentHashSet))
-              .add(enumClass);
+                  singleTarget.asProgramMethod(),
+                  ignoreKey(
+                      () ->
+                          LongLivedClassSetBuilder.createConcurrentBuilderForIdentitySet(
+                              graphLens)),
+                  graphLens)
+              .add(enumClass, graphLens);
           return Reason.ELIGIBLE;
         }
       }

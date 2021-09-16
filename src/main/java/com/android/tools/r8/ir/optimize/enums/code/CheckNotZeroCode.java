@@ -49,7 +49,7 @@ public class CheckNotZeroCode extends Code {
     // Start iterating at the argument instruction for the checked argument.
     IteratorUtils.skip(
         instructionIterator,
-        checkNotNullMethod
+        checkNotZeroMethod
             .getOptimizationInfo()
             .getEnumUnboxerMethodClassification()
             .asCheckNotNullClassification()

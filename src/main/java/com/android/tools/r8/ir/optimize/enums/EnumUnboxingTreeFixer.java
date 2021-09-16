@@ -54,10 +54,11 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -130,16 +131,16 @@ class EnumUnboxingTreeFixer {
     }
 
     // Create mapping from checkNotNull() to checkNotZero() methods.
-    Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
+    BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
         duplicateCheckNotNullMethods(converter, executorService);
 
     return new Result(
         checkNotNullToCheckNotZeroMapping, lensBuilder.build(appView), prunedItemsBuilder.build());
   }
 
-  private Map<DexMethod, DexMethod> duplicateCheckNotNullMethods(
+  private BiMap<DexMethod, DexMethod> duplicateCheckNotNullMethods(
       IRConverter converter, ExecutorService executorService) throws ExecutionException {
-    Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping = new IdentityHashMap<>();
+    BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping = HashBiMap.create();
     ProcessorContext processorContext = appView.createProcessorContext();
     OneTimeMethodProcessor.Builder methodProcessorBuilder =
         OneTimeMethodProcessor.builder(processorContext);
@@ -186,6 +187,11 @@ class EnumUnboxingTreeFixer {
                               .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
                               .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                               .setCode(method -> new CheckNotZeroCode(checkNotNullMethod))
+                              .setOptimizationInfo(
+                                  checkNotNullMethod
+                                      .getOptimizationInfo()
+                                      .asMutableMethodOptimizationInfo()
+                                      .mutableCopy())
                               .setProto(newProto));
           checkNotNullToCheckNotZeroMapping.put(
               checkNotNullMethod.getReference(), checkNotZeroMethod.getReference());
@@ -603,12 +609,12 @@ class EnumUnboxingTreeFixer {
 
   public static class Result {
 
-    private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
+    private final BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
     private final EnumUnboxingLens lens;
     private final PrunedItems prunedItems;
 
     Result(
-        Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
+        BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
         EnumUnboxingLens lens,
         PrunedItems prunedItems) {
       this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
@@ -616,7 +622,7 @@ class EnumUnboxingTreeFixer {
       this.prunedItems = prunedItems;
     }
 
-    Map<DexMethod, DexMethod> getCheckNotNullToCheckNotZeroMapping() {
+    BiMap<DexMethod, DexMethod> getCheckNotNullToCheckNotZeroMapping() {
       return checkNotNullToCheckNotZeroMapping;
     }
 

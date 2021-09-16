@@ -808,9 +808,33 @@ public class MethodOptimizationInfoCollector {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor) {
-    EnumUnboxerMethodClassification enumUnboxerMethodClassification =
-        EnumUnboxerMethodClassificationAnalysis.analyze(appView, method, code, methodProcessor);
-    feedback.setEnumUnboxerMethodClassification(method, enumUnboxerMethodClassification);
+    if (appView.hasUnboxedEnums()) {
+      if (appView.unboxedEnums().isEmpty()) {
+        feedback.unsetEnumUnboxerMethodClassification(method);
+      } else {
+        assert verifyEnumUnboxerMethodClassificationCorrect(method, code, methodProcessor);
+      }
+    } else {
+      EnumUnboxerMethodClassification enumUnboxerMethodClassification =
+          EnumUnboxerMethodClassificationAnalysis.analyze(appView, method, code, methodProcessor);
+      feedback.setEnumUnboxerMethodClassification(method, enumUnboxerMethodClassification);
+    }
+  }
+
+  private boolean verifyEnumUnboxerMethodClassificationCorrect(
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
+    EnumUnboxerMethodClassification existingClassification =
+        method.getOptimizationInfo().getEnumUnboxerMethodClassification();
+    if (existingClassification.isCheckNotNullClassification()) {
+      EnumUnboxerMethodClassification computedClassification =
+          EnumUnboxerMethodClassificationAnalysis.analyze(appView, method, code, methodProcessor);
+      assert computedClassification.isCheckNotNullClassification();
+      assert computedClassification.asCheckNotNullClassification().getArgumentIndex()
+          == existingClassification.asCheckNotNullClassification().getArgumentIndex();
+    } else {
+      assert existingClassification.isUnknownClassification();
+    }
+    return true;
   }
 
   private void computeSimpleInliningConstraint(

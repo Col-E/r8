@@ -280,6 +280,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.enumUnboxerMethodClassification = enumUnboxerMethodClassification;
   }
 
+  public void unsetEnumUnboxerMethodClassification() {
+    this.enumUnboxerMethodClassification = EnumUnboxerMethodClassification.unknown();
+  }
+
   public MutableMethodOptimizationInfo fixupEnumUnboxerMethodClassification(
       MethodOptimizationInfoFixer fixer) {
     enumUnboxerMethodClassification =

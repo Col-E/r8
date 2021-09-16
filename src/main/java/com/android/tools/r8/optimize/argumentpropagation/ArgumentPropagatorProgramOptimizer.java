@@ -394,6 +394,13 @@ public class ArgumentPropagatorProgramOptimizer {
           || method.getDefinition().isInstanceInitializer()) {
         return ArgumentInfoCollection.empty();
       }
+      // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.
+      if (method
+          .getOptimizationInfo()
+          .getEnumUnboxerMethodClassification()
+          .isCheckNotNullClassification()) {
+        return ArgumentInfoCollection.empty();
+      }
       return computeRemovableParametersFromMethod(method);
     }
 

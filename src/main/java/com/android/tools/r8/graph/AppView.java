@@ -97,7 +97,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
   private HorizontallyMergedClasses horizontallyMergedClasses = HorizontallyMergedClasses.empty();
   private VerticallyMergedClasses verticallyMergedClasses;
-  private EnumDataMap unboxedEnums = EnumDataMap.empty();
+  private EnumDataMap unboxedEnums = null;
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
   private Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
@@ -575,12 +575,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     testing().verticallyMergedClassesConsumer.accept(dexItemFactory(), verticallyMergedClasses);
   }
 
+  public boolean hasUnboxedEnums() {
+    return unboxedEnums != null;
+  }
+
   public EnumDataMap unboxedEnums() {
-    return unboxedEnums;
+    return hasUnboxedEnums() ? unboxedEnums : EnumDataMap.empty();
   }
 
   public void setUnboxedEnums(EnumDataMap unboxedEnums) {
-    assert this.unboxedEnums.isEmpty();
+    assert !hasUnboxedEnums();
     this.unboxedEnums = unboxedEnums;
     testing().unboxedEnumsConsumer.accept(dexItemFactory(), unboxedEnums);
   }

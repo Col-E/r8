@@ -66,6 +66,8 @@ public interface MethodOptimizationFeedback {
   void setEnumUnboxerMethodClassification(
       ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification);
 
+  void unsetEnumUnboxerMethodClassification(ProgramMethod method);
+
   void setInstanceInitializerInfoCollection(
       DexEncodedMethod method, InstanceInitializerInfoCollection instanceInitializerInfoCollection);
 

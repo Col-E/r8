@@ -46,13 +46,25 @@ public class EnumUnboxerMethodClassificationAnalysis {
     }
 
     // Look for an argument with a single if-zero user.
+    EnumUnboxerMethodClassification currentClassification =
+        method.getOptimizationInfo().getEnumUnboxerMethodClassification();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InstructionIterator entryIterator = code.entryBlock().iterator();
     for (int index = 0; index < method.getParameters().size(); index++) {
       Argument argument = entryIterator.next().asArgument();
       DexType parameter = method.getParameter(index);
-      if (parameter != dexItemFactory.objectType) {
-        continue;
+      // Before enum unboxing, we classify methods with `object != null` as check-not-null methods.
+      // After enum unboxing, we check correctness of the classification for check-not-zero methods.
+      if (appView.hasUnboxedEnums()) {
+        if (parameter != dexItemFactory.intType
+            || !currentClassification.isCheckNotNullClassification()
+            || currentClassification.asCheckNotNullClassification().getArgumentIndex() != index) {
+          continue;
+        }
+      } else {
+        if (parameter != dexItemFactory.objectType) {
+          continue;
+        }
       }
 
       if (onlyHasCheckNotNullUsers(argument, methodProcessor)) {

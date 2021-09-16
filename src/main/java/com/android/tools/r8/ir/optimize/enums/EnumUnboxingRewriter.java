@@ -398,26 +398,38 @@ public class EnumUnboxingRewriter {
       return;
     }
 
-    if (singleTarget.isProgramMethod()) {
-      EnumUnboxerMethodClassification classification =
-          singleTarget.getOptimizationInfo().getEnumUnboxerMethodClassification();
-      if (classification.isCheckNotNullClassification()) {
-        CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
-            classification.asCheckNotNullClassification();
-        Value argument = invoke.getArgument(checkNotNullClassification.getArgumentIndex());
-        DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
-        if (enumType != null) {
-          InvokeStatic replacement =
-              InvokeStatic.builder()
-                  .setMethod(checkNotNullToCheckNotZeroMapping.get(singleTarget.getReference()))
-                  .setArguments(invoke.arguments())
-                  .setPosition(invoke.getPosition())
-                  .build();
-          instructionIterator.replaceCurrentInstruction(replacement);
-          convertedEnums.put(replacement, enumType);
+    if (singleTarget.isProgramMethod()
+        && checkNotNullToCheckNotZeroMapping.containsKey(singleTarget.getReference())) {
+      DexMethod checkNotZeroMethodReference =
+          checkNotNullToCheckNotZeroMapping.get(singleTarget.getReference());
+      ProgramMethod checkNotZeroMethod =
+          appView
+              .appInfo()
+              .resolveMethodOnClass(checkNotZeroMethodReference)
+              .getResolvedProgramMethod();
+      if (checkNotZeroMethod != null) {
+        EnumUnboxerMethodClassification classification =
+            checkNotZeroMethod.getOptimizationInfo().getEnumUnboxerMethodClassification();
+        if (classification.isCheckNotNullClassification()) {
+          CheckNotNullEnumUnboxerMethodClassification checkNotNullClassification =
+              classification.asCheckNotNullClassification();
+          Value argument = invoke.getArgument(checkNotNullClassification.getArgumentIndex());
+          DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
+          if (enumType != null) {
+            InvokeStatic replacement =
+                InvokeStatic.builder()
+                    .setMethod(checkNotZeroMethod)
+                    .setArguments(invoke.arguments())
+                    .setPosition(invoke.getPosition())
+                    .build();
+            instructionIterator.replaceCurrentInstruction(replacement);
+            convertedEnums.put(replacement, enumType);
+          }
+        } else {
+          assert false;
         }
       } else {
-        assert !checkNotNullToCheckNotZeroMapping.containsKey(singleTarget.getReference());
+        assert false;
       }
     }
   }
