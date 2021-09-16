@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -93,6 +94,7 @@ public class B77836766 extends TestBase {
     ClassBuilder cls1 = jasminBuilder.addClass("Cls1", absCls.name, itf1.name);
     // Mimic Kotlin's "internal" class
     cls1.setAccess("");
+    cls1.addRuntimeInvisibleAnnotation(KeepConstantArguments.class.getTypeName());
     cls1.addBridgeMethod("foo", ImmutableList.of("Ljava/lang/String;"), "V",
         ".limit stack 2",
         ".limit locals 2",
@@ -143,6 +145,7 @@ public class B77836766 extends TestBase {
         .addProgramClassFileData(jasminBuilder.buildClasses())
         .addKeepMainRule(mainClass.name)
         .addOptionsModification(this::configure)
+        .enableConstantArgumentAnnotations()
         .noHorizontalClassMerging(cls2Class.name)
         .noMinification()
         .setMinApi(parameters.getApiLevel())
@@ -239,6 +242,7 @@ public class B77836766 extends TestBase {
         "return");
 
     ClassBuilder cls2 = jasminBuilder.addClass("DerivedString", baseCls.name);
+    cls2.addRuntimeInvisibleAnnotation(KeepConstantArguments.class.getTypeName());
     cls2.addVirtualMethod("bar", ImmutableList.of("Ljava/lang/String;"), "V",
         ".limit stack 2",
         ".limit locals 2",
@@ -272,6 +276,7 @@ public class B77836766 extends TestBase {
         .addProgramClassFileData(jasminBuilder.buildClasses())
         .addKeepMainRule(mainClass.name)
         .addOptionsModification(this::configure)
+        .enableConstantArgumentAnnotations()
         .noHorizontalClassMerging(derivedIntegerClass.name)
         .noMinification()
         .setMinApi(parameters.getApiLevel())
@@ -347,6 +352,7 @@ public class B77836766 extends TestBase {
         "return");
 
     ClassBuilder subCls = jasminBuilder.addClass("DerivedString", baseCls.name);
+    subCls.addRuntimeInvisibleAnnotation(KeepConstantArguments.class.getTypeName());
     subCls.addVirtualMethod("bar", ImmutableList.of("Ljava/lang/String;"), "V",
         ".limit stack 2",
         ".limit locals 2",
@@ -381,6 +387,7 @@ public class B77836766 extends TestBase {
         .addProgramClassFileData(jasminBuilder.buildClasses())
         .addKeepMainRule(mainClass.name)
         .addOptionsModification(this::configure)
+        .enableConstantArgumentAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -433,6 +440,7 @@ public class B77836766 extends TestBase {
         "aload_1",
         "invokevirtual java/io/PrintStream/print(Ljava/lang/Object;)V",
         "return");
+    cls.addRuntimeInvisibleAnnotation(KeepConstantArguments.class.getTypeName());
     cls.addVirtualMethod("bar", ImmutableList.of("Ljava/lang/String;"), "V",
         ".limit stack 2",
         ".limit locals 2",
@@ -467,6 +475,7 @@ public class B77836766 extends TestBase {
         .addProgramClassFileData(jasminBuilder.buildClasses())
         .addKeepMainRule(mainClass.name)
         .addOptionsModification(this::configure)
+        .enableConstantArgumentAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -495,7 +504,6 @@ public class B77836766 extends TestBase {
     // Callees are invoked with a simple constant, e.g., "Bar". Propagating it into the callees
     // bothers what the tests want to check, such as exact instructions in the body that include
     // invocation kinds, like virtual call to a bridge.
-    assert !options.callSiteOptimizationOptions().isConstantPropagationEnabled();
     // Disable inlining to avoid the (short) tested method from being inlined and then removed.
     options.enableInlining = false;
   }

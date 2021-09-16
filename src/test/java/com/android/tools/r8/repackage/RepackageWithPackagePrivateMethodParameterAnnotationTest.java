@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -36,6 +37,7 @@ public class RepackageWithPackagePrivateMethodParameterAnnotationTest extends Re
         .addKeepClassRules(NonPublicKeptAnnotation.class)
         .addKeepRuntimeVisibleParameterAnnotations()
         .apply(this::configureRepackaging)
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -67,6 +69,7 @@ public class RepackageWithPackagePrivateMethodParameterAnnotationTest extends Re
 
   public static class IneligibleForRepackaging {
 
+    @KeepConstantArguments
     @NeverInline
     public static void greet(@NonPublicKeptAnnotation String greeting) {
       System.out.println(greeting);

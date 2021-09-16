@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -45,6 +46,7 @@ public class VirtualMethodOverrideEnumUnboxingTest extends EnumUnboxingTestBase 
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepRules(enumKeepRules.getKeepRules())
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
@@ -89,11 +91,13 @@ public class VirtualMethodOverrideEnumUnboxingTest extends EnumUnboxingTestBase 
   @NeverClassInline
   static class B extends A {
 
+    @KeepConstantArguments
     @NeverInline
     void m(int x, MyEnum y) {
       System.out.println("B.m(" + x + " : int, " + y.toString() + " : MyEnum)");
     }
 
+    @KeepConstantArguments
     @NeverInline
     @Override
     void m(MyEnum x, int y) {

@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
@@ -52,18 +53,13 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
               } else {
                 inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class);
               }
+              inspector.assertNoOtherClassesMerged();
             })
+        .enableConstantArgumentAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            enableProguardCompatibilityMode,
-            result ->
-                result.assertSuccessWithOutputLines(
-                    "a", "b", "c", "foo", "null", "annotation 2", "annotation 1", "annotation 2"),
-            result ->
-                result.assertSuccessWithOutputLines("a", "b", "c", "foo", "null", "annotation 2"))
+        .compile()
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(TypeAnnotation.class), isPresent());
@@ -73,7 +69,15 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
                   codeInspector.clazz(B.class),
                   onlyIf(enableProguardCompatibilityMode, isPresent()));
               assertThat(codeInspector.clazz(C.class), isAbsent());
-            });
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .applyIf(
+            enableProguardCompatibilityMode,
+            result ->
+                result.assertSuccessWithOutputLines(
+                    "a", "b", "c", "foo", "null", "annotation 2", "annotation 1", "annotation 2"),
+            result ->
+                result.assertSuccessWithOutputLines("a", "b", "c", "foo", "null", "annotation 2"));
   }
 
   @Retention(RetentionPolicy.RUNTIME)
@@ -114,6 +118,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
   }
 
   static class Main {
+    @KeepConstantArguments
     @NeverInline
     public static void foo(TypeAnnotation annotation) {
       System.out.println(annotation);
@@ -124,7 +129,7 @@ public class NoClassesOrMembersWithAnnotationsTest extends HorizontalClassMergin
       System.out.println(annotation.toString().replaceFirst(".*@.*", "annotation 2"));
     }
 
-    public static void main(String[] args) throws NoSuchMethodException {
+    public static void main(String[] args) {
       A a = new A();
       B b = new B("b");
       C c = new C("c");

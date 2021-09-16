@@ -6,7 +6,9 @@ package com.android.tools.r8.ir.optimize.unusedarguments;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.util.Collection;
 import org.junit.Assert;
@@ -27,6 +29,8 @@ public class UnusedArgumentsMixedTest extends UnusedArgumentsTestBase {
   }
 
   static class TestClass {
+
+    @KeepConstantArguments
     @NeverInline
     public static int a(int a, Object b) {
       return a;
@@ -37,6 +41,7 @@ public class UnusedArgumentsMixedTest extends UnusedArgumentsTestBase {
       return a;
     }
 
+    @KeepConstantArguments
     @NeverInline
     public static int a(int a, Object b, int c) {
       return c;
@@ -53,6 +58,12 @@ public class UnusedArgumentsMixedTest extends UnusedArgumentsTestBase {
       System.out.print(a(5, new Integer(6), 7));
       System.out.print(a(new Integer(8), 9, new Integer(0)));
     }
+  }
+
+  @Override
+  public void configure(R8FullTestBuilder builder) {
+    super.configure(builder);
+    builder.enableConstantArgumentAnnotations();
   }
 
   @Override

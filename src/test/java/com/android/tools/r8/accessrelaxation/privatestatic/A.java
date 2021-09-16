@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.accessrelaxation.privatestatic;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 
@@ -42,6 +43,7 @@ public class A {
     return bar(1);
   }
 
+  @KeepConstantArguments
   @NeverInline
   @NeverPropagateValue
   private static String blah(int i) {

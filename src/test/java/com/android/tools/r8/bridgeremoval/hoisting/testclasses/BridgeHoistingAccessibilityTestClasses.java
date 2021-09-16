@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.bridgeremoval.hoisting.testclasses;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
@@ -33,6 +34,7 @@ public class BridgeHoistingAccessibilityTestClasses {
   @NoVerticalClassMerging
   public static class AWithRangedInvoke {
 
+    @KeepConstantArguments
     @NeverInline
     public Object m(String arg, int a, int b, int c, int d, int e) {
       return System.currentTimeMillis() > 0 ? arg + a + b + c + d + e : null;

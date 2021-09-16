@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -60,6 +61,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(PrivateInstanceMethodCollisionTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .minification(minification)
@@ -109,11 +111,13 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
 
   @NeverClassInline
   static class A {
+    @KeepConstantArguments
     @NeverInline
     private void foo(String used) {
       System.out.println("A#foo(" + used + ")");
     }
 
+    @KeepConstantArguments
     @NeverInline
     void foo(String used, Object unused) {
       System.out.println("A#foo(" + used + ", Object)");

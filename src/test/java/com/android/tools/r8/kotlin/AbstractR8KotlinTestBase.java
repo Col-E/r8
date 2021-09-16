@@ -262,7 +262,7 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     }
   }
 
-  private void checkMethodPresenceInInput(
+  protected void checkMethodPresenceInInput(
       String className, MethodSignature methodSignature, boolean isPresent) {
     boolean foundMethod = AsmUtils.doesMethodExist(classpath, className,
         methodSignature.name, methodSignature.toDescriptor());

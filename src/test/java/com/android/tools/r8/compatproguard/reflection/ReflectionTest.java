@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -156,6 +157,7 @@ class MainNonConstArraySize {
     nonConstArraySize(0);
   }
 
+  @KeepConstantArguments
   @NeverInline
   static void nonConstArraySize(int argumentTypesSize) {
     try {
@@ -485,28 +487,23 @@ public class ReflectionTest extends TestBase {
 
   @Test
   public void testNonConstArraySize() throws Exception {
-    Class<?> mainClass = MainNonConstArraySize.class;
-    R8Command.Builder builder =
-        ToolHelper.prepareR8CommandBuilder(
-                readClasses(A.class, mainClass, NeverInline.class), emptyConsumer(backend))
-            .addLibraryFiles(runtimeJar(backend));
-    builder.addProguardConfiguration(
-        ImmutableList.of(keepMainProguardConfigurationWithInliningAnnotation(mainClass)),
-        Origin.unknown());
-    ToolHelper.allowTestProguardOptions(builder);
-    AndroidApp output = ToolHelper.runR8(builder.build());
-    CodeInspector inspector = new CodeInspector(output);
-
-    assertThat(
-        inspector.clazz(A.class).method("void", "method0", ImmutableList.of()),
-        isPresentAndRenamed());
-
-    // The reference run on the Java VM will succeed, whereas the run on the R8 output will fail
-    // as in this test we fail to recognize the reflective call. To compare the output of the
-    // successful reference run append "java.lang.NoSuchMethodException" to it.
-    assertEquals(
-        runOnJava(mainClass) + "java.lang.NoSuchMethodException",
-        runOnVM(output, mainClass, backend));
+    testForR8(backend)
+        .addProgramClasses(MainNonConstArraySize.class, A.class)
+        .addKeepMainRule(MainNonConstArraySize.class)
+        .enableConstantArgumentAnnotations()
+        .enableInliningAnnotations()
+        .run(MainNonConstArraySize.class)
+        .inspect(
+            inspector -> {
+              assertThat(
+                  inspector.clazz(A.class).method("void", "method0", ImmutableList.of()),
+                  isPresentAndRenamed());
+            })
+        // The reference run on the Java VM will succeed, whereas the run on the R8 output will fail
+        // as in this test we fail to recognize the reflective call. To compare the output of the
+        // successful reference run append "java.lang.NoSuchMethodException" to it.
+        .assertSuccessWithOutput(
+            runOnJava(MainNonConstArraySize.class) + "java.lang.NoSuchMethodException");
   }
 
   @Test

@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -66,6 +67,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
         .addKeepAttributes("RuntimeVisibleParameterAnnotations")
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
+        .enableConstantArgumentAnnotations()
         .enableUnusedArgumentAnnotations(keepUnusedArguments)
         // TODO(b/123060011): Mapping not working in presence of unused argument removal.
         .minification(keepUnusedArguments)
@@ -152,6 +154,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       new TestClass().testRemoveVirtualFromEnd("Hello", " world!", null);
     }
 
+    @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
     static void testRemoveStaticFromStart(
@@ -159,6 +162,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       System.out.println(used + otherUsed);
     }
 
+    @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
     static void testRemoveStaticFromMiddle(
@@ -166,6 +170,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       System.out.println(used + otherUsed);
     }
 
+    @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
     static void testRemoveStaticFromEnd(
@@ -173,6 +178,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       System.out.println(used + otherUsed);
     }
 
+    @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
     void testRemoveVirtualFromStart(
@@ -180,6 +186,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       System.out.println(used + otherUsed);
     }
 
+    @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
     void testRemoveVirtualFromMiddle(
@@ -187,6 +194,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
       System.out.println(used + otherUsed);
     }
 
+    @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
     void testRemoveVirtualFromEnd(

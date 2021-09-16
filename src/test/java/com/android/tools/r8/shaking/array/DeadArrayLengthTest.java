@@ -31,7 +31,7 @@ public class DeadArrayLengthTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public DeadArrayLengthTest(TestParameters parameters) {
@@ -65,7 +65,7 @@ public class DeadArrayLengthTest extends TestBase {
     testForD8()
         .release()
         .addProgramClasses(MAIN)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(codeInspector -> inspect(codeInspector, false));
@@ -79,7 +79,7 @@ public class DeadArrayLengthTest extends TestBase {
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(codeInspector -> inspect(codeInspector, true));

@@ -177,6 +177,6 @@ public class InstanceOfRemovalTest extends TestBase {
     MethodSubject barMethodSubject = testClass.uniqueMethodWithName("bar");
     Iterator<InstructionSubject> barInstructionIterator =
         barMethodSubject.iterateInstructions(InstructionSubject::isInstanceOf);
-    assertEquals(4, Streams.stream(barInstructionIterator).count());
+    assertEquals(2, Streams.stream(barInstructionIterator).count());
   }
 }

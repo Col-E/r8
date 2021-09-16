@@ -95,6 +95,8 @@ public class JasminBuilder {
     private boolean isInterface = false;
     private String access = "public";
 
+    private final List<String> pendingAnnotations = new ArrayList<>();
+
     private ClassBuilder(String name) {
       this(name, "java/lang/Object");
     }
@@ -122,6 +124,13 @@ public class JasminBuilder {
         List<String> argumentTypes,
         String returnType) {
       return addMethod("public abstract", name, argumentTypes, returnType);
+    }
+
+    public void addRuntimeInvisibleAnnotation(String typeName) {
+      pendingAnnotations.add(
+          StringUtils.lines(
+              ".annotation invisible " + DescriptorUtils.javaTypeToDescriptor(typeName),
+              ".end annotation"));
     }
 
     public MethodSignature addFinalMethod(
@@ -221,6 +230,10 @@ public class JasminBuilder {
           .append(StringUtils.join("", argumentTypes, BraceType.PARENS))
           .append(returnType)
           .append("\n");
+      if (!pendingAnnotations.isEmpty()) {
+        pendingAnnotations.forEach(builder::append);
+        pendingAnnotations.clear();
+      }
       for (String line : lines) {
         builder.append(line).append("\n");
       }

@@ -6,6 +6,7 @@ package com.android.tools.r8.rewrite.enums;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -106,6 +107,7 @@ class ToStrings {
     return NoToString.DEFAULT.toString();
   }
 
+  @KeepConstantArguments
   @NeverInline
   private static String phi(boolean value) {
     NoToString number = NoToString.ONE;

@@ -40,6 +40,8 @@ public class NopInliningConstraintTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
+        // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(

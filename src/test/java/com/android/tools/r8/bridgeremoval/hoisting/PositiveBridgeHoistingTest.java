@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -51,6 +52,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
                 .setBridge(B5.class.getDeclaredMethod("virtualBridge", Object.class))
                 .transform())
         .addKeepMainRule(TestClass.class)
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -106,6 +108,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
   static class A {
 
+    @KeepConstantArguments
     @NeverInline
     public Object m(String arg) {
       return System.currentTimeMillis() >= 0 ? arg : null;
@@ -122,12 +125,14 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
     // This bridge can be hoisted to A if the invoke-super instruction is rewritten to an
     // invoke-virtual instruction.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String superBridge(Object o) {
       return (String) super.m((String) o);
     }
 
     // This bridge can be hoisted to A.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String virtualBridge(Object o) {
       return (String) m((String) o);
@@ -139,12 +144,14 @@ public class PositiveBridgeHoistingTest extends TestBase {
   static class B2 extends A {
 
     // By hoisting B1.superBridge() to A this method bridge redundant.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String superBridge(Object o) {
       return (String) super.m((String) o);
     }
 
     // By hoisting B1.virtualBridge() to A this method bridge redundant.
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String virtualBridge(Object o) {
       return (String) m((String) o);
@@ -171,11 +178,13 @@ public class PositiveBridgeHoistingTest extends TestBase {
   @NoHorizontalClassMerging
   static class B4 extends A {
 
+    @KeepConstantArguments
     @NeverInline
     public String superBridge(Object o) {
       return System.currentTimeMillis() >= 0 ? ((String) o) : null;
     }
 
+    @KeepConstantArguments
     @NeverInline
     public String virtualBridge(Object o) {
       return System.currentTimeMillis() >= 0 ? ((String) o) : null;
@@ -188,11 +197,13 @@ public class PositiveBridgeHoistingTest extends TestBase {
   @NoHorizontalClassMerging
   static class B5 extends A {
 
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String superBridge(Object o) {
       return (String) super.m2((String) o);
     }
 
+    @KeepConstantArguments
     @NeverInline
     public /*bridge*/ String virtualBridge(Object o) {
       return (String) m2((String) o);

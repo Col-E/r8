@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverReprocessMethod;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -35,7 +36,7 @@ public class Regress165825758Test extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public Regress165825758Test(TestParameters parameters) {
@@ -57,6 +58,7 @@ public class Regress165825758Test extends TestBase {
         .addInnerClasses(Regress165825758Test.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(A.class)
+        .enableNeverReprocessMethodAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
@@ -99,6 +101,7 @@ public class Regress165825758Test extends TestBase {
   static class A {
 
     @NeverInline
+    @NeverReprocessMethod
     void synchronizedMethod() {
       synchronized (this) {
         TestClass.throwNpe();

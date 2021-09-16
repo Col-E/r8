@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.dualcallinline;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 
 public class Candidate {
@@ -12,6 +13,7 @@ public class Candidate {
     return bar("Candidate::foo()");
   }
 
+  @KeepConstantArguments
   @NeverInline
   public String bar(String other) {
     return "Candidate::bar(" + other + ")";
