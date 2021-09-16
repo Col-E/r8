@@ -306,7 +306,6 @@ public class RetraceTests extends TestBase {
 
   @Test
   public void testAmbiguousMissingLineVerbose() throws Exception {
-    assumeTrue("b/169346455", false);
     runRetraceTest(new AmbiguousWithSignatureVerboseStackTrace());
   }
 
