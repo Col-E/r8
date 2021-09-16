@@ -17,6 +17,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
@@ -39,6 +41,7 @@ public class SyntheticMethodBuilder {
   private ParameterAnnotationsList parameterAnnotationsList = ParameterAnnotationsList.empty();
   private AndroidApiLevel apiLevelForDefinition = NOT_SET;
   private AndroidApiLevel apiLevelForCode = NOT_SET;
+  private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
 
   private boolean checkAndroidApiLevels = true;
 
@@ -62,6 +65,11 @@ public class SyntheticMethodBuilder {
     assert name != null;
     assert this.name == null || this.name == name;
     this.name = name;
+    return this;
+  }
+
+  public SyntheticMethodBuilder setOptimizationInfo(MethodOptimizationInfo optimizationInfo) {
+    this.optimizationInfo = optimizationInfo;
     return this;
   }
 
@@ -132,6 +140,7 @@ public class SyntheticMethodBuilder {
             .setClassFileVersion(classFileVersion)
             .setApiLevelForDefinition(apiLevelForDefinition)
             .setApiLevelForCode(apiLevelForCode)
+            .setOptimizationInfo(optimizationInfo)
             .applyIf(!checkAndroidApiLevels, DexEncodedMethod.Builder::disableAndroidApiLevelCheck)
             .build();
     assert isValidSyntheticMethod(method, syntheticKind);

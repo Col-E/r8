@@ -1675,6 +1675,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
+    public Builder setOptimizationInfo(MethodOptimizationInfo optimizationInfo) {
+      this.optimizationInfo = optimizationInfo;
+      return this;
+    }
+
     public Builder modifyOptimizationInfo(
         BiConsumer<DexEncodedMethod, MutableMethodOptimizationInfo> consumer) {
       return addBuildConsumer(
