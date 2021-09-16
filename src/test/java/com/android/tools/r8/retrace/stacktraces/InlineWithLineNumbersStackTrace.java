@@ -44,6 +44,18 @@ public class InlineWithLineNumbersStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void method3(long)(Main.java:81)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void method2(int)(Main.java:88)",
+        "\tat com.android.tools.r8.naming.retrace.Main."
+            + "void method1(java.lang.String)(Main.java:96)",
+        "\tat com.android.tools.r8.naming.retrace.Main."
+            + "void main(java.lang.String[])(Main.java:102)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

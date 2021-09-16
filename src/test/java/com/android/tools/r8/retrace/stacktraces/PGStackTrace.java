@@ -45,6 +45,19 @@ public class PGStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "09-16 15:43:01.249 23316 23316 E AndroidRuntime: java.lang.NullPointerException: Attempt"
+            + " to invoke virtual method 'boolean"
+            + " com.google.android.foo(com.google.android.foo.Data$Key)' on a null object"
+            + " reference",
+        "09-16 15:43:01.249 23316 23316 E AndroidRuntime:        at"
+            + " com.google.apps.sectionheader.SectionHeaderListController.onToolbarStateChanged(SectionHeaderListController.java:586)",
+        "09-16 15:43:01.249 23316 23316 E AndroidRuntime:        at"
+            + " com.google.apps.Controller.onToolbarStateChanged(Controller.java:1087)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

@@ -88,6 +88,11 @@ public class RetraceTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return null;
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -120,6 +125,11 @@ public class RetraceTests extends TestBase {
             retraced.addAll(cronetStackTrace.retracedStackTrace());
             retraced.addAll(finskyStackTrace.retracedStackTrace());
             return retraced;
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return null;
           }
 
           @Override
@@ -159,6 +169,11 @@ public class RetraceTests extends TestBase {
             smileyObf.add(SMILEY_EMOJI);
             smileyObf.addAll(cronetStackTrace.retracedStackTrace());
             return smileyObf;
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return null;
           }
 
           @Override

@@ -40,6 +40,16 @@ public class ObfuscatedRangeToSingleLineStackTrace implements StackTraceForTest 
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "UnknownException: This is just a fake exception",
+        "  at foo.bar.Baz.void qux()(Baz.java:27)",
+        "  at foo.bar.Baz.void qux()(Baz.java:42)",
+        "  at foo.bar.Baz.void quux()(Baz.java:113)",
+        "  at foo.bar.Baz.void quuz()(Baz.java:72)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

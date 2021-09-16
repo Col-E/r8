@@ -35,6 +35,16 @@ public class ObfucatedExceptionClassStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "foo.bar.baz: Problem when compiling program",
+        "    at r8.main(App:800)",
+        "Caused by: foo.bar.baz: You have to write the program first",
+        "    at r8.retrace(App:184)",
+        "    ... 7 more");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

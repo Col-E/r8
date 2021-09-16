@@ -50,6 +50,17 @@ public class NamedModuleStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "SomeFakeException: this is a fake exception",
+        "\tat com.android.tools.r8.Classloader/named_module@9.0/com.android.tools.r8.Main.main(Main.java:1)",
+        "\tat com.android.tools.r8.Classloader//com.android.tools.r8.Main.foo(Main.java:2)",
+        "\tat named_module@2.1/com.android.tools.r8.Main.bar(Main.java:3)",
+        "\tat named_module/com.android.tools.r8.Main.baz(Main.java:4)",
+        "\tat com.android.tools.r8.Main.qux(Main.java:5)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

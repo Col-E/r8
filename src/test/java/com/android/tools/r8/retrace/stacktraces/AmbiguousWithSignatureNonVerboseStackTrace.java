@@ -37,6 +37,17 @@ public class AmbiguousWithSignatureNonVerboseStackTrace implements StackTraceFor
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "java.lang.IndexOutOfBoundsException",
+        "\tat java.util.ArrayList.get(ArrayList.java:411)",
+        "\tat com.android.tools.r8.Internal.boolean foo(int,int)(Internal.java)",
+        "\t<OR #1> at com.android.tools.r8.Internal.void foo(int)(Internal.java)",
+        "\t<OR #2> at com.android.tools.r8.Internal.void foo(int,boolean)(Internal.java)",
+        "\t<OR #3> at com.android.tools.r8.Internal.void foo(int,int)(Internal.java)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

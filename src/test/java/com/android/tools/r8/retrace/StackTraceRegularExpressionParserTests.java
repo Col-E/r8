@@ -10,10 +10,10 @@ import static junit.framework.TestCase.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
@@ -27,13 +27,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class StackTraceRegularExpressionParserTests extends TestBase {
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  @Parameters(name = "{0}, verbose: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), BooleanUtils.values());
   }
 
-  public StackTraceRegularExpressionParserTests(TestParameters parameters) {
+  private final boolean verbose;
+
+  public StackTraceRegularExpressionParserTests(TestParameters parameters, boolean verbose) {
     parameters.assertNoneRuntime();
+    this.verbose = verbose;
   }
 
   @Test
@@ -53,6 +56,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("foocom.android.tools.r8.a");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("foocom.android.tools.r8.a");
           }
 
@@ -86,6 +94,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("AA.AA.AA b.b.b c.c.c");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -110,6 +123,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("AA/AA b/b/b c/c/c");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("AA/AA b/b/b c/c/c");
           }
 
@@ -141,6 +159,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("a.b.c.a");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -168,6 +191,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.void foo()");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -191,6 +219,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.a");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("com.android.tools.r8.R8.a");
           }
 
@@ -227,6 +260,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("a.b.c.a");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -251,6 +289,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           @Override
           public List<String> retracedStackTrace() {
             return ImmutableList.of("com.android.tools.r8.R8.foo");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.int foo");
           }
 
           @Override
@@ -281,6 +324,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.a");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -300,6 +348,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           @Override
           public List<String> retracedStackTrace() {
             return Collections.singletonList("foo.Bar$Baz.baz(Bar.java)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return Collections.singletonList("foo.Bar$Baz.int baz(Bar.java)");
           }
 
           @Override
@@ -337,6 +390,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8(R8.java)");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -360,6 +418,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("a.b.d(SourceFile)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("a.b.d(SourceFile)");
           }
 
@@ -392,6 +455,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()(7)");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -417,6 +485,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           @Override
           public List<String> retracedStackTrace() {
             return ImmutableList.of("com.android.tools.r8.R8.foo(7)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()(7)");
           }
 
           @Override
@@ -448,6 +521,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()(42)");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -472,6 +550,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           @Override
           public List<String> retracedStackTrace() {
             return ImmutableList.of("com.android.tools.r8.R8.foo(4)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()(4)");
           }
 
           @Override
@@ -505,6 +588,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.boolean foo()(7)");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -528,6 +616,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("void", "a.a.a[]", "a.a.a[][][]");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("void", "a.a.a[]", "a.a.a[][][]");
           }
 
@@ -562,6 +655,15 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
             return ImmutableList.of(
                 "void com.android.tools.r8.R8.foo",
                 "com.android.tools.r8.D8[] com.android.tools.r8.R8.bar");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            // TODO(b/199919195): Consider not writing full method description.
+            return ImmutableList.of(
+                "void com.android.tools.r8.R8.void foo()",
+                "com.android.tools.r8.D8[] com.android.tools.r8.R8.com.android.tools.r8.D8[]"
+                    + " bar()");
           }
 
           @Override
@@ -601,6 +703,13 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "void com.android.tools.r8.R8.foo",
+                "com.android.tools.r8.D8[] com.android.tools.r8.R8.bar");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -624,6 +733,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("void");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("void");
           }
 
@@ -659,6 +773,13 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8.void foo(int,com.android.tools.r8.D8[],boolean)"
+                    + "(int,com.android.tools.r8.D8[],boolean)");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -686,6 +807,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           @Override
           public List<String> retracedStackTrace() {
             return ImmutableList.of("com.android.tools.r8.R8.foo()");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.void foo()()");
           }
 
           @Override
@@ -717,6 +843,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
 
           @Override
           public List<String> retracedStackTrace() {
+            return ImmutableList.of("com.android.tools.r8.R8.bar(com.android.tools.r8.D8)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of("com.android.tools.r8.R8.bar(com.android.tools.r8.D8)");
           }
 
@@ -759,6 +890,14 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "com.android.tools.r8.R8: foo bar baz",
+                "  at com.android.tools.r8.Bar.void foo()(Bar.java)",
+                "  at com.android.tools.r8.Baz.void bar()(Baz.java)");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -794,6 +933,11 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           }
 
           @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of("%c\\com.android.tools.r8.Bar\\%c.void m()(\\Bar.java:13)\\%S");
+          }
+
+          @Override
           public int expectedWarnings() {
             return 0;
           }
@@ -809,9 +953,14 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
             .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
             .setRetracedStackTraceConsumer(
                 retraced -> {
-                  assertEquals(stackTraceForTest.retracedStackTrace(), retraced);
+                  assertEquals(
+                      verbose
+                          ? stackTraceForTest.retraceVerboseStackTrace()
+                          : stackTraceForTest.retracedStackTrace(),
+                      retraced);
                 })
             .setRegularExpression(regularExpression)
+            .setVerbose(verbose)
             .build();
     Retrace.run(retraceCommand);
     return diagnosticsHandler;

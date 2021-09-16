@@ -45,6 +45,21 @@ public class NoObfuscatedLineNumberWithOverrideTest implements StackTraceForTest
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String)(Main.java:3)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void overload1()(Main.java:7)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main."
+            + "void overload2(java.lang.String)(Main.java:11)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void definedOverload()(Main.java:7)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main."
+            + "void definedOverload(java.lang.String)(Main.java:11)",
+        "\tat com.android.tools.r8.naming.retrace.Main."
+            + "void mainPC(java.lang.String[])(Main.java:42)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

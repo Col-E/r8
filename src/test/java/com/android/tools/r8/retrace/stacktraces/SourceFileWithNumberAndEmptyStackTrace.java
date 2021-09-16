@@ -39,6 +39,23 @@ public class SourceFileWithNumberAndEmptyStackTrace implements StackTraceForTest
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "  at com.android.tools.r8.utils.ExceptionUtils.void withR8CompilationHandler("
+            + "com.android.tools.r8.utils.Reporter,"
+            + "com.android.tools.r8.utils.ExceptionUtils$CompileAction)(ExceptionUtils.java:59)",
+        "  at com.android.tools.r8.R8.void runForTesting("
+            + "com.android.tools.r8.utils.AndroidApp,"
+            + "com.android.tools.r8.utils.InternalOptions)(R8.java:261)",
+        "  at com.android.tools.r8.utils.ExceptionUtils.void withR8CompilationHandler("
+            + "com.android.tools.r8.utils.Reporter,"
+            + "com.android.tools.r8.utils.ExceptionUtils$CompileAction)(ExceptionUtils.java:59)",
+        "  at com.android.tools.r8.R8.void runForTesting("
+            + "com.android.tools.r8.utils.AndroidApp,"
+            + "com.android.tools.r8.utils.InternalOptions)(R8.java:261)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

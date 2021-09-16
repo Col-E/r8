@@ -36,6 +36,17 @@ public class MultipleLinesNoLineNumberStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main."
+            + "void method1(java.lang.String)(Main.java)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main."
+            + "void main(java.lang.String[])(Main.java)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

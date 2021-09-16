@@ -35,6 +35,16 @@ public class InvalidStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "  hulubulu",
+        "  XXX, where are you",
+        "foo.bar.baz: Problem when compiling program",
+        " . . . 7 more",
+        "  ... 7 more");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 1;
   }

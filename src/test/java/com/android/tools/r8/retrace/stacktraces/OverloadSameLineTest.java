@@ -30,10 +30,19 @@ public class OverloadSameLineTest implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        // TODO(b/199058242): Should be ambiguous and not inline frames
         "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:7)",
         "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.overload(Main.java:15)",
         "\t<OR #2> at com.android.tools.r8.naming.retrace.Main.overload(Main.java:13)");
+  }
+
+  @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void overload()(Main.java:7)",
+        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.void overload(int)(Main.java:15)",
+        "\t<OR #2> at com.android.tools.r8.naming.retrace.Main."
+            + "void overload(java.lang.String)(Main.java:13)");
   }
 
   @Override

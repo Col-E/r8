@@ -28,6 +28,17 @@ public class InlineFileNameStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat foo.Bar$Baz.void baz(long)(Bar.java:0)",
+        "\tat Foo$Bar.void bar(int)(Foo.java:2)",
+        "\tat com.android.tools.r8.naming.retrace.Main$Foo"
+            + ".void method1(java.lang.String)(Main.java:8)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java:7)");
+  }
+
+  @Override
   public String mapping() {
     return StringUtils.lines(
         "com.android.tools.r8.naming.retrace.Main -> com.android.tools.r8.naming.retrace.Main:",

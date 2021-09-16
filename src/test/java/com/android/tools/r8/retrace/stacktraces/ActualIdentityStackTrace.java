@@ -55,6 +55,11 @@ public class ActualIdentityStackTrace extends ActualBotStackTraceBase {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return obfuscatedStackTrace();
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

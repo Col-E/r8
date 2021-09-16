@@ -35,6 +35,14 @@ public class AutoStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return ImmutableList.of(
+        "java.io.IOException: INVALID_SENDER",
+        "\tat com.android.tools.r8.AutoTest.void foo(int)(AutoTest.java:200)",
+        "\tat com.android.tools.r8.AutoTest.void foo(int,int)(AutoTest.java:24)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

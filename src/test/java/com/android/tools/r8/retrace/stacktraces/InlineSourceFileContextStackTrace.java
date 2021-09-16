@@ -48,6 +48,17 @@ public class InlineSourceFileContextStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestLibrary"
+            + ".void throwsException()(KotlinJavaSourceFileTestLibrary.kt:22)",
+        "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestLibrary"
+            + ".void callsThrowsException()(KotlinJavaSourceFileTestLibrary.kt:19)",
+        "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestObject"
+            + ".void main(java.lang.String[])(KotlinJavaSourceFileTestObject.java:32)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

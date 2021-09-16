@@ -52,6 +52,24 @@ public class FileNameExtensionStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "foo.bar.baz: Problem when compiling program",
+        "    at R8.main(R8.java:800)",
+        "    at R8.main(Native Method)",
+        "    at R8.main(R8.java:)",
+        "    at R8.main(R8.kt:1)",
+        "    at R8.main(R8.java)",
+        "    at R8.main(R8.java)",
+        "    at R8.main(R8.java)",
+        "    at R8.main(R8.java)",
+        "    at R8.main(R8.java:1)",
+        "Suppressed: foo.bar.baz: You have to write the program first",
+        "    at R8.retrace(R8.java:184)",
+        "    ... 7 more");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

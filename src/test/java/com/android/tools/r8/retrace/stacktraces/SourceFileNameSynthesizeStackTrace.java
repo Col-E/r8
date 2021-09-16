@@ -36,6 +36,14 @@ public class SourceFileNameSynthesizeStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "\tat android.support.v7.widget.ActionMenuView.void invokeItem()(ActionMenuView.java:624)",
+        "\tat noMappingKt.noMapping(AW779999992:21)",
+        "\tat android.support.v7.widget.ActionMenuViewKt.void invokeItem()(ActionMenuView.kt:624)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

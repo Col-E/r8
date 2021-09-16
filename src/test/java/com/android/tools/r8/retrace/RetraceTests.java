@@ -19,14 +19,17 @@ import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithMultipleLineMappingsStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureNonVerboseStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AutoStackTrace;
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
+import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameWithInnerClassesStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
@@ -53,6 +56,7 @@ import com.android.tools.r8.retrace.stacktraces.SyntheticLambdaMethodStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SyntheticLambdaMethodWithInliningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnicodeInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.UnknownSourceStackTrace;
+import com.android.tools.r8.retrace.stacktraces.VerboseUnknownStackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -71,17 +75,20 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceTests extends TestBase {
 
-  @Parameters(name = "{0}, external: {1}")
+  @Parameters(name = "{0}, external: {1}, verbose: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withCfRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
   }
 
   private final TestParameters testParameters;
   private final boolean external;
+  private final boolean verbose;
 
-  public RetraceTests(TestParameters parameters, boolean external) {
+  public RetraceTests(TestParameters parameters, boolean external, boolean verbose) {
     this.testParameters = parameters;
     this.external = external;
+    this.verbose = verbose;
   }
 
   @Test
@@ -282,6 +289,27 @@ public class RetraceTests extends TestBase {
     runRetraceTest(new MultipleLinesNoLineNumberStackTrace());
   }
 
+  @Test
+  public void testFoundMethod() throws Exception {
+    runRetraceTest(new FoundMethodVerboseStackTrace());
+  }
+
+  @Test
+  public void testUnknownMethod() throws Exception {
+    runRetraceTest(new AmbiguousMethodVerboseStackTrace());
+  }
+
+  @Test
+  public void testVerboseUnknownMethod() throws Exception {
+    runRetraceTest(new VerboseUnknownStackTrace());
+  }
+
+  @Test
+  public void testAmbiguousMissingLineVerbose() throws Exception {
+    assumeTrue("b/169346455", false);
+    runRetraceTest(new AmbiguousWithSignatureVerboseStackTrace());
+  }
+
   private void inspectRetraceTest(
       StackTraceForTest stackTraceForTest, Consumer<Retracer> inspection) {
     inspection.accept(
@@ -302,6 +330,11 @@ public class RetraceTests extends TestBase {
 
   private TestDiagnosticMessagesImpl runRetraceTest(
       StackTraceForTest stackTraceForTest, boolean allowExperimentalMapping) throws Exception {
+    String expectedStackTrace =
+        StringUtils.joinLines(
+            verbose
+                ? stackTraceForTest.retraceVerboseStackTrace()
+                : stackTraceForTest.retracedStackTrace());
     if (external) {
       assumeTrue(testParameters.isCfRuntime());
       // The external dependency is built on top of R8Lib. If test.py is run with
@@ -327,13 +360,13 @@ public class RetraceTests extends TestBase {
       command.add("com.android.tools.r8.retrace.Retrace");
       command.add(mappingFile.toString());
       command.add(stackTraceFile.toString());
+      if (verbose) {
+        command.add("-verbose");
+      }
       command.add("-quiet");
       ProcessBuilder builder = new ProcessBuilder(command);
       ProcessResult processResult = ToolHelper.runProcess(builder);
-      assertEquals(
-          StringUtils.joinLines(stackTraceForTest.retracedStackTrace())
-              + StringUtils.LINE_SEPARATOR,
-          processResult.stdout);
+      assertEquals(expectedStackTrace + StringUtils.LINE_SEPARATOR, processResult.stdout);
       // TODO(b/177204438): Parse diagnostics from stdErr
       return new TestDiagnosticMessagesImpl();
     } else {
@@ -343,10 +376,8 @@ public class RetraceTests extends TestBase {
               .setProguardMapProducer(ProguardMapProducer.fromString(stackTraceForTest.mapping()))
               .setStackTrace(stackTraceForTest.obfuscatedStackTrace())
               .setRetracedStackTraceConsumer(
-                  retraced ->
-                      assertEquals(
-                          StringUtils.joinLines(stackTraceForTest.retracedStackTrace()),
-                          StringUtils.joinLines(retraced)))
+                  retraced -> assertEquals(expectedStackTrace, StringUtils.joinLines(retraced)))
+              .setVerbose(verbose)
               .build();
       Retrace.runForTesting(retraceCommand, allowExperimentalMapping);
       return diagnosticsHandler;

@@ -69,6 +69,32 @@ public class ActualRetraceBotStackTraceWithInfo extends ActualBotStackTraceBase 
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "com.android.tools.r8.CompilationFailedException: Compilation failed to complete",
+        "\tat com.android.tools.r8.BaseCommand$Builder.build(BaseCommand.java:143)",
+        "\tat com.android.tools.r8.R8TestBuilder.internalCompile(R8TestBuilder.java:104)",
+        "\tat com.android.tools.r8.R8TestBuilder.internalCompile(R8TestBuilder.java:29)",
+        "\tat com.android.tools.r8.TestCompilerBuilder.compile(TestCompilerBuilder.java:89)",
+        "\tat com.android.tools.r8.TestCompilerBuilder.run(TestCompilerBuilder.java:113)",
+        "\tat com.android.tools.r8.TestBuilder.run(TestBuilder.java:49)",
+        "\tat com.android.tools.r8.ir.optimize.classinliner.ClassInlinerTest.testCodeSample(ClassInlinerTest.java:289)",
+        "",
+        "Caused by:",
+        "com.android.tools.r8.utils.AbortException: Error: offset: 158, line: 2, column: 33,"
+            + " Unexpected attribute at <no file>:2:33",
+        "-keepattributes -keepattributes LineNumberTable",
+        "                                ^",
+        "\tat com.android.tools.r8.utils.Reporter.failIfPendingErrors(Reporter.java:101)",
+        "\tat com.android.tools.r8.shaking.ProguardConfigurationParser.parse(ProguardConfigurationParser.java:187)",
+        "\tat com.android.tools.r8.R8Command$Builder.makeR8Command(R8Command.java:432)",
+        "\tat com.android.tools.r8.R8Command$Builder.makeCommand(R8Command.java:413)",
+        "\tat com.android.tools.r8.R8Command$Builder.makeCommand(R8Command.java:61)",
+        "\tat com.android.tools.r8.BaseCommand$Builder.build(BaseCommand.java:139)",
+        "\t... 6 more");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 1;
   }

@@ -31,6 +31,16 @@ public class SyntheticLambdaMethodWithInliningStackTrace implements StackTraceFo
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "  at example.Foo.void lambda$main$0()(Foo.java:225)",
+        "  at example.Foo.void runIt()(Foo.java:218)",
+        "  at example.Foo.void main()(Foo.java:223)",
+        "  at example.Main.void main(java.lang.String[])(Main.java:123)");
+  }
+
+  @Override
   public String mapping() {
     return StringUtils.lines(
         "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",

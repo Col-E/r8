@@ -43,6 +43,19 @@ public class CircularReferenceStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "        [CIRCULAR REFERENCE:foo.bar.Baz]",
+        " [CIRCULAR REFERENCE:foo.bar.Qux]",
+        "        [CIRCULAR REFERENCE:None.existing.class]",
+        "        [CIRCULAR REFERENCE:foo.bar.Baz] ",
+        "        [CIRCU:AA]",
+        "        [CIRCULAR REFERENCE:A.A",
+        "        [CIRCULAR REFERENCE:]",
+        "        [CIRCULAR REFERENCE:None existing class]");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 5;
   }

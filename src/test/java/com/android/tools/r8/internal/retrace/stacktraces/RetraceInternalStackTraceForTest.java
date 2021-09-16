@@ -57,6 +57,11 @@ public class RetraceInternalStackTraceForTest implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    throw new RuntimeException("Do not test");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

@@ -34,6 +34,12 @@ public class NullStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    fail();
+    return null;
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

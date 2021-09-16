@@ -36,6 +36,23 @@ public class RetraceAssertionErrorStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "java.lang.AssertionError",
+        "        at com.android.tools.r8.retrace.RetraceCore$StackTraceNode."
+            + "void <init>(java.util.List)(RetraceCore.java:31)",
+        "        at com.android.tools.r8.retrace.RetraceCore."
+            + "void retraceLine(java.util.List,int,java.util.List)(RetraceCore.java:117)",
+        "        at com.android.tools.r8.retrace.RetraceCore."
+            + "com.android.tools.r8.retrace."
+            + "RetraceCore$RetraceResult retrace()(RetraceCore.java:107)",
+        "        at com.android.tools.r8.retrace.Retrace."
+            + "void run(com.android.tools.r8.retrace.RetraceCommand)(Retrace.java:116)",
+        "        at com.android.tools.r8.retrace.RetraceTests."
+            + "testNullLineTrace(RetraceTests.java:73)");
+  }
+
+  @Override
   public String mapping() {
     return StringUtils.lines(
         "com.android.tools.r8.retrace.Retrace -> com.android.tools.r8.retrace.Retrace:",

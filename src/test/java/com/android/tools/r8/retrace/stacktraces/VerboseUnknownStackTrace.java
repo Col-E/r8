@@ -27,6 +27,12 @@ public class VerboseUnknownStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "java.lang.IndexOutOfBoundsException", "\tat java.util.ArrayList.get(ArrayList.java:411)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

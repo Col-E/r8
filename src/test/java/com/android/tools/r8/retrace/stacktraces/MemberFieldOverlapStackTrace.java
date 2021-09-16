@@ -38,6 +38,13 @@ public class MemberFieldOverlapStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat foo.Bar.int method()(Bar.java:5)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 1;
   }

@@ -33,6 +33,15 @@ public class AmbiguousMethodVerboseStackTrace implements StackTraceForTest {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.c(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)");
+  }
+
+  @Override
+  public List<String> retraceVerboseStackTrace() {
+    return Arrays.asList(
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.c(Main.java)",
         "\tat com.android.tools.r8.naming.retrace.Main.com.android.Foo main("
             + "java.lang.String[])(Main.java)",
         "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.void main("

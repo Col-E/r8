@@ -29,6 +29,11 @@ public class MultipleDotsInFileNameStackTrace implements StackTraceForTest {
   }
 
   @Override
+  public List<String> retraceVerboseStackTrace() {
+    return ImmutableList.of("  at some.Class.int strawberry(int)(Class.kt:99)");
+  }
+
+  @Override
   public int expectedWarnings() {
     return 0;
   }

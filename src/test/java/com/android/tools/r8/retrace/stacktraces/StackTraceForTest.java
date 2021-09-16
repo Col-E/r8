@@ -14,5 +14,7 @@ public interface StackTraceForTest {
 
   List<String> retracedStackTrace();
 
+  List<String> retraceVerboseStackTrace();
+
   int expectedWarnings();
 }
