@@ -17,7 +17,11 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
   private final Map<Wrapper<K>, V> backing;
 
   ProgramMemberMap(Supplier<Map<Wrapper<K>, V>> backingFactory) {
-    backing = backingFactory.get();
+    this.backing = backingFactory.get();
+  }
+
+  ProgramMemberMap(Map<Wrapper<K>, V> backing) {
+    this.backing = backing;
   }
 
   public void clear() {

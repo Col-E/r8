@@ -21,8 +21,16 @@ public class ProgramMethodMap<V> extends ProgramMemberMap<ProgramMethod, V> {
     super(backingFactory);
   }
 
+  private ProgramMethodMap(Map<Wrapper<ProgramMethod>, V> backing) {
+    super(backing);
+  }
+
   public static <V> ProgramMethodMap<V> create() {
     return new ProgramMethodMap<>(HashMap::new);
+  }
+
+  public static <V> ProgramMethodMap<V> create(int capacity) {
+    return new ProgramMethodMap<>(new HashMap<>(capacity));
   }
 
   public static <V> ProgramMethodMap<V> createConcurrent() {
