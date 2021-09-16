@@ -109,7 +109,7 @@ public class RetraceCommandLineTests {
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
-        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
+        StringUtils.joinLines(stackTrace.retraceVerboseStackTrace()) + StringUtils.LINE_SEPARATOR,
         "--verbose");
   }
 
@@ -120,7 +120,7 @@ public class RetraceCommandLineTests {
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
-        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
+        StringUtils.joinLines(stackTrace.retraceVerboseStackTrace()) + StringUtils.LINE_SEPARATOR,
         "-verbose");
   }
 
