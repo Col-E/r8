@@ -4,20 +4,25 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 
 // Source code representing synthesized accessor method.
 
 public class AccessorMethodSourceCode {
 
-  public static CfCode build(LambdaClass lambda, DexMethod accessor) {
-    DexMethod target = lambda.descriptor.implHandle.asMethod();
+  public static CfCode build(
+      DexMethod target,
+      boolean isInterface,
+      MethodHandleType type,
+      DexMethod accessor,
+      AppView<?> appView) {
     ForwardMethodBuilder forwardMethodBuilder =
-        ForwardMethodBuilder.builder(lambda.appView.dexItemFactory()).setStaticSource(accessor);
-    boolean isInterface = lambda.descriptor.implHandle.isInterface;
-    switch (lambda.descriptor.implHandle.type) {
+        ForwardMethodBuilder.builder(appView.dexItemFactory()).setStaticSource(accessor);
+    switch (type) {
       case INVOKE_INSTANCE:
         {
           forwardMethodBuilder.setVirtualTarget(target, isInterface);
@@ -35,7 +40,7 @@ public class AccessorMethodSourceCode {
         }
       case INVOKE_CONSTRUCTOR:
         {
-          forwardMethodBuilder.setConstructorTarget(target, lambda.appView.dexItemFactory());
+          forwardMethodBuilder.setConstructorTarget(target, appView.dexItemFactory());
           break;
         }
       case INVOKE_INTERFACE:

@@ -312,14 +312,18 @@ public final class LambdaClass {
           appView.appInfoForDesugaring().resolveMethod(implMethod, implHandle.isInterface);
       if (resolution.isFailedResolution()) {
         return new InvalidLambdaImplTarget(
-            implMethod, Type.STATIC, appView.dexItemFactory().icceType);
+            implMethod,
+            Type.STATIC,
+            appView.dexItemFactory().icceType,
+            descriptor.implHandle.isInterface);
       }
       SingleResolutionResult result = resolution.asSingleResolution();
       assert result.getResolvedMethod().isStatic();
       assert result.getResolvedHolder().isProgramClass();
       return new StaticLambdaImplTarget(
           new ProgramMethod(
-              result.getResolvedHolder().asProgramClass(), result.getResolvedMethod()));
+              result.getResolvedHolder().asProgramClass(), result.getResolvedMethod()),
+          descriptor.implHandle.isInterface);
     }
 
     assert implHandle.type.isInvokeDirect();
@@ -334,18 +338,24 @@ public final class LambdaClass {
 
       DexProto newProto = appView.dexItemFactory().createProto(implProto.returnType, newParams);
       return new InterfaceLambdaImplTarget(
-          appView.dexItemFactory().createMethod(implMethod.holder, newProto, implMethod.name));
+          descriptor.implHandle.asMethod(),
+          descriptor.implHandle.isInterface,
+          appView.dexItemFactory().createMethod(implMethod.holder, newProto, implMethod.name),
+          appView);
     } else {
       // Otherwise we need to ensure the method can be reached publicly by virtual dispatch.
       // To avoid potential conflicts on the name of the lambda method once dispatch becomes virtual
       // we add the fully qualified method-holder name as suffix to the lambda-method name.
       return new InstanceLambdaImplTarget(
+          descriptor.implHandle.asMethod(),
+          descriptor.implHandle.isInterface,
           appView
               .dexItemFactory()
               .createMethod(
                   implMethod.holder,
                   implMethod.proto,
-                  appendFullyQualifiedHolderToMethodName(implMethod, appView.dexItemFactory())));
+                  appendFullyQualifiedHolderToMethodName(implMethod, appView.dexItemFactory())),
+          appView);
     }
   }
 
@@ -356,7 +366,8 @@ public final class LambdaClass {
         descriptor.implHandle.type.isInvokeDirect();
 
     if (doesNotNeedAccessor(accessedFrom)) {
-      return new NoAccessorMethodTarget(Invoke.Type.VIRTUAL);
+      return new NoAccessorMethodTarget(
+          descriptor.implHandle.asMethod(), Type.VIRTUAL, descriptor.implHandle.isInterface);
     }
     // We need to generate an accessor method in `accessedFrom` class/interface
     // for accessing the original instance impl-method. Note that impl-method's
@@ -379,7 +390,12 @@ public final class LambdaClass {
             .createMethod(
                 accessedFrom.getHolderType(), accessorProto, generateUniqueLambdaMethodName());
 
-    return new ClassMethodWithAccessorTarget(accessorMethod);
+    return new ClassMethodWithAccessorTarget(
+        descriptor.implHandle.asMethod(),
+        descriptor.implHandle.isInterface,
+        descriptor.implHandle.type,
+        accessorMethod,
+        appView);
   }
 
   // Create targets for static method referenced directly without
@@ -388,7 +404,8 @@ public final class LambdaClass {
     assert descriptor.implHandle.type.isInvokeStatic();
 
     if (doesNotNeedAccessor(accessedFrom)) {
-      return new NoAccessorMethodTarget(Invoke.Type.STATIC);
+      return new NoAccessorMethodTarget(
+          descriptor.implHandle.asMethod(), Type.STATIC, descriptor.implHandle.isInterface);
     }
 
     // We need to generate an accessor method in `accessedFrom` class/interface
@@ -401,7 +418,12 @@ public final class LambdaClass {
                 accessedFrom.getHolderType(),
                 descriptor.implHandle.asMethod().proto,
                 generateUniqueLambdaMethodName());
-    return new ClassMethodWithAccessorTarget(accessorMethod);
+    return new ClassMethodWithAccessorTarget(
+        descriptor.implHandle.asMethod(),
+        descriptor.implHandle.isInterface,
+        descriptor.implHandle.type,
+        accessorMethod,
+        appView);
   }
 
   // Create targets for constructor referenced directly without lambda$ methods.
@@ -412,7 +434,8 @@ public final class LambdaClass {
     assert implHandle.type.isInvokeConstructor();
 
     if (doesNotNeedAccessor(accessedFrom)) {
-      return new NoAccessorMethodTarget(Invoke.Type.DIRECT);
+      return new NoAccessorMethodTarget(
+          descriptor.implHandle.asMethod(), Type.DIRECT, descriptor.implHandle.isInterface);
     }
 
     // We need to generate an accessor method in `accessedFrom` class/interface for
@@ -428,14 +451,20 @@ public final class LambdaClass {
             .dexItemFactory()
             .createMethod(
                 accessedFrom.getHolderType(), accessorProto, generateUniqueLambdaMethodName());
-    return new ClassMethodWithAccessorTarget(accessorMethod);
+    return new ClassMethodWithAccessorTarget(
+        descriptor.implHandle.asMethod(),
+        descriptor.implHandle.isInterface,
+        descriptor.implHandle.type,
+        accessorMethod,
+        appView);
   }
 
   // Create targets for interface methods.
   private Target createInterfaceMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeInterface();
     assert doesNotNeedAccessor(accessedFrom);
-    return new NoAccessorMethodTarget(Invoke.Type.INTERFACE);
+    return new NoAccessorMethodTarget(
+        descriptor.implHandle.asMethod(), Type.INTERFACE, descriptor.implHandle.isInterface);
   }
 
   private DexString generateUniqueLambdaMethodName() {
@@ -447,19 +476,20 @@ public final class LambdaClass {
   // Represents information about the method lambda class need to delegate the call to. It may
   // be the same method as specified in lambda descriptor or a newly synthesized accessor.
   // Also provides action for ensuring accessibility of the referenced symbols.
-  public abstract class Target {
+  public abstract static class Target {
 
     final DexMethod callTarget;
     final Invoke.Type invokeType;
+    final boolean isInterface;
 
     private boolean hasEnsuredAccessibility;
-    private ProgramMethod accessibilityBridge;
 
-    Target(DexMethod callTarget, Invoke.Type invokeType) {
+    Target(DexMethod callTarget, Type invokeType, boolean isInterface) {
       assert callTarget != null;
       assert invokeType != null;
       this.callTarget = callTarget;
       this.invokeType = invokeType;
+      this.isInterface = isInterface;
     }
 
     // Ensure access of the referenced symbol(s).
@@ -476,29 +506,27 @@ public final class LambdaClass {
         ForcefullyMovedLambdaMethodConsumer forcefullyMovedLambdaMethodConsumer,
         Consumer<ProgramMethod> needsProcessingConsumer) {
       if (!hasEnsuredAccessibility) {
-        accessibilityBridge =
-            ensureAccessibility(forcefullyMovedLambdaMethodConsumer, needsProcessingConsumer);
+        ensureAccessibility(forcefullyMovedLambdaMethodConsumer, needsProcessingConsumer);
         hasEnsuredAccessibility = true;
       }
     }
 
     boolean isInterface() {
-      return descriptor.implHandle.isInterface;
+      return isInterface;
     }
   }
 
-  public abstract class D8SpecificTarget extends Target {
-    D8SpecificTarget(DexMethod callTarget, Type invokeType) {
-      super(callTarget, invokeType);
-      assert !appView.enableWholeProgramOptimizations();
+  public abstract static class D8SpecificTarget extends Target {
+    D8SpecificTarget(DexMethod callTarget, Type invokeType, boolean isInterface) {
+      super(callTarget, invokeType, isInterface);
     }
   }
 
   // Used for targeting methods referenced directly without creating accessors.
-  private final class NoAccessorMethodTarget extends Target {
+  private static final class NoAccessorMethodTarget extends Target {
 
-    NoAccessorMethodTarget(Invoke.Type invokeType) {
-      super(descriptor.implHandle.asMethod(), invokeType);
+    NoAccessorMethodTarget(DexMethod method, Type invokeType, boolean isInterface) {
+      super(method, invokeType, isInterface);
     }
 
     @Override
@@ -510,12 +538,12 @@ public final class LambdaClass {
   }
 
   // Used for static private lambda$ methods. Only needs access relaxation.
-  private final class StaticLambdaImplTarget extends D8SpecificTarget {
+  private static final class StaticLambdaImplTarget extends D8SpecificTarget {
 
     final ProgramMethod target;
 
-    StaticLambdaImplTarget(ProgramMethod target) {
-      super(descriptor.implHandle.asMethod(), Invoke.Type.STATIC);
+    StaticLambdaImplTarget(ProgramMethod target, boolean isInterface) {
+      super(target.getReference(), Invoke.Type.STATIC, isInterface);
       this.target = target;
     }
 
@@ -535,10 +563,16 @@ public final class LambdaClass {
 
   // Used for instance private lambda$ methods on interfaces which need to be converted to public
   // static methods. They can't remain instance methods as they will end up on the companion class.
-  private class InterfaceLambdaImplTarget extends D8SpecificTarget {
+  private static final class InterfaceLambdaImplTarget extends D8SpecificTarget {
 
-    InterfaceLambdaImplTarget(DexMethod staticMethod) {
-      super(staticMethod, Type.STATIC);
+    private final AppView<?> appView;
+    private final DexMethod implMethod;
+
+    InterfaceLambdaImplTarget(
+        DexMethod implMethod, boolean isInterface, DexMethod staticMethod, AppView<?> appView) {
+      super(staticMethod, Type.STATIC, isInterface);
+      this.implMethod = implMethod;
+      this.appView = appView;
     }
 
     @Override
@@ -547,7 +581,6 @@ public final class LambdaClass {
         Consumer<ProgramMethod> needsProcessingConsumer) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
-      DexMethod implMethod = descriptor.implHandle.asMethod();
       DexProgramClass implMethodHolder = appView.definitionFor(implMethod.holder).asProgramClass();
 
       DexEncodedMethod replacement =
@@ -603,12 +636,13 @@ public final class LambdaClass {
     }
   }
 
-  class InvalidLambdaImplTarget extends Target {
+  static final class InvalidLambdaImplTarget extends Target {
 
     final DexType exceptionType;
 
-    public InvalidLambdaImplTarget(DexMethod callTarget, Type invokeType, DexType exceptionType) {
-      super(callTarget, invokeType);
+    public InvalidLambdaImplTarget(
+        DexMethod callTarget, Type invokeType, DexType exceptionType, boolean isInterface) {
+      super(callTarget, invokeType, isInterface);
       this.exceptionType = exceptionType;
     }
 
@@ -621,10 +655,16 @@ public final class LambdaClass {
   }
 
   // Used for instance private lambda$ methods which need to be converted to public methods.
-  private class InstanceLambdaImplTarget extends D8SpecificTarget {
+  private static final class InstanceLambdaImplTarget extends D8SpecificTarget {
 
-    InstanceLambdaImplTarget(DexMethod staticMethod) {
-      super(staticMethod, Type.VIRTUAL);
+    private final DexMethod implMethod;
+    private final AppView<?> appView;
+
+    InstanceLambdaImplTarget(
+        DexMethod implMethod, boolean isInterface, DexMethod staticMethod, AppView<?> appView) {
+      super(staticMethod, Type.VIRTUAL, isInterface);
+      this.implMethod = implMethod;
+      this.appView = appView;
     }
 
     @Override
@@ -634,7 +674,6 @@ public final class LambdaClass {
       // When compiling with whole program optimization, check that we are not inplace modifying.
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
-      DexMethod implMethod = descriptor.implHandle.asMethod();
       DexProgramClass implMethodHolder = appView.definitionFor(implMethod.holder).asProgramClass();
 
       DexEncodedMethod replacement =
@@ -687,11 +726,24 @@ public final class LambdaClass {
 
   // Used for instance/static methods or constructors accessed via
   // synthesized accessor method. Needs accessor method to be created.
-  private class ClassMethodWithAccessorTarget extends Target {
+  private static class ClassMethodWithAccessorTarget extends Target {
 
-    ClassMethodWithAccessorTarget(DexMethod accessorMethod) {
-      super(accessorMethod, Invoke.Type.STATIC);
+    private final AppView<?> appView;
+    private final DexMethod implMethod;
+    private final MethodHandleType type;
+
+    ClassMethodWithAccessorTarget(
+        DexMethod implMethod,
+        boolean isInterface,
+        MethodHandleType type,
+        DexMethod accessorMethod,
+        AppView<?> appView) {
+      super(accessorMethod, Invoke.Type.STATIC, isInterface);
+      this.appView = appView;
+      this.implMethod = implMethod;
+      this.type = type;
     }
+
 
     @Override
     ProgramMethod ensureAccessibility(
@@ -718,7 +770,9 @@ public final class LambdaClass {
               DexEncodedMethod.syntheticBuilder()
                   .setMethod(callTarget)
                   .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                  .setCode(AccessorMethodSourceCode.build(LambdaClass.this, callTarget))
+                  .setCode(
+                      AccessorMethodSourceCode.build(
+                          implMethod, isInterface, type, callTarget, appView))
                   // The api level is computed when tracing.
                   .disableAndroidApiLevelCheck()
                   .build());
