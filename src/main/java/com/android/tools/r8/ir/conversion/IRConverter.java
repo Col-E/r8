@@ -79,7 +79,7 @@ import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -153,7 +153,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   private final ServiceLoaderRewriter serviceLoaderRewriter;
   private final EnumValueOptimizer enumValueOptimizer;
-  private final EnumUnboxer enumUnboxer;
+  private final EnumUnboxerImpl enumUnboxer;
 
   public final AssumeInserter assumeInserter;
   private final DynamicTypeOptimization dynamicTypeOptimization;
@@ -267,7 +267,8 @@ public class IRConverter {
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
               : null;
-      this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
+      this.enumUnboxer =
+          options.enableEnumUnboxing ? new EnumUnboxerImpl(appViewWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
       this.inliner = new Inliner(appViewWithLiveness, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);

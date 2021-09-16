@@ -93,7 +93,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.InternalOptions;
@@ -110,11 +110,12 @@ import java.util.function.BiFunction;
 public class LensCodeRewriter {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final EnumUnboxer enumUnboxer;
+  private final EnumUnboxerImpl enumUnboxer;
   private final LensCodeRewriterUtils helper;
   private final InternalOptions options;
 
-  LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxer enumUnboxer) {
+  LensCodeRewriter(
+      AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxerImpl enumUnboxer) {
     this.appView = appView;
     this.enumUnboxer = enumUnboxer;
     this.helper = new LensCodeRewriterUtils(appView);

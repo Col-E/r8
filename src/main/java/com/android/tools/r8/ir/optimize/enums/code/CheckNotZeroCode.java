@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -28,8 +29,7 @@ import com.android.tools.r8.utils.IteratorUtils;
  *
  * <p>Instances of {@link CheckNotZeroCode} are converted to {@link
  * com.android.tools.r8.graph.CfCode} or {@link com.android.tools.r8.graph.DexCode} immediately, and
- * thus should never be seen outside of the {@link
- * com.android.tools.r8.ir.optimize.enums.EnumUnboxer}.
+ * thus should never be seen outside of the {@link EnumUnboxerImpl}.
  */
 public class CheckNotZeroCode extends Code {
 

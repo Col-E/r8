@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -131,7 +131,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class EnumUnboxer {
+public class EnumUnboxerImpl {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
@@ -157,7 +157,7 @@ public class EnumUnboxer {
   private final boolean debugLogEnabled;
   private final Map<DexType, List<Reason>> debugLogs;
 
-  public EnumUnboxer(AppView<AppInfoWithLiveness> appView) {
+  public EnumUnboxerImpl(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     if (appView.options().testing.enableEnumUnboxingDebugLogs) {

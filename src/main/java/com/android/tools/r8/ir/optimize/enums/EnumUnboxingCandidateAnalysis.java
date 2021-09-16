@@ -25,12 +25,12 @@ class EnumUnboxingCandidateAnalysis {
   private static final int MAX_INSTANCE_FIELDS_FOR_UNBOXING = 7;
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final EnumUnboxer enumUnboxer;
+  private final EnumUnboxerImpl enumUnboxer;
   private final DexItemFactory factory;
   private EnumUnboxingCandidateInfoCollection enumToUnboxCandidates =
       new EnumUnboxingCandidateInfoCollection();
 
-  EnumUnboxingCandidateAnalysis(AppView<AppInfoWithLiveness> appView, EnumUnboxer enumUnboxer) {
+  EnumUnboxingCandidateAnalysis(AppView<AppInfoWithLiveness> appView, EnumUnboxerImpl enumUnboxer) {
     this.appView = appView;
     this.enumUnboxer = enumUnboxer;
     factory = appView.dexItemFactory();
