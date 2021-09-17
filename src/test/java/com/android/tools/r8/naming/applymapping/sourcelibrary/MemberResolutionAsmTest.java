@@ -204,8 +204,7 @@ public class MemberResolutionAsmTest extends TestBase {
 
     compileResult
         .run(parameters.getRuntime(), swappingMain)
-        .assertFailureWithErrorThatThrows(IllegalAccessError.class)
-        .assertFailureWithErrorThatMatches(containsString(getMethodSignature("X", "y")));
+        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
 
     CodeInspector codeInspector = compileResult.inspector();
     ClassSubject base = codeInspector.clazz("A");

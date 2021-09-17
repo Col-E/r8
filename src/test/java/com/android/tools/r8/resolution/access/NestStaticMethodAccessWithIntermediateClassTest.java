@@ -82,7 +82,7 @@ public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(runResult -> checkExpectedResult(runResult, false));
   }
 
   @Test
@@ -93,11 +93,11 @@ public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(runResult -> checkExpectedResult(runResult, true));
   }
 
-  private void checkExpectedResult(TestRunResult<?> result) {
-    if (inSameNest && parameters.isCfRuntime()) {
+  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
+    if (inSameNest && (parameters.isCfRuntime() || isR8)) {
       result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
     } else {
       result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));

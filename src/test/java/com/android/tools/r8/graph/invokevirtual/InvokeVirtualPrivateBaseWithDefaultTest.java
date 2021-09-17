@@ -63,12 +63,7 @@ public class InvokeVirtualPrivateBaseWithDefaultTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime()
-                || parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M),
-            r -> r.assertFailureWithErrorThatThrows(IllegalAccessError.class),
-            // TODO(b/152199517): Should be illegal access for DEX.
-            r -> r.assertSuccessWithOutputLines("I::foo"));
+        .assertFailureWithErrorThatThrows(IllegalAccessError.class);
   }
 
   @NoVerticalClassMerging

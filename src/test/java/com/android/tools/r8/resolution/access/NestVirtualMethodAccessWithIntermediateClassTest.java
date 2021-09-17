@@ -81,7 +81,7 @@ public class NestVirtualMethodAccessWithIntermediateClassTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(runResult -> checkExpectedResult(runResult, false));
   }
 
   @Test
@@ -92,11 +92,11 @@ public class NestVirtualMethodAccessWithIntermediateClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(runResult -> checkExpectedResult(runResult, true));
   }
 
-  private void checkExpectedResult(TestRunResult<?> result) {
-    if (inSameNest && parameters.isCfRuntime()) {
+  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
+    if (inSameNest && (parameters.isCfRuntime() || isR8)) {
       result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     } else {
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);

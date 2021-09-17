@@ -6,11 +6,8 @@ package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.cf.code.CfConstNull;
-import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
@@ -27,13 +24,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
@@ -41,11 +36,9 @@ import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.icce.AlwaysThrowingInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
-import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
-import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
-import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -56,7 +49,6 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -353,7 +345,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     if (target != null && target.isDefaultMethod()) {
       // Rewrite the invoke to a throw ICCE as the default method forward would otherwise hide the
       // static / virtual mismatch.
-      return computeInvokeAsThrowRewrite(invoke, resolution.asSingleResolution());
+      return computeInvokeAsThrowRewrite(invoke, resolution.asSingleResolution(), context);
     }
     return DesugarDescription.nothing();
   }
@@ -447,7 +439,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             .resolveMethodOnInterface(holder, invoke.getMethod())
             .asSingleResolution();
     if (holder.isInterface() && shouldRewriteToInvokeToThrow(resolutionResult, true)) {
-      return computeInvokeAsThrowRewrite(invoke, resolutionResult);
+      return computeInvokeAsThrowRewrite(invoke, resolutionResult, context);
     }
 
     assert resolutionResult != null;
@@ -482,7 +474,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       return computeInvokeDirect(holder, invoke, context);
     }
     if (resolution != null && resolution.getResolvedMethod().isStatic()) {
-      return computeInvokeAsThrowRewrite(invoke, resolution);
+      return computeInvokeAsThrowRewrite(invoke, resolution, context);
     }
     DesugarDescription description = computeEmulatedInterfaceVirtualDispatchOrNull(invoke);
     return description != null ? description : DesugarDescription.nothing();
@@ -527,7 +519,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     MethodResolutionResult resolution =
         appView.appInfoForDesugaring().resolveMethod(invokedMethod, invoke.isInterface());
     if (resolution.isFailedResolution()) {
-      return computeInvokeAsThrowRewrite(invoke, null);
+      return computeInvokeAsThrowRewrite(invoke, null, context);
     }
 
     SingleResolutionResult singleResolution = resolution.asSingleResolution();
@@ -606,98 +598,15 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private DesugarDescription computeInvokeAsThrowRewrite(
-      CfInvoke invoke, SingleResolutionResult resolution) {
-    return DesugarDescription.builder()
-        .setDesugarRewrite(
-            (freshLocalProvider,
-                localStackAllocator,
-                eventConsumer,
-                context,
-                methodProcessingContext,
-                dexItemFactory) ->
-                getThrowInstructions(
-                    invoke,
-                    resolution,
-                    localStackAllocator,
-                    eventConsumer,
-                    context,
-                    methodProcessingContext))
-        .build();
+      CfInvoke invoke, SingleResolutionResult resolution, ProgramMethod context) {
+    assert !isAlreadyDesugared(invoke, context);
+    return AlwaysThrowingInstructionDesugaring.computeInvokeAsThrowRewrite(
+        appView, invoke, resolution);
   }
 
   private Collection<CfInstruction> getInvokeStaticInstructions(DexMethod newTarget) {
     return Collections.singletonList(
         new CfInvoke(org.objectweb.asm.Opcodes.INVOKESTATIC, newTarget, false));
-  }
-
-  private Collection<CfInstruction> getThrowInstructions(
-      CfInvoke invoke,
-      SingleResolutionResult resolutionResult,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
-    assert !isAlreadyDesugared(invoke, context);
-
-    MethodSynthesizerConsumer methodSynthesizerConsumer;
-    if (resolutionResult == null) {
-      methodSynthesizerConsumer =
-          UtilityMethodsForCodeOptimizations::synthesizeThrowNoSuchMethodErrorMethod;
-    } else if (resolutionResult.getResolvedMethod().isStatic() != invoke.isInvokeStatic()) {
-      methodSynthesizerConsumer =
-          UtilityMethodsForCodeOptimizations::synthesizeThrowIncompatibleClassChangeErrorMethod;
-    } else {
-      assert false;
-      return null;
-    }
-
-    // Replace the entire effect of the invoke by by call to the throwing helper:
-    //   ...
-    //   invoke <method> [receiver] args*
-    // =>
-    //   ...
-    //   (pop arg)*
-    //   [pop receiver]
-    //   invoke <throwing-method>
-    //   pop exception result
-    //   [push fake result for <method>]
-    UtilityMethodForCodeOptimizations throwMethod =
-        methodSynthesizerConsumer.synthesizeMethod(appView, methodProcessingContext);
-    ProgramMethod throwProgramMethod = throwMethod.uncheckedGetMethod();
-    eventConsumer.acceptThrowMethod(throwProgramMethod, context);
-
-    ArrayList<CfInstruction> replacement = new ArrayList<>();
-    DexTypeList parameters = invoke.getMethod().getParameters();
-    for (int i = parameters.values.length - 1; i >= 0; i--) {
-      replacement.add(
-          new CfStackInstruction(
-              parameters.get(i).isWideType()
-                  ? CfStackInstruction.Opcode.Pop2
-                  : CfStackInstruction.Opcode.Pop));
-    }
-    if (!invoke.isInvokeStatic()) {
-      replacement.add(new CfStackInstruction(CfStackInstruction.Opcode.Pop));
-    }
-
-    CfInvoke throwInvoke =
-        new CfInvoke(
-            org.objectweb.asm.Opcodes.INVOKESTATIC, throwProgramMethod.getReference(), false);
-    assert throwInvoke.getMethod().getReturnType().isClassType();
-    replacement.add(throwInvoke);
-    replacement.add(new CfStackInstruction(CfStackInstruction.Opcode.Pop));
-
-    DexType returnType = invoke.getMethod().getReturnType();
-    if (returnType != factory.voidType) {
-      replacement.add(
-          returnType.isPrimitiveType()
-              ? new CfConstNumber(0, ValueType.fromDexType(returnType))
-              : new CfConstNull());
-    } else {
-      // If the return type is void, the stack may need an extra slot to fit the return type of
-      // the call to the throwing method.
-      localStackAllocator.allocateLocalStack(1);
-    }
-    return replacement;
   }
 
   private void leavingStaticInvokeToInterface(ProgramMethod method) {
@@ -756,7 +665,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     SingleResolutionResult resolutionResult =
         appView.appInfoForDesugaring().resolveMethodOn(clazz, invokedMethod).asSingleResolution();
     if (clazz.isInterface() && shouldRewriteToInvokeToThrow(resolutionResult, false)) {
-      return computeInvokeAsThrowRewrite(invoke, resolutionResult);
+      return computeInvokeAsThrowRewrite(invoke, resolutionResult, context);
     }
 
     if (clazz.isInterface() && !clazz.isLibraryClass()) {
@@ -772,7 +681,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       if (resolutionResult.getResolvedMethod().isPrivateMethod()) {
         if (resolutionResult.isAccessibleFrom(context, appView.appInfoForDesugaring()).isFalse()) {
           // TODO(b/145775365): This should throw IAE.
-          return computeInvokeAsThrowRewrite(invoke, null);
+          return computeInvokeAsThrowRewrite(invoke, null, context);
         }
         return DesugarDescription.builder()
             .setDesugarRewrite(

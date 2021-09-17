@@ -105,23 +105,22 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), mainClass);
 
-    assertEquals(
-        expectedOutput,
-        result
-            .getStdOut()
-            .replace("java.lang.IncompatibleClassChangeError", "java.lang.IllegalAccessError"));
+    assertEquals(expectedOutput, result.getStdOut());
 
     CodeInspector inspector = result.inspector();
+
+    MethodSignature barMethodSignatureAfterArgumentRemoval =
+        new MethodSignature(
+            "bar", STRING, enableArgumentRemoval ? ImmutableList.of() : ImmutableList.of("int"));
     assertPublic(inspector, A.class, new MethodSignature("baz", STRING, ImmutableList.of()));
     assertPublic(inspector, A.class, new MethodSignature("bar", STRING, ImmutableList.of()));
-    assertPublic(inspector, A.class, new MethodSignature("bar", STRING, ImmutableList.of("int")));
+    assertPublic(inspector, A.class, barMethodSignatureAfterArgumentRemoval);
 
-    MethodSignature blahMethodSignature =
+    MethodSignature blahMethodSignatureAfterArgumentRemoval =
         new MethodSignature(
             "blah", STRING, enableArgumentRemoval ? ImmutableList.of() : ImmutableList.of("int"));
-    assertPublic(inspector, A.class, blahMethodSignature);
-    assertPublic(inspector, B.class, blahMethodSignature);
-    assertPublic(inspector, BB.class, blahMethodSignature);
+    assertPublic(inspector, A.class, blahMethodSignatureAfterArgumentRemoval);
+    assertPublic(inspector, BB.class, blahMethodSignatureAfterArgumentRemoval);
   }
 
   @Test

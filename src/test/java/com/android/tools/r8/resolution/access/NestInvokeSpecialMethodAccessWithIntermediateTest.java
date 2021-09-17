@@ -186,7 +186,7 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(runResult -> checkExpectedResult(runResult, false));
   }
 
   @Test
@@ -197,10 +197,10 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(runResult -> checkExpectedResult(runResult, true));
   }
 
-  private void checkExpectedResult(TestRunResult<?> result) {
+  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
     // If not in the same nest, the error is always illegal access.
     if (!inSameNest) {
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
@@ -209,8 +209,8 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
 
     // If in the same nest but the reference is not exact, the error is always no such method.
     if (!symbolicReferenceIsDefiningType) {
-      // TODO(b/145775365): D8/R8 does not preserve the thrown error.
-      if (parameters.isDexRuntime()) {
+      // TODO(b/145775365): D8 does not preserve the thrown error.
+      if (parameters.isDexRuntime() && !isR8) {
         result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
         return;
       }

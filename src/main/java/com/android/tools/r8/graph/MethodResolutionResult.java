@@ -84,6 +84,10 @@ public abstract class MethodResolutionResult
     return null;
   }
 
+  public DexEncodedMethod getResolvedMethod() {
+    return null;
+  }
+
   /** Short-hand to get the single resolution method if resolution finds it, null otherwise. */
   public final DexEncodedMethod getSingleTarget() {
     return isSingleResolution() ? asSingleResolution().getResolvedMethod() : null;
@@ -189,6 +193,7 @@ public abstract class MethodResolutionResult
       return resolvedMethod;
     }
 
+    @Override
     public DexEncodedMethod getResolvedMethod() {
       return resolvedMethod;
     }

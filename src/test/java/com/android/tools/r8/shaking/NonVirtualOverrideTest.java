@@ -105,9 +105,9 @@ public class NonVirtualOverrideTest extends TestBase {
           "In C.m3()",
           "In A.m4()",
           "In A.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
-          "In A.m3()", // With Java: Caught IncompatibleClassChangeError when calling B.m3()
+          "Caught IncompatibleClassChangeError when calling B.m3()",
           "In C.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
-          "In C.m3()", // With Java: Caught IncompatibleClassChangeError when calling B.m3()
+          "Caught IncompatibleClassChangeError when calling B.m3()",
           "In C.m1()",
           "In C.m3()",
           "");
@@ -179,7 +179,7 @@ public class NonVirtualOverrideTest extends TestBase {
       assertThat(classSubject, isPresentAndRenamed());
       assertThat(classSubject.method("void", "m1", ImmutableList.of()), isPresent());
       assertThat(classSubject.method("void", "m2", ImmutableList.of()), isAbsent());
-      assertThat(classSubject.method("void", "m3", ImmutableList.of()), isPresent());
+      assertThat(classSubject.method("void", "m3", ImmutableList.of()), isAbsent());
       assertThat(classSubject.method("void", "m4", ImmutableList.of()), isAbsent());
     }
   }

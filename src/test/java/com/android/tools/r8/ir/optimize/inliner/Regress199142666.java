@@ -4,13 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.io.IOException;
@@ -39,24 +39,21 @@ public class Regress199142666 extends TestBase {
 
   @Test
   public void testInliningWhenInvalidCaller() throws Exception {
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(HasInvalidStaticCall.class)
-            .addProgramClassFileData(getVirtualAAsStaticA())
-            .addKeepMainRule(HasInvalidStaticCall.class)
-            .addKeepMethodRules(StaticA.class, "void foo()")
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), HasInvalidStaticCall.class);
-    if (parameters.getRuntime().asDex().getVm().getVersion().isDalvik()) {
-      // TODO(b/199142666): We should not inline to provoke this error.
-      run.assertFailureWithErrorThatMatches(
-          containsString("invoke type does not match method type of"));
-    } else {
-      // TODO(b/199142666): We should consider if we want to inline in this case (there are no
-      // verification errors)
-      run.assertSuccessWithOutputLines("foochanged")
-          .inspect(inspector -> ensureThisNumberOfCalls(inspector, HasInvalidStaticCall.class, 2));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(HasInvalidStaticCall.class)
+        .addProgramClassFileData(getVirtualAAsStaticA())
+        .addKeepMainRule(HasInvalidStaticCall.class)
+        .addKeepMethodRules(StaticA.class, "void foo()")
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), HasInvalidStaticCall.class)
+        // TODO(b/199142666): We should consider if we want to inline in this case (there are no
+        //  verification errors)
+        .assertSuccessWithOutputLines("foochanged")
+        .inspect(
+            inspector -> {
+              ensureThisNumberOfCalls(inspector, HasInvalidStaticCall.class, 1);
+              ensureThisNumberThrowICCE(inspector, HasInvalidStaticCall.class, 1);
+            });
   }
 
   @Test
@@ -70,10 +67,13 @@ public class Regress199142666 extends TestBase {
         .run(parameters.getRuntime(), TargetHasInvalidStaticCall.class)
         .assertSuccessWithEmptyOutput()
         .inspect(
-            inspector -> ensureThisNumberOfCalls(inspector, TargetHasInvalidStaticCall.class, 1));
+            inspector -> {
+              ensureThisNumberOfCalls(inspector, TargetHasInvalidStaticCall.class, 0);
+              ensureThisNumberThrowICCE(inspector, TargetHasInvalidStaticCall.class, 2);
+            });
   }
 
-  private void ensureThisNumberOfCalls(CodeInspector inspector, Class clazz, int fooCalls) {
+  private void ensureThisNumberOfCalls(CodeInspector inspector, Class<?> clazz, int fooCalls) {
     long count =
         inspector
             .clazz(clazz)
@@ -83,6 +83,27 @@ public class Regress199142666 extends TestBase {
             .filter(invoke -> invoke.getMethod().name.toString().equals("foo"))
             .count();
     assertEquals(fooCalls, count);
+  }
+
+  private void ensureThisNumberThrowICCE(CodeInspector inspector, Class<?> clazz, int expected) {
+    IRCode code = inspector.clazz(clazz).mainMethod().buildIR();
+    long count =
+        code.streamInstructions()
+            .filter(Instruction::isThrow)
+            .filter(
+                instruction ->
+                    instruction
+                        .getFirstOperand()
+                        .isDefinedByInstructionSatisfying(
+                            definition ->
+                                definition.isNewInstance()
+                                    && definition
+                                        .asNewInstance()
+                                        .getType()
+                                        .getTypeName()
+                                        .equals(IncompatibleClassChangeError.class.getTypeName())))
+            .count();
+    assertEquals(expected, count);
   }
 
   static class StaticA {
