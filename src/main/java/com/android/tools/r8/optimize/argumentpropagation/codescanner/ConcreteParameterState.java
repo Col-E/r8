@@ -140,8 +140,13 @@ public abstract class ConcreteParameterState extends NonEmptyParameterState {
     return inParameters.addAll(parameterState.inParameters);
   }
 
-  boolean widenInParameters() {
-    // TODO(b/190154391): Widen to unknown when the size of the collection exceeds a threshold.
-    return false;
+  /**
+   * Returns true if the in-parameters set should be widened to unknown, in which case the entire
+   * parameter state must be widened to unknown.
+   */
+  boolean widenInParameters(AppView<AppInfoWithLiveness> appView) {
+    return inParameters != null
+        && inParameters.size()
+            > appView.options().callSiteOptimizationOptions().getMaxNumberOfInParameters();
   }
 }

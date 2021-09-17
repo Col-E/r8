@@ -1235,6 +1235,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return maxNumberOfDispatchTargetsBeforeAbandoning;
     }
 
+    public int getMaxNumberOfInParameters() {
+      return 10;
+    }
+
     public boolean isEnabled() {
       if (!isOptimizing() || !isShrinking()) {
         return false;

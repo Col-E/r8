@@ -100,7 +100,7 @@ public class ConcreteReceiverParameterState extends ConcreteReferenceTypeParamet
       return unknown();
     }
     boolean inParametersChanged = mutableJoinInParameters(parameterState);
-    if (widenInParameters()) {
+    if (widenInParameters(appView)) {
       return unknown();
     }
     if (!dynamicType.equals(oldDynamicType) || inParametersChanged) {

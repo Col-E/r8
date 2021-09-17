@@ -106,7 +106,7 @@ public class ConcreteArrayTypeParameterState extends ConcreteReferenceTypeParame
       return unknown();
     }
     boolean inParametersChanged = mutableJoinInParameters(parameterState);
-    if (widenInParameters()) {
+    if (widenInParameters(appView)) {
       return unknown();
     }
     if (inParametersChanged) {

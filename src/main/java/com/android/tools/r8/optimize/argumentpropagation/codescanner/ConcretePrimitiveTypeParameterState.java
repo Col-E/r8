@@ -69,7 +69,7 @@ public class ConcretePrimitiveTypeParameterState extends ConcreteParameterState 
       return unknown();
     }
     boolean inParametersChanged = mutableJoinInParameters(parameterState);
-    if (widenInParameters()) {
+    if (widenInParameters(appView)) {
       return unknown();
     }
     if (abstractValue != oldAbstractValue || inParametersChanged) {
