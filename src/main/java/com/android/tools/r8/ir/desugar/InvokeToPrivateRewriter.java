@@ -35,6 +35,7 @@ public class InvokeToPrivateRewriter implements CfInstructionDesugaring {
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     if (!instruction.isInvokeVirtual() && !instruction.isInvokeInterface()) {
       return null;

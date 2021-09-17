@@ -28,6 +28,7 @@ public class DexMethodHandle extends IndexedDexItem
     INVOKE_DIRECT((short) 0x07),
     INVOKE_INTERFACE((short) 0x08),
     // Internal method handle needed by lambda desugaring.
+    // TODO(b/200254463): Remove this now that lambda desugaring is CF/CF.
     INVOKE_SUPER((short) 0x09);
 
     private final short value;

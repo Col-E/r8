@@ -244,7 +244,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     return true;
   }
 
-  private Collection<CfInstruction> desugarInstruction(
+  @Override
+  public Collection<CfInstruction> desugarInstruction(
       CfInstruction instruction,
       FreshLocalProvider freshLocalProvider,
       LocalStackAllocator localStackAllocator,
@@ -263,6 +264,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
               eventConsumer,
               context,
               methodProcessingContext,
+              this,
               appView.dexItemFactory());
       if (replacement != null) {
         assert desugaring.needsDesugaring(instruction, context);

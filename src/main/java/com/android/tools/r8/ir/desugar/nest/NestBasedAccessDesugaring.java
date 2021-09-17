@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.LibraryMember;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
@@ -268,6 +269,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     if (instruction.isFieldInstruction()) {
       return desugarFieldInstruction(instruction.asFieldInstruction(), context, eventConsumer);
