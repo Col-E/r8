@@ -17,11 +17,17 @@ public class WorkList<T> {
   private final Set<T> seen;
 
   public static <T> WorkList<T> newEqualityWorkList() {
-    return new WorkList<T>(EqualityTest.HASH);
+    return new WorkList<T>(EqualityTest.EQUALS);
+  }
+
+  public static <T> WorkList<T> newEqualityWorkList(T item) {
+    WorkList<T> workList = new WorkList<>(EqualityTest.EQUALS);
+    workList.addIfNotSeen(item);
+    return workList;
   }
 
   public static <T> WorkList<T> newEqualityWorkList(Iterable<T> items) {
-    WorkList<T> workList = new WorkList<>(EqualityTest.HASH);
+    WorkList<T> workList = new WorkList<>(EqualityTest.EQUALS);
     workList.addIfNotSeen(items);
     return workList;
   }
@@ -53,7 +59,7 @@ public class WorkList<T> {
   }
 
   private WorkList(EqualityTest equalityTest) {
-    this(equalityTest == EqualityTest.HASH ? new HashSet<>() : Sets.newIdentityHashSet());
+    this(equalityTest == EqualityTest.EQUALS ? new HashSet<>() : Sets.newIdentityHashSet());
   }
 
   private WorkList(Set<T> seen) {
@@ -120,7 +126,7 @@ public class WorkList<T> {
   }
 
   public enum EqualityTest {
-    HASH,
+    EQUALS,
     IDENTITY
   }
 }

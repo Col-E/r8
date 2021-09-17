@@ -20,6 +20,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.NonEmptyParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.utils.BidirectedGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -52,16 +53,22 @@ public class InParameterFlowPropagator {
     // must be included in the argument information for p'.
     FlowGraph flowGraph = new FlowGraph(appView.appInfo().classes());
 
+    List<Set<ParameterNode>> stronglyConnectedComponents =
+        flowGraph.computeStronglyConnectedComponents();
+    ThreadUtils.processItems(stronglyConnectedComponents, this::process, executorService);
+
+    // The algorithm only changes the parameter states of each monomorphic method state. In case any
+    // of these method states have effectively become unknown, we replace them by the canonicalized
+    // unknown method state.
+    postProcessMethodStates(executorService);
+  }
+
+  private void process(Set<ParameterNode> stronglyConnectedComponent) {
     // Build a worklist containing all the parameter nodes.
-    Deque<ParameterNode> worklist = new ArrayDeque<>();
-    flowGraph.forEachNode(worklist::add);
+    Deque<ParameterNode> worklist = new ArrayDeque<>(stronglyConnectedComponent);
 
     // Repeatedly propagate argument information through edges in the flow graph until there are no
     // more changes.
-    // TODO(b/190154391): Consider parallelizing the flow propagation. There are a few scenarios
-    //  that need to be covered, such as (i) two threads could race to update the same parameter
-    //  state, (ii) a thread may try to propagate a parameter state to its successors while
-    //  another thread is trying to update the state of the parameter itself.
     // TODO(b/190154391): Consider a path p1 -> p2 -> p3 in the graph. If we process p2 first, then
     //  p3, and then p1, then the processing of p1 could cause p2 to change, which means that we
     //  need to reprocess p2 and then p3. If we always process leaves in the graph first, we would
@@ -83,11 +90,6 @@ public class InParameterFlowPropagator {
             }
           });
     }
-
-    // The algorithm only changes the parameter states of each monomorphic method state. In case any
-    // of these method states have effectively become unknown, we replace them by the canonicalized
-    // unknown method state.
-    postProcessMethodStates(executorService);
   }
 
   private void propagate(
@@ -133,7 +135,7 @@ public class InParameterFlowPropagator {
     }
   }
 
-  private class FlowGraph {
+  public class FlowGraph extends BidirectedGraph<ParameterNode> {
 
     private final Map<DexMethod, Int2ReferenceMap<ParameterNode>> nodes = new IdentityHashMap<>();
 
@@ -141,7 +143,14 @@ public class InParameterFlowPropagator {
       classes.forEach(this::add);
     }
 
-    void forEachNode(Consumer<? super ParameterNode> consumer) {
+    @Override
+    public void forEachNeighbor(ParameterNode node, Consumer<? super ParameterNode> consumer) {
+      node.getPredecessors().forEach(consumer);
+      node.getSuccessors().forEach(consumer);
+    }
+
+    @Override
+    public void forEachNode(Consumer<? super ParameterNode> consumer) {
       nodes.values().forEach(nodesForMethod -> nodesForMethod.values().forEach(consumer));
     }
 
@@ -276,6 +285,10 @@ public class InParameterFlowPropagator {
         predecessor.successors.remove(this);
       }
       predecessors.clear();
+    }
+
+    Set<ParameterNode> getPredecessors() {
+      return predecessors;
     }
 
     ParameterState getState() {
