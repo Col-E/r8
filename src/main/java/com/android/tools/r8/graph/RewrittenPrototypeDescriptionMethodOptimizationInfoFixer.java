@@ -162,7 +162,7 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
       return bitSet;
     }
     int n = bitSet.length();
-    BitSet rewrittenNonNullParamOnNormalExits = new BitSet(n);
+    BitSet rewrittenBitSet = new BitSet(n);
     for (int argumentIndex = 0; argumentIndex < n; argumentIndex++) {
       if (!bitSet.get(argumentIndex)) {
         continue;
@@ -171,9 +171,8 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
       if (argumentInfo.isRemovedArgumentInfo() || argumentInfo.isRewrittenTypeInfo()) {
         continue;
       }
-      rewrittenNonNullParamOnNormalExits.set(
-          getArgumentInfoCollection().getNewArgumentIndex(argumentIndex));
+      rewrittenBitSet.set(getArgumentInfoCollection().getNewArgumentIndex(argumentIndex));
     }
-    return rewrittenNonNullParamOnNormalExits.isEmpty() ? null : rewrittenNonNullParamOnNormalExits;
+    return rewrittenBitSet.isEmpty() ? null : rewrittenBitSet;
   }
 }

@@ -296,12 +296,16 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
 
   private ParameterState getUnusedParameterState(DexType argumentType) {
     if (argumentType.isArrayType()) {
+      // Ensure argument removal by simulating that this unused parameter is the constant null.
       return new ConcreteArrayTypeParameterState(Nullability.definitelyNull());
     } else if (argumentType.isClassType()) {
+      // Ensure argument removal by simulating that this unused parameter is the constant null.
       return new ConcreteClassTypeParameterState(
           appView.abstractValueFactory().createNullValue(), DynamicType.definitelyNull());
     } else {
       assert argumentType.isPrimitiveType();
+      // Ensure argument removal by simulating that this unused parameter is the constant zero.
+      // Note that the same zero value is used for all primitive types.
       return new ConcretePrimitiveTypeParameterState(
           appView.abstractValueFactory().createZeroValue());
     }
