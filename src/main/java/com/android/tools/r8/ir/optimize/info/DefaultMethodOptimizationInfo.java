@@ -150,6 +150,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public BitSet getUnusedArguments() {
+    return null;
+  }
+
+  @Override
   public boolean isInitializerEnablingJavaVmAssertions() {
     return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
   }

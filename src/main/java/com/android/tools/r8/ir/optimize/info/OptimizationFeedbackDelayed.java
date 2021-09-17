@@ -309,4 +309,9 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   public synchronized void classInitializerMayBePostponed(DexEncodedMethod method) {
     getMethodOptimizationInfoForUpdating(method).markClassInitializerMayBePostponed();
   }
+
+  @Override
+  public synchronized void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {
+    getMethodOptimizationInfoForUpdating(method).setUnusedArguments(unusedArguments);
+  }
 }

@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BitSetUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.BitSet;
@@ -72,6 +73,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   private SimpleInliningConstraint simpleInliningConstraint =
       NeverSimpleInliningConstraint.getInstance();
+
+  private BitSet unusedArguments = null;
 
   // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
   // merged into a flag int field. The various static final FLAG fields indicate which bit is
@@ -165,7 +168,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
         .fixupNonNullParamOnNormalExits(fixer)
         .fixupNonNullParamOrThrow(fixer)
         .fixupReturnedArgumentIndex(fixer)
-        .fixupSimpleInliningConstraint(appView, fixer);
+        .fixupSimpleInliningConstraint(appView, fixer)
+        .fixupUnusedArguments(fixer);
   }
 
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
@@ -420,6 +424,25 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   @Override
   public SimpleInliningConstraint getSimpleInliningConstraint() {
     return simpleInliningConstraint;
+  }
+
+  @Override
+  public BitSet getUnusedArguments() {
+    return unusedArguments;
+  }
+
+  public MutableMethodOptimizationInfo fixupUnusedArguments(MethodOptimizationInfoFixer fixer) {
+    unusedArguments = fixer.fixupUnusedArguments(unusedArguments);
+    return this;
+  }
+
+  void setUnusedArguments(BitSet unusedArguments) {
+    // Verify monotonicity (i.e., unused arguments should never become used).
+    assert !hasUnusedArguments() || unusedArguments != null;
+    assert !hasUnusedArguments()
+        || BitSetUtils.verifyLessThanOrEqualTo(getUnusedArguments(), unusedArguments);
+    this.unusedArguments =
+        unusedArguments != null && !unusedArguments.isEmpty() ? unusedArguments : null;
   }
 
   @Override

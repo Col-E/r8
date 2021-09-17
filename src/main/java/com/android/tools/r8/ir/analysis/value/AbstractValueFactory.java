@@ -37,6 +37,10 @@ public class AbstractValueFactory {
     return createSingleNumberValue(0);
   }
 
+  public SingleNumberValue createZeroValue() {
+    return createSingleNumberValue(0);
+  }
+
   public SingleStringValue createSingleStringValue(DexString string) {
     return singleStringValues.computeIfAbsent(string, SingleStringValue::new);
   }

@@ -107,7 +107,7 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
    */
   @Override
   public BitSet fixupNonNullParamOnNormalExits(BitSet nonNullParamOnNormalExits) {
-    return fixupNonNullParamInfo(nonNullParamOnNormalExits);
+    return fixupArgumentInfo(nonNullParamOnNormalExits);
   }
 
   /**
@@ -116,27 +116,7 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
    */
   @Override
   public BitSet fixupNonNullParamOrThrow(BitSet nonNullParamOrThrow) {
-    return fixupNonNullParamInfo(nonNullParamOrThrow);
-  }
-
-  private BitSet fixupNonNullParamInfo(BitSet nonNullParamInfo) {
-    if (getArgumentInfoCollection().isEmpty() || nonNullParamInfo == null) {
-      return nonNullParamInfo;
-    }
-    int n = nonNullParamInfo.length();
-    BitSet rewrittenNonNullParamOnNormalExits = new BitSet(n);
-    for (int argumentIndex = 0; argumentIndex < n; argumentIndex++) {
-      if (!nonNullParamInfo.get(argumentIndex)) {
-        continue;
-      }
-      ArgumentInfo argumentInfo = getArgumentInfoCollection().getArgumentInfo(argumentIndex);
-      if (argumentInfo.isRemovedArgumentInfo() || argumentInfo.isRewrittenTypeInfo()) {
-        continue;
-      }
-      rewrittenNonNullParamOnNormalExits.set(
-          getArgumentInfoCollection().getNewArgumentIndex(argumentIndex));
-    }
-    return rewrittenNonNullParamOnNormalExits.isEmpty() ? null : rewrittenNonNullParamOnNormalExits;
+    return fixupArgumentInfo(nonNullParamOrThrow);
   }
 
   /**
@@ -166,5 +146,34 @@ public class RewrittenPrototypeDescriptionMethodOptimizationInfoFixer
       return constraint;
     }
     return constraint.fixupAfterParametersChanged(appView, getArgumentInfoCollection(), factory);
+  }
+
+  /**
+   * Function for rewriting the unused arguments on a piece of method optimization info after
+   * prototype changes were made.
+   */
+  @Override
+  public BitSet fixupUnusedArguments(BitSet unusedArguments) {
+    return fixupArgumentInfo(unusedArguments);
+  }
+
+  private BitSet fixupArgumentInfo(BitSet bitSet) {
+    if (getArgumentInfoCollection().isEmpty() || bitSet == null) {
+      return bitSet;
+    }
+    int n = bitSet.length();
+    BitSet rewrittenNonNullParamOnNormalExits = new BitSet(n);
+    for (int argumentIndex = 0; argumentIndex < n; argumentIndex++) {
+      if (!bitSet.get(argumentIndex)) {
+        continue;
+      }
+      ArgumentInfo argumentInfo = getArgumentInfoCollection().getArgumentInfo(argumentIndex);
+      if (argumentInfo.isRemovedArgumentInfo() || argumentInfo.isRewrittenTypeInfo()) {
+        continue;
+      }
+      rewrittenNonNullParamOnNormalExits.set(
+          getArgumentInfoCollection().getNewArgumentIndex(argumentIndex));
+    }
+    return rewrittenNonNullParamOnNormalExits.isEmpty() ? null : rewrittenNonNullParamOnNormalExits;
   }
 }

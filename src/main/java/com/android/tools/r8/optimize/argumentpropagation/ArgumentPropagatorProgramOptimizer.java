@@ -265,7 +265,8 @@ public class ArgumentPropagatorProgramOptimizer {
 
     private boolean isParameterRemovalAllowed(ProgramMethod method) {
       return appView.getKeepInfo(method).isParameterRemovalAllowed(options)
-          && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue();
+          && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
+          && !appView.appInfo().isMethodTargetedByInvokeDynamic(method);
     }
 
     private boolean canRemoveParameterFromVirtualMethods(
@@ -390,8 +391,7 @@ public class ArgumentPropagatorProgramOptimizer {
       assert method.getDefinition().belongsToDirectPool();
       // TODO(b/190154391): Allow parameter removal from initializers. We need to guarantee absence
       //  of collisions since initializers can't be renamed.
-      if (!appView.getKeepInfo(method).isParameterRemovalAllowed(options)
-          || method.getDefinition().isInstanceInitializer()) {
+      if (!isParameterRemovalAllowed(method) || method.getDefinition().isInstanceInitializer()) {
         return ArgumentInfoCollection.empty();
       }
       // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.

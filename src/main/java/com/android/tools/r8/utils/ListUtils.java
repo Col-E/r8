@@ -186,6 +186,14 @@ public class ListUtils {
     return list;
   }
 
+  public static <T> ArrayList<T> newInitializedArrayList(int size, T element) {
+    ArrayList<T> list = new ArrayList<>(size);
+    for (int i = 0; i < size; i++) {
+      list.add(element);
+    }
+    return list;
+  }
+
   public static <T> ImmutableList<T> newImmutableList(ForEachable<T> forEachable) {
     ImmutableList.Builder<T> builder = ImmutableList.builder();
     forEachable.forEach(builder::add);

@@ -659,6 +659,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return keepConstantArguments.contains(method);
   }
 
+  public boolean isKeepUnusedArgumentsMethod(ProgramMethod method) {
+    return isKeepUnusedArgumentsMethod(method.getReference());
+  }
+
   public boolean isKeepUnusedArgumentsMethod(DexMethod method) {
     return keepUnusedArguments.contains(method);
   }

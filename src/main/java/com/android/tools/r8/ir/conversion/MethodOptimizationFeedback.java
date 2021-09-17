@@ -80,4 +80,6 @@ public interface MethodOptimizationFeedback {
   void setSimpleInliningConstraint(ProgramMethod method, SimpleInliningConstraint constraint);
 
   void classInitializerMayBePostponed(DexEncodedMethod method);
+
+  void setUnusedArguments(ProgramMethod method, BitSet unusedArguments);
 }

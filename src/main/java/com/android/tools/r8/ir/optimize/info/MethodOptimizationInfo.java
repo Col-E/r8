@@ -83,6 +83,13 @@ public abstract class MethodOptimizationInfo
 
   public abstract SimpleInliningConstraint getSimpleInliningConstraint();
 
+  public final boolean hasUnusedArguments() {
+    assert getUnusedArguments() == null || !getUnusedArguments().isEmpty();
+    return getUnusedArguments() != null;
+  }
+
+  public abstract BitSet getUnusedArguments();
+
   public abstract boolean forceInline();
 
   public abstract boolean neverInline();

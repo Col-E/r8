@@ -65,6 +65,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -155,6 +156,7 @@ public class MethodOptimizationInfoCollector {
     computeReturnValueOnlyDependsOnArguments(feedback, definition, code, timing);
     BitSet nonNullParamOrThrow = computeNonNullParamOrThrow(feedback, definition, code, timing);
     computeNonNullParamOnNormalExits(feedback, code, nonNullParamOrThrow, timing);
+    computeUnusedArguments(method, code, feedback, timing);
   }
 
   private void identifyBridgeInfo(
@@ -1218,5 +1220,26 @@ public class MethodOptimizationInfoCollector {
     // null-checked blocks.
     assert uncoveredPaths.isEmpty();
     return true;
+  }
+
+  private void computeUnusedArguments(
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Compute unused arguments");
+    computeUnusedArguments(method, code, feedback);
+    timing.end();
+  }
+
+  private void computeUnusedArguments(
+      ProgramMethod method, IRCode code, OptimizationFeedback feedback) {
+    BitSet unusedArguments = new BitSet(method.getDefinition().getNumberOfArguments());
+    InstructionIterator instructionIterator = code.entryBlock().iterator();
+    Argument argument = instructionIterator.next().asArgument();
+    while (argument != null) {
+      if (!argument.outValue().hasAnyUsers()) {
+        unusedArguments.set(argument.getIndex());
+      }
+      argument = instructionIterator.next().asArgument();
+    }
+    feedback.setUnusedArguments(method, unusedArguments);
   }
 }

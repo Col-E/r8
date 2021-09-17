@@ -237,4 +237,9 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   public void classInitializerMayBePostponed(DexEncodedMethod method) {
     method.getMutableOptimizationInfo().markClassInitializerMayBePostponed();
   }
+
+  @Override
+  public void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {
+    method.getDefinition().getMutableOptimizationInfo().setUnusedArguments(unusedArguments);
+  }
 }

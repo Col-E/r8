@@ -12,10 +12,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteArrayTypeParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteClassTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
@@ -26,8 +30,11 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Ar
 import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.MethodReprocessingCriteria;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.Iterables;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -152,6 +159,8 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       return;
     }
 
+    methodState = getMethodStateAfterUnusedParameterRemoval(method, methodState);
+
     if (methodState.isUnknown()) {
       // Nothing is known about the arguments to this method.
       return;
@@ -213,5 +222,52 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         .setCallSiteOptimizationInfo(
             ConcreteCallSiteOptimizationInfo.fromMethodState(
                 appView, method, monomorphicMethodState));
+  }
+
+  private MethodState getMethodStateAfterUnusedParameterRemoval(
+      ProgramMethod method, MethodState methodState) {
+    assert methodState.isMonomorphic() || methodState.isUnknown();
+    if (!method.getOptimizationInfo().hasUnusedArguments()
+        || appView.appInfo().isKeepUnusedArgumentsMethod(method)) {
+      return methodState;
+    }
+
+    int numberOfArguments = method.getDefinition().getNumberOfArguments();
+    List<ParameterState> parameterStates =
+        methodState.isMonomorphic()
+            ? methodState.asMonomorphic().getParameterStates()
+            : ListUtils.newInitializedArrayList(numberOfArguments, ParameterState.unknown());
+
+    BitSet unusedArguments = method.getOptimizationInfo().getUnusedArguments();
+    for (int argumentIndex = method.getDefinition().getFirstNonReceiverArgumentIndex();
+        argumentIndex < numberOfArguments;
+        argumentIndex++) {
+      boolean isUnused = unusedArguments.get(argumentIndex);
+      if (isUnused) {
+        DexType argumentType = method.getArgumentType(argumentIndex);
+        parameterStates.set(argumentIndex, getUnusedParameterState(argumentType));
+      }
+    }
+
+    if (methodState.isUnknown()) {
+      if (!unusedArguments.get(0) || Iterables.any(parameterStates, ParameterState::isConcrete)) {
+        assert parameterStates.stream().anyMatch(ParameterState::isConcrete);
+        return new ConcreteMonomorphicMethodState(parameterStates);
+      }
+    }
+    return methodState;
+  }
+
+  private ParameterState getUnusedParameterState(DexType argumentType) {
+    if (argumentType.isArrayType()) {
+      return new ConcreteArrayTypeParameterState(Nullability.definitelyNull());
+    } else if (argumentType.isClassType()) {
+      return new ConcreteClassTypeParameterState(
+          appView.abstractValueFactory().createNullValue(), DynamicType.definitelyNull());
+    } else {
+      assert argumentType.isPrimitiveType();
+      return new ConcretePrimitiveTypeParameterState(
+          appView.abstractValueFactory().createZeroValue());
+    }
   }
 }

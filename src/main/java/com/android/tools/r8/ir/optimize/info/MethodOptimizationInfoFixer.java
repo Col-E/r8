@@ -43,4 +43,6 @@ public abstract class MethodOptimizationInfoFixer {
       AppView<AppInfoWithLiveness> appView,
       SimpleInliningConstraint constraint,
       SimpleInliningConstraintFactory factory);
+
+  public abstract BitSet fixupUnusedArguments(BitSet unusedArguments);
 }

@@ -144,4 +144,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void classInitializerMayBePostponed(DexEncodedMethod method) {}
+
+  @Override
+  public void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {}
 }
