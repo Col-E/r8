@@ -130,7 +130,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
                   if (resolutionResult.isFailedResolution()) {
                     // TODO(b/190154391): Do we need to propagate argument information to the first
                     //  virtual method above the inaccessible method in the class hierarchy?
-                    assert resolutionResult.isIllegalAccessErrorResult(subclass, appView.appInfo());
+                    assert resolutionResult.asFailedResolution().hasMethodsCausingError();
                     return;
                   }
 

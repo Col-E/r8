@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
+
+import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -10,12 +13,9 @@ import com.android.tools.r8.shaking.InstantiatedObject;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.OptionalBool;
-import java.util.ArrayList;
+import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
@@ -148,7 +148,9 @@ public abstract class MethodResolutionResult
       DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo);
 
   public abstract LookupTarget lookupVirtualDispatchTarget(
-      LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo);
+      LambdaDescriptor lambdaInstance,
+      AppInfoWithClassHierarchy appInfo,
+      Consumer<? super DexEncodedMethod> methodCausingFailureConsumer);
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
   public static class SingleResolutionResult extends MethodResolutionResult
@@ -431,46 +433,47 @@ public abstract class MethodResolutionResult
         boolean isIncomplete =
             pinnedPredicate.isPinned(resolvedHolder) && pinnedPredicate.isPinned(resolvedMethod);
         return LookupResult.createResult(
-            Collections.singletonMap(
-                resolvedMethod, DexClassAndMethod.create(resolvedHolder, resolvedMethod)),
+            DexClassAndMethodSet.create(getResolutionPair()),
+            Collections.emptyList(),
             Collections.emptyList(),
             isIncomplete
                 ? LookupResultCollectionState.Incomplete
                 : LookupResultCollectionState.Complete);
       }
       assert resolvedMethod.isNonPrivateVirtualMethod();
-      Map<DexEncodedMethod, DexClassAndMethod> methodTargets = new IdentityHashMap<>();
-      List<LookupLambdaTarget> lambdaTargets = new ArrayList<>();
+      LookupResultSuccess.Builder resultBuilder = LookupResultSuccess.builder();
       LookupCompletenessHelper incompleteness = new LookupCompletenessHelper(pinnedPredicate);
       instantiatedInfo.forEachInstantiatedSubType(
           initialResolutionHolder.type,
           subClass -> {
             incompleteness.checkClass(subClass);
             DexClassAndMethod dexClassAndMethod =
-                lookupVirtualDispatchTarget(subClass, appInfo, resolvedHolder.type);
+                lookupVirtualDispatchTarget(
+                    subClass, appInfo, resolvedHolder.type, resultBuilder::addMethodCausingFailure);
             if (dexClassAndMethod != null) {
               incompleteness.checkDexClassAndMethod(dexClassAndMethod);
               addVirtualDispatchTarget(
-                  dexClassAndMethod, resolvedHolder.isInterface(), methodTargets);
+                  dexClassAndMethod, resolvedHolder.isInterface(), resultBuilder);
             }
           },
           lambda -> {
             assert resolvedHolder.isInterface()
                 || resolvedHolder.type == appInfo.dexItemFactory().objectType;
-            LookupTarget target = lookupVirtualDispatchTarget(lambda, appInfo);
+            LookupTarget target =
+                lookupVirtualDispatchTarget(
+                    lambda, appInfo, resultBuilder::addMethodCausingFailure);
             if (target != null) {
               if (target.isLambdaTarget()) {
-                lambdaTargets.add(target.asLambdaTarget());
+                resultBuilder.addLambdaTarget(target.asLambdaTarget());
               } else {
                 addVirtualDispatchTarget(
-                    target.asMethodTarget(), resolvedHolder.isInterface(), methodTargets);
+                    target.asMethodTarget(), resolvedHolder.isInterface(), resultBuilder);
               }
             }
           });
-      return LookupResult.createResult(
-          methodTargets,
-          lambdaTargets,
-          incompleteness.computeCollectionState(resolvedMethod.getReference(), appInfo));
+      return resultBuilder
+          .setState(incompleteness.computeCollectionState(resolvedMethod.getReference(), appInfo))
+          .build();
     }
 
     @Override
@@ -532,7 +535,7 @@ public abstract class MethodResolutionResult
     private static void addVirtualDispatchTarget(
         DexClassAndMethod target,
         boolean holderIsInterface,
-        Map<DexEncodedMethod, DexClassAndMethod> result) {
+        LookupResultSuccess.Builder resultBuilder) {
       DexEncodedMethod targetMethod = target.getDefinition();
       assert !targetMethod.isPrivateMethod();
       if (holderIsInterface) {
@@ -559,17 +562,17 @@ public abstract class MethodResolutionResult
         //   }
         //
         if (targetMethod.isDefaultMethod()) {
-          result.putIfAbsent(targetMethod, target);
+          resultBuilder.addMethodTarget(target);
         }
         // Default methods are looked up when looking at a specific subtype that does not override
         // them. Otherwise, we would look up default methods that are actually never used.
         // However, we have to add bridge methods, otherwise we can remove a bridge that will be
         // used.
         if (!targetMethod.accessFlags.isAbstract() && targetMethod.accessFlags.isBridge()) {
-          result.putIfAbsent(targetMethod, target);
+          resultBuilder.addMethodTarget(target);
         }
       } else {
-        result.putIfAbsent(targetMethod, target);
+        resultBuilder.addMethodTarget(target);
       }
     }
 
@@ -583,18 +586,21 @@ public abstract class MethodResolutionResult
         InstantiatedObject instance, AppInfoWithClassHierarchy appInfo) {
       return instance.isClass()
           ? lookupVirtualDispatchTarget(instance.asClass(), appInfo)
-          : lookupVirtualDispatchTarget(instance.asLambda(), appInfo);
+          : lookupVirtualDispatchTarget(instance.asLambda(), appInfo, emptyConsumer());
     }
 
     @Override
     public DexClassAndMethod lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
-      return lookupVirtualDispatchTarget(dynamicInstance, appInfo, initialResolutionHolder.type);
+      return lookupVirtualDispatchTarget(
+          dynamicInstance, appInfo, initialResolutionHolder.type, emptyConsumer());
     }
 
     @Override
     public LookupTarget lookupVirtualDispatchTarget(
-        LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo) {
+        LambdaDescriptor lambdaInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       if (lambdaInstance.getMainMethod().match(resolvedMethod)) {
         DexMethod methodReference = lambdaInstance.implHandle.asMethod();
         DexClass holder = appInfo.definitionForHolder(methodReference);
@@ -605,11 +611,15 @@ public abstract class MethodResolutionResult
         }
         return new LookupLambdaTarget(lambdaInstance, method);
       }
-      return lookupMaximallySpecificDispatchTarget(lambdaInstance, appInfo);
+      return lookupMaximallySpecificDispatchTarget(
+          lambdaInstance, appInfo, methodCausingFailureConsumer);
     }
 
     private DexClassAndMethod lookupVirtualDispatchTarget(
-        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo, DexType resolutionHolder) {
+        DexClass dynamicInstance,
+        AppInfoWithClassHierarchy appInfo,
+        DexType resolutionHolder,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       assert appInfo.isSubtype(dynamicInstance.type, resolutionHolder)
           : dynamicInstance.type + " is not a subtype of " + resolutionHolder;
       // TODO(b/148591377): Enable this assertion.
@@ -618,7 +628,7 @@ public abstract class MethodResolutionResult
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
-        return DexClassAndMethod.create(resolvedHolder, resolvedMethod);
+        return getResolutionPair();
       }
       boolean allowPackageBlocked = resolvedMethod.accessFlags.isPackagePrivate();
       DexClass current = dynamicInstance;
@@ -645,17 +655,46 @@ public abstract class MethodResolutionResult
       if (!resolvedHolder.isInterface()) {
         return null;
       }
-      return lookupMaximallySpecificDispatchTarget(dynamicInstance, appInfo);
+      return lookupMaximallySpecificDispatchTarget(
+          dynamicInstance, appInfo, methodCausingFailureConsumer);
     }
 
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
-        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
-      return appInfo.lookupMaximallySpecificMethod(dynamicInstance, resolvedMethod.getReference());
+        DexClass dynamicInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      MethodResolutionResult maximallySpecificResolutionResult =
+          appInfo.resolveMaximallySpecificTarget(dynamicInstance, resolvedMethod.getReference());
+      if (maximallySpecificResolutionResult.isSingleResolution()) {
+        return maximallySpecificResolutionResult.getResolutionPair();
+      }
+      if (maximallySpecificResolutionResult.isFailedResolution()) {
+        maximallySpecificResolutionResult
+            .asFailedResolution()
+            .forEachFailureDependency(methodCausingFailureConsumer);
+        return null;
+      }
+      assert maximallySpecificResolutionResult.isArrayCloneMethodResult();
+      return null;
     }
 
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
-        LambdaDescriptor lambdaDescriptor, AppInfoWithClassHierarchy appInfo) {
-      return appInfo.lookupMaximallySpecificMethod(lambdaDescriptor, resolvedMethod.getReference());
+        LambdaDescriptor lambdaDescriptor,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      MethodResolutionResult maximallySpecificResolutionResult =
+          appInfo.resolveMaximallySpecificTarget(lambdaDescriptor, resolvedMethod.getReference());
+      if (maximallySpecificResolutionResult.isSingleResolution()) {
+        return maximallySpecificResolutionResult.getResolutionPair();
+      }
+      if (maximallySpecificResolutionResult.isFailedResolution()) {
+        maximallySpecificResolutionResult
+            .asFailedResolution()
+            .forEachFailureDependency(methodCausingFailureConsumer);
+        return null;
+      }
+      assert maximallySpecificResolutionResult.isArrayCloneMethodResult();
+      return null;
     }
 
     /**
@@ -773,7 +812,9 @@ public abstract class MethodResolutionResult
 
     @Override
     public DexClassAndMethod lookupVirtualDispatchTarget(
-        LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo) {
+        LambdaDescriptor lambdaInstance,
+        AppInfoWithClassHierarchy appInfo,
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       return null;
     }
   }
@@ -823,7 +864,8 @@ public abstract class MethodResolutionResult
       return this;
     }
 
-    public void forEachFailureDependency(Consumer<DexEncodedMethod> methodCausingFailureConsumer) {
+    public void forEachFailureDependency(
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       // Default failure has no dependencies.
     }
 
@@ -871,7 +913,8 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public void forEachFailureDependency(Consumer<DexEncodedMethod> methodCausingFailureConsumer) {
+    public void forEachFailureDependency(
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
       this.methodsCausingError.forEach(methodCausingFailureConsumer);
     }
 

@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static java.util.Collections.emptySet;
 
 import com.android.tools.r8.Diagnostic;
@@ -63,6 +64,7 @@ import com.android.tools.r8.graph.GenericSignatureEnqueuerAnalysis;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.LookupLambdaTarget;
+import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -378,7 +380,7 @@ public class Enqueuer {
   private final ProgramMethodSet pendingReflectiveUses = ProgramMethodSet.createLinked();
 
   /** Mapping of types to the resolved methods for that type along with the context. */
-  private final Map<DexProgramClass, Map<ResolutionSearchKey, Set<DexProgramClass>>>
+  private final Map<DexProgramClass, Map<ResolutionSearchKey, ProgramMethodSet>>
       reachableVirtualTargets = new IdentityHashMap<>();
 
   /** Collection of keep requirements for the program. */
@@ -2460,7 +2462,7 @@ public class Enqueuer {
     }
   }
 
-  private Map<ResolutionSearchKey, Set<DexProgramClass>> getReachableVirtualTargets(
+  private Map<ResolutionSearchKey, ProgramMethodSet> getReachableVirtualTargets(
       DexProgramClass clazz) {
     return reachableVirtualTargets.getOrDefault(clazz, Collections.emptyMap());
   }
@@ -2480,26 +2482,46 @@ public class Enqueuer {
                 assert false : "Should not be null";
                 return;
               }
-              contexts.forEach(
-                  context ->
-                      singleResolution
-                          .lookupVirtualDispatchTargets(
-                              context,
-                              appInfo,
-                              (type, subTypeConsumer, lambdaConsumer) -> {
-                                assert appInfo.isSubtype(currentClass.type, type);
-                                instantiation.apply(subTypeConsumer, lambdaConsumer);
-                              },
-                              definition ->
-                                  keepInfo.isPinned(definition.getReference(), appInfo, options))
-                          .forEach(
-                              target ->
-                                  markVirtualDispatchTargetAsLive(
-                                      target,
-                                      programMethod ->
-                                          graphReporter.reportReachableMethodAsLive(
-                                              singleResolution.getResolvedMethod().getReference(),
-                                              programMethod))));
+              Map<DexProgramClass, List<ProgramMethod>> contextsByClass = new IdentityHashMap<>();
+              for (ProgramMethod context : contexts) {
+                contextsByClass
+                    .computeIfAbsent(context.getHolder(), ignoreKey(ArrayList::new))
+                    .add(context);
+              }
+              contextsByClass.forEach(
+                  (contextHolder, contextsInHolder) -> {
+                    LookupResult lookupResult =
+                        singleResolution.lookupVirtualDispatchTargets(
+                            contextHolder,
+                            appInfo,
+                            (type, subTypeConsumer, lambdaConsumer) -> {
+                              assert appInfo.isSubtype(currentClass.type, type);
+                              instantiation.apply(subTypeConsumer, lambdaConsumer);
+                            },
+                            definition ->
+                                keepInfo.isPinned(definition.getReference(), appInfo, options));
+                    lookupResult.forEach(
+                        target ->
+                            markVirtualDispatchTargetAsLive(
+                                target,
+                                programMethod ->
+                                    graphReporter.reportReachableMethodAsLive(
+                                        singleResolution.getResolvedMethod().getReference(),
+                                        programMethod)));
+                    lookupResult.forEachFailureDependency(
+                        method -> {
+                          DexProgramClass clazz =
+                              getProgramClassOrNull(method.getHolderType(), contextHolder);
+                          if (clazz != null) {
+                            failedMethodResolutionTargets.add(method.getReference());
+                            for (ProgramMethod context : contextsInHolder) {
+                              markMethodAsTargeted(
+                                  new ProgramMethod(clazz, method),
+                                  KeepReason.invokedFrom(context));
+                            }
+                          }
+                        });
+                  });
             });
   }
 
@@ -2886,7 +2908,7 @@ public class Enqueuer {
   }
 
   private void markVirtualMethodAsReachable(
-      DexMethod method, boolean interfaceInvoke, ProgramDefinition context, KeepReason reason) {
+      DexMethod method, boolean interfaceInvoke, ProgramMethod context, KeepReason reason) {
     if (method.holder.isArrayType()) {
       // This is an array type, so the actual class will be generated at runtime. We treat this
       // like an invoke on a direct subtype of java.lang.Object that has no further subtypes.
@@ -2924,9 +2946,9 @@ public class Enqueuer {
     // If the method has already been marked, just report the new reason for the resolved target and
     // save the context to ensure correct lookup of virtual dispatch targets.
     ResolutionSearchKey resolutionSearchKey = new ResolutionSearchKey(method, interfaceInvoke);
-    Set<DexProgramClass> seenContexts = getReachableVirtualTargets(holder).get(resolutionSearchKey);
+    ProgramMethodSet seenContexts = getReachableVirtualTargets(holder).get(resolutionSearchKey);
     if (seenContexts != null) {
-      seenContexts.add(contextHolder);
+      seenContexts.add(context);
       graphReporter.registerMethod(resolution.getResolvedMethod(), reason);
       return;
     }
@@ -2948,8 +2970,8 @@ public class Enqueuer {
     // The method resolved and is accessible, so currently live overrides become live.
     reachableVirtualTargets
         .computeIfAbsent(holder, ignoreArgument(HashMap::new))
-        .computeIfAbsent(resolutionSearchKey, ignoreArgument(Sets::newIdentityHashSet))
-        .add(contextHolder);
+        .computeIfAbsent(resolutionSearchKey, ignoreArgument(ProgramMethodSet::create))
+        .add(context);
 
     resolution
         .lookupVirtualDispatchTargets(
@@ -4603,7 +4625,7 @@ public class Enqueuer {
             virtualMethod -> {
               keepInfo.joinMethod(
                   virtualMethod, joiner -> joiner.disallowOptimization().disallowShrinking());
-              markVirtualMethodAsReachable(virtualMethod.getReference(), true, clazz, reason);
+              markVirtualMethodAsReachable(virtualMethod.getReference(), true, method, reason);
             });
       }
     }

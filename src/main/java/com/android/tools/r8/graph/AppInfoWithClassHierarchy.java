@@ -794,15 +794,23 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return builder.resolve(clazz);
   }
 
-  // Non-private lookup (ie, not resolution) to find interface targets.
-  DexClassAndMethod lookupMaximallySpecificTarget(DexClass clazz, DexMethod method) {
-    MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
-    resolveMethodStep3Helper(method.getProto(), method.getName(), clazz, builder);
-    return builder.lookup();
+  MethodResolutionResult resolveMaximallySpecificTarget(DexClass clazz, DexMethod method) {
+    return resolveMaximallySpecificTargetHelper(clazz, method).resolve(clazz);
   }
 
-  // Non-private lookup (ie, not resolution) to find interface targets.
-  DexClassAndMethod lookupMaximallySpecificTarget(LambdaDescriptor lambda, DexMethod method) {
+  private MaximallySpecificMethodsBuilder resolveMaximallySpecificTargetHelper(
+      DexClass clazz, DexMethod method) {
+    MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
+    resolveMethodStep3Helper(method.getProto(), method.getName(), clazz, builder);
+    return builder;
+  }
+
+  MethodResolutionResult resolveMaximallySpecificTarget(LambdaDescriptor lambda, DexMethod method) {
+    return resolveMaximallySpecificTargetHelper(lambda, method).internalResolve(null);
+  }
+
+  private MaximallySpecificMethodsBuilder resolveMaximallySpecificTargetHelper(
+      LambdaDescriptor lambda, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
     resolveMethodStep3Helper(
         method.getProto(),
@@ -810,7 +818,17 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         dexItemFactory().objectType,
         lambda.interfaces,
         builder);
-    return builder.lookup();
+    return builder;
+  }
+
+  // Non-private lookup (ie, not resolution) to find interface targets.
+  DexClassAndMethod lookupMaximallySpecificTarget(DexClass clazz, DexMethod method) {
+    return resolveMaximallySpecificTargetHelper(clazz, method).lookup();
+  }
+
+  // Non-private lookup (ie, not resolution) to find interface targets.
+  DexClassAndMethod lookupMaximallySpecificTarget(LambdaDescriptor lambda, DexMethod method) {
+    return resolveMaximallySpecificTargetHelper(lambda, method).lookup();
   }
 
   /** Helper method that builds the set of maximally specific methods. */
@@ -1059,10 +1077,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
 
     DexClassAndMethod lookup() {
-      SingleResolutionResult result = internalResolve(null).asSingleResolution();
-      return result != null
-          ? DexClassAndMethod.create(result.getResolvedHolder(), result.getResolvedMethod())
-          : null;
+      return internalResolve(null).getResolutionPair();
     }
 
     MethodResolutionResult resolve(DexClass initialResolutionHolder) {

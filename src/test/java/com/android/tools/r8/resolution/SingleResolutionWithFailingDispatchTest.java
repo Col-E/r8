@@ -33,7 +33,7 @@ public class SingleResolutionWithFailingDispatchTest extends TestBase {
         .addProgramClasses(Main.class, I.class, J.class)
         .addProgramClassFileData(getProgramClassFileData())
         .run(parameters.getRuntime(), Main.class)
-        .apply(runResult -> inspectRunResult(runResult, false));
+        .apply(this::inspectRunResult);
   }
 
   @Test
@@ -45,12 +45,11 @@ public class SingleResolutionWithFailingDispatchTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .apply(runResult -> inspectRunResult(runResult, true));
+        .apply(this::inspectRunResult);
   }
 
-  private void inspectRunResult(TestRunResult<?> runResult, boolean isR8) {
-    if (parameters.isCfRuntime(CfVm.JDK11)
-        || (isR8 && parameters.canUseDefaultAndStaticInterfaceMethods())) {
+  private void inspectRunResult(TestRunResult<?> runResult) {
+    if (parameters.isCfRuntime(CfVm.JDK11)) {
       runResult.assertFailureWithErrorThatThrows(AbstractMethodError.class);
     } else {
       runResult.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);

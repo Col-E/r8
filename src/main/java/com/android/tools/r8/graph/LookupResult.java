@@ -5,9 +5,10 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
+import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public abstract class LookupResult {
@@ -28,18 +29,23 @@ public abstract class LookupResult {
     return null;
   }
 
-  public final void forEach(Consumer<LookupTarget> onTarget) {
-    forEach(onTarget::accept, onTarget::accept);
+  public final void forEach(Consumer<? super LookupTarget> onTarget) {
+    forEach(onTarget, onTarget);
   }
 
   public abstract void forEach(
-      Consumer<DexClassAndMethod> onMethodTarget, Consumer<LookupLambdaTarget> onLambdaTarget);
+      Consumer<? super DexClassAndMethod> onMethodTarget,
+      Consumer<? super LookupLambdaTarget> onLambdaTarget);
+
+  public abstract void forEachFailureDependency(
+      Consumer<? super DexEncodedMethod> methodCausingFailureConsumer);
 
   public static LookupResultSuccess createResult(
-      Map<DexEncodedMethod, DexClassAndMethod> methodTargets,
+      DexClassAndMethodSet methodTargets,
       List<LookupLambdaTarget> lambdaTargets,
+      List<DexEncodedMethod> methodsCausingFailure,
       LookupResultCollectionState state) {
-    return new LookupResultSuccess(methodTargets, lambdaTargets, state);
+    return new LookupResultSuccess(methodTargets, lambdaTargets, methodsCausingFailure, state);
   }
 
   public static LookupResultFailure createFailedResult() {
@@ -54,21 +60,29 @@ public abstract class LookupResult {
 
     private static final LookupResultSuccess EMPTY_INSTANCE =
         new LookupResultSuccess(
-            Collections.emptyMap(),
+            DexClassAndMethodSet.empty(),
+            Collections.emptyList(),
             Collections.emptyList(),
             LookupResultCollectionState.Incomplete);
 
-    private final Map<DexEncodedMethod, DexClassAndMethod> methodTargets;
+    private final DexClassAndMethodSet methodTargets;
     private final List<LookupLambdaTarget> lambdaTargets;
+    private final List<DexEncodedMethod> methodsCausingFailure;
     private LookupResultCollectionState state;
 
     private LookupResultSuccess(
-        Map<DexEncodedMethod, DexClassAndMethod> methodTargets,
+        DexClassAndMethodSet methodTargets,
         List<LookupLambdaTarget> lambdaTargets,
+        List<DexEncodedMethod> methodsCausingFailure,
         LookupResultCollectionState state) {
       this.methodTargets = methodTargets;
       this.lambdaTargets = lambdaTargets;
+      this.methodsCausingFailure = methodsCausingFailure;
       this.state = state;
+    }
+
+    public static Builder builder() {
+      return new Builder();
     }
 
     public boolean isEmpty() {
@@ -85,14 +99,21 @@ public abstract class LookupResult {
 
     @Override
     public void forEach(
-        Consumer<DexClassAndMethod> onMethodTarget, Consumer<LookupLambdaTarget> onLambdaTarget) {
-      methodTargets.forEach((ignore, method) -> onMethodTarget.accept(method));
+        Consumer<? super DexClassAndMethod> onMethodTarget,
+        Consumer<? super LookupLambdaTarget> onLambdaTarget) {
+      methodTargets.forEach(onMethodTarget);
       lambdaTargets.forEach(onLambdaTarget);
+    }
+
+    @Override
+    public void forEachFailureDependency(
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      methodsCausingFailure.forEach(methodCausingFailureConsumer);
     }
 
     public boolean contains(DexEncodedMethod method) {
       // Containment of a method in the lookup results only pertains to the method targets.
-      return methodTargets.containsKey(method);
+      return methodTargets.contains(method);
     }
 
     @Override
@@ -124,7 +145,7 @@ public abstract class LookupResult {
       }
       // TODO(b/150932978): Check lambda targets implementation methods.
       if (methodTargets.size() == 1) {
-        return methodTargets.values().iterator().next();
+        return methodTargets.iterator().next();
       } else if (lambdaTargets.size() == 1) {
         return lambdaTargets.get(0);
       }
@@ -134,6 +155,38 @@ public abstract class LookupResult {
     public enum LookupResultCollectionState {
       Complete,
       Incomplete,
+    }
+
+    public static class Builder {
+
+      private final DexClassAndMethodSet methodTargets = DexClassAndMethodSet.create();
+      private final List<LookupLambdaTarget> lambdaTargets = new ArrayList<>();
+      private final List<DexEncodedMethod> methodsCausingFailure = new ArrayList<>();
+      private LookupResultCollectionState state;
+
+      public Builder addMethodTarget(DexClassAndMethod methodTarget) {
+        methodTargets.add(methodTarget);
+        return this;
+      }
+
+      public Builder addLambdaTarget(LookupLambdaTarget lambdaTarget) {
+        lambdaTargets.add(lambdaTarget);
+        return this;
+      }
+
+      public Builder addMethodCausingFailure(DexEncodedMethod methodCausingFailure) {
+        methodsCausingFailure.add(methodCausingFailure);
+        return this;
+      }
+
+      public Builder setState(LookupResultCollectionState state) {
+        this.state = state;
+        return this;
+      }
+
+      public LookupResultSuccess build() {
+        return new LookupResultSuccess(methodTargets, lambdaTargets, methodsCausingFailure, state);
+      }
     }
   }
 
@@ -157,8 +210,15 @@ public abstract class LookupResult {
 
     @Override
     public void forEach(
-        Consumer<DexClassAndMethod> onMethodTarget, Consumer<LookupLambdaTarget> onLambdaTarget) {
+        Consumer<? super DexClassAndMethod> onMethodTarget,
+        Consumer<? super LookupLambdaTarget> onLambdaTarget) {
       // Nothing to iterate for a failed lookup.
+    }
+
+    @Override
+    public void forEachFailureDependency(
+        Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
+      // TODO: record and emit failure dependencies.
     }
   }
 }
