@@ -102,6 +102,24 @@ public class ArgumentPropagatorCodeScanner {
     return virtualRootMethods.get(method.getReference());
   }
 
+  boolean isMethodParameterAlreadyUnknown(MethodParameter methodParameter, ProgramMethod method) {
+    MethodState methodState =
+        methodStates.get(
+            method.getDefinition().belongsToDirectPool() || isMonomorphicVirtualMethod(method)
+                ? method.getReference()
+                : getVirtualRootMethod(method));
+    if (methodState.isPolymorphic()) {
+      methodState = methodState.asPolymorphic().getMethodStateForBounds(DynamicType.unknown());
+    }
+    if (methodState.isMonomorphic()) {
+      ParameterState parameterState =
+          methodState.asMonomorphic().getParameterState(methodParameter.getIndex());
+      return parameterState.isUnknown();
+    }
+    assert methodState.isBottom() || methodState.isUnknown();
+    return methodState.isUnknown();
+  }
+
   boolean isMonomorphicVirtualMethod(ProgramMethod method) {
     boolean isMonomorphicVirtualMethod = monomorphicVirtualMethods.contains(method.getReference());
     assert method.getDefinition().belongsToVirtualPool() || !isMonomorphicVirtualMethod;
@@ -425,6 +443,9 @@ public class ArgumentPropagatorCodeScanner {
       MethodParameter forwardedParameter =
           methodParameterFactory.create(
               context, argumentRoot.getDefinition().asArgument().getIndex());
+      if (isMethodParameterAlreadyUnknown(forwardedParameter, context)) {
+        return ParameterState.unknown();
+      }
       if (parameterTypeElement.isClassType()) {
         return new ConcreteClassTypeParameterState(forwardedParameter);
       } else if (parameterTypeElement.isArrayType()) {
