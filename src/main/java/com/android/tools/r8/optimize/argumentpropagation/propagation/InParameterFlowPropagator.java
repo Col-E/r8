@@ -28,6 +28,7 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -73,9 +74,6 @@ public class InParameterFlowPropagator {
     //  p3, and then p1, then the processing of p1 could cause p2 to change, which means that we
     //  need to reprocess p2 and then p3. If we always process leaves in the graph first, we would
     //  process p1, then p2, then p3, and then be done.
-    // TODO(b/190154391): Prune the graph on-the-fly. If the argument information for a parameter
-    //  becomes unknown, we could consider clearing its predecessors since none of the predecessors
-    //  could contribute any information even if they change.
     while (!worklist.isEmpty()) {
       ParameterNode parameterNode = worklist.removeLast();
       parameterNode.unsetPending();
@@ -98,9 +96,19 @@ public class InParameterFlowPropagator {
     if (parameterState.isBottom()) {
       return;
     }
+    List<ParameterNode> newlyUnknownParameterNodes = new ArrayList<>();
     for (ParameterNode successorNode : parameterNode.getSuccessors()) {
-      successorNode.addState(
-          appView, parameterState.asNonEmpty(), () -> affectedNodeConsumer.accept(successorNode));
+      ParameterState newParameterState =
+          successorNode.addState(
+              appView,
+              parameterState.asNonEmpty(),
+              () -> affectedNodeConsumer.accept(successorNode));
+      if (newParameterState.isUnknown()) {
+        newlyUnknownParameterNodes.add(successorNode);
+      }
+    }
+    for (ParameterNode newlyUnknownParameterNode : newlyUnknownParameterNodes) {
+      newlyUnknownParameterNode.clearPredecessors();
     }
   }
 
@@ -307,7 +315,7 @@ public class InParameterFlowPropagator {
       return pending;
     }
 
-    void addState(
+    ParameterState addState(
         AppView<AppInfoWithLiveness> appView,
         NonEmptyParameterState parameterStateToAdd,
         Action onChangedAction) {
@@ -319,6 +327,7 @@ public class InParameterFlowPropagator {
         setState(newParameterState);
         onChangedAction.execute();
       }
+      return newParameterState;
     }
 
     void setPending() {
