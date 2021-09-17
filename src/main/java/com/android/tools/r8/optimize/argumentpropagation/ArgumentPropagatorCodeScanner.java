@@ -121,9 +121,13 @@ public class ArgumentPropagatorCodeScanner {
   }
 
   boolean isMonomorphicVirtualMethod(ProgramMethod method) {
-    boolean isMonomorphicVirtualMethod = monomorphicVirtualMethods.contains(method.getReference());
+    boolean isMonomorphicVirtualMethod = isMonomorphicVirtualMethod(method.getReference());
     assert method.getDefinition().belongsToVirtualPool() || !isMonomorphicVirtualMethod;
     return isMonomorphicVirtualMethod;
+  }
+
+  boolean isMonomorphicVirtualMethod(DexMethod method) {
+    return monomorphicVirtualMethods.contains(method);
   }
 
   void scan(ProgramMethod method, IRCode code, Timing timing) {
@@ -218,14 +222,11 @@ public class ArgumentPropagatorCodeScanner {
     // possible dispatch targets and propagate the information to these methods (this is expensive).
     // Instead we record the information in one place and then later propagate the information to
     // all dispatch targets.
-    DexMethod representativeMethodReference =
-        getRepresentativeForPolymorphicInvokeOrElse(
-            invoke, resolvedMethod, resolvedMethod.getReference());
     ProgramMethod finalResolvedMethod = resolvedMethod;
     timing.begin("Add method state");
     methodStates.addTemporaryMethodState(
         appView,
-        representativeMethodReference,
+        getRepresentative(invoke, resolvedMethod),
         existingMethodState ->
             computeMethodState(invoke, finalResolvedMethod, context, existingMethodState, timing),
         timing);
@@ -245,10 +246,8 @@ public class ArgumentPropagatorCodeScanner {
     // compute a polymorphic method state, which includes information about the receiver's dynamic
     // type bounds.
     timing.begin("Compute method state for invoke");
-    boolean isPolymorphicInvoke =
-        getRepresentativeForPolymorphicInvokeOrElse(invoke, resolvedMethod, null) != null;
     MethodState result;
-    if (isPolymorphicInvoke) {
+    if (shouldUsePolymorphicMethodState(invoke, resolvedMethod)) {
       assert existingMethodState.isBottom() || existingMethodState.isPolymorphic();
       result =
           computePolymorphicMethodState(
@@ -485,10 +484,9 @@ public class ArgumentPropagatorCodeScanner {
         : new ConcretePrimitiveTypeParameterState(abstractValue);
   }
 
-  private DexMethod getRepresentativeForPolymorphicInvokeOrElse(
-      InvokeMethod invoke, ProgramMethod resolvedMethod, DexMethod defaultValue) {
+  private DexMethod getRepresentative(InvokeMethod invoke, ProgramMethod resolvedMethod) {
     if (resolvedMethod.getDefinition().belongsToDirectPool()) {
-      return defaultValue;
+      return resolvedMethod.getReference();
     }
 
     if (invoke.isInvokeInterface()) {
@@ -499,12 +497,20 @@ public class ArgumentPropagatorCodeScanner {
     assert invoke.isInvokeSuper() || invoke.isInvokeVirtual();
 
     if (isMonomorphicVirtualMethod(resolvedMethod)) {
-      return defaultValue;
+      return resolvedMethod.getReference();
     }
 
     DexMethod rootMethod = getVirtualRootMethod(resolvedMethod);
     assert rootMethod != null;
+    assert !isMonomorphicVirtualMethod(resolvedMethod)
+        || rootMethod == resolvedMethod.getReference();
     return rootMethod;
+  }
+
+  private boolean shouldUsePolymorphicMethodState(
+      InvokeMethod invoke, ProgramMethod resolvedMethod) {
+    return !resolvedMethod.getDefinition().belongsToDirectPool()
+        && !isMonomorphicVirtualMethod(getRepresentative(invoke, resolvedMethod));
   }
 
   private void scan(InvokeCustom invoke, ProgramMethod context) {

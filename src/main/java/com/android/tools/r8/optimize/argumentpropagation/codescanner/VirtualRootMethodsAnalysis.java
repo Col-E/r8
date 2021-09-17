@@ -45,6 +45,22 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
       return root;
     }
 
+    ProgramMethod getSingleNonAbstractMethod() {
+      ProgramMethod singleNonAbstractMethod = root.getAccessFlags().isAbstract() ? null : root;
+      for (ProgramMethod override : overrides) {
+        if (!override.getAccessFlags().isAbstract()) {
+          if (singleNonAbstractMethod != null) {
+            // Not a single non-abstract method.
+            return null;
+          }
+          singleNonAbstractMethod = override;
+        }
+      }
+      assert singleNonAbstractMethod == null
+          || !singleNonAbstractMethod.getAccessFlags().isAbstract();
+      return singleNonAbstractMethod;
+    }
+
     void forEach(Consumer<ProgramMethod> consumer) {
       consumer.accept(root);
       overrides.forEach(consumer);
@@ -125,9 +141,20 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
           if (isMonomorphicVirtualMethod) {
             monomorphicVirtualMethods.add(rootCandidate.getReference());
           } else {
-            virtualRootMethod.forEach(
-                method ->
-                    virtualRootMethods.put(method.getReference(), rootCandidate.getReference()));
+            ProgramMethod singleNonAbstractMethod = virtualRootMethod.getSingleNonAbstractMethod();
+            if (singleNonAbstractMethod != null) {
+              virtualRootMethod.forEach(
+                  method ->
+                      virtualRootMethods.put(
+                          method.getReference(), singleNonAbstractMethod.getReference()));
+              if (!singleNonAbstractMethod.getHolder().isInterface()) {
+                monomorphicVirtualMethods.add(singleNonAbstractMethod.getReference());
+              }
+            } else {
+              virtualRootMethod.forEach(
+                  method ->
+                      virtualRootMethods.put(method.getReference(), rootCandidate.getReference()));
+            }
           }
         });
   }
