@@ -35,6 +35,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePol
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteReceiverParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameterFactory;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
@@ -62,6 +63,8 @@ public class ArgumentPropagatorCodeScanner {
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
+
+  private final MethodParameterFactory methodParameterFactory = new MethodParameterFactory();
 
   private final Set<DexMethod> monomorphicVirtualMethods = Sets.newIdentityHashSet();
 
@@ -420,8 +423,8 @@ public class ArgumentPropagatorCodeScanner {
     // potentially called from this invoke instruction.
     if (argumentRoot.isArgument()) {
       MethodParameter forwardedParameter =
-          new MethodParameter(
-              context.getReference(), argumentRoot.getDefinition().asArgument().getIndex());
+          methodParameterFactory.create(
+              context, argumentRoot.getDefinition().asArgument().getIndex());
       if (parameterTypeElement.isClassType()) {
         return new ConcreteClassTypeParameterState(forwardedParameter);
       } else if (parameterTypeElement.isArrayType()) {
