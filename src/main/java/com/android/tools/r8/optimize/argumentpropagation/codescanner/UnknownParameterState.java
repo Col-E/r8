@@ -40,6 +40,7 @@ public class UnknownParameterState extends NonEmptyParameterState {
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction) {
     return this;
   }

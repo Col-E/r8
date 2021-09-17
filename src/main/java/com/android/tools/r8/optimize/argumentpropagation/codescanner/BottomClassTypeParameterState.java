@@ -27,6 +27,7 @@ public class BottomClassTypeParameterState extends BottomParameterState {
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction) {
     if (parameterState.isBottom()) {
       return this;
@@ -42,6 +43,9 @@ public class BottomClassTypeParameterState extends BottomParameterState {
     DynamicType dynamicType = concreteParameterState.getDynamicType();
     DynamicType widenedDynamicType =
         WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, parameterType);
+    if (concreteParameterState.isClassParameter() && !widenedDynamicType.isUnknown()) {
+      return cloner.mutableCopy(concreteParameterState);
+    }
     return abstractValue.isUnknown() && widenedDynamicType.isUnknown()
         ? unknown()
         : new ConcreteClassTypeParameterState(

@@ -44,10 +44,12 @@ public interface MethodState {
   MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      MethodState methodState);
+      MethodState methodState,
+      StateCloner cloner);
 
   MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      Function<MethodState, MethodState> methodStateSupplier);
+      Function<MethodState, MethodState> methodStateSupplier,
+      StateCloner cloner);
 }

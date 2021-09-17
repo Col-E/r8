@@ -45,7 +45,8 @@ abstract class MethodStateCollection<K> {
               newMethodState = methodState.mutableCopy();
             } else {
               newMethodState =
-                  existingMethodState.mutableJoin(appView, getSignature(method), methodState);
+                  existingMethodState.mutableJoin(
+                      appView, getSignature(method), methodState, StateCloner.getCloner());
             }
             assert !newMethodState.isBottom();
             return newMethodState;
@@ -73,7 +74,8 @@ abstract class MethodStateCollection<K> {
           assert !existingMethodState.isBottom();
           timing.begin("Join temporary method state");
           MethodState joinResult =
-              existingMethodState.mutableJoin(appView, getSignature(method), methodStateSupplier);
+              existingMethodState.mutableJoin(
+                  appView, getSignature(method), methodStateSupplier, StateCloner.getIdentity());
           assert !joinResult.isBottom();
           timing.end();
           return joinResult;

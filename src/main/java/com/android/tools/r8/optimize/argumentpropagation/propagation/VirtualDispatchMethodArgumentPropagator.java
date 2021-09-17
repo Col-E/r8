@@ -23,6 +23,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePol
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionBySignature;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.StateCloner;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
@@ -150,7 +151,9 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
       if (!activeUntilLowerBound.isEmpty()) {
         DexMethodSignature methodSignature = method.getMethodSignature();
         for (MethodStateCollectionBySignature methodStates : activeUntilLowerBound.values()) {
-          methodState = methodState.mutableJoin(appView, methodSignature, methodStates.get(method));
+          methodState =
+              methodState.mutableJoin(
+                  appView, methodSignature, methodStates.get(method), StateCloner.getCloner());
         }
       }
       return methodState;

@@ -25,6 +25,7 @@ public class BottomArrayTypeParameterState extends BottomParameterState {
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction) {
     if (parameterState.isBottom()) {
       return this;
@@ -36,6 +37,9 @@ public class BottomArrayTypeParameterState extends BottomParameterState {
     assert parameterState.asConcrete().isReferenceParameter();
     ConcreteReferenceTypeParameterState concreteParameterState =
         parameterState.asConcrete().asReferenceParameter();
+    if (concreteParameterState.isArrayParameter()) {
+      return cloner.mutableCopy(concreteParameterState);
+    }
     Nullability nullability = concreteParameterState.getNullability();
     if (nullability.isMaybeNull()) {
       return unknown();

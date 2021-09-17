@@ -46,7 +46,8 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
   public ConcreteMonomorphicMethodStateOrUnknown mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      ConcreteMonomorphicMethodState methodState) {
+      ConcreteMonomorphicMethodState methodState,
+      StateCloner cloner) {
     if (size() != methodState.size()) {
       assert false;
       return unknown();
@@ -59,7 +60,7 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
       ParameterState otherParameterState = methodState.parameterStates.get(0);
       DexType parameterType = null;
       parameterStates.set(
-          0, parameterState.mutableJoin(appView, otherParameterState, parameterType));
+          0, parameterState.mutableJoin(appView, otherParameterState, parameterType, cloner));
       argumentIndex++;
     }
 
@@ -68,7 +69,8 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
       ParameterState otherParameterState = methodState.parameterStates.get(argumentIndex);
       DexType parameterType = methodSignature.getParameter(parameterIndex);
       parameterStates.set(
-          argumentIndex, parameterState.mutableJoin(appView, otherParameterState, parameterType));
+          argumentIndex,
+          parameterState.mutableJoin(appView, otherParameterState, parameterType, cloner));
       assert !parameterStates.get(argumentIndex).isConcrete()
           || !parameterStates.get(argumentIndex).asConcrete().isReceiverParameter();
     }

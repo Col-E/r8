@@ -57,13 +57,17 @@ public abstract class ParameterState {
   public abstract ParameterState mutableCopy();
 
   public final ParameterState mutableJoin(
-      AppView<AppInfoWithLiveness> appView, ParameterState parameterState, DexType parameterType) {
-    return mutableJoin(appView, parameterState, parameterType, Action.empty());
+      AppView<AppInfoWithLiveness> appView,
+      ParameterState parameterState,
+      DexType parameterType,
+      StateCloner cloner) {
+    return mutableJoin(appView, parameterState, parameterType, cloner, Action.empty());
   }
 
   public abstract ParameterState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction);
 }

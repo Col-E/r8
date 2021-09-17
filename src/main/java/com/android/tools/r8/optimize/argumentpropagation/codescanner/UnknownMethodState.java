@@ -35,7 +35,8 @@ public class UnknownMethodState extends MethodStateBase
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      MethodState methodState) {
+      MethodState methodState,
+      StateCloner cloner) {
     return this;
   }
 
@@ -43,7 +44,8 @@ public class UnknownMethodState extends MethodStateBase
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      Function<MethodState, MethodState> methodStateSupplier) {
+      Function<MethodState, MethodState> methodStateSupplier,
+      StateCloner cloner) {
     return this;
   }
 }

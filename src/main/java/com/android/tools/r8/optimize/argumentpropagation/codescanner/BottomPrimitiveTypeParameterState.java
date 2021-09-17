@@ -25,6 +25,7 @@ public class BottomPrimitiveTypeParameterState extends BottomParameterState {
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction) {
     if (parameterState.isBottom()) {
       assert parameterState == bottomPrimitiveTypeParameter();
@@ -35,6 +36,6 @@ public class BottomPrimitiveTypeParameterState extends BottomParameterState {
     }
     assert parameterState.isConcrete();
     assert parameterState.asConcrete().isPrimitiveParameter();
-    return parameterState.mutableCopy();
+    return cloner.mutableCopy(parameterState);
   }
 }

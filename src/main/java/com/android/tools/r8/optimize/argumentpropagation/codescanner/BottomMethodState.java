@@ -44,7 +44,8 @@ public class BottomMethodState extends MethodStateBase
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      MethodState methodState) {
+      MethodState methodState,
+      StateCloner cloner) {
     return methodState.mutableCopy();
   }
 
@@ -52,7 +53,8 @@ public class BottomMethodState extends MethodStateBase
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      Function<MethodState, MethodState> methodStateSupplier) {
-    return mutableJoin(appView, methodSignature, methodStateSupplier.apply(this));
+      Function<MethodState, MethodState> methodStateSupplier,
+      StateCloner cloner) {
+    return mutableJoin(appView, methodSignature, methodStateSupplier.apply(this), cloner);
   }
 }

@@ -20,6 +20,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.NonEmptyParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.StateCloner;
 import com.android.tools.r8.optimize.argumentpropagation.utils.BidirectedGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
@@ -322,7 +323,11 @@ public class InParameterFlowPropagator {
       ParameterState oldParameterState = getState();
       ParameterState newParameterState =
           oldParameterState.mutableJoin(
-              appView, parameterStateToAdd, parameterType, onChangedAction);
+              appView,
+              parameterStateToAdd,
+              parameterType,
+              StateCloner.getCloner(),
+              onChangedAction);
       if (newParameterState != oldParameterState) {
         setState(newParameterState);
         onChangedAction.execute();

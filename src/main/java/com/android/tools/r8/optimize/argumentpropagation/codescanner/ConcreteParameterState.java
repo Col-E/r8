@@ -107,6 +107,7 @@ public abstract class ConcreteParameterState extends NonEmptyParameterState {
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction) {
     if (parameterState.isBottom()) {
       return this;

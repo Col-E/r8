@@ -45,7 +45,8 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
       DynamicType bounds,
-      ConcreteMonomorphicMethodStateOrUnknown methodState) {
+      ConcreteMonomorphicMethodStateOrUnknown methodState,
+      StateCloner cloner) {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
     if (methodState.isUnknown()) {
@@ -58,7 +59,8 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     } else {
       assert methodState.isMonomorphic();
       ConcreteMonomorphicMethodStateOrUnknown newMethodStateForBounds =
-          joinInner(appView, methodSignature, receiverBoundsToState.get(bounds), methodState);
+          joinInner(
+              appView, methodSignature, receiverBoundsToState.get(bounds), methodState, cloner);
       if (bounds.isUnknown() && newMethodStateForBounds.isUnknown()) {
         return unknown();
       } else {
@@ -68,19 +70,23 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static ConcreteMonomorphicMethodStateOrUnknown joinInner(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
       ConcreteMonomorphicMethodStateOrUnknown methodState,
-      ConcreteMonomorphicMethodStateOrUnknown other) {
+      ConcreteMonomorphicMethodStateOrUnknown other,
+      StateCloner cloner) {
     if (methodState == null) {
-      return other.mutableCopy();
+      return (ConcreteMonomorphicMethodStateOrUnknown) cloner.mutableCopy(other);
     }
     if (methodState.isUnknown() || other.isUnknown()) {
       return unknown();
     }
     assert methodState.isMonomorphic();
-    return methodState.asMonomorphic().mutableJoin(appView, methodSignature, other.asMonomorphic());
+    return methodState
+        .asMonomorphic()
+        .mutableJoin(appView, methodSignature, other.asMonomorphic(), cloner);
   }
 
   public void forEach(
@@ -118,7 +124,8 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   public MethodState mutableCopyWithRewrittenBounds(
       AppView<AppInfoWithLiveness> appView,
       Function<DynamicType, DynamicType> boundsRewriter,
-      DexMethodSignature methodSignature) {
+      DexMethodSignature methodSignature,
+      StateCloner cloner) {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
     Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> rewrittenReceiverBoundsToState =
@@ -132,7 +139,8 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
       ConcreteMonomorphicMethodStateOrUnknown existingMethodStateForBounds =
           rewrittenReceiverBoundsToState.get(rewrittenBounds);
       ConcreteMonomorphicMethodStateOrUnknown newMethodStateForBounds =
-          joinInner(appView, methodSignature, existingMethodStateForBounds, entry.getValue());
+          joinInner(
+              appView, methodSignature, existingMethodStateForBounds, entry.getValue(), cloner);
       if (rewrittenBounds.isUnknown() && newMethodStateForBounds.isUnknown()) {
         return unknown();
       }
@@ -146,7 +154,8 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   public MethodState mutableJoin(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      ConcretePolymorphicMethodState methodState) {
+      ConcretePolymorphicMethodState methodState,
+      StateCloner cloner) {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
     assert !methodState.isEffectivelyBottom();
@@ -154,7 +163,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     for (Entry<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> entry :
         methodState.receiverBoundsToState.entrySet()) {
       ConcretePolymorphicMethodStateOrUnknown result =
-          add(appView, methodSignature, entry.getKey(), entry.getValue());
+          add(appView, methodSignature, entry.getKey(), entry.getValue(), cloner);
       if (result.isUnknown()) {
         return result;
       }

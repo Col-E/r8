@@ -25,6 +25,7 @@ public class BottomReceiverParameterState extends BottomParameterState {
       AppView<AppInfoWithLiveness> appView,
       ParameterState parameterState,
       DexType parameterType,
+      StateCloner cloner,
       Action onChangedAction) {
     if (parameterState.isBottom()) {
       return this;
@@ -36,6 +37,9 @@ public class BottomReceiverParameterState extends BottomParameterState {
     assert parameterState.asConcrete().isReferenceParameter();
     ConcreteReferenceTypeParameterState concreteParameterState =
         parameterState.asConcrete().asReferenceParameter();
+    if (concreteParameterState.isReceiverParameter()) {
+      return cloner.mutableCopy(concreteParameterState);
+    }
     DynamicType dynamicType = concreteParameterState.getDynamicType();
     if (dynamicType.isUnknown()) {
       return unknown();
