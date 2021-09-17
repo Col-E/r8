@@ -8,8 +8,8 @@ import com.android.tools.r8.Keep;
 import java.util.List;
 
 @Keep
-public interface RetraceStackTraceProxy<T, ST extends StackTraceElementProxy<T, ST>>
-    extends Comparable<RetraceStackTraceProxy<T, ST>> {
+public interface RetraceStackTraceElementProxy<T, ST extends StackTraceElementProxy<T, ST>>
+    extends Comparable<RetraceStackTraceElementProxy<T, ST>> {
 
   boolean isAmbiguous();
 
@@ -44,4 +44,6 @@ public interface RetraceStackTraceProxy<T, ST extends StackTraceElementProxy<T, 
   String getSourceFile();
 
   int getLineNumber();
+
+  RetraceStackTraceContext getContext();
 }

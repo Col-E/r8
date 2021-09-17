@@ -76,8 +76,40 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    */
   public List<String> retrace(List<String> stackTrace) {
     List<String> retracedStrings = new ArrayList<>();
-    retraceStackTrace(stackTrace, result -> joinAmbiguousLines(result, retracedStrings::add));
+    List<List<String>> retracedStackTraces =
+        removeDuplicateStackTraces(retraceStackTrace(stackTrace));
+    if (retracedStackTraces.size() > 1) {
+      retracedStrings.add(
+          "There are "
+              + retracedStackTraces.size()
+              + " ambiguous stack traces."
+              + (isVerbose ? "" : " Use --verbose to have all listed."));
+    }
+    for (int i = 0; i < retracedStackTraces.size(); i++) {
+      if (i > 0) {
+        retracedStrings.add("< OR >");
+      }
+      retracedStrings.addAll(retracedStackTraces.get(i));
+      if (!isVerbose) {
+        break;
+      }
+    }
     return retracedStrings;
+  }
+
+  private List<List<String>> removeDuplicateStackTraces(List<List<String>> stackTraces) {
+    if (stackTraces.size() == 1) {
+      return stackTraces;
+    }
+    Set<List<String>> seenStackTraces = new HashSet<>();
+    List<List<String>> nonDuplicateStackTraces = new ArrayList<>();
+    stackTraces.forEach(
+        stackTrace -> {
+          if (seenStackTraces.add(stackTrace)) {
+            nonDuplicateStackTraces.add(stackTrace);
+          }
+        });
+    return nonDuplicateStackTraces;
   }
 
   /**

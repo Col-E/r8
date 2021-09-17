@@ -22,11 +22,14 @@ public interface RetraceClassResult extends RetraceResult<RetraceClassElement> {
   RetraceMethodResult lookupMethod(
       String methodName, List<TypeReference> formalTypes, TypeReference returnType);
 
-  RetraceFrameResult lookupFrame(String methodName);
+  RetraceFrameResult lookupFrame(RetraceStackTraceContext context, String methodName);
 
-  RetraceFrameResult lookupFrame(String methodName, int position);
+  RetraceFrameResult lookupFrame(RetraceStackTraceContext context, String methodName, int position);
 
   RetraceFrameResult lookupFrame(
-      String methodName, int position, List<TypeReference> formalTypes, TypeReference returnType);
-
+      RetraceStackTraceContext context,
+      String methodName,
+      int position,
+      List<TypeReference> formalTypes,
+      TypeReference returnType);
 }

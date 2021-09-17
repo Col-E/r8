@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -36,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -139,7 +139,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   private final StackTraceLineParser<T, ST> stackTraceLineParser;
   private final StackTraceElementProxyRetracer<T, ST> proxyRetracer;
   private final DiagnosticsHandler diagnosticsHandler;
-  private final boolean isVerbose;
+  protected final boolean isVerbose;
 
   Retrace(
       StackTraceLineParser<T, ST> stackTraceLineParser,
@@ -153,12 +153,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   }
 
   /**
-   * Retraces a stack frame and calls the consumer for each retraced line
+   * Retraces a complete stack frame and returns a list of retraced stack traces.
    *
    * @param stackTrace the stack trace to be retrace
-   * @param retracedFrameConsumer the consumer to accept the retraced stack trace.
+   * @return list of potentially ambiguous stack traces.
    */
-  public void retraceStackTrace(List<T> stackTrace, Consumer<List<List<T>>> retracedFrameConsumer) {
+  public List<List<T>> retraceStackTrace(List<T> stackTrace) {
     ListUtils.forEachWithIndex(
         stackTrace,
         (line, lineNumber) -> {
@@ -168,7 +168,57 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
             throw new RetraceAbortException();
           }
         });
-    stackTrace.forEach(line -> retracedFrameConsumer.accept(retraceFrame(line)));
+    List<Pair<List<T>, RetraceStackTraceContext>> retracedStackTraces = new ArrayList<>();
+    retracedStackTraces.add(
+        new Pair<>(new ArrayList<>(), RetraceStackTraceContext.getInitialContext()));
+    retracedStackTraces =
+        ListUtils.fold(
+            stackTrace,
+            retracedStackTraces,
+            (acc, stackTraceLine) -> {
+              ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
+              List<Pair<List<T>, RetraceStackTraceContext>> newRetracedStackTraces =
+                  new ArrayList<>();
+              for (Pair<List<T>, RetraceStackTraceContext> retracedStackTrace : acc) {
+                Map<
+                        RetraceStackTraceElementProxy<T, ST>,
+                        List<RetraceStackTraceElementProxy<T, ST>>>
+                    ambiguousBlocks = new HashMap<>();
+                List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
+                proxyRetracer
+                    .retrace(parsedLine, retracedStackTrace.getSecond())
+                    .forEach(
+                        retracedElement -> {
+                          if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
+                            ambiguousKeys.add(retracedElement);
+                            ambiguousBlocks.put(retracedElement, new ArrayList<>());
+                          }
+                          ambiguousBlocks.get(ListUtils.last(ambiguousKeys)).add(retracedElement);
+                        });
+                if (ambiguousKeys.isEmpty()) {
+                  // This happens when there is nothing to report.
+                  newRetracedStackTraces.add(
+                      new Pair<>(
+                          retracedStackTrace.getFirst(),
+                          RetraceStackTraceContext.getInitialContext()));
+                  continue;
+                }
+                Collections.sort(ambiguousKeys);
+                ambiguousKeys.forEach(
+                    key -> {
+                      List<T> resultList = new ArrayList<>();
+                      resultList.addAll(retracedStackTrace.getFirst());
+                      resultList.addAll(
+                          ListUtils.map(
+                              ambiguousBlocks.get(key),
+                              retracedElement ->
+                                  parsedLine.toRetracedItem(retracedElement, isVerbose)));
+                      newRetracedStackTraces.add(new Pair<>(resultList, key.getContext()));
+                    });
+              }
+              return newRetracedStackTraces;
+            });
+    return ListUtils.map(retracedStackTraces, Pair::getFirst);
   }
 
   /**
@@ -178,11 +228,11 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @return A collection of retraced frame where each entry in the outer list is ambiguous
    */
   public List<List<T>> retraceFrame(T stackTraceFrame) {
-    Map<RetraceStackTraceProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
-    List<RetraceStackTraceProxy<T, ST>> ambiguousKeys = new ArrayList<>();
+    Map<RetraceStackTraceElementProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
+    List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
     ST parsedLine = stackTraceLineParser.parse(stackTraceFrame);
     proxyRetracer
-        .retrace(parsedLine)
+        .retrace(parsedLine, RetraceStackTraceContext.getInitialContext())
         .forEach(
             retracedElement -> {
               if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
@@ -209,7 +259,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   public List<T> retraceLine(T stackTraceLine) {
     ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
     return proxyRetracer
-        .retrace(parsedLine)
+        .retrace(parsedLine, RetraceStackTraceContext.getInitialContext())
         .map(
             retraceFrame -> {
               retraceFrame.getOriginalItem().toRetracedItem(retraceFrame, isVerbose);

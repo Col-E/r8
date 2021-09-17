@@ -22,6 +22,9 @@ public interface Retracer {
 
   RetraceFrameResult retraceFrame(MethodReference methodReference, int position);
 
+  RetraceFrameResult retraceFrame(
+      MethodReference methodReference, int position, RetraceStackTraceContext context);
+
   RetraceFieldResult retraceField(FieldReference fieldReference);
 
   RetraceTypeResult retraceType(TypeReference typeReference);

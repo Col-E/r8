@@ -38,5 +38,6 @@ public abstract class StackTraceElementProxy<T, ST extends StackTraceElementProx
 
   public abstract String getMethodArguments();
 
-  public abstract T toRetracedItem(RetraceStackTraceProxy<T, ST> retracedProxy, boolean verbose);
+  public abstract T toRetracedItem(
+      RetraceStackTraceElementProxy<T, ST> retracedProxy, boolean verbose);
 }

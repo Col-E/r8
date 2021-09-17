@@ -29,21 +29,21 @@ public class MultipleLinesNoLineNumberStackTrace implements StackTraceForTest {
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
+        "There are 2 ambiguous stack traces. Use --verbose to have all listed.",
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)",
-        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.method1(Main.java)",
-        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main.main(Main.java)");
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
+        "There are 2 ambiguous stack traces.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)",
-        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main."
-            + "void method1(java.lang.String)(Main.java)",
-        "\t<OR #1> at com.android.tools.r8.naming.retrace.Main."
-            + "void main(java.lang.String[])(Main.java)");
+        "< OR >",
+        "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void method1(java.lang.String)(Main.java)",
+        "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)");
   }
 
   @Override

@@ -16,6 +16,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceUnknownJsonMappingInformationResult;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
@@ -121,18 +122,23 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   @Override
-  public RetraceFrameResultImpl lookupFrame(String methodName) {
+  public RetraceFrameResultImpl lookupFrame(RetraceStackTraceContext context, String methodName) {
     return lookupFrame(MethodDefinition.create(obfuscatedReference, methodName), -1);
   }
 
   @Override
-  public RetraceFrameResultImpl lookupFrame(String methodName, int position) {
+  public RetraceFrameResultImpl lookupFrame(
+      RetraceStackTraceContext context, String methodName, int position) {
     return lookupFrame(MethodDefinition.create(obfuscatedReference, methodName), position);
   }
 
   @Override
   public RetraceFrameResultImpl lookupFrame(
-      String methodName, int position, List<TypeReference> formalTypes, TypeReference returnType) {
+      RetraceStackTraceContext context,
+      String methodName,
+      int position,
+      List<TypeReference> formalTypes,
+      TypeReference returnType) {
     return lookupFrame(
         MethodDefinition.create(
             Reference.method(obfuscatedReference, methodName, formalTypes, returnType)),
@@ -266,6 +272,12 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         }
       }
       return false;
+    }
+
+    @Override
+    public RetraceStackTraceContext getContext() {
+      // TODO(b/197936862): Extend the context to enable tracking information.
+      return RetraceStackTraceContext.getInitialContext();
     }
 
     @Override

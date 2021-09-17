@@ -10,6 +10,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
@@ -144,6 +145,11 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     @Override
     public boolean isCompilerSynthesized() {
       throw new Unimplemented("b/172014416");
+    }
+
+    @Override
+    public RetraceStackTraceContext getContext() {
+      return RetraceStackTraceContext.getInitialContext();
     }
 
     @Override

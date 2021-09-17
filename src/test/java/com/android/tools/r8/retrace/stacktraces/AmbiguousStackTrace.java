@@ -24,58 +24,83 @@ public class AmbiguousStackTrace implements StackTraceForTest {
 
   @Override
   public List<String> retracedStackTrace() {
-    // ProGuard version shows ambiguous traces differently:
-    //
-    // Proguard Retrace:
-    // com.android.tools.r8.CompilationException: foo[parens](Source:3)
-    //   at com.android.tools.r8.R8.foo(R8.java)
-    //                              bar(R8.java)
-    //   at com.android.tools.r8.R8.foo(R8.java)
-    //                              bar(R8.java)
-    //   at com.android.tools.r8.R8.main(r8.java)
-    // Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)
-    //   at com.android.tools.r8.R8.foo(R8.java)
-    //                              bar(R8.java)
-    //   ... 42 more
-    //
-    // Other Retrace:
-    // com.android.tools.r8.CompilationException: foo[parens](Source:3)
-    //   at com.android.tools.r8.R8.foo(R8.java)
-    //   at <OR> com.android.tools.r8.R8.bar(R8.java)
-    //   at com.android.tools.r8.R8.foo(R8.java)
-    //   at <OR> com.android.tools.r8.R8.bar(R8.java)
-    //   at com.android.tools.r8.R8.main(r8.java)
-    // Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)
-    //   at <OR> com.android.tools.r8.R8.bar(R8.java)
-    //   at com.android.tools.r8.R8(r8.java)
-    //   ... 42 more
-    //
-    // We have decided on the format below.
     return Arrays.asList(
+        "There are 8 ambiguous stack traces. Use --verbose to have all listed.",
         "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.bar(R8.java)",
-        "    <OR #1> at com.android.tools.r8.R8.foo(R8.java)",
         "    at com.android.tools.r8.R8.bar(R8.java)",
-        "    <OR #1> at com.android.tools.r8.R8.foo(R8.java)",
         "    at com.android.tools.r8.R8.main(Unknown Source)",
         "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.bar(R8.java)",
-        "    <OR #1> at com.android.tools.r8.R8.foo(R8.java)",
         "    ... 42 more");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
+        "There are 8 ambiguous stack traces.",
         "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
-        "    <OR #1> at com.android.tools.r8.R8.void foo(int)(R8.java)",
         "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
-        "    <OR #1> at com.android.tools.r8.R8.void foo(int)(R8.java)",
         "    at com.android.tools.r8.R8.main(Unknown Source)",
         "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
         "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
-        "    <OR #1> at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void bar(int,int)(R8.java)",
+        "    ... 42 more",
+        "< OR >",
+        "com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
+        "    at com.android.tools.r8.R8.main(Unknown Source)",
+        "Caused by: com.android.tools.r8.CompilationException: foo[parens](Source:3)",
+        "    at com.android.tools.r8.R8.void foo(int)(R8.java)",
         "    ... 42 more");
   }
 

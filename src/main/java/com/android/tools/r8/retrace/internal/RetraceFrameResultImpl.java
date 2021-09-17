@@ -11,6 +11,7 @@ import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedClassMemberReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
@@ -176,6 +177,11 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
     @Override
     public boolean isCompilerSynthesized() {
       return getOuterFrames().isEmpty() && isOuterMostFrameCompilerSynthesized();
+    }
+
+    @Override
+    public RetraceStackTraceContext getContext() {
+      return RetraceStackTraceContext.getInitialContext();
     }
 
     @Override

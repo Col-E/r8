@@ -16,4 +16,6 @@ public interface RetraceElement<R extends RetraceResult<?>> {
   R getRetraceResultContext();
 
   boolean isCompilerSynthesized();
+
+  RetraceStackTraceContext getContext();
 }

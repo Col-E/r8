@@ -12,6 +12,8 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
 import java.io.BufferedReader;
 
@@ -53,7 +55,13 @@ public class RetracerImpl implements Retracer {
   }
 
   @Override
-  public RetraceFrameResultImpl retraceFrame(MethodReference methodReference, int position) {
+  public RetraceFrameResult retraceFrame(MethodReference methodReference, int position) {
+    return retraceFrame(methodReference, position, RetraceStackTraceContext.getInitialContext());
+  }
+
+  @Override
+  public RetraceFrameResult retraceFrame(
+      MethodReference methodReference, int position, RetraceStackTraceContext context) {
     return retraceClass(methodReference.getHolderClass())
         .lookupMethod(methodReference.getMethodName())
         .narrowByPosition(position);
