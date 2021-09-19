@@ -83,7 +83,8 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVi
         testForRuntime(parameters)
             .addProgramClasses(getProgramClasses())
             .addProgramClassFileData(getProgramClassData())
-            .run(parameters.getRuntime(), TestClass.class));
+            .run(parameters.getRuntime(), TestClass.class),
+        false);
   }
 
   @Test
@@ -95,21 +96,24 @@ public class DefaultInterfaceMethodDesugaringWithPrivateStaticResolutionInvokeVi
             .addKeepAllClassesRule()
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .run(parameters.getRuntime(), TestClass.class));
+            .run(parameters.getRuntime(), TestClass.class),
+        true);
   }
 
-  private void checkResult(TestRunResult<?> result) {
+  private void checkResult(TestRunResult<?> result, boolean isR8) {
     // Invalid invoke case is where the invoke-virtual targets C.m.
     if (invalidInvoke) {
-      // Up to 4.4 the exception for targeting a private static was ICCE.
-      if (isDexOlderThanOrEqual(Version.V4_4_4)) {
-        result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-        return;
-      }
-      // Then up to 6.0 the runtime just ignores privates leading to incorrectly hitting I.m
-      if (isDexOlderThanOrEqual(Version.V6_0_1)) {
-        result.assertSuccessWithOutput(EXPECTED);
-        return;
+      if (!isR8) {
+        // Up to 4.4 the exception for targeting a private static was ICCE.
+        if (isDexOlderThanOrEqual(Version.V4_4_4)) {
+          result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
+          return;
+        }
+        // Then up to 6.0 the runtime just ignores privates leading to incorrectly hitting I.m
+        if (isDexOlderThanOrEqual(Version.V6_0_1)) {
+          result.assertSuccessWithOutput(EXPECTED);
+          return;
+        }
       }
       // The expected behavior is IAE since the resolved method is private.
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);

@@ -131,10 +131,6 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   }
 
   private Class<? extends Throwable> expectedRuntimeError() {
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      return IncompatibleClassChangeError.class;
-    }
     return IllegalAccessError.class;
   }
 }

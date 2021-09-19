@@ -150,7 +150,8 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
       // virtual dispatch to C.f. See b/140013075.
       runResult.assertSuccessWithOutputLines("Called C.f");
     } else {
-      runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
+      runResult.assertFailureWithErrorThatMatches(
+          containsString(expectedRuntimeError(isCorrectedByR8)));
     }
   }
 
@@ -161,9 +162,10 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
         && runtime.asDex().getVm().isOlderThanOrEqual(DexVm.ART_7_0_0_HOST);
   }
 
-  private String expectedRuntimeError() {
+  private String expectedRuntimeError(boolean isCorrectedByR8) {
     if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
+        && !isCorrectedByR8) {
       return "IncompatibleClassChangeError";
     }
     return "IllegalAccessError";
