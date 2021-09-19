@@ -5,6 +5,7 @@
 package com.android.tools.r8.accessrelaxation.privatestatic;
 
 import com.android.tools.r8.KeepConstantArguments;
+import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -12,6 +13,7 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 @NoHorizontalClassMerging
 public class BB extends A {
 
+  @KeepUnusedArguments
   @KeepConstantArguments
   @NeverInline
   @NeverPropagateValue

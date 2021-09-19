@@ -69,6 +69,12 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
     boolean hasOverrides() {
       return !overrides.isEmpty();
     }
+
+    boolean isInterfaceMethodWithSiblings() {
+      // TODO(b/190154391): Conservatively returns true for all interface methods, but should only
+      //  return true for those with siblings.
+      return root.getHolder().isInterface();
+    }
   }
 
   private final Map<DexProgramClass, Map<DexMethodSignature, VirtualRootMethod>>
@@ -142,11 +148,16 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
             monomorphicVirtualMethods.add(rootCandidate.getReference());
           } else {
             ProgramMethod singleNonAbstractMethod = virtualRootMethod.getSingleNonAbstractMethod();
-            if (singleNonAbstractMethod != null) {
+            if (singleNonAbstractMethod != null
+                && !virtualRootMethod.isInterfaceMethodWithSiblings()) {
               virtualRootMethod.forEach(
-                  method ->
-                      virtualRootMethods.put(
-                          method.getReference(), singleNonAbstractMethod.getReference()));
+                  method -> {
+                    // Interface methods can have siblings and can therefore not be mapped to their
+                    // unique non-abstract implementation, unless the interface method does not have
+                    // any siblings.
+                    virtualRootMethods.put(
+                        method.getReference(), singleNonAbstractMethod.getReference());
+                  });
               if (!singleNonAbstractMethod.getHolder().isInterface()) {
                 monomorphicVirtualMethods.add(singleNonAbstractMethod.getReference());
               }

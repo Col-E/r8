@@ -32,7 +32,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
   private static final String STRING = "java.lang.String";
 
-  private boolean enableArgumentRemoval;
+  private boolean enableUnusedArgumentRemoval;
 
   @Parameterized.Parameters(name = "{0}, argument removal: {1}")
   public static List<Object[]> data() {
@@ -40,9 +40,10 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
         getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public NonConstructorRelaxationTest(TestParameters parameters, boolean enableArgumentRemoval) {
+  public NonConstructorRelaxationTest(
+      TestParameters parameters, boolean enableUnusedArgumentRemoval) {
     super(parameters);
-    this.enableArgumentRemoval = enableArgumentRemoval;
+    this.enableUnusedArgumentRemoval = enableUnusedArgumentRemoval;
   }
 
   @Test
@@ -78,12 +79,13 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
+            .addUnusedArgumentAnnotations()
             .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .enableMemberValuePropagationAnnotations()
+            .enableUnusedArgumentAnnotations(!enableUnusedArgumentRemoval)
             .addKeepMainRule(mainClass)
-            .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
             .noMinification()
             .addKeepRules(
                 // Note: we use '-checkdiscard' to indirectly check that the access relaxation is
@@ -110,15 +112,18 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     CodeInspector inspector = result.inspector();
 
     MethodSignature barMethodSignatureAfterArgumentRemoval =
-        new MethodSignature(
-            "bar", STRING, enableArgumentRemoval ? ImmutableList.of() : ImmutableList.of("int"));
+        enableUnusedArgumentRemoval
+            ? new MethodSignature("bara", STRING, ImmutableList.of())
+            : new MethodSignature("bar", STRING, ImmutableList.of("int"));
     assertPublic(inspector, A.class, new MethodSignature("baz", STRING, ImmutableList.of()));
     assertPublic(inspector, A.class, new MethodSignature("bar", STRING, ImmutableList.of()));
     assertPublic(inspector, A.class, barMethodSignatureAfterArgumentRemoval);
 
     MethodSignature blahMethodSignatureAfterArgumentRemoval =
         new MethodSignature(
-            "blah", STRING, enableArgumentRemoval ? ImmutableList.of() : ImmutableList.of("int"));
+            "blah",
+            STRING,
+            enableUnusedArgumentRemoval ? ImmutableList.of() : ImmutableList.of("int"));
     assertPublic(inspector, A.class, blahMethodSignatureAfterArgumentRemoval);
     assertPublic(inspector, BB.class, blahMethodSignatureAfterArgumentRemoval);
   }
