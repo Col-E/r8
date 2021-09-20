@@ -103,7 +103,8 @@ public class DefaultInterfaceMethodDesugaringWithPublicStaticResolutionInvokeVir
     // Invalid invoke case is where the invoke-virtual targets C.m.
     if (invalidInvoke) {
       if (parameters.isDexRuntimeVersion(Version.V7_0_0)
-          && parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()) {
+          && parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring()
+          && !isR8) {
         // The v7 VM incorrectly fails to throw.
         result.assertSuccessWithOutput(EXPECTED);
       } else {
