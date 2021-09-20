@@ -25,14 +25,15 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
-public class RetraceFrameResultImpl implements RetraceFrameResult {
+class RetraceFrameResultImpl implements RetraceFrameResult {
 
   private final RetraceClassResultImpl classResult;
   private final MethodDefinition methodDefinition;
-  private final int obfuscatedPosition;
+  private final Optional<Integer> obfuscatedPosition;
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
   private final Retracer retracer;
 
@@ -42,7 +43,7 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
-      int obfuscatedPosition,
+      Optional<Integer> obfuscatedPosition,
       Retracer retracer) {
     this.classResult = classResult;
     this.methodDefinition = methodDefinition;
@@ -128,17 +129,23 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
   }
 
   private RetracedMethodReferenceImpl getRetracedMethod(
-      MethodReference methodReference, MappedRange mappedRange, int obfuscatedPosition) {
-    if (mappedRange.minifiedRange == null || (obfuscatedPosition == -1 && !isAmbiguous())) {
+      MethodReference methodReference,
+      MappedRange mappedRange,
+      Optional<Integer> obfuscatedPosition) {
+    if (mappedRange.minifiedRange == null || (!obfuscatedPosition.isPresent() && !isAmbiguous())) {
       int originalLineNumber = mappedRange.getFirstLineNumberOfOriginalRange();
-      return RetracedMethodReferenceImpl.create(
-          methodReference, originalLineNumber > 0 ? originalLineNumber : obfuscatedPosition);
+      if (originalLineNumber > 0) {
+        return RetracedMethodReferenceImpl.create(methodReference, originalLineNumber);
+      } else {
+        return RetracedMethodReferenceImpl.create(methodReference);
+      }
     }
-    if (!mappedRange.minifiedRange.contains(obfuscatedPosition)) {
+    if (!obfuscatedPosition.isPresent()
+        || !mappedRange.minifiedRange.contains(obfuscatedPosition.get())) {
       return RetracedMethodReferenceImpl.create(methodReference);
     }
     return RetracedMethodReferenceImpl.create(
-        methodReference, mappedRange.getOriginalLineNumber(obfuscatedPosition));
+        methodReference, mappedRange.getOriginalLineNumber(obfuscatedPosition.get()));
   }
 
   public static class ElementImpl implements RetraceFrameElement {
@@ -147,14 +154,14 @@ public class RetraceFrameResultImpl implements RetraceFrameResult {
     private final RetraceFrameResultImpl retraceFrameResult;
     private final RetraceClassElementImpl classElement;
     private final List<MappedRange> mappedRanges;
-    private final int obfuscatedPosition;
+    private final Optional<Integer> obfuscatedPosition;
 
-    public ElementImpl(
+    private ElementImpl(
         RetraceFrameResultImpl retraceFrameResult,
         RetraceClassElementImpl classElement,
         RetracedMethodReferenceImpl methodReference,
         List<MappedRange> mappedRanges,
-        int obfuscatedPosition) {
+        Optional<Integer> obfuscatedPosition) {
       this.methodReference = methodReference;
       this.retraceFrameResult = retraceFrameResult;
       this.classElement = classElement;

@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
+import java.util.Optional;
 
 @Keep
 public interface RetraceClassResult extends RetraceResult<RetraceClassElement> {
@@ -22,14 +23,13 @@ public interface RetraceClassResult extends RetraceResult<RetraceClassElement> {
   RetraceMethodResult lookupMethod(
       String methodName, List<TypeReference> formalTypes, TypeReference returnType);
 
-  RetraceFrameResult lookupFrame(RetraceStackTraceContext context, String methodName);
-
-  RetraceFrameResult lookupFrame(RetraceStackTraceContext context, String methodName, int position);
+  RetraceFrameResult lookupFrame(
+      RetraceStackTraceContext context, Optional<Integer> position, String methodName);
 
   RetraceFrameResult lookupFrame(
       RetraceStackTraceContext context,
+      Optional<Integer> position,
       String methodName,
-      int position,
       List<TypeReference> formalTypes,
       TypeReference returnType);
 }

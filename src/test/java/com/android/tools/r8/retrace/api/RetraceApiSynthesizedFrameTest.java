@@ -15,6 +15,7 @@ import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,7 +49,7 @@ public class RetraceApiSynthesizedFrameTest extends RetraceApiTestBase {
                   ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
               .retraceClass(Reference.classFromTypeName("a"))
               .stream()
-              .flatMap(element -> element.lookupFrame("a", 3).stream())
+              .flatMap(element -> element.lookupFrame(Optional.of(3), "a").stream())
               .collect(Collectors.toList());
       assertEquals(1, frameResults.size());
       RetraceFrameElement retraceFrameElement = frameResults.get(0);

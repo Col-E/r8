@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -99,10 +100,10 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     return currentResults.flatMap(
         proxy -> {
           RetraceFrameResult frameResult =
-              element.hasLineNumber()
-                  ? classResult.lookupFrame(
-                      proxy.context, element.getMethodName(), element.getLineNumber())
-                  : classResult.lookupFrame(proxy.context, element.getMethodName());
+              classResult.lookupFrame(
+                  proxy.context,
+                  element.hasLineNumber() ? Optional.of(element.getLineNumber()) : Optional.empty(),
+                  element.getMethodName());
           return frameResult.stream()
               .flatMap(
                   frameElement -> {
