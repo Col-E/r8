@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -71,26 +72,26 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
         proxy ->
             classResult.stream()
                 .map(
-                    classElement -> {
-                      RetraceStackTraceElementProxyImpl.Builder<T, ST> newProxyBuilder =
-                          proxy
-                              .builder()
-                              .setRetracedClass(classElement.getRetracedClass())
-                              .joinAmbiguous(classResult.isAmbiguous())
-                              .setTopFrame(true)
-                              .setContext(classElement.getContext());
-                      if (element.hasSourceFile()) {
-                        RetracedSourceFile sourceFile = classElement.getSourceFile();
-                        newProxyBuilder.setSourceFile(
-                            sourceFile.hasRetraceResult()
-                                ? sourceFile.getSourceFile()
-                                : RetraceUtils.inferSourceFile(
-                                    classElement.getRetracedClass().getTypeName(),
-                                    element.getSourceFile(),
-                                    classResult.hasRetraceResult()));
-                      }
-                      return newProxyBuilder.build();
-                    }));
+                    classElement ->
+                        proxy
+                            .builder()
+                            .setRetracedClass(classElement.getRetracedClass())
+                            .joinAmbiguous(classResult.isAmbiguous())
+                            .setTopFrame(true)
+                            .setContext(classElement.getContext())
+                            .applyIf(
+                                element.hasSourceFile(),
+                                builder -> {
+                                  RetracedSourceFile sourceFile = classElement.getSourceFile();
+                                  builder.setSourceFile(
+                                      sourceFile.hasRetraceResult()
+                                          ? sourceFile.getSourceFile()
+                                          : RetraceUtils.inferSourceFile(
+                                              classElement.getRetracedClass().getTypeName(),
+                                              element.getSourceFile(),
+                                              classResult.hasRetraceResult()));
+                                })
+                            .build()));
   }
 
   private Stream<RetraceStackTraceElementProxyImpl<T, ST>> retraceMethod(
@@ -110,31 +111,37 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                     List<RetraceStackTraceElementProxyImpl<T, ST>> retracedProxies =
                         new ArrayList<>();
                     frameElement.visitNonCompilerSynthesizedFrames(
-                        (frame, position) -> {
-                          boolean isTopFrame = position == 0;
-                          RetraceStackTraceElementProxyImpl.Builder<T, ST> newProxyBuilder =
+                        (frame, index) -> {
+                          boolean isTopFrame = index == 0;
+                          retracedProxies.add(
                               proxy
                                   .builder()
                                   .setRetracedClass(frame.getHolderClass())
                                   .setRetracedMethod(frame)
                                   .joinAmbiguous(frameResult.isAmbiguous() && isTopFrame)
                                   .setTopFrame(isTopFrame)
-                                  .setContext(frameElement.getContext());
-                          if (element.hasLineNumber()) {
-                            newProxyBuilder.setLineNumber(
-                                frame.getOriginalPositionOrDefault(element.getLineNumber()));
-                          }
-                          if (element.hasSourceFile()) {
-                            RetracedSourceFile sourceFileResult = frameElement.getSourceFile(frame);
-                            newProxyBuilder.setSourceFile(
-                                sourceFileResult.hasRetraceResult()
-                                    ? sourceFileResult.getSourceFile()
-                                    : RetraceUtils.inferSourceFile(
-                                        frame.getHolderClass().getTypeName(),
-                                        element.getSourceFile(),
-                                        classResult.hasRetraceResult()));
-                          }
-                          retracedProxies.add(newProxyBuilder.build());
+                                  .setContext(frameElement.getContext())
+                                  .applyIf(
+                                      element.hasLineNumber(),
+                                      builder -> {
+                                        builder.setLineNumber(
+                                            frame.getOriginalPositionOrDefault(
+                                                element.getLineNumber()));
+                                      })
+                                  .applyIf(
+                                      element.hasSourceFile(),
+                                      builder -> {
+                                        RetracedSourceFile sourceFileResult =
+                                            frameElement.getSourceFile(frame);
+                                        builder.setSourceFile(
+                                            sourceFileResult.hasRetraceResult()
+                                                ? sourceFileResult.getSourceFile()
+                                                : RetraceUtils.inferSourceFile(
+                                                    frame.getHolderClass().getTypeName(),
+                                                    element.getSourceFile(),
+                                                    classResult.hasRetraceResult()));
+                                      })
+                                  .build());
                         });
                     return retracedProxies.stream();
                   });
@@ -150,27 +157,27 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
           RetraceFieldResult retraceFieldResult = classResult.lookupField(element.getFieldName());
           return retraceFieldResult.stream()
               .map(
-                  fieldElement -> {
-                    RetraceStackTraceElementProxyImpl.Builder<T, ST> newProxyBuilder =
-                        proxy
-                            .builder()
-                            .setRetracedClass(fieldElement.getField().getHolderClass())
-                            .setRetracedField(fieldElement.getField())
-                            .joinAmbiguous(retraceFieldResult.isAmbiguous())
-                            .setTopFrame(true)
-                            .setContext(fieldElement.getContext());
-                    if (element.hasSourceFile()) {
-                      RetracedSourceFile sourceFile = fieldElement.getSourceFile();
-                      newProxyBuilder.setSourceFile(
-                          sourceFile.hasRetraceResult()
-                              ? sourceFile.getSourceFile()
-                              : RetraceUtils.inferSourceFile(
-                                  fieldElement.getField().getHolderClass().getTypeName(),
-                                  element.getSourceFile(),
-                                  classResult.hasRetraceResult()));
-                    }
-                    return newProxyBuilder.build();
-                  });
+                  fieldElement ->
+                      proxy
+                          .builder()
+                          .setRetracedClass(fieldElement.getField().getHolderClass())
+                          .setRetracedField(fieldElement.getField())
+                          .joinAmbiguous(retraceFieldResult.isAmbiguous())
+                          .setTopFrame(true)
+                          .setContext(fieldElement.getContext())
+                          .applyIf(
+                              element.hasSourceFile(),
+                              builder -> {
+                                RetracedSourceFile sourceFile = fieldElement.getSourceFile();
+                                builder.setSourceFile(
+                                    sourceFile.hasRetraceResult()
+                                        ? sourceFile.getSourceFile()
+                                        : RetraceUtils.inferSourceFile(
+                                            fieldElement.getField().getHolderClass().getTypeName(),
+                                            element.getSourceFile(),
+                                            classResult.hasRetraceResult()));
+                              })
+                          .build());
         });
   }
 
@@ -505,6 +512,13 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
       private Builder<T, ST> setContext(RetraceStackTraceContext context) {
         this.context = context;
+        return this;
+      }
+
+      private Builder<T, ST> applyIf(boolean condition, Consumer<Builder<T, ST>> consumer) {
+        if (condition) {
+          consumer.accept(this);
+        }
         return this;
       }
 
