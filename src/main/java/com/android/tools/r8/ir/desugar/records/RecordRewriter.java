@@ -39,7 +39,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
@@ -168,7 +167,6 @@ public class RecordRewriter
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     assert !instruction.isInitClass();
     if (!needsDesugaring(instruction, context)) {

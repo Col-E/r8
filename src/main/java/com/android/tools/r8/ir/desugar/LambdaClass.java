@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
-import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring.DesugarInvoke;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
@@ -41,7 +40,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
-import org.objectweb.asm.Opcodes;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
@@ -83,8 +81,7 @@ public final class LambdaClass {
       AppView<?> appView,
       LambdaInstructionDesugaring desugaring,
       ProgramMethod accessedFrom,
-      LambdaDescriptor descriptor,
-      DesugarInvoke desugarInvoke) {
+      LambdaDescriptor descriptor) {
     assert desugaring != null;
     assert descriptor != null;
     this.type = builder.getType();
@@ -108,7 +105,7 @@ public final class LambdaClass {
         !stateless ? null : factory.createField(type, type, factory.lambdaInstanceFieldName);
 
     // Synthesize the program class once all fields are set.
-    synthesizeLambdaClass(builder, desugarInvoke);
+    synthesizeLambdaClass(builder);
   }
 
   public final DexProgramClass getLambdaProgramClass() {
@@ -127,13 +124,12 @@ public final class LambdaClass {
     this.clazz = clazz;
   }
 
-  private void synthesizeLambdaClass(
-      SyntheticProgramClassBuilder builder, DesugarInvoke desugarInvoke) {
+  private void synthesizeLambdaClass(SyntheticProgramClassBuilder builder) {
     builder.setInterfaces(descriptor.interfaces);
     synthesizeStaticFields(builder);
     synthesizeInstanceFields(builder);
     synthesizeDirectMethods(builder);
-    synthesizeVirtualMethods(builder, desugarInvoke);
+    synthesizeVirtualMethods(builder);
   }
 
   final DexField getCaptureField(int index) {
@@ -150,8 +146,7 @@ public final class LambdaClass {
   }
 
   // Synthesize virtual methods.
-  private void synthesizeVirtualMethods(
-      SyntheticProgramClassBuilder builder, DesugarInvoke desugarInvoke) {
+  private void synthesizeVirtualMethods(SyntheticProgramClassBuilder builder) {
     DexMethod mainMethod =
         appView.dexItemFactory().createMethod(type, descriptor.erasedProto, descriptor.name);
 
@@ -164,7 +159,7 @@ public final class LambdaClass {
             .setAccessFlags(
                 MethodAccessFlags.fromSharedAccessFlags(
                     Constants.ACC_PUBLIC | Constants.ACC_FINAL, false))
-            .setCode(LambdaMainMethodSourceCode.build(this, mainMethod, desugarInvoke))
+            .setCode(LambdaMainMethodSourceCode.build(this, mainMethod))
             // The api level is computed when tracing.
             .disableAndroidApiLevelCheck()
             .build());
@@ -266,21 +261,6 @@ public final class LambdaClass {
     }
   }
 
-  public static int getAsmOpcodeForInvokeType(MethodHandleType type) {
-    switch (type) {
-      case INVOKE_INTERFACE:
-        return Opcodes.INVOKEINTERFACE;
-      case INVOKE_STATIC:
-        return Opcodes.INVOKESTATIC;
-      case INVOKE_DIRECT:
-        return Opcodes.INVOKESPECIAL;
-      case INVOKE_INSTANCE:
-        return Opcodes.INVOKEVIRTUAL;
-      default:
-        throw new Unreachable("Unexpected method handle type: " + type);
-    }
-  }
-
   // Creates a delegation target for this particular lambda class. Note that we
   // should always be able to create targets for the lambdas we support.
   private Target createTarget(ProgramMethod accessedFrom) {
@@ -307,22 +287,12 @@ public final class LambdaClass {
   }
 
   private boolean doesNotNeedAccessor(ProgramMethod accessedFrom) {
-    return canAccessModifyLambdaImplMethod()
-        || isPrivateOrStaticInterfaceMethodInvokeThatWillBeDesugared()
-        || !descriptor.needsAccessor(accessedFrom);
-  }
-
-  private boolean isPrivateOrStaticInterfaceMethodInvokeThatWillBeDesugared() {
-    return appView.options().isInterfaceMethodDesugaringEnabled()
-        && descriptor.implHandle.isInterface
-        && (descriptor.implHandle.type.isInvokeDirect()
-            || descriptor.implHandle.type.isInvokeStatic());
+    return canAccessModifyLambdaImplMethod() || !descriptor.needsAccessor(accessedFrom);
   }
 
   private boolean canAccessModifyLambdaImplMethod() {
     MethodHandleType invokeType = descriptor.implHandle.type;
     return appView.options().canAccessModifyLambdaImplementationMethods(appView)
-        && !isPrivateOrStaticInterfaceMethodInvokeThatWillBeDesugared()
         && (invokeType.isInvokeDirect() || invokeType.isInvokeStatic())
         && descriptor.delegatesToLambdaImplMethod(appView.dexItemFactory())
         && !desugaring.isDirectTargetedLambdaImplementationMethod(descriptor.implHandle);
@@ -358,7 +328,7 @@ public final class LambdaClass {
 
     assert implHandle.type.isInvokeDirect();
     // If the lambda$ method is an instance-private method on an interface we convert it into a
-    // public static method so it is accessible.
+    // public static method as it will be placed on the companion class.
     if (appView.definitionFor(implMethod.holder).isInterface()) {
       DexProto implProto = implMethod.proto;
       DexType[] implParams = implProto.parameters.values;
@@ -397,11 +367,7 @@ public final class LambdaClass {
 
     if (doesNotNeedAccessor(accessedFrom)) {
       return new NoAccessorMethodTarget(
-          descriptor.implHandle.asMethod(),
-          descriptor.implHandle.type.isInvokeDirect()
-              ? Type.DIRECT
-              : descriptor.implHandle.type.isInvokeStatic() ? Type.STATIC : Type.VIRTUAL,
-          descriptor.implHandle.isInterface);
+          descriptor.implHandle.asMethod(), Type.VIRTUAL, descriptor.implHandle.isInterface);
     }
     // We need to generate an accessor method in `accessedFrom` class/interface
     // for accessing the original instance impl-method. Note that impl-method's
@@ -557,7 +523,7 @@ public final class LambdaClass {
   }
 
   // Used for targeting methods referenced directly without creating accessors.
-  public static final class NoAccessorMethodTarget extends Target {
+  private static final class NoAccessorMethodTarget extends Target {
 
     NoAccessorMethodTarget(DexMethod method, Type invokeType, boolean isInterface) {
       super(method, invokeType, isInterface);

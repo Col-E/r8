@@ -38,7 +38,6 @@ public class BufferCovariantReturnTypeRewriter implements CfInstructionDesugarin
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     if (!isInvokeCandidate(instruction)) {
       return null;

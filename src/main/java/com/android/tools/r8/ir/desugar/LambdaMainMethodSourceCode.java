@@ -25,18 +25,13 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.LambdaClass.InvalidLambdaImplTarget;
-import com.android.tools.r8.ir.desugar.LambdaClass.NoAccessorMethodTarget;
-import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring.DesugarInvoke;
-import com.android.tools.r8.utils.IntBox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
@@ -171,8 +166,7 @@ final class LambdaMainMethodSourceCode {
     }
   }
 
-  public static CfCode build(
-      LambdaClass lambda, DexMethod mainMethod, DesugarInvoke desugarInvoke) {
+  public static CfCode build(LambdaClass lambda, DexMethod mainMethod) {
     DexItemFactory factory = lambda.appView.dexItemFactory();
     LambdaClass.Target target = lambda.target;
     if (target instanceof InvalidLambdaImplTarget) {
@@ -190,13 +184,11 @@ final class LambdaMainMethodSourceCode {
 
     // Only constructor call should use direct invoke type since super
     // and private methods require accessor methods.
-    boolean constructorTarget = methodToCall.name == factory.constructorMethodName;
-    assert !constructorTarget || target.invokeType == Type.DIRECT;
+    boolean constructorTarget = target.invokeType == Invoke.Type.DIRECT;
+    assert !constructorTarget || methodToCall.name == factory.constructorMethodName;
 
     boolean targetWithReceiver =
-        target.invokeType == Invoke.Type.VIRTUAL
-            || target.invokeType == Invoke.Type.INTERFACE
-            || (target.invokeType == Type.DIRECT && !constructorTarget);
+        target.invokeType == Invoke.Type.VIRTUAL || target.invokeType == Invoke.Type.INTERFACE;
     List<DexType> implReceiverAndArgs = new ArrayList<>();
     if (targetWithReceiver) {
       implReceiverAndArgs.add(methodToCall.holder);
@@ -249,24 +241,8 @@ final class LambdaMainMethodSourceCode {
               erasedParams[i], enforcedParams[i], expectedParamType, instructions, factory);
     }
 
-    CfInvoke invoke =
-        new CfInvoke(target.invokeType.getCfOpcode(), methodToCall, target.isInterface());
-    if (target instanceof NoAccessorMethodTarget) {
-      IntBox locals = new IntBox();
-      IntBox stack = new IntBox();
-      Collection<CfInstruction> is =
-          desugarInvoke.desugarInvoke(invoke, locals::getAndIncrement, stack::getAndIncrement);
-      if (is != null) {
-        instructions.addAll(is);
-        maxLocals += locals.get();
-        maxStack += stack.get();
-      } else {
-        instructions.add(invoke);
-      }
-    } else {
-      instructions.add(invoke);
-    }
-
+    instructions.add(
+        new CfInvoke(target.invokeType.getCfOpcode(), methodToCall, target.isInterface()));
     DexType methodToCallReturnType = methodToCall.getReturnType();
     if (!methodToCallReturnType.isVoidType()) {
       maxStack =
