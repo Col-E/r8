@@ -4,10 +4,12 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import java.util.Collections;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -21,6 +23,11 @@ public class ArraySimplificationLineNumberTestRunner extends DebugTestBase {
   @Test
   @IgnoreIfVmOlderThan(Version.V6_0_1)
   public void testHitOnEntryOnly() throws Throwable {
+    // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
+    // fixed.
+    Assume.assumeTrue(
+        "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
+        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
     DebugTestConfig cf = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
     DebugTestConfig d8 = new D8DebugTestConfig().compileAndAdd(
         temp, Collections.singletonList(ToolHelper.getClassFileForTestClass(CLASS)));

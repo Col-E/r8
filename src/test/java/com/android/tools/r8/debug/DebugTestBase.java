@@ -188,6 +188,11 @@ public abstract class DebugTestBase extends TestBase {
   protected DebugTestRunner getDebugTestRunner(
       DebugTestConfig config, String debuggeeClass, List<JUnit3Wrapper.Command> commands)
       throws Throwable {
+    // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
+    // fixed.
+    Assume.assumeTrue(
+        "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
+        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
     // Skip test due to unsupported runtime.
     Assume.assumeTrue("Skipping test " + testName.getMethodName() + " because ART is not supported",
         ToolHelper.artSupported());

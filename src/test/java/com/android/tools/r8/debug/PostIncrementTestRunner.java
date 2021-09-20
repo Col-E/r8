@@ -24,6 +24,11 @@ public class PostIncrementTestRunner extends DebugTestBase {
   @Test
   @IgnoreIfVmOlderOrEqualThan(Version.V5_1_1)
   public void test() throws Exception {
+    // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
+    // fixed.
+    Assume.assumeTrue(
+        "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
+        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
     Assume.assumeTrue("Older runtimes cause some kind of debug streaming issues",
         ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1_HOST));
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());

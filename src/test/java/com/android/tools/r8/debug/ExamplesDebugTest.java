@@ -7,6 +7,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.origin.Origin;
@@ -335,6 +336,11 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   private DebugStreamComparator init(String pkg, String clazz) throws Exception {
+    // TODO(b/199700280): Reenable on 12.0.0 when we have the libjdwp.so file include and the flags
+    // fixed.
+    Assume.assumeTrue(
+        "Skipping test " + testName.getMethodName() + " because debugging not enabled in 12.0.0",
+        !ToolHelper.getDexVm().isEqualTo(DexVm.ART_12_0_0_HOST));
     // See verifyStateLocation in DebugTestBase.
     Assume.assumeTrue(
         "Streaming on Dalvik DEX runtimes has some unknown interference issue",
