@@ -171,7 +171,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
       return overloadedRanges;
     }
     List<MappedRange> mappedRangesForPosition = null;
-    if (position.isPresent()) {
+    if (position.isPresent() && position.get() >= 0) {
       mappedRangesForPosition = mappedRanges.allRangesForLine(position.get(), false);
     }
     if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
