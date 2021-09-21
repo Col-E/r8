@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.MethodResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
+import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
@@ -47,6 +48,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
       CfInstructionDesugaringEventConsumer eventConsumer,
       ProgramMethod context,
       MethodProcessingContext methodProcessingContext,
+      CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
     return computeDesugarDescription(instruction)
         .desugarInstruction(

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.lambdas;
 
+import static org.junit.Assert.assertFalse;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,7 +43,21 @@ public class LambdaPrivateInstanceInterfaceMethodWithNonLambdaCallSiteTest exten
         .addProgramClasses(Main.class, A.class, FunctionalInterface.class)
         .addProgramClassFileData(getProgramClassFileData())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello world!", "Hello world!");
+        .assertSuccessWithOutputLines("Hello world!", "Hello world!")
+        .inspect(
+            inspector -> {
+              if (parameters.isDexRuntime()
+                  && !parameters.canUseDefaultAndStaticInterfaceMethods()) {
+                inspector
+                    .clazz(I.class)
+                    .toCompanionClass()
+                    .forAllMethods(
+                        m ->
+                            // We don't expect any synthetic accessors to be needed for the private
+                            // interface method.
+                            assertFalse("Unexpected synthetic method: " + m, m.isSynthetic()));
+              }
+            });
   }
 
   @Test
