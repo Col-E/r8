@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar.records;
 import static com.android.tools.r8.cf.code.CfStackInstruction.Opcode.Dup;
 import static com.android.tools.r8.cf.code.CfStackInstruction.Opcode.Swap;
 
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -50,7 +51,6 @@ import com.android.tools.r8.ir.synthetic.CallObjectInitCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordEqualsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordGetFieldsAsObjectsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.SyntheticCfCodeProvider;
-import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -89,7 +89,7 @@ public class RecordRewriter
     factory = appView.dexItemFactory();
     recordToStringHelperProto =
         factory.createProto(
-            factory.stringType, factory.objectArrayType, factory.stringType, factory.stringType);
+            factory.stringType, factory.objectArrayType, factory.classType, factory.stringType);
     recordHashCodeHelperProto =
         factory.createProto(factory.intType, factory.classType, factory.objectArrayType);
   }
@@ -252,7 +252,6 @@ public class RecordRewriter
       return desugarInvokeRecordToString(
           recordInvokeDynamic,
           localStackAllocator,
-          context,
           eventConsumer,
           methodProcessingContext);
     }
@@ -382,21 +381,15 @@ public class RecordRewriter
   private List<CfInstruction> desugarInvokeRecordToString(
       RecordInvokeDynamic recordInvokeDynamic,
       LocalStackAllocator localStackAllocator,
-      ProgramMethod context,
       RecordInstructionDesugaringEventConsumer eventConsumer,
       MethodProcessingContext methodProcessingContext) {
-    DexString simpleName =
-        ClassNameComputationInfo.ClassNameMapping.SIMPLE_NAME.map(
-            recordInvokeDynamic.getRecordClass().type.toDescriptorString(),
-            context.getHolder(),
-            factory);
     localStackAllocator.allocateLocalStack(2);
     DexMethod getFieldsAsObjects =
         getFieldsAsObjectsMethod(recordInvokeDynamic.getRecordClass().type);
     assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(getFieldsAsObjects) != null;
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
-    instructions.add(new CfConstString(simpleName));
+    instructions.add(new CfConstClass(recordInvokeDynamic.getRecordClass().type));
     instructions.add(new CfConstString(recordInvokeDynamic.getFieldNames()));
     ProgramMethod programMethod =
         synthesizeRecordHelper(

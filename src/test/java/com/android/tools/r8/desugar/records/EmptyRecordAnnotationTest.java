@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 
 import com.android.tools.r8.R8FullTestBuilder;
@@ -70,11 +69,12 @@ public class EmptyRecordAnnotationTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
             .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
+            .addKeepRules("-keepattributes *Annotation*")
+            .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")
             .addKeepMainRule(MAIN_TYPE)
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
     if (parameters.isCfRuntime()) {
       builder
-          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
@@ -84,8 +84,6 @@ public class EmptyRecordAnnotationTest extends TestBase {
       return;
     }
     builder
-        .addKeepRules("-keepattributes *Annotation*")
-        .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")
         .addKeepRules("-keep class java.lang.Record")
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_DEX);

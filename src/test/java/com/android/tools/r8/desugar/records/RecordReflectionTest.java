@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
@@ -61,7 +59,8 @@ public class RecordReflectionTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
-        .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
+        .addKeepRules("-keepattributes *")
+        .addKeepRules("-keep class * extends java.lang.Record { private final <fields>; }")
         .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()

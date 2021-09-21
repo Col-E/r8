@@ -22,7 +22,7 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
-          "Empty[]",
+          "%s[]",
           "true",
           "true",
           "true",
@@ -33,7 +33,10 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
           "true",
           "false",
           "false",
-          "Person[name=Jane Doe, age=42]");
+          "%s[name=Jane Doe, age=42]");
+  private static final String EXPECTED_RESULT_D8 =
+      String.format(EXPECTED_RESULT, "Empty", "Person");
+  private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "b");
 
   private final TestParameters parameters;
 
@@ -62,7 +65,7 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(EXPECTED_RESULT_D8);
   }
 
   @Test
@@ -81,6 +84,6 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8);
   }
 }

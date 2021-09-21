@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 
 import com.android.tools.r8.R8FullTestBuilder;
@@ -23,7 +22,8 @@ public class EmptyRecordTest extends TestBase {
   private static final String RECORD_NAME = "EmptyRecord";
   private static final byte[][] PROGRAM_DATA = RecordTestUtils.getProgramData(RECORD_NAME);
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
-  private static final String EXPECTED_RESULT = StringUtils.lines("Empty[]");
+  private static final String EXPECTED_RESULT_D8 = StringUtils.lines("Empty[]");
+  private static final String EXPECTED_RESULT_R8 = StringUtils.lines("a[]");
 
   private final TestParameters parameters;
 
@@ -48,7 +48,7 @@ public class EmptyRecordTest extends TestBase {
       testForJvm()
           .addProgramClassFileData(PROGRAM_DATA)
           .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
+          .assertSuccessWithOutput(EXPECTED_RESULT_D8);
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
@@ -56,7 +56,7 @@ public class EmptyRecordTest extends TestBase {
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(EXPECTED_RESULT_D8);
   }
 
   @Test
@@ -69,14 +69,13 @@ public class EmptyRecordTest extends TestBase {
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
     if (parameters.isCfRuntime()) {
       builder
-          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
           .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
+          .assertSuccessWithOutput(EXPECTED_RESULT_R8);
       return;
     }
-    builder.run(parameters.getRuntime(), MAIN_TYPE).assertSuccessWithOutput(EXPECTED_RESULT);
+    builder.run(parameters.getRuntime(), MAIN_TYPE).assertSuccessWithOutput(EXPECTED_RESULT_R8);
   }
 }

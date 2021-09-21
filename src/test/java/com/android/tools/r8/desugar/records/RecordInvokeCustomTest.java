@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
-
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -25,7 +23,7 @@ public class RecordInvokeCustomTest extends TestBase {
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
   private static final String EXPECTED_RESULT =
       StringUtils.lines(
-          "Empty[]",
+          "%s[]",
           "true",
           "true",
           "true",
@@ -36,7 +34,10 @@ public class RecordInvokeCustomTest extends TestBase {
           "true",
           "false",
           "false",
-          "Person[name=Jane Doe, age=42]");
+          "%s[name=Jane Doe, age=42]");
+  private static final String EXPECTED_RESULT_D8 =
+      String.format(EXPECTED_RESULT, "Empty", "Person");
+  private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "b");
 
   private final TestParameters parameters;
 
@@ -61,7 +62,7 @@ public class RecordInvokeCustomTest extends TestBase {
       testForJvm()
           .addProgramClassFileData(PROGRAM_DATA)
           .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
+          .assertSuccessWithOutput(EXPECTED_RESULT_D8);
     }
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
@@ -69,7 +70,7 @@ public class RecordInvokeCustomTest extends TestBase {
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(EXPECTED_RESULT_D8);
   }
 
   @Test
@@ -82,14 +83,13 @@ public class RecordInvokeCustomTest extends TestBase {
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
     if (parameters.isCfRuntime()) {
       builder
-          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)
           .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
+          .assertSuccessWithOutput(EXPECTED_RESULT_R8);
       return;
     }
-    builder.run(parameters.getRuntime(), MAIN_TYPE).assertSuccessWithOutput(EXPECTED_RESULT);
+    builder.run(parameters.getRuntime(), MAIN_TYPE).assertSuccessWithOutput(EXPECTED_RESULT_R8);
   }
 }

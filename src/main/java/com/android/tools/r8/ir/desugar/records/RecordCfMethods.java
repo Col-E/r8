@@ -123,7 +123,7 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.classType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
@@ -144,7 +144,7 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2},
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.classType),
                       FrameType.initialized(options.itemFactory.stringType)
                     }),
                 new ArrayDeque<>(
@@ -166,6 +166,13 @@ public final class RecordCfMethods {
             label4,
             new CfLoad(ValueType.OBJECT, 4),
             new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.classType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("getSimpleName")),
+                false),
             new CfInvoke(
                 182,
                 options.itemFactory.createMethod(
@@ -193,7 +200,7 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.classType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType),
@@ -263,7 +270,7 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2, 3, 4, 5},
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.classType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType),
@@ -278,7 +285,7 @@ public final class RecordCfMethods {
                     new int[] {0, 1, 2, 3, 4},
                     new FrameType[] {
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/Object;")),
-                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.classType),
                       FrameType.initialized(options.itemFactory.stringType),
                       FrameType.initialized(options.itemFactory.createType("[Ljava/lang/String;")),
                       FrameType.initialized(options.itemFactory.stringBuilderType)

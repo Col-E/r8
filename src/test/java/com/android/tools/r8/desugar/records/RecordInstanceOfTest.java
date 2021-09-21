@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.desugar.records.RecordTestUtils.RECORD_KEEP_RULE_R8_CF_TO_CF;
-
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -69,7 +67,6 @@ public class RecordInstanceOfTest extends TestBase {
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
     if (parameters.isCfRuntime()) {
       builder
-          .addKeepRules(RECORD_KEEP_RULE_R8_CF_TO_CF)
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
           .compile()
           .inspect(RecordTestUtils::assertRecordsAreRecords)

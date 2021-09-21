@@ -11,13 +11,13 @@ import java.util.Arrays;
 public class RecordMethods {
 
   public static String toString(
-      Object[] recordFieldsAsObjects, String simpleName, String fieldNames) {
+      Object[] recordFieldsValues, Class<?> recordClass, String fieldNames) {
     // Example: "Person[name=Jane Doe, age=42]"
     String[] fieldNamesSplit = fieldNames.isEmpty() ? new String[0] : fieldNames.split(";");
     StringBuilder builder = new StringBuilder();
-    builder.append(simpleName).append("[");
+    builder.append(recordClass.getSimpleName()).append("[");
     for (int i = 0; i < fieldNamesSplit.length; i++) {
-      builder.append(fieldNamesSplit[i]).append("=").append(recordFieldsAsObjects[i]);
+      builder.append(fieldNamesSplit[i]).append("=").append(recordFieldsValues[i]);
       if (i != fieldNamesSplit.length - 1) {
         builder.append(", ");
       }
