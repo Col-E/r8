@@ -316,10 +316,9 @@ final class InlineCandidateProcessor {
             return user; // Not eligible.
           }
 
-          if (AccessControl.isClassAccessible(singleProgramTarget.getHolder(), method, appView)
-              .isPossiblyFalse()) {
-            return user; // Not eligible.
-          }
+          // The target access is checked in isEligibleSingleTarget above.
+          assert AccessControl.isClassAccessible(singleProgramTarget.getHolder(), method, appView)
+              .isTrue();
 
           // Eligible constructor call (for new instance roots only).
           if (user.isInvokeConstructor(dexItemFactory)) {
@@ -1213,6 +1212,10 @@ final class InlineCandidateProcessor {
       return false;
     }
     if (methodProcessor.isProcessedConcurrently(singleTarget)) {
+      return false;
+    }
+    if (AccessControl.isMemberAccessible(singleTarget, singleTarget.getHolder(), method, appView)
+        .isPossiblyFalse()) {
       return false;
     }
     if (!singleTarget
