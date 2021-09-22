@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.MethodCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -66,12 +66,12 @@ public class ArgumentPropagatorApplicationFixer {
           return method.toTypeSubstitutedMethod(
               methodReferenceAfterParameterRemoval,
               builder -> {
-                ArgumentInfoCollection removedParameters =
-                    graphLens.getRemovedParameters(methodReferenceAfterParameterRemoval);
+                RewrittenPrototypeDescription prototypeChanges =
+                    graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
                 builder
-                    .apply(removedParameters.createParameterAnnotationsRemover(method))
+                    .apply(prototypeChanges.createParameterAnnotationsRemover(method))
                     .fixupOptimizationInfo(
-                        appView, removedParameters.createMethodOptimizationInfoFixer());
+                        appView, prototypeChanges.createMethodOptimizationInfoFixer());
               });
         });
   }

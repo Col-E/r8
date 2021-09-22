@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -313,15 +314,15 @@ public class ArgumentPropagatorProgramOptimizer {
       clazz.forEachProgramInstanceInitializer(instanceInitializerSignatures::add);
       clazz.forEachProgramMethod(
           method -> {
-            ArgumentInfoCollection removableParameters =
+            RewrittenPrototypeDescription prototypeChanges =
                 method.getDefinition().belongsToDirectPool()
                     ? computeRemovableParametersFromDirectMethod(
                         method, instanceInitializerSignatures)
                     : computeRemovableParametersFromVirtualMethod(method);
-            DexMethod newMethodSignature = getNewMethodSignature(method, removableParameters);
+            DexMethod newMethodSignature = getNewMethodSignature(method, prototypeChanges);
             if (newMethodSignature != method.getReference()) {
               partialGraphLensBuilder.recordMove(
-                  method.getReference(), newMethodSignature, removableParameters);
+                  method.getReference(), newMethodSignature, prototypeChanges);
               affected.set();
             }
           });
@@ -329,9 +330,9 @@ public class ArgumentPropagatorProgramOptimizer {
     }
 
     private DexMethod getNewMethodSignature(
-        ProgramMethod method, ArgumentInfoCollection removableParameters) {
+        ProgramMethod method, RewrittenPrototypeDescription prototypeChanges) {
       DexMethodSignature methodSignatureWithoutParametersRemoved = method.getMethodSignature();
-      IntSet removableParameterIndices = removableParameters.getKeys();
+      IntSet removableParameterIndices = prototypeChanges.getArgumentInfoCollection().getKeys();
 
       // Check if there is a reserved signature for this already.
       DexMethodSignature reservedSignature =
@@ -343,7 +344,7 @@ public class ArgumentPropagatorProgramOptimizer {
       }
 
       DexMethod methodReferenceWithParametersRemoved =
-          removableParameters.rewriteMethod(method, dexItemFactory);
+          prototypeChanges.getArgumentInfoCollection().rewriteMethod(method, dexItemFactory);
       DexMethodSignature methodSignatureWithParametersRemoved =
           methodReferenceWithParametersRemoved.getSignature();
 
@@ -395,40 +396,41 @@ public class ArgumentPropagatorProgramOptimizer {
       return newMethod;
     }
 
-    private ArgumentInfoCollection computeRemovableParametersFromDirectMethod(
+    private RewrittenPrototypeDescription computeRemovableParametersFromDirectMethod(
         ProgramMethod method, DexMethodSignatureSet instanceInitializerSignatures) {
       assert method.getDefinition().belongsToDirectPool();
       if (!isParameterRemovalAllowed(method)) {
-        return ArgumentInfoCollection.empty();
+        return RewrittenPrototypeDescription.none();
       }
       // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.
       if (method
           .getOptimizationInfo()
           .getEnumUnboxerMethodClassification()
           .isCheckNotNullClassification()) {
-        return ArgumentInfoCollection.empty();
+        return RewrittenPrototypeDescription.none();
       }
-      ArgumentInfoCollection removableParameters = computeRemovableParametersFromMethod(method);
-      if (removableParameters.isEmpty()) {
-        return removableParameters;
+      RewrittenPrototypeDescription prototypeChanges = computePrototypeChangesForMethod(method);
+      if (prototypeChanges.isEmpty()) {
+        return prototypeChanges;
       }
       if (method.getDefinition().isInstanceInitializer()) {
-        DexMethod rewrittenMethod = removableParameters.rewriteMethod(method, dexItemFactory);
+        DexMethod rewrittenMethod =
+            prototypeChanges.getArgumentInfoCollection().rewriteMethod(method, dexItemFactory);
         assert rewrittenMethod != method.getReference();
         if (!instanceInitializerSignatures.add(rewrittenMethod)) {
-          return ArgumentInfoCollection.empty();
+          return RewrittenPrototypeDescription.none();
         }
       }
-      return removableParameters;
+      return prototypeChanges;
     }
 
-    private ArgumentInfoCollection computeRemovableParametersFromVirtualMethod(
+    private RewrittenPrototypeDescription computeRemovableParametersFromVirtualMethod(
         ProgramMethod method) {
       IntSet removableParameterIndices =
           removableVirtualMethodParameters.getOrDefault(
               method.getMethodSignature(), IntSets.EMPTY_SET);
       if (removableParameterIndices.isEmpty()) {
-        return ArgumentInfoCollection.empty();
+        return RewrittenPrototypeDescription.none();
       }
 
       if (method.getAccessFlags().isAbstract()) {
@@ -442,25 +444,27 @@ public class ArgumentPropagatorProgramOptimizer {
                   .setType(method.getArgumentType(removableParameterIndex))
                   .build());
         }
-        return removableParametersBuilder.build();
+        return RewrittenPrototypeDescription.create(
+            Collections.emptyList(), null, removableParametersBuilder.build());
       }
 
-      ArgumentInfoCollection removableParameters =
-          computeRemovableParametersFromMethod(method, removableParameterIndices::contains);
-      assert removableParameters.size() == removableParameterIndices.size();
-      return removableParameters;
+      RewrittenPrototypeDescription prototypeChanges =
+          computePrototypeChangesForMethod(method, removableParameterIndices::contains);
+      assert prototypeChanges.getArgumentInfoCollection().size()
+          == removableParameterIndices.size();
+      return prototypeChanges;
     }
 
-    private ArgumentInfoCollection computeRemovableParametersFromMethod(ProgramMethod method) {
-      return computeRemovableParametersFromMethod(method, parameterIndex -> true);
+    private RewrittenPrototypeDescription computePrototypeChangesForMethod(ProgramMethod method) {
+      return computePrototypeChangesForMethod(method, parameterIndex -> true);
     }
 
-    private ArgumentInfoCollection computeRemovableParametersFromMethod(
+    private RewrittenPrototypeDescription computePrototypeChangesForMethod(
         ProgramMethod method, IntPredicate removableParameterIndices) {
       ConcreteCallSiteOptimizationInfo optimizationInfo =
           method.getDefinition().getCallSiteOptimizationInfo().asConcreteCallSiteOptimizationInfo();
       if (optimizationInfo == null) {
-        return ArgumentInfoCollection.empty();
+        return RewrittenPrototypeDescription.none();
       }
 
       ArgumentInfoCollection.Builder removableParametersBuilder = ArgumentInfoCollection.builder();
@@ -481,7 +485,8 @@ public class ArgumentPropagatorProgramOptimizer {
                   .build());
         }
       }
-      return removableParametersBuilder.build();
+      return RewrittenPrototypeDescription.create(
+          Collections.emptyList(), null, removableParametersBuilder.build());
     }
   }
 }
