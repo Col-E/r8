@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -56,13 +57,14 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -241,13 +243,22 @@ class EnumUnboxingTreeFixer {
     // Rewrite enum instantiations + remove static-puts to pruned fields.
     IRCode code = classInitializer.buildIR(appView);
     ListIterator<BasicBlock> blockIterator = code.listIterator();
-    Set<Instruction> instructionsToRemove = Sets.newIdentityHashSet();
+
+    // A mapping from instructions-to-be-removed from the IR to their lens-rewritten
+    // instruction (if any). If an instruction-to-be-removed has a lens-rewritten instruction, the
+    // lens-rewritten instruction must also be detached from the IR.
+    Map<Instruction, Optional<Instruction>> instructionsToRemove = new IdentityHashMap<>();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       InstructionListIterator instructionIterator = block.listIterator(code);
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
-        if (instructionsToRemove.remove(instruction)) {
+        if (instructionsToRemove.containsKey(instruction)) {
+          Optional<Instruction> rewrittenInstruction = instructionsToRemove.remove(instruction);
+          if (rewrittenInstruction.isPresent()) {
+            instructionIterator.replaceCurrentInstruction(rewrittenInstruction.get());
+            instructionIterator.previous();
+          }
           instructionIterator.removeOrReplaceByDebugLocalRead();
           continue;
         }
@@ -294,8 +305,47 @@ class EnumUnboxingTreeFixer {
                 newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
             assert constructorInvoke != null;
 
+            DexMethod invokedMethod = constructorInvoke.getInvokedMethod();
+
+            // Rewrite the constructor invoke in case there are any removed arguments. This is
+            // required since we find the argument index of the ordinal value below, and use this to
+            // find the ordinal of the current enum instance.
+            MethodLookupResult lookupResult =
+                appView.graphLens().lookupInvokeDirect(invokedMethod, classInitializer);
+            if (lookupResult.getReference() != invokedMethod) {
+              List<Value> rewrittenArguments =
+                  new ArrayList<>(constructorInvoke.arguments().size());
+              for (int i = 0; i < constructorInvoke.arguments().size(); i++) {
+                Value argument = constructorInvoke.getArgument(i);
+                if (!lookupResult
+                    .getPrototypeChanges()
+                    .getArgumentInfoCollection()
+                    .isArgumentRemoved(i)) {
+                  rewrittenArguments.add(argument);
+                }
+              }
+              InvokeDirect originalConstructorInvoke = constructorInvoke;
+              constructorInvoke =
+                  InvokeDirect.builder()
+                      .setArguments(rewrittenArguments)
+                      .setMethod(lookupResult.getReference())
+                      .build();
+
+              // Record that the original constructor invoke has been rewritten into the new
+              // constructor invoke, and that these instructions need to be removed from the IR.
+              // Note that although the rewritten constructor invoke has not been inserted into the
+              // IR, the creation of it has added it as a user of each of the operands. To undo this
+              // we replace the original constructor invoke by the rewritten constructor invoke and
+              // then remove the rewritten constructor invoke from the IR.
+              instructionsToRemove.put(originalConstructorInvoke, Optional.of(constructorInvoke));
+            } else {
+              assert lookupResult.getPrototypeChanges().isEmpty();
+              // Record that the constructor invoke needs to be removed.
+              instructionsToRemove.put(constructorInvoke, Optional.empty());
+            }
+
             ProgramMethod constructor =
-                unboxedEnum.lookupProgramMethod(constructorInvoke.getInvokedMethod());
+                unboxedEnum.lookupProgramMethod(lookupResult.getReference());
             assert constructor != null;
 
             InstanceFieldInitializationInfo ordinalInitializationInfo =
@@ -334,8 +384,6 @@ class EnumUnboxingTreeFixer {
                     code.createValue(
                         ClassTypeElement.create(
                             unboxedEnum.getType(), definitelyNotNull(), appView))));
-
-            instructionsToRemove.add(constructorInvoke);
           }
         } else if (instruction.isStaticPut()) {
           StaticPut staticPut = instruction.asStaticPut();
@@ -358,7 +406,13 @@ class EnumUnboxingTreeFixer {
     if (!instructionsToRemove.isEmpty()) {
       InstructionListIterator instructionIterator = code.instructionListIterator();
       while (instructionIterator.hasNext()) {
-        if (instructionsToRemove.remove(instructionIterator.next())) {
+        Instruction instruction = instructionIterator.next();
+        if (instructionsToRemove.containsKey(instruction)) {
+          Optional<Instruction> rewrittenInstruction = instructionsToRemove.get(instruction);
+          if (rewrittenInstruction.isPresent()) {
+            instructionIterator.replaceCurrentInstruction(rewrittenInstruction.get());
+            instructionIterator.previous();
+          }
           instructionIterator.removeOrReplaceByDebugLocalRead();
         }
       }

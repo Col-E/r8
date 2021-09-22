@@ -6,10 +6,8 @@ package com.android.tools.r8.kotlin;
 
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -78,9 +76,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              if (allowAccessModification
-                  && kotlinParameters.is(
-                      KotlinCompilerVersion.KOTLINC_1_5_0, KotlinTargetVersion.JAVA_8)) {
+              if (allowAccessModification) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =
@@ -129,9 +125,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              if (allowAccessModification
-                  && kotlinParameters.is(
-                      KotlinCompilerVersion.KOTLINC_1_5_0, KotlinTargetVersion.JAVA_8)) {
+              if (allowAccessModification) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =
@@ -181,21 +175,26 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
+              if (allowAccessModification) {
+                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
+              } else {
+                ClassSubject dataClass =
+                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
 
-              boolean component2IsPresent = !allowAccessModification;
-              checkMethodIsKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
+                boolean component2IsPresent = !allowAccessModification;
+                checkMethodIsKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
 
-              // Function component1 is not used.
-              checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
+                // Function component1 is not used.
+                checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
 
-              // No use of getter.
-              checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
-              checkMethodIsRemoved(dataClass, AGE_GETTER_METHOD);
+                // No use of getter.
+                checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
+                checkMethodIsRemoved(dataClass, AGE_GETTER_METHOD);
 
-              // No use of copy functions.
-              checkMethodIsRemoved(dataClass, COPY_METHOD);
-              checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
+                // No use of copy functions.
+                checkMethodIsRemoved(dataClass, COPY_METHOD);
+                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
+              }
 
               ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
               MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
@@ -222,9 +221,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              if (testParameters.isDexRuntime()
-                  && allowAccessModification
-                  && kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
+              if (allowAccessModification) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
                 ClassSubject dataClass =

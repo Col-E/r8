@@ -82,7 +82,9 @@ public class UnusedAnnotatedArgumentsWithMissingAnnotationsTest extends TestBase
         .addKeepRules(
             "-keep @interface Annotation?",
             "-neverclassinline class *",
-            "-nohorizontalclassmerging class Test$Inner?")
+            "-nohorizontalclassmerging class Test$Inner?",
+            "-keepclassmembers class Test$Inner? { synthetic <fields>; }",
+            "-keepconstantarguments class Test$Inner? { void <init>(...); }")
         .addKeepRuntimeVisibleParameterAnnotations()
         .enableProguardTestOptions()
         .setMinApi(parameters.getApiLevel())

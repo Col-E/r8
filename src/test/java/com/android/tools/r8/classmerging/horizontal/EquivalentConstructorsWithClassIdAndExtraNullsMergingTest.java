@@ -75,14 +75,14 @@ public class EquivalentConstructorsWithClassIdAndExtraNullsMergingTest extends T
                   isPresent());
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("C", "42", "C", "D");
+        .assertSuccessWithOutputLines("C", "0", "C", "D");
   }
 
   static class Main {
 
     public static void main(String[] args) {
       System.out.println(new A(new C()));
-      System.out.println(new A(new C(), 42));
+      System.out.println(new A(new C(), args.length));
       System.out.println(new B(new D()));
     }
   }

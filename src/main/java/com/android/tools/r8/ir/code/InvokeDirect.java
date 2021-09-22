@@ -46,6 +46,10 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
         || result == null;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public int opcode() {
     return Opcodes.INVOKE_DIRECT;
@@ -209,5 +213,18 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     }
 
     return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(appView, this);
+  }
+
+  public static class Builder extends InvokeMethod.Builder<Builder, InvokeDirect> {
+
+    @Override
+    public InvokeDirect build() {
+      return amend(new InvokeDirect(method, outValue, arguments));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

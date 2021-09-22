@@ -30,7 +30,7 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("foo", "B", "bar", "5", "foobar")
+        .assertSuccessWithOutputLines("foo", "B", "bar", "0", "foobar")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isAbsent());
@@ -56,7 +56,7 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
       a.foo();
       B b = a.get("B");
       b.bar();
-      C c = new C(5);
+      C c = new C(args.length);
       c.foobar();
     }
   }
