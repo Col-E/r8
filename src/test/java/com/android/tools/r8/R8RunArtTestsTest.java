@@ -201,6 +201,24 @@ public abstract class R8RunArtTestsTest {
           .put(
               "145-alloc-tracking-stress",
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V12_0_0)))
+          // Art in 12.0.0 beta4 will hang on this test when running on dx input.
+          // D8 will never generate the code introducing this (goto32 0)
+          // See: b/200660605
+          .put(
+              "083-compiler-regressions",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
+                  TestCondition.compilers(CompilerUnderTest.D8),
+                  TestCondition.runtimes(DexVm.Version.V12_0_0)))
+          // Art in 12.0.0 beta4 will hang on this test when running on dx input.
+          // D8 will never generate the code introducing this (goto32 0)
+          // See: b/200660605
+          .put(
+              "121-simple-suspend-check",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
+                  TestCondition.compilers(CompilerUnderTest.D8),
+                  TestCondition.runtimes(DexVm.Version.V12_0_0)))
           .build();
 
   // Tests that are flaky with the Art version we currently use.
