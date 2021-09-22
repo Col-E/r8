@@ -106,7 +106,6 @@ public class RootSetUtils {
     private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
     private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
     private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
-    private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
     private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
     private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();
     private final Set<DexMethod> bypassClinitforInlining = Sets.newIdentityHashSet();
@@ -368,14 +367,12 @@ public class RootSetUtils {
             bypassClinitforInlining);
       }
       assert Sets.intersection(neverInline, alwaysInline).isEmpty()
-              && Sets.intersection(neverInline, forceInline).isEmpty()
-          : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
+          : "A method cannot be marked as both -neverinline and -alwaysinline.";
       return new RootSet(
           dependentMinimumKeepInfo,
           ImmutableList.copyOf(reasonAsked.values()),
           ImmutableList.copyOf(checkDiscarded.values()),
           alwaysInline,
-          forceInline,
           neverInline,
           neverInlineDueToSingleCaller,
           bypassClinitforInlining,
@@ -1193,9 +1190,6 @@ public class RootSetUtils {
             case ALWAYS:
               alwaysInline.add(reference);
               break;
-            case FORCE:
-              forceInline.add(reference);
-              break;
             case NEVER:
               neverInline.add(reference);
               break;
@@ -1561,7 +1555,6 @@ public class RootSetUtils {
     public final ImmutableList<DexReference> reasonAsked;
     public final ImmutableList<DexReference> checkDiscarded;
     public final Set<DexMethod> alwaysInline;
-    public final Set<DexMethod> forceInline;
     public final Set<DexMethod> bypassClinitForInlining;
     public final Set<DexMethod> whyAreYouNotInlining;
     public final Set<DexMethod> keepConstantArguments;
@@ -1584,7 +1577,6 @@ public class RootSetUtils {
         ImmutableList<DexReference> reasonAsked,
         ImmutableList<DexReference> checkDiscarded,
         Set<DexMethod> alwaysInline,
-        Set<DexMethod> forceInline,
         Set<DexMethod> neverInline,
         Set<DexMethod> neverInlineDueToSingleCaller,
         Set<DexMethod> bypassClinitForInlining,
@@ -1618,7 +1610,6 @@ public class RootSetUtils {
       this.reasonAsked = reasonAsked;
       this.checkDiscarded = checkDiscarded;
       this.alwaysInline = alwaysInline;
-      this.forceInline = forceInline;
       this.bypassClinitForInlining = bypassClinitForInlining;
       this.whyAreYouNotInlining = whyAreYouNotInlining;
       this.keepConstantArguments = keepConstantArguments;
@@ -1986,7 +1977,6 @@ public class RootSetUtils {
           dependentMinimumKeepInfo,
           reasonAsked,
           checkDiscarded,
-          Collections.emptySet(),
           Collections.emptySet(),
           Collections.emptySet(),
           Collections.emptySet(),

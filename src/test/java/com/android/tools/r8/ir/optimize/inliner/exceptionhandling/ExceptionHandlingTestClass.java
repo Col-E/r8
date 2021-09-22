@@ -4,11 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.inliner.exceptionhandling;
 
+import com.android.tools.r8.NeverInline;
+
 public class ExceptionHandlingTestClass {
 
   private static boolean FALSE;
 
-  // -keep
   public static void main(String[] args) {
     FALSE = args == null;
     try {
@@ -33,7 +34,7 @@ public class ExceptionHandlingTestClass {
     methodWithCatchHandlersTest();
   }
 
-  // -neverinline
+  @NeverInline
   private static void methodWithoutCatchHandlersTest(int i) {
     switch (i) {
       case 1:
@@ -50,7 +51,7 @@ public class ExceptionHandlingTestClass {
     }
   }
 
-  // -neverinline
+  @NeverInline
   private static void methodWithCatchHandlersTest() {
     try {
       inlineeWithNormalExitThatDoesNotThrow();
@@ -70,21 +71,18 @@ public class ExceptionHandlingTestClass {
     }
   }
 
-  // -forceinline
   private static void inlineeWithNormalExitThatDoesNotThrow() {
     if (FALSE) {
       throw new RuntimeException();
     }
   }
 
-  // -forceinline
   private static void inlineeWithNormalExitThatThrows() {
     if (!FALSE) {
       throw new RuntimeException();
     }
   }
 
-  // -forceinline
   private static void inlineeWithoutNormalExit() {
     throw new RuntimeException();
   }

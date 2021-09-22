@@ -6,49 +6,60 @@ package com.android.tools.r8.naming.retrace;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class LineDeltaTest extends TestBase {
-  public String runTest(Backend backend) throws Exception {
-    return testForR8(backend)
-        .enableForceInliningAnnotations()
-        .addProgramClasses(LineDeltaTestClass.class)
-        .addKeepMainRule(LineDeltaTestClass.class)
-        .addKeepRules("-keepattributes LineNumberTable")
-        .run(LineDeltaTestClass.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines(
-                "In test1() - 1",
-                "In test1() - 2",
-                "In test1() - 3",
-                "In test1() - 4",
-                "In test2() - 1",
-                "In test2() - 2",
-                "In test2() - 3",
-                "In test2() - 4"))
-        .proguardMap();
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection parameters() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  @Test
+  public void test() throws Exception {
+    String proguardMap =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(LineDeltaTestClass.class)
+            .addKeepMainRule(LineDeltaTestClass.class)
+            .addKeepRules("-keepattributes LineNumberTable")
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .inspect(
+                inspector ->
+                    assertEquals(1, inspector.clazz(LineDeltaTestClass.class).allMethods().size()))
+            .run(parameters.getRuntime(), LineDeltaTestClass.class)
+            .assertSuccessWithOutput(
+                StringUtils.lines(
+                    "In test1() - 1",
+                    "In test1() - 2",
+                    "In test1() - 3",
+                    "In test1() - 4",
+                    "In test2() - 1",
+                    "In test2() - 2",
+                    "In test2() - 3",
+                    "In test2() - 4"))
+            .proguardMap();
+    assertEquals(parameters.isCfRuntime() ? 5 : 17, mapLines(proguardMap));
   }
 
   private long mapLines(String map) {
     return StringUtils.splitLines(map).stream().filter(line -> !line.startsWith("#")).count();
   }
-
-  @Test
-  public void testDex() throws Exception {
-    assertEquals(17, mapLines(runTest(Backend.DEX)));
-  }
-
-  @Test
-  public void testCf() throws Exception {
-    assertEquals(5, mapLines(runTest(Backend.CF)));
-  }
 }
 
 class LineDeltaTestClass {
-  @ForceInline
   static void test1() {
     System.out.println("In test1() - 1");
     // One line comment.
@@ -63,7 +74,6 @@ class LineDeltaTestClass {
     System.out.println("In test1() - 4");
   }
 
-  @ForceInline
   static void test2() {
     System.out.println("In test2() - 1");
     // Seven line comments.

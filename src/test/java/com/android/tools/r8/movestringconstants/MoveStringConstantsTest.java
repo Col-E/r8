@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.movestringconstants;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static junit.framework.TestCase.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -41,21 +44,20 @@ public class MoveStringConstantsTest extends TestBase {
 
   private void runTest(Consumer<CodeInspector> inspection) throws Exception {
     R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(ForceInline.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(NeverInline.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(Utils.class));
+    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(AlwaysInline.class));
     builder.addLibraryFiles(runtimeJar(backend));
     builder.setProgramConsumer(emptyConsumer(backend));
     builder.setMode(CompilationMode.RELEASE);
     builder.addProguardConfiguration(
         ImmutableList.of(
-            "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
+            "-alwaysinline class * { @com.android.tools.r8.AlwaysInline *; }",
             "-neverinline class * { @com.android.tools.r8.NeverInline *; }",
             "-keep class " + TestClass.class.getCanonicalName() + "{ *; }",
             "-dontobfuscate",
-            "-allowaccessmodification"
-        ),
+            "-allowaccessmodification"),
         Origin.unknown());
     ToolHelper.allowTestProguardOptions(builder);
     AndroidApp app = ToolHelper.runR8(builder.build());
@@ -125,6 +127,11 @@ public class MoveStringConstantsTest extends TestBase {
         insn -> insn.isConstString("StringConstants::foo#1", JumboStringMode.DISALLOW),
         InstructionSubject::isInvokeStatic,
         InstructionSubject::isThrow);
+
+    ClassSubject utilsClassSubject = inspector.clazz(Utils.class);
+    assertThat(utilsClassSubject, isPresent());
+    assertThat(utilsClassSubject.uniqueMethodWithName("throwException"), isPresent());
+    assertEquals(1, utilsClassSubject.allMethods().size());
   }
 
   @SafeVarargs

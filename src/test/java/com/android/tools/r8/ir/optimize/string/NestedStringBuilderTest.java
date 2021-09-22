@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.string;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,20 +38,21 @@ public class NestedStringBuilderTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN)
-        .enableForceInliningAnnotations()
         .addKeepMainRule(MAIN)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN.getTypeName(), "$")
         .assertSuccessWithOutput(EXPECTED)
-        .inspect(codeInspector -> {
-          ClassSubject mainClass = codeInspector.clazz(MAIN);
-          MethodSubject main = mainClass.mainMethod();
-          assertEquals(
-              // TODO(b/113859361): should be 1 after merging StringBuilder's
-              2,
-              main.streamInstructions().filter(
-                  i -> i.isNewInstance(StringBuilder.class.getTypeName())).count());
-          });
+        .inspect(
+            codeInspector -> {
+              ClassSubject mainClass = codeInspector.clazz(MAIN);
+              MethodSubject main = mainClass.uniqueMethod();
+              assertEquals(
+                  // TODO(b/113859361): should be 1 after merging StringBuilder's
+                  2,
+                  main.streamInstructions()
+                      .filter(i -> i.isNewInstance(StringBuilder.class.getTypeName()))
+                      .count());
+            });
   }
 
   static class NestedStringBuilders {
@@ -61,7 +61,6 @@ public class NestedStringBuilderTest extends TestBase {
       System.out.println(concat("one", args[0]) + "two");
     }
 
-    @ForceInline
     public static String concat(String one, String two) {
       return one + two;
     }

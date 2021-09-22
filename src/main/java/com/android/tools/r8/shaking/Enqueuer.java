@@ -3727,7 +3727,6 @@ public class Enqueuer {
             rootSet.noSideEffects,
             rootSet.assumedValues,
             amendWithCompanionMethods(rootSet.alwaysInline),
-            amendWithCompanionMethods(rootSet.forceInline),
             amendWithCompanionMethods(rootSet.neverInline),
             amendWithCompanionMethods(rootSet.neverInlineDueToSingleCaller),
             amendWithCompanionMethods(rootSet.whyAreYouNotInlining),

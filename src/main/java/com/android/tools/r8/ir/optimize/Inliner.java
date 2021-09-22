@@ -1095,8 +1095,7 @@ public class Inliner {
 
           if (inlineeMayHaveInvokeMethod && options.applyInliningToInlinee) {
             if (inlineeStack.size() + 1 > options.applyInliningToInlineeMaxDepth
-                && appView.appInfo().hasNoAlwaysInlineMethods()
-                && appView.appInfo().hasNoForceInlineMethods()) {
+                && appView.appInfo().hasNoAlwaysInlineMethods()) {
               continue;
             }
             // Record that we will be inside the inlinee until the next block.

@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.SingleTestRunResult;
@@ -45,7 +45,7 @@ public class StringValueOfTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -111,13 +111,19 @@ public class StringValueOfTest extends TestBase {
     SingleTestRunResult<?> result =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
-            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .noMinification()
             .addOptionsModification(this::configure)
+            .compile()
+            .inspect(
+                inspector -> {
+                  ClassSubject fooClassSubject = inspector.clazz(Foo.class);
+                  assertThat(fooClassSubject, isPresent());
+                  assertThat(fooClassSubject.uniqueMethodWithName("getter"), isAbsent());
+                })
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, true, true);
@@ -155,7 +161,6 @@ public class StringValueOfTest extends TestBase {
     }
 
     static class Foo implements Itf {
-      @ForceInline
       @Override
       public String getter() {
         return String.valueOf(getClass().getName());

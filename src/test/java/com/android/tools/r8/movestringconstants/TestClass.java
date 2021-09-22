@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.movestringconstants;
 
-import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.NeverInline;
 
 public class TestClass {
@@ -30,7 +30,7 @@ public class TestClass {
 }
 
 class Utils {
-  @ForceInline
+  @AlwaysInline
   static void check(Object value, String message) {
     if (value == null) {
       throwException(message);

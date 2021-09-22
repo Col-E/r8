@@ -4,12 +4,14 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
@@ -17,11 +19,11 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 
 class GetName0Class {
@@ -32,7 +34,6 @@ class GetName0Class {
     void foo();
   }
 
-  @ForceInline
   static Itf createRunnable() {
     return new Itf() {
       @Override
@@ -42,7 +43,6 @@ class GetName0Class {
     };
   }
 
-  @ForceInline
   static GetName0Class factory() {
     return new GetName0Class() {
       @Override
@@ -212,7 +212,6 @@ public class GetNameTest extends GetNameTestBase {
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
         ToolHelper.getPackageDirectoryForTestPackage(MAIN.getPackage()),
         path -> path.getFileName().toString().startsWith("GetName0")));
-    builder.add(ToolHelper.getClassFileForTestClass(ForceInline.class));
     classPaths = builder.build();
   }
 
@@ -263,7 +262,6 @@ public class GetNameTest extends GetNameTestBase {
   }
 
   @Test
-  @Ignore("b/154813140: Invalidly assumes that getClass on kept classes can be optimized")
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
     R8TestRunResult result =
@@ -276,13 +274,21 @@ public class GetNameTest extends GetNameTestBase {
             .minification(enableMinification)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
+            .compile()
+            .inspect(
+                inspector -> {
+                  ClassSubject getName0ClassSubject = inspector.clazz(GetName0Class.class);
+                  assertThat(getName0ClassSubject, isPresent());
+                  assertTrue(
+                      getName0ClassSubject.allMethods(FoundMethodSubject::isStatic).isEmpty());
+                })
             .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 2);
+            // TODO(b/154813140): Invalidly assumes that getClass on kept classes can be optimized.
+            .assertSuccessWithOutputThatMatches(not(equalTo(JAVA_OUTPUT)));
+    test(result, 8);
   }
 
   @Test
-  @Ignore("b/154813140: Invalidly assumes that getClass on kept classes can be optimized")
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
     R8TestRunResult result =
@@ -295,13 +301,21 @@ public class GetNameTest extends GetNameTestBase {
             .minification(enableMinification)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
+            .compile()
+            .inspect(
+                inspector -> {
+                  ClassSubject getName0ClassSubject = inspector.clazz(GetName0Class.class);
+                  assertThat(getName0ClassSubject, isPresent());
+                  assertTrue(
+                      getName0ClassSubject.allMethods(FoundMethodSubject::isStatic).isEmpty());
+                })
             .run(parameters.getRuntime(), MAIN);
+    // TODO(b/154813140): Invalidly assumes that getClass on kept classes can be optimized.
     if (enableMinification) {
-      result.assertSuccessWithOutput(RENAMED_OUTPUT);
+      result.assertSuccessWithOutputThatMatches(not(equalTo(RENAMED_OUTPUT)));
     } else {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
+      result.assertSuccessWithOutputThatMatches(not(equalTo(JAVA_OUTPUT)));
     }
-    test(result, 2);
+    test(result, 8);
   }
-
 }

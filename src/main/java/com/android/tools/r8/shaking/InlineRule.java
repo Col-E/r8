@@ -10,16 +10,8 @@ import java.util.List;
 
 public class InlineRule extends ProguardConfigurationRule {
 
-  public static final Origin checkDiscardOrigin = new Origin(Origin.root()) {
-    @Override
-    public String part() {
-      return "<SYNTHETIC_CHECK_DISCARD_RULE>";
-    }
-  };
-
   public enum Type {
     ALWAYS,
-    FORCE,
     NEVER,
     NEVER_SINGLE_CALLER
   }
@@ -104,30 +96,11 @@ public class InlineRule extends ProguardConfigurationRule {
     return type;
   }
 
-  public ProguardCheckDiscardRule asProguardCheckDiscardRule() {
-    assert type == Type.FORCE;
-    ProguardCheckDiscardRule.Builder builder = ProguardCheckDiscardRule.builder();
-    builder.setOrigin(checkDiscardOrigin);
-    builder.setSource(null);
-    builder.addClassAnnotations(getClassAnnotations());
-    builder.setClassAccessFlags(getClassAccessFlags());
-    builder.setNegatedClassAccessFlags(getNegatedClassAccessFlags());
-    builder.setClassTypeNegated(getClassTypeNegated());
-    builder.setClassType(getClassType());
-    builder.setClassNames(getClassNames());
-    builder.addInheritanceAnnotations(getInheritanceAnnotations());
-    builder.setInheritanceIsExtends(getInheritanceIsExtends());
-    builder.setMemberRules(getMemberRules());
-    return builder.build();
-  }
-
   @Override
   String typeString() {
     switch (type) {
       case ALWAYS:
         return "alwaysinline";
-      case FORCE:
-        return "forceinline";
       case NEVER:
         return "neverinline";
       case NEVER_SINGLE_CALLER:

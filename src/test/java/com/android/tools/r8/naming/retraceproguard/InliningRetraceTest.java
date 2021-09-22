@@ -11,7 +11,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -85,13 +84,11 @@ public class InliningRetraceTest extends RetraceTestBase {
 
 class Main {
 
-  @ForceInline
   public static void method3(long j) {
     System.out.println("In method3");
     throw null;
   }
 
-  @ForceInline
   public static void method2(int j) {
     System.out.println("In method2");
     for (int i = 0; i < 10; i++) {
@@ -99,7 +96,6 @@ class Main {
     }
   }
 
-  @ForceInline
   public static void method1(String s) {
     System.out.println("In method1");
     for (int i = 0; i < 10; i++) {

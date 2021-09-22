@@ -1153,9 +1153,7 @@ public class TestBase {
    * specified class and add rules to inline methods with the inlining annotation.
    */
   public static String keepMainProguardConfigurationWithInliningAnnotation(Class<?> clazz) {
-    return "-forceinline class * { @com.android.tools.r8.ForceInline *; }"
-        + System.lineSeparator()
-        + "-neverinline class * { @com.android.tools.r8.NeverInline *; }"
+    return "-neverinline class * { @com.android.tools.r8.NeverInline *; }"
         + System.lineSeparator()
         + keepMainProguardConfiguration(clazz);
   }

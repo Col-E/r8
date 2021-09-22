@@ -635,13 +635,14 @@ public class VerticalClassMergerTest extends TestBase {
                 .addKeepRules(
                     getProguardConfig(
                         EXAMPLE_KEEP,
-                        "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
+                        "-alwaysinline class classmerging.ProguardMethodMapTest$A { public void"
                             + " method(); }"))
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
                     options -> {
                       options.enableVerticalClassMerging = false;
-                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                      options.testing.validInliningReasons =
+                          ImmutableSet.of(Reason.ALWAYS, Reason.FORCE);
                     })
                 .allowUnusedProguardConfigurationRules(),
             main,
@@ -675,12 +676,13 @@ public class VerticalClassMergerTest extends TestBase {
                 .addKeepRules(
                     getProguardConfig(
                         EXAMPLE_KEEP,
-                        "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
+                        "-alwaysinline class classmerging.ProguardMethodMapTest$A { public void"
                             + " method(); }"))
                 .addOptionsModification(this::configure)
                 .addOptionsModification(
                     options -> {
-                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                      options.testing.validInliningReasons =
+                          ImmutableSet.of(Reason.ALWAYS, Reason.FORCE);
                     })
                 .allowUnusedProguardConfigurationRules(),
             main,

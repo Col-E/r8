@@ -4,11 +4,10 @@
 
 package com.android.tools.r8.maindexlist.warnings;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -16,7 +15,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,8 +43,8 @@ public class MainDexWarningsTest extends TestBase {
   }
 
   private void classStaticGone(CodeInspector inspector) {
-    assertThat(inspector.clazz(Static.class), CoreMatchers.not(isPresent()));
-    assertThat(inspector.clazz(Static2.class), CoreMatchers.not(isPresent()));
+    assertThat(inspector.clazz(Static.class), isAbsent());
+    assertThat(inspector.clazz(Static2.class), isAbsent());
   }
 
   @Test
@@ -57,7 +55,6 @@ public class MainDexWarningsTest extends TestBase {
         .addKeepMainRule(mainClass)
         // Include main dex rule for class Static.
         .addMainDexKeepClassRules(Main.class, Static.class)
-        .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
@@ -74,7 +71,6 @@ public class MainDexWarningsTest extends TestBase {
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Static.class)
         .allowDiagnosticWarningMessages()
-        .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
@@ -96,7 +92,6 @@ public class MainDexWarningsTest extends TestBase {
         .addMainDexKeepClassRules(Static2.class)
         .addDontWarn(Static.class)
         .allowDiagnosticWarningMessages()
-        .enableForceInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::classStaticGone)
@@ -116,14 +111,12 @@ class Main {
 }
 
 class Static {
-  @ForceInline
   public static int m() {
     return 1;
   }
 }
 
 class Static2 {
-  @ForceInline
   public static int m() {
     return 1;
   }

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -17,7 +19,6 @@ import com.android.tools.r8.retrace.RetraceClassResult;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.ListUtils;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
   public abstract void forAllMethods(Consumer<FoundMethodSubject> inspection);
 
   public final List<FoundMethodSubject> allMethods() {
-    return allMethods(Predicates.alwaysTrue());
+    return allMethods(alwaysTrue());
   }
 
   public final List<FoundMethodSubject> allMethods(Predicate<FoundMethodSubject> predicate) {
@@ -58,7 +59,7 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
   public abstract void forAllVirtualMethods(Consumer<FoundMethodSubject> inspection);
 
   public final List<FoundMethodSubject> virtualMethods() {
-    return virtualMethods(Predicates.alwaysTrue());
+    return virtualMethods(alwaysTrue());
   }
 
   public final List<FoundMethodSubject> virtualMethods(Predicate<FoundMethodSubject> predicate) {
@@ -109,6 +110,10 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public MethodSubject mainMethod() {
     return method("void", "main", ImmutableList.of("java.lang.String[]"));
+  }
+
+  public MethodSubject uniqueMethod() {
+    return uniqueMethodThatMatches(alwaysTrue());
   }
 
   public MethodSubject clinit() {

@@ -432,7 +432,7 @@ public class ProguardConfigurationParser {
         String devMessage = "";
         if (Version.isDevelopmentVersion()
             && unknownOption != null
-            && (unknownOption.equals("forceinline") || unknownOption.equals("neverinline"))) {
+            && unknownOption.equals("neverinline")) {
           devMessage = ", this option needs to be turned on explicitly if used for tests.";
         }
         throw unknownOption(unknownOption, optionStart, devMessage);
@@ -447,14 +447,6 @@ public class ProguardConfigurationParser {
           ProguardAssumeMayHaveSideEffectsRule rule =
               parseAssumeMayHaveSideEffectsRule(optionStart);
           configurationBuilder.addRule(rule);
-          return true;
-        }
-        if (acceptString("forceinline")) {
-          InlineRule rule = parseInlineRule(InlineRule.Type.FORCE, optionStart);
-          configurationBuilder.addRule(rule);
-          // Insert a matching -checkdiscard rule to ensure force inlining happens.
-          ProguardCheckDiscardRule ruled = rule.asProguardCheckDiscardRule();
-          configurationBuilder.addRule(ruled);
           return true;
         }
         if (acceptString("keepconstantarguments")) {

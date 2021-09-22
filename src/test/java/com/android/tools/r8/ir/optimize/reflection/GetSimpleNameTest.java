@@ -3,17 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.reflection;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ir.optimize.reflection.Outer.TestHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -100,7 +101,6 @@ class Outer {
       this.inner = inner;
     }
 
-    @ForceInline
     String getClassName() {
       return inner.getClass().getSimpleName();
     }
@@ -159,12 +159,18 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .assertSuccessWithOutput(JVM_OUTPUT);
   }
 
-  private void test(SingleTestRunResult<?> result) throws Exception {
+  private void test(SingleTestRunResult<?> result, boolean isOptimizing) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
     assertEquals(0, countGetName(mainMethod));
+
+    if (isOptimizing) {
+      ClassSubject testHelperClassSubject = codeInspector.clazz(TestHelper.class);
+      assertThat(testHelperClassSubject, isPresent());
+      assertThat(testHelperClassSubject.uniqueMethodWithName("getClassName"), isAbsent());
+    }
   }
 
   @Test
@@ -179,7 +185,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JVM_OUTPUT);
-    test(result);
+    test(result, false);
 
     result =
         testForD8()
@@ -189,7 +195,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JVM_OUTPUT);
-    test(result);
+    test(result, false);
   }
 
   @Test
@@ -197,7 +203,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
     // Pinning the test class.
     testForR8(parameters.getBackend())
         .addProgramFiles(classPaths)
-        .addForceInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepAllClassesRule()
         .addKeepAttributeInnerClassesAndEnclosingMethod()
@@ -206,7 +211,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .addOptionsModification(this::configure)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JVM_OUTPUT)
-        .apply(this::test);
+        .apply(result -> test(result, false));
   }
 
   @Test
@@ -214,7 +219,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
     // Pinning the test class.
     testForR8(parameters.getBackend())
         .addProgramFiles(classPaths)
-        .enableForceInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.ClassGetSimpleName*")
@@ -225,7 +229,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .addOptionsModification(this::configure)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(OUTPUT_NO_ATTRIBUTES)
-        .apply(this::test);
+        .apply(result -> test(result, true));
   }
 
   @Test
@@ -233,7 +237,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
     // Shallow pinning the test class.
     testForR8(parameters.getBackend())
         .addProgramFiles(classPaths)
-        .enableForceInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
@@ -249,6 +252,6 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .applyIf(enableMinification, result -> result.assertSuccessWithOutput(RENAMED_OUTPUT))
         .applyIf(
             !enableMinification, result -> result.assertSuccessWithOutput(OUTPUT_NO_ATTRIBUTES))
-        .apply(this::test);
+        .apply(result -> test(result, true));
   }
 }

@@ -4,16 +4,15 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -23,7 +22,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,17 +37,15 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
   static class EffectivelyFinal {}
 
   @NoHorizontalClassMerging
-  static class Reflection implements Callable<Class<?>> {
+  static class Reflection {
 
-    @ForceInline
-    @Override
     public Class<?> call() {
       return getClass();
     }
   }
 
   @NoHorizontalClassMerging
-  static class GetClassTestMain implements Callable<Class<?>> {
+  static class GetClassTestMain {
 
     @NeverInline
     static Class<?> getMainClass(GetClassTestMain instance) {
@@ -58,7 +54,6 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     }
 
     @NeverInline
-    @Override
     public Class<?> call() {
       // Non-null `this` pointer.
       return getClass();
@@ -180,6 +175,11 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     assertEquals(expectedGetClassCount, countGetClass(mainMethod));
     assertEquals(expectedConstClassCount, countConstClass(mainMethod));
 
+    ClassSubject reflectionClass = codeInspector.clazz(Reflection.class);
+    assertThat(reflectionClass, isPresent());
+    assertThat(
+        reflectionClass.uniqueMethodWithName("call"), onlyIf(expectCallPresent, isPresent()));
+
     ClassSubject getterClass = codeInspector.clazz(GetClassTestMain.class);
     MethodSubject getMainClass = getterClass.uniqueMethodWithName("getMainClass");
     assertThat(getMainClass, isPresent());
@@ -219,8 +219,6 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     testForR8(parameters.getBackend())
         .setMode(mode)
         .addInnerClasses(GetClassTest.class)
-        .addForceInliningAnnotations()
-        .applyIf(mode == CompilationMode.RELEASE, R8TestBuilder::enableForceInliningAnnotations)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .addKeepMainRule(MAIN)

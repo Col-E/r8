@@ -53,7 +53,6 @@ public abstract class RetraceTestBase extends TestBase {
             .setMode(mode)
             .enableProguardTestOptions()
             .addProgramClasses(getClasses())
-            .addForceInliningAnnotations()
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
             .apply(this::configure)

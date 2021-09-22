@@ -12,8 +12,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ForceInline;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -83,13 +81,6 @@ public class InliningRetraceTest extends RetraceTestBase {
   }
 
   @Override
-  public void configure(R8TestBuilder<?> builder) {
-    builder
-        .addForceInliningAnnotations()
-        .applyIf(mode == CompilationMode.RELEASE, R8TestBuilder::enableForceInliningAnnotations);
-  }
-
-  @Override
   public void inspect(CodeInspector inspector) {
     if (mode == CompilationMode.RELEASE) {
       assertEquals(compat ? 2 : 1, inspector.clazz(Main.class).allMethods().size());
@@ -99,13 +90,11 @@ public class InliningRetraceTest extends RetraceTestBase {
 
 class Main {
 
-  @ForceInline
   public static void method3(long j) {
     System.out.println("In method3");
     throw null;
   }
 
-  @ForceInline
   public static void method2(int j) {
     System.out.println("In method2");
     for (int i = 0; i < 10; i++) {
@@ -113,7 +102,6 @@ class Main {
     }
   }
 
-  @ForceInline
   public static void method1(String s) {
     System.out.println("In method1");
     for (int i = 0; i < 10; i++) {

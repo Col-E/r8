@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.SingleTestRunResult;
@@ -96,7 +95,6 @@ public class StringLengthTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN)
-            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getApiLevel())
@@ -107,7 +105,6 @@ public class StringLengthTest extends TestBase {
 
   public static class TestClass {
 
-    @ForceInline
     static String simpleInlineable() {
       return "Shared";
     }

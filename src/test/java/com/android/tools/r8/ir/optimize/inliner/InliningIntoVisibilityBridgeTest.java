@@ -54,10 +54,8 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
             .addInnerClasses(InliningIntoVisibilityBridgeTest.class)
             .addInnerClasses(InliningIntoVisibilityBridgeTestClasses.class)
             .addKeepMainRule(TestClass.class)
-            .addForceInliningAnnotations()
             .addInliningAnnotations()
             .applyIf(neverInline, R8TestBuilder::enableInliningAnnotations)
-            .applyIf(!neverInline, R8TestBuilder::enableForceInliningAnnotations)
             .enableNoVerticalClassMergingAnnotations()
             .enableProguardTestOptions()
             .setMinApi(parameters.getApiLevel())
@@ -93,13 +91,11 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      InliningIntoVisibilityBridgeTestClassC obj = new InliningIntoVisibilityBridgeTestClassC();
-
       // Invoke method three times to prevent the synthetic bridge on InliningIntoVisibilityBridge-
       // TestClassB from being inlined.
-      obj.method();
-      obj.method();
-      obj.method();
+      InliningIntoVisibilityBridgeTestClassC.method();
+      InliningIntoVisibilityBridgeTestClassC.method();
+      InliningIntoVisibilityBridgeTestClassC.method();
     }
   }
 

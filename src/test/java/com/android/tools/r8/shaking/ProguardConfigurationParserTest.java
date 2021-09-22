@@ -1720,8 +1720,7 @@ public class ProguardConfigurationParserTest extends TestBase {
 
   @Test
   public void parse_testInlineOptions() {
-    List<String> options = ImmutableList.of(
-        "-neverinline", "-forceinline");
+    List<String> options = ImmutableList.of("-neverinline");
     for (String option : options) {
       try {
         reset();

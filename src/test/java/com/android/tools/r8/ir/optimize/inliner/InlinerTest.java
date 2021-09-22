@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -20,16 +22,12 @@ import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestC
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceD;
 import com.android.tools.r8.ir.optimize.inliner.interfaces.InterfaceTargetsTestClass.IfaceNoImpl;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -52,31 +50,33 @@ public class InlinerTest extends TestBase {
 
   @Test
   public void testExceptionHandling() throws Exception {
-    String className = ExceptionHandlingTestClass.class.getName();
-    AndroidApp inputApp = readClasses(ExceptionHandlingTestClass.class);
-    List<String> proguardConfig =
-        ImmutableList.of(
-            "-keep public class " + className + "{",
-            "  public static void main(...);",
-            "}",
-            "-forceinline public class " + className + "{",
-            "  private static void inlinee*(...);",
-            "}",
-            "-neverinline public class " + className + "{",
-            "  private static void *Test(...);",
-            "}");
-    R8Command.Builder commandBuilder =
-        ToolHelper.prepareR8CommandBuilder(inputApp, emptyConsumer(backend))
-            .addProguardConfiguration(proguardConfig, Origin.unknown())
-            .addLibraryFiles(runtimeJar(backend));
-    ToolHelper.allowTestProguardOptions(commandBuilder);
-    AndroidApp outputApp = ToolHelper.runR8(commandBuilder.build(), this::configure);
-    assert backend == Backend.DEX || backend == Backend.CF;
-    assertEquals(
-        runOnJava(ExceptionHandlingTestClass.class),
-        backend == Backend.DEX
-            ? runOnArt(outputApp, className)
-            : runOnJava(outputApp, className, Collections.emptyList()));
+    testForR8(backend)
+        .addProgramClasses(ExceptionHandlingTestClass.class)
+        .addKeepMainRule(ExceptionHandlingTestClass.class)
+        .addOptionsModification(this::configure)
+        .enableInliningAnnotations()
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject mainClassSubject = inspector.clazz(ExceptionHandlingTestClass.class);
+              assertThat(mainClassSubject, isPresent());
+              assertThat(
+                  mainClassSubject.uniqueMethodWithName("inlineeWithNormalExitThatDoesNotThrow"),
+                  isAbsent());
+              assertThat(
+                  mainClassSubject.uniqueMethodWithName("inlineeWithNormalExitThatThrows"),
+                  isAbsent());
+              assertThat(
+                  mainClassSubject.uniqueMethodWithName("inlineeWithoutNormalExit"), isAbsent());
+            })
+        .run(ExceptionHandlingTestClass.class)
+        .assertSuccessWithOutputLines(
+            "Test succeeded: methodWithoutCatchHandlersTest(1)",
+            "Test succeeded: methodWithoutCatchHandlersTest(2)",
+            "Test succeeded: methodWithoutCatchHandlersTest(3)",
+            "Test succeeded: methodWithCatchHandlersTest(1)",
+            "Test succeeded: methodWithCatchHandlersTest(2)",
+            "Test succeeded: methodWithCatchHandlersTest(3)");
   }
 
   @Test

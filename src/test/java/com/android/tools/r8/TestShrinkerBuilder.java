@@ -395,10 +395,6 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(KeepConstantArguments.class);
   }
 
-  public final T addForceInliningAnnotations() {
-    return addTestingAnnotation(ForceInline.class);
-  }
-
   public final T addInliningAnnotations() {
     return addTestingAnnotation(NeverInline.class);
   }

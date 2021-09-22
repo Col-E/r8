@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -42,7 +42,6 @@ public class SubsumedCatchHandlerTest extends TestBase {
       System.out.print(" -> " + exitCode);
     }
 
-    @ForceInline
     private static int foo() {
       try {
         bar();
@@ -86,7 +85,6 @@ public class SubsumedCatchHandlerTest extends TestBase {
         testForR8(backend)
             .addInnerClasses(SubsumedCatchHandlerTest.class)
             .addKeepMainRule(TestClass.class)
-            .enableForceInliningAnnotations()
             .enableInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expected)
@@ -118,5 +116,7 @@ public class SubsumedCatchHandlerTest extends TestBase {
       DexType guard = handler.guards.get(0);
       assertEquals("java.lang.Exception", guard.toSourceString());
     }
+
+    assertThat(classSubject.uniqueMethodWithName("foo"), isAbsent());
   }
 }

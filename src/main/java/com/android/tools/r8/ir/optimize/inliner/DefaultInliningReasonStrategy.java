@@ -34,9 +34,7 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
     DexEncodedMethod targetMethod = target.getDefinition();
     DexMethod targetReference = target.getReference();
-    if (targetMethod.getOptimizationInfo().forceInline()
-        || (appView.appInfo().hasLiveness()
-            && appView.withLiveness().appInfo().isForceInlineMethod(targetReference))) {
+    if (targetMethod.getOptimizationInfo().forceInline()) {
       assert !appView.appInfo().isNeverInlineMethod(targetReference);
       return Reason.FORCE;
     }

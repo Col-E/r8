@@ -138,8 +138,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
   /** All methods that should be inlined if possible due to a configuration directive. */
   private final Set<DexMethod> alwaysInline;
-  /** All methods that *must* be inlined due to a configuration directive (testing only). */
-  private final Set<DexMethod> forceInline;
   /** All methods that *must* never be inlined due to a configuration directive (testing only). */
   private final Set<DexMethod> neverInline;
   /**
@@ -218,7 +216,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
       Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
       Set<DexMethod> alwaysInline,
-      Set<DexMethod> forceInline,
       Set<DexMethod> neverInline,
       Set<DexMethod> neverInlineDueToSingleCaller,
       Set<DexMethod> whyAreYouNotInlining,
@@ -256,7 +253,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.assumedValues = assumedValues;
     this.callSites = callSites;
     this.alwaysInline = alwaysInline;
-    this.forceInline = forceInline;
     this.neverInline = neverInline;
     this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = whyAreYouNotInlining;
@@ -302,7 +298,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.noSideEffects,
         previous.assumedValues,
         previous.alwaysInline,
-        previous.forceInline,
         previous.neverInline,
         previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
@@ -349,7 +344,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.noSideEffects,
         previous.assumedValues,
         previous.alwaysInline,
-        previous.forceInline,
         previous.neverInline,
         previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
@@ -404,7 +398,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         noSideEffects,
         assumedValues,
         alwaysInline,
-        forceInline,
         neverInline,
         neverInlineDueToSingleCaller,
         whyAreYouNotInlining,
@@ -487,7 +480,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.assumedValues = previous.assumedValues;
     this.callSites = previous.callSites;
     this.alwaysInline = previous.alwaysInline;
-    this.forceInline = previous.forceInline;
     this.neverInline = previous.neverInline;
     this.neverInlineDueToSingleCaller = previous.neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = previous.whyAreYouNotInlining;
@@ -617,14 +609,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean hasNoAlwaysInlineMethods() {
     return alwaysInline.isEmpty();
-  }
-
-  public boolean isForceInlineMethod(DexMethod method) {
-    return forceInline.contains(method);
-  }
-
-  public boolean hasNoForceInlineMethods() {
-    return forceInline.isEmpty();
   }
 
   public boolean isNeverInlineMethod(DexMethod method) {
@@ -1108,7 +1092,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferenceKeys(noSideEffects, rules -> null),
         lens.rewriteReferenceKeys(assumedValues, rules -> null),
         lens.rewriteMethods(alwaysInline),
-        lens.rewriteMethods(forceInline),
         lens.rewriteMethods(neverInline),
         lens.rewriteMethods(neverInlineDueToSingleCaller),
         lens.rewriteMethods(whyAreYouNotInlining),

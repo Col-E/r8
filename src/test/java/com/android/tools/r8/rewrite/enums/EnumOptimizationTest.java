@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.enums;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -58,7 +59,6 @@ public class EnumOptimizationTest extends TestBase {
         .addProgramClassesAndInnerClasses(Ordinals.class)
         .addKeepMainRule(Ordinals.class)
         .enableConstantArgumentAnnotations()
-        .enableForceInliningAnnotations()
         .enableInliningAnnotations()
         .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
@@ -100,6 +100,8 @@ public class EnumOptimizationTest extends TestBase {
 
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("phi"));
+
+    assertThat(clazz.uniqueMethodWithName("inlined2"), isAbsent());
   }
 
   @Test
@@ -108,7 +110,6 @@ public class EnumOptimizationTest extends TestBase {
         .addProgramClassesAndInnerClasses(Names.class)
         .addKeepMainRule(Names.class)
         .enableConstantArgumentAnnotations()
-        .enableForceInliningAnnotations()
         .enableInliningAnnotations()
         .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
@@ -147,6 +148,8 @@ public class EnumOptimizationTest extends TestBase {
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
 
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("phi"));
+
+    assertThat(clazz.uniqueMethodWithName("inlined2"), isAbsent());
   }
 
   @Test
@@ -155,7 +158,6 @@ public class EnumOptimizationTest extends TestBase {
         .addProgramClassesAndInnerClasses(ToStrings.class)
         .addKeepMainRule(ToStrings.class)
         .enableConstantArgumentAnnotations()
-        .enableForceInliningAnnotations()
         .enableInliningAnnotations()
         .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
@@ -197,6 +199,8 @@ public class EnumOptimizationTest extends TestBase {
 
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("phi"));
+
+    assertThat(clazz.uniqueMethodWithName("inlined2"), isAbsent());
   }
 
   private static void assertOrdinalReplacedWithConst(MethodSubject method, int expectedConst) {

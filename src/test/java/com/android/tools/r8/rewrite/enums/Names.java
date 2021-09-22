@@ -5,7 +5,6 @@
 package com.android.tools.r8.rewrite.enums;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +47,6 @@ class Names {
     return inlined2(Number.TWO);
   }
 
-  @ForceInline
   private static String inlined2(Number number) {
     return number.name();
   }

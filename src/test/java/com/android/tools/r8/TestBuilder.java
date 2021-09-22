@@ -190,7 +190,6 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return ImmutableList.of(
         AlwaysInline.class,
         AssumeMayHaveSideEffects.class,
-        ForceInline.class,
         KeepConstantArguments.class,
         KeepUnusedArguments.class,
         NeverClassInline.class,
