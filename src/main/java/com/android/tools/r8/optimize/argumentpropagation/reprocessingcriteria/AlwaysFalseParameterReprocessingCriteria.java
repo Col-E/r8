@@ -6,8 +6,6 @@ package com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -54,11 +52,5 @@ public class AlwaysFalseParameterReprocessingCriteria extends ParameterReprocess
   @Override
   public boolean shouldReprocessDueToNullability() {
     return false;
-  }
-
-  @Override
-  public DynamicType widenDynamicClassType(
-      AppView<AppInfoWithLiveness> appView, DynamicType dynamicType, ClassTypeElement staticType) {
-    return null;
   }
 }
