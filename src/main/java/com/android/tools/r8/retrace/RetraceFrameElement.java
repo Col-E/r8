@@ -18,9 +18,12 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   void visitAllFrames(BiConsumer<RetracedMethodReference, Integer> consumer);
 
-  void visitNonCompilerSynthesizedFrames(BiConsumer<RetracedMethodReference, Integer> consumer);
+  void visitRewrittenFrames(
+      RetraceStackTraceContext context, BiConsumer<RetracedMethodReference, Integer> consumer);
 
   RetracedSourceFile getSourceFile(RetracedClassMemberReference frame);
 
   List<? extends RetracedMethodReference> getOuterFrames();
+
+  RetraceStackTraceContext getContext();
 }

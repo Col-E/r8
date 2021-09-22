@@ -31,4 +31,6 @@ public interface RetraceClassElement extends RetraceElement<RetraceClassResult> 
   RetraceFrameResult lookupFrame(Optional<Integer> position, MethodReference methodReference);
 
   RetraceUnknownJsonMappingInformationResult getUnknownJsonMappingInformation();
+
+  RetraceStackTraceContext getContextWhereClassWasThrown();
 }

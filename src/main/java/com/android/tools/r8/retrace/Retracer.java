@@ -33,4 +33,9 @@ public interface Retracer {
       ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
     return RetracerImpl.create(proguardMapProducer, diagnosticsHandler, false);
   }
+
+  static Retracer createExperimental(
+      ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
+    return RetracerImpl.create(proguardMapProducer, diagnosticsHandler, true);
+  }
 }

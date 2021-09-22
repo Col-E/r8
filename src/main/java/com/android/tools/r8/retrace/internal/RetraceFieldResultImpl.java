@@ -10,7 +10,6 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceFieldResult;
-import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
@@ -111,11 +110,6 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     @Override
     public boolean isCompilerSynthesized() {
       throw new Unimplemented("b/172014416");
-    }
-
-    @Override
-    public RetraceStackTraceContext getContext() {
-      return RetraceStackTraceContext.getInitialContext();
     }
 
     @Override

@@ -20,7 +20,6 @@ import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceUnknownJsonMappingInformationResult;
 import com.android.tools.r8.retrace.RetracedSourceFile;
-import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
@@ -220,7 +219,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
         RetraceClassResultImpl classResult,
         List<Pair<RetraceClassElementImpl, T>> mappings,
         D definition,
-        Retracer retracer);
+        RetracerImpl retracer);
   }
 
   public static class RetraceClassElementImpl implements RetraceClassElement {
@@ -273,9 +272,10 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     @Override
-    public RetraceStackTraceContext getContext() {
-      // TODO(b/197936862): Extend the context to enable tracking information.
-      return RetraceStackTraceContext.getInitialContext();
+    public RetraceStackTraceContext getContextWhereClassWasThrown() {
+      return RetraceStackTraceContextImpl.builder()
+          .setSeenException(getRetracedClass().getClassReference())
+          .build();
     }
 
     @Override

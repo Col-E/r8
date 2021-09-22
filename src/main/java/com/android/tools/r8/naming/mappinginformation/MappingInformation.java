@@ -30,6 +30,10 @@ public abstract class MappingInformation {
     return false;
   }
 
+  public boolean isRewriteFrameMappingInformation() {
+    return false;
+  }
+
   public boolean isCompilerSynthesizedMappingInformation() {
     return false;
   }
@@ -47,6 +51,10 @@ public abstract class MappingInformation {
   }
 
   public UnknownJsonMappingInformation asUnknownJsonMappingInformation() {
+    return null;
+  }
+
+  public RewriteFrameMappingInformation asRewriteFrameMappingInformation() {
     return null;
   }
 
@@ -101,6 +109,9 @@ public abstract class MappingInformation {
         return;
       case CompilerSynthesizedMappingInformation.ID:
         CompilerSynthesizedMappingInformation.deserialize(version, onMappingInfo);
+        return;
+      case RewriteFrameMappingInformation.ID:
+        RewriteFrameMappingInformation.deserialize(version, object, onMappingInfo);
         return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));

@@ -42,6 +42,7 @@ import com.android.tools.r8.retrace.stacktraces.MultipleLinesNoLineNumberStackTr
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NoObfuscatedLineNumberWithOverrideTest;
 import com.android.tools.r8.retrace.stacktraces.NoObfuscationRangeMappingWithStackTrace;
+import com.android.tools.r8.retrace.stacktraces.NpeInlineRetraceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStackTrace;
@@ -307,6 +308,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testAmbiguousMissingLineVerbose() throws Exception {
     runRetraceTest(new AmbiguousWithSignatureVerboseStackTrace());
+  }
+
+  @Test
+  public void testNpeInlineRetraceStackTrace() throws Exception {
+    runExperimentalRetraceTest(new NpeInlineRetraceStackTrace());
   }
 
   private void inspectRetraceTest(

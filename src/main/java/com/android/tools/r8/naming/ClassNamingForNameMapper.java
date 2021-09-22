@@ -8,8 +8,10 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
@@ -451,6 +453,16 @@ public class ClassNamingForNameMapper implements ClassNaming {
         }
       }
       return false;
+    }
+
+    public List<RewriteFrameMappingInformation> getRewriteFrameMappingInformation() {
+      ImmutableList.Builder<RewriteFrameMappingInformation> builder = ImmutableList.builder();
+      for (MappingInformation mappingInformation : additionalMappingInfo) {
+        if (mappingInformation.isRewriteFrameMappingInformation()) {
+          builder.add(mappingInformation.asRewriteFrameMappingInformation());
+        }
+      }
+      return builder.build();
     }
 
     public int getOriginalLineNumber(int lineNumberAfterMinification) {

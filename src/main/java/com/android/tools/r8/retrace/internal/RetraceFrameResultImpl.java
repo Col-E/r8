@@ -6,16 +6,17 @@ package com.android.tools.r8.retrace.internal;
 
 import static com.android.tools.r8.retrace.internal.RetraceUtils.methodReferenceFromMappedRange;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceInvalidRewriteFrameDiagnostics;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedClassMemberReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
-import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -35,7 +36,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
   private final MethodDefinition methodDefinition;
   private final Optional<Integer> obfuscatedPosition;
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
-  private final Retracer retracer;
+  private final RetracerImpl retracer;
 
   private OptionalBool isAmbiguousCache = OptionalBool.UNKNOWN;
 
@@ -44,7 +45,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
       Optional<Integer> obfuscatedPosition,
-      Retracer retracer) {
+      RetracerImpl retracer) {
     this.classResult = classResult;
     this.methodDefinition = methodDefinition;
     this.obfuscatedPosition = obfuscatedPosition;
@@ -93,7 +94,8 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                             methodDefinition.substituteHolder(
                                 classElement.getRetracedClass().getClassReference())),
                         ImmutableList.of(),
-                        obfuscatedPosition));
+                        obfuscatedPosition,
+                        retracer));
               }
               // Iterate over mapped ranges that may have different positions than specified.
               List<ElementImpl> ambiguousFrames = new ArrayList<>();
@@ -125,7 +127,8 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
         classElement,
         getRetracedMethod(methodReference, topFrame, obfuscatedPosition),
         mappedRangesForElement,
-        obfuscatedPosition);
+        obfuscatedPosition,
+        retracer);
   }
 
   private RetracedMethodReferenceImpl getRetracedMethod(
@@ -156,18 +159,21 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     private final RetraceClassElementImpl classElement;
     private final List<MappedRange> mappedRanges;
     private final Optional<Integer> obfuscatedPosition;
+    private final RetracerImpl retracer;
 
-    private ElementImpl(
+    ElementImpl(
         RetraceFrameResultImpl retraceFrameResult,
         RetraceClassElementImpl classElement,
         RetracedMethodReferenceImpl methodReference,
         List<MappedRange> mappedRanges,
-        Optional<Integer> obfuscatedPosition) {
+        Optional<Integer> obfuscatedPosition,
+        RetracerImpl retracer) {
       this.methodReference = methodReference;
       this.retraceFrameResult = retraceFrameResult;
       this.classElement = classElement;
       this.mappedRanges = mappedRanges;
       this.obfuscatedPosition = obfuscatedPosition;
+      this.retracer = retracer;
     }
 
     private boolean isOuterMostFrameCompilerSynthesized() {
@@ -185,11 +191,6 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     @Override
     public boolean isCompilerSynthesized() {
       return getOuterFrames().isEmpty() && isOuterMostFrameCompilerSynthesized();
-    }
-
-    @Override
-    public RetraceStackTraceContext getContext() {
-      return RetraceStackTraceContext.getInitialContext();
     }
 
     @Override
@@ -222,17 +223,32 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public void visitNonCompilerSynthesizedFrames(
-        BiConsumer<RetracedMethodReference, Integer> consumer) {
+    public void visitRewrittenFrames(
+        RetraceStackTraceContext context, BiConsumer<RetracedMethodReference, Integer> consumer) {
+      RetraceStackTraceContextImpl contextImpl = (RetraceStackTraceContextImpl) context;
+      RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
+          contextImpl.computeRewritingInformation(mappedRanges);
       int index = 0;
+      int numberOfFramesToRemove = currentFrameInformation.getRemoveInnerFrames();
       RetracedMethodReferenceImpl prev = getTopFrame();
-      for (RetracedMethodReferenceImpl next : getOuterFrames()) {
-        consumer.accept(prev, index++);
+      List<RetracedMethodReferenceImpl> outerFrames = getOuterFrames();
+      if (numberOfFramesToRemove > outerFrames.size() + 1) {
+        assert prev.isKnown();
+        DiagnosticsHandler diagnosticsHandler = retracer.getDiagnosticsHandler();
+        diagnosticsHandler.warning(
+            RetraceInvalidRewriteFrameDiagnostics.create(
+                numberOfFramesToRemove, prev.asKnown().toString()));
+        numberOfFramesToRemove = 0;
+      }
+      for (RetracedMethodReferenceImpl next : outerFrames) {
+        if (numberOfFramesToRemove-- <= 0) {
+          consumer.accept(prev, index++);
+        }
         prev = next;
       }
       // We expect only the last frame, i.e., the outer-most caller to potentially be synthesized.
       // If not include it too.
-      if (!isOuterMostFrameCompilerSynthesized()) {
+      if (numberOfFramesToRemove <= 0 && !isOuterMostFrameCompilerSynthesized()) {
         consumer.accept(prev, index);
       }
     }
@@ -258,6 +274,12 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
             retraceFrameResult.getRetracedMethod(methodReference, mappedRange, obfuscatedPosition));
       }
       return outerFrames;
+    }
+
+    @Override
+    public RetraceStackTraceContext getContext() {
+      // This will change when supporting outline frames.
+      return RetraceStackTraceContext.getInitialContext();
     }
   }
 }

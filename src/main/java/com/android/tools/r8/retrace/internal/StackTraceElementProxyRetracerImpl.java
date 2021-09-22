@@ -78,7 +78,9 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                             .setRetracedClass(classElement.getRetracedClass())
                             .joinAmbiguous(classResult.isAmbiguous())
                             .setTopFrame(true)
-                            .setContext(classElement.getContext())
+                            // We assume, since no method was defined for this stack trace element,
+                            // that this was a thrown exception.
+                            .setContext(classElement.getContextWhereClassWasThrown())
                             .applyIf(
                                 element.hasSourceFile(),
                                 builder -> {
@@ -110,7 +112,8 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                   frameElement -> {
                     List<RetraceStackTraceElementProxyImpl<T, ST>> retracedProxies =
                         new ArrayList<>();
-                    frameElement.visitNonCompilerSynthesizedFrames(
+                    frameElement.visitRewrittenFrames(
+                        proxy.getContext(),
                         (frame, index) -> {
                           boolean isTopFrame = index == 0;
                           retracedProxies.add(
@@ -164,7 +167,6 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                           .setRetracedField(fieldElement.getField())
                           .joinAmbiguous(retraceFieldResult.isAmbiguous())
                           .setTopFrame(true)
-                          .setContext(fieldElement.getContext())
                           .applyIf(
                               element.hasSourceFile(),
                               builder -> {

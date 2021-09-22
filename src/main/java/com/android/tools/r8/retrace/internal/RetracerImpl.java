@@ -21,9 +21,11 @@ import java.io.BufferedReader;
 public class RetracerImpl implements Retracer {
 
   private final ClassNameMapper classNameMapper;
+  private final DiagnosticsHandler diagnosticsHandler;
 
-  public RetracerImpl(ClassNameMapper classNameMapper) {
+  public RetracerImpl(ClassNameMapper classNameMapper, DiagnosticsHandler diagnosticsHandler) {
     this.classNameMapper = classNameMapper;
+    this.diagnosticsHandler = diagnosticsHandler;
     assert classNameMapper != null;
   }
 
@@ -33,7 +35,8 @@ public class RetracerImpl implements Retracer {
       boolean allowExperimentalMapping) {
     if (proguardMapProducer instanceof DirectClassNameMapperProguardMapProducer) {
       return new RetracerImpl(
-          ((DirectClassNameMapperProguardMapProducer) proguardMapProducer).getClassNameMapper());
+          ((DirectClassNameMapperProguardMapProducer) proguardMapProducer).getClassNameMapper(),
+          diagnosticsHandler);
     }
     try {
       ClassNameMapper classNameMapper =
@@ -42,10 +45,14 @@ public class RetracerImpl implements Retracer {
               diagnosticsHandler,
               true,
               allowExperimentalMapping);
-      return new RetracerImpl(classNameMapper);
+      return new RetracerImpl(classNameMapper, diagnosticsHandler);
     } catch (Throwable throwable) {
       throw new InvalidMappingFileException(throwable);
     }
+  }
+
+  public DiagnosticsHandler getDiagnosticsHandler() {
+    return diagnosticsHandler;
   }
 
   @Override

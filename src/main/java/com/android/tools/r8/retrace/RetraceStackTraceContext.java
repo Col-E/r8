@@ -11,6 +11,6 @@ import com.android.tools.r8.retrace.internal.RetraceStackTraceContextImpl;
 public interface RetraceStackTraceContext {
 
   static RetraceStackTraceContext getInitialContext() {
-    return new RetraceStackTraceContextImpl();
+    return RetraceStackTraceContextImpl.builder().build();
   }
 }

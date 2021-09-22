@@ -177,7 +177,7 @@ public class CodeInspector {
 
   public Retracer getRetracer() {
     if (lazyRetracer == null) {
-      lazyRetracer = new RetracerImpl(mapping);
+      lazyRetracer = new RetracerImpl(mapping, new TestDiagnosticMessagesImpl());
     }
     return lazyRetracer;
   }

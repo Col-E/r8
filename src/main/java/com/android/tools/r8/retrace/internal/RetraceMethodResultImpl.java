@@ -10,10 +10,8 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
-import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
-import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
@@ -27,13 +25,13 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   private final MethodDefinition methodDefinition;
   private final RetraceClassResultImpl classResult;
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
-  private final Retracer retracer;
+  private final RetracerImpl retracer;
 
   RetraceMethodResultImpl(
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
-      Retracer retracer) {
+      RetracerImpl retracer) {
     this.classResult = classResult;
     this.mappedRanges = mappedRanges;
     this.methodDefinition = methodDefinition;
@@ -146,11 +144,6 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
     @Override
     public boolean isCompilerSynthesized() {
       throw new Unimplemented("b/172014416");
-    }
-
-    @Override
-    public RetraceStackTraceContext getContext() {
-      return RetraceStackTraceContext.getInitialContext();
     }
 
     @Override

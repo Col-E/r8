@@ -11,6 +11,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.RetraceFrameElement;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.ArrayList;
@@ -57,7 +58,8 @@ public class RetraceApiSynthesizedFrameTest extends RetraceApiTestBase {
       retraceFrameElement.visitAllFrames((method, ignored) -> allFrames.add(method));
       assertEquals(2, allFrames.size());
       List<RetracedMethodReference> nonSyntheticFrames = new ArrayList<>();
-      retraceFrameElement.visitNonCompilerSynthesizedFrames(
+      retraceFrameElement.visitRewrittenFrames(
+          RetraceStackTraceContext.getInitialContext(),
           (method, ignored) -> nonSyntheticFrames.add(method));
       assertEquals(1, nonSyntheticFrames.size());
       assertEquals(nonSyntheticFrames.get(0), allFrames.get(0));
