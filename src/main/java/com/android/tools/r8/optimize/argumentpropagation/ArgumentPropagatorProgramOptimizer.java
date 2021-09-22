@@ -331,13 +331,13 @@ public class ArgumentPropagatorProgramOptimizer {
 
     private DexMethod getNewMethodSignature(
         ProgramMethod method, RewrittenPrototypeDescription prototypeChanges) {
-      DexMethodSignature methodSignatureWithoutParametersRemoved = method.getMethodSignature();
+      DexMethodSignature methodSignatureWithoutPrototypeChanges = method.getMethodSignature();
       IntSet removableParameterIndices = prototypeChanges.getArgumentInfoCollection().getKeys();
 
       // Check if there is a reserved signature for this already.
       DexMethodSignature reservedSignature =
           newMethodSignatures
-              .getOrDefault(methodSignatureWithoutParametersRemoved, Collections.emptyMap())
+              .getOrDefault(methodSignatureWithoutPrototypeChanges, Collections.emptyMap())
               .get(removableParameterIndices);
       if (reservedSignature != null) {
         return reservedSignature.withHolder(method.getHolderType(), dexItemFactory);
@@ -353,7 +353,7 @@ public class ArgumentPropagatorProgramOptimizer {
         if (!method.getDefinition().isInstanceInitializer()) {
           reserveMethodSignature(
               methodSignatureWithParametersRemoved,
-              methodSignatureWithoutParametersRemoved,
+              methodSignatureWithoutPrototypeChanges,
               removableParameterIndices);
         }
         return methodReferenceWithParametersRemoved;
@@ -363,7 +363,7 @@ public class ArgumentPropagatorProgramOptimizer {
           occupiedMethodSignatures.get(methodSignatureWithParametersRemoved);
       // In this case we should have found a reserved method signature above.
       assert !(occupant.getFirst().equals(removableParameterIndices)
-          && occupant.getSecond().equals(methodSignatureWithoutParametersRemoved));
+          && occupant.getSecond().equals(methodSignatureWithoutPrototypeChanges));
 
       // We need to find a new name for this method, since the signature is already occupied.
       // TODO(b/190154391): Instead of generating a new name, we could also try permuting the order
@@ -380,16 +380,14 @@ public class ArgumentPropagatorProgramOptimizer {
                   return true;
                 }
                 return candidateOccupant.getFirst().equals(removableParameterIndices)
-                    && candidateOccupant
-                        .getSecond()
-                        .equals(methodSignatureWithoutParametersRemoved);
+                    && candidateOccupant.getSecond().equals(methodSignatureWithoutPrototypeChanges);
               });
 
       // Reserve the newly generated method signature.
       if (!method.getDefinition().isInstanceInitializer()) {
         reserveMethodSignature(
             newMethod.getSignature(),
-            methodSignatureWithoutParametersRemoved,
+            methodSignatureWithoutPrototypeChanges,
             removableParameterIndices);
       }
 
