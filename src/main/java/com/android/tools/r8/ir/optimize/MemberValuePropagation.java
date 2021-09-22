@@ -17,11 +17,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -61,6 +63,63 @@ public class MemberValuePropagation {
   public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.reporter = appView.options().reporter;
+  }
+
+  private void rewriteArrayGet(
+      IRCode code,
+      ProgramMethod context,
+      Set<Value> affectedValues,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      ArrayGet arrayGet) {
+    TypeElement arrayType = arrayGet.array().getType();
+    if (!arrayType.isArrayType()) {
+      // Does not type check.
+      return;
+    }
+
+    TypeElement memberType = arrayType.asArrayType().getMemberType();
+    if (!memberType.isClassType()) {
+      // We don't know what the value of the element is.
+      return;
+    }
+
+    boolean isAlwaysNull = false;
+    ClassTypeElement memberClassType = memberType.asClassType();
+    if (memberClassType.getClassType().isAlwaysNull(appView)) {
+      isAlwaysNull = true;
+    } else if (memberClassType.getInterfaces().hasSingleKnownInterface()) {
+      isAlwaysNull =
+          memberClassType.getInterfaces().getSingleKnownInterface().isAlwaysNull(appView);
+    }
+
+    if (!isAlwaysNull) {
+      // We don't know what the value of the element is.
+      return;
+    }
+
+    BasicBlock block = arrayGet.getBlock();
+    Position position = arrayGet.getPosition();
+
+    // All usages are replaced by the replacement value.
+    Instruction replacement =
+        appView
+            .abstractValueFactory()
+            .createNullValue()
+            .createMaterializingInstruction(appView, code, arrayGet);
+    affectedValues.addAll(arrayGet.outValue().affectedValues());
+    arrayGet.outValue().replaceUsers(replacement.outValue());
+
+    // Insert the definition of the replacement.
+    replacement.setPosition(position);
+    if (block.hasCatchHandlers()) {
+      iterator
+          .splitCopyCatchHandlers(code, blocks, appView.options())
+          .listIterator(code)
+          .add(replacement);
+    } else {
+      iterator.add(replacement);
+    }
   }
 
   private boolean mayPropagateValueFor(DexClassAndField field) {
@@ -472,7 +531,10 @@ public class MemberValuePropagation {
       InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
-        if (current.isInvokeMethod()) {
+        if (current.isArrayGet()) {
+          rewriteArrayGet(
+              code, context, affectedValues, blockIterator, iterator, current.asArrayGet());
+        } else if (current.isInvokeMethod()) {
           rewriteInvokeMethodWithConstantValues(
               code, context, affectedValues, blockIterator, iterator, current.asInvokeMethod());
         } else if (current.isFieldGet()) {
