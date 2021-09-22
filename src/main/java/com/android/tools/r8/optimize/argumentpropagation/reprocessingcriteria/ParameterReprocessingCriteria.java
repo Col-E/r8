@@ -6,6 +6,8 @@ package com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -41,6 +43,14 @@ public abstract class ParameterReprocessingCriteria {
   public abstract boolean shouldReprocessDueToDynamicType();
 
   public abstract boolean shouldReprocessDueToNullability();
+
+  public final DynamicType widenDynamicClassType(
+      AppView<AppInfoWithLiveness> appView, DynamicType dynamicType, ClassTypeElement staticType) {
+    if (dynamicType.getNullability().isMaybeNull()) {
+      return DynamicType.unknown();
+    }
+    return DynamicType.create(appView, staticType.getOrCreateVariant(dynamicType.getNullability()));
+  }
 
   public static class Builder {
 

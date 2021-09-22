@@ -40,6 +40,9 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.ArgumentPropagatorReprocessingCriteriaCollection;
+import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.MethodReprocessingCriteria;
+import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.ParameterReprocessingCriteria;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -68,6 +71,8 @@ public class ArgumentPropagatorCodeScanner {
 
   private final Set<DexMethod> monomorphicVirtualMethods = Sets.newIdentityHashSet();
 
+  private final ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection;
+
   /**
    * Maps each non-private virtual method to the upper most method in the class hierarchy with the
    * same method signature. Virtual methods that do not override other virtual methods are mapped to
@@ -82,8 +87,11 @@ public class ArgumentPropagatorCodeScanner {
   private final MethodStateCollectionByReference methodStates =
       MethodStateCollectionByReference.createConcurrent();
 
-  ArgumentPropagatorCodeScanner(AppView<AppInfoWithLiveness> appView) {
+  ArgumentPropagatorCodeScanner(
+      AppView<AppInfoWithLiveness> appView,
+      ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection) {
     this.appView = appView;
+    this.reprocessingCriteriaCollection = reprocessingCriteriaCollection;
   }
 
   public synchronized void addMonomorphicVirtualMethods(Set<DexMethod> extension) {
@@ -259,7 +267,11 @@ public class ArgumentPropagatorCodeScanner {
       assert existingMethodState.isBottom() || existingMethodState.isMonomorphic();
       result =
           computeMonomorphicMethodState(
-              invoke, resolvedMethod, context, existingMethodState.asMonomorphicOrBottom());
+              invoke,
+              resolvedMethod,
+              invoke.lookupSingleProgramTarget(appView, context),
+              context,
+              existingMethodState.asMonomorphicOrBottom());
     }
     timing.end();
     return result;
@@ -276,9 +288,10 @@ public class ArgumentPropagatorCodeScanner {
     DynamicType dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
     assert !dynamicReceiverType.getDynamicUpperBoundType().nullability().isDefinitelyNull();
 
+    ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
     DynamicType bounds =
         computeBoundsForPolymorphicMethodState(
-            invoke, resolvedMethod, context, dynamicReceiverType);
+            invoke, resolvedMethod, singleTarget, context, dynamicReceiverType);
     MethodState existingMethodStateForBounds =
         existingMethodState.isPolymorphic()
             ? existingMethodState.asPolymorphic().getMethodStateForBounds(bounds)
@@ -299,6 +312,7 @@ public class ArgumentPropagatorCodeScanner {
         computeMonomorphicMethodState(
             invoke,
             resolvedMethod,
+            singleTarget,
             context,
             existingMethodStateForBounds.asMonomorphicOrBottom(),
             dynamicReceiverType);
@@ -308,9 +322,9 @@ public class ArgumentPropagatorCodeScanner {
   private DynamicType computeBoundsForPolymorphicMethodState(
       InvokeMethodWithReceiver invoke,
       ProgramMethod resolvedMethod,
+      ProgramMethod singleTarget,
       ProgramMethod context,
       DynamicType dynamicReceiverType) {
-    ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
     DynamicType bounds =
         singleTarget != null
             ? DynamicType.createExact(
@@ -343,11 +357,13 @@ public class ArgumentPropagatorCodeScanner {
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
       InvokeMethod invoke,
       ProgramMethod resolvedMethod,
+      ProgramMethod singleTarget,
       ProgramMethod context,
       ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
     return computeMonomorphicMethodState(
         invoke,
         resolvedMethod,
+        singleTarget,
         context,
         existingMethodState,
         invoke.isInvokeMethodWithReceiver()
@@ -358,10 +374,16 @@ public class ArgumentPropagatorCodeScanner {
   private ConcreteMonomorphicMethodStateOrUnknown computeMonomorphicMethodState(
       InvokeMethod invoke,
       ProgramMethod resolvedMethod,
+      ProgramMethod singleTarget,
       ProgramMethod context,
       ConcreteMonomorphicMethodStateOrBottom existingMethodState,
       DynamicType dynamicReceiverType) {
     List<ParameterState> parameterStates = new ArrayList<>(invoke.arguments().size());
+
+    MethodReprocessingCriteria methodReprocessingCriteria =
+        singleTarget != null
+            ? reprocessingCriteriaCollection.getReprocessingCriteria(singleTarget)
+            : MethodReprocessingCriteria.alwaysReprocess();
 
     int argumentIndex = 0;
     if (invoke.isInvokeMethodWithReceiver()) {
@@ -371,7 +393,8 @@ public class ArgumentPropagatorCodeScanner {
               invoke.asInvokeMethodWithReceiver(),
               resolvedMethod,
               dynamicReceiverType,
-              existingMethodState));
+              existingMethodState,
+              methodReprocessingCriteria.getParameterReprocessingCriteria(0)));
       argumentIndex++;
     }
 
@@ -382,7 +405,8 @@ public class ArgumentPropagatorCodeScanner {
               argumentIndex,
               invoke.getArgument(argumentIndex),
               context,
-              existingMethodState));
+              existingMethodState,
+              methodReprocessingCriteria.getParameterReprocessingCriteria(argumentIndex)));
     }
 
     // If all parameter states are unknown, then return a canonicalized unknown method state that
@@ -402,10 +426,17 @@ public class ArgumentPropagatorCodeScanner {
       InvokeMethodWithReceiver invoke,
       ProgramMethod resolvedMethod,
       DynamicType dynamicReceiverType,
-      ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState,
+      ParameterReprocessingCriteria parameterReprocessingCriteria) {
     // Don't compute a state for this parameter if the stored state is already unknown.
     if (existingMethodState.isMonomorphic()
         && existingMethodState.asMonomorphic().getParameterState(0).isUnknown()) {
+      return ParameterState.unknown();
+    }
+
+    // For receivers we only track the dynamic type. Therefore, if there is no need to track the
+    // dynamic type of the receiver of the targeted method, then just return unknown.
+    if (!parameterReprocessingCriteria.shouldReprocessDueToDynamicType()) {
       return ParameterState.unknown();
     }
 
@@ -421,7 +452,8 @@ public class ArgumentPropagatorCodeScanner {
       int argumentIndex,
       Value argument,
       ProgramMethod context,
-      ConcreteMonomorphicMethodStateOrBottom existingMethodState) {
+      ConcreteMonomorphicMethodStateOrBottom existingMethodState,
+      ParameterReprocessingCriteria parameterReprocessingCriteria) {
     // Don't compute a state for this parameter if the stored state is already unknown.
     if (existingMethodState.isMonomorphic()
         && existingMethodState.asMonomorphic().getParameterState(argumentIndex).isUnknown()) {
@@ -469,6 +501,12 @@ public class ArgumentPropagatorCodeScanner {
     // then use UnknownParameterState.
     if (parameterTypeElement.isClassType()) {
       DynamicType dynamicType = argument.getDynamicType(appView);
+      if (!parameterReprocessingCriteria.shouldReprocessDueToDynamicType()) {
+        dynamicType =
+            parameterReprocessingCriteria.widenDynamicClassType(
+                appView, dynamicType, parameterTypeElement.asClassType());
+      }
+
       DynamicType widenedDynamicType =
           WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, parameterType);
       return abstractValue.isUnknown() && widenedDynamicType.isUnknown()
