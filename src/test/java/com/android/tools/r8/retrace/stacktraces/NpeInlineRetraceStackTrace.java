@@ -23,7 +23,7 @@ public class NpeInlineRetraceStackTrace implements StackTraceForTest {
         "some.Class -> a:",
         "  4:4:void other.Class():23:23 -> a",
         "  4:4:void caller(other.Class):7 -> a",
-        "  # { id: 'com.android.tools.r8.rewriteframe', "
+        "  # { id: 'com.android.tools.r8.rewriteFrame', "
             + "conditions: ['throws(Ljava/lang/NullPointerException;)'],  "
             + "actions: ['removeInnerFrames(1)'] }");
   }

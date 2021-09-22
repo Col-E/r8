@@ -48,7 +48,7 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
             + "some.Class -> a:\n"
             + "  4:4:void other.Class.inlinee():23:23 -> a\n"
             + "  4:4:void caller(other.Class):7 -> a\n"
-            + "  # { id: 'com.android.tools.r8.rewriteframe', "
+            + "  # { id: 'com.android.tools.r8.rewriteFrame', "
             + "      conditions: ['throws("
             + npeDescriptor
             + ")'], "
