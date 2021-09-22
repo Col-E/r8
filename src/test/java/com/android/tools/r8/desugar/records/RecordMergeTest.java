@@ -8,6 +8,7 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -33,12 +34,14 @@ public class RecordMergeTest extends TestBase {
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42");
 
   private final TestParameters parameters;
+  private final boolean intermediate;
 
-  public RecordMergeTest(TestParameters parameters) {
+  public RecordMergeTest(TestParameters parameters, boolean intermediate) {
     this.parameters = parameters;
+    this.intermediate = intermediate;
   }
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameterized.Parameters(name = "{0}, intermediate: {1}")
   public static List<Object[]> data() {
     // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
     return buildParameters(
@@ -46,7 +49,8 @@ public class RecordMergeTest extends TestBase {
             .withCustomRuntime(CfRuntime.getCheckedInJdk17())
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
-            .build());
+            .build(),
+        BooleanUtils.values());
   }
 
   @Test
@@ -56,6 +60,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .setIntermediate(intermediate)
             .compile()
             .writeToZip();
     Path output2 =
@@ -63,6 +68,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .setIntermediate(intermediate)
             .compile()
             .writeToZip();
     D8TestCompileResult result =
@@ -82,6 +88,7 @@ public class RecordMergeTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .setIntermediate(intermediate)
             .compile()
             .writeToZip();
     D8TestCompileResult result =

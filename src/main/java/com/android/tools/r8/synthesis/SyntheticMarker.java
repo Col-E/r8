@@ -109,11 +109,10 @@ public class SyntheticMarker {
 
   private static SyntheticMarker internalStripMarkerFromClass(
       DexProgramClass clazz, AppView<?> appView) {
-    ClassAccessFlags flags = clazz.accessFlags;
     if (clazz.superType != appView.dexItemFactory().objectType) {
       return NO_MARKER;
     }
-    if (!flags.isSynthetic() || flags.isAbstract() || flags.isEnum()) {
+    if (isDefinitelyNotSyntheticProgramClass(clazz)) {
       return NO_MARKER;
     }
     SyntheticKind kind =
@@ -137,6 +136,12 @@ public class SyntheticMarker {
     DexType context = getSyntheticContextType(clazz.type, kind, appView.dexItemFactory());
     return new SyntheticMarker(
         kind, SynthesizingContext.fromSyntheticInputClass(clazz, context, appView));
+  }
+
+  // Filters out definitely not synthetic classes to avoid expensive computations on all classes.
+  public static boolean isDefinitelyNotSyntheticProgramClass(DexProgramClass clazz) {
+    ClassAccessFlags flags = clazz.accessFlags;
+    return !flags.isSynthetic() || flags.isEnum();
   }
 
   private static DexType getSyntheticContextType(

@@ -29,4 +29,11 @@ public class SyntheticProgramClassBuilder
   public SyntheticProgramClassBuilder self() {
     return this;
   }
+
+  @Override
+  public DexProgramClass build() {
+    DexProgramClass clazz = super.build();
+    assert !SyntheticMarker.isDefinitelyNotSyntheticProgramClass(clazz);
+    return clazz;
+  }
 }

@@ -11,7 +11,9 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
+import java.nio.file.Path;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,6 +60,25 @@ public class SimpleRecordTest extends TestBase {
         .inspectWithOptions(
             RecordTestUtils::assertNoJavaLangRecord,
             options -> options.testing.disableRecordApplicationReaderMap = true)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testD8Intermediate() throws Exception {
+    Assume.assumeTrue(parameters.isDexRuntime());
+    Path path =
+        testForD8(Backend.DEX)
+            .addProgramClassFileData(PROGRAM_DATA)
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .setIntermediate(true)
+            .compile()
+            .writeToZip();
+    testForD8()
+        .addProgramFiles(path)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
