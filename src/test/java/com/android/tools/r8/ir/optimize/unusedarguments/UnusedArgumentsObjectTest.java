@@ -29,6 +29,7 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
     return UnusedArgumentsTestBase.data();
   }
 
+  @NeverClassInline
   static class TestObject {
 
     public final String s;

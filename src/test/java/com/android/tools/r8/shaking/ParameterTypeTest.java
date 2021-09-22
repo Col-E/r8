@@ -80,17 +80,17 @@ class B112452064TestMain {
 @RunWith(Parameterized.class)
 public class ParameterTypeTest extends TestBase {
 
-  private final boolean enableArgumentRemoval;
+  private final boolean enableArgumentPropagation;
   private final TestParameters parameters;
 
-  @Parameters(name = "{1}, argument removal: {0}")
+  @Parameters(name = "{1}, argument propagation: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public ParameterTypeTest(boolean enableArgumentRemoval, TestParameters parameters) {
-    this.enableArgumentRemoval = enableArgumentRemoval;
+  public ParameterTypeTest(boolean enableArgumentPropagation, TestParameters parameters) {
+    this.enableArgumentPropagation = enableArgumentPropagation;
     this.parameters = parameters;
   }
 
@@ -228,7 +228,7 @@ public class ParameterTypeTest extends TestBase {
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
               options.enableInlining = false;
-              options.enableArgumentRemoval = enableArgumentRemoval;
+              options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             });
 
     // Run processed (output) program on ART
@@ -239,7 +239,7 @@ public class ParameterTypeTest extends TestBase {
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);
-    assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
+    assertNotEquals(enableArgumentPropagation, subSubject.isPresent());
   }
 
   @Test
@@ -307,7 +307,7 @@ public class ParameterTypeTest extends TestBase {
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
               options.enableInlining = false;
-              options.enableArgumentRemoval = enableArgumentRemoval;
+              options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             })
         .noMinification()
         .setMinApi(parameters.getApiLevel())
@@ -315,11 +315,11 @@ public class ParameterTypeTest extends TestBase {
         .inspect(
             inspector -> {
               ClassSubject subSubject = inspector.clazz(sub.name);
-              assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
+              assertNotEquals(enableArgumentPropagation, subSubject.isPresent());
             })
         .run(parameters.getRuntime(), mainClassName)
         .applyIf(
-            enableArgumentRemoval || parameters.isCfRuntime(),
+            enableArgumentPropagation || parameters.isCfRuntime(),
             SingleTestRunResult::assertSuccess,
             result ->
                 result.assertFailureWithErrorThatMatches(
@@ -410,7 +410,7 @@ public class ParameterTypeTest extends TestBase {
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
               options.enableInlining = false;
-              options.enableArgumentRemoval = enableArgumentRemoval;
+              options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             });
 
     // Run processed (output) program on ART
@@ -422,6 +422,6 @@ public class ParameterTypeTest extends TestBase {
 
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject subSubject = inspector.clazz(sub.name);
-    assertNotEquals(enableArgumentRemoval, subSubject.isPresent());
+    assertNotEquals(enableArgumentPropagation, subSubject.isPresent());
   }
 }

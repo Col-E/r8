@@ -57,8 +57,6 @@ import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.UninstantiatedTypeOptimizationGraphLens;
-import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
-import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLens;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
@@ -512,32 +510,15 @@ public class R8 {
         }
         assert appView.verticallyMergedClasses() != null;
 
-        if (options.enableArgumentRemoval) {
-          SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
-          {
-            timing.begin("UnusedArgumentRemoval");
-            UnusedArgumentsGraphLens lens =
-                new UnusedArgumentsCollector(
-                        appViewWithLiveness,
-                        new MethodPoolCollection(appViewWithLiveness, subtypingInfo))
-                    .run(executorService, timing);
-            assert lens == null || getDirectApp(appView).verifyNothingToRewrite(appView, lens);
-            appView.rewriteWithLens(lens);
-            timing.end();
-          }
-          if (options.enableUninstantiatedTypeOptimization) {
-            timing.begin("UninstantiatedTypeOptimization");
-            UninstantiatedTypeOptimizationGraphLens lens =
-                new UninstantiatedTypeOptimization(appViewWithLiveness)
-                    .strenghtenOptimizationInfo()
-                    .run(
-                        new MethodPoolCollection(appViewWithLiveness, subtypingInfo),
-                        executorService,
-                        timing);
-            assert lens == null || getDirectApp(appView).verifyNothingToRewrite(appView, lens);
-            appView.rewriteWithLens(lens);
-            timing.end();
-          }
+        if (options.enableUninstantiatedTypeOptimization) {
+          timing.begin("UninstantiatedTypeOptimization");
+          UninstantiatedTypeOptimizationGraphLens lens =
+              new UninstantiatedTypeOptimization(appViewWithLiveness)
+                  .strenghtenOptimizationInfo()
+                  .run(new MethodPoolCollection(appViewWithLiveness), executorService, timing);
+          assert lens == null || getDirectApp(appView).verifyNothingToRewrite(appView, lens);
+          appView.rewriteWithLens(lens);
+          timing.end();
         }
 
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)

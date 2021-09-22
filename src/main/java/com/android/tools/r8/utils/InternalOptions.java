@@ -214,7 +214,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public void disableGlobalOptimizations() {
-    enableArgumentRemoval = false;
     enableInlining = false;
     enableClassInlining = false;
     enableClassStaticizer = false;
@@ -255,7 +254,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
   public boolean enableVerticalClassMerging = true;
-  public boolean enableArgumentRemoval = true;
   public boolean enableUnusedInterfaceRemoval = true;
   public boolean enableDevirtualization = true;
   public boolean enableInlining =
@@ -1256,6 +1254,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isDynamicTypePropagationEnabled() {
       return enableDynamicTypePropagation;
+    }
+
+    public CallSiteOptimizationOptions setEnabled(boolean enabled) {
+      if (enabled) {
+        assert isEnabled();
+      } else {
+        disableOptimization();
+      }
+      return this;
     }
 
     public CallSiteOptimizationOptions setEnableLegacyConstantPropagation() {

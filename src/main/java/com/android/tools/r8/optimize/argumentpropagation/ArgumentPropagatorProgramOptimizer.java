@@ -268,6 +268,7 @@ public class ArgumentPropagatorProgramOptimizer {
     private boolean isParameterRemovalAllowed(ProgramMethod method) {
       return appView.getKeepInfo(method).isParameterRemovalAllowed(options)
           && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
+          && !appView.appInfo().isBootstrapMethod(method)
           && !appView.appInfo().isMethodTargetedByInvokeDynamic(method);
     }
 

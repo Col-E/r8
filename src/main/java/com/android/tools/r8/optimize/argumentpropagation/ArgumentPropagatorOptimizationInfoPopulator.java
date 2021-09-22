@@ -18,6 +18,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteArr
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteClassTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodStateOrUnknown;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
@@ -159,6 +160,11 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       return;
     }
 
+    // Do not optimize @KeepConstantArgument methods.
+    if (appView.appInfo().isKeepConstantArgumentsMethod(method)) {
+      methodState = MethodState.unknown();
+    }
+
     methodState = getMethodStateAfterUnusedParameterRemoval(method, methodState);
 
     if (methodState.isUnknown()) {
@@ -208,12 +214,9 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     // before reenqueing.
     MethodReprocessingCriteria reprocessingCriteria =
         reprocessingCriteriaCollection.getReprocessingCriteria(method);
-    if (!reprocessingCriteria.shouldReprocess(appView, method, monomorphicMethodState)) {
-      return;
-    }
-
-    // Do not optimize @KeepConstantArgument methods.
-    if (appView.appInfo().isKeepConstantArgumentsMethod(method)) {
+    ConcreteMonomorphicMethodStateOrUnknown widenedMethodState =
+        reprocessingCriteria.widenMethodState(appView, method, monomorphicMethodState);
+    if (widenedMethodState.isUnknown()) {
       return;
     }
 
@@ -221,7 +224,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         .getDefinition()
         .setCallSiteOptimizationInfo(
             ConcreteCallSiteOptimizationInfo.fromMethodState(
-                appView, method, monomorphicMethodState));
+                appView, method, widenedMethodState.asMonomorphic()));
   }
 
   private MethodState getMethodStateAfterUnusedParameterRemoval(

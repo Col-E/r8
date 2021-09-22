@@ -9,12 +9,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -29,25 +29,20 @@ import org.junit.runners.Parameterized.Parameters;
 public class UnusedArgumentsCollisionMappingTest extends TestBase {
 
   private final TestParameters parameters;
-  private final CompilationMode compilationMode;
 
-  @Parameters(name = "{0}, compilation mode: {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public UnusedArgumentsCollisionMappingTest(
-      TestParameters parameters, CompilationMode compilationMode) {
+  public UnusedArgumentsCollisionMappingTest(TestParameters parameters) {
     this.parameters = parameters;
-    this.compilationMode = compilationMode;
   }
 
   @Test
   public void testR8() throws Exception {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
-            .setMode(compilationMode)
             .addProgramClasses(Main.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(Main.class)
