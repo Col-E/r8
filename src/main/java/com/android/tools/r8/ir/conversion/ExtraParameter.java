@@ -10,7 +10,14 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 
 public abstract class ExtraParameter {
+
   public abstract TypeElement getTypeElement(AppView<?> appView, DexType argType);
 
   public abstract SingleNumberValue getValue(AppView<?> appView);
+
+  @Override
+  public abstract boolean equals(Object obj);
+
+  @Override
+  public abstract int hashCode();
 }

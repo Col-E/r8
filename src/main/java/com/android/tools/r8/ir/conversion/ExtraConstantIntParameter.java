@@ -10,7 +10,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 
 public class ExtraConstantIntParameter extends ExtraParameter {
-  long value;
+
+  private final long value;
 
   public ExtraConstantIntParameter(long value) {
     this.value = value;
@@ -25,5 +26,19 @@ public class ExtraConstantIntParameter extends ExtraParameter {
   @Override
   public SingleNumberValue getValue(AppView<?> appView) {
     return appView.abstractValueFactory().createSingleNumberValue(value);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    ExtraConstantIntParameter other = (ExtraConstantIntParameter) obj;
+    return value == other.value;
+  }
+
+  @Override
+  public int hashCode() {
+    return Long.hashCode(value);
   }
 }
