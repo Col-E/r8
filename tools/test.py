@@ -8,6 +8,7 @@
 # force the tests to run, even if no input changed.
 
 import archive_desugar_jdk_libs
+import download_kotlin_dev
 import notify
 import optparse
 import os
@@ -187,6 +188,10 @@ def ParseOptions():
       '--stacktrace',
       help='Pass --stacktrace to the gradle run',
       default=False, action='store_true')
+  result.add_option('--kotlin-dev-compiler',
+                    help='Specify to download a kotlin dev compiler and run '
+                         'tests with that',
+                    default=False, action='store_true')
   return result.parse_args()
 
 def archive_failures():
@@ -275,6 +280,8 @@ def Main():
     gradle_args.append('-Pprint_full_stacktraces')
   if options.print_obfuscated_stacktraces:
     gradle_args.append('-Pprint_obfuscated_stacktraces')
+  if options.kotlin_dev_compiler:
+    download_kotlin_dev.download_newest()
   if os.name == 'nt':
     # temporary hack
     gradle_args.append('-Pno_internal')
