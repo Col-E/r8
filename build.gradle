@@ -1900,10 +1900,6 @@ def retrace(Throwable exception) {
     def err = new StringBuffer()
     def command = "python tools/retrace.py --quiet"
     def header = "RETRACED STACKTRACE";
-    if (System.getenv('BUILDBOT_BUILDERNAME') != null
-            && !System.getenv('BUILDBOT_BUILDERNAME').endsWith("_release")) {
-        header += ": (${command} --commit_hash ${System.getenv('BUILDBOT_REVISION')})";
-    }
     out.append("\n--------------------------------------\n")
     out.append("${header}\n")
     out.append("--------------------------------------\n")
