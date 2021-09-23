@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -13,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -70,8 +68,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
   public void smokeTest() throws Exception {
     testForJvm()
         .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc),
-            baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
+            kotlinc.getKotlinStdlibJar(), baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(
             extLibJarMap.getForConfiguration(kotlinc, targetVersion),
             appJarMap.getForConfiguration(kotlinc, targetVersion))
@@ -88,7 +85,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             .addProgramFiles(
                 extLibJarMap.getForConfiguration(kotlinc, targetVersion),
                 appJarMap.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             // Keep Ext extension method which requires metadata to be called with Kotlin syntax
             // from other kotlin code.
             .addKeepRules("-keep class **.ExtKt { <methods>; }")
@@ -109,8 +106,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
 
     testForJvm()
         .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc),
-            baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
+            kotlinc.getKotlinStdlibJar(), baseLibJarMap.getForConfiguration(kotlinc, targetVersion))
         .addClasspath(out)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutput(EXPECTED);

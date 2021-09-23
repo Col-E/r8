@@ -13,7 +13,6 @@ import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -63,8 +62,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
     assumeTrue(parameters.isCfRuntime());
     Path libJar = jarMap.getForConfiguration(kotlinc, targetVersion);
     testForRuntime(parameters)
-        .addProgramFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
+        .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .run(parameters.getRuntime(), PKG_NESTED_REFLECT + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -73,9 +71,9 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
   public void testMetadataOuterRenamed() throws Exception {
     Path mainJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-            .addClasspathFiles(ToolHelper.getKotlinReflectJar(kotlinc))
-            .addClasspathFiles(ToolHelper.getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar())
+            .addClasspathFiles(kotlinc.getKotlinReflectJar())
+            .addClasspathFiles(kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(jarMap.getForConfiguration(kotlinc, targetVersion))
             .addKeepRules("-keep public class " + PKG_NESTED_REFLECT + ".Outer$Nested { *; }")
             .addKeepRules("-keep public class " + PKG_NESTED_REFLECT + ".Outer$Inner { *; }")
@@ -93,9 +91,9 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
   public void testMetadataOuterNotRenamed() throws Exception {
     Path mainJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-            .addClasspathFiles(ToolHelper.getKotlinReflectJar(kotlinc))
-            .addClasspathFiles(ToolHelper.getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar())
+            .addClasspathFiles(kotlinc.getKotlinReflectJar())
+            .addClasspathFiles(kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(jarMap.getForConfiguration(kotlinc, targetVersion))
             .addKeepAttributeInnerClassesAndEnclosingMethod()
             .addKeepRules("-keep public class " + PKG_NESTED_REFLECT + ".Outer { *; }")
@@ -118,8 +116,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
             ? new ClassFileConsumer.ArchiveConsumer(output, true)
             : new ArchiveConsumer(output, true);
     testForD8(parameters.getBackend())
-        .addProgramFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), jar)
+        .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), jar)
         .setMinApi(parameters.getApiLevel())
         .setProgramConsumer(programConsumer)
         .addOptionsModification(

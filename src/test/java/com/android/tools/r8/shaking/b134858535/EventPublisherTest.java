@@ -4,13 +4,11 @@
 
 package com.android.tools.r8.shaking.b134858535;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
-
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,18 +18,21 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EventPublisherTest extends TestBase {
 
-  private final KotlinCompiler kotlinc;
+  private final KotlinTestParameters kotlinTestParameters;
   private final TestParameters parameters;
 
   @Parameters(name = "{1}, {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        getKotlinCompilers(),
+        getKotlinTestParameters()
+            .withAllCompilers()
+            .withTargetVersion(KotlinTargetVersion.JAVA_8)
+            .build(),
         TestBase.getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public EventPublisherTest(KotlinCompiler kotlinc, TestParameters parameters) {
-    this.kotlinc = kotlinc;
+  public EventPublisherTest(KotlinTestParameters kotlinTestParameters, TestParameters parameters) {
+    this.kotlinTestParameters = kotlinTestParameters;
     this.parameters = parameters;
   }
 
@@ -47,7 +48,7 @@ public class EventPublisherTest extends TestBase {
             SdkConfiguration.class,
             TrackBatchEventResponse.class)
         .addProgramClassFileData(EventPublisher$bDump.dump())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .addKeepClassRules(Interface.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())

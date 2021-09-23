@@ -4,17 +4,15 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.objectweb.asm.Opcodes.ASM7;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -61,7 +59,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 1, 16});
     testBuilder
-        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.testing.keepMetadataInR8IfNotRewritten = false)
         .addKeepAllClassesRuleWithAllowObfuscation()
@@ -75,7 +73,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 0});
     testBuilder
-        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -88,7 +86,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     final R8FullTestBuilder testBuilder = testForR8(parameters.getBackend());
     rewriteMetadataVersion(testBuilder::addProgramClassFileData, new int[] {1, 4, 2});
     testBuilder
-        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -99,7 +97,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
   private void rewriteMetadataVersion(Consumer<byte[]> rewrittenBytesConsumer, int[] newVersion)
       throws IOException {
     ZipUtils.iter(
-        ToolHelper.getKotlinStdlibJar(kotlinc).toString(),
+        kotlinc.getKotlinStdlibJar().toString(),
         ((entry, input) -> {
           if (!entry.getName().endsWith(".class")) {
             return;

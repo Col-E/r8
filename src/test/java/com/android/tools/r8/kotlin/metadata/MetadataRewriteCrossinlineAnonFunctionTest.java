@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
-
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -53,7 +50,7 @@ public class MetadataRewriteCrossinlineAnonFunctionTest extends KotlinMetadataTe
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -64,7 +61,7 @@ public class MetadataRewriteCrossinlineAnonFunctionTest extends KotlinMetadataTe
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .compile()
@@ -76,7 +73,7 @@ public class MetadataRewriteCrossinlineAnonFunctionTest extends KotlinMetadataTe
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .compile();
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);

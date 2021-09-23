@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -73,7 +71,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".multifileclass_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -83,7 +81,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(multifileLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep UtilKt#comma*Join*(). Let R8 optimize (inline) others, such as joinOf*(String).
             .addKeepRules("-keep class **.UtilKt")
@@ -124,7 +122,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(multifileLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep UtilKt#comma*Join*().
             .addKeepRules("-keep class **.UtilKt")

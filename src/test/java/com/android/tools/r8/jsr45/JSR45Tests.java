@@ -4,8 +4,6 @@
 package com.android.tools.r8.jsr45;
 
 import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
@@ -66,12 +64,11 @@ public class JSR45Tests {
 
   private AndroidApp compileWithR8(Path inputPath, Path outputPath, Path keepRulesPath)
       throws CompilationFailedException {
+    KotlinCompiler kotlinc = KotlinCompiler.latest();
     return ToolHelper.runR8(
         R8Command.builder()
             .addProgramFiles(inputPath)
-            .addProgramFiles(
-                getKotlinStdlibJar(KotlinCompiler.latest()),
-                getKotlinAnnotationJar(KotlinCompiler.latest()))
+            .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addLibraryFiles(getDefaultAndroidJar())
             .setOutput(outputPath, OutputMode.DexIndexed)
             .addProguardConfigurationFiles(keepRulesPath)

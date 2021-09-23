@@ -3,15 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.ToolHelper.getKotlinC_1_4_20;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MAX_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -30,12 +30,40 @@ import org.junit.rules.TemporaryFolder;
 
 public class KotlinCompilerTool {
 
+  public enum KotlinTargetVersion {
+    NONE(""),
+    JAVA_6("JAVA_6"),
+    JAVA_8("JAVA_8");
+
+    private final String folderName;
+
+    KotlinTargetVersion(String folderName) {
+      this.folderName = folderName;
+    }
+
+    public String getFolderName() {
+      return folderName;
+    }
+
+    public String getJvmTargetString() {
+      switch (this) {
+        case JAVA_6:
+          return "1.6";
+        case JAVA_8:
+          return "1.8";
+        default:
+          throw new Unimplemented("JvmTarget not specified for " + this);
+      }
+    }
+  }
+
   public enum KotlinCompilerVersion implements Ordered<KotlinCompilerVersion> {
     KOTLINC_1_3_72("kotlin-compiler-1.3.72"),
     KOTLINC_1_4_20("kotlin-compiler-1.4.20"),
     KOTLINC_1_5_0("kotlin-compiler-1.5.0");
 
     public static final KotlinCompilerVersion MIN_SUPPORTED_VERSION = KOTLINC_1_4_20;
+    public static final KotlinCompilerVersion MAX_SUPPORTED_VERSION = KOTLINC_1_5_0;
 
     private final String folder;
 
@@ -45,6 +73,10 @@ public class KotlinCompilerTool {
 
     public static KotlinCompilerVersion latest() {
       return ArrayUtils.last(values());
+    }
+
+    public KotlinCompiler getCompiler() {
+      return new KotlinCompiler(this);
     }
   }
 
@@ -71,7 +103,7 @@ public class KotlinCompilerTool {
     }
 
     public static KotlinCompiler latest() {
-      return getKotlinC_1_4_20();
+      return MAX_SUPPORTED_VERSION.getCompiler();
     }
 
     public Path getCompiler() {
@@ -92,6 +124,30 @@ public class KotlinCompilerTool {
 
     public KotlinCompilerVersion getCompilerVersion() {
       return compilerVersion;
+    }
+
+    public Path getKotlinStdlibJar() {
+      Path stdLib = getFolder().resolve("kotlin-stdlib.jar");
+      assert Files.exists(stdLib) : "Expected kotlin stdlib jar";
+      return stdLib;
+    }
+
+    public Path getKotlinReflectJar() {
+      Path reflectJar = getFolder().resolve("kotlin-reflect.jar");
+      assert Files.exists(reflectJar) : "Expected kotlin reflect jar";
+      return reflectJar;
+    }
+
+    public Path getKotlinScriptRuntime() {
+      Path reflectJar = getFolder().resolve("kotlin-script-runtime.jar");
+      assert Files.exists(reflectJar) : "Expected kotlin script runtime jar";
+      return reflectJar;
+    }
+
+    public Path getKotlinAnnotationJar() {
+      Path annotationJar = getFolder().resolve("annotations-13.0.jar");
+      assert Files.exists(annotationJar) : "Expected annotation jar";
+      return annotationJar;
     }
 
     @Override

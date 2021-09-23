@@ -61,7 +61,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addLibraryFiles(
             annoJarMap.getForConfiguration(kotlinc, targetVersion),
             ToolHelper.getJava8RuntimeJar(),
-            ToolHelper.getKotlinStdlibJar(kotlinc))
+            kotlinc.getKotlinStdlibJar())
         .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -73,8 +73,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
   public void testR8_kotlinStdlibAsClassPath() throws Exception {
     testForR8(parameters.getBackend())
         .addClasspathFiles(
-            annoJarMap.getForConfiguration(kotlinc, targetVersion),
-            ToolHelper.getKotlinStdlibJar(kotlinc))
+            annoJarMap.getForConfiguration(kotlinc, targetVersion), kotlinc.getKotlinStdlibJar())
         .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -86,8 +85,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
   public void testR8_kotlinStdlibAsProgramFile() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            annoJarMap.getForConfiguration(kotlinc, targetVersion),
-            ToolHelper.getKotlinStdlibJar(kotlinc))
+            annoJarMap.getForConfiguration(kotlinc, targetVersion), kotlinc.getKotlinStdlibJar())
         .addProgramFiles(inputJarMap.getForConfiguration(kotlinc, targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepRules("-keep class **.Anno")

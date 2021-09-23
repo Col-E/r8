@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,7 +49,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
   public void testProgramPath() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .applyIf(keepMetadata, TestShrinkerBuilder::addKeepKotlinMetadata)
         .addKeepRuntimeVisibleAnnotations()
@@ -65,7 +63,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
   public void testClassPathPath() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-        .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
         .compile()
@@ -76,7 +74,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
   public void testLibraryPath() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-        .addLibraryFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addLibraryFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
@@ -88,7 +86,7 @@ public class MetadataRewriteKeepPathTest extends KotlinMetadataTestBase {
   public void testMissing() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-        .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepRules("-keep class " + LIB_CLASS_NAME)
         .addKeepRuntimeVisibleAnnotations()
         .compile()

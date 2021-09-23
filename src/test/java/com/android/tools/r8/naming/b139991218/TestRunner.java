@@ -4,16 +4,15 @@
 
 package com.android.tools.r8.naming.b139991218;
 
-import static com.android.tools.r8.ToolHelper.getMostRecentKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -62,7 +61,7 @@ public class TestRunner extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(Lambda1.dump(), Lambda2.dump(), Main.dump(), Alpha.dump())
         .addProgramFiles(
-            kotlinJars.getForConfiguration(kotlinParameters), getMostRecentKotlinAnnotationJar())
+            kotlinJars.getForConfiguration(kotlinParameters), kotlinc.getKotlinAnnotationJar())
         .addKeepMainRule(Main.class)
         .addKeepAllAttributes()
         .addOptionsModification(

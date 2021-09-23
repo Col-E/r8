@@ -14,13 +14,12 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.D8TestBuilder;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -93,7 +92,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   }
 
   private Path kotlinStdlibLibraryForRuntime() throws Exception {
-    Path kotlinStdlibCf = ToolHelper.getKotlinStdlibJar(kotlinc);
+    Path kotlinStdlibCf = kotlinc.getKotlinStdlibJar();
     if (parameters.getRuntime().isCf()) {
       return kotlinStdlibCf;
     }
@@ -114,7 +113,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       throws Exception {
     if (kotlinStdlibAsLibrary) {
       testForD8()
-          .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+          .addClasspathFiles(kotlinc.getKotlinStdlibJar())
           .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
           .setMinApi(parameters.getApiLevel())
           .apply(builderConsumer)
@@ -126,7 +125,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
           .assertSuccessWithOutputLines(outputLines);
     } else {
       testForD8()
-          .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+          .addProgramFiles(kotlinc.getKotlinStdlibJar())
           .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
           .setMinApi(parameters.getApiLevel())
           .apply(builderConsumer)
@@ -157,11 +156,11 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .applyIf(
             kotlinStdlibAsLibrary,
             b -> {
-              b.addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc));
+              b.addClasspathFiles(kotlinc.getKotlinStdlibJar());
               b.addRunClasspathFiles(kotlinStdlibLibraryForRuntime());
             },
-            b -> b.addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc)))
-        .addClasspathFiles(ToolHelper.getKotlinAnnotationJar(kotlinc))
+            b -> b.addProgramFiles(kotlinc.getKotlinStdlibJar()))
+        .addClasspathFiles(kotlinc.getKotlinAnnotationJar())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .addKeepMainRule(testClassKt)
         .addKeepClassAndMembersRules(class1, class2)

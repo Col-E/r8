@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.PredicateUtils.not;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -152,7 +151,7 @@ public class KotlinLambdaMergingCapturesKotlinStyleTest extends KotlinTestBase {
         getCompileMemoizer(getKotlinFilesInResource(getTestName()), getTestName())
             .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect())
             .getForConfiguration(kotlinc, targetVersion);
-    return ImmutableList.of(kotlinJarFile, getJavaJarFile(), getKotlinAnnotationJar(kotlinc));
+    return ImmutableList.of(kotlinJarFile, getJavaJarFile(), kotlinc.getKotlinAnnotationJar());
   }
 
   private String getTestName() {

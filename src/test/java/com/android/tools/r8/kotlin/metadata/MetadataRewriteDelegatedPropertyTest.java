@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
-
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -54,7 +50,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
   @Test
   public void smokeTest() throws Exception {
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc))
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar())
         .addClasspath(jars.getForConfiguration(kotlinc, targetVersion))
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED_MAIN);
@@ -65,9 +61,9 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
     Path outputJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(
-                getKotlinStdlibJar(kotlinc),
-                getKotlinReflectJar(kotlinc),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinStdlibJar(),
+                kotlinc.getKotlinReflectJar(),
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(jars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRule()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -80,7 +76,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
                         (addedStrings, addedNonInitStrings) -> {}))
             .writeToZip();
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc))
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar())
         .addClasspath(outputJar)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED_MAIN);

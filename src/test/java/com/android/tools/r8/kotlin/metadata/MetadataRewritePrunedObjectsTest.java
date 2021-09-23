@@ -12,7 +12,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -63,7 +62,7 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -74,8 +73,7 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .addClasspathFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addKeepRules(
                 "-keep class " + PKG_LIB + ".Sub { <init>(); *** kept(); *** keptProperty; }")
             .addKeepRules("-neverinline class * { @" + PKG_LIB + ".NeverInline *; }")
@@ -93,7 +91,7 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -30,7 +31,7 @@ public class DexTypeTest {
         new ApplicationReader(
                 AndroidApp.builder()
                     .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-                    .addLibraryFiles(ToolHelper.getKotlinStdlibJar(ToolHelper.getKotlinC_1_3_72()))
+                    .addLibraryFiles(KOTLINC_1_3_72.getCompiler().getKotlinStdlibJar())
                     .build(),
                 options,
                 Timing.empty())

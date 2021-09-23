@@ -57,8 +57,8 @@ public class KotlinReflectTest extends KotlinTestBase {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar())
+        .addProgramFiles(kotlinc.getKotlinReflectJar())
         .run(parameters.getRuntime(), PKG + ".SimpleReflectKt")
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -69,8 +69,8 @@ public class KotlinReflectTest extends KotlinTestBase {
     final File output = temp.newFile("output.zip");
     testForD8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar())
+        .addProgramFiles(kotlinc.getKotlinReflectJar())
         .setProgramConsumer(new ArchiveConsumer(output.toPath(), true))
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
@@ -87,9 +87,9 @@ public class KotlinReflectTest extends KotlinTestBase {
     final File foo = temp.newFile("foo");
     testForR8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
-        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
-        .addProgramFiles(ToolHelper.getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar())
+        .addProgramFiles(kotlinc.getKotlinReflectJar())
+        .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)

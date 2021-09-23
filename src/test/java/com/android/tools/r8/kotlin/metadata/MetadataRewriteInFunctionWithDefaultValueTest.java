@@ -4,8 +4,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.ToolHelper.getJava8RuntimeJar;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -67,7 +65,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -78,7 +76,9 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
     Path libJar =
         testForR8(parameters.getBackend())
             .addLibraryFiles(
-                getJava8RuntimeJar(), getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+                getJava8RuntimeJar(),
+                kotlinc.getKotlinStdlibJar(),
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(defaultValueLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep LibKt and applyMap function, along with applyMap$default
             .addKeepRules("-keep class **.LibKt { *** applyMap*(...); }")
@@ -98,7 +98,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

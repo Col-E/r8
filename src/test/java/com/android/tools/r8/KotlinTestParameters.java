@@ -5,7 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -84,13 +84,17 @@ public class KotlinTestParameters {
     }
 
     public Builder withAllTargetVersions() {
-      withTargetVersionFilter(t -> true);
+      withTargetVersionFilter(t -> t != KotlinTargetVersion.NONE);
       return this;
     }
 
     public Builder withTargetVersion(KotlinTargetVersion targetVersion) {
       withTargetVersionFilter(t -> t.equals(targetVersion));
       return this;
+    }
+
+    public Builder withNoTargetVersion() {
+      return withTargetVersion(KotlinTargetVersion.NONE);
     }
 
     public Builder withCompilersStartingFromIncluding(KotlinCompilerVersion version) {

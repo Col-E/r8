@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
@@ -14,12 +11,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AssemblyWriter;
@@ -893,34 +888,6 @@ public class ToolHelper {
       }
     }
     throw new Unreachable("Unable to find a most recent android.jar");
-  }
-
-  public static Path getKotlinStdlibJar(KotlinCompiler kotlinc) {
-    Path stdLib = kotlinc.getFolder().resolve("kotlin-stdlib.jar");
-    assert Files.exists(stdLib) : "Expected kotlin stdlib jar";
-    return stdLib;
-  }
-
-  public static Path getKotlinReflectJar(KotlinCompiler kotlinc) {
-    Path reflectJar = kotlinc.getFolder().resolve("kotlin-reflect.jar");
-    assert Files.exists(reflectJar) : "Expected kotlin reflect jar";
-    return reflectJar;
-  }
-
-  public static Path getKotlinScriptRuntime(KotlinCompiler kotlinc) {
-    Path reflectJar = kotlinc.getFolder().resolve("kotlin-script-runtime.jar");
-    assert Files.exists(reflectJar) : "Expected kotlin script runtime jar";
-    return reflectJar;
-  }
-
-  public static Path getKotlinAnnotationJar(KotlinCompiler kotlinc) {
-    Path annotationJar = kotlinc.getFolder().resolve("annotations-13.0.jar");
-    assert Files.exists(annotationJar) : "Expected annotation jar";
-    return annotationJar;
-  }
-
-  public static Path getMostRecentKotlinAnnotationJar() {
-    return getKotlinAnnotationJar(KotlinCompiler.latest());
   }
 
   public static Path getJdwpTestsCfJarPath(AndroidApiLevel minSdk) {
@@ -2206,49 +2173,7 @@ public class ToolHelper {
         options,
         null);
   }
-
-  public enum KotlinTargetVersion {
-    JAVA_6("JAVA_6"),
-    JAVA_8("JAVA_8");
-
-    private final String folderName;
-
-    KotlinTargetVersion(String folderName) {
-      this.folderName = folderName;
-    }
-
-    public String getFolderName() {
-      return folderName;
-    }
-
-    public String getJvmTargetString() {
-      switch (this) {
-        case JAVA_6:
-          return "1.6";
-        case JAVA_8:
-          return "1.8";
-        default:
-          throw new Unimplemented("JvmTarget not specified for " + this);
-      }
-    }
-  }
-
-  public static KotlinCompiler getKotlinC_1_3_72() {
-    return new KotlinCompiler(KOTLINC_1_3_72);
-  }
-
-  public static KotlinCompiler getKotlinC_1_4_20() {
-    return new KotlinCompiler(KOTLINC_1_4_20);
-  }
-
-  public static KotlinCompiler getKotlinC_1_5_0() {
-    return new KotlinCompiler(KOTLINC_1_5_0);
-  }
-
-  public static KotlinCompiler[] getKotlinCompilers() {
-    return new KotlinCompiler[] {getKotlinC_1_3_72(), getKotlinC_1_4_20(), getKotlinC_1_5_0()};
-  }
-
+  
   public static void disassemble(AndroidApp app, PrintStream ps) throws IOException {
     DexApplication application =
         new ApplicationReader(app, new InternalOptions(), Timing.empty()).read().toDirect();

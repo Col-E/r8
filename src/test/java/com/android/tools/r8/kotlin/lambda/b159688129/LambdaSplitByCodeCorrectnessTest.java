@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin.lambda.b159688129;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -61,7 +59,7 @@ public class LambdaSplitByCodeCorrectnessTest extends KotlinTestBase {
             .addSourceFiles(getKotlinFileInTest(folder, "Simple"))
             .compile();
     testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addProgramFiles(ktClasses)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(PKG_NAME + ".SimpleKt")

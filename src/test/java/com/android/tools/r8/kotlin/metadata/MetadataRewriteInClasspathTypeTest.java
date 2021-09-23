@@ -4,8 +4,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -75,7 +73,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), baseLibJar, extLibJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), baseLibJar, extLibJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -87,7 +85,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(
-                baseLibJar, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+                baseLibJar, kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
@@ -109,7 +107,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), baseLibJar, libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), baseLibJar, libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

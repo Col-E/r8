@@ -48,9 +48,9 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addLibraryFiles(
             ToolHelper.getMostRecentAndroidJar(),
-            ToolHelper.getKotlinStdlibJar(kotlinc),
-            ToolHelper.getKotlinAnnotationJar(kotlinc))
-        .addProgramFiles(ToolHelper.getKotlinReflectJar(kotlinc))
+            kotlinc.getKotlinStdlibJar(),
+            kotlinc.getKotlinAnnotationJar())
+        .addProgramFiles(kotlinc.getKotlinReflectJar())
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)

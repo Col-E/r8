@@ -4,9 +4,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinReflectJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -95,7 +92,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -108,9 +105,9 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(
-                getKotlinStdlibJar(kotlinc),
-                getKotlinReflectJar(kotlinc),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinStdlibJar(),
+                kotlinc.getKotlinReflectJar(),
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(typeAliasLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep class **.Impl { !private *; }")
@@ -144,7 +141,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinReflectJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(appJar)
         .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
         .assertSuccessWithOutput(EXPECTED.replace(superTypeName, renamedSuperTypeName));

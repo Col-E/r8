@@ -3,14 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.bootstrap;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.internal.CompilationTestBase;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -38,28 +38,34 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
   private static final int MAX_SIZE = (int) (31361268 * 0.4);
 
   private final TestParameters parameters;
-  private final KotlinCompiler kotlinCompiler;
+  private final KotlinTestParameters kotlinTestParameters;
 
   @Parameters(name = "{0}, kotlinc: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withCfRuntimes().build(), getKotlinCompilers());
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(),
+        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public KotlinCompilerTreeShakingTest(TestParameters parameters, KotlinCompiler kotlinCompiler) {
+  public KotlinCompilerTreeShakingTest(
+      TestParameters parameters, KotlinTestParameters kotlinTestParameters) {
     this.parameters = parameters;
-    this.kotlinCompiler = kotlinCompiler;
+    this.kotlinTestParameters = kotlinTestParameters;
   }
 
   @Test
   public void testForRuntime() throws Exception {
     // Compile Hello.kt and make sure it works as expected.
     Path classPathBefore =
-        kotlinc(parameters.getRuntime().asCf(), kotlinCompiler, KotlinTargetVersion.JAVA_8)
+        kotlinc(
+                parameters.getRuntime().asCf(),
+                kotlinTestParameters.getCompiler(),
+                kotlinTestParameters.getTargetVersion())
             .addSourceFiles(HELLO_KT)
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
+        .addRunClasspathFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .addClasspath(classPathBefore)
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")
         .assertSuccessWithOutputLines("I'm Woody. Howdy, howdy, howdy.");
@@ -73,17 +79,18 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
 
   @Test
   public void test() throws Exception {
+    KotlinCompiler kotlinc = kotlinTestParameters.getCompiler();
     List<Path> libs =
         ImmutableList.of(
-            ToolHelper.getKotlinStdlibJar(kotlinCompiler),
-            ToolHelper.getKotlinReflectJar(kotlinCompiler),
-            ToolHelper.getKotlinScriptRuntime(kotlinCompiler));
+            kotlinc.getKotlinStdlibJar(),
+            kotlinc.getKotlinReflectJar(),
+            kotlinc.getKotlinScriptRuntime());
     // Process kotlin-compiler.jar.
     Path r8ProcessedKotlinc =
         testForR8(parameters.getBackend())
             .addLibraryFiles(libs)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .addProgramFiles(kotlinCompiler.getCompiler())
+            .addProgramFiles(kotlinc.getCompiler())
             .addKeepAttributes("*Annotation*")
             .addKeepClassAndMembersRules(ToolHelper.K2JVMCompiler)
             .addKeepClassAndMembersRules("**.K2JVMCompilerArguments")
@@ -120,13 +127,13 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
         kotlinc(
                 parameters.getRuntime().asCf(),
                 new KotlinCompiler(
-                    "r8ProcessedKotlinc", r8ProcessedKotlinc, kotlinCompiler.getCompilerVersion()),
+                    "r8ProcessedKotlinc", r8ProcessedKotlinc, kotlinc.getCompilerVersion()),
                 KotlinTargetVersion.JAVA_8)
             .addSourceFiles(HELLO_KT)
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinCompiler))
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar())
         .addClasspath(classPathAfter)
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")
         .assertSuccessWithOutputLines("I'm Woody. Howdy, howdy, howdy.");

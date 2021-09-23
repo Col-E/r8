@@ -14,7 +14,6 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -64,7 +63,7 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".nested_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -74,7 +73,7 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
   public void testMetadataInNestedClass() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar())
             .addProgramFiles(nestedLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Outer class and delegations.
             .addKeepRules("-keep class **.Outer { <init>(...); *** delegate*(...); }")
@@ -97,7 +96,7 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".nested_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

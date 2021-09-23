@@ -5,8 +5,6 @@
 package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.containsLinePositions;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
@@ -91,7 +89,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, kotlinc.getKotlinStdlibJar()))
         .run(parameters.getRuntime(), "retrace.MainKt")
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
         .assertFailureWithErrorThatMatches(containsString("at retrace.MainKt.main(Main.kt:15)"));
@@ -105,7 +103,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            kotlinSources, kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -135,7 +133,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            kotlinSources, kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -168,7 +166,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            kotlinSources, kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -200,7 +198,7 @@ public class KotlinInlineFunctionRetraceTest extends KotlinTestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            kotlinSources, getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            kotlinSources, kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)

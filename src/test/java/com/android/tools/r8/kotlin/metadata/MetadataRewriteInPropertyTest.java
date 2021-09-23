@@ -5,8 +5,6 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -71,7 +69,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutput(EXPECTED_GETTER);
@@ -81,7 +79,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_getterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
@@ -100,7 +98,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutput(EXPECTED_GETTER);
@@ -162,7 +160,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();
@@ -172,7 +170,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_setterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(propertyTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep property setters (and users)
             .addKeepRules("-keep class **.Person { <init>(...); }")
@@ -195,7 +193,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();

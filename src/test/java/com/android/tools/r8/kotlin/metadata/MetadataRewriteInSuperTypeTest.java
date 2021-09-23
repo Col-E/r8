@@ -13,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -65,7 +64,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -75,7 +74,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
   public void testMetadataInSupertype_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar())
             .addProgramFiles(superTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
@@ -92,7 +91,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -120,7 +119,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
   public void testMetadataInSupertype_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar())
             .addProgramFiles(superTypeLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
@@ -139,7 +138,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

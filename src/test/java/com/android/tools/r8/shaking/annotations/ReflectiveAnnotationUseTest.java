@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.annotations;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -98,7 +97,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
         testForR8Compat(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -136,7 +135,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
         testForR8Compat(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -178,7 +177,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
         testForR8Compat(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .addKeepRules(KEEP_ANNOTATIONS)
@@ -216,7 +215,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(
                 compiledJars.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
             .allowDiagnosticWarningMessages()

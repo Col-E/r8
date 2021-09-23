@@ -4,14 +4,11 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
-
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.lambda.JStyleKotlinLambdaMergingWithEnumUnboxingTest.Main.EnumUnboxingCandidate;
 import java.util.List;
 import org.junit.Test;
@@ -23,19 +20,19 @@ import org.junit.runners.Parameterized.Parameters;
 public class JStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
 
   private final TestParameters parameters;
-  private final KotlinCompiler kotlinc;
+  private final KotlinTestParameters kotlinTestParameters;
 
   @Parameters(name = "{0}, kotlinc: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        TestBase.getTestParameters().withDexRuntimes().withAllApiLevels().build(),
-        getKotlinCompilers());
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        getKotlinTestParameters().withAllCompilers().withNoTargetVersion().build());
   }
 
   public JStyleKotlinLambdaMergingWithEnumUnboxingTest(
-      TestParameters parameters, KotlinCompiler kotlinc) {
+      TestParameters parameters, KotlinTestParameters kotlinTestParameters) {
     this.parameters = parameters;
-    this.kotlinc = kotlinc;
+    this.kotlinTestParameters = kotlinTestParameters;
   }
 
   @Test
@@ -43,7 +40,7 @@ public class JStyleKotlinLambdaMergingWithEnumUnboxingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addDefaultRuntimeLibrary(parameters)
-        .addLibraryFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addLibraryFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(Lambda2.class, Lambda1.class))

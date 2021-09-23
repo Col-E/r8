@@ -3,15 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinCompilers;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
+import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -26,33 +24,35 @@ import org.junit.runners.Parameterized.Parameters;
 public class KotlinStdLibCompilationTest extends TestBase {
 
   private final TestParameters parameters;
-  private final KotlinCompiler kotlinc;
+  private final KotlinTestParameters kotlinTestParameters;
 
   @Parameters(name = "{0}, kotlinc: {1}")
   public static List<Object[]> setup() {
     return buildParameters(
         TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build(),
-        getKotlinCompilers());
+        getKotlinTestParameters().withAllCompilers().withNoTargetVersion().build());
   }
 
-  public KotlinStdLibCompilationTest(TestParameters parameters, KotlinCompiler kotlinc) {
+  public KotlinStdLibCompilationTest(
+      TestParameters parameters, KotlinTestParameters kotlinTestParameters) {
     this.parameters = parameters;
-    this.kotlinc = kotlinc;
+    this.kotlinTestParameters = kotlinTestParameters;
   }
 
   @Test
   public void testD8() throws CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addProgramFiles(getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(kotlinTestParameters.getCompiler().getKotlinStdlibJar())
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
   }
 
   @Test
   public void testR8() throws CompilationFailedException {
+    KotlinCompiler compiler = kotlinTestParameters.getCompiler();
     testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(compiler.getKotlinStdlibJar(), compiler.getKotlinAnnotationJar())
         .addKeepAllAttributes()
         .allowDiagnosticWarningMessages()
         .noMinification()

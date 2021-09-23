@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
@@ -15,7 +14,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -91,8 +89,7 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -104,8 +101,8 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(
                 libJars.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
-            .addClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar())
             /// Keep the annotations
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassAndEnum")
             .addKeepClassAndMembersRules(PKG_LIB + ".AnnoWithClassArr")
@@ -140,8 +137,7 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .compile();
     testForJvm()
-        .addRunClasspathFiles(
-            ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinReflectJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addProgramFiles(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutput(EXPECTED.replace(FOO_ORIGINAL_NAME, FOO_FINAL_NAME));

@@ -4,8 +4,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -71,7 +69,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -84,7 +82,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
         testForR8(parameters.getBackend())
             .addProgramFiles(
                 extLibJarMap.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -104,7 +102,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -144,7 +142,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionProperty_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
@@ -167,7 +165,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

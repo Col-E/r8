@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.kotlin.lambda.b159688129;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinC_1_3_72;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
@@ -105,7 +103,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
     writeClassFileDataToJar(classFiles, classFileData);
     return ImmutableList.of(
         classFiles,
-        getKotlinStdlibJar(getKotlinC_1_3_72()),
-        getKotlinAnnotationJar(getKotlinC_1_3_72()));
+        KOTLINC_1_3_72.getCompiler().getKotlinStdlibJar(),
+        KOTLINC_1_3_72.getCompiler().getKotlinAnnotationJar());
   }
 }

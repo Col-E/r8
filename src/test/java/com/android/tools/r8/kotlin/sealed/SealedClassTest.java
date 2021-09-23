@@ -5,8 +5,6 @@
 package com.android.tools.r8.kotlin.sealed;
 
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -58,7 +56,7 @@ public class SealedClassTest extends KotlinTestBase {
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addRunClasspathFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
+        .addRunClasspathFiles(buildOnDexRuntime(parameters, kotlinc.getKotlinStdlibJar()))
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -67,8 +65,8 @@ public class SealedClassTest extends KotlinTestBase {
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramFiles(compilationResults.getForConfiguration(kotlinc, targetVersion))
-        .addProgramFiles(buildOnDexRuntime(parameters, getKotlinStdlibJar(kotlinc)))
-        .addProgramFiles(getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(buildOnDexRuntime(parameters, kotlinc.getKotlinStdlibJar()))
+        .addProgramFiles(kotlinc.getKotlinAnnotationJar())
         .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
         .allowDiagnosticWarningMessages()

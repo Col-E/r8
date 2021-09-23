@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -15,7 +13,6 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -64,7 +61,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
     runTest(
         KotlinCompilerVersion.KOTLINC_1_5_0,
         libJars.getForConfiguration(kotlinc, targetVersion),
-        getKotlinStdlibJar(kotlinc));
+        kotlinc.getKotlinStdlibJar());
   }
 
   @Test
@@ -72,7 +69,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .addOptionsModification(
@@ -84,8 +81,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
             .writeToZip();
     Path stdLibJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinAnnotationJar(kotlinc))
+            .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .allowDiagnosticWarningMessages()
@@ -109,15 +105,14 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .compile()
             .writeToZip();
     Path stdLibJar =
         testForR8(parameters.getBackend())
-            .addProgramFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc), ToolHelper.getKotlinAnnotationJar(kotlinc))
+            .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addKeepAllClassesRule()
             .addKeepAllAttributes()
             .allowDiagnosticWarningMessages()

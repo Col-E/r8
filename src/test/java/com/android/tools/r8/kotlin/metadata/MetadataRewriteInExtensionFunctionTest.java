@@ -4,7 +4,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -16,7 +15,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -72,7 +70,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -85,7 +83,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
         testForR8(parameters.getBackend())
             .addProgramFiles(
                 extLibJarMap.getForConfiguration(kotlinc, targetVersion),
-                getKotlinAnnotationJar(kotlinc))
+                kotlinc.getKotlinAnnotationJar())
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -108,7 +106,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -136,8 +134,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionFunction_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(
-                ToolHelper.getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
@@ -163,7 +160,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);

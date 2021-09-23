@@ -5,8 +5,6 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -63,7 +61,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG_APP + ".MainKt")
         .assertSuccessWithOutputLines(EXPECTED);
@@ -83,8 +81,8 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(
-                getKotlinStdlibJar(kotlinc),
-                getKotlinAnnotationJar(kotlinc),
+                kotlinc.getKotlinStdlibJar(),
+                kotlinc.getKotlinAnnotationJar(),
                 libJars.getForConfiguration(kotlinc, targetVersion))
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepRules("-keep class " + PKG_LIB + ".LibKt { *; }")
@@ -110,7 +108,7 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .compile();
     final JvmTestRunResult runResult =
         testForJvm()
-            .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+            .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
             .addClasspath(output)
             .run(parameters.getRuntime(), PKG_APP + ".MainKt");
     if (keepUnit) {

@@ -66,7 +66,7 @@ public class SimpleKotlinEnumUnboxingTest extends EnumUnboxingTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(
             jars.getForConfiguration(kotlinParameters),
-            ToolHelper.getKotlinStdlibJar(kotlinParameters.getCompiler()))
+            kotlinParameters.getCompiler().getKotlinStdlibJar())
         .addKeepMainRule(PKG + ".MainKt")
         .addKeepRules(enumKeepRules.getKeepRules())
         .addKeepRuntimeVisibleAnnotations()

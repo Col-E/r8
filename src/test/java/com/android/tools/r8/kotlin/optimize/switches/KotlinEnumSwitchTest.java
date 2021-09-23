@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin.optimize.switches;
 
-import static com.android.tools.r8.ToolHelper.getMostRecentKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -53,7 +52,7 @@ public class KotlinEnumSwitchTest extends KotlinTestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(
-            kotlinJars.getForConfiguration(kotlinParameters), getMostRecentKotlinAnnotationJar())
+            kotlinJars.getForConfiguration(kotlinParameters), kotlinc.getKotlinAnnotationJar())
         .addKeepMainRule("enumswitch.EnumSwitchKt")
         .addOptionsModification(
             options -> {

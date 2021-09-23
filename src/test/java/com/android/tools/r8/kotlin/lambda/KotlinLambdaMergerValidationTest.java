@@ -4,8 +4,6 @@
 package com.android.tools.r8.kotlin.lambda;
 
 import static com.android.tools.r8.ToolHelper.getJava8RuntimeJar;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
@@ -52,14 +50,14 @@ public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
             .compile();
     testForR8(parameters.getBackend())
         .addLibraryFiles(getJava8RuntimeJar())
-        .addLibraryFiles(getKotlinStdlibJar(kotlinc))
-        .addProgramFiles(ktClasses, getKotlinAnnotationJar(kotlinc))
+        .addLibraryFiles(kotlinc.getKotlinStdlibJar())
+        .addProgramFiles(ktClasses, kotlinc.getKotlinAnnotationJar())
         .addKeepMainRule("**.B143165163Kt")
         .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc))
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar())
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
   }
@@ -77,7 +75,7 @@ public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
         .allowDiagnosticWarningMessages()

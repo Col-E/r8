@@ -4,7 +4,6 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,7 +58,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(
             compiledJars.getForConfiguration(kotlinc, targetVersion),
-            getKotlinAnnotationJar(kotlinc))
+            kotlinc.getKotlinAnnotationJar())
         .addKeepRules(
             StringUtils.lines(
                 "-keepclasseswithmembers class " + MAIN + "{", "  public static *** *(...);", "}"))
@@ -110,7 +109,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(
             compiledJars.getForConfiguration(kotlinc, targetVersion),
-            getKotlinAnnotationJar(kotlinc))
+            kotlinc.getKotlinAnnotationJar())
         .addKeepRules(
             StringUtils.lines(
                 "-keepclasseswithmembers class " + MAIN + "{",

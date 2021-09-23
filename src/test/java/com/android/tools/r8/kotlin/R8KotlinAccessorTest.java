@@ -10,11 +10,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -327,7 +327,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
             "accessors",
             mainClass,
             builder -> {
-              builder.addClasspathFiles(ToolHelper.getKotlinAnnotationJar(kotlinc));
+              builder.addClasspathFiles(kotlinc.getKotlinAnnotationJar());
               builder.noClassStaticizing();
             })
         .inspect(

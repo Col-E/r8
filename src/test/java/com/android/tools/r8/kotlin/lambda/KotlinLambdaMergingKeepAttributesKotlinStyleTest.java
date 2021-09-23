@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
 import static com.android.tools.r8.shaking.ProguardKeepAttributes.ENCLOSING_METHOD;
 import static com.android.tools.r8.shaking.ProguardKeepAttributes.INNER_CLASSES;
 import static com.android.tools.r8.shaking.ProguardKeepAttributes.SIGNATURE;
@@ -146,7 +145,7 @@ public class KotlinLambdaMergingKeepAttributesKotlinStyleTest extends KotlinTest
         getCompileMemoizer(getKotlinFilesInResource(getTestName()), getTestName())
             .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect())
             .getForConfiguration(kotlinc, targetVersion);
-    return ImmutableList.of(kotlinJarFile, getJavaJarFile(), getKotlinAnnotationJar(kotlinc));
+    return ImmutableList.of(kotlinJarFile, getJavaJarFile(), kotlinc.getKotlinAnnotationJar());
   }
 
   private String getTestName() {

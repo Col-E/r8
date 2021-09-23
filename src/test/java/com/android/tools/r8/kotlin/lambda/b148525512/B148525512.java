@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin.lambda.b148525512;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
@@ -76,7 +74,7 @@ public class B148525512 extends KotlinTestBase {
     Path featureCode = temp.newFile("feature.zip").toPath();
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(kotlinBaseClasses.getForConfiguration(kotlinc, targetVersion))
             .addProgramClasses(FeatureAPI.class)
             .addKeepMainRule(baseKtClassName)

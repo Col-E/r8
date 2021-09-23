@@ -11,7 +11,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.kotlin.metadata.metadata_pruned_fields.Main;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -45,7 +44,7 @@ public class MetadataPrunedFieldsTest extends KotlinMetadataTestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar(kotlinc))
+        .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
         .addProgramClassFileData(Main.dump())
         .addKeepRules("-keep class " + PKG + ".metadata_pruned_fields.MethodsKt { *; }")

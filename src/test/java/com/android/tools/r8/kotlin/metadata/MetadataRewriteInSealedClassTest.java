@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.ToolHelper.getKotlinAnnotationJar;
-import static com.android.tools.r8.ToolHelper.getKotlinStdlibJar;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -67,7 +65,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -77,7 +75,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
   public void testMetadataInSealedClass_valid() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(sealedLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
@@ -98,7 +96,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(getKotlinStdlibJar(kotlinc), libJar)
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
         .assertSuccessWithOutput(EXPECTED);
@@ -144,7 +142,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
   public void testMetadataInSealedClass_invalid() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(getKotlinStdlibJar(kotlinc), getKotlinAnnotationJar(kotlinc))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
             .addProgramFiles(sealedLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
