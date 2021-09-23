@@ -10,6 +10,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -78,21 +79,27 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
     List<String> retracedStrings = new ArrayList<>();
     List<List<String>> retracedStackTraces =
         removeDuplicateStackTraces(retraceStackTrace(stackTrace));
-    if (retracedStackTraces.size() > 1) {
-      retracedStrings.add(
-          "There are "
-              + retracedStackTraces.size()
-              + " ambiguous stack traces."
-              + (isVerbose ? "" : " Use --verbose to have all listed."));
+    if (retracedStackTraces.size() > 1 && isVerbose) {
+      retracedStrings.add("There are " + retracedStackTraces.size() + " ambiguous stack traces.");
     }
     for (int i = 0; i < retracedStackTraces.size(); i++) {
-      if (i > 0) {
-        retracedStrings.add("< OR >");
+      List<String> result = retracedStackTraces.get(i);
+      if (i > 0 && !result.isEmpty()) {
+        // We are reporting an ambiguous frame. To support retracing tools that retrace line by line
+        // we have to emit <OR> at the point of the first ' at ' if we can find it.
+        String firstLine = result.get(0);
+        int indexToInsertOr = firstLine.indexOf(" at ");
+        boolean hasSpace = indexToInsertOr >= 0;
+        if (indexToInsertOr < 0) {
+          indexToInsertOr = Math.max(StringUtils.firstNonWhitespaceCharacter(firstLine), 0);
+        }
+        result.set(
+            0,
+            firstLine.substring(0, indexToInsertOr)
+                + (hasSpace ? "<OR>" : "<OR> ")
+                + firstLine.substring(indexToInsertOr));
       }
-      retracedStrings.addAll(retracedStackTraces.get(i));
-      if (!isVerbose) {
-        break;
-      }
+      retracedStrings.addAll(result);
     }
     return retracedStrings;
   }

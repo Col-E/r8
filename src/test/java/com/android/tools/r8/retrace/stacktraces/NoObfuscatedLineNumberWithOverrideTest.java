@@ -35,11 +35,25 @@ public class NoObfuscatedLineNumberWithOverrideTest implements StackTraceForTest
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        "There are 4 ambiguous stack traces. Use --verbose to have all listed.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:3)",
         "\tat com.android.tools.r8.naming.retrace.Main.overload1(Main.java:7)",
         "\tat com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java:7)",
+        "\tat com.android.tools.r8.naming.retrace.Main.mainPC(Main.java:42)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:3)",
+        "\tat com.android.tools.r8.naming.retrace.Main.overload1(Main.java:7)",
+        "\tat com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java:11)",
+        "\tat com.android.tools.r8.naming.retrace.Main.mainPC(Main.java:42)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:3)",
+        "\tat com.android.tools.r8.naming.retrace.Main.overload2(Main.java:11)",
+        "\tat com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java:7)",
+        "\tat com.android.tools.r8.naming.retrace.Main.mainPC(Main.java:42)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:3)",
+        "\tat com.android.tools.r8.naming.retrace.Main.overload2(Main.java:11)",
+        "\tat com.android.tools.r8.naming.retrace.Main.definedOverload(Main.java:11)",
         "\tat com.android.tools.r8.naming.retrace.Main.mainPC(Main.java:42)");
   }
 
@@ -53,24 +67,21 @@ public class NoObfuscatedLineNumberWithOverrideTest implements StackTraceForTest
         "\tat com.android.tools.r8.naming.retrace.Main.void definedOverload()(Main.java:7)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " mainPC(java.lang.String[])(Main.java:42)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String)(Main.java:3)",
         "\tat com.android.tools.r8.naming.retrace.Main.void overload1()(Main.java:7)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " definedOverload(java.lang.String)(Main.java:11)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " mainPC(java.lang.String[])(Main.java:42)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String)(Main.java:3)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " overload2(java.lang.String)(Main.java:11)",
         "\tat com.android.tools.r8.naming.retrace.Main.void definedOverload()(Main.java:7)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " mainPC(java.lang.String[])(Main.java:42)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String)(Main.java:3)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " overload2(java.lang.String)(Main.java:11)",

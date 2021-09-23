@@ -29,9 +29,12 @@ public class OverloadSameLineTest implements StackTraceForTest {
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        "There are 3 ambiguous stack traces. Use --verbose to have all listed.",
         "Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:7)");
+        "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:7)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:15)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.overload(Main.java:13)");
   }
 
   @Override
@@ -40,11 +43,9 @@ public class OverloadSameLineTest implements StackTraceForTest {
         "There are 3 ambiguous stack traces.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void overload()(Main.java:7)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void overload(int)(Main.java:15)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " overload(java.lang.String)(Main.java:13)");
   }

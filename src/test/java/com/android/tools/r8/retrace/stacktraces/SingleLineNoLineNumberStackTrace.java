@@ -36,13 +36,19 @@ public class SingleLineNoLineNumberStackTrace implements StackTraceForTest {
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        "There are 2 ambiguous stack traces. Use --verbose to have all listed.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)",
         "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:28)",
         "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java:42)",
         "\tat com.android.tools.r8.naming.retrace.Main.main2(Main.java:29)",
         "\tat com.android.tools.r8.naming.retrace.Main.main3(Main.java:30)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main4(Main.java:153)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java:28)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method2(Main.java:42)",
+        "\tat com.android.tools.r8.naming.retrace.Main.main2(Main.java:29)",
+        "\tat com.android.tools.r8.naming.retrace.Main.method3(Main.java:72)",
         "\tat com.android.tools.r8.naming.retrace.Main.main4(Main.java:153)");
   }
 
@@ -62,8 +68,7 @@ public class SingleLineNoLineNumberStackTrace implements StackTraceForTest {
             + " main3(java.lang.String[])(Main.java:30)",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " main4(java.lang.String[])(Main.java:153)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " method1(java.lang.String)(Main.java:42)",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java:28)",

@@ -29,8 +29,10 @@ public class MultipleLinesNoLineNumberStackTrace implements StackTraceForTest {
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
-        "There are 2 ambiguous stack traces. Use --verbose to have all listed.",
         "Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java)",
         "\tat com.android.tools.r8.naming.retrace.Main.main(Main.java)");
   }
 
@@ -40,8 +42,7 @@ public class MultipleLinesNoLineNumberStackTrace implements StackTraceForTest {
         "There are 2 ambiguous stack traces.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)",
-        "< OR >",
-        "Exception in thread \"main\" java.lang.NullPointerException",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void method1(java.lang.String)(Main.java)",
         "\tat com.android.tools.r8.naming.retrace.Main.void main(java.lang.String[])(Main.java)");
   }
