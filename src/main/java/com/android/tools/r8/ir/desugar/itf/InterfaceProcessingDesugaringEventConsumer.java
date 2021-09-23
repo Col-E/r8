@@ -9,11 +9,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 
-// TODO(b/183998768): Consider forcing the processing of interface methods in D8 akin to R8.
-//  That would avoid the need to reiterate the interface methods to collect info and this
-//  could avoid the "base" methods.
-public interface InterfaceProcessingDesugaringEventConsumer
-    extends InterfaceMethodDesugaringBaseEventConsumer {
+public interface InterfaceProcessingDesugaringEventConsumer {
 
   void acceptForwardingMethod(ProgramMethod method);
 

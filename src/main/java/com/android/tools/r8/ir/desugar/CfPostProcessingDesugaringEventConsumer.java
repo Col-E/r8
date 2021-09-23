@@ -92,16 +92,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
-      addMethodToReprocess(method);
-    }
-
-    @Override
-    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companion) {
-      // Intentionally empty. The method must be processed on the interface definition.
-    }
-
-    @Override
     public void finalizeDesugaring() throws ExecutionException {
       assert methodProcessor.verifyNoPendingMethodProcessing();
       methodProcessor.newWave();
@@ -167,18 +157,6 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
       additions.addLiveMethod(method);
-    }
-
-    @Override
-    public void acceptCompanionClassClinit(ProgramMethod method) {
-      // Generation of this method must have been done during enqueuing.
-      assert false;
-    }
-
-    @Override
-    public void acceptCompanionMethod(ProgramMethod method, ProgramMethod companion) {
-      // Generation of this method must have been done during enqueuing.
-      assert false;
     }
 
     @Override

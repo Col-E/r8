@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceApplicationRewriter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.ir.desugar.lambda.LambdaDeserializationMethodRemover;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -363,17 +364,21 @@ public class IRConverter {
         executor, OptimizationFeedbackIgnore.getInstance());
     DexApplication application = appView.appInfo().app();
     D8MethodProcessor methodProcessor = new D8MethodProcessor(this, executor);
+    InterfaceProcessor interfaceProcessor =
+        appView.options().isInterfaceMethodDesugaringEnabled()
+            ? new InterfaceProcessor(appView)
+            : null;
 
     timing.begin("IR conversion");
 
-    convertClasses(methodProcessor, executor);
+    convertClasses(methodProcessor, interfaceProcessor, executor);
 
     reportNestDesugarDependencies();
     clearNestAttributes();
 
     application = commitPendingSyntheticItemsD8(appView, application);
 
-    postProcessingDesugaringForD8(methodProcessor, executor);
+    postProcessingDesugaringForD8(methodProcessor, interfaceProcessor, executor);
 
     application = commitPendingSyntheticItemsD8(appView, application);
 
@@ -425,13 +430,16 @@ public class IRConverter {
   }
 
   private void postProcessingDesugaringForD8(
-      D8MethodProcessor methodProcessor, ExecutorService executorService)
+      D8MethodProcessor methodProcessor,
+      InterfaceProcessor interfaceProcessor,
+      ExecutorService executorService)
       throws ExecutionException {
     D8CfPostProcessingDesugaringEventConsumer eventConsumer =
         CfPostProcessingDesugaringEventConsumer.createForD8(methodProcessor, instructionDesugaring);
     methodProcessor.newWave();
     InterfaceMethodProcessorFacade interfaceDesugaring =
-        instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(ExcludeDexResources);
+        instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(
+            ExcludeDexResources, interfaceProcessor);
     CfPostProcessingDesugaringCollection.create(
             appView, interfaceDesugaring, instructionDesugaring.getRetargetingInfo())
         .postProcessingDesugaring(
@@ -440,10 +448,14 @@ public class IRConverter {
     eventConsumer.finalizeDesugaring();
   }
 
-  private void convertClasses(D8MethodProcessor methodProcessor, ExecutorService executorService)
+  private void convertClasses(
+      D8MethodProcessor methodProcessor,
+      InterfaceProcessor interfaceProcessor,
+      ExecutorService executorService)
       throws ExecutionException {
     ClassConverterResult classConverterResult =
-        ClassConverter.create(appView, this, methodProcessor).convertClasses(executorService);
+        ClassConverter.create(appView, this, methodProcessor, interfaceProcessor)
+            .convertClasses(executorService);
 
     // The synthesis of accessibility bridges in nest based access desugaring will schedule and
     // await the processing of synthesized methods.
@@ -476,7 +488,8 @@ public class IRConverter {
   void convertMethods(
       DexProgramClass clazz,
       D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
-      D8MethodProcessor methodProcessor) {
+      D8MethodProcessor methodProcessor,
+      InterfaceProcessor interfaceProcessor) {
     boolean isReachabilitySensitive = clazz.hasReachabilitySensitiveAnnotation(options.itemFactory);
     // When converting all methods on a class always convert <clinit> first.
     ProgramMethod classInitializer = clazz.getProgramClassInitializer();
@@ -500,6 +513,9 @@ public class IRConverter {
         DexEncodedMethod definition = method.getDefinition();
         definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
         methodProcessor.processMethod(method, desugaringEventConsumer);
+        if (interfaceProcessor != null) {
+          interfaceProcessor.processMethod(method, desugaringEventConsumer);
+        }
       }
     }
 

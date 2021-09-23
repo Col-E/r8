@@ -78,7 +78,7 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
 
   @Override
   public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringD8(
-      Flavor flavor) {
+      Flavor flavor, InterfaceProcessor interfaceProcessor) {
     return null;
   }
 

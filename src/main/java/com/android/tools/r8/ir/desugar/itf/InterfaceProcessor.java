@@ -51,7 +51,7 @@ import java.util.function.Consumer;
 // a companion class. Removes bridge default methods.
 //
 // Also moves static interface methods into a companion class.
-public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
+public final class InterfaceProcessor {
 
   private final AppView<?> appView;
   private final InterfaceDesugaringSyntheticHelper helper;
@@ -67,34 +67,21 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     return helper;
   }
 
-  @Override
-  public void process(
-      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    if (appView.enableWholeProgramOptimizations()) {
-      // R8 populates all info as part of enqueuing.
-      return;
-    }
-    if (!iface.isInterface()) {
-      return;
-    }
-    analyzeBridges(iface);
-    ensureCompanionClassMethods(iface, eventConsumer);
-  }
-
-  private void analyzeBridges(DexProgramClass iface) {
+  public void processMethod(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
     assert !appView.enableWholeProgramOptimizations();
-    for (ProgramMethod method : iface.virtualProgramMethods()) {
-      if (!interfaceMethodRemovalChangesApi(method, iface)) {
-        getPostProcessingInterfaceInfo(iface).setHasBridgesToRemove();
-        return;
+    if (!method.getHolder().isInterface()) {
+      return;
+    }
+    if (method.getDefinition().belongsToDirectPool()) {
+      processDirectInterfaceMethod(method, eventConsumer);
+    } else {
+      assert method.getDefinition().belongsToVirtualPool();
+      processVirtualInterfaceMethod(method);
+      if (!interfaceMethodRemovalChangesApi(method)) {
+        getPostProcessingInterfaceInfo(method.getHolder()).setHasBridgesToRemove();
       }
     }
-  }
-
-  private void ensureCompanionClassMethods(
-      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    processVirtualInterfaceMethods(iface);
-    processDirectInterfaceMethods(iface, eventConsumer);
   }
 
   static ProgramMethod ensureCompanionMethod(
@@ -124,29 +111,21 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
             newMethodCallback);
   }
 
-  private void processVirtualInterfaceMethods(DexProgramClass iface) {
-    assert !appView.enableWholeProgramOptimizations();
-    for (ProgramMethod method : iface.virtualProgramMethods()) {
-      DexEncodedMethod virtual = method.getDefinition();
-      if (helper.isCompatibleDefaultMethod(virtual)) {
-        // Create a new method in a companion class to represent default method implementation.
-        ProgramMethod companion = helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
-        finalizeMoveToCompanionMethod(method, companion);
-      }
+  private void processVirtualInterfaceMethod(ProgramMethod method) {
+    if (helper.isCompatibleDefaultMethod(method.getDefinition())) {
+      // Create a new method in a companion class to represent default method implementation.
+      ProgramMethod companion = helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method);
+      finalizeMoveToCompanionMethod(method, companion);
     }
   }
 
-  private void processDirectInterfaceMethods(
-      DexProgramClass iface, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
-    assert !appView.enableWholeProgramOptimizations();
-    for (ProgramMethod method : iface.directProgramMethods()) {
-      DexEncodedMethod definition = method.getDefinition();
-      if (!definition.isClassInitializer()) {
-        getPostProcessingInterfaceInfo(iface).setHasNonClinitDirectMethods();
-        ProgramMethod companion =
-            helper.ensureMethodOfProgramCompanionClassStub(method, eventConsumer);
-        finalizeMoveToCompanionMethod(method, companion);
-      }
+  private void processDirectInterfaceMethod(
+      ProgramMethod method, InterfaceMethodDesugaringBaseEventConsumer eventConsumer) {
+    if (!method.getDefinition().isClassInitializer()) {
+      getPostProcessingInterfaceInfo(method.getHolder()).setHasNonClinitDirectMethods();
+      ProgramMethod companion =
+          helper.ensureMethodOfProgramCompanionClassStub(method, eventConsumer);
+      finalizeMoveToCompanionMethod(method, companion);
     }
   }
 
@@ -238,8 +217,9 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
   // implementation to the companion class of [iface]. This is always the case for non-bridge
   // methods. Bridge methods that does not override an implementation in a super-interface must
   // also be kept (such a situation can happen if the vertical class merger merges two interfaces).
-  private boolean interfaceMethodRemovalChangesApi(ProgramMethod method, DexClass iface) {
+  private boolean interfaceMethodRemovalChangesApi(ProgramMethod method) {
     assert !appView.enableWholeProgramOptimizations();
+    DexProgramClass iface = method.getHolder();
     if (method.getAccessFlags().isBridge()) {
       if (appView.options().cfToCfDesugar) {
         // TODO(b/187176895): Find the compilation causing this to not be removed.
@@ -309,7 +289,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
     for (ProgramMethod method : iface.virtualProgramMethods()) {
       // Remove bridge methods.
-      if (interfaceMethodRemovalChangesApi(method, iface)) {
+      if (interfaceMethodRemovalChangesApi(method)) {
         newVirtualMethods.add(method.getDefinition());
       }
     }
@@ -325,8 +305,7 @@ public final class InterfaceProcessor implements InterfaceDesugaringProcessor {
     }
   }
 
-  @Override
-  public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+  public void finalizeProcessing() {
     // TODO(b/196337368): Simplify this fix-up to be specific for the move of companion methods
     //  rather than be based on a graph lens.
     InterfaceProcessorNestedGraphLens graphLens = postProcessInterfaces();

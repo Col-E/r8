@@ -65,7 +65,7 @@ import org.objectweb.asm.Opcodes;
  * In other words, the traversal is in top-down (edges from type to its subtypes) topological order.
  * The traversal is lazy, starting from the unordered set of program classes.
  */
-final class ClassProcessor implements InterfaceDesugaringProcessor {
+final class ClassProcessor {
 
   // Collection for method signatures that may cause forwarding methods to be created.
   private static class MethodSignatures {
@@ -402,7 +402,6 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
     return !needsLibraryInfo;
   }
 
-  @Override
   public void process(
       DexProgramClass clazz, InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     if (!clazz.isInterface()) {
@@ -417,7 +416,6 @@ final class ClassProcessor implements InterfaceDesugaringProcessor {
 
   // We introduce forwarding methods only once all desugaring has been performed to avoid
   // confusing the look-up with inserted forwarding methods.
-  @Override
   public final void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     newSyntheticMethods.forEach(
         (clazz, newForwardingMethods) -> {

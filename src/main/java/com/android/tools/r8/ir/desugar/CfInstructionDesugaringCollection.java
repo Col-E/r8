@@ -78,7 +78,7 @@ public abstract class CfInstructionDesugaringCollection {
       ThrowingConsumer<D8NestBasedAccessDesugaring, T> consumer) throws T;
 
   public abstract InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringD8(
-      Flavor flavor);
+      Flavor flavor, InterfaceProcessor interfaceProcessor);
 
   public abstract InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringR8(
       Flavor flavor, Predicate<ProgramMethod> isLiveMethod, InterfaceProcessor processor);

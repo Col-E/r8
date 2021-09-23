@@ -44,7 +44,11 @@ public class InvalidCode extends Code {
 
   @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return toString();
+    StringBuilder builder = new StringBuilder();
+    if (method != null) {
+      builder.append(method.toSourceString()).append("\n");
+    }
+    return builder.append(this).toString();
   }
 
   @Override

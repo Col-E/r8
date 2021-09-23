@@ -403,6 +403,7 @@ public final class LambdaClass {
               : descriptor.implHandle.type.isInvokeStatic() ? Type.STATIC : Type.VIRTUAL,
           descriptor.implHandle.isInterface);
     }
+
     // We need to generate an accessor method in `accessedFrom` class/interface
     // for accessing the original instance impl-method. Note that impl-method's
     // holder does not have to be the same as `accessedFrom`.

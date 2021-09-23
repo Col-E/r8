@@ -348,9 +348,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
 
   @Override
   public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringD8(
-      Flavor flavor) {
+      Flavor flavor, InterfaceProcessor interfaceProcessor) {
     return interfaceMethodRewriter != null
-        ? interfaceMethodRewriter.getPostProcessingDesugaringD8(flavor)
+        ? interfaceMethodRewriter.getPostProcessingDesugaringD8(flavor, interfaceProcessor)
         : null;
   }
 

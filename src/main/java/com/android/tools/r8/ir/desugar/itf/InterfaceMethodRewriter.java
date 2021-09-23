@@ -909,8 +909,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     return singleCandidate != null ? singleCandidate : method;
   }
 
-  public InterfaceMethodProcessorFacade getPostProcessingDesugaringD8(Flavor flavour) {
-    return new InterfaceMethodProcessorFacade(appView, flavour, m -> true);
+  public InterfaceMethodProcessorFacade getPostProcessingDesugaringD8(
+      Flavor flavour, InterfaceProcessor interfaceProcessor) {
+    return new InterfaceMethodProcessorFacade(appView, flavour, m -> true, interfaceProcessor);
   }
 
   public InterfaceMethodProcessorFacade getPostProcessingDesugaringR8(

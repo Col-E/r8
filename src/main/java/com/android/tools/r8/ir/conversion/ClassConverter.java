@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer.D8CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -26,18 +27,28 @@ public abstract class ClassConverter {
   protected final AppView<?> appView;
   private final IRConverter converter;
   private final D8MethodProcessor methodProcessor;
+  private final InterfaceProcessor interfaceProcessor;
 
-  ClassConverter(AppView<?> appView, IRConverter converter, D8MethodProcessor methodProcessor) {
+  ClassConverter(
+      AppView<?> appView,
+      IRConverter converter,
+      D8MethodProcessor methodProcessor,
+      InterfaceProcessor interfaceProcessor) {
     this.appView = appView;
     this.converter = converter;
     this.methodProcessor = methodProcessor;
+    this.interfaceProcessor = interfaceProcessor;
   }
 
   public static ClassConverter create(
-      AppView<?> appView, IRConverter converter, D8MethodProcessor methodProcessor) {
+      AppView<?> appView,
+      IRConverter converter,
+      D8MethodProcessor methodProcessor,
+      InterfaceProcessor interfaceProcessor) {
     return appView.options().desugarSpecificOptions().allowAllDesugaredInput
-        ? new LibraryDesugaredClassConverter(appView, converter, methodProcessor)
-        : new DefaultClassConverter(appView, converter, methodProcessor);
+        ? new LibraryDesugaredClassConverter(
+            appView, converter, methodProcessor, interfaceProcessor)
+        : new DefaultClassConverter(appView, converter, methodProcessor, interfaceProcessor);
   }
 
   public ClassConverterResult convertClasses(ExecutorService executorService)
@@ -125,7 +136,7 @@ public abstract class ClassConverter {
 
   void convertMethods(
       DexProgramClass clazz, D8CfInstructionDesugaringEventConsumer desugaringEventConsumer) {
-    converter.convertMethods(clazz, desugaringEventConsumer, methodProcessor);
+    converter.convertMethods(clazz, desugaringEventConsumer, methodProcessor, interfaceProcessor);
   }
 
   abstract void notifyAllClassesConverted();
@@ -133,8 +144,11 @@ public abstract class ClassConverter {
   static class DefaultClassConverter extends ClassConverter {
 
     DefaultClassConverter(
-        AppView<?> appView, IRConverter converter, D8MethodProcessor methodProcessor) {
-      super(appView, converter, methodProcessor);
+        AppView<?> appView,
+        IRConverter converter,
+        D8MethodProcessor methodProcessor,
+        InterfaceProcessor interfaceProcessor) {
+      super(appView, converter, methodProcessor, interfaceProcessor);
     }
 
     @Override
@@ -154,8 +168,11 @@ public abstract class ClassConverter {
     private final Set<DexType> alreadyLibraryDesugared = Sets.newConcurrentHashSet();
 
     LibraryDesugaredClassConverter(
-        AppView<?> appView, IRConverter converter, D8MethodProcessor methodProcessor) {
-      super(appView, converter, methodProcessor);
+        AppView<?> appView,
+        IRConverter converter,
+        D8MethodProcessor methodProcessor,
+        InterfaceProcessor interfaceProcessor) {
+      super(appView, converter, methodProcessor, interfaceProcessor);
     }
 
     @Override
