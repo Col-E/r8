@@ -7,9 +7,9 @@ package com.android.tools.r8.kotlin;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
+import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;

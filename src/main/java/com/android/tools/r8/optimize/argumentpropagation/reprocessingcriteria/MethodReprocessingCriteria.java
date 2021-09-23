@@ -15,7 +15,8 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 
 public class MethodReprocessingCriteria {
 
-  public static final MethodReprocessingCriteria EMPTY = new MethodReprocessingCriteria();
+  public static final MethodReprocessingCriteria ALWAYS_REPROCESS =
+      new MethodReprocessingCriteria();
 
   private final Int2ReferenceMap<ParameterReprocessingCriteria> reproccesingCriteria;
 
@@ -29,8 +30,8 @@ public class MethodReprocessingCriteria {
     this.reproccesingCriteria = reproccesingCriteria;
   }
 
-  public static MethodReprocessingCriteria empty() {
-    return EMPTY;
+  public static MethodReprocessingCriteria alwaysReprocess() {
+    return ALWAYS_REPROCESS;
   }
 
   public ParameterReprocessingCriteria getParameterReprocessingCriteria(int parameterIndex) {

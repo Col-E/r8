@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -35,6 +36,9 @@ public class ArgumentPropagatorReprocessingCriteriaCollection {
   private final AppView<AppInfoWithLiveness> appView;
 
   private final Map<DexMethod, MethodReprocessingCriteria> reproccessingCriteria =
+      new IdentityHashMap<>();
+
+  private final Map<DexMethod, MethodReprocessingCriteria> delayedReproccessingCriteria =
       new ConcurrentHashMap<>();
 
   public ArgumentPropagatorReprocessingCriteriaCollection(AppView<AppInfoWithLiveness> appView) {
@@ -43,7 +47,12 @@ public class ArgumentPropagatorReprocessingCriteriaCollection {
 
   public MethodReprocessingCriteria getReprocessingCriteria(ProgramMethod method) {
     return reproccessingCriteria.getOrDefault(
-        method.getReference(), MethodReprocessingCriteria.empty());
+        method.getReference(), MethodReprocessingCriteria.alwaysReprocess());
+  }
+
+  public void publishDelayedReprocessingCriteria() {
+    reproccessingCriteria.putAll(delayedReproccessingCriteria);
+    delayedReproccessingCriteria.clear();
   }
 
   /**
@@ -69,7 +78,7 @@ public class ArgumentPropagatorReprocessingCriteriaCollection {
     // optimization info, then record this information. If the map is empty, then the method should
     // always be reprocessed if we find non-trivial optimization info for some of the parameters.
     if (!methodReprocessingCriteria.isEmpty()) {
-      reproccessingCriteria.put(
+      delayedReproccessingCriteria.put(
           method.getReference(), new MethodReprocessingCriteria(methodReprocessingCriteria));
     }
   }
@@ -141,5 +150,10 @@ public class ArgumentPropagatorReprocessingCriteriaCollection {
     }
 
     return builder.build();
+  }
+
+  public boolean verifyNoDelayedReprocessingCriteria() {
+    assert delayedReproccessingCriteria.isEmpty();
+    return true;
   }
 }
