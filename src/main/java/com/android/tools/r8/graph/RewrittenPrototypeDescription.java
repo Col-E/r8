@@ -18,9 +18,9 @@ import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
-import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
 import it.unimi.dsi.fastutil.ints.IntCollection;
@@ -31,35 +31,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 public class RewrittenPrototypeDescription {
 
-  public abstract static class ArgumentInfo {
-
-    static final ArgumentInfo NO_INFO =
-        new ArgumentInfo() {
-
-          @Override
-          public ArgumentInfo combine(ArgumentInfo info) {
-            assert false : "ArgumentInfo NO_INFO should not be combined";
-            return info;
-          }
-
-          @Override
-          public boolean equals(Object obj) {
-            return obj == this;
-          }
-
-          @Override
-          public int hashCode() {
-            return System.identityHashCode(this);
-          }
-        };
+  public interface ArgumentInfo {
 
     @SuppressWarnings("ConstantConditions")
-    public static ArgumentInfo combine(ArgumentInfo arg1, ArgumentInfo arg2) {
+    static ArgumentInfo combine(ArgumentInfo arg1, ArgumentInfo arg2) {
       if (arg1 == null) {
         assert arg2 != null;
         return arg2;
@@ -71,33 +50,33 @@ public class RewrittenPrototypeDescription {
       return arg1.combine(arg2);
     }
 
-    public boolean isRemovedArgumentInfo() {
+    ArgumentInfo NO_INFO =
+        info -> {
+          assert false : "ArgumentInfo NO_INFO should not be combined";
+          return info;
+        };
+
+    default boolean isRemovedArgumentInfo() {
       return false;
     }
 
-    public RemovedArgumentInfo asRemovedArgumentInfo() {
+    default RemovedArgumentInfo asRemovedArgumentInfo() {
       return null;
     }
 
-    public boolean isRewrittenTypeInfo() {
+    default boolean isRewrittenTypeInfo() {
       return false;
     }
 
-    public RewrittenTypeInfo asRewrittenTypeInfo() {
+    default RewrittenTypeInfo asRewrittenTypeInfo() {
       return null;
     }
 
     // ArgumentInfo are combined with `this` first, and the `info` argument second.
-    public abstract ArgumentInfo combine(ArgumentInfo info);
-
-    @Override
-    public abstract boolean equals(Object obj);
-
-    @Override
-    public abstract int hashCode();
+    ArgumentInfo combine(ArgumentInfo info);
   }
 
-  public static class RemovedArgumentInfo extends ArgumentInfo {
+  public static class RemovedArgumentInfo implements ArgumentInfo {
 
     public static class Builder {
 
@@ -163,23 +142,9 @@ public class RewrittenPrototypeDescription {
       assert false : "Once the argument is removed one cannot modify it any further.";
       return this;
     }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == null || getClass() != obj.getClass()) {
-        return false;
-      }
-      RemovedArgumentInfo other = (RemovedArgumentInfo) obj;
-      return type == other.type && Objects.equals(singleValue, other.singleValue);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(singleValue, type);
-    }
   }
 
-  public static class RewrittenTypeInfo extends ArgumentInfo {
+  public static class RewrittenTypeInfo implements ArgumentInfo {
 
     private final DexType oldType;
     private final DexType newType;
@@ -236,20 +201,6 @@ public class RewrittenPrototypeDescription {
       return new RewrittenTypeInfo(oldType, rewrittenTypeInfo.newType);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == null || getClass() != obj.getClass()) {
-        return false;
-      }
-      RewrittenTypeInfo other = (RewrittenTypeInfo) obj;
-      return oldType == other.oldType && newType == other.newType;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(oldType, newType);
-    }
-
     public boolean verifyIsDueToUnboxing(DexItemFactory dexItemFactory) {
       assert oldType.toBaseType(dexItemFactory).isClassType();
       assert newType.toBaseType(dexItemFactory).isIntType();
@@ -261,14 +212,14 @@ public class RewrittenPrototypeDescription {
 
     private static final ArgumentInfoCollection EMPTY = new ArgumentInfoCollection();
 
-    private final Int2ObjectSortedMap<ArgumentInfo> argumentInfos;
+    private final Int2ReferenceSortedMap<ArgumentInfo> argumentInfos;
 
     // Specific constructor for empty.
     private ArgumentInfoCollection() {
-      this.argumentInfos = new Int2ObjectRBTreeMap<>();
+      this.argumentInfos = new Int2ReferenceRBTreeMap<>();
     }
 
-    private ArgumentInfoCollection(Int2ObjectSortedMap<ArgumentInfo> argumentInfos) {
+    private ArgumentInfoCollection(Int2ReferenceSortedMap<ArgumentInfo> argumentInfos) {
       assert argumentInfos != null : "should use empty.";
       assert !argumentInfos.isEmpty() : "should use empty.";
       this.argumentInfos = argumentInfos;
@@ -279,7 +230,7 @@ public class RewrittenPrototypeDescription {
     }
 
     public void forEach(IntObjConsumer<ArgumentInfo> consumer) {
-      for (Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
+      for (Entry<ArgumentInfo> entry : argumentInfos.int2ReferenceEntrySet()) {
         consumer.accept(entry.getIntKey(), entry.getValue());
       }
     }
@@ -316,7 +267,7 @@ public class RewrittenPrototypeDescription {
     }
 
     public Iterator<Entry<ArgumentInfo>> iterator() {
-      return argumentInfos.int2ObjectEntrySet().iterator();
+      return argumentInfos.int2ReferenceEntrySet().iterator();
     }
 
     public boolean hasRemovedArguments() {
@@ -350,31 +301,17 @@ public class RewrittenPrototypeDescription {
       return argumentInfos.size();
     }
 
-    @Override
-    public boolean equals(Object obj) {
-      if (obj == null || getClass() != obj.getClass()) {
-        return false;
-      }
-      ArgumentInfoCollection other = (ArgumentInfoCollection) obj;
-      return argumentInfos.equals(other.argumentInfos);
-    }
-
-    @Override
-    public int hashCode() {
-      return argumentInfos.hashCode();
-    }
-
     public static Builder builder() {
       return new Builder();
     }
 
     public static class Builder {
 
-      private Int2ObjectSortedMap<ArgumentInfo> argumentInfos;
+      private Int2ReferenceSortedMap<ArgumentInfo> argumentInfos;
 
       public Builder addArgumentInfo(int argIndex, ArgumentInfo argInfo) {
         if (argumentInfos == null) {
-          argumentInfos = new Int2ObjectRBTreeMap<>();
+          argumentInfos = new Int2ReferenceRBTreeMap<>();
         }
         assert !argumentInfos.containsKey(argIndex);
         argumentInfos.put(argIndex, argInfo);
@@ -440,7 +377,7 @@ public class RewrittenPrototypeDescription {
         }
       }
 
-      Int2ObjectSortedMap<ArgumentInfo> newArgInfos = new Int2ObjectRBTreeMap<>();
+      Int2ReferenceSortedMap<ArgumentInfo> newArgInfos = new Int2ReferenceRBTreeMap<>();
       newArgInfos.putAll(argumentInfos);
       IntBidirectionalIterator iterator = argumentInfos.keySet().iterator();
       int offset = 0;
@@ -540,7 +477,7 @@ public class RewrittenPrototypeDescription {
     assert !isEmpty();
   }
 
-  public static RewrittenPrototypeDescription create(
+  private static RewrittenPrototypeDescription create(
       List<ExtraParameter> extraParameters,
       RewrittenTypeInfo rewrittenReturnInfo,
       ArgumentInfoCollection argumentsInfo) {
@@ -568,11 +505,6 @@ public class RewrittenPrototypeDescription {
 
   public static RewrittenPrototypeDescription none() {
     return NONE;
-  }
-
-  public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
-      DexEncodedMethod method) {
-    return getArgumentInfoCollection().createParameterAnnotationsRemover(method);
   }
 
   public MethodOptimizationInfoFixer createMethodOptimizationInfoFixer() {
@@ -728,21 +660,5 @@ public class RewrittenPrototypeDescription {
     newExtraParameters.addAll(parameters);
     return new RewrittenPrototypeDescription(
         newExtraParameters, rewrittenReturnInfo, argumentInfoCollection);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    RewrittenPrototypeDescription other = (RewrittenPrototypeDescription) obj;
-    return extraParameters.equals(other.extraParameters)
-        && Objects.equals(rewrittenReturnInfo, other.rewrittenReturnInfo)
-        && argumentInfoCollection.equals(other.argumentInfoCollection);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(extraParameters, rewrittenReturnInfo, argumentInfoCollection);
   }
 }

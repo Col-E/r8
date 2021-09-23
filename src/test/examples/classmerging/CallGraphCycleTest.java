@@ -7,14 +7,14 @@ package classmerging;
 public class CallGraphCycleTest {
 
   public static void main(String[] args) {
-    new B(args.length == 0, args.length == 1);
+    new B(true);
   }
 
   public static class A {
 
-    public A(boolean instantiateB, boolean alwaysFalse) {
+    public A(boolean instantiateB) {
       if (instantiateB) {
-        new B(alwaysFalse, alwaysFalse);
+        new B(false);
       }
       System.out.println("A(" + instantiateB + ")");
     }
@@ -22,8 +22,8 @@ public class CallGraphCycleTest {
 
   public static class B extends A {
 
-    public B(boolean instantiateBinA, boolean alwaysFalse) {
-      super(instantiateBinA, alwaysFalse);
+    public B(boolean instantiateBinA) {
+      super(instantiateBinA);
       System.out.println("B(" + instantiateBinA + ")");
     }
   }

@@ -100,7 +100,10 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     for (MethodSubject methodSubject : methodSubjects) {
       assertThat(methodSubject, isPresent());
 
-      if (keepUninstantiatedArguments) {
+      // TODO(b/131735725): Should also remove arguments from the virtual methods.
+      boolean shouldHaveArgumentRemoval =
+          keepUninstantiatedArguments || methodSubject.getOriginalName().contains("Virtual");
+      if (shouldHaveArgumentRemoval) {
         assertEquals(3, methodSubject.getMethod().getParameters().size());
 
         // In non-compat mode, R8 removes annotations from non-pinned items.
@@ -119,7 +122,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
         assertEquals(1, annotationSet.size());
 
         DexAnnotation annotation = annotationSet.getFirst();
-        if (keepUninstantiatedArguments && i == getPositionOfUnusedArgument(methodSubject)) {
+        if (shouldHaveArgumentRemoval && i == getPositionOfUnusedArgument(methodSubject)) {
           assertEquals(
               uninstantiatedClassSubject.getFinalName(),
               annotation.getAnnotationType().getTypeName());

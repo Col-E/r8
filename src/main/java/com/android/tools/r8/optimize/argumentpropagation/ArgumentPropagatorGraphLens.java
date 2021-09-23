@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
@@ -17,23 +18,23 @@ import java.util.Map;
 
 public class ArgumentPropagatorGraphLens extends NestedGraphLens {
 
-  private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges;
+  private final Map<DexMethod, ArgumentInfoCollection> removedParameters;
 
   ArgumentPropagatorGraphLens(
       AppView<AppInfoWithLiveness> appView,
       BidirectionalOneToOneMap<DexMethod, DexMethod> methodMap,
-      Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges) {
+      Map<DexMethod, ArgumentInfoCollection> removedParameters) {
     super(appView, EMPTY_FIELD_MAP, methodMap, EMPTY_TYPE_MAP);
-    this.prototypeChanges = prototypeChanges;
+    this.removedParameters = removedParameters;
   }
 
   public static Builder builder(AppView<AppInfoWithLiveness> appView) {
     return new Builder(appView);
   }
 
-  public RewrittenPrototypeDescription getPrototypeChanges(DexMethod method) {
+  public ArgumentInfoCollection getRemovedParameters(DexMethod method) {
     assert method != internalGetPreviousMethodSignature(method);
-    return prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none());
+    return removedParameters.getOrDefault(method, ArgumentInfoCollection.empty());
   }
 
   @Override
@@ -41,10 +42,10 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
     DexMethod previous = internalGetPreviousMethodSignature(method);
     if (previous == method) {
-      assert !this.prototypeChanges.containsKey(method);
+      assert !removedParameters.containsKey(method);
       return prototypeChanges;
     }
-    return prototypeChanges.combine(getPrototypeChanges(method));
+    return prototypeChanges.withRemovedArguments(getRemovedParameters(method));
   }
 
   @Override
@@ -62,7 +63,7 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     private final AppView<AppInfoWithLiveness> appView;
     private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
-    private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges =
+    private final Map<DexMethod, ArgumentInfoCollection> removedParameters =
         new IdentityHashMap<>();
 
     Builder(AppView<AppInfoWithLiveness> appView) {
@@ -76,16 +77,16 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     public ArgumentPropagatorGraphLens.Builder mergeDisjoint(
         ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder) {
       newMethodSignatures.putAll(partialGraphLensBuilder.newMethodSignatures);
-      prototypeChanges.putAll(partialGraphLensBuilder.prototypeChanges);
+      removedParameters.putAll(partialGraphLensBuilder.removedParameters);
       return this;
     }
 
     public Builder recordMove(
-        DexMethod from, DexMethod to, RewrittenPrototypeDescription prototypeChangesForMethod) {
+        DexMethod from, DexMethod to, ArgumentInfoCollection removedParametersForMethod) {
       assert from != to;
       newMethodSignatures.put(from, to);
-      if (!prototypeChangesForMethod.isEmpty()) {
-        prototypeChanges.put(to, prototypeChangesForMethod);
+      if (!removedParametersForMethod.isEmpty()) {
+        removedParameters.put(to, removedParametersForMethod);
       }
       return this;
     }
@@ -93,7 +94,7 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     public ArgumentPropagatorGraphLens build() {
       return isEmpty()
           ? null
-          : new ArgumentPropagatorGraphLens(appView, newMethodSignatures, prototypeChanges);
+          : new ArgumentPropagatorGraphLens(appView, newMethodSignatures, removedParameters);
     }
   }
 }

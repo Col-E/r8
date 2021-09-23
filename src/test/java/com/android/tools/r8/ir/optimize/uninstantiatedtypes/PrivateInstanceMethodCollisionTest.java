@@ -35,7 +35,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
   @Parameters(name = "{0}, minification: {1}, allowaccessmodification: {2}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        getTestParameters().withAllRuntimes().build(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }
@@ -66,7 +66,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .minification(minification)
         .allowAccessModification(allowAccessModification)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyUninstantiatedArgumentsRemovedAndNoCollisions)
         .run(parameters.getRuntime(), TestClass.class)

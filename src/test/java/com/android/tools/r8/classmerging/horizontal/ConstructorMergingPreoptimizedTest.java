@@ -38,7 +38,8 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("changed", "0", "42", "foo", "7", "foo", "print a", "print b")
+        .assertSuccessWithOutputLines(
+            "changed", "13", "42", "foo", "7", "foo", "print a", "print b")
         .inspect(
             codeInspector -> {
               ClassSubject changedClassSubject = codeInspector.clazz(Changed.class);
@@ -117,7 +118,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
   public static class Main {
     public static void main(String[] args) {
       Parent p = new Changed();
-      A a = new A(args.length);
+      A a = new A(13);
       a = new A(p);
       B b = new B(p);
       a.print();

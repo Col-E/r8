@@ -591,10 +591,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return bootstrapMethods.contains(method);
   }
 
-  public boolean isBootstrapMethod(ProgramMethod method) {
-    return isBootstrapMethod(method.getReference());
-  }
-
   public boolean isMethodTargetedByInvokeDynamic(DexMethod method) {
     return methodsTargetedByInvokeDynamic.contains(method);
   }

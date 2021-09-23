@@ -11,14 +11,11 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,39 +25,32 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class UnusedArgumentsInstanceConstructorTest extends TestBase {
 
-  private final TestParameters parameters;
+  private final Backend backend;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  @Parameters(name = "Backend: {0}")
+  public static Backend[] data() {
+    return ToolHelper.getBackends();
   }
 
-  public UnusedArgumentsInstanceConstructorTest(TestParameters parameters) {
-    this.parameters = parameters;
+  public UnusedArgumentsInstanceConstructorTest(Backend backend) {
+    this.backend = backend;
   }
 
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("Hello world");
 
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addTestClasspath()
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(expectedOutput);
+    if (backend == Backend.CF) {
+      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
     }
 
     CodeInspector inspector =
-        testForR8(parameters.getBackend())
+        testForR8(backend)
             .addInnerClasses(UnusedArgumentsInstanceConstructorTest.class)
             .addKeepMainRule(TestClass.class)
-            .addHorizontallyMergedClassesInspector(
-                HorizontallyMergedClassesInspector::assertNoClassesMerged)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .enableNoHorizontalClassMergingAnnotations()
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), TestClass.class)
+            .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
@@ -83,7 +73,6 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
   }
 
   @NeverClassInline
-  @NoHorizontalClassMerging
   static class A {
 
     public A(B uninstantiated, C unused) {
@@ -101,9 +90,7 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
     }
   }
 
-  @NoHorizontalClassMerging
   static class B {}
 
-  @NoHorizontalClassMerging
   static class C {}
 }

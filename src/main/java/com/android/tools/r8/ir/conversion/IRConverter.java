@@ -94,7 +94,6 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
-import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
@@ -836,7 +835,6 @@ public class IRConverter {
     if (options.enableFieldAssignmentTracker) {
       fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
     }
-    appView.withArgumentPropagator(ArgumentPropagator::publishDelayedReprocessingCriteria);
     if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
       appView.protoShrinker().protoEnumSwitchMapRemover.updateVisibleStaticFieldValues();
     }

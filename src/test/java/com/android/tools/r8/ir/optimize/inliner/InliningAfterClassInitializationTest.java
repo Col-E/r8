@@ -10,7 +10,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.KeepConstantArguments;
-import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -225,7 +224,6 @@ public class InliningAfterClassInitializationTest extends TestBase {
         .addOptionsModification(
             options -> options.enableInliningOfInvokesWithClassInitializationSideEffects = false)
         .enableConstantArgumentAnnotations()
-        .enableUnusedArgumentAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), mainClass)
@@ -324,7 +322,6 @@ public class InliningAfterClassInitializationTest extends TestBase {
     }
 
     @KeepConstantArguments
-    @KeepUnusedArguments
     @NeverInline
     private static void test(A obj) {
       try {

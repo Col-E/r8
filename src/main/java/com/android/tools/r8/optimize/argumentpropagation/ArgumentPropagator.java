@@ -67,8 +67,8 @@ public class ArgumentPropagator {
     timing.begin("Argument propagator");
     timing.begin("Initialize code scanner");
 
+    codeScanner = new ArgumentPropagatorCodeScanner(appView);
     reprocessingCriteriaCollection = new ArgumentPropagatorReprocessingCriteriaCollection(appView);
-    codeScanner = new ArgumentPropagatorCodeScanner(appView, reprocessingCriteriaCollection);
 
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
@@ -110,11 +110,6 @@ public class ArgumentPropagator {
     }
   }
 
-  public void publishDelayedReprocessingCriteria() {
-    assert reprocessingCriteriaCollection != null;
-    reprocessingCriteriaCollection.publishDelayedReprocessingCriteria();
-  }
-
   public void transferArgumentInformation(ProgramMethod from, ProgramMethod to) {
     assert codeScanner != null;
     MethodStateCollectionByReference methodStates = codeScanner.getMethodStates();
@@ -130,8 +125,6 @@ public class ArgumentPropagator {
       Timing timing)
       throws ExecutionException {
     assert !appView.getSyntheticItems().hasPendingSyntheticClasses();
-    assert reprocessingCriteriaCollection.verifyNoDelayedReprocessingCriteria();
-
     timing.begin("Argument propagator");
 
     // Compute the strongly connected program components for parallel execution.

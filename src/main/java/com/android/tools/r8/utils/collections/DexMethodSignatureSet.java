@@ -94,10 +94,6 @@ public class DexMethodSignatureSet implements Collection<DexMethodSignature> {
     return backing.contains(signature);
   }
 
-  public boolean contains(DexMethod method) {
-    return contains(method.getSignature());
-  }
-
   public boolean contains(DexEncodedMethod method) {
     return contains(method.getSignature());
   }

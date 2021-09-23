@@ -5,7 +5,6 @@ package shaking1;
 
 public class Shaking {
   public static void main(String[] args) {
-    String world = args.length == 0 ? "world" : null;
-    System.out.println(new Used(world).method());
+    System.out.println(new Used("world").method());
   }
 }

@@ -34,10 +34,6 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
   private final Predicate<DexEncodedMethod> methodTester;
 
-  public MethodPoolCollection(AppView<AppInfoWithLiveness> appView) {
-    this(appView, appView.appInfo().computeSubtypingInfo());
-  }
-
   public MethodPoolCollection(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo) {
     this(appView, subtypingInfo, Predicates.alwaysTrue());
   }
