@@ -4098,10 +4098,9 @@ public class Enqueuer {
       // When generating interface bridges the method may be inserted into a live hierarchy.
       // If so we need to also mark it as live as the reachable check above will not reprocess the
       // hierarchy.
-      // TODO(b/183998768): The check for isInterface here should be possible to remove now.
       if (definition.isNonAbstractVirtualMethod()
-          && (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(holder)
-              || holder.isInterface())) {
+          && objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(
+              holder)) {
         // TODO(b/120959039): Codify the kept-graph expectations for these cases in tests.
         markVirtualMethodAsLive(target, reason);
       }
