@@ -717,9 +717,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       builder.setName(methodReference.getName());
       builder.setProto(methodReference.getProto());
       buildMethodCallback.accept(builder);
-      // TODO(b/183998768): Make this safe for recursive definitions.
-      //  For example, the builder should be split into the creation of the method structure
-      //  and the creation of the method code. The code can then be constructed outside the lock.
       methodDefinition = builder.build();
       methodCollection.addMethod(methodDefinition);
       newMethodCallback.accept((T) DexClassAndMethod.create(clazz, methodDefinition));

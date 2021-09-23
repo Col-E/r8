@@ -47,8 +47,6 @@ public class InterfaceMethodProcessorFacade implements CfPostProcessingDesugarin
       InterfaceProcessingDesugaringEventConsumer eventConsumer,
       ExecutorService executorService)
       throws ExecutionException {
-    // TODO(b/183998768): Would be nice to use the ClassProcessing for the processing of classes,
-    //  and do here only the finalization.
     ThreadUtils.processItems(
         Iterables.filter(programClasses, (DexProgramClass clazz) -> shouldProcess(clazz, flavour)),
         clazz -> classProcessor.process(clazz, eventConsumer),

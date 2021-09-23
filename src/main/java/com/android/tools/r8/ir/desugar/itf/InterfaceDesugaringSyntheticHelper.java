@@ -220,13 +220,7 @@ public class InterfaceDesugaringSyntheticHelper {
             method.getHolder().asClasspathOrLibraryClass(),
             appView,
             classBuilder -> {},
-            clazz -> {
-              // TODO(b/183998768): When interface method desugaring is cf to cf in R8, the
-              //  eventConsumer should always be non null.
-              if (eventConsumer != null) {
-                eventConsumer.acceptClasspathEmulatedInterface(clazz);
-              }
-            },
+            eventConsumer::acceptClasspathEmulatedInterface,
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
@@ -303,7 +297,7 @@ public class InterfaceDesugaringSyntheticHelper {
               .setAnnotations(definition.annotations())
               // Will be traced by the enqueuer.
               .disableAndroidApiLevelCheck()
-              // TODO(b/183998768): Should this not also be updating with a fake 'this'
+              // TODO(b/200938394): Should this not also be updating with a fake 'this'
               .setParameterAnnotationsList(definition.getParameterAnnotations())
               .setCode(ignored -> InvalidCode.getInstance());
         },

@@ -365,7 +365,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .addScanEffect(() -> leavingStaticInvokeToInterface(context))
           .build();
     }
-    // TODO(b/183998768): This should not be needed. Targeted synthetics should be in place.
+    // TODO(b/199135051): This should not be needed. Targeted synthetics should be in place.
     if (appView.getSyntheticItems().isPendingSynthetic(invoke.getMethod().getHolderType())) {
       // We did not create this code yet, but it will not require rewriting.
       return DesugarDescription.nothing();
@@ -551,7 +551,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                             directTarget.asProgramMethod());
                     companionMethod = companionMethodDefinition.getReference();
                   } else {
-                    // TODO(b/183998768): Why does this not create a stub on the class path?
+                    // TODO(b/200938617): Why does this not create a stub on the class path?
                     companionMethod = helper.privateAsMethodOfCompanionClass(directTarget);
                   }
                 } else {
@@ -716,11 +716,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                     methodProcessingContext,
                     dexItemFactory) -> {
                   DexClassAndMethod method = resolutionResult.getResolutionPair();
-                  // TODO(b/183998768): Why do this amend routine. We have done resolution, so would
-                  // that
-                  //  not be the correct target!? I think this is just legacy from before resolution
-                  // was
-                  //  implemented in full.
+                  // TODO(b/199135051): Why do this amend routine. We have done resolution, so would
+                  //  that not be the correct target!? I think this is just legacy from before
+                  //  resolution was implemented in full.
                   DexMethod amendedMethod =
                       amendDefaultMethod(context12.getHolder(), invokedMethod);
                   assert method.getReference() == amendedMethod;
