@@ -58,11 +58,9 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
               counts.println = countInvokesWithName(methodSubject, "println");
             });
 
-    // TODO(b/129044633) We expect 0 x run and 2 x println after we can inline those methods.
-    assertEquals(2, counts.run);
-    assertEquals(0, counts.println);
-    // TODO(b/126323172) After this issue has been fixed, add test here to check the same with
-    // desugared lambdas.
+    // TODO(b/126323172) Add test here to check the same with desugared lambdas.
+    assertEquals(0, counts.run);
+    assertEquals(2, counts.println);
   }
 
   private static long countInvokesWithName(MethodSubject methodSubject, String name) {
