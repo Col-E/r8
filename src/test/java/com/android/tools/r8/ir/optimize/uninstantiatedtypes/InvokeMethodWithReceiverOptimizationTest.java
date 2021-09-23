@@ -12,7 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -33,17 +33,19 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
 
-  private final Backend backend;
-  private final boolean enableArgumentRemoval;
+  private final TestParameters parameters;
+  private final boolean enableArgumentPropagation;
 
-  @Parameters(name = "Backend: {0}, enable argument removal: {1}")
+  @Parameters(name = "{0}, argument propagation: {1}")
   public static List<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public InvokeMethodWithReceiverOptimizationTest(Backend backend, boolean enableArgumentRemoval) {
-    this.backend = backend;
-    this.enableArgumentRemoval = enableArgumentRemoval;
+  public InvokeMethodWithReceiverOptimizationTest(
+      TestParameters parameters, boolean enableArgumentPropagation) {
+    this.parameters = parameters;
+    this.enableArgumentPropagation = enableArgumentPropagation;
   }
 
   @Test
@@ -57,15 +59,20 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(InvokeMethodWithReceiverOptimizationTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
+            .addOptionsModification(
+                options -> {
+                  options.enableUninstantiatedTypeOptimization = enableArgumentPropagation;
+                  options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
+                })
             // TODO(b/120764902): The calls to getOriginalName() below does not work in presence of
-            // argument removal.
-            .addKeepRules("-dontobfuscate")
-            .run(TestClass.class)
+            //  argument removal.
+            .noMinification()
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
 
@@ -73,7 +80,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
     assertThat(testClassSubject, isPresent());
 
     ClassSubject otherClassSubject = inspector.clazz(A.class);
-    assertNotEquals(enableArgumentRemoval, otherClassSubject.isPresent());
+    assertNotEquals(enableArgumentPropagation, otherClassSubject.isPresent());
 
     // Check that A.method() has been removed.
     assertThat(otherClassSubject.uniqueMethodWithName("method"), not(isPresent()));

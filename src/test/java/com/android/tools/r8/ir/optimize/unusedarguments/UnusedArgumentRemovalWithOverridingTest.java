@@ -32,7 +32,8 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
 
   @Parameters(name = "{1}, minification: {0}")
   public static List<Object[]> params() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public UnusedArgumentRemovalWithOverridingTest(boolean minification, TestParameters parameters) {
@@ -50,7 +51,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verify)
         .run(parameters.getRuntime(), TestClass.class)
@@ -70,8 +71,9 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.println(new A().greeting("Hello world!"));
-      System.out.println(new B().greeting("Hello world!"));
+      String greeting = System.currentTimeMillis() > 0 ? "Hello world!" : null;
+      System.out.println(new A().greeting(greeting));
+      System.out.println(new B().greeting(greeting));
     }
   }
 

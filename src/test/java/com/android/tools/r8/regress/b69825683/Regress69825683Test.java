@@ -24,7 +24,7 @@ public class Regress69825683Test extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public Regress69825683Test(TestParameters parameters) {
@@ -48,10 +48,13 @@ public class Regress69825683Test extends TestBase {
             .addKeepRules(
                 "-assumemayhavesideeffects class " + inner.getName() + " {",
                 "  synthetic void <init>(...);",
+                "}",
+                "-keepunusedarguments class " + inner.getName() + " {",
+                "  synthetic void <init>(...);",
                 "}")
             .addOptionsModification(options -> options.enableClassInlining = false)
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), outer)
             // Run code to check that the constructor with synthetic class as argument is present.
             .assertSuccessWithOutputThatMatches(startsWith(innerName))
@@ -82,7 +85,7 @@ public class Regress69825683Test extends TestBase {
                 "}")
             .noMinification()
             .addOptionsModification(o -> o.enableClassInlining = false)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             // Run code to check that the constructor with synthetic class as argument is present.
             .run(parameters.getRuntime(), clazz)
             .assertSuccessWithOutputThatMatches(startsWith(clazz.getName()))

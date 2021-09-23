@@ -67,7 +67,7 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
       assertEquals("a", methodSubject.getFinalName());
       assertEquals(0, methodSubject.getMethod().getReference().proto.parameters.size());
     } else {
-      assertEquals("toString1", methodSubject.getFinalName());
+      assertEquals("toString$1", methodSubject.getFinalName());
       assertEquals(0, methodSubject.getMethod().getReference().proto.parameters.size());
     }
   }

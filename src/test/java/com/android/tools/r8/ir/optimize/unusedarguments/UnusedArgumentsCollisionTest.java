@@ -34,7 +34,8 @@ public class UnusedArgumentsCollisionTest extends TestBase {
 
   @Parameters(name = "{1}, minification: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public UnusedArgumentsCollisionTest(boolean minification, TestParameters parameters) {
@@ -60,7 +61,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyUnusedArgumentsRemovedAndNoCollisions)
         .run(parameters.getRuntime(), TestClass.class)
@@ -85,11 +86,10 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     MethodSubject methodB1Subject =
         bClassSubject.allMethods().stream().filter(FoundMethodSubject::isStatic).findFirst().get();
     assertThat(methodB1Subject, isPresent());
-    assertEquals(0, methodB1Subject.getMethod().getReference().proto.parameters.size());
+    assertEquals(0, methodB1Subject.getMethod().getParameters().size());
 
-    // TODO(b/129933280): Determine if we should use member pool collection for unused argument
-    //  removal for private and static methods.
-    assertEquals(methodB1Subject.getFinalName(), methodA1Subject.getFinalName());
+    // Verify that the static method B.method1() does not collide with a method in A.
+    assertNotEquals(methodB1Subject.getFinalName(), methodA1Subject.getFinalName());
     assertNotEquals(methodB1Subject.getFinalName(), methodA2Subject.getFinalName());
 
     // Verify that the unused argument has been removed from B.method2().
@@ -97,7 +97,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     MethodSubject methodB2Subject =
         bClassSubject.allMethods().stream().filter(FoundMethodSubject::isVirtual).findFirst().get();
     assertThat(methodB2Subject, isPresent());
-    assertEquals(0, methodB2Subject.getMethod().getReference().proto.parameters.size());
+    assertEquals(0, methodB2Subject.getMethod().getParameters().size());
 
     // Verify that the virtual method B.method2() does not collide with a method in A.
     assertNotEquals(methodB2Subject.getFinalName(), methodA1Subject.getFinalName());

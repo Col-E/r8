@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.unusedarguments;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -39,6 +40,7 @@ public class UnusedAndUninstantiatedTypesTest extends TestBase {
         .addKeepMainRule(Main.class)
         .noMinification()
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::assertMethodsAreThere)
@@ -168,5 +170,6 @@ public class UnusedAndUninstantiatedTypesTest extends TestBase {
 
   private static class UnInstantiated {}
 
+  @NeverClassInline
   private static class Unused {}
 }

@@ -113,7 +113,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
     MethodSignature barMethodSignatureAfterArgumentRemoval =
         enableUnusedArgumentRemoval
-            ? new MethodSignature("bara", STRING, ImmutableList.of())
+            ? new MethodSignature("bar$1", STRING, ImmutableList.of())
             : new MethodSignature("bar", STRING, ImmutableList.of("int"));
     assertPublic(inspector, A.class, new MethodSignature("baz", STRING, ImmutableList.of()));
     assertPublic(inspector, A.class, new MethodSignature("bar", STRING, ImmutableList.of()));

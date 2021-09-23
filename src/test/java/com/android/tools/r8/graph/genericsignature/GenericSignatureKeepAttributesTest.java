@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.genericsignature.GenericSignatureKeepAttributesTest.Outer.Middle;
@@ -72,6 +73,7 @@ public class GenericSignatureKeepAttributesTest extends TestBase {
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(Outer.Middle.Inner.class, Supplier.class, Predicate.class)
+        .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(parameters.isCfRuntime() ? EXPECTED_JVM : EXPECTED_DEX)
         .inspect(this::inspectSignatures);
@@ -146,6 +148,7 @@ public class GenericSignatureKeepAttributesTest extends TestBase {
       return new Outer<O>.Middle<>();
     }
 
+    @NeverInline
     public static Outer<?>.Middle<?>.Inner<Object> create() {
       return new Outer<>().createMiddle().createInner();
     }
