@@ -547,7 +547,7 @@ public class IRConverter {
     if (options.isGeneratingClassFiles()
         || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
       // We do not process in call graph order, so anything could be a leaf.
-      rewriteCode(
+      rewriteNonDesugaredCode(
           method,
           desugaringEventConsumer,
           simpleOptimizationFeedback,
@@ -1033,7 +1033,7 @@ public class IRConverter {
     }
   }
 
-  Timing rewriteCode(
+  Timing rewriteNonDesugaredCode(
       ProgramMethod method,
       CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       OptimizationFeedback feedback,
@@ -1043,7 +1043,7 @@ public class IRConverter {
         method.getOrigin(),
         new MethodPosition(method.getReference().asMethodReference()),
         () ->
-            rewriteCodeInternal(
+            rewriteNonDesugaredCodeInternal(
                 method,
                 desugaringEventConsumer,
                 feedback,
@@ -1056,17 +1056,33 @@ public class IRConverter {
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
-    return rewriteCode(
-        method,
-        CfInstructionDesugaringEventConsumer.createForDesugaredCode(),
-        feedback,
-        methodProcessor,
-        methodProcessingContext);
+    return ExceptionUtils.withOriginAndPositionAttachmentHandler(
+        method.getOrigin(),
+        new MethodPosition(method.getReference().asMethodReference()),
+        () ->
+            rewriteDesugaredCodeInternal(
+                method, feedback, methodProcessor, methodProcessingContext));
   }
 
-  private Timing rewriteCodeInternal(
+  private Timing rewriteNonDesugaredCodeInternal(
       ProgramMethod method,
       CfInstructionDesugaringEventConsumer desugaringEventConsumer,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingContext methodProcessingContext) {
+    boolean didDesugar = desugar(method, desugaringEventConsumer, methodProcessingContext);
+    if (Log.ENABLED && didDesugar) {
+      Log.debug(
+          getClass(),
+          "Desugared code for %s:\n%s",
+          method.toSourceString(),
+          logCode(options, method.getDefinition()));
+    }
+    return rewriteDesugaredCodeInternal(method, feedback, methodProcessor, methodProcessingContext);
+  }
+
+  private Timing rewriteDesugaredCodeInternal(
+      ProgramMethod method,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
@@ -1078,14 +1094,6 @@ public class IRConverter {
       Log.debug(
           getClass(),
           "Original code for %s:\n%s",
-          method.toSourceString(),
-          logCode(options, method.getDefinition()));
-    }
-    boolean didDesugar = desugar(method, desugaringEventConsumer, methodProcessingContext);
-    if (Log.ENABLED && didDesugar) {
-      Log.debug(
-          getClass(),
-          "Desugared code for %s:\n%s",
           method.toSourceString(),
           logCode(options, method.getDefinition()));
     }

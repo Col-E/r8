@@ -83,7 +83,7 @@ public class D8MethodProcessor extends MethodProcessor {
     nonTerminalFutures.add(
         ThreadUtils.processAsynchronously(
             () ->
-                converter.rewriteCode(
+                converter.rewriteNonDesugaredCode(
                     method,
                     eventConsumer,
                     OptimizationFeedbackIgnore.getInstance(),
