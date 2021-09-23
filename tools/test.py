@@ -188,7 +188,7 @@ def ParseOptions():
       '--stacktrace',
       help='Pass --stacktrace to the gradle run',
       default=False, action='store_true')
-  result.add_option('--kotlin-dev-compiler',
+  result.add_option('--kotlin-compiler-dev',
                     help='Specify to download a kotlin dev compiler and run '
                          'tests with that',
                     default=False, action='store_true')
@@ -281,6 +281,7 @@ def Main():
   if options.print_obfuscated_stacktraces:
     gradle_args.append('-Pprint_obfuscated_stacktraces')
   if options.kotlin_dev_compiler:
+    gradle_args.append('-Dcom.android.tools.r8.kotlincompilerdev=1')
     download_kotlin_dev.download_newest()
   if os.name == 'nt':
     # temporary hack

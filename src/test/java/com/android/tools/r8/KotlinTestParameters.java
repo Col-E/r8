@@ -6,9 +6,12 @@ package com.android.tools.r8;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class KotlinTestParameters {
 
@@ -56,6 +59,8 @@ public class KotlinTestParameters {
 
     private Predicate<KotlinCompilerVersion> compilerFilter = c -> false;
     private Predicate<KotlinTargetVersion> targetVersionFilter = t -> false;
+    private boolean withDevCompiler =
+        System.getProperty("com.android.tools.r8.kotlincompilerdev") != null;
 
     private Builder() {}
 
@@ -83,6 +88,11 @@ public class KotlinTestParameters {
       return this;
     }
 
+    public Builder withDevCompiler() {
+      this.withDevCompiler = true;
+      return this;
+    }
+
     public Builder withAllTargetVersions() {
       withTargetVersionFilter(t -> t != KotlinTargetVersion.NONE);
       return this;
@@ -105,15 +115,24 @@ public class KotlinTestParameters {
     public KotlinTestParametersCollection build() {
       List<KotlinTestParameters> testParameters = new ArrayList<>();
       int index = 0;
-      for (KotlinCompilerVersion kotlinVersion : KotlinCompilerVersion.values()) {
+      List<KotlinCompilerVersion> compilerVersions;
+      if (withDevCompiler) {
+        compilerVersions = ImmutableList.of(KotlinCompilerVersion.KOTLIN_DEV);
+      } else {
+        compilerVersions =
+            Arrays.stream(KotlinCompilerVersion.values())
+                .filter(c -> c != KotlinCompilerVersion.KOTLIN_DEV && compilerFilter.test(c))
+                .collect(Collectors.toList());
+      }
+      for (KotlinCompilerVersion kotlinVersion : compilerVersions) {
         for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
           // KotlinTargetVersion java 6 is deprecated from kotlinc 1.5 and forward, no need to run
           // tests on that target.
           if (targetVersion == KotlinTargetVersion.JAVA_6
-              && kotlinVersion.equals(KotlinCompilerVersion.KOTLINC_1_5_0)) {
+              && kotlinVersion.isGreaterThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_5_0)) {
             continue;
           }
-          if (compilerFilter.test(kotlinVersion) && targetVersionFilter.test(targetVersion)) {
+          if (targetVersionFilter.test(targetVersion)) {
             testParameters.add(
                 new KotlinTestParameters(
                     new KotlinCompiler(kotlinVersion), targetVersion, index++));

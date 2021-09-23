@@ -60,7 +60,8 @@ public class KotlinCompilerTool {
   public enum KotlinCompilerVersion implements Ordered<KotlinCompilerVersion> {
     KOTLINC_1_3_72("kotlin-compiler-1.3.72"),
     KOTLINC_1_4_20("kotlin-compiler-1.4.20"),
-    KOTLINC_1_5_0("kotlin-compiler-1.5.0");
+    KOTLINC_1_5_0("kotlin-compiler-1.5.0"),
+    KOTLIN_DEV("kotlin-compiler-dev");
 
     public static final KotlinCompilerVersion MIN_SUPPORTED_VERSION = KOTLINC_1_4_20;
     public static final KotlinCompilerVersion MAX_SUPPORTED_VERSION = KOTLINC_1_5_0;
