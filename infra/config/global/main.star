@@ -169,6 +169,41 @@ def jctf():
       )
 jctf()
 
+def app_dump():
+  for release in ["", "_release"]:
+      properties = {
+          "builder_group" : "internal.client.r8",
+          "test_options" : ["--bot"],
+          "test_wrapper" : "tools/run_on_app_dump.py"
+      }
+      name = "linux-run-on-app-dump" + release
+      r8_builder(
+          name,
+          dimensions = get_dimensions(),
+          execution_timeout = time.hour * 12,
+          expiration_timeout = time.hour * 35,
+          properties = properties,
+      )
+app_dump()
+
+def desugared_library():
+  for name in ["head", "jdk11_head"]:
+    test_options = ["--no_internal", "--desugared-library", "HEAD"]
+    if "jdk11" in name:
+      test_options = test_options + ["--desugared-library-configuration", "jdk11"]
+    properties = {
+       "builder_group" : "internal.client.r8",
+       "test_options" : test_options,
+    }
+    name = "desugared_library_" + name
+    r8_builder(
+        name,
+        dimensions = get_dimensions(),
+        execution_timeout = time.hour * 12,
+        expiration_timeout = time.hour * 35,
+        properties = properties,
+    )
+desugared_library()
 
 def archivers():
   for name in ["archive", "archive_release", "archive_lib_desugar"]:
@@ -242,3 +277,14 @@ r8_tester_with_default("linux-android=12.0.0",
 
 r8_tester_with_default("windows", ["--all_tests"],
     dimensions=get_dimensions(windows=True))
+
+r8_builder(
+    "linux-kotlin-dev",
+    dimensions = get_dimensions(),
+    execution_timeout = time.hour * 12,
+    expiration_timeout = time.hour * 35,
+    properties = {
+      "builder_group" : "internal.client.r8",
+      "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-dev", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*"]
+    }
+)
