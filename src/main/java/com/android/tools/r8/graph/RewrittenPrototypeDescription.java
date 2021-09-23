@@ -477,7 +477,7 @@ public class RewrittenPrototypeDescription {
     assert !isEmpty();
   }
 
-  private static RewrittenPrototypeDescription create(
+  public static RewrittenPrototypeDescription create(
       List<ExtraParameter> extraParameters,
       RewrittenTypeInfo rewrittenReturnInfo,
       ArgumentInfoCollection argumentsInfo) {
@@ -505,6 +505,11 @@ public class RewrittenPrototypeDescription {
 
   public static RewrittenPrototypeDescription none() {
     return NONE;
+  }
+
+  public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
+      DexEncodedMethod method) {
+    return getArgumentInfoCollection().createParameterAnnotationsRemover(method);
   }
 
   public MethodOptimizationInfoFixer createMethodOptimizationInfoFixer() {
