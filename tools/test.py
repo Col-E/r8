@@ -280,7 +280,7 @@ def Main():
     gradle_args.append('-Pprint_full_stacktraces')
   if options.print_obfuscated_stacktraces:
     gradle_args.append('-Pprint_obfuscated_stacktraces')
-  if options.kotlin_dev_compiler:
+  if options.kotlin_compiler_dev:
     gradle_args.append('-Dcom.android.tools.r8.kotlincompilerdev=1')
     download_kotlin_dev.download_newest()
   if os.name == 'nt':
