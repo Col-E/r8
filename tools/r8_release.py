@@ -602,7 +602,7 @@ def gmaven_publisher_stage_redir_test_info(release_id, artifact, dst):
 
   redir_command = ("/google/data/ro/teams/android-devtools-infra/tools/redir "
                  + "--alsologtostderr "
-                 + "--gcs_bucket_path=/studio_staging/maven2/${USER}/%s "
+                 + "--gcs_bucket_path=/bigstore/gmaven-staging/${USER}/%s "
                  + "--port=1480") % release_id
 
   get_command = ("mvn org.apache.maven.plugins:maven-dependency-plugin:2.4:get "
@@ -620,6 +620,10 @@ Add the following repository to gradle.build for using 'redir':
 repositories {
   maven {
     url 'http://localhost:1480'
+    allowInsecureProtocol true
+  }
+  dependencies {
+    classpath '%s'  // Must be before the Gradle Plugin for Android.
   }
 }
 
@@ -627,7 +631,7 @@ Use this commands to get artifact from 'redir':
 
 rm -rf /tmp/maven_repo_local
 %s
-""" % (redir_command, get_command))
+""" % (redir_command, artifact, get_command))
 
 
 def gmaven_publisher_publish(args, release_id):
