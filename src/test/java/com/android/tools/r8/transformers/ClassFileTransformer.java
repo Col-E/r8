@@ -619,6 +619,25 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setReturnType(MethodPredicate predicate, String newReturnType) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            if (predicate.test(access, name, descriptor, signature, exceptions)) {
+              String oldDescriptorExcludingReturnType =
+                  descriptor.substring(0, descriptor.lastIndexOf(')') + 1);
+              String newDescriptor =
+                  oldDescriptorExcludingReturnType
+                      + DescriptorUtils.javaTypeToDescriptor(newReturnType);
+              return super.visitMethod(access, name, newDescriptor, signature, exceptions);
+            }
+            return super.visitMethod(access, name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
   public ClassFileTransformer setGenericSignature(MethodPredicate predicate, String newSignature) {
     return addClassTransformer(
         new ClassTransformer() {
