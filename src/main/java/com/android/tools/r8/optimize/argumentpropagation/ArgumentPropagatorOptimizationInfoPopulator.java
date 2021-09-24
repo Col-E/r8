@@ -14,6 +14,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteArrayTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteClassTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
@@ -80,9 +82,6 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     //  instructions, build a flow graph where nodes are parameters and there is an edge from a
     //  parameter p1 to p2 if the value of p2 is at least the value of p1. Then propagate the
     //  collected argument information throughout the flow graph.
-    // TODO(b/190154391): If we learn that parameter p1 is constant, and that the enclosing method
-    //  returns p1 according to the optimization info, then update the optimization info to describe
-    //  that the method returns the constant.
     timing.begin("Propagate argument information for virtual methods");
     ThreadUtils.processItems(
         stronglyConnectedProgramComponents,
@@ -221,11 +220,22 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       return;
     }
 
+    ConcreteMonomorphicMethodState finalMethodState = widenedMethodState.asMonomorphic();
     method
         .getDefinition()
         .setCallSiteOptimizationInfo(
-            ConcreteCallSiteOptimizationInfo.fromMethodState(
-                appView, method, widenedMethodState.asMonomorphic()));
+            ConcreteCallSiteOptimizationInfo.fromMethodState(appView, method, finalMethodState));
+
+    // Strengthen the return value of the method if the method is known to return one of the
+    // arguments.
+    MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+    if (optimizationInfo.returnsArgument()) {
+      ParameterState returnedArgumentState =
+          finalMethodState.getParameterState(optimizationInfo.getReturnedArgument());
+      OptimizationFeedback.getSimple()
+          .methodReturnsAbstractValue(
+              method.getDefinition(), appView, returnedArgumentState.getAbstractValue(appView));
+    }
   }
 
   private MethodState getMethodStateAfterUninstantiatedParameterRemoval(

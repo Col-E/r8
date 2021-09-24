@@ -5,7 +5,6 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -51,7 +50,7 @@ public class ConstantReturnAfterArgumentPropagationTest extends TestBase {
                   mainClassSubject.uniqueMethodWithName("identity");
               assertThat(identityMethodSubject, isPresent());
               assertTrue(identityMethodSubject.getProgramMethod().getParameters().isEmpty());
-              assertFalse(identityMethodSubject.getProgramMethod().getReturnType().isVoidType());
+              assertTrue(identityMethodSubject.getProgramMethod().getReturnType().isVoidType());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("identity(42) = 42");
