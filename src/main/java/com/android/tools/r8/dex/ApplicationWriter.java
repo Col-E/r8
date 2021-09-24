@@ -218,12 +218,12 @@ public class ApplicationWriter {
     Collection<DexProgramClass> classes = appView.appInfo().classes();
     Reference2LongMap<DexString> inputChecksums = new Reference2LongOpenHashMap<>(classes.size());
     for (DexProgramClass clazz : classes) {
-      inputChecksums.put(clazz.getType().descriptor, clazz.getChecksum());
+      inputChecksums.put(namingLens.lookupDescriptor(clazz.getType()), clazz.getChecksum());
     }
     for (VirtualFile file : files) {
       ClassesChecksum toWrite = new ClassesChecksum();
       for (DexProgramClass clazz : file.classes()) {
-        DexString desc = clazz.type.descriptor;
+        DexString desc = namingLens.lookupDescriptor(clazz.type);
         toWrite.addChecksum(desc.toString(), inputChecksums.getLong(desc));
       }
       file.injectString(appView.dexItemFactory().createString(toWrite.toJsonString()));

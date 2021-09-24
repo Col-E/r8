@@ -18,6 +18,7 @@ import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
+import com.android.tools.r8.graph.ApplicationReaderMap;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplicationReadFlags;
@@ -53,6 +54,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -366,11 +368,13 @@ public class ApplicationReader {
       }
       // Read the DexCode items and DexProgramClass items in parallel.
       if (!options.skipReadingDexCode) {
+        Map<DexType, DexType> invertedTypeMap = ApplicationReaderMap.getInvertedTypeMap(options);
         for (DexParser<DexProgramClass> dexParser : dexParsers) {
           futures.add(
               executorService.submit(
                   () -> {
-                    dexParser.addClassDefsTo(classes::add); // Depends on Methods, Code items etc.
+                    dexParser.addClassDefsTo(
+                        classes::add, invertedTypeMap); // Depends on Methods, Code items etc.
                   }));
         }
       }

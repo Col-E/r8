@@ -715,7 +715,7 @@ public class DexParser<T extends DexClass> {
     return methods;
   }
 
-  void addClassDefsTo(Consumer<T> classCollection) {
+  void addClassDefsTo(Consumer<T> classCollection, Map<DexType, DexType> invertedTypeMap) {
     final DexSection dexSection = lookupSection(Constants.TYPE_CLASS_DEF_ITEM);
     final int length = dexSection.length;
     indexedItems.initializeClasses(length);
@@ -768,7 +768,8 @@ public class DexParser<T extends DexClass> {
 
       Long checksum = null;
       if (checksums != null && !checksums.isEmpty()) {
-        String desc = type.toDescriptorString();
+        DexType originalType = invertedTypeMap.getOrDefault(type, type);
+        String desc = originalType.toDescriptorString();
         checksum = checksums.getOrDefault(desc, null);
         if (!options.dexClassChecksumFilter.test(desc, checksum)) {
           continue;

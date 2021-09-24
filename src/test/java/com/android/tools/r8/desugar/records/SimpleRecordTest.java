@@ -67,20 +67,38 @@ public class SimpleRecordTest extends TestBase {
   @Test
   public void testD8Intermediate() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
-    Path path =
-        testForD8(Backend.DEX)
-            .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .setIntermediate(true)
-            .compile()
-            .writeToZip();
+    Path path = compileIntermediate();
     testForD8()
         .addProgramFiles(path)
         .setMinApi(parameters.getApiLevel())
-        .compile()
+        .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testD8IntermediateNoDesugaringInStep2() throws Exception {
+    Assume.assumeTrue(parameters.isDexRuntime());
+    Path path = compileIntermediate();
+    // In Android Studio they disable desugaring at this point to improve build speed.
+    testForD8()
+        .addProgramFiles(path)
+        .setMinApi(parameters.getApiLevel())
+        .setIncludeClassesChecksum(true)
+        .disableDesugaring()
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  private Path compileIntermediate() throws Exception {
+    return testForD8(Backend.DEX)
+        .addProgramClassFileData(PROGRAM_DATA)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .setIntermediate(true)
+        .setIncludeClassesChecksum(true)
+        .compile()
+        .writeToZip();
   }
 
   @Test

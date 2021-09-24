@@ -28,4 +28,15 @@ public class ApplicationReaderMap {
             });
     return builder.build();
   }
+
+  public static Map<DexType, DexType> getInvertedTypeMap(InternalOptions options) {
+    DexItemFactory factory = options.dexItemFactory();
+    ImmutableMap.Builder<DexType, DexType> builder = ImmutableMap.builder();
+    getDescriptorMap(options)
+        .forEach(
+            (k, v) -> {
+              builder.put(factory.createType(v), factory.createType(k));
+            });
+    return builder.build();
+  }
 }
