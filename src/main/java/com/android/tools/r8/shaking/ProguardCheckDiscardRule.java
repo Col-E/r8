@@ -75,6 +75,16 @@ public class ProguardCheckDiscardRule extends ProguardConfigurationRule {
   }
 
   @Override
+  public boolean isProguardCheckDiscardRule() {
+    return true;
+  }
+
+  @Override
+  public ProguardCheckDiscardRule asProguardCheckDiscardRule() {
+    return this;
+  }
+
+  @Override
   String typeString() {
     return "checkdiscard";
   }

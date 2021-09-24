@@ -5,7 +5,7 @@ package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.GraphReporter;
@@ -24,15 +24,18 @@ public class CheckDiscardDiagnostic implements Diagnostic {
     private ImmutableList.Builder<String> messagesBuilder = ImmutableList.builder();
 
     public Builder addFailedItems(
-        List<DexDefinition> failed,
+        List<ProgramDefinition> failed,
         GraphReporter graphReporter,
         WhyAreYouKeepingConsumer whyAreYouKeepingConsumer) {
-      for (DexDefinition definition : failed) {
+      for (ProgramDefinition definition : failed) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         whyAreYouKeepingConsumer.printWhyAreYouKeeping(
             graphReporter.getGraphNode(definition.getReference()), new PrintStream(baos));
         messagesBuilder.add(
-            "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString());
+            "Item "
+                + definition.getReference().toSourceString()
+                + " was not discarded.\n"
+                + baos.toString());
       }
       return this;
     }

@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.LensUtils.rewriteAndApplyIfNotPrimitiveType;
+import static com.google.common.base.Predicates.alwaysTrue;
 import static java.util.Collections.emptyMap;
 
 import com.android.tools.r8.dex.Constants;
@@ -38,6 +39,7 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -53,6 +55,7 @@ import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSynt
 import com.android.tools.r8.shaking.EnqueuerEvent.InstantiatedClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.LiveClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
+import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -60,6 +63,7 @@ import com.android.tools.r8.utils.OriginWithPosition;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -104,7 +108,6 @@ public class RootSetUtils {
     private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo =
         new DependentMinimumKeepInfoCollection();
     private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
-    private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
     private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
     private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
     private final Set<DexMethod> neverInlineDueToSingleCaller = Sets.newIdentityHashSet();
@@ -136,6 +139,7 @@ public class RootSetUtils {
 
     private final Map<OriginWithPosition, Set<DexMethod>> assumeNoSideEffectsWarnings =
         new LinkedHashMap<>();
+    private final Set<DexProgramClass> classesWithCheckDiscardedMembers = Sets.newIdentityHashSet();
 
     private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
 
@@ -229,7 +233,7 @@ public class RootSetUtils {
             } else {
               // Members mentioned at -keep should always be pinned as long as that -keep rule is
               // not triggered conditionally.
-              preconditionSupplier.put((definition -> true), null);
+              preconditionSupplier.put(alwaysTrue(), null);
             }
             markMatchingVisibleMethods(
                 clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
@@ -245,22 +249,8 @@ public class RootSetUtils {
       assert ifRule == null;
       if (rule instanceof ProguardIfRule) {
         throw new Unreachable("-if rule will be evaluated separately, not here.");
-      } else if (rule instanceof ProguardCheckDiscardRule) {
-        if (!clazz.isProgramClass()) {
-          appView
-              .reporter()
-              .warning(
-                  new StringDiagnostic(
-                      "The rule `" + rule + "` matches a class not in the program."));
-        } else if (memberKeepRules.isEmpty()) {
-          markClass(clazz, rule, ifRule);
-        } else {
-          preconditionSupplier = ImmutableMap.of((definition -> true), clazz.asProgramClass());
-          markMatchingVisibleMethods(
-              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
-          markMatchingVisibleFields(
-              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
-        }
+      } else if (rule.isProguardCheckDiscardRule()) {
+        evaluateCheckDiscardRule(clazz, rule.asProguardCheckDiscardRule());
       } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule, ifRule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
@@ -349,6 +339,7 @@ public class RootSetUtils {
       } finally {
         application.timing.end();
       }
+      finalizeCheckDiscardedInformation();
       generateAssumeNoSideEffectsWarnings();
       if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
         BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
@@ -371,7 +362,6 @@ public class RootSetUtils {
       return new RootSet(
           dependentMinimumKeepInfo,
           ImmutableList.copyOf(reasonAsked.values()),
-          ImmutableList.copyOf(checkDiscarded.values()),
           alwaysInline,
           neverInline,
           neverInlineDueToSingleCaller,
@@ -1180,9 +1170,10 @@ public class RootSetUtils {
           assumedValues.put(item.asMember().getReference(), rule);
           context.markAsUsed();
         }
-      } else if (context instanceof ProguardCheckDiscardRule) {
-        checkDiscarded.computeIfAbsent(item.getReference(), i -> i);
-        context.markAsUsed();
+      } else if (context.isProguardCheckDiscardRule()) {
+        assert item.isProgramMember();
+        evaluateCheckDiscardMemberRule(
+            item.asProgramMember(), context.asProguardCheckDiscardRule());
       } else if (context instanceof InlineRule) {
         if (item.isMethod()) {
           DexMethod reference = item.asMethod().getReference();
@@ -1313,7 +1304,63 @@ public class RootSetUtils {
       }
     }
 
-    private synchronized void evaluateKeepRule(
+    private void evaluateCheckDiscardRule(DexClass clazz, ProguardCheckDiscardRule rule) {
+      if (clazz.isProgramClass()) {
+        evaluateCheckDiscardRule(clazz.asProgramClass(), rule.asProguardCheckDiscardRule());
+      } else {
+        StringDiagnostic warning =
+            new StringDiagnostic("The rule `" + rule + "` matches a class not in the program.");
+        appView.reporter().warning(warning);
+      }
+    }
+
+    private void evaluateCheckDiscardRule(DexProgramClass clazz, ProguardCheckDiscardRule rule) {
+      if (rule.getMemberRules().isEmpty()) {
+        evaluateCheckDiscardClassAndAllMembersRule(clazz, rule);
+      } else {
+        markMatchingFields(clazz, rule.getMemberRules(), rule, null, null);
+        markMatchingMethods(clazz, rule.getMemberRules(), rule, null, null);
+        classesWithCheckDiscardedMembers.add(clazz);
+      }
+      rule.markAsUsed();
+    }
+
+    private void evaluateCheckDiscardClassAndAllMembersRule(
+        DexProgramClass clazz, ProguardCheckDiscardRule rule) {
+      setCheckDiscarded(clazz);
+      clazz.forEachProgramMember(this::setCheckDiscarded);
+    }
+
+    private void evaluateCheckDiscardMemberRule(
+        ProgramMember<?, ?> member, ProguardCheckDiscardRule rule) {
+      setCheckDiscarded(member);
+    }
+
+    private void setCheckDiscarded(ProgramDefinition definition) {
+      dependentMinimumKeepInfo
+          .getOrCreateUnconditionalMinimumKeepInfo()
+          .getOrCreateMinimumKeepInfoFor(definition.getReference())
+          .setCheckDiscarded();
+    }
+
+    private void finalizeCheckDiscardedInformation() {
+      MinimumKeepInfoCollection unconditionalKeepInfo =
+          dependentMinimumKeepInfo.getUnconditionalMinimumKeepInfoOrDefault(
+              MinimumKeepInfoCollection.empty());
+      for (DexProgramClass clazz : classesWithCheckDiscardedMembers) {
+        TraversalContinuation continueIfAllMembersMarkedAsCheckDiscarded =
+            clazz.traverseProgramMembers(
+                member ->
+                    TraversalContinuation.continueIf(
+                        unconditionalKeepInfo.hasMinimumKeepInfoThatMatches(
+                            member.getReference(), Joiner::isCheckDiscardedEnabled)));
+        if (continueIfAllMembersMarkedAsCheckDiscarded.shouldContinue()) {
+          setCheckDiscarded(clazz);
+        }
+      }
+    }
+
+    private void evaluateKeepRule(
         ProgramDefinition item,
         ProguardKeepRule context,
         ProguardMemberRule rule,
@@ -1553,7 +1600,6 @@ public class RootSetUtils {
   public static class RootSet extends RootSetBase {
 
     public final ImmutableList<DexReference> reasonAsked;
-    public final ImmutableList<DexReference> checkDiscarded;
     public final Set<DexMethod> alwaysInline;
     public final Set<DexMethod> bypassClinitForInlining;
     public final Set<DexMethod> whyAreYouNotInlining;
@@ -1575,7 +1621,6 @@ public class RootSetUtils {
     private RootSet(
         DependentMinimumKeepInfoCollection dependentMinimumKeepInfo,
         ImmutableList<DexReference> reasonAsked,
-        ImmutableList<DexReference> checkDiscarded,
         Set<DexMethod> alwaysInline,
         Set<DexMethod> neverInline,
         Set<DexMethod> neverInlineDueToSingleCaller,
@@ -1608,7 +1653,6 @@ public class RootSetUtils {
           delayedRootSetActionItems,
           pendingMethodMoveInverse);
       this.reasonAsked = reasonAsked;
-      this.checkDiscarded = checkDiscarded;
       this.alwaysInline = alwaysInline;
       this.bypassClinitForInlining = bypassClinitForInlining;
       this.whyAreYouNotInlining = whyAreYouNotInlining;
@@ -1865,7 +1909,6 @@ public class RootSetUtils {
       StringBuilder builder = new StringBuilder();
       builder.append("RootSet");
       builder.append("\nreasonAsked: " + reasonAsked.size());
-      builder.append("\ncheckDiscarded: " + checkDiscarded.size());
       builder.append("\nnoSideEffects: " + noSideEffects.size());
       builder.append("\nassumedValues: " + assumedValues.size());
       builder.append("\nidentifierNameStrings: " + identifierNameStrings.size());
@@ -1959,7 +2002,6 @@ public class RootSetUtils {
       return new MainDexRootSet(
           rootSet.getDependentMinimumKeepInfo(),
           rootSet.reasonAsked,
-          rootSet.checkDiscarded,
           rootSet.ifRules,
           rootSet.delayedRootSetActionItems);
     }
@@ -1970,13 +2012,11 @@ public class RootSetUtils {
     public MainDexRootSet(
         DependentMinimumKeepInfoCollection dependentMinimumKeepInfo,
         ImmutableList<DexReference> reasonAsked,
-        ImmutableList<DexReference> checkDiscarded,
         Set<ProguardIfRule> ifRules,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       super(
           dependentMinimumKeepInfo,
           reasonAsked,
-          checkDiscarded,
           Collections.emptySet(),
           Collections.emptySet(),
           Collections.emptySet(),
@@ -2019,11 +2059,6 @@ public class RootSetUtils {
         return this;
       }
 
-      ImmutableList.Builder<DexReference> rewrittenCheckDiscarded = ImmutableList.builder();
-      checkDiscarded.forEach(
-          reference ->
-              rewriteAndApplyIfNotPrimitiveType(
-                  graphLens, reference, rewrittenCheckDiscarded::add));
       ImmutableList.Builder<DexReference> rewrittenReasonAsked = ImmutableList.builder();
       reasonAsked.forEach(
           reference ->
@@ -2036,7 +2071,6 @@ public class RootSetUtils {
       return new MainDexRootSet(
           getDependentMinimumKeepInfo().rewrittenWithLens(graphLens),
           rewrittenReasonAsked.build(),
-          rewrittenCheckDiscarded.build(),
           ifRules,
           delayedRootSetActionItems);
     }
@@ -2053,7 +2087,6 @@ public class RootSetUtils {
       return new MainDexRootSet(
           getDependentMinimumKeepInfo(),
           reasonAsked,
-          checkDiscarded,
           ifRules,
           delayedRootSetActionItems);
     }

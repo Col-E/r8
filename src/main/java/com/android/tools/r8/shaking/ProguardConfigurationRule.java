@@ -66,6 +66,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     used = true;
   }
 
+  public boolean isProguardCheckDiscardRule() {
+    return false;
+  }
+
+  public ProguardCheckDiscardRule asProguardCheckDiscardRule() {
+    return null;
+  }
+
   public boolean isProguardKeepRule() {
     return false;
   }
