@@ -55,6 +55,11 @@ def parse_arguments():
       default=None,
       help='Sets a custom regular expression used for parsing'
   )
+  parser.add_argument(
+      '--verbose',
+      default=None,
+      action='store_true',
+      help='Enables verbose retracing.')
   return parser.parse_args()
 
 
@@ -68,9 +73,10 @@ def main():
       args.no_r8lib,
       quiet=args.quiet,
       debug=args.debug_agent,
-      regex=args.regex)
+      regex=args.regex,
+      verbose=args.verbose)
 
-def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False, regex=None):
+def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False, regex=None, verbose=False):
   retrace_args = [jdk.GetJavaExecutable()]
 
   if debug:
@@ -93,6 +99,9 @@ def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False, regex=None):
 
   if stacktrace:
     retrace_args.append(stacktrace)
+
+  if verbose:
+    retrace_args.append('--verbose')
 
   utils.PrintCmd(retrace_args, quiet=quiet)
   return subprocess.call(retrace_args)
