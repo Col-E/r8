@@ -186,12 +186,9 @@ public class RewrittenPrototypeDescription {
     private final DexType newType;
     private final SingleValue singleValue;
 
-    static RewrittenTypeInfo toVoid(DexType oldReturnType, DexItemFactory dexItemFactory) {
-      return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType);
-    }
-
     public static RewrittenTypeInfo toVoid(
         DexType oldReturnType, DexItemFactory dexItemFactory, SingleValue singleValue) {
+      assert singleValue != null;
       return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType, singleValue);
     }
 
@@ -203,6 +200,7 @@ public class RewrittenPrototypeDescription {
       this.oldType = oldType;
       this.newType = newType;
       this.singleValue = singleValue;
+      assert !newType.isVoidType() || singleValue != null;
     }
 
     public RewrittenTypeInfo combine(RewrittenPrototypeDescription other) {
@@ -569,18 +567,6 @@ public class RewrittenPrototypeDescription {
         : new RewrittenPrototypeDescription(extraParameters, rewrittenReturnInfo, argumentsInfo);
   }
 
-  public static RewrittenPrototypeDescription createForUninstantiatedTypes(
-      DexMethod method,
-      AppView<AppInfoWithLiveness> appView,
-      ArgumentInfoCollection removedArgumentsInfo) {
-    DexType returnType = method.proto.returnType;
-    RewrittenTypeInfo returnInfo =
-        returnType.isAlwaysNull(appView)
-            ? RewrittenTypeInfo.toVoid(returnType, appView.dexItemFactory())
-            : null;
-    return create(Collections.emptyList(), returnInfo, removedArgumentsInfo);
-  }
-
   public static RewrittenPrototypeDescription createForRewrittenTypes(
       RewrittenTypeInfo returnInfo, ArgumentInfoCollection rewrittenArgumentsInfo) {
     return create(Collections.emptyList(), returnInfo, rewrittenArgumentsInfo);
@@ -680,14 +666,10 @@ public class RewrittenPrototypeDescription {
       Position position,
       TypeAndLocalInfoSupplier info) {
     assert rewrittenReturnInfo != null;
-    Instruction instruction;
-    if (rewrittenReturnInfo.hasSingleValue()) {
-      assert rewrittenReturnInfo.getSingleValue().isMaterializableInContext(appView, method);
-      instruction =
-          rewrittenReturnInfo.getSingleValue().createMaterializingInstruction(appView, code, info);
-    } else {
-      instruction = code.createConstNull();
-    }
+    assert rewrittenReturnInfo.hasSingleValue();
+    assert rewrittenReturnInfo.getSingleValue().isMaterializableInContext(appView, method);
+    Instruction instruction =
+        rewrittenReturnInfo.getSingleValue().createMaterializingInstruction(appView, code, info);
     instruction.setPosition(position);
     return instruction;
   }
@@ -712,25 +694,6 @@ public class RewrittenPrototypeDescription {
     return dexItemFactory.createProto(newReturnType, newParameters);
   }
 
-  public RewrittenPrototypeDescription withConstantReturn(
-      DexType oldReturnType, DexItemFactory dexItemFactory) {
-    assert rewrittenReturnInfo == null;
-    return !hasBeenChangedToReturnVoid()
-        ? new RewrittenPrototypeDescription(
-            extraParameters,
-            RewrittenTypeInfo.toVoid(oldReturnType, dexItemFactory),
-            argumentInfoCollection)
-        : this;
-  }
-
-  public RewrittenPrototypeDescription withRemovedArguments(ArgumentInfoCollection other) {
-    if (other.isEmpty()) {
-      return this;
-    }
-    return new RewrittenPrototypeDescription(
-        extraParameters, rewrittenReturnInfo, argumentInfoCollection.combine(other));
-  }
-
   public RewrittenPrototypeDescription withRewrittenReturnInfo(
       RewrittenTypeInfo newRewrittenReturnInfo) {
     if (Objects.equals(rewrittenReturnInfo, newRewrittenReturnInfo)) {
@@ -740,19 +703,11 @@ public class RewrittenPrototypeDescription {
         extraParameters, newRewrittenReturnInfo, argumentInfoCollection);
   }
 
-  public RewrittenPrototypeDescription withExtraUnusedNullParameter() {
-    return withExtraUnusedNullParameters(1);
-  }
-
   public RewrittenPrototypeDescription withExtraUnusedNullParameters(
       int numberOfExtraUnusedNullParameters) {
     List<ExtraParameter> parameters =
         Collections.nCopies(numberOfExtraUnusedNullParameters, new ExtraUnusedNullParameter());
     return withExtraParameters(parameters);
-  }
-
-  public RewrittenPrototypeDescription withExtraParameter(ExtraParameter parameter) {
-    return withExtraParameters(Collections.singletonList(parameter));
   }
 
   public RewrittenPrototypeDescription withExtraParameters(List<ExtraParameter> parameters) {
