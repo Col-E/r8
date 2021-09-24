@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -41,7 +42,7 @@ public class OverloadAggressivelyTest extends TestBase {
     this.backend = backend;
   }
 
-  private AndroidApp runR8(AndroidApp app, Class main, Path out, boolean overloadaggressively)
+  private AndroidApp runR8(AndroidApp app, Class<?> main, Path out, boolean overloadaggressively)
       throws Exception {
     R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
@@ -172,21 +173,36 @@ public class OverloadAggressivelyTest extends TestBase {
   }
 
   private void methodResolution(boolean overloadaggressively) throws Exception {
-    byte[][] classes = {
-        ToolHelper.getClassAsBytes(MethodResolution.class),
-        ToolHelper.getClassAsBytes(B.class)
-    };
-    AndroidApp originalApp = buildAndroidApp(classes);
-    Path out = temp.getRoot().toPath();
-    AndroidApp processedApp = runR8(originalApp, MethodResolution.class, out, overloadaggressively);
+    String expected = StringUtils.lines("diff: 0", "d8 v.s. d8", "r8 v.s. r8");
+    String expectedOverloadAggressively = StringUtils.lines("diff: 0", "d8 v.s. 8", "r8 v.s. 8");
 
-    CodeInspector codeInspector = new CodeInspector(processedApp);
+    if (backend.isCf()) {
+      testForJvm().addTestClasspath().run(MethodResolution.class).assertSuccessWithOutput(expected);
+    }
+
+    testForR8Compat(backend)
+        .addProgramClasses(MethodResolution.class, B.class)
+        .addKeepMainRule(MethodResolution.class)
+        .addOptionsModification(options -> options.enableInlining = false)
+        .applyIf(overloadaggressively, builder -> builder.addKeepRules("-overloadaggressively"))
+        .enableMemberValuePropagationAnnotations()
+        .compile()
+        .inspect(inspector -> inspect(inspector, overloadaggressively))
+        .run(MethodResolution.class)
+        .applyIf(
+            overloadaggressively,
+            runResult -> runResult.assertSuccessWithOutput(expectedOverloadAggressively),
+            runResult -> runResult.assertSuccessWithOutput(expected));
+  }
+
+  private void inspect(CodeInspector codeInspector, boolean overloadaggressively) {
     ClassSubject b = codeInspector.clazz(B.class.getCanonicalName());
     DexEncodedMethod m1 =
         b.method("int", "getF1", ImmutableList.of()).getMethod();
     assertNotNull(m1);
     DexEncodedMethod m2 =
         b.method("java.lang.Object", "getF2", ImmutableList.of()).getMethod();
+    assertNotNull(m2);
     // TODO(b/72858955): due to the potential reflective access, they should have different names.
     assertEquals(overloadaggressively, m1.getReference().name == m2.getReference().name);
     DexEncodedMethod m3 =
@@ -196,21 +212,6 @@ public class OverloadAggressivelyTest extends TestBase {
     assertEquals(overloadaggressively, m1.getReference().name == m3.getReference().name);
     // TODO(b/72858955): ditto
     assertEquals(overloadaggressively, m2.getReference().name == m3.getReference().name);
-
-    String main = MethodResolution.class.getCanonicalName();
-    ProcessResult javaOutput = runOnJavaRaw(main, classes);
-    assertEquals(0, javaOutput.exitCode);
-    ProcessResult output = runRaw(processedApp, main);
-    // TODO(b/72858955): R8 should avoid method resolution conflict even w/ -overloadaggressively.
-    if (overloadaggressively) {
-      assertEquals(0, output.exitCode);
-      assertNotEquals(javaOutput.stdout.trim(), output.stdout.trim());
-    } else {
-      assertEquals(0, output.exitCode);
-      assertEquals(javaOutput.stdout.trim(), output.stdout.trim());
-      // ART may dump its own debugging info through stderr.
-      // assertEquals(javaOutput.stderr.trim(), artOutput.stderr.trim());
-    }
   }
 
   @Test

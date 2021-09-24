@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.uninstantiatedtypes;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -76,15 +77,9 @@ public class VoidReturnTypeRewritingTest extends TestBase {
 
     ClassSubject subSubFactoryClassSubject = inspector.clazz(SubSubFactory.class);
     assertThat(subSubFactoryClassSubject.method("void", "createVirtual"), isPresent());
-    assertThat(
-        subSubFactoryClassSubject.method(SubUninstantiated.class.getTypeName(), "createVirtual"),
-        isPresent());
-
-    // TODO(b/110806787): Uninstantiated is kept because SubUninstantiated inherits from it.
-    // We should consider rewriting SubUninstantiated such that it no longer inherits from
-    // Uninstantiated.
-    assertThat(inspector.clazz(Uninstantiated.class), isPresent());
-    assertThat(inspector.clazz(SubUninstantiated.class), isPresent());
+    assertThat(subSubFactoryClassSubject.method("void", "createVirtual$1"), isPresent());
+    assertThat(inspector.clazz(Uninstantiated.class), isAbsent());
+    assertThat(inspector.clazz(SubUninstantiated.class), isAbsent());
   }
 
   static class TestClass {

@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,7 +44,10 @@ public class NestedInterfaceMethodTest extends TestBase {
     String expectedOutput = StringUtils.lines("In A.m()", "In A.m()");
 
     if (parameters.isCfRuntime()) {
-      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     CodeInspector inspector =
@@ -66,11 +70,19 @@ public class NestedInterfaceMethodTest extends TestBase {
 
     ClassSubject interfaceSubject = inspector.clazz(I.class);
     assertThat(interfaceSubject, isPresent());
-    assertThat(interfaceSubject.method(Uninstantiated.class.getTypeName(), "m"), isPresent());
+
+    MethodSubject interfaceMethodSubject =
+        interfaceSubject.uniqueMethodThatMatches(
+            method -> method.getProgramMethod().getReturnType().isVoidType());
+    assertThat(interfaceMethodSubject, isPresent());
 
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
-    assertThat(classSubject.method(Uninstantiated.class.getTypeName(), "m"), isPresent());
+    assertThat(
+        classSubject.uniqueMethodThatMatches(
+            method ->
+                method.getProgramMethod().getReference().match(interfaceMethodSubject.getMethod())),
+        isPresent());
   }
 
   static class TestClass {

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -32,7 +33,8 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
 
   @Parameters(name = "{1}, minification: {0}")
   public static List<Object[]> params() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public CollisionWithLibraryMethodsTest(boolean minification, TestParameters parameters) {
@@ -46,10 +48,11 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(CollisionWithLibraryMethodsTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verify)
         .run(parameters.getRuntime(), TestClass.class)
@@ -83,6 +86,7 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
   static class Greeting {
 
     @NeverInline
+    @NeverPropagateValue
     public String toString(Object unused) {
       System.out.print("Hello ");
       return "world!";

@@ -211,14 +211,19 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       //  unreachable.
       DexMethod newMethod = methodMap.apply(previous.getReference());
       if (newMethod == null) {
+        newMethod = previous.getReference();
+      }
+      RewrittenPrototypeDescription newPrototypeChanges =
+          internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod);
+      if (newMethod == previous.getReference()
+          && newPrototypeChanges == previous.getPrototypeChanges()) {
         return previous;
       }
       // TODO(sgjesse): Should we always do interface to virtual mapping? Is it a performance win
       //  that only subclasses which are known to need it actually do it?
       return MethodLookupResult.builder(this)
           .setReference(newMethod)
-          .setPrototypeChanges(
-              internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
+          .setPrototypeChanges(newPrototypeChanges)
           .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
           .build();
     }

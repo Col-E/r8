@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
@@ -41,7 +42,8 @@ public class B72391662 extends ProguardCompatibilityTestBase {
           Super.class,
           TestClass.class,
           OtherPackageSuper.class,
-          OtherPackageTestClass.class);
+          OtherPackageTestClass.class,
+          NeverPropagateValue.class);
 
   private final Shrinker shrinker;
   private final String repackagePrefix;
@@ -212,7 +214,7 @@ public class B72391662 extends ProguardCompatibilityTestBase {
   @Test
   public void test_keepPublic() throws Exception {
     Assume.assumeFalse(shrinker.generatesDex() && vmVersionIgnored());
-    Class mainClass = TestMain.class;
+    Class<?> mainClass = TestMain.class;
     String keep = !minify ? "-keep" : "-keep,allowobfuscation";
     Iterable<String> config = ImmutableList.of(
         "-printmapping",
@@ -237,6 +239,9 @@ public class B72391662 extends ProguardCompatibilityTestBase {
               ImmutableList.of(
                   "-assumemayhavesideeffects class " + TestClass.class.getCanonicalName() + " {",
                   "  * staticMethod();",
+                  "}",
+                  "-neverpropagatevalue class * {",
+                  "  @com.android.tools.r8.NeverPropagateValue <methods>;",
                   "}",
                   "-neverinline class " + TestClass.class.getCanonicalName() + " {",
                   "  * staticMethod();",

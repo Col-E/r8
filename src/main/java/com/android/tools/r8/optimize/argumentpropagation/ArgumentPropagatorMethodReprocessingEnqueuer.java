@@ -105,10 +105,15 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
               clazz.forEachProgramMethodMatching(
                   DexEncodedMethod::hasCode,
                   method -> {
-                    AffectedMethodUseRegistry registry =
-                        new AffectedMethodUseRegistry(appView, graphLens);
-                    if (method.registerCodeReferencesWithResult(registry)) {
+                    if (graphLens.internalGetNextMethodSignature(method.getReference())
+                        != method.getReference()) {
                       methodsToReprocessInClass.add(method);
+                    } else {
+                      AffectedMethodUseRegistry registry =
+                          new AffectedMethodUseRegistry(appView, graphLens);
+                      if (method.registerCodeReferencesWithResult(registry)) {
+                        methodsToReprocessInClass.add(method);
+                      }
                     }
                   });
               return methodsToReprocessInClass;

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.value;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -27,6 +28,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItems;
 
 public abstract class SingleFieldValue extends SingleValue {
 
@@ -109,7 +111,16 @@ public abstract class SingleFieldValue extends SingleValue {
       assert false;
       return false;
     }
-    return holder.isPublic();
+    if (!holder.isPublic()) {
+      return false;
+    }
+    ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
+    SyntheticItems syntheticItems = appView.getSyntheticItems();
+    if (holder.isProgramClass()
+        && classToFeatureSplitMap.isInFeature(holder.asProgramClass(), syntheticItems)) {
+      return false;
+    }
+    return true;
   }
 
   @Override

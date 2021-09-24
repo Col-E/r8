@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming.b72391662;
 
+import com.android.tools.r8.NeverPropagateValue;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
@@ -22,6 +23,7 @@ public class TestClass extends Super implements Interface {
     System.out.println("This should be discarded unless there is a keep rule.");
   }
 
+  @NeverPropagateValue
   static String staticMethod() {
     return "1";
   }

@@ -4,11 +4,12 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
@@ -183,24 +184,29 @@ public class RewrittenPrototypeDescription {
 
     private final DexType oldType;
     private final DexType newType;
+    private final SingleValue singleValue;
 
     static RewrittenTypeInfo toVoid(DexType oldReturnType, DexItemFactory dexItemFactory) {
       return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType);
     }
 
+    public static RewrittenTypeInfo toVoid(
+        DexType oldReturnType, DexItemFactory dexItemFactory, SingleValue singleValue) {
+      return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType, singleValue);
+    }
+
     public RewrittenTypeInfo(DexType oldType, DexType newType) {
+      this(oldType, newType, null);
+    }
+
+    public RewrittenTypeInfo(DexType oldType, DexType newType, SingleValue singleValue) {
       this.oldType = oldType;
       this.newType = newType;
+      this.singleValue = singleValue;
     }
 
     public RewrittenTypeInfo combine(RewrittenPrototypeDescription other) {
       return other.hasRewrittenReturnInfo() ? combine(other.getRewrittenReturnInfo()) : this;
-    }
-
-    public RewrittenTypeInfo combine(RewrittenTypeInfo other) {
-      assert !getNewType().isVoidType();
-      assert getNewType() == other.getOldType();
-      return new RewrittenTypeInfo(getOldType(), other.getNewType());
     }
 
     public DexType getNewType() {
@@ -211,8 +217,16 @@ public class RewrittenPrototypeDescription {
       return oldType;
     }
 
-    boolean hasBeenChangedToReturnVoid(DexItemFactory dexItemFactory) {
-      return newType == dexItemFactory.voidType;
+    public SingleValue getSingleValue() {
+      return singleValue;
+    }
+
+    boolean hasBeenChangedToReturnVoid() {
+      return newType.isVoidType();
+    }
+
+    public boolean hasSingleValue() {
+      return singleValue != null;
     }
 
     @Override
@@ -231,9 +245,13 @@ public class RewrittenPrototypeDescription {
         return info;
       }
       assert info.isRewrittenTypeInfo();
-      RewrittenTypeInfo rewrittenTypeInfo = info.asRewrittenTypeInfo();
-      assert newType == rewrittenTypeInfo.oldType;
-      return new RewrittenTypeInfo(oldType, rewrittenTypeInfo.newType);
+      return combine(info.asRewrittenTypeInfo());
+    }
+
+    public RewrittenTypeInfo combine(RewrittenTypeInfo other) {
+      assert !getNewType().isVoidType();
+      assert getNewType() == other.getOldType();
+      return new RewrittenTypeInfo(getOldType(), other.getNewType(), other.getSingleValue());
     }
 
     @Override
@@ -242,12 +260,14 @@ public class RewrittenPrototypeDescription {
         return false;
       }
       RewrittenTypeInfo other = (RewrittenTypeInfo) obj;
-      return oldType == other.oldType && newType == other.newType;
+      return oldType == other.oldType
+          && newType == other.newType
+          && Objects.equals(singleValue, other.singleValue);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(oldType, newType);
+      return Objects.hash(oldType, newType, singleValue);
     }
 
     public boolean verifyIsDueToUnboxing(DexItemFactory dexItemFactory) {
@@ -622,9 +642,8 @@ public class RewrittenPrototypeDescription {
     return extraParameters.size();
   }
 
-  public boolean hasBeenChangedToReturnVoid(DexItemFactory dexItemFactory) {
-    return rewrittenReturnInfo != null
-        && rewrittenReturnInfo.hasBeenChangedToReturnVoid(dexItemFactory);
+  public boolean hasBeenChangedToReturnVoid() {
+    return rewrittenReturnInfo != null && rewrittenReturnInfo.hasBeenChangedToReturnVoid();
   }
 
   public ArgumentInfoCollection getArgumentInfoCollection() {
@@ -654,10 +673,31 @@ public class RewrittenPrototypeDescription {
    *
    * <p>Note that the current implementation always returns null at this point.
    */
-  public ConstInstruction getConstantReturn(IRCode code, Position position) {
-    ConstInstruction instruction = code.createConstNull();
+  public Instruction getConstantReturn(
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      ProgramMethod method,
+      Position position,
+      TypeAndLocalInfoSupplier info) {
+    assert rewrittenReturnInfo != null;
+    Instruction instruction;
+    if (rewrittenReturnInfo.hasSingleValue()) {
+      assert rewrittenReturnInfo.getSingleValue().isMaterializableInContext(appView, method);
+      instruction =
+          rewrittenReturnInfo.getSingleValue().createMaterializingInstruction(appView, code, info);
+    } else {
+      instruction = code.createConstNull();
+    }
     instruction.setPosition(position);
     return instruction;
+  }
+
+  public DexMethod rewriteMethod(ProgramMethod method, DexItemFactory dexItemFactory) {
+    if (isEmpty()) {
+      return method.getReference();
+    }
+    DexProto rewrittenProto = rewriteProto(method.getDefinition(), dexItemFactory);
+    return method.getReference().withProto(rewrittenProto, dexItemFactory);
   }
 
   public DexProto rewriteProto(DexEncodedMethod encodedMethod, DexItemFactory dexItemFactory) {
@@ -675,7 +715,7 @@ public class RewrittenPrototypeDescription {
   public RewrittenPrototypeDescription withConstantReturn(
       DexType oldReturnType, DexItemFactory dexItemFactory) {
     assert rewrittenReturnInfo == null;
-    return !hasBeenChangedToReturnVoid(dexItemFactory)
+    return !hasBeenChangedToReturnVoid()
         ? new RewrittenPrototypeDescription(
             extraParameters,
             RewrittenTypeInfo.toVoid(oldReturnType, dexItemFactory),
@@ -692,15 +732,12 @@ public class RewrittenPrototypeDescription {
   }
 
   public RewrittenPrototypeDescription withRewrittenReturnInfo(
-      RewrittenTypeInfo rewrittenReturnInfo) {
-    if (rewrittenReturnInfo == null) {
+      RewrittenTypeInfo newRewrittenReturnInfo) {
+    if (Objects.equals(rewrittenReturnInfo, newRewrittenReturnInfo)) {
       return this;
     }
-    if (!hasRewrittenReturnInfo()) {
-      return new RewrittenPrototypeDescription(
-          extraParameters, rewrittenReturnInfo, argumentInfoCollection);
-    }
-    throw new Unreachable();
+    return new RewrittenPrototypeDescription(
+        extraParameters, newRewrittenReturnInfo, argumentInfoCollection);
   }
 
   public RewrittenPrototypeDescription withExtraUnusedNullParameter() {

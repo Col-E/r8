@@ -7,6 +7,7 @@ package com.android.tools.r8.rewrite.enums;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import java.util.concurrent.TimeUnit;
 
 class Ordinals {
@@ -34,6 +35,7 @@ class Ordinals {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String multipleUsages() {
     Number two = Number.TWO;
     return two.name() + two.ordinal();
@@ -50,6 +52,7 @@ class Ordinals {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static int inSwitch() {
     // Unlike normal invocations of Enum.ordinal(), a switch on enum will emit an invoke-virtual
     // where the receiver is the enum subtype and not java.lang.Enum. This test ensures that case

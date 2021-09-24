@@ -1856,7 +1856,7 @@ public class IRBuilder {
   public void addReturn(int value) {
     DexType returnType = method.getDefinition().returnType();
     if (returnType.isVoidType()) {
-      assert prototypeChanges.hasBeenChangedToReturnVoid(appView.dexItemFactory());
+      assert prototypeChanges.hasBeenChangedToReturnVoid();
       addReturn();
     } else {
       ValueTypeConstraint returnTypeConstraint =

@@ -12,6 +12,10 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -28,7 +32,9 @@ import java.util.Set;
 
 class EnumUnboxingLens extends NestedGraphLens {
 
+  private final AbstractValueFactory abstractValueFactory;
   private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod;
+  private final EnumDataMap unboxedEnums;
 
   EnumUnboxingLens(
       AppView<?> appView,
@@ -37,12 +43,36 @@ class EnumUnboxingLens extends NestedGraphLens {
       Map<DexType, DexType> typeMap,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod) {
     super(appView, fieldMap, methodMap::getRepresentativeValue, typeMap, methodMap);
+    assert !appView.unboxedEnums().isEmpty();
+    this.abstractValueFactory = appView.abstractValueFactory();
     this.prototypeChangesPerMethod = prototypeChangesPerMethod;
+    this.unboxedEnums = appView.unboxedEnums();
   }
 
   @Override
   protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
+    // Rewrite the single value of the given RewrittenPrototypeDescription if it is referring to an
+    // unboxed enum field.
+    if (prototypeChanges.hasRewrittenReturnInfo()) {
+      RewrittenTypeInfo rewrittenTypeInfo = prototypeChanges.getRewrittenReturnInfo();
+      if (rewrittenTypeInfo.hasSingleValue()) {
+        SingleValue singleValue = rewrittenTypeInfo.getSingleValue();
+        if (singleValue.isSingleFieldValue()) {
+          SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
+          if (unboxedEnums.hasUnboxedValueFor(singleFieldValue.getField())) {
+            prototypeChanges =
+                prototypeChanges.withRewrittenReturnInfo(
+                    new RewrittenTypeInfo(
+                        rewrittenTypeInfo.getOldType(),
+                        rewrittenTypeInfo.getNewType(),
+                        abstractValueFactory.createSingleNumberValue(
+                            unboxedEnums.getUnboxedValue(singleFieldValue.getField()))));
+          }
+        }
+      }
+    }
+
     // During the second IR processing enum unboxing is the only optimization rewriting
     // prototype description, if this does not hold, remove the assertion and merge
     // the two prototype changes.

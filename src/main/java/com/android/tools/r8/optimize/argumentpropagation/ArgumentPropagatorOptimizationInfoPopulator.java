@@ -165,6 +165,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       methodState = MethodState.unknown();
     }
 
+    methodState = getMethodStateAfterUninstantiatedParameterRemoval(method, methodState);
     methodState = getMethodStateAfterUnusedParameterRemoval(method, methodState);
 
     if (methodState.isUnknown()) {
@@ -225,6 +226,38 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         .setCallSiteOptimizationInfo(
             ConcreteCallSiteOptimizationInfo.fromMethodState(
                 appView, method, widenedMethodState.asMonomorphic()));
+  }
+
+  private MethodState getMethodStateAfterUninstantiatedParameterRemoval(
+      ProgramMethod method, MethodState methodState) {
+    assert methodState.isMonomorphic() || methodState.isUnknown();
+    if (appView.appInfo().isKeepConstantArgumentsMethod(method)) {
+      return methodState;
+    }
+
+    int numberOfArguments = method.getDefinition().getNumberOfArguments();
+    List<ParameterState> parameterStates =
+        methodState.isMonomorphic()
+            ? methodState.asMonomorphic().getParameterStates()
+            : ListUtils.newInitializedArrayList(numberOfArguments, ParameterState.unknown());
+    List<ParameterState> narrowedParameterStates =
+        ListUtils.mapOrElse(
+            parameterStates,
+            (argumentIndex, parameterState) -> {
+              if (!method.getDefinition().isStatic() && argumentIndex == 0) {
+                return parameterState;
+              }
+              DexType argumentType = method.getArgumentType(argumentIndex);
+              if (!argumentType.isAlwaysNull(appView)) {
+                return parameterState;
+              }
+              return new ConcreteClassTypeParameterState(
+                  appView.abstractValueFactory().createNullValue(), DynamicType.definitelyNull());
+            },
+            null);
+    return narrowedParameterStates != null
+        ? new ConcreteMonomorphicMethodState(narrowedParameterStates)
+        : methodState;
   }
 
   private MethodState getMethodStateAfterUnusedParameterRemoval(

@@ -32,6 +32,10 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
     return backing.computeIfAbsent(wrap(member), key -> fn.apply(key.get()));
   }
 
+  public boolean containsKey(K member) {
+    return backing.containsKey(wrap(member));
+  }
+
   public void forEach(BiConsumer<K, V> consumer) {
     backing.forEach((wrapper, value) -> consumer.accept(wrapper.get(), value));
   }

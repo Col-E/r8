@@ -14,7 +14,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -33,7 +32,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DexSplitterMemberValuePropagationRegression extends SplitterTestBase {
 
-  public static final String EXPECTED = StringUtils.lines("42");
+  public static final String EXPECTED = StringUtils.lines(FeatureEnum.class.getTypeName(), "42");
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
@@ -78,7 +77,8 @@ public class DexSplitterMemberValuePropagationRegression extends SplitterTestBas
             ImmutableSet.of(FeatureClass.class, FeatureEnum.class),
             FeatureClass.class,
             ThrowableConsumer.empty(),
-            R8TestBuilder::enableInliningAnnotations);
+            testBuilder ->
+                testBuilder.enableInliningAnnotations().addDontObfuscate(FeatureEnum.class));
     assertEquals(processResult.exitCode, 0);
     assertEquals(processResult.stdout, EXPECTED);
   }
@@ -88,17 +88,26 @@ public class DexSplitterMemberValuePropagationRegression extends SplitterTestBas
     @NeverInline
     @Override
     public void run() {
-      System.out.println(getFromFeature());
+      System.out.println(getClassFromFeature().getName());
+      System.out.println(getEnumFromFeature());
     }
 
-    public abstract Enum<?> getFromFeature();
+    public abstract Class<?> getClassFromFeature();
+
+    public abstract Enum<?> getEnumFromFeature();
   }
 
   public static class FeatureClass extends BaseSuperClass {
 
     @NeverInline
     @Override
-    public Enum<?> getFromFeature() {
+    public Class<?> getClassFromFeature() {
+      return FeatureEnum.class;
+    }
+
+    @NeverInline
+    @Override
+    public Enum<?> getEnumFromFeature() {
       return FeatureEnum.A;
     }
   }

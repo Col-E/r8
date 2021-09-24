@@ -128,10 +128,19 @@ public class ListUtils {
    * were rewritten, otherwise returns defaultValue.
    */
   public static <T> List<T> mapOrElse(List<T> list, Function<T, T> fn, List<T> defaultValue) {
+    return mapOrElse(list, (index, element) -> fn.apply(element), defaultValue);
+  }
+
+  /**
+   * Rewrites the input list based on the given function. Returns the mapped list if any elements
+   * were rewritten, otherwise returns defaultValue.
+   */
+  public static <T> List<T> mapOrElse(
+      List<T> list, IntObjToObjFunction<T, T> fn, List<T> defaultValue) {
     ArrayList<T> result = null;
     for (int i = 0; i < list.size(); i++) {
       T oldElement = list.get(i);
-      T newElement = fn.apply(oldElement);
+      T newElement = fn.apply(i, oldElement);
       if (newElement == oldElement) {
         if (result != null) {
           result.add(oldElement);

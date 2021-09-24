@@ -37,6 +37,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
@@ -64,7 +65,6 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
-import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -122,7 +122,7 @@ public class LensCodeRewriter {
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
-    if (insn.outValue() != null) {
+    if (insn.hasOutValue()) {
       TypeElement oldType = insn.getOutType();
       TypeElement newType = oldType.rewrittenWithLens(appView, appView.graphLens());
       return code.createValue(newType, insn.getLocalInfo());
@@ -282,11 +282,29 @@ public class LensCodeRewriter {
                   }
                 }
 
-                ConstInstruction constantReturnMaterializingInstruction = null;
-                if (prototypeChanges.hasBeenChangedToReturnVoid(appView.dexItemFactory())
-                    && invoke.outValue() != null) {
+                Instruction constantReturnMaterializingInstruction = null;
+                if (prototypeChanges.hasBeenChangedToReturnVoid() && invoke.hasOutValue()) {
+                  TypeAndLocalInfoSupplier typeAndLocalInfo =
+                      new TypeAndLocalInfoSupplier() {
+                        @Override
+                        public DebugLocalInfo getLocalInfo() {
+                          return invoke.getLocalInfo();
+                        }
+
+                        @Override
+                        public TypeElement getOutType() {
+                          return graphLens
+                              .lookupType(invokedMethod.getReturnType())
+                              .toTypeElement(appView);
+                        }
+                      };
                   constantReturnMaterializingInstruction =
-                      prototypeChanges.getConstantReturn(code, invoke.getPosition());
+                      prototypeChanges.getConstantReturn(
+                          appView.withLiveness(),
+                          code,
+                          method,
+                          invoke.getPosition(),
+                          typeAndLocalInfo);
                   if (invoke.outValue().hasLocalInfo()) {
                     constantReturnMaterializingInstruction
                         .outValue()
@@ -300,7 +318,7 @@ public class LensCodeRewriter {
                 }
 
                 Value newOutValue =
-                    prototypeChanges.hasBeenChangedToReturnVoid(appView.dexItemFactory())
+                    prototypeChanges.hasBeenChangedToReturnVoid()
                         ? null
                         : makeOutValue(invoke, code);
 
@@ -379,7 +397,7 @@ public class LensCodeRewriter {
 
                 DexType actualReturnType = actualTarget.proto.returnType;
                 DexType expectedReturnType = graphLens.lookupType(invokedMethod.proto.returnType);
-                if (newInvoke.outValue() != null && actualReturnType != expectedReturnType) {
+                if (newInvoke.hasOutValue() && actualReturnType != expectedReturnType) {
                   throw new Unreachable(
                       "Unexpected need to insert a cast. Possibly related to resolving"
                           + " b/79143143.\n"

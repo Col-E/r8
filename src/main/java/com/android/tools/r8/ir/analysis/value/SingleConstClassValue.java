@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.classClassType;
 
+import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -24,6 +25,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.synthesis.SyntheticItems;
 
 public class SingleConstClassValue extends SingleConstValue {
 
@@ -104,7 +106,16 @@ public class SingleConstClassValue extends SingleConstValue {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexClass clazz = appView.definitionFor(type);
-      return clazz != null && clazz.isPublic() && clazz.isResolvable(appView);
+      if (clazz == null || !clazz.isPublic() || !clazz.isResolvable(appView)) {
+        return false;
+      }
+      ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
+      SyntheticItems syntheticItems = appView.getSyntheticItems();
+      if (clazz.isProgramClass()
+          && classToFeatureSplitMap.isInFeature(clazz.asProgramClass(), syntheticItems)) {
+        return false;
+      }
+      return true;
     }
     assert baseType.isPrimitiveType();
     return true;

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.uninstantiatedtypes;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.google.common.base.Predicates.alwaysTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -12,10 +13,12 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,45 +28,53 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InterfaceMethodTest extends TestBase {
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InterfaceMethodTest(Backend backend) {
-    this.backend = backend;
+  public InterfaceMethodTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("In A.m()", "In B.m()");
 
-    if (backend == Backend.CF) {
-      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(InterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .run(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
     ClassSubject interfaceSubject = inspector.clazz(I.class);
     assertThat(interfaceSubject, isPresent());
-    assertThat(interfaceSubject.method(Uninstantiated.class.getTypeName(), "m"), isPresent());
+
+    MethodSubject interfaceMethodSubject = interfaceSubject.uniqueMethodThatMatches(alwaysTrue());
+    assertThat(interfaceMethodSubject, isPresent());
 
     for (Class<?> clazz : ImmutableList.of(A.class, B.class)) {
       ClassSubject classSubject = inspector.clazz(clazz);
       assertThat(classSubject, isPresent());
-      assertThat(classSubject.method(Uninstantiated.class.getTypeName(), "m"), isPresent());
+      assertThat(
+          classSubject.method(interfaceMethodSubject.getProgramMethod().getMethodReference()),
+          isPresent());
     }
   }
 

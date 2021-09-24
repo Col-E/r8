@@ -7,6 +7,7 @@ package com.android.tools.r8.rewrite.enums;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import java.util.concurrent.TimeUnit;
 
 class Names {
@@ -23,12 +24,14 @@ class Names {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String simple() {
     return Number.TWO.name();
   }
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String local() {
     Number two = Number.TWO;
     return two.name();
@@ -36,6 +39,7 @@ class Names {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String multipleUsages() {
     Number two = Number.TWO;
     return two.ordinal() + two.name();
@@ -43,6 +47,7 @@ class Names {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String inlined() {
     return inlined2(Number.TWO);
   }
@@ -58,12 +63,14 @@ class Names {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String differentTypeStaticField() {
     return Number.DOWN.name();
   }
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String nonValueStaticField() {
     return Number.DEFAULT.name();
   }
@@ -80,6 +87,7 @@ class Names {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String nonStaticGet() {
     return new Names().two.name();
   }

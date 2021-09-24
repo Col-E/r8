@@ -44,7 +44,12 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       assert !this.prototypeChanges.containsKey(method);
       return prototypeChanges;
     }
-    return prototypeChanges.combine(getPrototypeChanges(method));
+    RewrittenPrototypeDescription newPrototypeChanges =
+        prototypeChanges.combine(getPrototypeChanges(method));
+    assert previous.getReturnType().isVoidType()
+        || !method.getReturnType().isVoidType()
+        || newPrototypeChanges.hasRewrittenReturnInfo();
+    return newPrototypeChanges;
   }
 
   @Override
@@ -87,6 +92,9 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       if (!prototypeChangesForMethod.isEmpty()) {
         prototypeChanges.put(to, prototypeChangesForMethod);
       }
+      assert from.getReturnType().isVoidType()
+          || !to.getReturnType().isVoidType()
+          || prototypeChangesForMethod.hasRewrittenReturnInfo();
       return this;
     }
 

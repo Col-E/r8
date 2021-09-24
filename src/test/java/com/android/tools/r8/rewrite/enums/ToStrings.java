@@ -7,6 +7,7 @@ package com.android.tools.r8.rewrite.enums;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -48,6 +49,7 @@ class ToStrings {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String valueWithToString() {
     return ValueToString.ONE.toString();
   }
@@ -59,18 +61,21 @@ class ToStrings {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String noToString() {
     return NoToString.TWO.toString();
   }
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String local() {
     NoToString two = NoToString.TWO;
     return two.toString();
   }
 
   @NeverInline
+  @NeverPropagateValue
   private static String multipleUsages() {
     NoToString two = NoToString.TWO;
     // Side-effect instead of concatenation avoids two toString calls.
@@ -80,6 +85,7 @@ class ToStrings {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String inlined() {
     return inlined2(NoToString.TWO);
   }
@@ -95,12 +101,14 @@ class ToStrings {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String differentTypeStaticField() {
     return NoToString.DOWN.toString();
   }
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String nonValueStaticField() {
     return NoToString.DEFAULT.toString();
   }
@@ -117,6 +125,7 @@ class ToStrings {
 
   @AssumeMayHaveSideEffects
   @NeverInline
+  @NeverPropagateValue
   private static String nonStaticGet() {
     return new ToStrings().two.toString();
   }

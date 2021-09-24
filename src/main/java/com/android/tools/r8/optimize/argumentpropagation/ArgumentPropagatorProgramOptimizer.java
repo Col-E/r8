@@ -19,17 +19,21 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraphLens.Builder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanBox;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -51,6 +55,47 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 
 public class ArgumentPropagatorProgramOptimizer {
+
+  static class AllowedPrototypeChanges {
+
+    private static final AllowedPrototypeChanges EMPTY =
+        new AllowedPrototypeChanges(false, IntSets.EMPTY_SET);
+
+    boolean canRewriteToVoid;
+    IntSet removableParameterIndices;
+
+    AllowedPrototypeChanges(boolean canRewriteToVoid, IntSet removableParameterIndices) {
+      this.canRewriteToVoid = canRewriteToVoid;
+      this.removableParameterIndices = removableParameterIndices;
+    }
+
+    public static AllowedPrototypeChanges create(RewrittenPrototypeDescription prototypeChanges) {
+      return prototypeChanges.isEmpty()
+          ? empty()
+          : new AllowedPrototypeChanges(
+              prototypeChanges.hasBeenChangedToReturnVoid(),
+              prototypeChanges.getArgumentInfoCollection().getKeys());
+    }
+
+    public static AllowedPrototypeChanges empty() {
+      return EMPTY;
+    }
+
+    @Override
+    public int hashCode() {
+      return BooleanUtils.intValue(canRewriteToVoid) | (removableParameterIndices.hashCode() << 1);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      AllowedPrototypeChanges other = (AllowedPrototypeChanges) obj;
+      return canRewriteToVoid == other.canRewriteToVoid
+          && removableParameterIndices.equals(other.removableParameterIndices);
+    }
+  }
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
@@ -117,17 +162,20 @@ public class ArgumentPropagatorProgramOptimizer {
     private final DexItemFactory dexItemFactory;
     private final InternalOptions options;
 
-    private final Map<DexMethodSignature, IntSet> removableVirtualMethodParameters =
-        new HashMap<>();
+    private final Map<DexMethodSignature, AllowedPrototypeChanges>
+        allowedPrototypeChangesForVirtualMethods = new HashMap<>();
 
-    // Reserved names, i.e., mappings from pairs (old method signature, number of removed arguments)
-    // to the new method signature for that method.
-    private final Map<DexMethodSignature, Map<IntSet, DexMethodSignature>> newMethodSignatures =
-        new HashMap<>();
+    private final ProgramMethodMap<SingleValue> returnValuesForVirtualMethods =
+        ProgramMethodMap.create();
+
+    // Reserved names, i.e., mappings from pairs (old method signature, prototype changes) to the
+    // new method signature for that method.
+    private final Map<DexMethodSignature, Map<AllowedPrototypeChanges, DexMethodSignature>>
+        newMethodSignatures = new HashMap<>();
 
     // Occupied method signatures (inverse of reserved names). Used to effectively check if a given
     // method signature is already reserved.
-    private final Map<DexMethodSignature, Pair<IntSet, DexMethodSignature>>
+    private final Map<DexMethodSignature, Pair<AllowedPrototypeChanges, DexMethodSignature>>
         occupiedMethodSignatures = new HashMap<>();
 
     public StronglyConnectedComponentOptimizer() {
@@ -160,7 +208,7 @@ public class ArgumentPropagatorProgramOptimizer {
       // To ensure that we preserve the overriding relationships between methods, we only remove a
       // constant or unused parameter from a virtual method when it can be removed from all other
       // virtual methods in the component with the same method signature.
-      computeRemovableVirtualMethodParameters(stronglyConnectedProgramClasses);
+      computePrototypeChangesForVirtualMethods(stronglyConnectedProgramClasses);
 
       // Build a graph lens while visiting the classes in the component.
       // TODO(b/190154391): Consider visiting the interfaces first, and then processing the
@@ -201,36 +249,37 @@ public class ArgumentPropagatorProgramOptimizer {
                 pinnedMethodSignatures.addAll(getOrComputeLibraryVirtualMethods(superclass)));
       }
       pinnedMethodSignatures.forEach(
-          signature -> reserveMethodSignature(signature, signature, IntSets.EMPTY_SET));
+          signature ->
+              reserveMethodSignature(signature, signature, AllowedPrototypeChanges.empty()));
     }
 
     private void reserveMethodSignature(
         DexMethodSignature newMethodSignature,
         DexMethodSignature originalMethodSignature,
-        IntSet removedParameterIndices) {
+        AllowedPrototypeChanges allowedPrototypeChanges) {
       // Record that methods with the given signature and removed parameters should be mapped to the
       // new signature.
       newMethodSignatures
           .computeIfAbsent(originalMethodSignature, ignoreKey(HashMap::new))
-          .put(removedParameterIndices, newMethodSignature);
+          .put(allowedPrototypeChanges, newMethodSignature);
 
       // Record that the new method signature is used, by a method with the old signature that had
       // the
       // given removed parameters.
       occupiedMethodSignatures.put(
-          newMethodSignature, new Pair<>(removedParameterIndices, originalMethodSignature));
+          newMethodSignature, new Pair<>(allowedPrototypeChanges, originalMethodSignature));
     }
 
-    private void computeRemovableVirtualMethodParameters(
+    private void computePrototypeChangesForVirtualMethods(
         Set<DexProgramClass> stronglyConnectedProgramClasses) {
       // Group the virtual methods in the component by their signatures.
       Map<DexMethodSignature, ProgramMethodSet> virtualMethodsBySignature =
           computeVirtualMethodsBySignature(stronglyConnectedProgramClasses);
       virtualMethodsBySignature.forEach(
           (signature, methods) -> {
-            // Check that there are no keep rules that prohibit parameter removal from any of the
+            // Check that there are no keep rules that prohibit prototype changes from any of the
             // methods.
-            if (Iterables.any(methods, method -> !isParameterRemovalAllowed(method))) {
+            if (Iterables.any(methods, method -> !isPrototypeChangesAllowed(method))) {
               return;
             }
 
@@ -244,10 +293,30 @@ public class ArgumentPropagatorProgramOptimizer {
               }
             }
 
-            // If any parameters could be removed, record it.
-            if (!removableVirtualMethodParametersInAllMethods.isEmpty()) {
-              removableVirtualMethodParameters.put(
-                  signature, removableVirtualMethodParametersInAllMethods);
+            // If any prototype changes can be made, record it.
+            SingleValue returnValueForVirtualMethods =
+                getReturnValueForVirtualMethods(signature, methods);
+            boolean canRewriteVirtualMethodsToVoid = returnValueForVirtualMethods != null;
+            if (canRewriteVirtualMethodsToVoid
+                || !removableVirtualMethodParametersInAllMethods.isEmpty()) {
+              allowedPrototypeChangesForVirtualMethods.put(
+                  signature,
+                  new AllowedPrototypeChanges(
+                      canRewriteVirtualMethodsToVoid,
+                      removableVirtualMethodParametersInAllMethods));
+            }
+
+            // Also record the found return value for abstract virtual methods.
+            if (canRewriteVirtualMethodsToVoid) {
+              for (ProgramMethod method : methods) {
+                if (method.getAccessFlags().isAbstract()) {
+                  returnValuesForVirtualMethods.put(method, returnValueForVirtualMethods);
+                } else {
+                  AbstractValue returnValueForVirtualMethod =
+                      method.getOptimizationInfo().getAbstractReturnValue();
+                  assert returnValueForVirtualMethod.equals(returnValueForVirtualMethods);
+                }
+              }
             }
           });
     }
@@ -266,11 +335,45 @@ public class ArgumentPropagatorProgramOptimizer {
       return virtualMethodsBySignature;
     }
 
-    private boolean isParameterRemovalAllowed(ProgramMethod method) {
+    private boolean isPrototypeChangesAllowed(ProgramMethod method) {
       return appView.getKeepInfo(method).isParameterRemovalAllowed(options)
           && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
           && !appView.appInfo().isBootstrapMethod(method)
           && !appView.appInfo().isMethodTargetedByInvokeDynamic(method);
+    }
+
+    private SingleValue getReturnValueForVirtualMethods(
+        DexMethodSignature signature, ProgramMethodSet methods) {
+      if (signature.getReturnType().isVoidType()) {
+        return null;
+      }
+
+      SingleValue returnValue = null;
+      for (ProgramMethod method : methods) {
+        if (method.getDefinition().isAbstract()) {
+          DexProgramClass holder = method.getHolder();
+          if (holder.isInterface()) {
+            ObjectAllocationInfoCollection objectAllocationInfoCollection =
+                appView.appInfo().getObjectAllocationInfoCollection();
+            if (objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(holder)) {
+              return null;
+            }
+          }
+          // OK, this can be rewritten to have void return type.
+          continue;
+        }
+        if (!appView.appInfo().mayPropagateValueFor(method)) {
+          return null;
+        }
+        AbstractValue returnValueForMethod = method.getOptimizationInfo().getAbstractReturnValue();
+        if (!returnValueForMethod.isSingleValue()
+            || !returnValueForMethod.asSingleValue().isMaterializableInAllContexts(appView)
+            || (returnValue != null && !returnValueForMethod.equals(returnValue))) {
+          return null;
+        }
+        returnValue = returnValueForMethod.asSingleValue();
+      }
+      return returnValue;
     }
 
     private boolean canRemoveParameterFromVirtualMethods(
@@ -316,9 +419,8 @@ public class ArgumentPropagatorProgramOptimizer {
           method -> {
             RewrittenPrototypeDescription prototypeChanges =
                 method.getDefinition().belongsToDirectPool()
-                    ? computeRemovableParametersFromDirectMethod(
-                        method, instanceInitializerSignatures)
-                    : computeRemovableParametersFromVirtualMethod(method);
+                    ? computePrototypeChangesForDirectMethod(method, instanceInitializerSignatures)
+                    : computePrototypeChangesForVirtualMethod(method);
             DexMethod newMethodSignature = getNewMethodSignature(method, prototypeChanges);
             if (newMethodSignature != method.getReference()) {
               partialGraphLensBuilder.recordMove(
@@ -332,19 +434,20 @@ public class ArgumentPropagatorProgramOptimizer {
     private DexMethod getNewMethodSignature(
         ProgramMethod method, RewrittenPrototypeDescription prototypeChanges) {
       DexMethodSignature methodSignatureWithoutPrototypeChanges = method.getMethodSignature();
-      IntSet removableParameterIndices = prototypeChanges.getArgumentInfoCollection().getKeys();
+      AllowedPrototypeChanges allowedPrototypeChanges =
+          AllowedPrototypeChanges.create(prototypeChanges);
 
       // Check if there is a reserved signature for this already.
       DexMethodSignature reservedSignature =
           newMethodSignatures
               .getOrDefault(methodSignatureWithoutPrototypeChanges, Collections.emptyMap())
-              .get(removableParameterIndices);
+              .get(allowedPrototypeChanges);
       if (reservedSignature != null) {
         return reservedSignature.withHolder(method.getHolderType(), dexItemFactory);
       }
 
       DexMethod methodReferenceWithParametersRemoved =
-          prototypeChanges.getArgumentInfoCollection().rewriteMethod(method, dexItemFactory);
+          prototypeChanges.rewriteMethod(method, dexItemFactory);
       DexMethodSignature methodSignatureWithParametersRemoved =
           methodReferenceWithParametersRemoved.getSignature();
 
@@ -354,15 +457,15 @@ public class ArgumentPropagatorProgramOptimizer {
           reserveMethodSignature(
               methodSignatureWithParametersRemoved,
               methodSignatureWithoutPrototypeChanges,
-              removableParameterIndices);
+              allowedPrototypeChanges);
         }
         return methodReferenceWithParametersRemoved;
       }
 
-      Pair<IntSet, DexMethodSignature> occupant =
+      Pair<AllowedPrototypeChanges, DexMethodSignature> occupant =
           occupiedMethodSignatures.get(methodSignatureWithParametersRemoved);
       // In this case we should have found a reserved method signature above.
-      assert !(occupant.getFirst().equals(removableParameterIndices)
+      assert !(occupant.getFirst().equals(allowedPrototypeChanges)
           && occupant.getSecond().equals(methodSignatureWithoutPrototypeChanges));
 
       // We need to find a new name for this method, since the signature is already occupied.
@@ -374,12 +477,12 @@ public class ArgumentPropagatorProgramOptimizer {
               methodReferenceWithParametersRemoved.getProto(),
               method.getHolderType(),
               candidate -> {
-                Pair<IntSet, DexMethodSignature> candidateOccupant =
+                Pair<AllowedPrototypeChanges, DexMethodSignature> candidateOccupant =
                     occupiedMethodSignatures.get(candidate.getSignature());
                 if (candidateOccupant == null) {
                   return true;
                 }
-                return candidateOccupant.getFirst().equals(removableParameterIndices)
+                return candidateOccupant.getFirst().equals(allowedPrototypeChanges)
                     && candidateOccupant.getSecond().equals(methodSignatureWithoutPrototypeChanges);
               });
 
@@ -388,16 +491,16 @@ public class ArgumentPropagatorProgramOptimizer {
         reserveMethodSignature(
             newMethod.getSignature(),
             methodSignatureWithoutPrototypeChanges,
-            removableParameterIndices);
+            allowedPrototypeChanges);
       }
 
       return newMethod;
     }
 
-    private RewrittenPrototypeDescription computeRemovableParametersFromDirectMethod(
+    private RewrittenPrototypeDescription computePrototypeChangesForDirectMethod(
         ProgramMethod method, DexMethodSignatureSet instanceInitializerSignatures) {
       assert method.getDefinition().belongsToDirectPool();
-      if (!isParameterRemovalAllowed(method)) {
+      if (!isPrototypeChangesAllowed(method)) {
         return RewrittenPrototypeDescription.none();
       }
       // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.
@@ -422,14 +525,15 @@ public class ArgumentPropagatorProgramOptimizer {
       return prototypeChanges;
     }
 
-    private RewrittenPrototypeDescription computeRemovableParametersFromVirtualMethod(
+    private RewrittenPrototypeDescription computePrototypeChangesForVirtualMethod(
         ProgramMethod method) {
-      IntSet removableParameterIndices =
-          removableVirtualMethodParameters.getOrDefault(
-              method.getMethodSignature(), IntSets.EMPTY_SET);
-      if (removableParameterIndices.isEmpty()) {
+      AllowedPrototypeChanges allowedPrototypeChanges =
+          allowedPrototypeChangesForVirtualMethods.get(method.getMethodSignature());
+      if (allowedPrototypeChanges == null) {
         return RewrittenPrototypeDescription.none();
       }
+
+      IntSet removableParameterIndices = allowedPrototypeChanges.removableParameterIndices;
 
       if (method.getAccessFlags().isAbstract()) {
         // Treat the parameters as unused.
@@ -443,26 +547,41 @@ public class ArgumentPropagatorProgramOptimizer {
                   .build());
         }
         return RewrittenPrototypeDescription.create(
-            Collections.emptyList(), null, removableParametersBuilder.build());
+            Collections.emptyList(),
+            computeReturnChangesForMethod(method, allowedPrototypeChanges.canRewriteToVoid),
+            removableParametersBuilder.build());
       }
 
       RewrittenPrototypeDescription prototypeChanges =
-          computePrototypeChangesForMethod(method, removableParameterIndices::contains);
+          computePrototypeChangesForMethod(
+              method,
+              allowedPrototypeChanges.canRewriteToVoid,
+              removableParameterIndices::contains);
       assert prototypeChanges.getArgumentInfoCollection().size()
           == removableParameterIndices.size();
       return prototypeChanges;
     }
 
     private RewrittenPrototypeDescription computePrototypeChangesForMethod(ProgramMethod method) {
-      return computePrototypeChangesForMethod(method, parameterIndex -> true);
+      return computePrototypeChangesForMethod(method, true, parameterIndex -> true);
     }
 
     private RewrittenPrototypeDescription computePrototypeChangesForMethod(
+        ProgramMethod method,
+        boolean allowToVoidRewriting,
+        IntPredicate removableParameterIndices) {
+      return RewrittenPrototypeDescription.create(
+          Collections.emptyList(),
+          computeReturnChangesForMethod(method, allowToVoidRewriting),
+          computeParameterChangesForMethod(method, removableParameterIndices));
+    }
+
+    private ArgumentInfoCollection computeParameterChangesForMethod(
         ProgramMethod method, IntPredicate removableParameterIndices) {
       ConcreteCallSiteOptimizationInfo optimizationInfo =
           method.getDefinition().getCallSiteOptimizationInfo().asConcreteCallSiteOptimizationInfo();
       if (optimizationInfo == null) {
-        return RewrittenPrototypeDescription.none();
+        return ArgumentInfoCollection.empty();
       }
 
       ArgumentInfoCollection.Builder removableParametersBuilder = ArgumentInfoCollection.builder();
@@ -483,8 +602,34 @@ public class ArgumentPropagatorProgramOptimizer {
                   .build());
         }
       }
-      return RewrittenPrototypeDescription.create(
-          Collections.emptyList(), null, removableParametersBuilder.build());
+      return removableParametersBuilder.build();
+    }
+
+    private RewrittenTypeInfo computeReturnChangesForMethod(
+        ProgramMethod method, boolean allowToVoidRewriting) {
+      if (!allowToVoidRewriting) {
+        assert !returnValuesForVirtualMethods.containsKey(method);
+        return null;
+      }
+
+      AbstractValue returnValue;
+      if (method.getReturnType().isAlwaysNull(appView)) {
+        returnValue = appView.abstractValueFactory().createNullValue();
+      } else if (method.getDefinition().belongsToVirtualPool()
+          && returnValuesForVirtualMethods.containsKey(method)) {
+        assert method.getAccessFlags().isAbstract();
+        returnValue = returnValuesForVirtualMethods.get(method);
+      } else {
+        returnValue = method.getOptimizationInfo().getAbstractReturnValue();
+      }
+
+      if (!returnValue.isSingleValue()
+          || !returnValue.asSingleValue().isMaterializableInAllContexts(appView)) {
+        return null;
+      }
+
+      SingleValue singleValue = returnValue.asSingleValue();
+      return RewrittenTypeInfo.toVoid(method.getReturnType(), dexItemFactory, singleValue);
     }
   }
 }
