@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.DexItemFactory.LibraryMembers;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -115,48 +117,62 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    InstructionListIterator instructionIterator = code.instructionListIterator();
-    Map<LibraryMethodModelCollection<?>, LibraryMethodModelCollection.State> optimizationStates =
-        new IdentityHashMap<>();
-    while (instructionIterator.hasNext()) {
-      Instruction instruction = instructionIterator.next();
-      if (!instruction.isInvokeMethod()) {
+    BasicBlockIterator blockIterator = code.listIterator();
+    Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (blocksToRemove.contains(block)) {
         continue;
       }
 
-      InvokeMethod invoke = instruction.asInvokeMethod();
-      DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
-      if (singleTarget == null) {
-        continue;
-      }
+      InstructionListIterator instructionIterator = block.listIterator(code);
+      Map<LibraryMethodModelCollection<?>, LibraryMethodModelCollection.State> optimizationStates =
+          new IdentityHashMap<>();
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        if (!instruction.isInvokeMethod()) {
+          continue;
+        }
 
-      LibraryMethodModelCollection<?> optimizer =
-          libraryMethodModelCollections.get(singleTarget.getHolderType());
-      if (optimizer == null) {
-        continue;
-      }
+        InvokeMethod invoke = instruction.asInvokeMethod();
+        DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
+        if (singleTarget == null) {
+          continue;
+        }
 
-      if (invoke.hasUnusedOutValue()
-          && !singleTarget.getDefinition().isInstanceInitializer()
-          && !invoke.instructionMayHaveSideEffects(appView, code.context())) {
-        instructionIterator.removeOrReplaceByDebugLocalRead();
-        continue;
-      }
+        LibraryMethodModelCollection<?> optimizer =
+            libraryMethodModelCollections.get(singleTarget.getHolderType());
+        if (optimizer == null) {
+          continue;
+        }
 
-      LibraryMethodModelCollection.State optimizationState =
-          optimizationStates.computeIfAbsent(
-              optimizer,
-              libraryMethodModelCollection ->
-                  libraryMethodModelCollection.createInitialState(methodProcessor));
-      optimizer.optimize(
-          code,
-          instructionIterator,
-          invoke,
-          singleTarget,
-          affectedValues,
-          optimizationState,
-          methodProcessingContext);
+        if (invoke.hasUnusedOutValue()
+            && !singleTarget.getDefinition().isInstanceInitializer()
+            && !invoke.instructionMayHaveSideEffects(appView, code.context())) {
+          instructionIterator.removeOrReplaceByDebugLocalRead();
+          continue;
+        }
+
+        LibraryMethodModelCollection.State optimizationState =
+            optimizationStates.computeIfAbsent(
+                optimizer,
+                libraryMethodModelCollection ->
+                    libraryMethodModelCollection.createInitialState(methodProcessor));
+        optimizer.optimize(
+            code,
+            blockIterator,
+            instructionIterator,
+            invoke,
+            singleTarget,
+            affectedValues,
+            blocksToRemove,
+            optimizationState,
+            methodProcessingContext);
+      }
     }
+
+    code.removeBlocks(blocksToRemove);
+
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }

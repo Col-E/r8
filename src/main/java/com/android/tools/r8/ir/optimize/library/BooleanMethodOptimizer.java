@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -37,10 +39,12 @@ public class BooleanMethodOptimizer extends StatelessLibraryMethodModelCollectio
   @Override
   public void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove) {
     if (singleTarget.getReference() == dexItemFactory.booleanMembers.booleanValue) {
       optimizeBooleanValue(code, instructionIterator, invoke);
     } else if (singleTarget.getReference() == dexItemFactory.booleanMembers.parseBoolean) {

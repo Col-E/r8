@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -30,10 +32,12 @@ public class ObjectMethodOptimizer extends StatelessLibraryMethodModelCollection
   @Override
   public void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove) {
     if (singleTarget.getReference() == dexItemFactory.objectMembers.getClass) {
       optimizeGetClass(instructionIterator, invoke);
     }

@@ -140,9 +140,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // TODO(b/157427150): would be able to remove the call to requireNonNull() if we knew that it
-    //  throws an NullPointerException that does not have a message.
-    test(result, 0, 1);
+    test(result, 0, 0);
   }
 
   static class ObjectsRequireNonNullTestMain {

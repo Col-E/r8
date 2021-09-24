@@ -223,7 +223,7 @@ public class DeadCodeRemover {
 
       // We can exploit that a catch handler must be dead if its guard is never instantiated
       // directly or indirectly.
-      if (appInfoWithLiveness != null && appView.options().enableUninstantiatedTypeOptimization) {
+      if (appInfoWithLiveness != null) {
         DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(guard));
         if (clazz != null && !appInfoWithLiveness.isInstantiatedDirectlyOrIndirectly(clazz)) {
           builder.add(new CatchHandler<>(guard, target));

@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -40,10 +42,12 @@ public class StringMethodOptimizer extends StatelessLibraryMethodModelCollection
   @Override
   public void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove) {
     DexMethod singleTargetReference = singleTarget.getReference();
     if (singleTargetReference == dexItemFactory.stringMembers.equals) {
       optimizeEquals(code, instructionIterator, invoke.asInvokeVirtual());

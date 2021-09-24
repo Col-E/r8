@@ -12,6 +12,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -35,10 +37,12 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
   @Override
   public void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove) {
     if (singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf
         && invoke.inValues().get(0).isConstClass()) {
       insertAssumeDynamicType(code, instructionIterator, invoke);

@@ -220,7 +220,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableDevirtualization = false;
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
-    enableUninstantiatedTypeOptimization = false;
     outline.enabled = false;
     enableEnumValueOptimization = false;
     enableValuePropagation = false;
@@ -329,7 +328,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;
   public boolean enableRedundantFieldLoadElimination = true;
   public boolean enableValuePropagation = true;
-  public boolean enableUninstantiatedTypeOptimization = true;
   // Currently disabled, see b/146957343.
   public boolean enableUninstantiatedTypeOptimizationForInterfaces = false;
   // TODO(b/138917494): Disable until we have numbers on potential performance penalties.

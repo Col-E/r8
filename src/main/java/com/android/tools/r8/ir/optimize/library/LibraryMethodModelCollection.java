@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.optimize.library;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -34,28 +36,34 @@ public interface LibraryMethodModelCollection<T extends State> {
    */
   void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove,
       T state,
       MethodProcessingContext methodProcessingContext);
 
   @SuppressWarnings("unchecked")
   default void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove,
       Object state,
       MethodProcessingContext methodProcessingContext) {
     optimize(
         code,
+        blockIterator,
         instructionIterator,
         invoke,
         singleTarget,
         affectedValues,
+        blocksToRemove,
         (T) state,
         methodProcessingContext);
   }

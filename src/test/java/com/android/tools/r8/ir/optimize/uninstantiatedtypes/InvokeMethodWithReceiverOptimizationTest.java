@@ -64,10 +64,8 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .addOptionsModification(
-                options -> {
-                  options.enableUninstantiatedTypeOptimization = enableArgumentPropagation;
-                  options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
-                })
+                options ->
+                    options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation))
             // TODO(b/120764902): The calls to getOriginalName() below does not work in presence of
             //  argument removal.
             .noMinification()

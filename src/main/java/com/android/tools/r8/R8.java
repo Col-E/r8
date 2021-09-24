@@ -52,11 +52,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetarget
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
-import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
-import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
-import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.UninstantiatedTypeOptimizationGraphLens;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
@@ -509,17 +506,6 @@ public class R8 {
           appView.setVerticallyMergedClasses(VerticallyMergedClasses.empty());
         }
         assert appView.verticallyMergedClasses() != null;
-
-        if (options.enableUninstantiatedTypeOptimization) {
-          timing.begin("UninstantiatedTypeOptimization");
-          UninstantiatedTypeOptimizationGraphLens lens =
-              new UninstantiatedTypeOptimization(appViewWithLiveness)
-                  .strenghtenOptimizationInfo()
-                  .run(new MethodPoolCollection(appViewWithLiveness), executorService, timing);
-          assert lens == null || getDirectApp(appView).verifyNothingToRewrite(appView, lens);
-          appView.rewriteWithLens(lens);
-          timing.end();
-        }
 
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
             .runIfNecessary(runtimeTypeCheckInfo, executorService, timing);

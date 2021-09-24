@@ -399,7 +399,6 @@ public class ClassStaticizerTest extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableClassInlining = false;
-    options.enableUninstantiatedTypeOptimization = false;
   }
 
   @Test

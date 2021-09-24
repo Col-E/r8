@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.DexItemFactory.ObjectsMethods;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -44,10 +46,12 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
   @Override
   public void optimize(
       IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       DexClassAndMethod singleTarget,
-      Set<Value> affectedValues) {
+      Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove) {
     DexMethod singleTargetReference = singleTarget.getReference();
     switch (singleTargetReference.getName().byteAt(0)) {
       case 'e':
@@ -72,7 +76,14 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
         break;
       case 'r':
         if (objectsMethods.isRequireNonNullMethod(singleTargetReference)) {
-          optimizeRequireNonNull(instructionIterator, invoke, affectedValues, singleTarget);
+          optimizeRequireNonNull(
+              code,
+              blockIterator,
+              instructionIterator,
+              invoke,
+              affectedValues,
+              blocksToRemove,
+              singleTarget);
         }
         break;
       case 't':
@@ -159,9 +170,12 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
   }
 
   private void optimizeRequireNonNull(
+      IRCode code,
+      BasicBlockIterator blockIterator,
       InstructionListIterator instructionIterator,
       InvokeMethod invoke,
       Set<Value> affectedValues,
+      Set<BasicBlock> blocksToRemove,
       DexClassAndMethod singleTarget) {
     if (invoke.hasOutValue() && invoke.outValue().hasLocalInfo()) {
       // Replacing the out-value with an in-value would change debug info.
@@ -176,7 +190,13 @@ public class ObjectsMethodOptimizer extends StatelessLibraryMethodModelCollectio
       }
       instructionIterator.removeOrReplaceByDebugLocalRead();
     } else if (inValue.isAlwaysNull(appView)) {
-      if (singleTarget.getReference() == objectsMethods.requireNonNullElse) {
+      if (singleTarget.getReference() == objectsMethods.requireNonNull) {
+        // Optimize Objects.requireNonNull(null) into throw null.
+        if (appView.hasClassHierarchy()) {
+          instructionIterator.replaceCurrentInstructionWithThrowNull(
+              appView.withClassHierarchy(), code, blockIterator, blocksToRemove, affectedValues);
+        }
+      } else if (singleTarget.getReference() == objectsMethods.requireNonNullElse) {
         // Optimize Objects.requireNonNullElse(null, defaultObj) into defaultObj if defaultObj
         // is never null.
         if (invoke.getLastArgument().isNeverNull()) {
