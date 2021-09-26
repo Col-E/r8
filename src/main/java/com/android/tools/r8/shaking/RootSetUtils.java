@@ -1317,12 +1317,12 @@ public class RootSetUtils {
     private void evaluateCheckDiscardRule(DexProgramClass clazz, ProguardCheckDiscardRule rule) {
       if (rule.getMemberRules().isEmpty()) {
         evaluateCheckDiscardClassAndAllMembersRule(clazz, rule);
-      } else {
+        rule.markAsUsed();
+      } else if (clazz.hasFields() || clazz.hasMethods()) {
         markMatchingFields(clazz, rule.getMemberRules(), rule, null, null);
         markMatchingMethods(clazz, rule.getMemberRules(), rule, null, null);
         classesWithCheckDiscardedMembers.add(clazz);
       }
-      rule.markAsUsed();
     }
 
     private void evaluateCheckDiscardClassAndAllMembersRule(
