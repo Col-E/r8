@@ -89,7 +89,7 @@ public class StringValueOfTest extends TestBase {
     int expectedCount = isR8 ? 4 : (isRelease ? 5 : 7);
     assertEquals(expectedCount, countCall(mainMethod, "String", "valueOf"));
     // Due to the different behavior regarding constant canonicalization.
-    expectedCount = isR8 ? (parameters.isCfRuntime() ? 3 : 1) : 1;
+    expectedCount = isR8 ? (parameters.isCfRuntime() ? 4 : 1) : 1;
     assertEquals(expectedCount, countConstNullNumber(mainMethod));
     expectedCount = isR8 ? 1 : (isRelease ? 1 : 0);
     assertEquals(expectedCount, countNullStringNumber(mainMethod));
