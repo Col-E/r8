@@ -28,6 +28,7 @@ import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraph
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -172,6 +173,10 @@ public class ArgumentPropagatorProgramOptimizer {
     // new method signature for that method.
     private final Map<DexMethodSignature, Map<AllowedPrototypeChanges, DexMethodSignature>>
         newMethodSignatures = new HashMap<>();
+
+    // The method name suffix to start from when searching for a fresh method signature. Used to
+    // avoid searching from index 0 to a large number when searching for a fresh method signature.
+    private final Map<DexMethodSignature, IntBox> newMethodSignatureSuffixes = new HashMap<>();
 
     // Occupied method signatures (inverse of reserved names). Used to effectively check if a given
     // method signature is already reserved.
@@ -471,20 +476,22 @@ public class ArgumentPropagatorProgramOptimizer {
       // We need to find a new name for this method, since the signature is already occupied.
       // TODO(b/190154391): Instead of generating a new name, we could also try permuting the order
       // of parameters.
+      IntBox suffix =
+          newMethodSignatureSuffixes.computeIfAbsent(
+              methodSignatureWithParametersRemoved, ignoreKey(IntBox::new));
       DexMethod newMethod =
           dexItemFactory.createFreshMethodNameWithoutHolder(
               method.getName().toString(),
               methodReferenceWithParametersRemoved.getProto(),
               method.getHolderType(),
               candidate -> {
-                Pair<AllowedPrototypeChanges, DexMethodSignature> candidateOccupant =
-                    occupiedMethodSignatures.get(candidate.getSignature());
-                if (candidateOccupant == null) {
-                  return true;
-                }
-                return candidateOccupant.getFirst().equals(allowedPrototypeChanges)
-                    && candidateOccupant.getSecond().equals(methodSignatureWithoutPrototypeChanges);
-              });
+                suffix.increment();
+                return isMethodSignatureFresh(
+                    candidate.getSignature(),
+                    methodSignatureWithoutPrototypeChanges,
+                    allowedPrototypeChanges);
+              },
+              suffix.get());
 
       // Reserve the newly generated method signature.
       if (!method.getDefinition().isInstanceInitializer()) {
@@ -495,6 +502,19 @@ public class ArgumentPropagatorProgramOptimizer {
       }
 
       return newMethod;
+    }
+
+    private boolean isMethodSignatureFresh(
+        DexMethodSignature signature,
+        DexMethodSignature previous,
+        AllowedPrototypeChanges allowedPrototypeChanges) {
+      Pair<AllowedPrototypeChanges, DexMethodSignature> candidateOccupant =
+          occupiedMethodSignatures.get(signature);
+      if (candidateOccupant == null) {
+        return true;
+      }
+      return candidateOccupant.getFirst().equals(allowedPrototypeChanges)
+          && candidateOccupant.getSecond().equals(previous);
     }
 
     private RewrittenPrototypeDescription computePrototypeChangesForDirectMethod(

@@ -2131,6 +2131,11 @@ public class DexItemFactory {
     return sb.toString();
   }
 
+  public <T> T createFreshMember(
+      Function<DexString, Optional<T>> tryString, String baseName, DexType holder) {
+    return createFreshMember(tryString, baseName, holder, 0);
+  }
+
   /**
    * Find a fresh method name that is not used by any other method. The method name takes the form
    * "basename$holdername" or "basename$holdername$index".
@@ -2138,15 +2143,16 @@ public class DexItemFactory {
    * @param tryString callback to check if the method name is in use.
    */
   public <T> T createFreshMember(
-      Function<DexString, Optional<T>> tryString, String baseName, DexType holder) {
-    int index = 0;
+      Function<DexString, Optional<T>> tryString, String baseName, DexType holder, int index) {
+    int offset = 0;
     while (true) {
-      assert index < 1000;
-      DexString name = createString(createMemberString(baseName, holder, index++));
+      assert offset < 1000;
+      DexString name = createString(createMemberString(baseName, holder, index + offset));
       Optional<T> result = tryString.apply(name);
       if (result.isPresent()) {
         return result.get();
       }
+      offset++;
     }
   }
 
@@ -2216,14 +2222,28 @@ public class DexItemFactory {
     return internalCreateFreshMethodNameWithHolder(baseName, holder, proto, target, isFresh);
   }
 
+  public DexMethod createFreshMethodNameWithoutHolder(
+      String baseName, DexProto proto, DexType target, Predicate<DexMethod> isFresh) {
+    return createFreshMethodNameWithoutHolder(baseName, proto, target, isFresh, 0);
+  }
+
   /**
    * Tries to find a method name for insertion into the class {@code target} of the form baseName$n,
    * where {@code baseName} is supplied by the user, and {@code n} is picked to be the first number
-   * so that {@code isFresh.apply(method)} returns {@code true}.
+   * starting from {@param index} so that {@code isFresh.apply(method)} returns {@code true}.
    */
   public DexMethod createFreshMethodNameWithoutHolder(
-      String baseName, DexProto proto, DexType target, Predicate<DexMethod> isFresh) {
-    return internalCreateFreshMethodNameWithHolder(baseName, null, proto, target, isFresh);
+      String baseName, DexProto proto, DexType target, Predicate<DexMethod> isFresh, int index) {
+    return internalCreateFreshMethodNameWithHolder(baseName, null, proto, target, isFresh, index);
+  }
+
+  private DexMethod internalCreateFreshMethodNameWithHolder(
+      String baseName,
+      DexType holder,
+      DexProto proto,
+      DexType target,
+      Predicate<DexMethod> isFresh) {
+    return internalCreateFreshMethodNameWithHolder(baseName, holder, proto, target, isFresh, 0);
   }
 
   /**
@@ -2235,7 +2255,8 @@ public class DexItemFactory {
       DexType holder,
       DexProto proto,
       DexType target,
-      Predicate<DexMethod> isFresh) {
+      Predicate<DexMethod> isFresh,
+      int index) {
     return createFreshMember(
         name -> {
           DexMethod tryMethod = createMethod(target, proto, name);
@@ -2246,7 +2267,8 @@ public class DexItemFactory {
           }
         },
         baseName,
-        holder);
+        holder,
+        index);
   }
 
   /**
