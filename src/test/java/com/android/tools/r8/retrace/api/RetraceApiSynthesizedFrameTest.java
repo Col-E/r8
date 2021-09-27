@@ -16,7 +16,7 @@ import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +53,7 @@ public class RetraceApiSynthesizedFrameTest extends RetraceApiTestBase {
               .flatMap(
                   element ->
                       element
-                          .lookupFrame(RetraceStackTraceContext.empty(), Optional.of(3), "a")
+                          .lookupFrame(RetraceStackTraceContext.empty(), OptionalInt.of(3), "a")
                           .stream())
               .collect(Collectors.toList());
       assertEquals(1, frameResults.size());

@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,7 +75,7 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
       List<RetraceFrameElement> retraceFrameElements =
           retracer.retraceClass(Reference.classFromTypeName("a")).stream()
               .flatMap(
-                  element -> element.lookupFrame(throwingContext, Optional.of(4), "a").stream())
+                  element -> element.lookupFrame(throwingContext, OptionalInt.of(4), "a").stream())
               .collect(Collectors.toList());
       assertEquals(1, retraceFrameElements.size());
 

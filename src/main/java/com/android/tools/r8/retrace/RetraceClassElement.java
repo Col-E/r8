@@ -7,7 +7,7 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 
 @Keep
 public interface RetraceClassElement extends RetraceElement<RetraceClassResult> {
@@ -21,19 +21,17 @@ public interface RetraceClassElement extends RetraceElement<RetraceClassResult> 
   RetraceMethodResult lookupMethod(String methodName);
 
   RetraceFrameResult lookupFrame(
-      RetraceStackTraceContext context, Optional<Integer> position, String methodName);
+      RetraceStackTraceContext context, OptionalInt position, String methodName);
 
   RetraceFrameResult lookupFrame(
       RetraceStackTraceContext context,
-      Optional<Integer> position,
+      OptionalInt position,
       String methodName,
       List<TypeReference> formalTypes,
       TypeReference returnType);
 
   RetraceFrameResult lookupFrame(
-      RetraceStackTraceContext context,
-      Optional<Integer> position,
-      MethodReference methodReference);
+      RetraceStackTraceContext context, OptionalInt position, MethodReference methodReference);
 
   RetraceUnknownJsonMappingInformationResult getUnknownJsonMappingInformation();
 }

@@ -26,7 +26,7 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -34,7 +34,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
 
   private final RetraceClassResultImpl classResult;
   private final MethodDefinition methodDefinition;
-  private final Optional<Integer> obfuscatedPosition;
+  private final OptionalInt obfuscatedPosition;
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
   private final RetracerImpl retracer;
   private final RetraceStackTraceContextImpl context;
@@ -45,7 +45,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       RetraceClassResultImpl classResult,
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
-      Optional<Integer> obfuscatedPosition,
+      OptionalInt obfuscatedPosition,
       RetracerImpl retracer,
       RetraceStackTraceContextImpl context) {
     this.classResult = classResult;
@@ -137,9 +137,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
   }
 
   private RetracedMethodReferenceImpl getRetracedMethod(
-      MethodReference methodReference,
-      MappedRange mappedRange,
-      Optional<Integer> obfuscatedPosition) {
+      MethodReference methodReference, MappedRange mappedRange, OptionalInt obfuscatedPosition) {
     if (mappedRange.minifiedRange == null
         || (obfuscatedPosition.orElse(-1) == -1 && !isAmbiguous())) {
       int originalLineNumber = mappedRange.getFirstLineNumberOfOriginalRange();
@@ -150,11 +148,11 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       }
     }
     if (!obfuscatedPosition.isPresent()
-        || !mappedRange.minifiedRange.contains(obfuscatedPosition.get())) {
+        || !mappedRange.minifiedRange.contains(obfuscatedPosition.getAsInt())) {
       return RetracedMethodReferenceImpl.create(methodReference);
     }
     return RetracedMethodReferenceImpl.create(
-        methodReference, mappedRange.getOriginalLineNumber(obfuscatedPosition.get()));
+        methodReference, mappedRange.getOriginalLineNumber(obfuscatedPosition.getAsInt()));
   }
 
   public static class ElementImpl implements RetraceFrameElement {
@@ -163,7 +161,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     private final RetraceFrameResultImpl retraceFrameResult;
     private final RetraceClassElementImpl classElement;
     private final List<MappedRange> mappedRanges;
-    private final Optional<Integer> obfuscatedPosition;
+    private final OptionalInt obfuscatedPosition;
     private final RetracerImpl retracer;
     private final RetraceStackTraceContextImpl context;
 
@@ -172,7 +170,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
         RetraceClassElementImpl classElement,
         RetracedMethodReferenceImpl methodReference,
         List<MappedRange> mappedRanges,
-        Optional<Integer> obfuscatedPosition,
+        OptionalInt obfuscatedPosition,
         RetracerImpl retracer,
         RetraceStackTraceContextImpl context) {
       this.methodReference = methodReference;

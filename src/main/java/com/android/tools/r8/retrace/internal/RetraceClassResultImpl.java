@@ -25,7 +25,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -120,14 +120,14 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
   @Override
   public RetraceFrameResultImpl lookupFrame(
-      RetraceStackTraceContext context, Optional<Integer> position, String methodName) {
+      RetraceStackTraceContext context, OptionalInt position, String methodName) {
     return lookupFrame(context, position, MethodDefinition.create(obfuscatedReference, methodName));
   }
 
   @Override
   public RetraceFrameResultImpl lookupFrame(
       RetraceStackTraceContext context,
-      Optional<Integer> position,
+      OptionalInt position,
       String methodName,
       List<TypeReference> formalTypes,
       TypeReference returnType) {
@@ -145,7 +145,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   private RetraceFrameResultImpl lookupFrame(
-      RetraceStackTraceContext context, Optional<Integer> position, MethodDefinition definition) {
+      RetraceStackTraceContext context, OptionalInt position, MethodDefinition definition) {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappings = new ArrayList<>();
     internalStream()
         .forEach(
@@ -161,7 +161,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   private List<List<MappedRange>> getMappedRangesForFrame(
-      RetraceClassElementImpl element, MethodDefinition definition, Optional<Integer> position) {
+      RetraceClassElementImpl element, MethodDefinition definition, OptionalInt position) {
     List<List<MappedRange>> overloadedRanges = new ArrayList<>();
     if (mapper == null) {
       overloadedRanges.add(null);
@@ -174,8 +174,8 @@ public class RetraceClassResultImpl implements RetraceClassResult {
       return overloadedRanges;
     }
     List<MappedRange> mappedRangesForPosition = null;
-    if (position.isPresent() && position.get() >= 0) {
-      mappedRangesForPosition = mappedRanges.allRangesForLine(position.get(), false);
+    if (position.isPresent() && position.getAsInt() >= 0) {
+      mappedRangesForPosition = mappedRanges.allRangesForLine(position.getAsInt(), false);
     }
     if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
       mappedRangesForPosition = mappedRanges.getMappedRanges();
@@ -330,7 +330,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
     @Override
     public RetraceFrameResultImpl lookupFrame(
-        RetraceStackTraceContext context, Optional<Integer> position, String methodName) {
+        RetraceStackTraceContext context, OptionalInt position, String methodName) {
       return lookupFrame(
           context,
           position,
@@ -340,7 +340,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     @Override
     public RetraceFrameResult lookupFrame(
         RetraceStackTraceContext context,
-        Optional<Integer> position,
+        OptionalInt position,
         String methodName,
         List<TypeReference> formalTypes,
         TypeReference returnType) {
@@ -354,9 +354,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
     @Override
     public RetraceFrameResult lookupFrame(
-        RetraceStackTraceContext context,
-        Optional<Integer> position,
-        MethodReference methodReference) {
+        RetraceStackTraceContext context, OptionalInt position, MethodReference methodReference) {
       return lookupFrame(context, position, MethodDefinition.create(methodReference));
     }
 
@@ -367,7 +365,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
     }
 
     private RetraceFrameResultImpl lookupFrame(
-        RetraceStackTraceContext context, Optional<Integer> position, MethodDefinition definition) {
+        RetraceStackTraceContext context, OptionalInt position, MethodDefinition definition) {
       MethodDefinition methodDefinition =
           MethodDefinition.create(classReference.getClassReference(), definition.getName());
       ImmutableList.Builder<Pair<RetraceClassElementImpl, List<MappedRange>>> builder =

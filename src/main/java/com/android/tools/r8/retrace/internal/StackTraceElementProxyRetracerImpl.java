@@ -25,7 +25,7 @@ import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -108,7 +108,9 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
           RetraceFrameResult frameResult =
               classResult.lookupFrame(
                   proxy.context,
-                  element.hasLineNumber() ? Optional.of(element.getLineNumber()) : Optional.empty(),
+                  element.hasLineNumber()
+                      ? OptionalInt.of(element.getLineNumber())
+                      : OptionalInt.empty(),
                   element.getMethodName());
           return frameResult.stream()
               .flatMap(

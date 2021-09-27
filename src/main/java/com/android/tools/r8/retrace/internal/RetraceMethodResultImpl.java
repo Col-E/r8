@@ -18,7 +18,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Stream;
 
 public class RetraceMethodResultImpl implements RetraceMethodResult {
@@ -93,7 +93,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
         classResult,
         narrowedRanges.isEmpty() ? noMappingRanges : narrowedRanges,
         methodDefinition,
-        Optional.of(position),
+        OptionalInt.of(position),
         retracer,
         (RetraceStackTraceContextImpl) context);
   }

@@ -20,7 +20,7 @@ import com.android.tools.r8.retrace.Retracer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -110,7 +110,7 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
           retracer.retraceClass(Reference.classFromTypeName(typeName)).stream()
               .flatMap(
                   element ->
-                      element.lookupFrame(throwingContext, Optional.of(4), methodName).stream())
+                      element.lookupFrame(throwingContext, OptionalInt.of(4), methodName).stream())
               .collect(Collectors.toList());
       assertEquals(1, retraceFrameElements.size());
 
