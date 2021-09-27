@@ -39,7 +39,7 @@ ALL_ART_VMS = [
 # Should be short enough that we ensure that two calls are close enough
 # to happen before bot times out.
 # A false positiv, i.e., printing the stacks of non hanging processes
-# is not a problem, no harm done except some logging in the stdout.
+# is not a problem, no harm done except some logging in stdout.
 TIMEOUT_HANDLER_PERIOD = 60 * 18
 
 BUCKET = 'r8-test-results'
