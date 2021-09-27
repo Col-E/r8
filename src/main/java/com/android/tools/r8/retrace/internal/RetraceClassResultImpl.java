@@ -121,7 +121,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   @Override
   public RetraceFrameResultImpl lookupFrame(
       RetraceStackTraceContext context, Optional<Integer> position, String methodName) {
-    return lookupFrame(context, MethodDefinition.create(obfuscatedReference, methodName), position);
+    return lookupFrame(context, position, MethodDefinition.create(obfuscatedReference, methodName));
   }
 
   @Override
@@ -133,9 +133,9 @@ public class RetraceClassResultImpl implements RetraceClassResult {
       TypeReference returnType) {
     return lookupFrame(
         context,
+        position,
         MethodDefinition.create(
-            Reference.method(obfuscatedReference, methodName, formalTypes, returnType)),
-        position);
+            Reference.method(obfuscatedReference, methodName, formalTypes, returnType)));
   }
 
   @Override
@@ -145,7 +145,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   private RetraceFrameResultImpl lookupFrame(
-      RetraceStackTraceContext context, MethodDefinition definition, Optional<Integer> position) {
+      RetraceStackTraceContext context, Optional<Integer> position, MethodDefinition definition) {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappings = new ArrayList<>();
     internalStream()
         .forEach(
