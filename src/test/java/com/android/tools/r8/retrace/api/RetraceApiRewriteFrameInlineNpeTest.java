@@ -12,9 +12,9 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetraceClassElement;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
+import com.android.tools.r8.retrace.RetraceThrownExceptionElement;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.ArrayList;
@@ -62,16 +62,20 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
           Retracer.createExperimental(
               ProguardMapProducer.fromString(mapping), testDiagnosticsHandler);
 
-      List<RetraceClassElement> npeRetraced =
-          retracer.retraceClass(Reference.classFromDescriptor(npeDescriptor)).stream()
+      List<RetraceThrownExceptionElement> npeRetraced =
+          retracer
+              .retraceThrownException(
+                  Reference.classFromDescriptor(npeDescriptor), RetraceStackTraceContext.empty())
+              .stream()
               .collect(Collectors.toList());
       assertEquals(1, npeRetraced.size());
 
-      RetraceStackTraceContext context = npeRetraced.get(0).getContextWhereClassWasThrown();
+      RetraceStackTraceContext throwingContext = npeRetraced.get(0).getContext();
 
       List<RetraceFrameElement> retraceFrameElements =
           retracer.retraceClass(Reference.classFromTypeName("a")).stream()
-              .flatMap(element -> element.lookupFrame(Optional.of(4), "a").stream())
+              .flatMap(
+                  element -> element.lookupFrame(throwingContext, Optional.of(4), "a").stream())
               .collect(Collectors.toList());
       assertEquals(1, retraceFrameElements.size());
 
@@ -79,7 +83,6 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
       // Check that rewriting the frames will remove the top 1 frames if the condition is active.
       Map<Integer, RetracedMethodReference> results = new LinkedHashMap<>();
       retraceFrameElement.visitRewrittenFrames(
-          context,
           (methodReference, index) -> {
             RetracedMethodReference existingValue = results.put(index, methodReference);
             assertNull(existingValue);

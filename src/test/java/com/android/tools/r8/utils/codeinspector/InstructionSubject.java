@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
 
 public interface InstructionSubject {
@@ -162,10 +163,11 @@ public interface InstructionSubject {
   }
 
   default RetraceFrameResult retraceLinePosition(Retracer retracer) {
-    return retrace(retracer).narrowByPosition(getLineNumber());
+    return retrace(retracer).narrowByPosition(RetraceStackTraceContext.empty(), getLineNumber());
   }
 
   default RetraceFrameResult retracePcPosition(Retracer retracer, MethodSubject methodSubject) {
-    return retrace(retracer).narrowByPosition(getOffset(methodSubject).offset);
+    return retrace(retracer)
+        .narrowByPosition(RetraceStackTraceContext.empty(), getOffset(methodSubject).offset);
   }
 }

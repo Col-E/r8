@@ -159,8 +159,8 @@ public class RewriteFrameMappingInformation extends MappingInformation {
 
     @Override
     public boolean evaluate(RetraceStackTraceContextImpl context) {
-      return context.getSeenException() != null
-          && context.getSeenException().getDescriptor().equals(descriptor);
+      return context.getThrownException() != null
+          && context.getThrownException().getDescriptor().equals(descriptor);
     }
 
     public static ThrowsCondition deserialize(String conditionString) {

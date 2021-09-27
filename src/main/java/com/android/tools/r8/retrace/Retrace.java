@@ -169,8 +169,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
           }
         });
     List<Pair<List<T>, RetraceStackTraceContext>> retracedStackTraces = new ArrayList<>();
-    retracedStackTraces.add(
-        new Pair<>(new ArrayList<>(), RetraceStackTraceContext.getInitialContext()));
+    retracedStackTraces.add(new Pair<>(new ArrayList<>(), RetraceStackTraceContext.empty()));
     retracedStackTraces =
         ListUtils.fold(
             stackTrace,
@@ -198,9 +197,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
                 if (ambiguousKeys.isEmpty()) {
                   // This happens when there is nothing to report.
                   newRetracedStackTraces.add(
-                      new Pair<>(
-                          retracedStackTrace.getFirst(),
-                          RetraceStackTraceContext.getInitialContext()));
+                      new Pair<>(retracedStackTrace.getFirst(), RetraceStackTraceContext.empty()));
                   continue;
                 }
                 Collections.sort(ambiguousKeys);
@@ -232,7 +229,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
     ST parsedLine = stackTraceLineParser.parse(stackTraceFrame);
     proxyRetracer
-        .retrace(parsedLine, RetraceStackTraceContext.getInitialContext())
+        .retrace(parsedLine, RetraceStackTraceContext.empty())
         .forEach(
             retracedElement -> {
               if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
@@ -259,7 +256,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   public List<T> retraceLine(T stackTraceLine) {
     ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
     return proxyRetracer
-        .retrace(parsedLine, RetraceStackTraceContext.getInitialContext())
+        .retrace(parsedLine, RetraceStackTraceContext.empty())
         .map(
             retraceFrame -> {
               retraceFrame.getOriginalItem().toRetracedItem(retraceFrame, isVerbose);

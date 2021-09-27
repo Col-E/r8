@@ -10,6 +10,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
@@ -61,7 +62,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   }
 
   @Override
-  public RetraceFrameResultImpl narrowByPosition(int position) {
+  public RetraceFrameResultImpl narrowByPosition(RetraceStackTraceContext context, int position) {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> narrowedRanges = new ArrayList<>();
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> noMappingRanges = new ArrayList<>();
     for (Pair<RetraceClassElementImpl, List<MappedRange>> mappedRange : mappedRanges) {
@@ -93,7 +94,8 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
         narrowedRanges.isEmpty() ? noMappingRanges : narrowedRanges,
         methodDefinition,
         Optional.of(position),
-        retracer);
+        retracer,
+        (RetraceStackTraceContextImpl) context);
   }
 
   @Override

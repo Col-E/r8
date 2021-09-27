@@ -15,14 +15,14 @@ import java.util.List;
 
 public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
 
-  private final ClassReference seenException;
+  private final ClassReference thrownException;
 
-  private RetraceStackTraceContextImpl(ClassReference seenException) {
-    this.seenException = seenException;
+  private RetraceStackTraceContextImpl(ClassReference thrownException) {
+    this.thrownException = thrownException;
   }
 
-  public ClassReference getSeenException() {
-    return seenException;
+  public ClassReference getThrownException() {
+    return thrownException;
   }
 
   RetraceStackTraceCurrentEvaluationInformation computeRewritingInformation(
@@ -54,22 +54,26 @@ public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
   }
 
   public static Builder builder() {
-    return new Builder();
+    return Builder.create();
   }
 
   public static class Builder {
 
-    private ClassReference seenException;
+    private ClassReference thrownException;
 
     private Builder() {}
 
-    public Builder setSeenException(ClassReference seenException) {
-      this.seenException = seenException;
+    public Builder setThrownException(ClassReference thrownException) {
+      this.thrownException = thrownException;
       return this;
     }
 
     public RetraceStackTraceContextImpl build() {
-      return new RetraceStackTraceContextImpl(seenException);
+      return new RetraceStackTraceContextImpl(thrownException);
+    }
+
+    public static Builder create() {
+      return new Builder();
     }
   }
 }

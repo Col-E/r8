@@ -50,7 +50,11 @@ public class RetraceApiSynthesizedFrameTest extends RetraceApiTestBase {
                   ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {})
               .retraceClass(Reference.classFromTypeName("a"))
               .stream()
-              .flatMap(element -> element.lookupFrame(Optional.of(3), "a").stream())
+              .flatMap(
+                  element ->
+                      element
+                          .lookupFrame(RetraceStackTraceContext.empty(), Optional.of(3), "a")
+                          .stream())
               .collect(Collectors.toList());
       assertEquals(1, frameResults.size());
       RetraceFrameElement retraceFrameElement = frameResults.get(0);
@@ -59,7 +63,6 @@ public class RetraceApiSynthesizedFrameTest extends RetraceApiTestBase {
       assertEquals(2, allFrames.size());
       List<RetracedMethodReference> nonSyntheticFrames = new ArrayList<>();
       retraceFrameElement.visitRewrittenFrames(
-          RetraceStackTraceContext.getInitialContext(),
           (method, ignored) -> nonSyntheticFrames.add(method));
       assertEquals(1, nonSyntheticFrames.size());
       assertEquals(nonSyntheticFrames.get(0), allFrames.get(0));

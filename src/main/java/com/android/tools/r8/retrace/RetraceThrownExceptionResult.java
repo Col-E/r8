@@ -5,12 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
-import com.android.tools.r8.retrace.internal.RetraceStackTraceContextImpl;
 
 @Keep
-public interface RetraceStackTraceContext {
-
-  static RetraceStackTraceContext empty() {
-    return RetraceStackTraceContextImpl.builder().build();
-  }
-}
+public interface RetraceThrownExceptionResult
+    extends RetraceResult<RetraceThrownExceptionElement> {}

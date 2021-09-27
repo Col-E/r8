@@ -37,6 +37,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
   private final Optional<Integer> obfuscatedPosition;
   private final List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges;
   private final RetracerImpl retracer;
+  private final RetraceStackTraceContextImpl context;
 
   private OptionalBool isAmbiguousCache = OptionalBool.UNKNOWN;
 
@@ -45,12 +46,14 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappedRanges,
       MethodDefinition methodDefinition,
       Optional<Integer> obfuscatedPosition,
-      RetracerImpl retracer) {
+      RetracerImpl retracer,
+      RetraceStackTraceContextImpl context) {
     this.classResult = classResult;
     this.methodDefinition = methodDefinition;
     this.obfuscatedPosition = obfuscatedPosition;
     this.mappedRanges = mappedRanges;
     this.retracer = retracer;
+    this.context = context;
   }
 
   @Override
@@ -95,7 +98,8 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                                 classElement.getRetracedClass().getClassReference())),
                         ImmutableList.of(),
                         obfuscatedPosition,
-                        retracer));
+                        retracer,
+                        context));
               }
               // Iterate over mapped ranges that may have different positions than specified.
               List<ElementImpl> ambiguousFrames = new ArrayList<>();
@@ -128,7 +132,8 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
         getRetracedMethod(methodReference, topFrame, obfuscatedPosition),
         mappedRangesForElement,
         obfuscatedPosition,
-        retracer);
+        retracer,
+        context);
   }
 
   private RetracedMethodReferenceImpl getRetracedMethod(
@@ -160,6 +165,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     private final List<MappedRange> mappedRanges;
     private final Optional<Integer> obfuscatedPosition;
     private final RetracerImpl retracer;
+    private final RetraceStackTraceContextImpl context;
 
     ElementImpl(
         RetraceFrameResultImpl retraceFrameResult,
@@ -167,13 +173,15 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
         RetracedMethodReferenceImpl methodReference,
         List<MappedRange> mappedRanges,
         Optional<Integer> obfuscatedPosition,
-        RetracerImpl retracer) {
+        RetracerImpl retracer,
+        RetraceStackTraceContextImpl context) {
       this.methodReference = methodReference;
       this.retraceFrameResult = retraceFrameResult;
       this.classElement = classElement;
       this.mappedRanges = mappedRanges;
       this.obfuscatedPosition = obfuscatedPosition;
       this.retracer = retracer;
+      this.context = context;
     }
 
     private boolean isOuterMostFrameCompilerSynthesized() {
@@ -223,11 +231,11 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public void visitRewrittenFrames(
-        RetraceStackTraceContext context, BiConsumer<RetracedMethodReference, Integer> consumer) {
-      RetraceStackTraceContextImpl contextImpl = (RetraceStackTraceContextImpl) context;
+    public void visitRewrittenFrames(BiConsumer<RetracedMethodReference, Integer> consumer) {
       RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
-          contextImpl.computeRewritingInformation(mappedRanges);
+          context == null
+              ? RetraceStackTraceCurrentEvaluationInformation.empty()
+              : context.computeRewritingInformation(mappedRanges);
       int index = 0;
       int numberOfFramesToRemove = currentFrameInformation.getRemoveInnerFrames();
       RetracedMethodReferenceImpl prev = getTopFrame();
@@ -279,7 +287,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     @Override
     public RetraceStackTraceContext getContext() {
       // This will change when supporting outline frames.
-      return RetraceStackTraceContext.getInitialContext();
+      return RetraceStackTraceContext.empty();
     }
   }
 }

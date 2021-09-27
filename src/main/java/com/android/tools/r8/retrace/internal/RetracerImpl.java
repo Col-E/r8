@@ -63,7 +63,7 @@ public class RetracerImpl implements Retracer {
 
   @Override
   public RetraceFrameResult retraceFrame(MethodReference methodReference, int position) {
-    return retraceFrame(methodReference, position, RetraceStackTraceContext.getInitialContext());
+    return retraceFrame(methodReference, position, RetraceStackTraceContext.empty());
   }
 
   @Override
@@ -71,7 +71,7 @@ public class RetracerImpl implements Retracer {
       MethodReference methodReference, int position, RetraceStackTraceContext context) {
     return retraceClass(methodReference.getHolderClass())
         .lookupMethod(methodReference.getMethodName())
-        .narrowByPosition(position);
+        .narrowByPosition(context, position);
   }
 
   @Override
@@ -88,5 +88,11 @@ public class RetracerImpl implements Retracer {
   @Override
   public RetraceTypeResultImpl retraceType(TypeReference typeReference) {
     return RetraceTypeResultImpl.create(typeReference, this);
+  }
+
+  @Override
+  public RetraceThrownExceptionResultImpl retraceThrownException(
+      ClassReference exception, RetraceStackTraceContext context) {
+    return retraceClass(exception).lookupThrownException(context);
   }
 }

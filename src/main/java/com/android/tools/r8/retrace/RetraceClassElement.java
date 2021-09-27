@@ -20,17 +20,20 @@ public interface RetraceClassElement extends RetraceElement<RetraceClassResult> 
 
   RetraceMethodResult lookupMethod(String methodName);
 
-  RetraceFrameResult lookupFrame(Optional<Integer> position, String methodName);
+  RetraceFrameResult lookupFrame(
+      RetraceStackTraceContext context, Optional<Integer> position, String methodName);
 
   RetraceFrameResult lookupFrame(
+      RetraceStackTraceContext context,
       Optional<Integer> position,
       String methodName,
       List<TypeReference> formalTypes,
       TypeReference returnType);
 
-  RetraceFrameResult lookupFrame(Optional<Integer> position, MethodReference methodReference);
+  RetraceFrameResult lookupFrame(
+      RetraceStackTraceContext context,
+      Optional<Integer> position,
+      MethodReference methodReference);
 
   RetraceUnknownJsonMappingInformationResult getUnknownJsonMappingInformation();
-
-  RetraceStackTraceContext getContextWhereClassWasThrown();
 }

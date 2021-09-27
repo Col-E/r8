@@ -70,26 +70,29 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
       RetraceClassResult classResult) {
     return currentResults.flatMap(
         proxy ->
-            classResult.stream()
+            // We assume, since no method was defined for this stack trace element, that this was a
+            // thrown exception.
+            classResult.lookupThrownException(proxy.getContext()).stream()
                 .map(
-                    classElement ->
+                    thrownExceptionElement ->
                         proxy
                             .builder()
-                            .setRetracedClass(classElement.getRetracedClass())
+                            .setRetracedClass(thrownExceptionElement.getRetracedClass())
                             .joinAmbiguous(classResult.isAmbiguous())
                             .setTopFrame(true)
-                            // We assume, since no method was defined for this stack trace element,
-                            // that this was a thrown exception.
-                            .setContext(classElement.getContextWhereClassWasThrown())
+                            .setContext(thrownExceptionElement.getContext())
                             .applyIf(
                                 element.hasSourceFile(),
                                 builder -> {
-                                  RetracedSourceFile sourceFile = classElement.getSourceFile();
+                                  RetracedSourceFile sourceFile =
+                                      thrownExceptionElement.getSourceFile();
                                   builder.setSourceFile(
                                       sourceFile.hasRetraceResult()
                                           ? sourceFile.getSourceFile()
                                           : RetraceUtils.inferSourceFile(
-                                              classElement.getRetracedClass().getTypeName(),
+                                              thrownExceptionElement
+                                                  .getRetracedClass()
+                                                  .getTypeName(),
                                               element.getSourceFile(),
                                               classResult.hasRetraceResult()));
                                 })
@@ -113,7 +116,6 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                     List<RetraceStackTraceElementProxyImpl<T, ST>> retracedProxies =
                         new ArrayList<>();
                     frameElement.visitRewrittenFrames(
-                        proxy.getContext(),
                         (frame, index) -> {
                           boolean isTopFrame = index == 0;
                           retracedProxies.add(

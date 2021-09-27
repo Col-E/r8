@@ -9,6 +9,5 @@ import com.android.tools.r8.Keep;
 @Keep
 public interface RetraceMethodResult extends RetraceResult<RetraceMethodElement> {
 
-  RetraceFrameResult narrowByPosition(int position);
-
+  RetraceFrameResult narrowByPosition(RetraceStackTraceContext context, int position);
 }

@@ -29,6 +29,9 @@ public interface Retracer {
 
   RetraceTypeResult retraceType(TypeReference typeReference);
 
+  RetraceThrownExceptionResult retraceThrownException(
+      ClassReference exception, RetraceStackTraceContext context);
+
   static Retracer createDefault(
       ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
     return RetracerImpl.create(proguardMapProducer, diagnosticsHandler, false);

@@ -32,4 +32,6 @@ public interface RetraceClassResult extends RetraceResult<RetraceClassElement> {
       String methodName,
       List<TypeReference> formalTypes,
       TypeReference returnType);
+
+  RetraceThrownExceptionResult lookupThrownException(RetraceStackTraceContext context);
 }
