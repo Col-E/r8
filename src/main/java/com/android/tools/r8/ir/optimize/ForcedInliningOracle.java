@@ -5,10 +5,10 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -135,10 +135,14 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   public void markInlined(InlineeWithReason inlinee) {}
 
   @Override
-  public DexType getReceiverTypeIfKnown(InvokeMethod invoke) {
+  public ClassTypeElement getReceiverTypeOrDefault(
+      InvokeMethod invoke, ClassTypeElement defaultValue) {
     assert invoke.isInvokeMethodWithReceiver();
     Inliner.InliningInfo info = invokesToInline.get(invoke.asInvokeMethodWithReceiver());
     assert info != null;
-    return info.receiverType;
+    if (info.receiverClass != null) {
+      return info.receiverClass.getType().toTypeElement(appView).asClassType();
+    }
+    return defaultValue;
   }
 }

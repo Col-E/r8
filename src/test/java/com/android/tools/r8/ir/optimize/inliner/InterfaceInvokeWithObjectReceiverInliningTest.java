@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 
 package com.android.tools.r8.ir.optimize.inliner;
-
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
@@ -13,7 +10,6 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
@@ -73,17 +69,9 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         // TODO(b/199561570): Should succeed with 0.
         .applyIf(
-            (enableInlining
-                    && (!enableVerticalClassMerging
-                        || parameters.isDexRuntimeVersion(Version.V5_1_1)
-                        || parameters.isDexRuntimeVersion(Version.V6_0_1)))
-                || (!enableInlining && !enableVerticalClassMerging),
+            enableInlining || !enableVerticalClassMerging,
             runResult -> runResult.assertSuccessWithOutputLines("0"),
-            runResult ->
-                runResult.assertFailureWithErrorThatMatches(
-                    anyOf(
-                        containsString(NoSuchFieldError.class.getTypeName()),
-                        containsString(VerifyError.class.getTypeName()))));
+            runResult -> runResult.assertFailureWithErrorThatThrows(VerifyError.class));
   }
 
   private static byte[] getTransformedMain() throws IOException {

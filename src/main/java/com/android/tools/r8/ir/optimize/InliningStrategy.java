@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -49,5 +49,5 @@ interface InliningStrategy {
 
   void ensureMethodProcessed(ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback);
 
-  DexType getReceiverTypeIfKnown(InvokeMethod invoke);
+  ClassTypeElement getReceiverTypeOrDefault(InvokeMethod invoke, ClassTypeElement defaultValue);
 }

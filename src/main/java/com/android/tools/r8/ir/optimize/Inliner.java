@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -847,11 +848,11 @@ public class Inliner {
 
   public static class InliningInfo {
     public final ProgramMethod target;
-    public final DexType receiverType; // null, if unknown
+    public final DexProgramClass receiverClass; // null, if unknown
 
-    public InliningInfo(ProgramMethod target, DexType receiverType) {
+    public InliningInfo(ProgramMethod target, DexProgramClass receiverClass) {
       this.target = target;
-      this.receiverType = receiverType;
+      this.receiverClass = receiverClass;
     }
   }
 
@@ -1016,14 +1017,11 @@ public class Inliner {
             continue;
           }
 
-          DexType downcastTypeOrNull = getDowncastTypeIfNeeded(strategy, invoke, singleTarget);
-          if (downcastTypeOrNull != null) {
-            DexClass downcastClass = appView.definitionFor(downcastTypeOrNull, context);
-            if (downcastClass == null
-                || AccessControl.isClassAccessible(downcastClass, context, appView)
-                    .isPossiblyFalse()) {
-              continue;
-            }
+          DexProgramClass downcastClass = getDowncastTypeIfNeeded(strategy, invoke, singleTarget);
+          if (downcastClass != null
+              && AccessControl.isClassAccessible(downcastClass, context, appView)
+                  .isPossiblyFalse()) {
+            continue;
           }
 
           if (!inlineeStack.isEmpty()
@@ -1073,7 +1071,7 @@ public class Inliner {
           iterator.previous();
           strategy.markInlined(inlinee);
           iterator.inlineInvoke(
-              appView, code, inlinee.code, blockIterator, blocksToRemove, downcastTypeOrNull);
+              appView, code, inlinee.code, blockIterator, blocksToRemove, downcastClass);
 
           if (inlinee.reason == Reason.SINGLE_CALLER) {
             feedback.markInlinedIntoSingleCallSite(singleTargetMethod);
@@ -1160,19 +1158,22 @@ public class Inliner {
     return false;
   }
 
-  private DexType getDowncastTypeIfNeeded(
+  private DexProgramClass getDowncastTypeIfNeeded(
       InliningStrategy strategy, InvokeMethod invoke, ProgramMethod target) {
     if (invoke.isInvokeMethodWithReceiver()) {
-      // If the invoke has a receiver but the actual type of the receiver is different
-      // from the computed target holder, inlining requires a downcast of the receiver.
-      DexType receiverType = strategy.getReceiverTypeIfKnown(invoke);
-      if (receiverType == null) {
-        // In case we don't know exact type of the receiver we use declared
-        // method holder as a fallback.
-        receiverType = invoke.getInvokedMethod().holder;
+      // If the invoke has a receiver but the actual type of the receiver is different from the
+      // computed target holder, inlining requires a downcast of the receiver. In case we don't know
+      // the exact type of the receiver we use the static type of the receiver.
+      Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
+      if (!receiver.getType().isClassType()) {
+        return target.getHolder();
       }
-      if (!appView.appInfo().isSubtype(receiverType, target.getHolderType())) {
-        return target.getHolderType();
+
+      ClassTypeElement receiverType =
+          strategy.getReceiverTypeOrDefault(invoke, receiver.getType().asClassType());
+      ClassTypeElement targetType = target.getHolderType().toTypeElement(appView).asClassType();
+      if (!receiverType.lessThanOrEqualUpToNullability(targetType, appView)) {
+        return target.getHolder();
       }
     }
     return null;

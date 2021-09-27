@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -254,9 +255,9 @@ public interface InstructionListIterator
       IRCode inlinee,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> blocksToRemove,
-      DexType downcast);
+      DexProgramClass downcast);
 
-  /** See {@link #inlineInvoke(AppView, IRCode, IRCode, ListIterator, Set, DexType)}. */
+  /** See {@link #inlineInvoke(AppView, IRCode, IRCode, ListIterator, Set, DexProgramClass)}. */
   default BasicBlock inlineInvoke(AppView<?> appView, IRCode code, IRCode inlinee) {
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     BasicBlock result = inlineInvoke(appView, code, inlinee, null, blocksToRemove, null);

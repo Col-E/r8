@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.UseRegistry;
@@ -258,7 +258,7 @@ public class ClassInitializerMerger {
                     classInitializer.getOrigin(),
                     RewrittenPrototypeDescription.none());
 
-        DexType downcast = null;
+        DexProgramClass downcast = null;
         instructionIterator.previous();
         instructionIterator.inlineInvoke(
             appView, code, inliningIR, blockIterator, blocksToRemove, downcast);

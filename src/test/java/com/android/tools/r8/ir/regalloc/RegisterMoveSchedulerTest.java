@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -203,7 +204,7 @@ public class RegisterMoveSchedulerTest {
         IRCode inlinee,
         ListIterator<BasicBlock> blockIterator,
         Set<BasicBlock> blocksToRemove,
-        DexType downcast) {
+        DexProgramClass downcast) {
       throw new Unimplemented();
     }
   }

@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -703,7 +704,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public DexType getReceiverTypeIfKnown(InvokeMethod invoke) {
-    return null; // Maybe improve later.
+  public ClassTypeElement getReceiverTypeOrDefault(
+      InvokeMethod invoke, ClassTypeElement defaultValue) {
+    return defaultValue;
   }
 }
