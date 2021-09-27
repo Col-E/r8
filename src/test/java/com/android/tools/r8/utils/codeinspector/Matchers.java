@@ -589,8 +589,7 @@ public class Matchers {
         RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
         Box<LinePosition> currentPosition = new Box<>(startPosition);
         Box<Boolean> returnValue = new Box<>();
-        single
-            .forEachFrame()
+        single.stream()
             .forEach(
                 frame -> {
                   LinePosition currentInline = currentPosition.get();
@@ -629,8 +628,7 @@ public class Matchers {
       @Override
       protected boolean matchesSafely(RetraceFrameResult item) {
         RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
-        return !single
-            .forEachFrame()
+        return !single.stream()
             .anyMatch(
                 frame -> {
                   StackTraceLine stackTraceLine = stackTrace.get(frame.getIndex());

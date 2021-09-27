@@ -83,7 +83,7 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
       // Check that rewriting the frames will remove the top 1 frames if the condition is active.
       Map<Integer, RetracedMethodReference> results = new LinkedHashMap<>();
       retraceFrameElement
-          .forEachRewrittenFrame(throwingContext)
+          .streamRewritten(throwingContext)
           .forEach(
               frame -> {
                 RetracedMethodReference existingValue =

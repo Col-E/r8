@@ -116,7 +116,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
               .flatMap(
                   frameElement ->
                       frameElement
-                          .forEachRewrittenFrame(proxy.getContext())
+                          .streamRewritten(proxy.getContext())
                           .map(
                               singleFrame -> {
                                 boolean isTopFrame = singleFrame.getIndex() == 0;

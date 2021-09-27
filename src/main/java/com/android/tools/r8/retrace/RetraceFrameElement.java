@@ -17,14 +17,13 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   RetraceClassElement getClassElement();
 
-  void visitFrames(Consumer<RetracedSingleFrame> consumer);
+  void forEach(Consumer<RetracedSingleFrame> consumer);
 
-  Stream<RetracedSingleFrame> forEachFrame();
+  Stream<RetracedSingleFrame> stream();
 
-  void visitRewrittenFrames(
-      RetraceStackTraceContext context, Consumer<RetracedSingleFrame> consumer);
+  void forEachRewritten(RetraceStackTraceContext context, Consumer<RetracedSingleFrame> consumer);
 
-  Stream<RetracedSingleFrame> forEachRewrittenFrame(RetraceStackTraceContext context);
+  Stream<RetracedSingleFrame> streamRewritten(RetraceStackTraceContext context);
 
   RetracedSourceFile getSourceFile(RetracedClassMemberReference frame);
 

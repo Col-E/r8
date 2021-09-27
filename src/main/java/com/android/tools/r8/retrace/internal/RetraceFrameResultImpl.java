@@ -220,7 +220,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public void visitFrames(Consumer<RetracedSingleFrame> consumer) {
+    public void forEach(Consumer<RetracedSingleFrame> consumer) {
       if (mappedRanges == null || mappedRanges.isEmpty()) {
         consumer.accept(RetracedSingleFrameImpl.create(getTopFrame(), 0));
         return;
@@ -233,14 +233,14 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public Stream<RetracedSingleFrame> forEachFrame() {
+    public Stream<RetracedSingleFrame> stream() {
       Stream.Builder<RetracedSingleFrame> builder = Stream.builder();
-      visitFrames(builder::add);
+      forEach(builder::add);
       return builder.build();
     }
 
     @Override
-    public void visitRewrittenFrames(
+    public void forEachRewritten(
         RetraceStackTraceContext context, Consumer<RetracedSingleFrame> consumer) {
       RetraceStackTraceContextImpl contextImpl = (RetraceStackTraceContextImpl) context;
       RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
@@ -274,9 +274,9 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public Stream<RetracedSingleFrame> forEachRewrittenFrame(RetraceStackTraceContext context) {
+    public Stream<RetracedSingleFrame> streamRewritten(RetraceStackTraceContext context) {
       Stream.Builder<RetracedSingleFrame> builder = Stream.builder();
-      visitRewrittenFrames(context, builder::add);
+      forEachRewritten(context, builder::add);
       return builder.build();
     }
 

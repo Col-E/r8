@@ -59,14 +59,13 @@ public class RetraceApiSynthesizedInnerFrameTest extends RetraceApiTestBase {
       assertEquals(1, frameResults.size());
       RetraceFrameElement retraceFrameElement = frameResults.get(0);
       List<RetracedMethodReference> allFrames =
-          retraceFrameElement
-              .forEachFrame()
+          retraceFrameElement.stream()
               .map(RetracedSingleFrame::getMethodReference)
               .collect(Collectors.toList());
       assertEquals(2, allFrames.size());
       List<RetracedMethodReference> nonSyntheticFrames =
           retraceFrameElement
-              .forEachRewrittenFrame(RetraceStackTraceContext.empty())
+              .streamRewritten(RetraceStackTraceContext.empty())
               .map(RetracedSingleFrame::getMethodReference)
               .collect(Collectors.toList());
       assertEquals(allFrames, nonSyntheticFrames);
