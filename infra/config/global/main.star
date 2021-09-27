@@ -31,6 +31,8 @@ luci.project(
         acl.entry(
             [
                 acl.BUILDBUCKET_TRIGGERER,
+                acl.SCHEDULER_OWNER,
+
             ],
             groups = [
                 "project-r8-committers"
