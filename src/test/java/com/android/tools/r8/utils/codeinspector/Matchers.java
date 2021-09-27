@@ -21,6 +21,7 @@ import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Visibility;
 import com.google.common.collect.ImmutableList;
@@ -588,27 +589,30 @@ public class Matchers {
         RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
         Box<LinePosition> currentPosition = new Box<>(startPosition);
         Box<Boolean> returnValue = new Box<>();
-        single.visitAllFrames(
-            (method, __) -> {
-              LinePosition currentInline = currentPosition.get();
-              if (currentInline == null) {
-                returnValue.set(false);
-                return;
-              }
-              if (method.isUnknown()) {
-                returnValue.set(false);
-                return;
-              }
-              boolean sameMethod =
-                  method.asKnown().getMethodReference().equals(currentInline.methodReference);
-              boolean samePosition =
-                  method.getOriginalPositionOrDefault(currentInline.minifiedPosition)
-                      == currentInline.originalPosition;
-              if (!returnValue.isSet() || returnValue.get()) {
-                returnValue.set(sameMethod & samePosition);
-              }
-              currentPosition.set(currentInline.caller);
-            });
+        single
+            .forEachFrame()
+            .forEach(
+                frame -> {
+                  LinePosition currentInline = currentPosition.get();
+                  if (currentInline == null) {
+                    returnValue.set(false);
+                    return;
+                  }
+                  RetracedMethodReference method = frame.getMethodReference();
+                  if (method.isUnknown()) {
+                    returnValue.set(false);
+                    return;
+                  }
+                  boolean sameMethod =
+                      method.asKnown().getMethodReference().equals(currentInline.methodReference);
+                  boolean samePosition =
+                      method.getOriginalPositionOrDefault(currentInline.minifiedPosition)
+                          == currentInline.originalPosition;
+                  if (!returnValue.isSet() || returnValue.get()) {
+                    returnValue.set(sameMethod & samePosition);
+                  }
+                  currentPosition.set(currentInline.caller);
+                });
         return returnValue.isSet() && returnValue.get();
       }
 
@@ -625,18 +629,18 @@ public class Matchers {
       @Override
       protected boolean matchesSafely(RetraceFrameResult item) {
         RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
-        Box<Boolean> matches = new Box<>(true);
-        single.visitAllFrames(
-            (method, index) -> {
-              StackTraceLine stackTraceLine = stackTrace.get(index);
-              if (!stackTraceLine.methodName.equals(method.getMethodName())
-                  || !stackTraceLine.className.equals(method.getHolderClass().getTypeName())
-                  || stackTraceLine.lineNumber
-                      != method.getOriginalPositionOrDefault(minifiedPositions.get(index))) {
-                matches.set(false);
-              }
-            });
-        return matches.get();
+        return !single
+            .forEachFrame()
+            .anyMatch(
+                frame -> {
+                  StackTraceLine stackTraceLine = stackTrace.get(frame.getIndex());
+                  RetracedMethodReference method = frame.getMethodReference();
+                  return !stackTraceLine.methodName.equals(method.getMethodName())
+                      || !stackTraceLine.className.equals(method.getHolderClass().getTypeName())
+                      || stackTraceLine.lineNumber
+                          != method.getOriginalPositionOrDefault(
+                              minifiedPositions.get(frame.getIndex()));
+                });
       }
 
       @Override

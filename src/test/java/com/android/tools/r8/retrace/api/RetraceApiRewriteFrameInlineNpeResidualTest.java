@@ -118,8 +118,10 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
       // Check that rewriting the frames will remove the top 1 frames if the condition is active.
       Map<Integer, RetracedMethodReference> results = new LinkedHashMap<>();
       retraceFrameElement.visitRewrittenFrames(
-          (methodReference, index) -> {
-            RetracedMethodReference existingValue = results.put(index, methodReference);
+          throwingContext,
+          frame -> {
+            RetracedMethodReference existingValue =
+                results.put(frame.getIndex(), frame.getMethodReference());
             assertNull(existingValue);
           });
       if (shouldRemove) {

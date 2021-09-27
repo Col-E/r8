@@ -114,44 +114,42 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                   element.getMethodName());
           return frameResult.stream()
               .flatMap(
-                  frameElement -> {
-                    List<RetraceStackTraceElementProxyImpl<T, ST>> retracedProxies =
-                        new ArrayList<>();
-                    frameElement.visitRewrittenFrames(
-                        (frame, index) -> {
-                          boolean isTopFrame = index == 0;
-                          retracedProxies.add(
-                              proxy
-                                  .builder()
-                                  .setRetracedClass(frame.getHolderClass())
-                                  .setRetracedMethod(frame)
-                                  .joinAmbiguous(frameResult.isAmbiguous() && isTopFrame)
-                                  .setTopFrame(isTopFrame)
-                                  .setContext(frameElement.getContext())
-                                  .applyIf(
-                                      element.hasLineNumber(),
-                                      builder -> {
-                                        builder.setLineNumber(
-                                            frame.getOriginalPositionOrDefault(
-                                                element.getLineNumber()));
-                                      })
-                                  .applyIf(
-                                      element.hasSourceFile(),
-                                      builder -> {
-                                        RetracedSourceFile sourceFileResult =
-                                            frameElement.getSourceFile(frame);
-                                        builder.setSourceFile(
-                                            sourceFileResult.hasRetraceResult()
-                                                ? sourceFileResult.getSourceFile()
-                                                : RetraceUtils.inferSourceFile(
-                                                    frame.getHolderClass().getTypeName(),
-                                                    element.getSourceFile(),
-                                                    classResult.hasRetraceResult()));
-                                      })
-                                  .build());
-                        });
-                    return retracedProxies.stream();
-                  });
+                  frameElement ->
+                      frameElement
+                          .forEachRewrittenFrame(proxy.getContext())
+                          .map(
+                              singleFrame -> {
+                                boolean isTopFrame = singleFrame.getIndex() == 0;
+                                RetracedMethodReference method = singleFrame.getMethodReference();
+                                return proxy
+                                    .builder()
+                                    .setRetracedClass(method.getHolderClass())
+                                    .setRetracedMethod(method)
+                                    .joinAmbiguous(frameResult.isAmbiguous() && isTopFrame)
+                                    .setTopFrame(isTopFrame)
+                                    .setContext(frameElement.getContext())
+                                    .applyIf(
+                                        element.hasLineNumber(),
+                                        builder -> {
+                                          builder.setLineNumber(
+                                              method.getOriginalPositionOrDefault(
+                                                  element.getLineNumber()));
+                                        })
+                                    .applyIf(
+                                        element.hasSourceFile(),
+                                        builder -> {
+                                          RetracedSourceFile sourceFileResult =
+                                              frameElement.getSourceFile(method);
+                                          builder.setSourceFile(
+                                              sourceFileResult.hasRetraceResult()
+                                                  ? sourceFileResult.getSourceFile()
+                                                  : RetraceUtils.inferSourceFile(
+                                                      method.getHolderClass().getTypeName(),
+                                                      element.getSourceFile(),
+                                                      classResult.hasRetraceResult()));
+                                        })
+                                    .build();
+                              }));
         });
   }
 

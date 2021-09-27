@@ -5,7 +5,8 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @Keep
 public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> {
@@ -16,9 +17,14 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   RetraceClassElement getClassElement();
 
-  void visitAllFrames(BiConsumer<RetracedMethodReference, Integer> consumer);
+  void visitFrames(Consumer<RetracedSingleFrame> consumer);
 
-  void visitRewrittenFrames(BiConsumer<RetracedMethodReference, Integer> consumer);
+  Stream<RetracedSingleFrame> forEachFrame();
+
+  void visitRewrittenFrames(
+      RetraceStackTraceContext context, Consumer<RetracedSingleFrame> consumer);
+
+  Stream<RetracedSingleFrame> forEachRewrittenFrame(RetraceStackTraceContext context);
 
   RetracedSourceFile getSourceFile(RetracedClassMemberReference frame);
 

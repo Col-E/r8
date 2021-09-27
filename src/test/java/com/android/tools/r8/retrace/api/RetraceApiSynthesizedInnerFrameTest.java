@@ -13,8 +13,8 @@ import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedSingleFrame;
 import com.android.tools.r8.retrace.Retracer;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
@@ -58,12 +58,17 @@ public class RetraceApiSynthesizedInnerFrameTest extends RetraceApiTestBase {
               .collect(Collectors.toList());
       assertEquals(1, frameResults.size());
       RetraceFrameElement retraceFrameElement = frameResults.get(0);
-      List<RetracedMethodReference> allFrames = new ArrayList<>();
-      retraceFrameElement.visitAllFrames((method, ignored) -> allFrames.add(method));
+      List<RetracedMethodReference> allFrames =
+          retraceFrameElement
+              .forEachFrame()
+              .map(RetracedSingleFrame::getMethodReference)
+              .collect(Collectors.toList());
       assertEquals(2, allFrames.size());
-      List<RetracedMethodReference> nonSyntheticFrames = new ArrayList<>();
-      retraceFrameElement.visitRewrittenFrames(
-          (method, ignored) -> nonSyntheticFrames.add(method));
+      List<RetracedMethodReference> nonSyntheticFrames =
+          retraceFrameElement
+              .forEachRewrittenFrame(RetraceStackTraceContext.empty())
+              .map(RetracedSingleFrame::getMethodReference)
+              .collect(Collectors.toList());
       assertEquals(allFrames, nonSyntheticFrames);
     }
   }
