@@ -1317,7 +1317,6 @@ public class RootSetUtils {
     private void evaluateCheckDiscardRule(DexProgramClass clazz, ProguardCheckDiscardRule rule) {
       if (rule.getMemberRules().isEmpty()) {
         evaluateCheckDiscardClassAndAllMembersRule(clazz, rule);
-        rule.markAsUsed();
       } else if (clazz.hasFields() || clazz.hasMethods()) {
         markMatchingFields(clazz, rule.getMemberRules(), rule, null, null);
         markMatchingMethods(clazz, rule.getMemberRules(), rule, null, null);
@@ -1329,11 +1328,13 @@ public class RootSetUtils {
         DexProgramClass clazz, ProguardCheckDiscardRule rule) {
       setCheckDiscarded(clazz);
       clazz.forEachProgramMember(this::setCheckDiscarded);
+      rule.markAsUsed();
     }
 
     private void evaluateCheckDiscardMemberRule(
         ProgramMember<?, ?> member, ProguardCheckDiscardRule rule) {
       setCheckDiscarded(member);
+      rule.markAsUsed();
     }
 
     private void setCheckDiscarded(ProgramDefinition definition) {

@@ -72,7 +72,7 @@ public class CheckDiscardedTest extends TestBase {
     options.enableInlining = false;
   }
 
-  private String checkDiscardRule(boolean member, Class annotation) {
+  private String checkDiscardRule(boolean member, Class<?> annotation) {
     if (member) {
       return "-checkdiscard class * { @" + annotation.getName() + " *; }";
     } else {
