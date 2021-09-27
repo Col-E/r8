@@ -14,6 +14,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.FinalizeMergeGroup;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitClassGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
+import com.android.tools.r8.horizontalclassmerging.policies.NoCheckDiscard;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassAnnotationCollisions;
 import com.android.tools.r8.horizontalclassmerging.policies.NoClassInitializerWithObservableSideEffects;
 import com.android.tools.r8.horizontalclassmerging.policies.NoConstructorCollisions;
@@ -103,6 +104,7 @@ public class PolicyScheduler {
       ImmutableList.Builder<SingleClassPolicy> builder) {
     builder.add(
         new CheckSyntheticClasses(appView),
+        new NoCheckDiscard(appView),
         new NoKeepRules(appView),
         new NoClassInitializerWithObservableSideEffects());
   }
