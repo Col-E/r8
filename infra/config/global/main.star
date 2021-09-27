@@ -312,13 +312,13 @@ r8_tester_with_default("linux-android-6.0.1",
     ["--dex_vm=6.0.1", "--all_tests"])
 r8_tester_with_default("linux-android-7.0.0",
     ["--dex_vm=7.0.0", "--all_tests"])
-r8_tester_with_default("linux-android=8.1.0",
+r8_tester_with_default("linux-android-8.1.0",
     ["--dex_vm=8.1.0", "--all_tests"])
-r8_tester_with_default("linux-android=9.0.0",
+r8_tester_with_default("linux-android-9.0.0",
     ["--dex_vm=9.0.0", "--all_tests"])
-r8_tester_with_default("linux-android=10.0.0",
+r8_tester_with_default("linux-android-10.0.0",
     ["--dex_vm=10.0.0", "--all_tests"])
-r8_tester_with_default("linux-android=12.0.0",
+r8_tester_with_default("linux-android-12.0.0",
     ["--dex_vm=12.0.0", "--all_tests"])
 
 r8_tester_with_default("windows", ["--all_tests"],
