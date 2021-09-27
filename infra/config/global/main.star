@@ -41,7 +41,14 @@ luci.project(
                 "luci-scheduler@appspot.gserviceaccount.com"
             ]
         ),
-
+        acl.entry(
+            [
+                acl.LOGDOG_WRITER,
+            ],
+            groups = [
+                "luci-logdog-r8-writers"
+            ],
+        ),
     ],
     bindings = [
         luci.binding(
@@ -54,6 +61,9 @@ luci.project(
         ),
     ],
 )
+
+luci.logdog(gs_bucket = "logdog-r8-archive")
+
 
 # Allow the given users to use LUCI `led` tool and "Debug" button
 # inside the given bucket & pool security realms.
