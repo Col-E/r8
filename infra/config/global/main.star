@@ -1,5 +1,15 @@
 #!/usr/bin/env lucicfg
 
+lucicfg.check_version("1.28.0", "Please use newer `lucicfg` binary")
+
+# Enable LUCI Realms support.
+lucicfg.enable_experiment("crbug.com/1085650")
+
+# Launch 0% of Builds in "realms-aware mode"
+# TODO(tandrii): upgarde to 100%.
+luci.builder.defaults.experiments.set({"luci.use_realms": 0})
+
+
 luci.project(
     name = "r8",
     buildbucket = "cr-buildbucket.appspot.com",
@@ -30,7 +40,43 @@ luci.project(
             ]
         ),
 
-    ]
+    ],
+    bindings = [
+        luci.binding(
+            roles = "role/swarming.poolOwner",
+            groups = "mdb/r8-team",
+        ),
+        luci.binding(
+            roles = "role/swarming.poolViewer",
+            groups = "googlers",
+        ),
+    ],
+)
+
+# Allow the given users to use LUCI `led` tool and "Debug" button
+# inside the given bucket & pool security realms.
+def led_users(*, pool_realm, builder_realm, groups):
+    luci.realm(
+        name = pool_realm,
+        bindings = [
+            luci.binding(
+                roles = "role/swarming.poolUser",
+                groups = groups,
+            ),
+        ],
+    )
+    luci.binding(
+        realm = builder_realm,
+        roles = "role/swarming.taskTriggerer",
+        groups = groups,
+    )
+led_users(
+    pool_realm="pools/ci",
+    builder_realm="ci",
+    groups=[
+        "mdb/r8-team",
+        "mdb/chrome-troopers",
+    ],
 )
 
 luci.bucket(name = "ci")
