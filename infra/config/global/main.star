@@ -184,7 +184,7 @@ def r8_builder(name, priority=26, trigger=True, category=None, **kwargs):
     **kwargs
   )
   category = category if category else "R8 release" if release else "R8"
-  builder_view(name, category, name.split("-")[-1])
+  builder_view(name, category, name.split("-")[-1].replace("_release", ""))
 
 def r8_tester(name,
     test_options,
@@ -211,7 +211,7 @@ def r8_tester_with_default(name, test_options, dimensions=None, category=None):
             dimensions = dimensions, category = category)
 
 def archivers():
-  for name in ["archive", "archive_release", "archive_lib_desugar"]:
+  for name in ["archive", "archive_release", "lib_desugar-archive"]:
     desugar = "desugar" in name
     properties = {
         "archive": "true",
@@ -219,10 +219,9 @@ def archivers():
     }
     if desugar:
       properties["sdk_desugar"] = "true"
-    category = "library_desugar" if desugar else name
     r8_builder(
         name,
-        category = "library_desugar" if desugar else 'archive',
+        category = "library_desugar" if desugar else name,
         dimensions = get_dimensions(),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
@@ -311,7 +310,7 @@ def desugared_library():
        "builder_group" : "internal.client.r8",
        "test_options" : test_options,
     }
-    name = "desugared_library_" + name
+    name = "desugared_library-" + name
     r8_builder(
         name,
         category = "library_desugar",
