@@ -274,7 +274,8 @@ def internal():
         ),
         priority = 25,
         properties = {
-            "internal": "true",
+            "test_options" : ["--bot"],
+            "test_wrapper" : "tools/internal_test.py",
             "builder_group" : "internal.client.r8"
         },
         execution_timeout = time.hour * 12,
