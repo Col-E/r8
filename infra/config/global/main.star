@@ -153,7 +153,7 @@ def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
     "pool" : "luci.r8.ci"
   }
   if windows:
-    dimensions["os"] = "windows-10"
+    dimensions["os"] = "Windows-10"
   else:
     dimensions["os"] = "Ubuntu-16.04"
   if jctf:
@@ -260,7 +260,7 @@ r8_tester_with_default("linux-android-10.0.0",
 r8_tester_with_default("linux-android-12.0.0",
     ["--dex_vm=12.0.0", "--all_tests"])
 
-r8_tester_with_default("windows", ["--all_tests"], category = "windows",
+r8_tester_with_default("windows", ["--all_tests"],
     dimensions=get_dimensions(windows=True))
 
 def internal():
@@ -321,7 +321,7 @@ def desugared_library():
 desugared_library()
 
 r8_builder(
-    "linux-kotlin-dev",
+    "linux-kotlin_dev",
     dimensions = get_dimensions(),
     execution_timeout = time.hour * 12,
     expiration_timeout = time.hour * 35,
@@ -344,6 +344,7 @@ def jctf():
       name = name + release
       r8_builder(
           name,
+          category = "jctf" + release,
           dimensions = get_dimensions(jctf=True),
           execution_timeout = time.hour * 12,
           expiration_timeout = time.hour * 35,
