@@ -628,6 +628,19 @@ task compileMainWithJava11 (type: JavaCompile) {
     classpath = sourceSets.main.compileClasspath
 }
 
+task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
+    from sourceSets.examplesTestNGRunner.compileClasspath
+    include "**/**.jar"
+    into file("$buildDir/test/jdk11Tests")
+}
+
+task compileTestNGRunner (type: JavaCompile) {
+    dependsOn provideJdk11TestsDependencies
+    destinationDir = file("$buildDir/classes/java/exampleTestNGRunner")
+    source = sourceSets.examplesTestNGRunner.allSource
+    classpath = sourceSets.examplesTestNGRunner.compileClasspath
+}
+
 if (!project.hasProperty('without_error_prone') &&
         // Don't enable error prone on Java 8 as the plugin setup does not support it.
         !org.gradle.internal.jvm.Jvm.current().javaVersion.java8) {
@@ -2365,6 +2378,7 @@ test { task ->
         dependsOn buildDebugInfoExamplesDex
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
+        dependsOn compileTestNGRunner
         dependsOn provideArtFrameworksDependencies
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
