@@ -212,11 +212,11 @@ def archivers():
   for name in ["archive", "archive_release", "lib_desugar-archive"]:
     desugar = "desugar" in name
     properties = {
-        "archive": "true",
+        "test_wrapper" : "tools/archive_desugar_jdk_libs.py" if desugar else "tools/archive.py",
+        # TODO(b/201375599): remove after cleanup (allow only setting test_wrapper)
+        "test_options" : [],
         "builder_group" : "internal.client.r8"
     }
-    if desugar:
-      properties["sdk_desugar"] = "true"
     r8_builder(
         name,
         category = "library_desugar" if desugar else "archive",
