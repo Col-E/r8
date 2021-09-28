@@ -165,7 +165,7 @@ def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
     dimensions["normal"] = "true"
   return dimensions
 
-def r8_builder(name, priority=26, trigger=True, **kwargs):
+def r8_builder(name, priority=26, trigger=True, category=None, **kwargs):
   release = name.endswith("release")
   triggered = None if not trigger else ["branch-gitiles-trigger"] if release\
       else ["main-gitiles-trigger"]
@@ -183,18 +183,20 @@ def r8_builder(name, priority=26, trigger=True, **kwargs):
     executable = "rex",
     **kwargs
   )
-  category = "R8 release" if release else "R8"
+  category = category if category else "R8 release" if release else "R8"
   builder_view(name, category, name.split("-")[-1])
 
 def r8_tester(name,
     test_options,
     dimensions = None,
     execution_timeout = time.hour * 6,
-    expiration_timeout = time.hour * 35):
+    expiration_timeout = time.hour * 35,
+    category=None):
   dimensions = dimensions if dimensions else get_dimensions(normal=True)
   for name in [name, name + "_release"]:
     r8_builder(
         name = name,
+        category = category,
         execution_timeout = execution_timeout,
         expiration_timeout = expiration_timeout,
         dimensions = dimensions,
@@ -204,8 +206,9 @@ def r8_tester(name,
         }
     )
 
-def r8_tester_with_default(name, test_options, dimensions=None):
-  r8_tester(name, test_options + common_test_options, dimensions)
+def r8_tester_with_default(name, test_options, dimensions=None, category=None):
+  r8_tester(name, test_options + common_test_options,
+            dimensions = dimensions, category = category)
 
 def archivers():
   for name in ["archive", "archive_release", "archive_lib_desugar"]:
@@ -216,8 +219,10 @@ def archivers():
     }
     if desugar:
       properties["sdk_desugar"] = "true"
+    category = "library_desugar" if desugar else name
     r8_builder(
         name,
+        category = "library_desugar" if desugar else 'archive',
         dimensions = get_dimensions(),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
@@ -257,7 +262,7 @@ r8_tester_with_default("linux-android-10.0.0",
 r8_tester_with_default("linux-android-12.0.0",
     ["--dex_vm=12.0.0", "--all_tests"])
 
-r8_tester_with_default("windows", ["--all_tests"],
+r8_tester_with_default("windows", ["--all_tests"], category = "windows",
     dimensions=get_dimensions(windows=True))
 
 def internal():
@@ -309,6 +314,7 @@ def desugared_library():
     name = "desugared_library_" + name
     r8_builder(
         name,
+        category = "library_desugar",
         dimensions = get_dimensions(),
         execution_timeout = time.hour * 12,
         expiration_timeout = time.hour * 35,
