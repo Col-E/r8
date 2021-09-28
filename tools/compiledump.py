@@ -209,12 +209,21 @@ def determine_version(args, dump):
     return dump.version()
   return args.version
 
-def determine_compiler(args, dump):
+def determine_compiler(args, build_properties):
   compilers = ['d8', 'r8', 'r8full', 'l8']
-  if args.compiler not in compilers:
+  compiler = args.compiler
+  if not compiler and 'tool' in build_properties:
+    compiler = build_properties.get('tool').lower()
+    if (compiler == 'r8'):
+      if not 'force-proguard-compatibility' in build_properties:
+        error("Unable to determine R8 compiler variant from build.properties."
+              " No value for 'force-proguard-compatibility'.")
+      if build_properties.get('force-proguard-compatibility').lower() == 'false':
+        compiler = compiler + 'full'
+  if compiler not in compilers:
     error("Unable to determine a compiler to use. Specified %s,"
           " Valid options: %s" % (args.compiler, ', '.join(compilers)))
-  return args.compiler
+  return compiler
 
 def determine_output(args, temp):
   return os.path.join(temp, 'out.jar')
@@ -295,7 +304,7 @@ def run1(out, args, otherargs, jdkhome=None):
       print("WARNING: Unexpected lack of library classes in dump")
     build_properties = determine_build_properties(args, dump)
     version = determine_version(args, dump)
-    compiler = determine_compiler(args, dump)
+    compiler = determine_compiler(args, build_properties)
     out = determine_output(args, temp)
     min_api = determine_min_api(args, build_properties)
     classfile = determine_class_file(args, build_properties)
