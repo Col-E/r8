@@ -136,15 +136,6 @@ sourceSets {
             srcDirs = ['src/test/examplesJava17']
         }
     }
-    jdk11TimeTests {
-        java {
-            srcDirs = [
-                    'third_party/openjdk/jdk-11-test/java/time/tck',
-                    'third_party/openjdk/jdk-11-test/java/time/test'
-            ]
-            exclude '**/TestZoneTextPrinterParser.java'
-        }
-    }
     examplesTestNGRunner {
         java {
             srcDirs = ['src/test/testngrunner']
@@ -249,7 +240,6 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     implementation files('third_party/android_jar/api-database/api-database.jar')
-    jdk11TimeTestsCompile group: 'org.testng', name: 'testng', version: testngVersion
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
@@ -599,11 +589,6 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_1_9,
         false)
 setJdkCompilationWithCompatibility(
-        sourceSets.examplesJava11.compileJavaTaskName,
-        'jdk-11',
-        JavaVersion.VERSION_11,
-        false)
-setJdkCompilationWithCompatibility(
         sourceSets.examplesJava10.compileJavaTaskName,
         'jdk-11',
         JavaVersion.VERSION_1_10,
@@ -615,11 +600,6 @@ setJdkCompilationWithCompatibility(
         false)
 setJdkCompilationWithCompatibility(
         sourceSets.examplesTestNGRunner.compileJavaTaskName,
-        'jdk-11',
-        JavaVersion.VERSION_11,
-        false)
-setJdkCompilationWithCompatibility(
-        sourceSets.jdk11TimeTests.compileJavaTaskName,
         'jdk-11',
         JavaVersion.VERSION_11,
         false)
@@ -1634,28 +1614,6 @@ task provideArtFrameworksDependencies {
     })
 }
 
-task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
-    from sourceSets.jdk11TimeTests.compileClasspath
-    include "**/**.jar"
-    into file("build/test/jdk11Tests")
-}
-
-task buildJdk11TimeTestsJar {
-    def exampleOutputDir = file("build/test/jdk11Tests");
-    def jarName = "jdk11TimeTests.jar"
-    dependsOn "jar_jdk11TimeTests"
-    dependsOn provideJdk11TestsDependencies
-    task "jar_jdk11TimeTests"(type: Jar) {
-        archiveName = jarName
-        destinationDir = exampleOutputDir
-        from sourceSets.examplesTestNGRunner.output
-        include "**.class"
-        from sourceSets.jdk11TimeTests.output
-        include "**.class"
-        include "**/**.class"
-    }
-}
-
 task buildKotlinR8TestResources {
     def examplesDir = file("src/test/kotlinR8TestResources")
     examplesDir.eachDir { dir ->
@@ -2407,7 +2365,6 @@ test { task ->
         dependsOn buildDebugInfoExamplesDex
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
-        dependsOn buildJdk11TimeTestsJar
         dependsOn provideArtFrameworksDependencies
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +

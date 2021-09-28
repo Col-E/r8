@@ -5,19 +5,29 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,6 +55,54 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
   public Jdk11TimeTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
+  }
+
+  private static final Path JDK_11_TCK_TEST_FILES_DIR =
+      Paths.get(ToolHelper.JDK_11_TIME_TESTS_DIR).resolve("tck");
+  private static final Path JDK_11_TIME_TEST_FILES_DIR =
+      Paths.get(ToolHelper.JDK_11_TIME_TESTS_DIR).resolve("test");
+  private static final String JDK_11_TIME_TEST_EXCLUDE = "TestZoneTextPrinterParser.java";
+  private static Path[] JDK_11_TIME_TEST_COMPILED_FILES;
+
+  private static List<Path> getJdk11TimeTestFiles() throws Exception {
+    List<Path> tckFiles =
+        Files.walk(JDK_11_TCK_TEST_FILES_DIR)
+            .filter(path -> path.toString().endsWith(JAVA_EXTENSION))
+            .filter(path -> !path.toString().endsWith(JDK_11_TIME_TEST_EXCLUDE))
+            .collect(Collectors.toList());
+    List<Path> timeFiles =
+        Files.walk(JDK_11_TIME_TEST_FILES_DIR)
+            .filter(path -> path.toString().endsWith(JAVA_EXTENSION))
+            .filter(path -> !path.toString().endsWith(JDK_11_TIME_TEST_EXCLUDE))
+            .collect(Collectors.toList());
+    ArrayList<Path> files = new ArrayList<>();
+    files.addAll(timeFiles);
+    files.addAll(tckFiles);
+    assert files.size() > 0;
+    return files;
+  }
+
+  @BeforeClass
+  public static void compileJdk11StreamTests() throws Exception {
+    Path tmpDirectory = getStaticTemp().newFolder("time").toPath();
+    List<String> options =
+        Arrays.asList(
+            "--add-reads",
+            "java.base=ALL-UNNAMED",
+            "--patch-module",
+            "java.base=" + JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR);
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
+        .addOptions(options)
+        .addClasspathFiles(
+            ImmutableList.of(
+                Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"),
+                Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar")))
+        .addSourceFiles(getJdk11TimeTestFiles())
+        .setOutputPath(tmpDirectory)
+        .compile();
+    JDK_11_TIME_TEST_COMPILED_FILES =
+        getAllFilesWithSuffixInDirectory(tmpDirectory, CLASS_EXTENSION);
+    assert JDK_11_TIME_TEST_COMPILED_FILES.length > 0;
   }
 
   // Following tests are also failing on the Bazel build, they cannot be run easily on
@@ -145,9 +203,12 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         testForD8()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(getPathsFiles())
-            .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jdk11TimeTests.jar"))
+            .addProgramFiles(JDK_11_TIME_TEST_COMPILED_FILES)
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
+            .addProgramFiles(
+                Paths.get(
+                    ToolHelper.JAVA_CLASSES_DIR + "examplesTestNGRunner/TestNGMainRunner.class"))
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
