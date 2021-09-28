@@ -25,7 +25,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.nest.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.records.RecordRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.twr.TwrInstructionDesugaring;
 import com.android.tools.r8.utils.IntBox;
@@ -48,7 +48,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
   private final List<CfInstructionDesugaring> desugarings = new ArrayList<>();
 
   private final NestBasedAccessDesugaring nestBasedAccessDesugaring;
-  private final RecordRewriter recordRewriter;
+  private final RecordDesugaring recordRewriter;
   private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
@@ -125,7 +125,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (nestBasedAccessDesugaring != null) {
       desugarings.add(nestBasedAccessDesugaring);
     }
-    this.recordRewriter = RecordRewriter.create(appView);
+    this.recordRewriter = RecordDesugaring.create(appView);
     if (recordRewriter != null) {
       desugarings.add(recordRewriter);
     }

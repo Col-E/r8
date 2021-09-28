@@ -8,7 +8,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetarget
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.ProgramEmulatedInterfaceSynthesizer;
-import com.android.tools.r8.ir.desugar.records.RecordRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +33,7 @@ public abstract class CfClassSynthesizerDesugaringCollection {
       }
       synthesizers.add(new DesugaredLibraryWrapperSynthesizer(appView));
     }
-    RecordRewriter recordRewriter = RecordRewriter.create(appView);
+    RecordDesugaring recordRewriter = RecordDesugaring.create(appView);
     if (recordRewriter != null) {
       synthesizers.add(recordRewriter);
     }

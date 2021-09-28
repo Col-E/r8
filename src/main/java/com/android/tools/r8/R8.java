@@ -50,7 +50,7 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterLibraryTypeSynthesizer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.records.RecordRewriter;
+import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
@@ -315,7 +315,7 @@ public class R8 {
         EnumUnboxingCfMethods.registerSynthesizedCodeReferences(appView.dexItemFactory());
       }
       if (options.shouldDesugarRecords()) {
-        RecordRewriter.registerSynthesizedCodeReferences(appView.dexItemFactory());
+        RecordDesugaring.registerSynthesizedCodeReferences(appView.dexItemFactory());
       }
       CfUtilityMethodsForCodeOptimizations.registerSynthesizedCodeReferences(
           appView.dexItemFactory());

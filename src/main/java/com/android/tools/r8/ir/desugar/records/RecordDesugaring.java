@@ -64,7 +64,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import org.objectweb.asm.Opcodes;
 
-public class RecordRewriter
+public class RecordDesugaring
     implements CfInstructionDesugaring, CfClassSynthesizerDesugaring, CfPostProcessingDesugaring {
 
   private final AppView<?> appView;
@@ -75,8 +75,8 @@ public class RecordRewriter
   public static final String GET_FIELDS_AS_OBJECTS_METHOD_NAME = "$record$getFieldsAsObjects";
   public static final String EQUALS_RECORD_METHOD_NAME = "$record$equals";
 
-  public static RecordRewriter create(AppView<?> appView) {
-    return appView.options().shouldDesugarRecords() ? new RecordRewriter(appView) : null;
+  public static RecordDesugaring create(AppView<?> appView) {
+    return appView.options().shouldDesugarRecords() ? new RecordDesugaring(appView) : null;
   }
 
   public static void registerSynthesizedCodeReferences(DexItemFactory factory) {
@@ -85,7 +85,7 @@ public class RecordRewriter
     RecordEqualsCfCodeProvider.registerSynthesizedCodeReferences(factory);
   }
 
-  private RecordRewriter(AppView<?> appView) {
+  private RecordDesugaring(AppView<?> appView) {
     this.appView = appView;
     factory = appView.dexItemFactory();
     recordToStringHelperProto =
