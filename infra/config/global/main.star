@@ -123,13 +123,11 @@ luci.console_view(
     refs = ["refs/heads/.*"]
 )
 
+
+view_builders = []
+
 def builder_view(name, category, short_name):
-    return luci.console_view_entry(
-        console_view = "main",
-        builder = name,
-        category = category,
-        short_name = short_name,
-    )
+  view_builders.append((name, category, short_name))
 
 luci.recipe(
       name="rex",
@@ -182,7 +180,8 @@ def r8_builder(name, priority=26, trigger=True, category=None, **kwargs):
     executable = "rex",
     **kwargs
   )
-  category = category if category else "R8 release" if release else "R8"
+  category = category if category else "R8"
+  category = "Release|" + category if release else category
   builder_view(name, category, name.split("-")[-1].replace("_release", ""))
 
 def r8_tester(name,
@@ -220,7 +219,7 @@ def archivers():
       properties["sdk_desugar"] = "true"
     r8_builder(
         name,
-        category = "library_desugar" if desugar else name,
+        category = "library_desugar" if desugar else "archive",
         dimensions = get_dimensions(),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
@@ -340,11 +339,10 @@ def jctf():
           "dex_vm" : "all",
           "only_jctf" : "true",
       }
-      name = "linux-" + tool + "_jctf"
-      name = name + release
+      name = "linux-" + tool + "_jctf" + release
       r8_builder(
           name,
-          category = "jctf" + release,
+          category = "jctf",
           dimensions = get_dimensions(jctf=True),
           execution_timeout = time.hour * 12,
           expiration_timeout = time.hour * 35,
@@ -352,3 +350,27 @@ def jctf():
       )
 jctf()
 
+order_of_categories = [
+  "archive",
+  "R8",
+  "jctf",
+  "library_desugar",
+  "Release|archive",
+  "Release|R8",
+  "Release|jctf"
+]
+
+def add_view_entries():
+  # Ensure that all categories are ordered
+  for v in view_builders:
+    if not v[1] in order_of_categories:
+      fail()
+  for category in order_of_categories:
+    for v in [x for x in view_builders if x[1] == category]:
+      luci.console_view_entry(
+          console_view = "main",
+          builder = v[0],
+          category = v[1],
+          short_name = v[2]
+      )
+add_view_entries()
