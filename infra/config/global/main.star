@@ -6,8 +6,7 @@ lucicfg.check_version("1.28.0", "Please use newer `lucicfg` binary")
 lucicfg.enable_experiment("crbug.com/1085650")
 
 # Launch 0% of Builds in "realms-aware mode"
-# TODO(tandrii): upgarde to 100%.
-luci.builder.defaults.experiments.set({"luci.use_realms": 0})
+luci.builder.defaults.experiments.set({"luci.use_realms": 100})
 
 
 luci.project(
