@@ -207,25 +207,78 @@ def r8_tester(name,
 def r8_tester_with_default(name, test_options, dimensions=None):
   r8_tester(name, test_options + common_test_options, dimensions)
 
-def jctf():
-  for release in ["", "_release"]:
-    for tool in ["d8", "r8cf"]:
-      properties = {
-          "tool": tool,
-          "builder_group" : "internal.client.r8",
-          "dex_vm" : "all",
-          "only_jctf" : "true",
-      }
-      name = "linux-" + tool + "_jctf"
-      name = name + release
-      r8_builder(
-          name,
-          dimensions = get_dimensions(jctf=True),
-          execution_timeout = time.hour * 12,
-          expiration_timeout = time.hour * 35,
-          properties = properties,
-      )
-jctf()
+def archivers():
+  for name in ["archive", "archive_release", "archive_lib_desugar"]:
+    desugar = "desugar" in name
+    properties = {
+        "archive": "true",
+        "builder_group" : "internal.client.r8"
+    }
+    if desugar:
+      properties["sdk_desugar"] = "true"
+    r8_builder(
+        name,
+        dimensions = get_dimensions(),
+        triggering_policy = scheduler.policy(
+            kind = scheduler.GREEDY_BATCHING_KIND,
+            max_batch_size = 1,
+            max_concurrent_invocations = 3
+        ),
+        priority = 25,
+        trigger = not desugar,
+        properties = properties,
+        execution_timeout = time.hour * 1 if desugar else time.minute * 30 ,
+        expiration_timeout = time.hour * 35,
+    )
+archivers()
+
+r8_tester_with_default("linux-dex_default", ["--runtimes=dex-default"])
+r8_tester_with_default("linux-none", ["--runtimes=none"])
+r8_tester_with_default("linux-jdk8", ["--runtimes=jdk8"])
+r8_tester_with_default("linux-jdk9", ["--runtimes=jdk9"])
+r8_tester_with_default("linux-jdk11", ["--runtimes=jdk11"])
+
+r8_tester_with_default("linux-android-4.0.4",
+    ["--dex_vm=4.0.4", "--all_tests"])
+r8_tester_with_default("linux-android-4.4.4",
+    ["--dex_vm=4.4.4", "--all_tests"])
+r8_tester_with_default("linux-android-5.1.1",
+    ["--dex_vm=5.1.1", "--all_tests"])
+r8_tester_with_default("linux-android-6.0.1",
+    ["--dex_vm=6.0.1", "--all_tests"])
+r8_tester_with_default("linux-android-7.0.0",
+    ["--dex_vm=7.0.0", "--all_tests"])
+r8_tester_with_default("linux-android-8.1.0",
+    ["--dex_vm=8.1.0", "--all_tests"])
+r8_tester_with_default("linux-android-9.0.0",
+    ["--dex_vm=9.0.0", "--all_tests"])
+r8_tester_with_default("linux-android-10.0.0",
+    ["--dex_vm=10.0.0", "--all_tests"])
+r8_tester_with_default("linux-android-12.0.0",
+    ["--dex_vm=12.0.0", "--all_tests"])
+
+r8_tester_with_default("windows", ["--all_tests"],
+    dimensions=get_dimensions(windows=True))
+
+def internal():
+  for name in ["linux-internal", "linux-internal_release"]:
+    r8_builder(
+        name,
+        dimensions = get_dimensions(internal=True),
+        triggering_policy = scheduler.policy(
+            kind = scheduler.GREEDY_BATCHING_KIND,
+            max_batch_size = 1,
+            max_concurrent_invocations = 1
+        ),
+        priority = 25,
+        properties = {
+            "internal": "true",
+            "builder_group" : "internal.client.r8"
+        },
+        execution_timeout = time.hour * 12,
+        expiration_timeout = time.hour * 35,
+    )
+internal()
 
 def app_dump():
   for release in ["", "_release"]:
@@ -263,79 +316,6 @@ def desugared_library():
     )
 desugared_library()
 
-def archivers():
-  for name in ["archive", "archive_release", "archive_lib_desugar"]:
-    desugar = "desugar" in name
-    properties = {
-        "archive": "true",
-        "builder_group" : "internal.client.r8"
-    }
-    if desugar:
-      properties["sdk_desugar"] = "true"
-    r8_builder(
-        name,
-        dimensions = get_dimensions(),
-        triggering_policy = scheduler.policy(
-            kind = scheduler.GREEDY_BATCHING_KIND,
-            max_batch_size = 1,
-            max_concurrent_invocations = 3
-        ),
-        priority = 25,
-        trigger = not desugar,
-        properties = properties,
-        execution_timeout = time.hour * 1 if desugar else time.minute * 30 ,
-        expiration_timeout = time.hour * 35,
-    )
-archivers()
-
-def internal():
-  for name in ["linux-internal", "linux-internal_release"]:
-    r8_builder(
-        name,
-        dimensions = get_dimensions(internal=True),
-        triggering_policy = scheduler.policy(
-            kind = scheduler.GREEDY_BATCHING_KIND,
-            max_batch_size = 1,
-            max_concurrent_invocations = 1
-        ),
-        priority = 25,
-        properties = {
-            "internal": "true",
-            "builder_group" : "internal.client.r8"
-        },
-        execution_timeout = time.hour * 12,
-        expiration_timeout = time.hour * 35,
-    )
-internal()
-
-r8_tester_with_default("linux-dex_default", ["--runtimes=dex-default"])
-r8_tester_with_default("linux-none", ["--runtimes=none"])
-r8_tester_with_default("linux-jdk8", ["--runtimes=jdk8"])
-r8_tester_with_default("linux-jdk9", ["--runtimes=jdk9"])
-r8_tester_with_default("linux-jdk11", ["--runtimes=jdk11"])
-
-r8_tester_with_default("linux-android-4.0.4",
-    ["--dex_vm=4.0.4", "--all_tests"])
-r8_tester_with_default("linux-android-4.4.4",
-    ["--dex_vm=4.4.4", "--all_tests"])
-r8_tester_with_default("linux-android-5.1.1",
-    ["--dex_vm=5.1.1", "--all_tests"])
-r8_tester_with_default("linux-android-6.0.1",
-    ["--dex_vm=6.0.1", "--all_tests"])
-r8_tester_with_default("linux-android-7.0.0",
-    ["--dex_vm=7.0.0", "--all_tests"])
-r8_tester_with_default("linux-android-8.1.0",
-    ["--dex_vm=8.1.0", "--all_tests"])
-r8_tester_with_default("linux-android-9.0.0",
-    ["--dex_vm=9.0.0", "--all_tests"])
-r8_tester_with_default("linux-android-10.0.0",
-    ["--dex_vm=10.0.0", "--all_tests"])
-r8_tester_with_default("linux-android-12.0.0",
-    ["--dex_vm=12.0.0", "--all_tests"])
-
-r8_tester_with_default("windows", ["--all_tests"],
-    dimensions=get_dimensions(windows=True))
-
 r8_builder(
     "linux-kotlin-dev",
     dimensions = get_dimensions(),
@@ -346,3 +326,24 @@ r8_builder(
       "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-dev", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*"]
     }
 )
+
+def jctf():
+  for release in ["", "_release"]:
+    for tool in ["d8", "r8cf"]:
+      properties = {
+          "tool": tool,
+          "builder_group" : "internal.client.r8",
+          "dex_vm" : "all",
+          "only_jctf" : "true",
+      }
+      name = "linux-" + tool + "_jctf"
+      name = name + release
+      r8_builder(
+          name,
+          dimensions = get_dimensions(jctf=True),
+          execution_timeout = time.hour * 12,
+          expiration_timeout = time.hour * 35,
+          properties = properties,
+      )
+jctf()
+
