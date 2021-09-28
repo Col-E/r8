@@ -54,7 +54,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -368,13 +367,13 @@ public class ApplicationReader {
       }
       // Read the DexCode items and DexProgramClass items in parallel.
       if (!options.skipReadingDexCode) {
-        Map<DexType, DexType> invertedTypeMap = ApplicationReaderMap.getInvertedTypeMap(options);
+        ApplicationReaderMap applicationReaderMap = ApplicationReaderMap.getInstance(options);
         for (DexParser<DexProgramClass> dexParser : dexParsers) {
           futures.add(
               executorService.submit(
                   () -> {
                     dexParser.addClassDefsTo(
-                        classes::add, invertedTypeMap); // Depends on Methods, Code items etc.
+                        classes::add, applicationReaderMap); // Depends on Methods, Code items etc.
                   }));
         }
       }

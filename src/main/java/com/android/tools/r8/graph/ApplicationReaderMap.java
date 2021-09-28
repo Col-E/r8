@@ -5,38 +5,65 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableMap;
-import java.util.Map;
 
-public class ApplicationReaderMap {
+public abstract class ApplicationReaderMap {
 
-  public static Map<String, String> getDescriptorMap(InternalOptions options) {
-    ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+  public static ApplicationReaderMap INSTANCE;
+
+  public abstract String getDescriptor(String descriptor);
+
+  public abstract DexType getType(DexType type);
+
+  public abstract DexType getInvertedType(DexType type);
+
+  public static ApplicationReaderMap getInstance(InternalOptions options) {
     if (options.shouldDesugarRecords() && !options.testing.disableRecordApplicationReaderMap) {
-      builder.put(DexItemFactory.recordTagDescriptorString, DexItemFactory.recordDescriptorString);
+      return new RecordMap(options.dexItemFactory());
     }
-    return builder.build();
+    return new EmptyMap();
   }
 
-  public static Map<DexType, DexType> getTypeMap(InternalOptions options) {
-    DexItemFactory factory = options.dexItemFactory();
-    ImmutableMap.Builder<DexType, DexType> builder = ImmutableMap.builder();
-    getDescriptorMap(options)
-        .forEach(
-            (k, v) -> {
-              builder.put(factory.createType(k), factory.createType(v));
-            });
-    return builder.build();
+  public static class EmptyMap extends ApplicationReaderMap {
+
+    @Override
+    public String getDescriptor(String descriptor) {
+      return descriptor;
+    }
+
+    @Override
+    public DexType getType(DexType type) {
+      return type;
+    }
+
+    @Override
+    public DexType getInvertedType(DexType type) {
+      return type;
+    }
   }
 
-  public static Map<DexType, DexType> getInvertedTypeMap(InternalOptions options) {
-    DexItemFactory factory = options.dexItemFactory();
-    ImmutableMap.Builder<DexType, DexType> builder = ImmutableMap.builder();
-    getDescriptorMap(options)
-        .forEach(
-            (k, v) -> {
-              builder.put(factory.createType(v), factory.createType(k));
-            });
-    return builder.build();
+  public static class RecordMap extends ApplicationReaderMap {
+
+    private final DexItemFactory factory;
+
+    public RecordMap(DexItemFactory factory) {
+      this.factory = factory;
+    }
+
+    @Override
+    public String getDescriptor(String descriptor) {
+      return descriptor.equals(DexItemFactory.recordTagDescriptorString)
+          ? DexItemFactory.recordDescriptorString
+          : descriptor;
+    }
+
+    @Override
+    public DexType getType(DexType type) {
+      return type == factory.recordTagType ? factory.recordType : type;
+    }
+
+    @Override
+    public DexType getInvertedType(DexType type) {
+      return type == factory.recordType ? factory.recordTagType : type;
+    }
   }
 }

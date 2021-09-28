@@ -80,7 +80,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -715,7 +714,7 @@ public class DexParser<T extends DexClass> {
     return methods;
   }
 
-  void addClassDefsTo(Consumer<T> classCollection, Map<DexType, DexType> invertedTypeMap) {
+  void addClassDefsTo(Consumer<T> classCollection, ApplicationReaderMap applicationReaderMap) {
     final DexSection dexSection = lookupSection(Constants.TYPE_CLASS_DEF_ITEM);
     final int length = dexSection.length;
     indexedItems.initializeClasses(length);
@@ -768,7 +767,7 @@ public class DexParser<T extends DexClass> {
 
       Long checksum = null;
       if (checksums != null && !checksums.isEmpty()) {
-        DexType originalType = invertedTypeMap.getOrDefault(type, type);
+        DexType originalType = applicationReaderMap.getInvertedType(type);
         String desc = originalType.toDescriptorString();
         checksum = checksums.getOrDefault(desc, null);
         if (!options.dexClassChecksumFilter.test(desc, checksum)) {
@@ -1004,11 +1003,11 @@ public class DexParser<T extends DexClass> {
   private void populateTypes() {
     DexSection dexSection = lookupSection(Constants.TYPE_TYPE_ID_ITEM);
     assert verifyOrderOfTypeIds(dexSection);
-    Map<DexType, DexType> typeMap = ApplicationReaderMap.getTypeMap(options);
+    ApplicationReaderMap applicationReaderMap = ApplicationReaderMap.getInstance(options);
     indexedItems.initializeTypes(dexSection.length);
     for (int i = 0; i < dexSection.length; i++) {
       DexType type = typeAt(i);
-      DexType actualType = typeMap.getOrDefault(type, type);
+      DexType actualType = applicationReaderMap.getType(type);
       indexedItems.setType(i, actualType);
     }
   }
