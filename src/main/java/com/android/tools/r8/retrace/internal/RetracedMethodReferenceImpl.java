@@ -16,6 +16,23 @@ import java.util.Optional;
 public abstract class RetracedMethodReferenceImpl implements RetracedMethodReference {
 
   private static final int NO_POSITION = -1;
+  private static final Comparator<RetracedMethodReference> comparator =
+      Comparator.comparing(RetracedMethodReference::getMethodName)
+          .thenComparing(RetracedMethodReference::isKnown)
+          .thenComparing(
+              RetracedMethodReference::asKnown,
+              Comparator.nullsFirst(
+                      Comparator.comparing(
+                          (KnownRetracedMethodReference m) -> {
+                            if (m == null) {
+                              return null;
+                            }
+                            return m.isVoid() ? "void" : m.getReturnType().getTypeName();
+                          }))
+                  .thenComparing(
+                      KnownRetracedMethodReference::getFormalTypes,
+                      ComparatorUtils.listComparator(
+                          Comparator.comparing(TypeReference::getTypeName))));
 
   private RetracedMethodReferenceImpl() {}
 
@@ -36,23 +53,7 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
 
   @Override
   public int compareTo(RetracedMethodReference other) {
-    return Comparator.comparing(RetracedMethodReference::getMethodName)
-        .thenComparing(RetracedMethodReference::isKnown)
-        .thenComparing(
-            RetracedMethodReference::asKnown,
-            Comparator.nullsFirst(
-                    Comparator.comparing(
-                        (KnownRetracedMethodReference m) -> {
-                          if (m == null) {
-                            return null;
-                          }
-                          return m.isVoid() ? "void" : m.getReturnType().getTypeName();
-                        }))
-                .thenComparing(
-                    KnownRetracedMethodReference::getFormalTypes,
-                    ComparatorUtils.listComparator(
-                        Comparator.comparing(TypeReference::getTypeName))))
-        .compare(this, other);
+    return comparator.compare(this, other);
   }
 
   public static final class KnownRetracedMethodReferenceImpl extends RetracedMethodReferenceImpl

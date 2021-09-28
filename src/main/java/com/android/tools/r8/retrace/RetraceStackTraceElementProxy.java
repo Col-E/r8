@@ -25,9 +25,9 @@ public interface RetraceStackTraceElementProxy<T, ST extends StackTraceElementPr
 
   boolean hasLineNumber();
 
-  boolean hasFieldOrReturnType();
+  boolean hasRetracedFieldOrReturnType();
 
-  boolean hasMethodArguments();
+  boolean hasRetracedMethodArguments();
 
   ST getOriginalItem();
 
@@ -39,7 +39,7 @@ public interface RetraceStackTraceElementProxy<T, ST extends StackTraceElementPr
 
   RetracedTypeReference getRetracedFieldOrReturnType();
 
-  List<RetracedTypeReference> getMethodArguments();
+  List<RetracedTypeReference> getRetracedMethodArguments();
 
   String getSourceFile();
 

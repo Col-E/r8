@@ -273,7 +273,7 @@ public final class StackTraceElementStringProxy
               startIndex,
               endIndex,
               (retraced, original, verbose) -> {
-                if (!retraced.hasFieldOrReturnType()) {
+                if (!retraced.hasRetracedFieldOrReturnType()) {
                   return original.getFieldOrReturnType();
                 }
                 return retraced.getRetracedFieldOrReturnType().isVoid()
@@ -291,11 +291,11 @@ public final class StackTraceElementStringProxy
               startIndex,
               endIndex,
               (retraced, original, verbose) -> {
-                if (!retraced.hasMethodArguments()) {
+                if (!retraced.hasRetracedMethodArguments()) {
                   return original.getMethodArguments();
                 }
                 return StringUtils.join(
-                    ",", retraced.getMethodArguments(), RetracedTypeReference::getTypeName);
+                    ",", retraced.getRetracedMethodArguments(), RetracedTypeReference::getTypeName);
               });
       orderedIndices.add(methodArguments);
       return this;

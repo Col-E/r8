@@ -332,12 +332,12 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     }
 
     @Override
-    public boolean hasFieldOrReturnType() {
+    public boolean hasRetracedFieldOrReturnType() {
       return fieldOrReturnType != null;
     }
 
     @Override
-    public boolean hasMethodArguments() {
+    public boolean hasRetracedMethodArguments() {
       return methodArguments != null;
     }
 
@@ -367,7 +367,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
     }
 
     @Override
-    public List<RetracedTypeReference> getMethodArguments() {
+    public List<RetracedTypeReference> getRetracedMethodArguments() {
       return methodArguments;
     }
 
@@ -410,6 +410,9 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
     @Override
     public int compareTo(RetraceStackTraceElementProxy<T, ST> other) {
+      if (this == other) {
+        return 0;
+      }
       int classCompare = Boolean.compare(hasRetracedClass(), other.hasRetracedClass());
       if (classCompare != 0) {
         return classCompare;
