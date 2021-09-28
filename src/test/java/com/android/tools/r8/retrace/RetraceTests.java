@@ -28,6 +28,7 @@ import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureVerboseSta
 import com.android.tools.r8.retrace.stacktraces.AutoStackTrace;
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
+import com.android.tools.r8.retrace.stacktraces.DifferentLineNumberSpanStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
@@ -319,6 +320,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testMultipleOriginalLinesNoLineNumberStackTrace() throws Exception {
     runRetraceTest(new MultipleOriginalLinesNoLineNumberStackTrace());
+  }
+
+  @Test
+  public void testDifferentLineNumberSpanStackTrace() throws Exception {
+    runRetraceTest(new DifferentLineNumberSpanStackTrace());
   }
 
   private void inspectRetraceTest(
