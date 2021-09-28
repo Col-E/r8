@@ -334,10 +334,14 @@ def jctf():
   for release in ["", "_release"]:
     for tool in ["d8", "r8cf"]:
       properties = {
-          "tool": tool,
+          "test_options" : [
+              "--no_internal",
+              "--one_line_per_test",
+              "--archive_failures",
+              "--dex_vm=all",
+              "--tool=" + tool,
+              "--only_jctf"],
           "builder_group" : "internal.client.r8",
-          "dex_vm" : "all",
-          "only_jctf" : "true",
       }
       name = "linux-" + tool + "_jctf" + release
       r8_builder(
