@@ -16,7 +16,12 @@ import java.util.BitSet;
 
 public class RegisterPositions {
 
-  enum Type { MONITOR, CONST_NUMBER, OTHER, ANY }
+  enum Type {
+    MONITOR,
+    CONST_NUMBER,
+    OTHER,
+    ANY
+  }
 
   private static final int INITIAL_SIZE = 16;
   private final int limit;
@@ -24,6 +29,7 @@ public class RegisterPositions {
   private final BitSet registerHoldsConstant;
   private final BitSet registerHoldsMonitor;
   private final BitSet registerHoldsNewStringInstanceDisallowingSpilling;
+  private final BitSet blockedRegisters;
 
   public RegisterPositions(int limit) {
     this.limit = limit;
@@ -34,9 +40,11 @@ public class RegisterPositions {
     registerHoldsConstant = new BitSet(limit);
     registerHoldsMonitor = new BitSet(limit);
     registerHoldsNewStringInstanceDisallowingSpilling = new BitSet(limit);
+    blockedRegisters = new BitSet(limit);
   }
 
   public boolean hasType(int index, Type type) {
+    assert !isBlocked(index);
     switch (type) {
       case MONITOR:
         return holdsMonitor(index);
@@ -79,11 +87,27 @@ public class RegisterPositions {
   }
 
   public int get(int index) {
+    assert !isBlocked(index);
     if (index < backing.length) {
       return backing[index];
     }
     assert index < limit;
     return Integer.MAX_VALUE;
+  }
+
+  public void setBlocked(int index) {
+    blockedRegisters.set(index);
+  }
+
+  public boolean isBlocked(int index) {
+    return blockedRegisters.get(index);
+  }
+
+  public boolean isBlocked(int index, boolean isWide) {
+    if (isBlocked(index)) {
+      return true;
+    }
+    return isWide && isBlocked(index + 1);
   }
 
   public void grow(int minSize) {

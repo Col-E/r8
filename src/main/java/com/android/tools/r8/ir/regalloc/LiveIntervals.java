@@ -389,6 +389,10 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return Integer.MAX_VALUE;
   }
 
+  public boolean hasUses() {
+    return !uses.isEmpty();
+  }
+
   public int getFirstUse() {
     return uses.first().getPosition();
   }

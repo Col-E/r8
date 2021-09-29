@@ -1033,7 +1033,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       RegisterPositions freePositions, int registerConstraint) {
     int n = Math.min(maxRegisterNumber, registerConstraint);
     for (int register = 0; register <= n; ++register) {
-      if (freePositions.get(register) > 0) {
+      if (!freePositions.isBlocked(register)) {
+        assert freePositions.get(register) > 0;
         // If this register is free according to freePositions, then it should also be free
         // according to freeRegisters.
         boolean isMoveExceptionRegister =
@@ -1648,7 +1649,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // the input register.
       assert numberOfArgumentRegisters > 0;
       assert firstArgumentValue != null && firstArgumentValue.requiredRegisters() == 1;
-      freePositions.set(0, 0);
+      freePositions.setBlocked(0);
     }
 
     if (mode == ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT
@@ -1656,7 +1657,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       // Argument reuse is not allowed and we block all the argument registers so that
       // arguments are never free.
       for (int i = 0; i < numberOfArgumentRegisters && i <= registerConstraint; i++) {
-        freePositions.set(i, 0);
+        freePositions.setBlocked(i);
       }
     }
 
@@ -1667,7 +1668,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (overlapsMoveExceptionInterval(unhandledInterval)) {
       int moveExceptionRegister = getMoveExceptionRegister();
       if (moveExceptionRegister <= registerConstraint) {
-        freePositions.set(moveExceptionRegister, 0);
+        freePositions.setBlocked(moveExceptionRegister);
       }
     }
 
@@ -1677,7 +1678,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       if (activeRegister <= registerConstraint) {
         for (int i = 0; i < intervals.requiredRegisters(); i++) {
           if (activeRegister + i <= registerConstraint) {
-            freePositions.set(activeRegister + i, 0);
+            freePositions.setBlocked(activeRegister + i);
           }
         }
       }
@@ -1691,13 +1692,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         int nextOverlap = unhandledInterval.nextOverlap(intervals);
         for (int i = 0; i < intervals.requiredRegisters(); i++) {
           int register = inactiveRegister + i;
-          if (register <= registerConstraint) {
+          if (register <= registerConstraint && !freePositions.isBlocked(register)) {
             int unhandledStart = toInstructionPosition(unhandledInterval.getStart());
             if (nextOverlap == unhandledStart) {
               // Don't use the register for an inactive interval that is only free until the next
               // instruction. We can get into this situation when unhandledInterval starts at a
               // gap position.
-              freePositions.set(register, 0);
+              freePositions.setBlocked(register);
             } else {
               if (nextOverlap < freePositions.get(register)) {
                 freePositions.set(register, nextOverlap, intervals);
@@ -1717,8 +1718,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     // Get the register (pair) that is free the longest. That is the register with the largest
     // free position.
-    int candidate = getLargestValidCandidate(
-        unhandledInterval, registerConstraint, needsRegisterPair, freePositions, Type.ANY);
+    int candidate =
+        getLargestValidCandidate(
+            unhandledInterval, registerConstraint, needsRegisterPair, freePositions, Type.ANY);
 
     // It is not always possible to find a largest valid candidate. If none of the usable register
     // are free we typically get the last candidate. However, if that candidate has to be
@@ -1742,7 +1744,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       }
       // If the first use for these intervals is unconstrained, just spill this interval instead
       // of finding another candidate to spill via allocateBlockedRegister.
-      if (!unhandledInterval.getUses().first().hasConstraint()) {
+      if (!unhandledInterval.hasUses() || !unhandledInterval.getUses().first().hasConstraint()) {
         int nextConstrainedPosition = unhandledInterval.firstUseWithConstraint().getPosition();
         int register = getSpillRegister(unhandledInterval, null);
         LiveIntervals split = unhandledInterval.splitBefore(nextConstrainedPosition);
@@ -1835,6 +1837,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       return false;
     }
     if (register + (needsRegisterPair ? 1 : 0) <= registerConstraint) {
+      if (freePositions.isBlocked(register, needsRegisterPair)) {
+        return false;
+      }
       int freePosition = freePositions.get(register);
       if (needsRegisterPair) {
         freePosition = Math.min(freePosition, freePositions.get(register + 1));
@@ -1907,6 +1912,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private int getLargestCandidate(
+      LiveIntervals unhandledInterval,
       int registerConstraint,
       RegisterPositions freePositions,
       boolean needsRegisterPair,
@@ -1915,10 +1921,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     int largest = -1;
 
     for (int i = 0; i <= registerConstraint; i++) {
-      if (!freePositions.hasType(i, type)) {
+      if (freePositions.isBlocked(i, needsRegisterPair) || !freePositions.hasType(i, type)) {
         continue;
       }
-      int freePosition = freePositions.get(i);
+      int usePosition = freePositions.get(i);
       if (needsRegisterPair) {
         if (i == numberOfArgumentRegisters - 1) {
           // The last register of the method is |i|, so we cannot use the pair (|i|, |i+1|).
@@ -1927,11 +1933,16 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         if (i >= registerConstraint) {
           break;
         }
-        freePosition = Math.min(freePosition, freePositions.get(i + 1));
+        usePosition = Math.min(usePosition, freePositions.get(i + 1));
       }
-      if (freePosition > largest) {
+      if (unhandledInterval.hasUses() && usePosition == unhandledInterval.getFirstUse()) {
+        // This register has a use at the same instruction as the value we are allocation a register
+        // for. Find another register.
+        continue;
+      }
+      if (usePosition > largest) {
         candidate = i;
-        largest = freePosition;
+        largest = usePosition;
         if (largest == Integer.MAX_VALUE) {
           break;
         }
@@ -1943,14 +1954,20 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private int handleWorkaround(
       Predicate<LiveIntervals> workaroundNeeded,
       BiPredicate<LiveIntervals, Integer> workaroundNeededForCandidate,
-      int candidate, LiveIntervals unhandledInterval, int registerConstraint,
-      boolean needsRegisterPair, RegisterPositions freePositions, RegisterPositions.Type type) {
+      int candidate,
+      LiveIntervals unhandledInterval,
+      int registerConstraint,
+      boolean needsRegisterPair,
+      RegisterPositions freePositions,
+      RegisterPositions.Type type) {
     if (workaroundNeeded.test(unhandledInterval)) {
       int lastCandidate = candidate;
       while (workaroundNeededForCandidate.test(unhandledInterval, candidate)) {
         // Make the unusable register unavailable for allocation and try again.
-        freePositions.set(candidate, 0);
-        candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
+        freePositions.setBlocked(candidate);
+        candidate =
+            getLargestCandidate(
+                unhandledInterval, registerConstraint, freePositions, needsRegisterPair, type);
         // If there are only invalid candidates of the give type we will end up with the same
         // candidate returned again once we have tried them all. In that case we didn't find a
         // valid register candidate and we need to broaden the search to other types.
@@ -1963,24 +1980,48 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return candidate;
   }
 
-  private int getLargestValidCandidate(LiveIntervals unhandledInterval, int registerConstraint,
-      boolean needsRegisterPair, RegisterPositions freePositions, RegisterPositions.Type type) {
-    int candidate = getLargestCandidate(registerConstraint, freePositions, needsRegisterPair, type);
+  private int getLargestValidCandidate(
+      LiveIntervals unhandledInterval,
+      int registerConstraint,
+      boolean needsRegisterPair,
+      RegisterPositions usePositions,
+      RegisterPositions.Type type) {
+    int candidate =
+        getLargestCandidate(
+            unhandledInterval, registerConstraint, usePositions, needsRegisterPair, type);
     if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
       return candidate;
     }
-    candidate = handleWorkaround(
-        this::needsLongResultOverlappingLongOperandsWorkaround,
-        this::isLongResultOverlappingLongOperands,
-        candidate, unhandledInterval, registerConstraint, needsRegisterPair, freePositions, type);
-    candidate = handleWorkaround(
-        this::needsSingleResultOverlappingLongOperandsWorkaround,
-        this::isSingleResultOverlappingLongOperands,
-        candidate, unhandledInterval, registerConstraint, needsRegisterPair, freePositions, type);
-    candidate = handleWorkaround(
-        this::needsArrayGetWideWorkaround,
-        this::isArrayGetArrayRegister,
-        candidate, unhandledInterval, registerConstraint, needsRegisterPair, freePositions, type);
+    candidate =
+        handleWorkaround(
+            this::needsLongResultOverlappingLongOperandsWorkaround,
+            this::isLongResultOverlappingLongOperands,
+            candidate,
+            unhandledInterval,
+            registerConstraint,
+            needsRegisterPair,
+            usePositions,
+            type);
+    candidate =
+        handleWorkaround(
+            this::needsSingleResultOverlappingLongOperandsWorkaround,
+            this::isSingleResultOverlappingLongOperands,
+            candidate,
+            unhandledInterval,
+            registerConstraint,
+            needsRegisterPair,
+            usePositions,
+            type);
+    candidate =
+        handleWorkaround(
+            this::needsArrayGetWideWorkaround,
+            this::isArrayGetArrayRegister,
+            candidate,
+            unhandledInterval,
+            registerConstraint,
+            needsRegisterPair,
+            usePositions,
+            type);
     return candidate;
   }
 
@@ -2027,12 +2068,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Disallow the reuse of argument registers by always treating them as being used
     // at instruction number 0.
     for (int i = 0; i < numberOfArgumentRegisters; i++) {
-      usePositions.set(i, 0);
+      usePositions.setBlocked(i);
     }
 
     // Disallow reuse of the move exception register if we have reserved one.
     if (overlapsMoveExceptionInterval(unhandledInterval)) {
-      usePositions.set(getMoveExceptionRegister(), 0);
+      usePositions.setBlocked(getMoveExceptionRegister());
     }
 
     // Treat active and inactive linked argument intervals as pinned. They cannot be given another
@@ -2343,7 +2384,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                 blockedPositions.set(register + i, firstUse, other);
                 // If we start blocking registers other than linked arguments, we might need to
                 // explicitly update the use positions as well as blocked positions.
-                assert usePositions.get(register + i) <= blockedPositions.get(register + i);
+                assert usePositions.isBlocked(register + i)
+                    || usePositions.get(register + i) <= blockedPositions.get(register + i);
               }
             }
           }
