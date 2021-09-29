@@ -214,7 +214,7 @@ def archivers():
     properties = {
         "test_wrapper" : "tools/archive_desugar_jdk_libs.py" if desugar else "tools/archive.py",
         # TODO(b/201375599): remove after cleanup (allow only setting test_wrapper)
-        "test_options" : [],
+        "test_options" : ["not_used_but_evaluates_to_python_true"],
         "builder_group" : "internal.client.r8"
     }
     r8_builder(
