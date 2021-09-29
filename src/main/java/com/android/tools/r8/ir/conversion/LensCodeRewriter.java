@@ -253,7 +253,11 @@ public class LensCodeRewriter {
                 ArgumentInfoCollection argumentInfoCollection =
                     prototypeChanges.getArgumentInfoCollection();
                 if (argumentInfoCollection.isEmpty()) {
-                  newInValues = invoke.inValues();
+                  if (prototypeChanges.hasExtraParameters()) {
+                    newInValues = new ArrayList<>(invoke.inValues());
+                  } else {
+                    newInValues = invoke.inValues();
+                  }
                 } else {
                   if (argumentInfoCollection.hasRemovedArguments()) {
                     if (Log.ENABLED) {

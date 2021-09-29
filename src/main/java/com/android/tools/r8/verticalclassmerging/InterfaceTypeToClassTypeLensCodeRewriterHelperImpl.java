@@ -63,6 +63,12 @@ public class InterfaceTypeToClassTypeLensCodeRewriterHelperImpl
       return;
     }
 
+    if (originalInvoke.arguments().size()
+        != originalInvokedMethod.getNumberOfArguments(originalInvoke.isInvokeStatic())) {
+      // Wrong number of arguments, this instruction always fails.
+      return;
+    }
+
     // Intentionally iterate the arguments of the original invoke, since the rewritten invoke could
     // have extra arguments added.
     for (int operandIndex = 0; operandIndex < originalInvoke.arguments().size(); operandIndex++) {
