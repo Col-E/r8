@@ -217,7 +217,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public int getNumberOfArguments() {
-    return getReference().getArity() + BooleanUtils.intValue(isInstance());
+    return getReference().getNumberOfArguments(isStatic());
   }
 
   public CompilationState getCompilationState() {

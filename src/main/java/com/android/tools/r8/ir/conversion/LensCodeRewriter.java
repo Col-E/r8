@@ -62,6 +62,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -97,12 +98,12 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.verticalclassmerging.InterfaceTypeToClassTypeLensCodeRewriterHelper;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -149,7 +150,9 @@ public class LensCodeRewriter {
     DexItemFactory factory = appView.dexItemFactory();
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
     // we track all phi's that needs to be re-computed.
-    ListIterator<BasicBlock> blocks = code.listIterator();
+    BasicBlockIterator blocks = code.listIterator();
+    InterfaceTypeToClassTypeLensCodeRewriterHelper interfaceTypeToClassTypeRewriterHelper =
+        InterfaceTypeToClassTypeLensCodeRewriterHelper.create(appView, code, methodProcessor);
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -370,15 +373,17 @@ public class LensCodeRewriter {
                 boolean isInterface =
                     getBooleanOrElse(
                         appView.definitionFor(actualTarget.holder), DexClass::isInterface, false);
-                Invoke newInvoke =
-                    Invoke.create(
-                        actualInvokeType,
-                        actualTarget,
-                        null,
-                        newOutValue,
-                        newInValues,
-                        isInterface);
+                InvokeMethod newInvoke =
+                    InvokeMethod.create(
+                        actualInvokeType, actualTarget, newOutValue, newInValues, isInterface);
+
                 iterator.replaceCurrentInstruction(newInvoke);
+
+                // Insert casts for the program to type check if interfaces has been vertically
+                // merged into their unique (non-interface) subclass. See also b/199561570.
+                interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
+                    invoke, newInvoke, lensLookup, blocks, block, iterator);
+
                 if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
                 }
@@ -698,6 +703,10 @@ public class LensCodeRewriter {
     if (!affectedPhis.isEmpty()) {
       new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
     }
+
+    // Finalize cast insertion.
+    interfaceTypeToClassTypeRewriterHelper.processWorklist();
+
     assert code.isConsistentSSABeforeTypesAreCorrect();
     assert code.hasNoMergedClasses(appView);
   }

@@ -221,6 +221,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
         newValue.addUser(this);
       }
     }
+    oldValue.removeUser(this);
   }
 
   public void replaceValue(int index, Value newValue) {

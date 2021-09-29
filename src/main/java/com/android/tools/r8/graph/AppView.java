@@ -561,6 +561,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     }
   }
 
+  public boolean hasVerticallyMergedClasses() {
+    return verticallyMergedClasses != null;
+  }
+
   /**
    * Get the result of vertical class merging. Returns null if vertical class merging has not been
    * run.

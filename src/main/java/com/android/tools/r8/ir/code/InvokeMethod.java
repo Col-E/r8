@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -44,6 +45,29 @@ public abstract class InvokeMethod extends Invoke {
   public InvokeMethod(DexMethod target, Value result, List<Value> arguments) {
     super(result, arguments);
     this.method = target;
+  }
+
+  public static InvokeMethod create(
+      Type type, DexMethod target, Value result, List<Value> arguments, boolean itf) {
+    switch (type) {
+      case DIRECT:
+        return new InvokeDirect(target, result, arguments, itf);
+      case INTERFACE:
+        return new InvokeInterface(target, result, arguments);
+      case STATIC:
+        return new InvokeStatic(target, result, arguments, itf);
+      case SUPER:
+        return new InvokeSuper(target, result, arguments, itf);
+      case VIRTUAL:
+        assert !itf;
+        return new InvokeVirtual(target, result, arguments);
+      case CUSTOM:
+      case MULTI_NEW_ARRAY:
+      case NEW_ARRAY:
+      case POLYMORPHIC:
+      default:
+        throw new Unreachable("Unexpected invoke type: " + type);
+    }
   }
 
   public abstract boolean getInterfaceBit();

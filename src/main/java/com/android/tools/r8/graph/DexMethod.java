@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -67,6 +68,10 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
       return getHolderType();
     }
     return getParameter(argumentIndex - 1);
+  }
+
+  public int getNumberOfArguments(boolean isStatic) {
+    return getArity() + BooleanUtils.intValue(!isStatic);
   }
 
   public DexType getParameter(int index) {
