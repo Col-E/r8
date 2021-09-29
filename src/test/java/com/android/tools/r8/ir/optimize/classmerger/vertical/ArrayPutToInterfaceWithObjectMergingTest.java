@@ -2,7 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize.inliner;
+package com.android.tools.r8.ir.optimize.classmerger.vertical;
+
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
@@ -21,34 +22,28 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
+public class ArrayPutToInterfaceWithObjectMergingTest extends TestBase {
 
   @Parameter(0)
-  public boolean enableInlining;
-
-  @Parameter(1)
   public boolean enableVerticalClassMerging;
 
-  @Parameter(2)
+  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{2}, inlining: {0}, vertical class merging: {1}")
+  @Parameters(name = "{1}, vertical class merging: {0}")
   public static List<Object[]> parameters() {
     return buildParameters(
-        BooleanUtils.values(),
-        BooleanUtils.values(),
-        getTestParameters().withAllRuntimesAndApiLevels().build());
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   @Test
   public void testRuntime() throws Exception {
-    assumeFalse(enableInlining);
     assumeFalse(enableVerticalClassMerging);
     testForRuntime(parameters)
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedMain())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0");
+        .assertSuccessWithOutputLines("A");
   }
 
   @Test
@@ -59,9 +54,7 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
         .addKeepMainRule(Main.class)
         // Keep get() to prevent that we optimize it into having static return type A.
         .addKeepRules("-keepclassmembers class " + Main.class.getTypeName() + " { *** get(...); }")
-        .addInliningAnnotations()
         .addNoVerticalClassMergingAnnotations()
-        .applyIf(!enableInlining, R8TestBuilder::enableInliningAnnotations)
         .applyIf(
             !enableVerticalClassMerging, R8TestBuilder::enableNoVerticalClassMergingAnnotations)
         .addVerticallyMergedClassesInspector(
@@ -72,10 +65,11 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
                 inspector.assertNoClassesMerged();
               }
             })
+        .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0");
+        .assertSuccessWithOutputLines("A");
   }
 
   private static byte[] getTransformedMain() throws IOException {
@@ -84,7 +78,7 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
             "main",
             (opcode, owner, name, descriptor, isInterface, visitor) -> {
               if (name.equals("get")) {
-                visitor.visitMethodInsn(opcode, owner, name, "(I)Ljava/lang/Object;", isInterface);
+                visitor.visitMethodInsn(opcode, owner, name, "()Ljava/lang/Object;", isInterface);
               } else {
                 visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
@@ -96,34 +90,31 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
   static class Main {
 
     public static void main(String[] args) {
-      // Transformed from `I get(int)` to `Object get(int)`.
-      get(args.length).m();
+      I[] is = new I[1];
+      // Transformed from `I get()` to `Object get()`.
+      is[0] = get();
+      print(is);
     }
 
     // @Keep
-    static /*Object*/ I get(int f) {
-      return new A(f);
+    static /*Object*/ I get() {
+      return new A();
+    }
+
+    @NeverInline
+    static void print(I[] is) {
+      System.out.println(is[0]);
     }
   }
 
   @NoVerticalClassMerging
-  interface I {
-
-    void m();
-  }
+  interface I {}
 
   static class A implements I {
 
-    int f;
-
-    A(int f) {
-      this.f = f;
-    }
-
-    @NeverInline
     @Override
-    public void m() {
-      System.out.println(f);
+    public String toString() {
+      return "A";
     }
   }
 }

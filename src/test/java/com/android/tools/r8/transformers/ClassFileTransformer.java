@@ -619,6 +619,21 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setFieldType(FieldPredicate predicate, String newFieldType) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public FieldVisitor visitField(
+              int access, String name, String descriptor, String signature, Object value) {
+            if (predicate.test(access, name, descriptor, signature, value)) {
+              String newDescriptor = DescriptorUtils.javaTypeToDescriptor(newFieldType);
+              return super.visitField(access, name, newDescriptor, signature, value);
+            }
+            return super.visitField(access, name, descriptor, signature, value);
+          }
+        });
+  }
+
   public ClassFileTransformer setReturnType(MethodPredicate predicate, String newReturnType) {
     return addClassTransformer(
         new ClassTransformer() {
@@ -738,6 +753,13 @@ public class ClassFileTransformer {
         Handle bootstrapMethodHandle,
         List<Object> bootstrapMethodArguments,
         MethodVisitor visitor);
+  }
+
+  /** Abstraction of the MethodVisitor.visitFieldInsn method with its sub visitor. */
+  @FunctionalInterface
+  public interface FieldInsnTransform {
+    void visitFieldInsn(
+        int opcode, String owner, String name, String descriptor, MethodVisitor visitor);
   }
 
   /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */
@@ -958,6 +980,41 @@ public class ClassFileTransformer {
                       new Object[] {}));
             } else {
               super.visitLdcInsn(value);
+            }
+          }
+        });
+  }
+
+  @FunctionalInterface
+  private interface VisitFieldInsnCallback {
+    void visitFieldInsn(int opcode, String owner, String name, String descriptor);
+  }
+
+  private MethodVisitor redirectVisitFieldInsn(
+      MethodVisitor visitor, VisitFieldInsnCallback callback) {
+    return new MethodVisitor(ASM7, visitor) {
+      @Override
+      public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+        callback.visitFieldInsn(opcode, owner, name, descriptor);
+      }
+    };
+  }
+
+  public ClassFileTransformer transformFieldInsnInMethod(
+      String methodName, FieldInsnTransform transform) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+            if (getContext().method.getMethodName().equals(methodName)) {
+              transform.visitFieldInsn(
+                  opcode,
+                  owner,
+                  name,
+                  descriptor,
+                  redirectVisitFieldInsn(this, super::visitFieldInsn));
+            } else {
+              super.visitMethodInsn(opcode, owner, name, descriptor);
             }
           }
         });
