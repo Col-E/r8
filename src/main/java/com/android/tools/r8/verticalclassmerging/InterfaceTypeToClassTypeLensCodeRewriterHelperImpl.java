@@ -17,10 +17,13 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CheckCast;
+import com.android.tools.r8.ir.code.FieldPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayDeque;
@@ -69,10 +72,62 @@ public class InterfaceTypeToClassTypeLensCodeRewriterHelperImpl
       DexType rewrittenType =
           rewrittenInvokedMethod.getArgumentType(operandIndex, rewrittenInvoke.isInvokeStatic());
       if (needsCastForOperand(operand, block, originalType, rewrittenType).isPossiblyTrue()) {
-        worklist
-            .computeIfAbsent(rewrittenInvoke, ignoreKey(ArrayDeque::new))
-            .addLast(new WorklistItem(operandIndex, originalType, rewrittenType));
+        addWorklistItem(rewrittenInvoke, operandIndex, originalType, rewrittenType);
       }
+    }
+  }
+
+  @Override
+  public void insertCastsForOperandsIfNeeded(
+      Return rewrittenReturn,
+      BasicBlockIterator blockIterator,
+      BasicBlock block,
+      InstructionListIterator instructionIterator) {
+    assert !rewrittenReturn.isReturnVoid();
+    DexMethod originalMethodSignature =
+        appView.graphLens().getOriginalMethodSignature(code.context().getReference());
+    DexType originalReturnType = originalMethodSignature.getReturnType();
+    DexType rewrittenReturnType = code.context().getReturnType();
+    if (needsCastForOperand(
+            rewrittenReturn.returnValue(), block, originalReturnType, rewrittenReturnType)
+        .isPossiblyTrue()) {
+      addWorklistItem(rewrittenReturn, 0, originalReturnType, rewrittenReturnType);
+    }
+  }
+
+  @Override
+  public void insertCastsForOperandsIfNeeded(
+      FieldPut originalFieldPut,
+      InvokeStatic rewrittenFieldPut,
+      BasicBlockIterator blockIterator,
+      BasicBlock block,
+      InstructionListIterator instructionIterator) {
+    DexType originalFieldType = originalFieldPut.getField().getType();
+    int valueIndex = originalFieldPut.getValueIndex();
+    DexType rewrittenFieldType = rewrittenFieldPut.getInvokedMethod().getParameter(valueIndex);
+    Value operand = rewrittenFieldPut.getOperand(valueIndex);
+    if (needsCastForOperand(operand, block, originalFieldType, rewrittenFieldType)
+        .isPossiblyTrue()) {
+      addWorklistItem(rewrittenFieldPut, valueIndex, originalFieldType, rewrittenFieldType);
+    }
+  }
+
+  @Override
+  public void insertCastsForOperandsIfNeeded(
+      FieldPut originalFieldPut,
+      FieldPut rewrittenFieldPut,
+      BasicBlockIterator blockIterator,
+      BasicBlock block,
+      InstructionListIterator instructionIterator) {
+    DexType originalFieldType = originalFieldPut.getField().getType();
+    DexType rewrittenFieldType = rewrittenFieldPut.getField().getType();
+    if (needsCastForOperand(rewrittenFieldPut.value(), block, originalFieldType, rewrittenFieldType)
+        .isPossiblyTrue()) {
+      addWorklistItem(
+          rewrittenFieldPut.asFieldInstruction(),
+          rewrittenFieldPut.getValueIndex(),
+          originalFieldType,
+          rewrittenFieldType);
     }
   }
 
@@ -108,6 +163,16 @@ public class InterfaceTypeToClassTypeLensCodeRewriterHelperImpl
         }
       }
     }
+  }
+
+  private void addWorklistItem(
+      Instruction rewrittenInstruction,
+      int operandIndex,
+      DexType originalType,
+      DexType rewrittenType) {
+    worklist
+        .computeIfAbsent(rewrittenInstruction, ignoreKey(ArrayDeque::new))
+        .addLast(new WorklistItem(operandIndex, originalType, rewrittenType));
   }
 
   private void insertCastForOperand(

@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
 
-public class InstancePut extends FieldInstruction implements InstanceFieldInstruction {
+public class InstancePut extends FieldInstruction implements FieldPut, InstanceFieldInstruction {
 
   public InstancePut(DexField field, Value object, Value value) {
     this(field, object, value, false);
@@ -65,13 +65,18 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
+  public int getValueIndex() {
+    return 1;
+  }
+
+  @Override
   public Value object() {
     return inValues.get(0);
   }
 
   @Override
   public Value value() {
-    return inValues.get(1);
+    return inValues.get(getValueIndex());
   }
 
   @Override

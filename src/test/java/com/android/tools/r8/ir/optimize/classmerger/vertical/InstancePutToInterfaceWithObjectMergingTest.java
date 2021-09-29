@@ -67,21 +67,9 @@ public class InstancePutToInterfaceWithObjectMergingTest extends TestBase {
             })
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        // TODO(b/199561570): A cast should be inserted to avoid the type error.
-        .applyIf(
-            enableVerticalClassMerging,
-            testBuilder ->
-                testBuilder
-                    .addOptionsModification(options -> options.testing.allowTypeErrors = true)
-                    .allowDiagnosticWarningMessages())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/199561570): A cast should be inserted to avoid the type error (which causes us to
-        //  consider the method as unreachable and replacing it by 'throw null').
-        .applyIf(
-            enableVerticalClassMerging,
-            runResult -> runResult.assertFailureWithErrorThatThrows(NullPointerException.class),
-            runResult -> runResult.assertSuccessWithOutputLines("A"));
+        .assertSuccessWithOutputLines("A");
   }
 
   private static byte[] getTransformedMain() throws IOException {

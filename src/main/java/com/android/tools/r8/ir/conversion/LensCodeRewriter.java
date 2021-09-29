@@ -467,8 +467,11 @@ public class LensCodeRewriter {
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(rewrittenField, method.getReference());
               if (replacementMethod != null) {
-                iterator.replaceCurrentInstruction(
-                    new InvokeStatic(replacementMethod, null, instancePut.inValues()));
+                InvokeStatic replacement =
+                    new InvokeStatic(replacementMethod, null, instancePut.inValues());
+                iterator.replaceCurrentInstruction(replacement);
+                interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
+                    instancePut, replacement, blocks, block, iterator);
               } else if (rewrittenField != field) {
                 Value rewrittenValue =
                     rewriteValueIfDefault(
@@ -477,6 +480,8 @@ public class LensCodeRewriter {
                     InstancePut.createPotentiallyInvalid(
                         rewrittenField, instancePut.object(), rewrittenValue);
                 iterator.replaceCurrentInstruction(newInstancePut);
+                interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
+                    instancePut, newInstancePut, blocks, block, iterator);
               }
             }
             break;
@@ -530,15 +535,21 @@ public class LensCodeRewriter {
               DexField actualField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(actualField, method.getReference());
+
               if (replacementMethod != null) {
-                iterator.replaceCurrentInstruction(
-                    new InvokeStatic(
-                        replacementMethod, staticPut.outValue(), staticPut.inValues()));
+                InvokeStatic replacement =
+                    new InvokeStatic(replacementMethod, staticPut.outValue(), staticPut.inValues());
+                iterator.replaceCurrentInstruction(replacement);
+                interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
+                    staticPut, replacement, blocks, block, iterator);
               } else if (actualField != field) {
                 Value rewrittenValue =
                     rewriteValueIfDefault(
                         code, iterator, field.type, actualField.type, staticPut.value());
-                iterator.replaceCurrentInstruction(new StaticPut(rewrittenValue, actualField));
+                StaticPut replacement = new StaticPut(rewrittenValue, actualField);
+                iterator.replaceCurrentInstruction(replacement);
+                interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
+                    staticPut, replacement, blocks, block, iterator);
               }
             }
             break;
@@ -625,7 +636,7 @@ public class LensCodeRewriter {
               if (ret.isReturnVoid()) {
                 break;
               }
-              DexType returnType = code.method().getReference().proto.returnType;
+              DexType returnType = code.context().getReturnType();
               Value retValue = ret.returnValue();
               DexType initialType =
                   retValue.getType().isPrimitiveType()
@@ -633,10 +644,18 @@ public class LensCodeRewriter {
                       : factory.objectType; // Place holder, any reference type will do.
               Value rewrittenValue =
                   rewriteValueIfDefault(code, iterator, initialType, returnType, retValue);
+              Return rewrittenReturn;
               if (retValue != rewrittenValue) {
-                Return newReturn = new Return(rewrittenValue);
-                iterator.replaceCurrentInstruction(newReturn);
+                rewrittenReturn = new Return(rewrittenValue);
+                iterator.replaceCurrentInstruction(rewrittenReturn);
+              } else {
+                rewrittenReturn = ret;
               }
+
+              // Insert casts for the program to type check if interfaces has been vertically
+              // merged into their unique (non-interface) subclass. See also b/199561570.
+              interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
+                  rewrittenReturn, blocks, block, iterator);
             }
             break;
 

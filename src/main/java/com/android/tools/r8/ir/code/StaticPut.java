@@ -30,7 +30,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class StaticPut extends FieldInstruction implements StaticFieldInstruction {
+public class StaticPut extends FieldInstruction implements FieldPut, StaticFieldInstruction {
 
   public StaticPut(Value source, DexField field) {
     super(field, null, source);
@@ -47,9 +47,14 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
   }
 
   @Override
+  public int getValueIndex() {
+    return 0;
+  }
+
+  @Override
   public Value value() {
     assert inValues.size() == 1;
-    return inValues.get(0);
+    return inValues.get(getValueIndex());
   }
 
   @Override
