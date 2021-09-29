@@ -636,7 +636,7 @@ task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
 
 task compileTestNGRunner (type: JavaCompile) {
     dependsOn provideJdk11TestsDependencies
-    destinationDir = file("$buildDir/classes/java/exampleTestNGRunner")
+    destinationDir = file("$buildDir/classes/java/examplesTestNGRunner")
     source = sourceSets.examplesTestNGRunner.allSource
     classpath = sourceSets.examplesTestNGRunner.compileClasspath
 }
