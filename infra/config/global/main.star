@@ -162,10 +162,14 @@ def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
     dimensions["normal"] = "true"
   return dimensions
 
-def r8_builder(name, priority=26, trigger=True, category=None, **kwargs):
+def r8_builder(name, priority=26, trigger=True, category=None,
+               triggering_policy=None, **kwargs):
   release = name.endswith("release")
   triggered = None if not trigger else ["branch-gitiles-trigger"] if release\
       else ["main-gitiles-trigger"]
+  triggering_policy = triggering_policy or scheduler.policy(
+      kind = scheduler.GREEDY_BATCHING_KIND,
+      max_concurrent_invocations = 4)
 
   luci.builder(
     name = name,
@@ -177,6 +181,7 @@ def r8_builder(name, priority=26, trigger=True, category=None, **kwargs):
     notifies = ["r8-failures"] if trigger else None,
     priority = priority,
     triggered_by = triggered,
+    triggering_policy = triggering_policy,
     executable = "rex",
     **kwargs
   )
@@ -269,7 +274,6 @@ def internal():
         dimensions = get_dimensions(internal=True),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
-            max_batch_size = 1,
             max_concurrent_invocations = 1
         ),
         priority = 25,
