@@ -243,7 +243,7 @@ public class ApplicationWriter {
 
     if (markers != null && !markers.isEmpty()) {
       if (proguardMapId != null) {
-        markers.get(0).setPgMapId(proguardMapId.get());
+        markers.get(0).setPgMapId(proguardMapId.getId());
       }
       markerStrings = new ArrayList<>(markers.size());
       for (Marker marker : markers) {

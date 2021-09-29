@@ -18,12 +18,25 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class ProguardMapMarkerTest {
-  private static final int EXPECTED_NUMBER_OF_KEYS_DEX = 5;
-  private static final int EXPECTED_NUMBER_OF_KEYS_CF = 4;
+@RunWith(Parameterized.class)
+public class ProguardMapMarkerTest extends TestBase {
+  private static final int EXPECTED_NUMBER_OF_KEYS_DEX = 6;
+  private static final int EXPECTED_NUMBER_OF_KEYS_CF = 5;
   private static final String CLASS_FILE =
       ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public ProguardMapMarkerTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void proguardMapMarkerTest24() throws CompilationFailedException {
@@ -128,6 +141,7 @@ public class ProguardMapMarkerTest {
     String[] lines = proguardMap.split("\n");
     Set<String> keysFound = new HashSet<>();
     String proguardMapId = null;
+    String proguardMapHash = null;
     for (String line : lines) {
       if (!line.startsWith("#")) {
         continue;
@@ -150,6 +164,8 @@ public class ProguardMapMarkerTest {
         assertEquals(VersionProperties.INSTANCE.getSha(), value);
       } else if (key.equals(ProguardMapSupplier.MARKER_KEY_PG_MAP_ID)) {
         proguardMapId = value;
+      } else if (key.equals(ProguardMapSupplier.MARKER_KEY_PG_MAP_HASH)) {
+        proguardMapHash = value;
       } else {
         continue;
       }

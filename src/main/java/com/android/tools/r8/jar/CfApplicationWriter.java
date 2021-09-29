@@ -132,7 +132,7 @@ public class CfApplicationWriter {
 
   private void writeApplication(ClassFileConsumer consumer) {
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      marker.setPgMapId(proguardMapSupplier.writeProguardMap().get());
+      marker.setPgMapId(proguardMapSupplier.writeProguardMap().getId());
     }
     Optional<String> markerString =
         includeMarker(marker) ? Optional.of(marker.toString()) : Optional.empty();

@@ -8,7 +8,6 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -17,6 +16,7 @@ import com.android.tools.r8.utils.VersionProperties;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class ProguardMapSupplier {
 
@@ -26,16 +26,29 @@ public class ProguardMapSupplier {
   public static final String MARKER_KEY_COMPILER_HASH = "compiler_hash";
   public static final String MARKER_KEY_MIN_API = "min_api";
   public static final String MARKER_KEY_PG_MAP_ID = "pg_map_id";
+  public static final String MARKER_KEY_PG_MAP_HASH = "pg_map_hash";
+  public static final String SHA_256_KEY = "SHA-256";
 
   public static int PG_MAP_ID_LENGTH = 7;
 
-  // Truncated murmur hash of the non-whitespace codepoints of the Proguard map (excluding the
-  // marker).
-  public static class ProguardMapId extends Box<String> {
+  // Hash of the Proguard map (excluding the header up to and including the hash marker).
+  public static class ProguardMapId {
+    private final String hash;
+
     private ProguardMapId(String id) {
-      super(id);
       assert id != null;
-      assert id.length() == PG_MAP_ID_LENGTH;
+      this.hash = id;
+    }
+
+    /** Truncated prefix of the content hash. */
+    // TODO(b/201269335): Update this to be a full "source-file marker".
+    public String getId() {
+      return hash.substring(0, PG_MAP_ID_LENGTH);
+    }
+
+    /** The actual content hash. */
+    public String getHash() {
+      return hash;
     }
   }
 
@@ -99,7 +112,6 @@ public class ProguardMapSupplier {
       builder.append(
           "# " + MARKER_KEY_COMPILER_HASH + ": " + VersionProperties.INSTANCE.getSha() + "\n");
     }
-    builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + id.get() + "\n");
     // Turn off linting of the mapping file in some build systems.
     builder.append("# common_typos_disable" + "\n");
     // Emit the R8 specific map-file version.
@@ -110,26 +122,31 @@ public class ProguardMapSupplier {
           .append(new MapVersionMappingInformation(mapVersion).serialize())
           .append("\n");
     }
+    builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + id.getId() + "\n");
+    // Place the map hash as the last header item. Everything past this line is the hashed content.
+    builder
+        .append("# ")
+        .append(MARKER_KEY_PG_MAP_HASH)
+        .append(": ")
+        .append(SHA_256_KEY)
+        .append(" ")
+        .append(id.getHash())
+        .append("\n");
     consumer.accept(builder.toString(), reporter);
   }
 
   static class ProguardMapIdBuilder implements ChainableStringConsumer {
 
-    private final Hasher hasher = Hashing.murmur3_32().newHasher();
+    private final Hasher hasher = Hashing.sha256().newHasher();
 
     @Override
     public ProguardMapIdBuilder accept(String string) {
-      for (int i = 0; i < string.length(); i++) {
-        char c = string.charAt(i);
-        if (!Character.isWhitespace(c)) {
-          hasher.putInt(c);
-        }
-      }
+      hasher.putString(string, StandardCharsets.UTF_8);
       return this;
     }
 
     public ProguardMapId build() {
-      return new ProguardMapId(hasher.hash().toString().substring(0, PG_MAP_ID_LENGTH));
+      return new ProguardMapId(hasher.hash().toString());
     }
   }
 
@@ -142,7 +159,7 @@ public class ProguardMapSupplier {
     }
   }
 
-  static class ProguardMapChecker implements StringConsumer {
+  public static class ProguardMapChecker implements StringConsumer {
 
     private final StringConsumer inner;
     private final StringBuilder contents = new StringBuilder();
@@ -164,7 +181,10 @@ public class ProguardMapSupplier {
     @Override
     public void finished(DiagnosticsHandler handler) {
       inner.finished(handler);
-      assert validateProguardMapParses(contents.toString());
+      String stringContent = contents.toString();
+      assert validateProguardMapParses(stringContent);
+      String result = validateProguardMapHash(stringContent);
+      assert result == null : result;
     }
 
     private static boolean validateProguardMapParses(String content) {
@@ -175,6 +195,42 @@ public class ProguardMapSupplier {
         return false;
       }
       return true;
+    }
+
+    public static String validateProguardMapHash(String content) {
+      int lineEnd = -1;
+      while (true) {
+        int lineStart = lineEnd + 1;
+        lineEnd = content.indexOf('\n', lineStart);
+        if (lineEnd < 0) {
+          return "Failure to find map hash";
+        }
+        String line = content.substring(lineStart, lineEnd).trim();
+        if (line.isEmpty()) {
+          // Ignore empty lines in the header.
+          continue;
+        }
+        if (line.charAt(0) != '#') {
+          // At the first non-empty non-comment line we assume that the file has no hash marker.
+          return "Failure to find map hash in header";
+        }
+        String headerLine = line.substring(1).trim();
+        if (headerLine.startsWith(MARKER_KEY_PG_MAP_HASH)) {
+          int shaIndex = headerLine.indexOf(SHA_256_KEY + " ", MARKER_KEY_PG_MAP_HASH.length());
+          if (shaIndex < 0) {
+            return "Unknown map hash function: '" + headerLine + "'";
+          }
+          String headerHash = headerLine.substring(shaIndex + SHA_256_KEY.length()).trim();
+          // We are on the hash line. Everything past this line is the hashed content.
+          Hasher hasher = Hashing.sha256().newHasher();
+          String hashedContent = content.substring(lineEnd + 1);
+          hasher.putString(hashedContent, StandardCharsets.UTF_8);
+          String computedHash = hasher.hash().toString();
+          return headerHash.equals(computedHash)
+              ? null
+              : "Mismatching map hash: '" + headerHash + "' != '" + computedHash + "'";
+        }
+      }
     }
   }
 }
