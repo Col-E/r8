@@ -20,8 +20,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
@@ -34,7 +34,7 @@ public class MinimumKeepInfoCollection {
   private final Map<DexReference, KeepInfo.Joiner<?, ?, ?>> minimumKeepInfo;
 
   public MinimumKeepInfoCollection() {
-    this(new IdentityHashMap<>());
+    this(new ConcurrentHashMap<>());
   }
 
   private MinimumKeepInfoCollection(Map<DexReference, KeepInfo.Joiner<?, ?, ?>> minimumKeepInfo) {

@@ -21,8 +21,8 @@ import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.TriConsumer;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -31,12 +31,7 @@ public class DependentMinimumKeepInfoCollection {
   private final Map<EnqueuerEvent, MinimumKeepInfoCollection> dependentMinimumKeepInfo;
 
   public DependentMinimumKeepInfoCollection() {
-    this(new HashMap<>());
-  }
-
-  private DependentMinimumKeepInfoCollection(
-      Map<EnqueuerEvent, MinimumKeepInfoCollection> dependentMinimumKeepInfo) {
-    this.dependentMinimumKeepInfo = dependentMinimumKeepInfo;
+    this.dependentMinimumKeepInfo = new ConcurrentHashMap<>();
   }
 
   public void forEach(BiConsumer<EnqueuerEvent, MinimumKeepInfoCollection> consumer) {
