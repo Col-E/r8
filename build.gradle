@@ -1763,7 +1763,7 @@ tasks.withType(Test) {
       maxParallelForks = processors.intdiv(userDefinedCoresPerFork.toInteger()) ?: 1
     } else {
       // On normal work machines this seems to give the best test execution time (without freezing)
-      maxParallelForks = processors.intdiv(3) ?: 1
+      maxParallelForks = (processors.intdiv(3) ?: 1) + 1
     }
     println("NOTE: Max parallel forks " + maxParallelForks)
 
