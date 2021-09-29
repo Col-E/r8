@@ -17,6 +17,7 @@ import com.android.tools.r8.Keep;
 public class RetraceOptions {
 
   private final boolean isVerbose;
+  private final boolean verifyMappingFileHash;
   private final String regularExpression;
   private final DiagnosticsHandler diagnosticsHandler;
   private final ProguardMapProducer proguardMapProducer;
@@ -25,11 +26,13 @@ public class RetraceOptions {
       String regularExpression,
       DiagnosticsHandler diagnosticsHandler,
       ProguardMapProducer proguardMapProducer,
-      boolean isVerbose) {
+      boolean isVerbose,
+      boolean verifyMappingFileHash) {
     this.regularExpression = regularExpression;
     this.diagnosticsHandler = diagnosticsHandler;
     this.proguardMapProducer = proguardMapProducer;
     this.isVerbose = isVerbose;
+    this.verifyMappingFileHash = verifyMappingFileHash;
 
     assert diagnosticsHandler != null;
     assert proguardMapProducer != null;
@@ -37,6 +40,10 @@ public class RetraceOptions {
 
   public boolean isVerbose() {
     return isVerbose;
+  }
+
+  public boolean isVerifyMappingFileHash() {
+    return verifyMappingFileHash;
   }
 
   public String getRegularExpression() {
@@ -69,6 +76,7 @@ public class RetraceOptions {
   public static class Builder {
 
     private boolean isVerbose;
+    private boolean verifyMappingFileHash;
     private final DiagnosticsHandler diagnosticsHandler;
     private ProguardMapProducer proguardMapProducer;
     private String regularExpression = defaultRegularExpression();
@@ -80,6 +88,12 @@ public class RetraceOptions {
     /** Set if the produced stack trace should have additional information. */
     public Builder setVerbose(boolean verbose) {
       this.isVerbose = verbose;
+      return this;
+    }
+
+    /** Set if the mapping-file hash should be checked if present. */
+    public Builder setVerifyMappingFileHash(boolean verifyMappingFileHash) {
+      this.verifyMappingFileHash = verifyMappingFileHash;
       return this;
     }
 
@@ -116,7 +130,11 @@ public class RetraceOptions {
         throw new RuntimeException("Regular expression not specified");
       }
       return new RetraceOptions(
-          regularExpression, diagnosticsHandler, proguardMapProducer, isVerbose);
+          regularExpression,
+          diagnosticsHandler,
+          proguardMapProducer,
+          isVerbose,
+          verifyMappingFileHash);
     }
   }
 }

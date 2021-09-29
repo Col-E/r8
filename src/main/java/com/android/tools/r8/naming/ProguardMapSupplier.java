@@ -183,8 +183,7 @@ public class ProguardMapSupplier {
       inner.finished(handler);
       String stringContent = contents.toString();
       assert validateProguardMapParses(stringContent);
-      String result = validateProguardMapHash(stringContent);
-      assert result == null : result;
+      assert validateProguardMapHash(stringContent).isOk();
     }
 
     private static boolean validateProguardMapParses(String content) {
@@ -197,13 +196,48 @@ public class ProguardMapSupplier {
       return true;
     }
 
-    public static String validateProguardMapHash(String content) {
+    public static class VerifyMappingFileHashResult {
+      private final boolean error;
+      private final String message;
+
+      public static VerifyMappingFileHashResult createOk() {
+        return new VerifyMappingFileHashResult(false, null);
+      }
+
+      public static VerifyMappingFileHashResult createInfo(String message) {
+        return new VerifyMappingFileHashResult(false, message);
+      }
+
+      public static VerifyMappingFileHashResult createError(String message) {
+        return new VerifyMappingFileHashResult(true, message);
+      }
+
+      private VerifyMappingFileHashResult(boolean error, String message) {
+        this.error = error;
+        this.message = message;
+      }
+
+      public boolean isOk() {
+        return !error && message == null;
+      }
+
+      public boolean isError() {
+        return error;
+      }
+
+      public String getMessage() {
+        assert message != null;
+        return message;
+      }
+    }
+
+    public static VerifyMappingFileHashResult validateProguardMapHash(String content) {
       int lineEnd = -1;
       while (true) {
         int lineStart = lineEnd + 1;
         lineEnd = content.indexOf('\n', lineStart);
         if (lineEnd < 0) {
-          return "Failure to find map hash";
+          return VerifyMappingFileHashResult.createInfo("Failure to find map hash");
         }
         String line = content.substring(lineStart, lineEnd).trim();
         if (line.isEmpty()) {
@@ -212,13 +246,14 @@ public class ProguardMapSupplier {
         }
         if (line.charAt(0) != '#') {
           // At the first non-empty non-comment line we assume that the file has no hash marker.
-          return "Failure to find map hash in header";
+          return VerifyMappingFileHashResult.createInfo("Failure to find map hash in header");
         }
         String headerLine = line.substring(1).trim();
         if (headerLine.startsWith(MARKER_KEY_PG_MAP_HASH)) {
           int shaIndex = headerLine.indexOf(SHA_256_KEY + " ", MARKER_KEY_PG_MAP_HASH.length());
           if (shaIndex < 0) {
-            return "Unknown map hash function: '" + headerLine + "'";
+            return VerifyMappingFileHashResult.createError(
+                "Unknown map hash function: '" + headerLine + "'");
           }
           String headerHash = headerLine.substring(shaIndex + SHA_256_KEY.length()).trim();
           // We are on the hash line. Everything past this line is the hashed content.
@@ -227,8 +262,9 @@ public class ProguardMapSupplier {
           hasher.putString(hashedContent, StandardCharsets.UTF_8);
           String computedHash = hasher.hash().toString();
           return headerHash.equals(computedHash)
-              ? null
-              : "Mismatching map hash: '" + headerHash + "' != '" + computedHash + "'";
+              ? VerifyMappingFileHashResult.createOk()
+              : VerifyMappingFileHashResult.createError(
+                  "Mismatching map hash: '" + headerHash + "' != '" + computedHash + "'");
         }
       }
     }

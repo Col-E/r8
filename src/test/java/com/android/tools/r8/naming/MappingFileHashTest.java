@@ -3,12 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker;
+import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker.VerifyMappingFileHashResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -62,7 +63,7 @@ public class MappingFileHashTest extends TestBase {
             "" // Always end with newline.
             );
     String content = String.join(newline, header, hashed);
-    String result = ProguardMapChecker.validateProguardMapHash(content);
-    assertNull(result, result);
+    VerifyMappingFileHashResult result = ProguardMapChecker.validateProguardMapHash(content);
+    assertTrue(result.isOk());
   }
 }

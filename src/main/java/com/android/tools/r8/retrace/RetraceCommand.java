@@ -24,7 +24,8 @@ public class RetraceCommand {
       ProguardMapProducer proguardMapProducer,
       List<String> stackTrace,
       Consumer<List<String>> retracedStackTraceConsumer,
-      boolean isVerbose) {
+      boolean isVerbose,
+      boolean verifyMappingFileHash) {
     this.stackTrace = stackTrace;
     this.retracedStackTraceConsumer = retracedStackTraceConsumer;
     this.options =
@@ -32,9 +33,10 @@ public class RetraceCommand {
             .setRegularExpression(regularExpression)
             .setProguardMapProducer(proguardMapProducer)
             .setVerbose(isVerbose)
+            .setVerifyMappingFileHash(verifyMappingFileHash)
             .build();
 
-    assert this.stackTrace != null;
+    assert this.stackTrace != null || verifyMappingFileHash;
     assert this.retracedStackTraceConsumer != null;
   }
 
@@ -81,6 +83,7 @@ public class RetraceCommand {
     private String regularExpression = StackTraceRegularExpressionParser.DEFAULT_REGULAR_EXPRESSION;
     private List<String> stackTrace;
     private Consumer<List<String>> retracedStackTraceConsumer;
+    private boolean verifyMappingFileHash = false;
 
     private Builder(DiagnosticsHandler diagnosticsHandler) {
       this.diagnosticsHandler = diagnosticsHandler;
@@ -125,6 +128,12 @@ public class RetraceCommand {
       return this;
     }
 
+    /** Set if the mapping-file hash should be checked if present. */
+    public Builder setVerifyMappingFileHash(boolean verifyMappingFileHash) {
+      this.verifyMappingFileHash = verifyMappingFileHash;
+      return this;
+    }
+
     /**
      * Set a consumer for receiving the retraced stack trace.
      *
@@ -142,7 +151,7 @@ public class RetraceCommand {
       if (this.proguardMapProducer == null) {
         throw new RuntimeException("ProguardMapSupplier not specified");
       }
-      if (this.stackTrace == null) {
+      if (this.stackTrace == null && !verifyMappingFileHash) {
         throw new RuntimeException("StackTrace not specified");
       }
       if (this.retracedStackTraceConsumer == null) {
@@ -154,7 +163,8 @@ public class RetraceCommand {
           proguardMapProducer,
           stackTrace,
           retracedStackTraceConsumer,
-          isVerbose);
+          isVerbose,
+          verifyMappingFileHash);
     }
   }
 }

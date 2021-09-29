@@ -21,6 +21,7 @@ import com.android.tools.r8.retrace.stacktraces.PGStackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -204,6 +205,44 @@ public class RetraceCommandLineTests {
   public void testHelpMessageWithQuiet() throws IOException {
     ProcessResult processResult = runRetrace("", "", true, "--quiet");
     assertFalse(processResult.stdout.startsWith(WAITING_MESSAGE));
+  }
+
+  @Test
+  public void testNoMappingFileHash() throws IOException {
+    Path mappingFile = folder.newFile("mapping.txt").toPath();
+    Files.write(mappingFile, ("# other header\n" + "foo.bar -> a.a\n").getBytes());
+    ProcessResult result =
+        runRetraceCommandLine(
+            null, ImmutableList.of(mappingFile.toString(), "--verify-mapping-file-hash"));
+    assertEquals(result.toString(), 0, result.exitCode);
+    assertEquals("", result.stdout);
+    assertThat(result.stderr, containsString("Failure to find map hash"));
+  }
+
+  @Test
+  public void testValidMappingFileHash() throws IOException {
+    Path mappingFile = folder.newFile("mapping.txt").toPath();
+    Files.write(
+        mappingFile,
+        ("# pg_map_hash: SHA-256 aaf7c0230ea6fa768189170543c86ec202c6180d1e0a37b620e5c1fce1bd3ae7\n"
+                + "foo.bar -> a.a\n")
+            .getBytes());
+    ProcessResult result =
+        runRetraceCommandLine(
+            null, ImmutableList.of(mappingFile.toString(), "--verify-mapping-file-hash"));
+    assertEquals(result.toString(), 0, result.exitCode);
+    assertEquals("", result.stdout);
+    assertEquals("", result.stderr);
+  }
+
+  @Test
+  public void testInvalidMappingFileHash() throws IOException {
+    Path mappingFile = folder.newFile("mapping.txt").toPath();
+    Files.write(mappingFile, ("# pg_map_hash: SHA-256 abcd1234\n" + "foo.bar -> a.a\n").getBytes());
+    runAbortTest(
+        containsString("Mismatching map hash"),
+        mappingFile.toString(),
+        "--verify-mapping-file-hash");
   }
 
   private final String nonMappableStackTrace =

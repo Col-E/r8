@@ -10,6 +10,8 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.Version;
+import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker;
+import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapChecker.VerifyMappingFileHashResult;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
@@ -26,9 +28,11 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,7 +65,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
           "Usage: retrace <proguard-map> [stack-trace-file] "
-              + "[--regex <regexp>, --verbose, --info, --quiet]",
+              + "[--regex <regexp>, --verbose, --info, --quiet, --verify-mapping-file-hash]",
           "  where <proguard-map> is an r8 generated mapping file.");
 
   private static Builder parseArguments(String[] args, DiagnosticsHandler diagnosticsHandler) {
@@ -97,6 +101,12 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
       if (regex != null && !regex.isEmpty()) {
         builder.setRegularExpression(regex);
+        continue;
+      }
+      Boolean verify = OptionsParsing.tryParseBoolean(context, "--verify-mapping-file-hash");
+      if (verify != null) {
+        builder.setVerifyMappingFileHash(true);
+        hasSetStackTrace = true;
         continue;
       }
       if (!hasSetProguardMap) {
@@ -273,8 +283,31 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
   static void runForTesting(RetraceCommand command, boolean allowExperimentalMapping) {
     try {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
-      timing.begin("Read proguard map");
       RetraceOptions options = command.getOptions();
+      if (command.getOptions().isVerifyMappingFileHash()) {
+        try (Reader reader = options.getProguardMapProducer().get()) {
+          VerifyMappingFileHashResult checkResult =
+              ProguardMapChecker.validateProguardMapHash(CharStreams.toString(reader));
+          if (checkResult.isError()) {
+            command
+                .getOptions()
+                .getDiagnosticsHandler()
+                .error(new StringDiagnostic(checkResult.getMessage()));
+            throw new RuntimeException(checkResult.getMessage());
+          }
+          if (!checkResult.isOk()) {
+            command
+                .getOptions()
+                .getDiagnosticsHandler()
+                .warning(new StringDiagnostic(checkResult.getMessage()));
+          }
+        } catch (IOException e) {
+          command.getOptions().getDiagnosticsHandler().error(new ExceptionDiagnostic(e));
+          throw new RuntimeException(e);
+        }
+        return;
+      }
+      timing.begin("Read proguard map");
       DiagnosticsHandler diagnosticsHandler = options.getDiagnosticsHandler();
       // The setup of a retracer should likely also follow a builder pattern instead of having
       // static create methods. That would avoid the need to method overload the construction here
