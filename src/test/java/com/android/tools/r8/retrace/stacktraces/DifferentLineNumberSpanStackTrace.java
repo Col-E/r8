@@ -21,24 +21,33 @@ public class DifferentLineNumberSpanStackTrace implements StackTraceForTest {
   public String mapping() {
     return StringUtils.lines(
         "com.android.tools.r8.naming.retrace.Main -> a:",
-        "  1:1:void method1(java.lang.String):42:44 -> a");
+        "  void method1(java.lang.String):42:44 -> a");
   }
 
   @Override
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        // TODO(b/201042571): Should be ambiguous or have line number removed
-        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)");
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:43)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:44)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
+        "There are 3 ambiguous stack traces.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
-            // TODO(b/201042571): Should be ambiguous or have line number removed
-            + " method1(java.lang.String)(Main.java:42)");
+            + " method1(java.lang.String)(Main.java:42)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void"
+            + " method1(java.lang.String)(Main.java:43)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void"
+            + " method1(java.lang.String)(Main.java:44)");
   }
 
   @Override

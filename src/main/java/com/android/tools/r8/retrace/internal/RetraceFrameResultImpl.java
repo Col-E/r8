@@ -20,6 +20,7 @@ import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.OptionalUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -65,11 +66,15 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       }
       List<MappedRange> methodRanges = mappedRanges.get(0).getSecond();
       if (methodRanges != null && !methodRanges.isEmpty()) {
-        MappedRange lastRange = methodRanges.get(0);
+        MappedRange initialRange = methodRanges.get(0);
         for (MappedRange mappedRange : methodRanges) {
-          if (mappedRange != lastRange
+          if (isMappedRangeAmbiguous(mappedRange)) {
+            isAmbiguousCache = OptionalBool.TRUE;
+            return true;
+          }
+          if (mappedRange != initialRange
               && (mappedRange.minifiedRange == null
-                  || !mappedRange.minifiedRange.equals(lastRange.minifiedRange))) {
+                  || !mappedRange.minifiedRange.equals(initialRange.minifiedRange))) {
             isAmbiguousCache = OptionalBool.TRUE;
             return true;
           }
@@ -79,6 +84,16 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
     assert !isAmbiguousCache.isUnknown();
     return isAmbiguousCache.isTrue();
+  }
+
+  private boolean isMappedRangeAmbiguous(MappedRange mappedRange) {
+    if (mappedRange.originalRange == null || mappedRange.originalRange.span() == 1) {
+      // If there is no original position or all maps to a single position, the result is not
+      // ambiguous.
+      return false;
+    }
+    return mappedRange.minifiedRange == null
+        || mappedRange.minifiedRange.span() != mappedRange.originalRange.span();
   }
 
   @Override
@@ -98,8 +113,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                                 classElement.getRetracedClass().getClassReference())),
                         ImmutableList.of(),
                         obfuscatedPosition,
-                        retracer,
-                        context));
+                        retracer));
               }
               // Iterate over mapped ranges that may have different positions than specified.
               List<ElementImpl> ambiguousFrames = new ArrayList<>();
@@ -109,50 +123,100 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
                 MappedRange mappedRange = mappedRanges.get(i);
                 if (minifiedRange == null || !minifiedRange.equals(mappedRange.minifiedRange)) {
                   // This is a new frame
-                  ambiguousFrames.add(
-                      elementFromMappedRanges(mappedRangesForElement, classElement));
+                  separateAmbiguousOriginalPositions(
+                      classElement, mappedRangesForElement, ambiguousFrames);
                   mappedRangesForElement = new ArrayList<>();
+                  minifiedRange = mappedRange.minifiedRange;
                 }
                 mappedRangesForElement.add(mappedRange);
               }
-              ambiguousFrames.add(elementFromMappedRanges(mappedRangesForElement, classElement));
+              separateAmbiguousOriginalPositions(
+                  classElement, mappedRangesForElement, ambiguousFrames);
               return ambiguousFrames.stream();
             });
   }
 
+  private void separateAmbiguousOriginalPositions(
+      RetraceClassElementImpl classElement,
+      List<MappedRange> frames,
+      List<ElementImpl> allAmbiguousElements) {
+    // We have a single list of frames where minified positional information may produce ambiguous
+    // results.
+    if (!isAmbiguous() || !isMappedRangeAmbiguous(frames.get(0))) {
+      allAmbiguousElements.add(
+          elementFromMappedRanges(
+              ListUtils.map(frames, MappedRangeForFrame::create), classElement));
+      return;
+    }
+    assert frames.size() > 0;
+    assert frames.get(0).originalRange != null
+        && frames.get(0).originalRange.to > frames.get(0).originalRange.from;
+    List<List<MappedRangeForFrame>> newFrames = new ArrayList<>();
+    ListUtils.forEachWithIndex(
+        frames,
+        (frame, index) -> {
+          // Only the top inline can give rise to ambiguity since the remaining inline frames will
+          // have a single line number.
+          if (index == 0) {
+            for (int i = frame.originalRange.from; i <= frame.originalRange.to; i++) {
+              List<MappedRangeForFrame> ambiguousFrames = new ArrayList<>();
+              ambiguousFrames.add(MappedRangeForFrame.create(frame, OptionalInt.of(i)));
+              newFrames.add(ambiguousFrames);
+            }
+          } else {
+            newFrames.forEach(
+                ambiguousFrames -> {
+                  ambiguousFrames.add(MappedRangeForFrame.create(frame));
+                });
+          }
+        });
+    newFrames.forEach(
+        ambiguousFrames -> {
+          allAmbiguousElements.add(elementFromMappedRanges(ambiguousFrames, classElement));
+        });
+  }
+
   private ElementImpl elementFromMappedRanges(
-      List<MappedRange> mappedRangesForElement, RetraceClassElementImpl classElement) {
-    MappedRange topFrame = mappedRangesForElement.get(0);
+      List<MappedRangeForFrame> mappedRangesForElement, RetraceClassElementImpl classElement) {
+    MappedRangeForFrame topFrame = mappedRangesForElement.get(0);
     MethodReference methodReference =
         methodReferenceFromMappedRange(
-            topFrame, classElement.getRetracedClass().getClassReference());
+            topFrame.mappedRange, classElement.getRetracedClass().getClassReference());
     return new ElementImpl(
         this,
         classElement,
         getRetracedMethod(methodReference, topFrame, obfuscatedPosition),
         mappedRangesForElement,
         obfuscatedPosition,
-        retracer,
-        context);
+        retracer);
   }
 
   private RetracedMethodReferenceImpl getRetracedMethod(
-      MethodReference methodReference, MappedRange mappedRange, OptionalInt obfuscatedPosition) {
-    if (mappedRange.minifiedRange == null
-        || (obfuscatedPosition.orElse(-1) == -1 && !isAmbiguous())) {
+      MethodReference methodReference,
+      MappedRangeForFrame mappedRangeForFrame,
+      OptionalInt obfuscatedPosition) {
+    MappedRange mappedRange = mappedRangeForFrame.mappedRange;
+    OptionalInt originalPosition = mappedRangeForFrame.position;
+    if (!isAmbiguous()
+        && (mappedRange.minifiedRange == null || obfuscatedPosition.orElse(-1) == -1)) {
       int originalLineNumber = mappedRange.getFirstLineNumberOfOriginalRange();
       if (originalLineNumber > 0) {
-        return RetracedMethodReferenceImpl.create(methodReference, originalLineNumber);
+        return RetracedMethodReferenceImpl.create(
+            methodReference, OptionalUtils.orElse(originalPosition, originalLineNumber));
       } else {
-        return RetracedMethodReferenceImpl.create(methodReference);
+        return RetracedMethodReferenceImpl.create(methodReference, originalPosition);
       }
     }
     if (!obfuscatedPosition.isPresent()
+        || mappedRange.minifiedRange == null
         || !mappedRange.minifiedRange.contains(obfuscatedPosition.getAsInt())) {
-      return RetracedMethodReferenceImpl.create(methodReference);
+      return RetracedMethodReferenceImpl.create(methodReference, originalPosition);
     }
     return RetracedMethodReferenceImpl.create(
-        methodReference, mappedRange.getOriginalLineNumber(obfuscatedPosition.getAsInt()));
+        methodReference,
+        OptionalUtils.orElseGet(
+            originalPosition,
+            () -> mappedRange.getOriginalLineNumber(obfuscatedPosition.getAsInt())));
   }
 
   public static class ElementImpl implements RetraceFrameElement {
@@ -160,33 +224,30 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     private final RetracedMethodReferenceImpl methodReference;
     private final RetraceFrameResultImpl retraceFrameResult;
     private final RetraceClassElementImpl classElement;
-    private final List<MappedRange> mappedRanges;
+    private final List<MappedRangeForFrame> mappedRanges;
     private final OptionalInt obfuscatedPosition;
     private final RetracerImpl retracer;
-    private final RetraceStackTraceContextImpl context;
 
     ElementImpl(
         RetraceFrameResultImpl retraceFrameResult,
         RetraceClassElementImpl classElement,
         RetracedMethodReferenceImpl methodReference,
-        List<MappedRange> mappedRanges,
+        List<MappedRangeForFrame> mappedRanges,
         OptionalInt obfuscatedPosition,
-        RetracerImpl retracer,
-        RetraceStackTraceContextImpl context) {
+        RetracerImpl retracer) {
       this.methodReference = methodReference;
       this.retraceFrameResult = retraceFrameResult;
       this.classElement = classElement;
       this.mappedRanges = mappedRanges;
       this.obfuscatedPosition = obfuscatedPosition;
       this.retracer = retracer;
-      this.context = context;
     }
 
     private boolean isOuterMostFrameCompilerSynthesized() {
       if (mappedRanges == null || mappedRanges.isEmpty()) {
         return false;
       }
-      return ListUtils.last(mappedRanges).isCompilerSynthesized();
+      return ListUtils.last(mappedRanges).mappedRange.isCompilerSynthesized();
     }
 
     /**
@@ -246,7 +307,8 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
           context == null
               ? RetraceStackTraceCurrentEvaluationInformation.empty()
-              : contextImpl.computeRewritingInformation(mappedRanges);
+              : contextImpl.computeRewritingInformation(
+                  ListUtils.map(mappedRanges, MappedRangeForFrame::getMappedRange));
       int index = 0;
       int numberOfFramesToRemove = currentFrameInformation.getRemoveInnerFrames();
       int totalNumberOfFrames =
@@ -298,17 +360,47 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       return outerFrames;
     }
 
-    private RetracedMethodReferenceImpl getMethodReferenceFromMappedRange(MappedRange mappedRange) {
+    private RetracedMethodReferenceImpl getMethodReferenceFromMappedRange(
+        MappedRangeForFrame mappedRangeForFrame) {
       MethodReference methodReference =
           methodReferenceFromMappedRange(
-              mappedRange, classElement.getRetracedClass().getClassReference());
-      return retraceFrameResult.getRetracedMethod(methodReference, mappedRange, obfuscatedPosition);
+              mappedRangeForFrame.getMappedRange(),
+              classElement.getRetracedClass().getClassReference());
+      return retraceFrameResult.getRetracedMethod(
+          methodReference, mappedRangeForFrame, obfuscatedPosition);
     }
 
     @Override
     public RetraceStackTraceContext getContext() {
       // This will change when supporting outline frames.
       return RetraceStackTraceContext.empty();
+    }
+  }
+
+  private static class MappedRangeForFrame {
+
+    private final MappedRange mappedRange;
+    private final OptionalInt position;
+
+    private MappedRangeForFrame(MappedRange mappedRange, OptionalInt position) {
+      this.mappedRange = mappedRange;
+      this.position = position;
+    }
+
+    private MappedRange getMappedRange() {
+      return mappedRange;
+    }
+
+    private static MappedRangeForFrame create(MappedRange mappedRange) {
+      return create(
+          mappedRange,
+          mappedRange.originalRange == null || mappedRange.originalRange.span() != 1
+              ? OptionalInt.empty()
+              : OptionalInt.of(mappedRange.originalRange.from));
+    }
+
+    private static MappedRangeForFrame create(MappedRange mappedRange, OptionalInt position) {
+      return new MappedRangeForFrame(mappedRange, position);
     }
   }
 }

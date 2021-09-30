@@ -23,8 +23,7 @@ import com.android.tools.r8.retrace.stacktraces.AmbiguousMethodVerboseStackTrace
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousWithMultipleLineMappingsStackTrace;
-import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureNonVerboseStackTrace;
-import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureVerboseStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousWithSignatureStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AutoStackTrace;
 import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ColonInFileNameStackTrace;
@@ -177,8 +176,8 @@ public class RetraceTests extends TestBase {
   }
 
   @Test
-  public void testAmbiguousMissingLineNotVerbose() throws Exception {
-    runRetraceTest(new AmbiguousWithSignatureNonVerboseStackTrace());
+  public void testAmbiguousMissingLine() throws Exception {
+    runRetraceTest(new AmbiguousWithSignatureStackTrace());
   }
 
   @Test
@@ -305,11 +304,6 @@ public class RetraceTests extends TestBase {
   @Test
   public void testVerboseUnknownMethod() throws Exception {
     runRetraceTest(new VerboseUnknownStackTrace());
-  }
-
-  @Test
-  public void testAmbiguousMissingLineVerbose() throws Exception {
-    runRetraceTest(new AmbiguousWithSignatureVerboseStackTrace());
   }
 
   @Test

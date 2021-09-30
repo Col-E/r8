@@ -27,17 +27,19 @@ public class MultipleOriginalLinesNoLineNumberStackTrace implements StackTraceFo
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "Exception in thread \"main\" java.lang.NullPointerException",
-        // TODO(b/201042571): Should not report a line number
-        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java:42)");
+        "\tat com.android.tools.r8.naming.retrace.Main.method1(Main.java)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
+        "There are 2 ambiguous stack traces.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
-            // TODO(b/201042571): Should not report a line number
-            + " method1(java.lang.String)(Main.java:42)");
+            + " method1(java.lang.String)(Main.java:42)",
+        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
+        "\tat com.android.tools.r8.naming.retrace.Main.void"
+            + " method1(java.lang.String)(Main.java:43)");
   }
 
   @Override

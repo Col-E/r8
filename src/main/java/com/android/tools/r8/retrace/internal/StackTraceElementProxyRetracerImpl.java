@@ -125,7 +125,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                     .builder()
                                     .setRetracedClass(method.getHolderClass())
                                     .setRetracedMethod(method)
-                                    .joinAmbiguous(frameResult.isAmbiguous() && isTopFrame)
+                                    .joinAmbiguous(frameResult.isAmbiguous())
                                     .setTopFrame(isTopFrame)
                                     .setContext(frameElement.getContext())
                                     .applyIf(

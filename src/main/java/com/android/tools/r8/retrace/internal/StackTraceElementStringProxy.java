@@ -237,10 +237,16 @@ public final class StackTraceElementStringProxy
           new StringIndex(
               startIndex,
               endIndex,
-              (retraced, original, verbose) ->
-                  (retraced.hasLineNumber()
-                      ? ((insertSeparatorForRetraced ? ":" : "") + retraced.getLineNumber())
-                      : original.lineNumberAsString()));
+              (retraced, original, verbose) -> {
+                boolean printLineNumber =
+                    retraced.hasLineNumber()
+                        && ((original.hasLineNumber() && original.getLineNumber() > -1)
+                            || !retraced.isAmbiguous()
+                            || verbose);
+                return printLineNumber
+                    ? ((insertSeparatorForRetraced ? ":" : "") + retraced.getLineNumber())
+                    : original.lineNumberAsString();
+              });
       orderedIndices.add(lineNumber);
       return this;
     }

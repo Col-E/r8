@@ -428,7 +428,6 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     private MappedRange(
         Range minifiedRange, MethodSignature signature, Range originalRange, String renamedName) {
-
       this.minifiedRange = minifiedRange;
       this.signature = signature;
       this.originalRange = originalRange;

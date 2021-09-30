@@ -49,6 +49,13 @@ public class Range {
     return from == range.from && to == range.to && isCardinal == range.isCardinal;
   }
 
+  public int span() {
+    if (isCardinal) {
+      return 1;
+    }
+    return (to - from) + 1;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(from, to, isCardinal);

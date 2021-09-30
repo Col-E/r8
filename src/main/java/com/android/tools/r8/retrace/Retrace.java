@@ -483,14 +483,19 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
               one,
               other,
               RetraceStackTraceElementProxy::hasSourceFile,
-              RetraceStackTraceElementProxy::getSourceFile)
-          // TODO(b/201042571): This will have to change.
-          || testNotEqualProperty(
-              one,
-              other,
-              RetraceStackTraceElementProxy::hasLineNumber,
-              RetraceStackTraceElementProxy::getLineNumber)) {
+              RetraceStackTraceElementProxy::getSourceFile)) {
         return false;
+      }
+      assert one.getOriginalItem() == other.getOriginalItem();
+      if (isVerbose
+          || (one.getOriginalItem().hasLineNumber() && one.getOriginalItem().getLineNumber() > 0)) {
+        if (testNotEqualProperty(
+            one,
+            other,
+            RetraceStackTraceElementProxy::hasLineNumber,
+            RetraceStackTraceElementProxy::getLineNumber)) {
+          return false;
+        }
       }
       if (one.hasRetracedMethod() != other.hasRetracedMethod()) {
         return false;

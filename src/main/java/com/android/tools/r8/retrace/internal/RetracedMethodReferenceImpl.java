@@ -12,10 +12,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 public abstract class RetracedMethodReferenceImpl implements RetracedMethodReference {
 
-  private static final int NO_POSITION = -1;
   private static final Comparator<RetracedMethodReference> comparator =
       Comparator.comparing(RetracedMethodReference::getMethodName)
           .thenComparing(RetracedMethodReference::isKnown)
@@ -34,7 +34,21 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
                       ComparatorUtils.listComparator(
                           Comparator.comparing(TypeReference::getTypeName))));
 
-  private RetracedMethodReferenceImpl() {}
+  protected final OptionalInt position;
+
+  private RetracedMethodReferenceImpl(OptionalInt position) {
+    this.position = position;
+  }
+
+  @Override
+  public boolean hasPosition() {
+    return position.isPresent();
+  }
+
+  @Override
+  public int getOriginalPositionOrDefault(int defaultPosition) {
+    return position.orElse(defaultPosition);
+  }
 
   @Override
   public boolean isUnknown() {
@@ -60,12 +74,12 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
       implements KnownRetracedMethodReference {
 
     private final MethodReference methodReference;
-    private final int position;
 
-    private KnownRetracedMethodReferenceImpl(MethodReference methodReference, int position) {
+    private KnownRetracedMethodReferenceImpl(
+        MethodReference methodReference, OptionalInt position) {
+      super(position);
       assert methodReference != null;
       this.methodReference = methodReference;
-      this.position = position;
     }
 
     @Override
@@ -91,16 +105,6 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
     @Override
     public String getMethodName() {
       return methodReference.getMethodName();
-    }
-
-    @Override
-    public boolean hasPosition() {
-      return position != NO_POSITION;
-    }
-
-    @Override
-    public int getOriginalPositionOrDefault(int defaultPosition) {
-      return hasPosition() ? position : defaultPosition;
     }
 
     @Override
@@ -140,11 +144,11 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
   public static final class UnknownRetracedMethodReferenceImpl extends RetracedMethodReferenceImpl {
 
     private final MethodDefinition methodDefinition;
-    private final int position;
 
-    private UnknownRetracedMethodReferenceImpl(MethodDefinition methodDefinition, int position) {
+    private UnknownRetracedMethodReferenceImpl(
+        MethodDefinition methodDefinition, OptionalInt position) {
+      super(position);
       this.methodDefinition = methodDefinition;
-      this.position = position;
     }
 
     @Override
@@ -157,16 +161,6 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
       return methodDefinition.getName();
     }
 
-    @Override
-    public boolean hasPosition() {
-      return position != NO_POSITION;
-    }
-
-    @Override
-    public int getOriginalPositionOrDefault(int defaultPosition) {
-      return hasPosition() ? position : defaultPosition;
-    }
-
     public Optional<MethodReference> getMethodReference() {
       if (!methodDefinition.isFullMethodDefinition()) {
         return Optional.empty();
@@ -176,22 +170,19 @@ public abstract class RetracedMethodReferenceImpl implements RetracedMethodRefer
   }
 
   static RetracedMethodReferenceImpl create(MethodDefinition methodDefinition) {
-    return create(methodDefinition, NO_POSITION);
+    if (methodDefinition.isFullMethodDefinition()) {
+      return create(
+          methodDefinition.asFullMethodDefinition().getMethodReference(), OptionalInt.empty());
+    }
+    return new UnknownRetracedMethodReferenceImpl(methodDefinition, OptionalInt.empty());
   }
 
-  static RetracedMethodReferenceImpl create(MethodDefinition methodDefinition, int position) {
-    if (methodDefinition.isFullMethodDefinition()) {
-      return new KnownRetracedMethodReferenceImpl(
-          methodDefinition.asFullMethodDefinition().getMethodReference(), position);
-    }
-    return new UnknownRetracedMethodReferenceImpl(methodDefinition, position);
-  }
 
   static RetracedMethodReferenceImpl create(MethodReference methodReference) {
-    return create(methodReference, NO_POSITION);
+    return create(methodReference, OptionalInt.empty());
   }
 
-  static RetracedMethodReferenceImpl create(MethodReference methodReference, int position) {
+  static RetracedMethodReferenceImpl create(MethodReference methodReference, OptionalInt position) {
     return new KnownRetracedMethodReferenceImpl(methodReference, position);
   }
 }
