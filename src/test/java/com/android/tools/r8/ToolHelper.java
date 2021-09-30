@@ -2127,12 +2127,6 @@ public class ToolHelper {
     return builder;
   }
 
-  public static R8Command.Builder allowPartiallyImplementedProguardOptions(
-      R8Command.Builder builder) {
-    builder.allowPartiallyImplementedProguardOptions();
-    return builder;
-  }
-
   public static R8Command.Builder allowTestProguardOptions(R8Command.Builder builder) {
     builder.allowTestProguardOptions();
     return builder;

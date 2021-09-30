@@ -154,7 +154,6 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
       builder.setMode(mode);
       builder.setProgramConsumer(dexIndexedConsumerSupplier.get());
       builder.setMinApiLevel(AndroidApiLevel.L.getLevel());
-      ToolHelper.allowPartiallyImplementedProguardOptions(builder);
       ToolHelper.addProguardConfigurationConsumer(
           builder,
           pgConfig -> {

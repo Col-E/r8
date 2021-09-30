@@ -47,7 +47,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -109,12 +108,10 @@ public final class R8Command extends BaseCompilerCommand {
     private StringConsumer proguardConfigurationConsumer = null;
     private GraphConsumer keptGraphConsumer = null;
     private GraphConsumer mainDexKeptGraphConsumer = null;
-    private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
     private String synthesizedClassPrefix = "";
     private boolean skipDump = false;
 
-    private boolean allowPartiallyImplementedProguardOptions = false;
     private boolean allowTestProguardOptions =
         System.getProperty("com.android.tools.r8.allowTestProguardOptions") != null;
 
@@ -612,11 +609,6 @@ public final class R8Command extends BaseCompilerCommand {
               ? consumer
               : syntheticProguardRulesConsumer.andThen(consumer);
 
-    }
-
-    // Internal for-testing method to add post-processors of the proguard configuration.
-    void allowPartiallyImplementedProguardOptions() {
-      allowPartiallyImplementedProguardOptions = true;
     }
 
     // Internal for-testing method to allow proguard options only available for testing.
