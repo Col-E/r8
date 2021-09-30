@@ -22,7 +22,7 @@ def main():
   upstream = subprocess.check_output(['git', 'cl', 'upstream']).strip()
   git_diff_process = Popen(['git', 'diff', '-U0', upstream], stdout=PIPE)
   fmt_process = Popen(
-      ['python', GOOGLE_JAVA_FORMAT_DIFF, '-p1', '-i'],
+      [sys.executable, GOOGLE_JAVA_FORMAT_DIFF, '-p1', '-i'],
       stdin=git_diff_process.stdout)
   git_diff_process.stdout.close()
   fmt_process.communicate()
