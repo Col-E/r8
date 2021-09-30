@@ -783,15 +783,10 @@ public class MethodOptimizationInfoCollector {
       OptimizationFeedback feedback,
       Timing timing) {
     timing.begin("Compute class inlining constraint");
-    computeClassInlinerMethodConstraint(method, code, feedback);
-    timing.end();
-  }
-
-  private void computeClassInlinerMethodConstraint(
-      ProgramMethod method, IRCode code, OptimizationFeedback feedback) {
     ClassInlinerMethodConstraint classInlinerMethodConstraint =
-        ClassInlinerMethodConstraintAnalysis.analyze(appView, method, code);
+        ClassInlinerMethodConstraintAnalysis.analyze(appView, method, code, timing);
     feedback.setClassInlinerMethodConstraint(method, classInlinerMethodConstraint);
+    timing.end();
   }
 
   private void computeEnumUnboxerMethodClassification(

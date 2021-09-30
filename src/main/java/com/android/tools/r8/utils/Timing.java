@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
+import java.util.function.Supplier;
 
 public class Timing {
 
@@ -368,6 +369,15 @@ public class Timing {
       parent.children.put(title, child);
     }
     stack.push(child);
+  }
+
+  public <T> T time(String title, Supplier<T> supplier) {
+    begin(title);
+    try {
+      return supplier.get();
+    } finally {
+      end();
+    }
   }
 
   public void end() {

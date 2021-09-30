@@ -12,11 +12,12 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ConditionalClassInlinerMethodConstraint;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 
 public class ClassInlinerMethodConstraintAnalysis {
 
   public static ClassInlinerMethodConstraint analyze(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod method, IRCode code) {
+      AppView<AppInfoWithLiveness> appView, ProgramMethod method, IRCode code, Timing timing) {
     if (method.getDefinition().isClassInitializer()
         || method.getDefinition().getNumberOfArguments() == 0) {
       return ClassInlinerMethodConstraint.alwaysFalse();
@@ -27,11 +28,13 @@ public class ClassInlinerMethodConstraintAnalysis {
         new IntraproceduralDataflowAnalysis<>(
             ParameterUsages.bottom(), new TransferFunction(appView, method, code));
     SuccessfulDataflowAnalysisResult<ParameterUsages> result =
-        analysis.run(code.entryBlock()).asSuccessfulAnalysisResult();
+        timing.time(
+            "Data flow analysis",
+            () -> analysis.run(code.entryBlock(), timing).asSuccessfulAnalysisResult());
     if (result == null) {
       return ClassInlinerMethodConstraint.alwaysFalse();
     }
-    ParameterUsages usages = result.join().externalize();
+    ParameterUsages usages = timing.time("Externalize", () -> result.join().externalize());
     if (usages.isBottom()) {
       return ClassInlinerMethodConstraint.alwaysTrue();
     }
