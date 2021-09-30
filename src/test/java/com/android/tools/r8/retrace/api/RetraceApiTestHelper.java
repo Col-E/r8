@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.Collectors;
+import com.android.tools.r8.CollectorsUtils;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -82,7 +82,7 @@ public class RetraceApiTestHelper {
     String junitPath =
         Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
             .filter(cp -> cp.endsWith(JUNIT_JAR))
-            .collect(Collectors.toSingle());
+            .collect(CollectorsUtils.toSingle());
     return Paths.get(junitPath);
   }
 
@@ -90,7 +90,7 @@ public class RetraceApiTestHelper {
     String junitPath =
         Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator))
             .filter(cp -> cp.endsWith(HAMCREST))
-            .collect(Collectors.toSingle());
+            .collect(CollectorsUtils.toSingle());
     return Paths.get(junitPath);
   }
 

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static com.android.tools.r8.Collectors.toSingle;
+import static com.android.tools.r8.CollectorsUtils.toSingle;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

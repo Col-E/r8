@@ -32,15 +32,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceApiBinaryCompatibilityTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public RetraceApiBinaryCompatibilityTest(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   private static final Path BINARY_COMPATIBILITY_JAR =

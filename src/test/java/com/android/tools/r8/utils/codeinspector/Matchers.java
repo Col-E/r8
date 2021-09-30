@@ -8,7 +8,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.Collectors;
+import com.android.tools.r8.CollectorsUtils;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.errors.Unreachable;
@@ -586,7 +586,7 @@ public class Matchers {
     return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
       protected boolean matchesSafely(RetraceFrameResult item) {
-        RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
+        RetraceFrameElement single = item.stream().collect(CollectorsUtils.toSingle());
         Box<LinePosition> currentPosition = new Box<>(startPosition);
         Box<Boolean> returnValue = new Box<>();
         single.stream()
@@ -627,7 +627,7 @@ public class Matchers {
     return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override
       protected boolean matchesSafely(RetraceFrameResult item) {
-        RetraceFrameElement single = item.stream().collect(Collectors.toSingle());
+        RetraceFrameElement single = item.stream().collect(CollectorsUtils.toSingle());
         return !single.stream()
             .anyMatch(
                 frame -> {

@@ -1,0 +1,101 @@
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+package com.android.tools.r8.compilerapi;
+
+import static com.android.tools.r8.ToolHelper.R8LIB_JAR;
+import static com.android.tools.r8.ToolHelper.R8_JAR;
+import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
+
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+import org.junit.rules.TemporaryFolder;
+
+/** Collection of API tests for the D8/R8 compilers. */
+public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection<CompilerApiTest> {
+
+  private static final String DIRNAME = "compiler_api_tests";
+  private static final Path BINARY_COMPATIBILITY_JAR =
+      Paths.get(ToolHelper.THIRD_PARTY_DIR, "binary_compatibility_tests", DIRNAME, "tests.jar");
+
+  private static final List<Class<? extends CompilerApiTest>> CLASSES_FOR_BINARY_COMPATIBILITY =
+      ImmutableList.of(ApiTestingSetUpTest.ApiTest.class);
+
+  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
+      ImmutableList.of(
+          // No pending APIs.
+          );
+
+  private final TemporaryFolder temp;
+
+  public CompilerApiTestCollection(TemporaryFolder temp) {
+    this.temp = temp;
+  }
+
+  @Override
+  public TemporaryFolder getTemp() {
+    return temp;
+  }
+
+  @Override
+  public List<Class<? extends CompilerApiTest>> getCheckedInTestClasses() {
+    return CLASSES_FOR_BINARY_COMPATIBILITY;
+  }
+
+  @Override
+  public List<Class<? extends CompilerApiTest>> getPendingTestClasses() {
+    return CLASSES_PENDING_BINARY_COMPATIBILITY;
+  }
+
+  @Override
+  public List<Class<?>> getAdditionalClassesForTests() {
+    return ImmutableList.of(CompilerApiTest.class);
+  }
+
+  @Override
+  public Path getCheckedInTestJar() {
+    return BINARY_COMPATIBILITY_JAR;
+  }
+
+  // The API tests always link against the jar that the test runner is using.
+  public Path getTargetJar() {
+    return isTestingR8Lib() ? R8LIB_JAR : R8_JAR;
+  }
+
+  // Some tests expectations can depend on the lib/nonlib and internal/external behavior.
+  // This sets up envvars so the test can determine its running context.
+  // This is only called for external invocations.
+  public List<String> getVmArgs() {
+    return ImmutableList.of(
+        makeProperty("com.android.tools.r8.enableTestAssertions", "1"),
+        makeProperty(CompilerApiTest.API_TEST_MODE_KEY, CompilerApiTest.API_TEST_MODE_EXTERNAL),
+        makeProperty(
+            CompilerApiTest.API_TEST_LIB_KEY,
+            isTestingR8Lib() ? CompilerApiTest.API_TEST_LIB_YES : CompilerApiTest.API_TEST_LIB_NO));
+  }
+
+  /**
+   * To produce a new tests.jar run the code below. This will generate a new jar overwriting the
+   * existing one. Remember to upload to cloud storage afterwards.
+   */
+  public static void main(String[] args) throws Exception {
+    TemporaryFolder temp = new TemporaryFolder();
+    temp.create();
+    Path jar = new CompilerApiTestCollection(temp).generateJarForCheckedInTestClasses();
+    Files.move(jar, BINARY_COMPATIBILITY_JAR, StandardCopyOption.REPLACE_EXISTING);
+    System.out.println(
+        "Updated file in: "
+            + BINARY_COMPATIBILITY_JAR
+            + "\nRemember to upload to cloud storage:"
+            + "\n(cd third_party/binary_compatibility_tests"
+            + " && upload_to_google_storage.py -a --bucket r8-deps "
+            + DIRNAME
+            + ")");
+  }
+}

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.debuginfo;
 
-import static com.android.tools.r8.Collectors.toSingle;
+import static com.android.tools.r8.CollectorsUtils.toSingle;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;

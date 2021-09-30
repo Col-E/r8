@@ -6,7 +6,7 @@ package com.android.tools.r8;
 
 import java.util.stream.Collector;
 
-public abstract class Collectors {
+public abstract class CollectorsUtils {
 
   public static <T> Collector<T, ?, T> toSingle() {
     return java.util.stream.Collectors.collectingAndThen(
