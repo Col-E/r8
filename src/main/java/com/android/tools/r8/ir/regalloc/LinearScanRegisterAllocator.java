@@ -1640,7 +1640,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
 
     // Set all free positions for possible registers to max integer.
-    RegisterPositions freePositions = new RegisterPositions(registerConstraint + 1);
+    RegisterPositions freePositions = new RegisterPositionsImpl(registerConstraint + 1);
 
     if ((options().debug || code.method().getOptimizationInfo().isReachabilitySensitive())
         && !code.method().accessFlags.isStatic()) {
@@ -1958,13 +1958,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       LiveIntervals unhandledInterval,
       int registerConstraint,
       boolean needsRegisterPair,
-      RegisterPositions freePositions,
+      RegisterPositionsWithExtraBlockedRegisters freePositions,
       RegisterPositions.Type type) {
     if (workaroundNeeded.test(unhandledInterval)) {
       int lastCandidate = candidate;
       while (workaroundNeededForCandidate.test(unhandledInterval, candidate)) {
         // Make the unusable register unavailable for allocation and try again.
-        freePositions.setBlocked(candidate);
+        freePositions.setBlockedTemporarily(candidate);
         candidate =
             getLargestCandidate(
                 unhandledInterval, registerConstraint, freePositions, needsRegisterPair, type);
@@ -1972,7 +1972,16 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         // candidate returned again once we have tried them all. In that case we didn't find a
         // valid register candidate and we need to broaden the search to other types.
         if (lastCandidate == candidate) {
+          assert false
+              : "Unexpected attempt to take blocked register "
+                  + candidate
+                  + " in "
+                  + code.context().toSourceString();
           return REGISTER_CANDIDATE_NOT_FOUND;
+        }
+        // If we did not find a valid register, then give up, and broaden the search to other types.
+        if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
+          return candidate;
         }
         lastCandidate = candidate;
       }
@@ -1992,6 +2001,10 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (candidate == REGISTER_CANDIDATE_NOT_FOUND) {
       return candidate;
     }
+    // Wrap the use positions such that registers blocked by the workarounds are only blocked until
+    // the end of this method.
+    RegisterPositionsWithExtraBlockedRegisters usePositionsWrapper =
+        new RegisterPositionsWithExtraBlockedRegisters(usePositions);
     candidate =
         handleWorkaround(
             this::needsLongResultOverlappingLongOperandsWorkaround,
@@ -2000,7 +2013,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             unhandledInterval,
             registerConstraint,
             needsRegisterPair,
-            usePositions,
+            usePositionsWrapper,
             type);
     candidate =
         handleWorkaround(
@@ -2010,7 +2023,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             unhandledInterval,
             registerConstraint,
             needsRegisterPair,
-            usePositions,
+            usePositionsWrapper,
             type);
     candidate =
         handleWorkaround(
@@ -2020,7 +2033,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             unhandledInterval,
             registerConstraint,
             needsRegisterPair,
-            usePositions,
+            usePositionsWrapper,
             type);
     return candidate;
   }
@@ -2033,8 +2046,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
 
     // Initialize all candidate registers to Integer.MAX_VALUE.
-    RegisterPositions usePositions = new RegisterPositions(registerConstraint + 1);
-    RegisterPositions blockedPositions = new RegisterPositions(registerConstraint + 1);
+    RegisterPositions usePositions = new RegisterPositionsImpl(registerConstraint + 1);
+    RegisterPositions blockedPositions = new RegisterPositionsImpl(registerConstraint + 1);
 
     // Compute next use location for all currently active registers.
     for (LiveIntervals intervals : active) {
@@ -2087,12 +2100,18 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     boolean needsRegisterPair = unhandledInterval.getType().isWide();
 
     // First look for a candidate that can be rematerialized.
-    int candidate = getLargestValidCandidate(unhandledInterval, registerConstraint,
-        needsRegisterPair, usePositions, Type.CONST_NUMBER);
+    int candidate =
+        getLargestValidCandidate(
+            unhandledInterval,
+            registerConstraint,
+            needsRegisterPair,
+            usePositions,
+            Type.CONST_NUMBER);
     if (candidate != Integer.MAX_VALUE) {
       // Look for a non-const, non-monitor candidate.
-      int otherCandidate = getLargestValidCandidate(
-          unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.OTHER);
+      int otherCandidate =
+          getLargestValidCandidate(
+              unhandledInterval, registerConstraint, needsRegisterPair, usePositions, Type.OTHER);
       if (otherCandidate == Integer.MAX_VALUE || candidate == REGISTER_CANDIDATE_NOT_FOUND) {
         candidate = otherCandidate;
       } else {
@@ -2104,6 +2123,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
           candidate = otherCandidate;
         }
       }
+
       // If looking at constants and non-monitor registers did not find a valid spill candidate
       // we allow ourselves to look at monitor spill candidates as well. Registers holding objects
       // used as monitors should not be spilled if we can avoid it. Spilling them can lead

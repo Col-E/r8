@@ -3,18 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.errors.Unreachable;
-import java.util.Arrays;
-import java.util.BitSet;
-
 /**
  * Simple mapping from a register to an int value.
- * <p>
- * The backing for the mapping grows as needed up to a given limit. If no mapping exists for
- * a register number the value is assumed to be Integer.MAX_VALUE.
+ *
+ * <p>The backing for the mapping grows as needed up to a given limit. If no mapping exists for a
+ * register number the value is assumed to be Integer.MAX_VALUE.
  */
-
-public class RegisterPositions {
+public abstract class RegisterPositions {
 
   enum Type {
     MONITOR,
@@ -23,103 +18,22 @@ public class RegisterPositions {
     ANY
   }
 
-  private static final int INITIAL_SIZE = 16;
-  private final int limit;
-  private int[] backing;
-  private final BitSet registerHoldsConstant;
-  private final BitSet registerHoldsMonitor;
-  private final BitSet registerHoldsNewStringInstanceDisallowingSpilling;
-  private final BitSet blockedRegisters;
+  public abstract boolean hasType(int index, Type type);
 
-  public RegisterPositions(int limit) {
-    this.limit = limit;
-    backing = new int[INITIAL_SIZE];
-    for (int i = 0; i < INITIAL_SIZE; i++) {
-      backing[i] = Integer.MAX_VALUE;
-    }
-    registerHoldsConstant = new BitSet(limit);
-    registerHoldsMonitor = new BitSet(limit);
-    registerHoldsNewStringInstanceDisallowingSpilling = new BitSet(limit);
-    blockedRegisters = new BitSet(limit);
-  }
+  public abstract void set(int index, int value, LiveIntervals intervals);
 
-  public boolean hasType(int index, Type type) {
-    assert !isBlocked(index);
-    switch (type) {
-      case MONITOR:
-        return holdsMonitor(index);
-      case CONST_NUMBER:
-        return holdsConstant(index);
-      case OTHER:
-        return !holdsMonitor(index)
-            && !holdsConstant(index)
-            && !holdsNewStringInstanceDisallowingSpilling(index);
-      case ANY:
-        return true;
-      default:
-        throw new Unreachable("Unexpected register position type: " + type);
-    }
-  }
+  public abstract int get(int index);
 
-  private boolean holdsConstant(int index) {
-    return registerHoldsConstant.get(index);
-  }
+  public abstract int getLimit();
 
-  private boolean holdsMonitor(int index) { return registerHoldsMonitor.get(index); }
+  public abstract void setBlocked(int index);
 
-  private boolean holdsNewStringInstanceDisallowingSpilling(int index) {
-    return registerHoldsNewStringInstanceDisallowingSpilling.get(index);
-  }
+  public abstract boolean isBlocked(int index);
 
-  public void set(int index, int value) {
-    if (index >= backing.length) {
-      grow(index + 1);
-    }
-    backing[index] = value;
-  }
-
-  public void set(int index, int value, LiveIntervals intervals) {
-    set(index, value);
-    registerHoldsConstant.set(index, intervals.isConstantNumberInterval());
-    registerHoldsMonitor.set(index, intervals.usedInMonitorOperation());
-    registerHoldsNewStringInstanceDisallowingSpilling.set(
-        index, intervals.isNewStringInstanceDisallowingSpilling());
-  }
-
-  public int get(int index) {
-    assert !isBlocked(index);
-    if (index < backing.length) {
-      return backing[index];
-    }
-    assert index < limit;
-    return Integer.MAX_VALUE;
-  }
-
-  public void setBlocked(int index) {
-    blockedRegisters.set(index);
-  }
-
-  public boolean isBlocked(int index) {
-    return blockedRegisters.get(index);
-  }
-
-  public boolean isBlocked(int index, boolean isWide) {
+  public final boolean isBlocked(int index, boolean isWide) {
     if (isBlocked(index)) {
       return true;
     }
     return isWide && isBlocked(index + 1);
-  }
-
-  public void grow(int minSize) {
-    int size = backing.length;
-    while (size < minSize) {
-      size *= 2;
-    }
-    size = Math.min(size, limit);
-    int oldSize = backing.length;
-    backing = Arrays.copyOf(backing, size);
-    for (int i = oldSize; i < size; i++) {
-      backing[i] = Integer.MAX_VALUE;
-    }
   }
 }
