@@ -15,15 +15,12 @@ public class ConditionalLocalTestRunner extends DebugInfoTestBase {
     Class clazz = ConditionalLocalTest.class;
 
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "42";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkConditonalLocal(inspectMethod(d8App, clazz, "void", "foo", "int"));
-    checkConditonalLocal(inspectMethod(dxApp, clazz, "void", "foo", "int"));
   }
 
   private void checkConditonalLocal(DebugInfoInspector info) {

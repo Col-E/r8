@@ -14,18 +14,15 @@ public class ConstantFoldingTestRunner extends DebugInfoTestBase {
   public void testLocalsInSwitch() throws Exception {
     Class clazz = ConstantFoldingTest.class;
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "42";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
-    checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int"), false);
-    checkFoo(inspectMethod(dxApp, clazz, "int", "foo", "int"), true);
+    checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int"));
   }
 
-  private void checkFoo(DebugInfoInspector info, boolean dx) {
+  private void checkFoo(DebugInfoInspector info) {
     info.checkStartLine(9);
     info.checkLineHasExactLocals(9, "x", "int");
     info.checkNoLine(10);
@@ -33,10 +30,7 @@ public class ConstantFoldingTestRunner extends DebugInfoTestBase {
     info.checkLineHasExactLocals(12, "x", "int", "res", "int", "tmp", "int");
     info.checkNoLine(13);
     info.checkLineHasAtLeastLocals(14, "x", "int");
-    if (!dx) {
-      // DX fails to close the scope of "tmp".
-      info.checkLineHasExactLocals(14, "x", "int", "res", "int");
-    }
+    info.checkLineHasExactLocals(14, "x", "int", "res", "int");
     info.checkNoLine(15);
   }
 }

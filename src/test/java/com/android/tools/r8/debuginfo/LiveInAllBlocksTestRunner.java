@@ -15,24 +15,17 @@ public class LiveInAllBlocksTestRunner extends DebugInfoTestBase {
   public void testLiveInAllBlocks() throws Exception {
     Class clazz = LiveInAllBlocksTest.class;
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "42";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
-    checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int"), false);
-    checkFoo(inspectMethod(dxApp, clazz, "int", "foo", "int"), true);
+    checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int"));
   }
 
-  private void checkFoo(DebugInfoInspector info, boolean dx) {
+  private void checkFoo(DebugInfoInspector info) {
     info.checkStartLine(9);
     for (int line : new int[] {14, 18, 23, 24, 25, 27, 28, 30, 31, 34, 35, 37, 38, 40, 41}) {
-      if (dx && line == 18) {
-        // DX does not keep entry for line 18.
-        continue;
-      }
       info.checkLineHasAtLeastLocals(line, "x", "int", "y", "int");
     }
   }

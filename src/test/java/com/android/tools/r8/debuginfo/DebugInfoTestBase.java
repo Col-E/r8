@@ -26,9 +26,6 @@ import org.junit.rules.TemporaryFolder;
 
 public class DebugInfoTestBase {
 
-  public static final Path DX_PREBUILT =
-      Paths.get(ToolHelper.BUILD_DIR, "test", "debuginfo_examples_dex.jar");
-
   @Rule
   public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
@@ -43,10 +40,6 @@ public class DebugInfoTestBase {
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
     D8.run(builder.setMode(CompilationMode.DEBUG).build());
     return appSink.build();
-  }
-
-  static AndroidApp getDxCompiledSources() throws IOException {
-    return AndroidApp.builder().addProgramFiles(DX_PREBUILT).build();
   }
 
   public static DebugInfoInspector inspectMethod(

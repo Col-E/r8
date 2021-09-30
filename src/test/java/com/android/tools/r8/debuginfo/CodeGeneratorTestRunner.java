@@ -24,12 +24,10 @@ public class CodeGeneratorTestRunner extends DebugInfoTestBase {
     Class clazz = CodeGeneratorTest.class;
 
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "11";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     DebugInfoInspector inspector = inspectMethod(d8App, clazz, "int", "intAddition", "int", "int",
         "int");

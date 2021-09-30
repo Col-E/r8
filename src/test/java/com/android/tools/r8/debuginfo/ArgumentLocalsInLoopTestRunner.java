@@ -14,15 +14,12 @@ public class ArgumentLocalsInLoopTestRunner extends DebugInfoTestBase {
   public void testArgumentLocalsInLoop() throws Exception {
     Class clazz = ArgumentLocalsInLoopTest.class;
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "0";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int"), clazz);
-    checkFoo(inspectMethod(dxApp, clazz, "int", "foo", "int"), clazz);
   }
 
   private void checkFoo(DebugInfoInspector info, Class clazz) {

@@ -15,15 +15,12 @@ public class LocalsAtThrowTestRunner extends DebugInfoTestBase {
     Class clazz = LocalsAtThrowTest.class;
 
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "3";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkLocalsAtThrow(inspectMethod(d8App, clazz, "int", "localsAtThrow", "int"));
-    checkLocalsAtThrow(inspectMethod(dxApp, clazz, "int", "localsAtThrow", "int"));
   }
 
   private void checkLocalsAtThrow(DebugInfoInspector info) {

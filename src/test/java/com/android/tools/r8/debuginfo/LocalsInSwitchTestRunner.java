@@ -16,22 +16,17 @@ public class LocalsInSwitchTestRunner extends DebugInfoTestBase {
     Class clazz = LocalsInSwitchTest.class;
 
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "55" + ToolHelper.LINE_SEPARATOR + "1862" + ToolHelper.LINE_SEPARATOR
             + "15130" + ToolHelper.LINE_SEPARATOR;
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkNoLocals(inspectMethod(d8App, clazz, "int", "noLocals", "int"));
-    checkNoLocals(inspectMethod(dxApp, clazz, "int", "noLocals", "int"));
 
-    checkTempInCase(inspectMethod(d8App, clazz, "int", "tempInCase", "int"), false);
-    checkTempInCase(inspectMethod(dxApp, clazz, "int", "tempInCase", "int"), true);
+    checkTempInCase(inspectMethod(d8App, clazz, "int", "tempInCase", "int"));
 
     checkInitInCases(inspectMethod(d8App, clazz, "int", "initInCases", "int"));
-    checkInitInCases(inspectMethod(dxApp, clazz, "int", "initInCases", "int"));
   }
 
   private void checkNoLocals(DebugInfoInspector info) {
@@ -42,7 +37,7 @@ public class LocalsInSwitchTestRunner extends DebugInfoTestBase {
     info.checkLineHasExactLocals(15, "x", "int");
   }
 
-  private void checkTempInCase(DebugInfoInspector tempInCase, boolean dx) {
+  private void checkTempInCase(DebugInfoInspector tempInCase) {
     // int res =
     tempInCase.checkStartLine(20);
     tempInCase.checkLineHasExactLocals(20, "x", "int");
@@ -52,17 +47,11 @@ public class LocalsInSwitchTestRunner extends DebugInfoTestBase {
     //   int rem =
     tempInCase.checkLineHasExactLocals(22, "x", "int", "res", "int", "i", "int");
     //   switch (rem) {
-    if (!dx) {
-      // DX contains several entries for 23, one of which does not define 'rem'. Go figure...
-      tempInCase.checkLineHasExactLocals(23, "x", "int", "res", "int", "i", "int", "rem", "int");
-    }
+    tempInCase.checkLineHasExactLocals(23, "x", "int", "res", "int", "i", "int", "rem", "int");
     //   case 0:
     tempInCase.checkNoLine(24);
     //     return res
-    if (!dx) {
-      // DX does not produce a position at the return statement. Good stuff.
-      tempInCase.checkLineHasExactLocals(25, "x", "int", "res", "int", "i", "int", "rem", "int");
-    }
+    tempInCase.checkLineHasExactLocals(25, "x", "int", "res", "int", "i", "int", "rem", "int");
     //   case 5:
     tempInCase.checkNoLine(26);
     //     int tmp =
@@ -90,14 +79,9 @@ public class LocalsInSwitchTestRunner extends DebugInfoTestBase {
     // }
     tempInCase.checkNoLine(37);
     // res *= x;
-    if (!dx) {
-      // DX fails to end the scope of "i" after the loop.
-      tempInCase.checkLineHasExactLocals(38, "x", "int", "res", "int");
-    }
+    tempInCase.checkLineHasExactLocals(38, "x", "int", "res", "int");
     // return res;
-    if (!dx) {
-      tempInCase.checkLineHasExactLocals(39, "x", "int", "res", "int");
-    }
+    tempInCase.checkLineHasExactLocals(39, "x", "int", "res", "int");
   }
 
   private void checkInitInCases(DebugInfoInspector info) {

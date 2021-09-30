@@ -16,15 +16,12 @@ public class ExceptionLocalTestRunner extends DebugInfoTestBase {
     Class clazz = ExceptionLocalTest.class;
 
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "2";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkExceptionLocal(inspectMethod(d8App, clazz, "void", "foo", "int"));
-    checkExceptionLocal(inspectMethod(dxApp, clazz, "void", "foo", "int"));
   }
 
   private void checkExceptionLocal(DebugInfoInspector info) {

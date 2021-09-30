@@ -14,27 +14,21 @@ public class LocalSwapTestRunner extends DebugInfoTestBase {
   public void testLocalSwap() throws Exception {
     Class clazz = LocalSwapTest.class;
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "6";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
-    checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int", "int"), false);
-    checkFoo(inspectMethod(dxApp, clazz, "int", "foo", "int", "int"), true);
+    checkFoo(inspectMethod(d8App, clazz, "int", "foo", "int", "int"));
   }
 
-  private void checkFoo(DebugInfoInspector info, boolean dx) {
+  private void checkFoo(DebugInfoInspector info) {
     info.checkStartLine(9);
     info.checkLineHasExactLocals(9, "x", "int", "y", "int");
     info.checkLineHasExactLocals(11, "x", "int", "y", "int", "sum", "int");
     info.checkLineHasExactLocals(12, "x", "int", "y", "int", "sum", "int", "t", "int");
     info.checkLineExists(13);
     info.checkLineExists(15);
-    if (!dx) {
-      // DX fails to close the scope of local "t".
-      info.checkLineHasExactLocals(15, "x", "int", "y", "int", "sum", "int");
-    }
+    info.checkLineHasExactLocals(15, "x", "int", "y", "int", "sum", "int");
   }
 }

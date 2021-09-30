@@ -15,15 +15,12 @@ public class BackBranchToSelfTestRunner extends DebugInfoTestBase {
     Class clazz = BackBranchToSelfTest.class;
 
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "42";
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkBackBranchToSelf(inspectMethod(d8App, clazz, "int", "backBranchToSelf", "boolean"));
-    checkBackBranchToSelf(inspectMethod(dxApp, clazz, "int", "backBranchToSelf", "boolean"));
   }
 
   private void checkBackBranchToSelf(DebugInfoInspector info) {

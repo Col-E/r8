@@ -25,26 +25,18 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
   @Test
   public void testSynchronizedMethod() throws Exception {
     AndroidApp d8App = compileWithD8(clazz);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = StringUtils.lines("42", "42", "2", "2");
     assertEquals(expected, runOnJava(clazz));
     assertEquals(expected, runOnArt(d8App, clazz.getCanonicalName()));
-    assertEquals(expected, runOnArt(dxApp, clazz.getCanonicalName()));
 
     checkSyncStatic(inspectMethod(d8App, clazz, "int", "syncStatic", "int"));
-    checkSyncStatic(inspectMethod(dxApp, clazz, "int", "syncStatic", "int"));
 
     checkSyncInstance(inspectMethod(d8App, clazz, "int", "syncInstance", "int"));
-    checkSyncInstance(inspectMethod(dxApp, clazz, "int", "syncInstance", "int"));
 
-    checkThrowing(inspectMethod(d8App, clazz, "int", "throwing", "int"), false);
-    checkThrowing(inspectMethod(dxApp, clazz, "int", "throwing", "int"), true);
+    checkThrowing(inspectMethod(d8App, clazz, "int", "throwing", "int"));
 
-    checkMonitorExitRegression(
-        inspectMethod(d8App, clazz, "int", "monitorExitRegression", "int"), false);
-    checkMonitorExitRegression(
-        inspectMethod(dxApp, clazz, "int", "monitorExitRegression", "int"), true);
+    checkMonitorExitRegression(inspectMethod(d8App, clazz, "int", "monitorExitRegression", "int"));
   }
 
   private void checkSyncStatic(DebugInfoInspector info) {
@@ -66,23 +58,18 @@ public class SynchronizedMethodTestRunner extends DebugInfoTestBase {
     info.checkNoLine(20);
   }
 
-  private void checkThrowing(DebugInfoInspector info, boolean dx) {
+  private void checkThrowing(DebugInfoInspector info) {
     info.checkStartLine(23);
-    if (!dx) {
-      info.checkLineHasExactLocals(23, "cond", "int");
-    }
+    info.checkLineHasExactLocals(23, "cond", "int");
     info.checkLineHasExactLocals(24, "cond", "int", "x", "int");
     info.checkLineHasExactLocals(25, "cond", "int", "x", "int");
     info.checkNoLine(26);
     info.checkLineHasExactLocals(27, "cond", "int", "x", "int");
   }
 
-  private void checkMonitorExitRegression(DebugInfoInspector info, boolean dx) {
+  private void checkMonitorExitRegression(DebugInfoInspector info) {
     info.checkStartLine(31);
     for (int line : Arrays.asList(32, 34, 36, 38, 40, 42, 44, 48, 50, 52)) {
-      if (dx && line == 40) {
-        continue;
-      }
       info.checkLineHasExactLocals(line, "cond", "int", "x", "int");
     }
   }

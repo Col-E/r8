@@ -1185,42 +1185,6 @@ task buildApiSampleJars {
     dependsOn buildR8ApiUsageSample
 }
 
-task buildDebugInfoExamplesDex {
-    def examplesDir = file("src/test/java")
-    def hostJar = "debuginfo_examples.jar"
-    def hostDexJar = "debuginfo_examples_dex.jar"
-    task "compile_debuginfo_examples"(type: JavaCompile) {
-        source = fileTree(dir: examplesDir, include: "com/android/tools/r8/debuginfo/*Test.java")
-        destinationDir = file("build/test/debuginfo_examples/classes")
-        classpath = sourceSets.main.compileClasspath
-        sourceCompatibility = JavaVersion.VERSION_1_7
-        targetCompatibility = JavaVersion.VERSION_1_7
-        options.compilerArgs += ["-Xlint:-options"]
-    }
-    task "jar_debuginfo_examples"(type: Jar, dependsOn: "compile_debuginfo_examples") {
-        archiveName = hostJar
-        destinationDir = file("build/test/")
-        from "build/test/debuginfo_examples/classes"
-        include "**/*.class"
-    }
-    task "dex_debuginfo_examples"(type: Exec,
-            dependsOn: ["jar_debuginfo_examples", "downloadDeps"]) {
-        if (OperatingSystem.current().isWindows()) {
-            executable file("tools/windows/dx/bin/dx.bat")
-        } else if (OperatingSystem.current().isMacOsX()) {
-            executable file("tools/mac/dx/bin/dx");
-        } else {
-            executable file("tools/linux/dx/bin/dx");
-        }
-        args "--dex"
-        args "--output=build/test/${hostDexJar}"
-        args "build/test/${hostJar}"
-        inputs.files files("build/test/${hostJar}")
-        outputs.file file("build/test/${hostDexJar}")
-    }
-    dependsOn dex_debuginfo_examples
-}
-
 task buildDebugTestResourcesJars {
     def resourcesDir = file("src/test/debugTestResources")
     def hostJar = "debug_test_resources.jar"
@@ -2379,7 +2343,6 @@ test { task ->
         dependsOn buildSmali
         dependsOn jctfCommonJar
         dependsOn jctfTestsClasses
-        dependsOn buildDebugInfoExamplesDex
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
         dependsOn compileTestNGRunner

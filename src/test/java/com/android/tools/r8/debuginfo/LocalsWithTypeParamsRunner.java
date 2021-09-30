@@ -22,15 +22,12 @@ public class LocalsWithTypeParamsRunner extends DebugInfoTestBase {
   @Test
   public void testLocalsWithTypeParams() throws Exception {
     AndroidApp d8App = compileWithD8(clazzMain, clazzA, clazzB);
-    AndroidApp dxApp = getDxCompiledSources();
 
     String expected = "42";
     assertEquals(expected, runOnJava(clazzMain));
     assertEquals(expected, runOnArt(d8App, nameMain));
-    assertEquals(expected, runOnArt(dxApp, nameMain));
 
     checkSyncInstance(inspectMethod(d8App, clazzA, "int", "foo", nameB));
-    checkSyncInstance(inspectMethod(dxApp, clazzA, "int", "foo", nameB));
   }
 
   private void checkSyncInstance(DebugInfoInspector info) {
