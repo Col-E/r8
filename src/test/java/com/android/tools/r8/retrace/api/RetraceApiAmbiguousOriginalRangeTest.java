@@ -16,7 +16,8 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.Retracer;
-import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
@@ -62,7 +63,7 @@ public class RetraceApiAmbiguousOriginalRangeTest extends RetraceApiTestBase {
           retraceFrameResult.stream()
               .map(element -> element.getTopFrame().getOriginalPositionOrDefault(1))
               .collect(Collectors.toList());
-      assertEquals(ImmutableList.of(42, 43, 44), originalPositions);
+      assertEquals(Arrays.asList(42, 43, 44), originalPositions);
 
       // Check that retracing with position 3 is ambiguous between 45 and 46.
       retraceFrameResult = retracer.retraceFrame(methodReference, OptionalInt.of(3));
@@ -71,7 +72,7 @@ public class RetraceApiAmbiguousOriginalRangeTest extends RetraceApiTestBase {
           retraceFrameResult.stream()
               .map(element -> element.getTopFrame().getOriginalPositionOrDefault(3))
               .collect(Collectors.toList());
-      assertEquals(ImmutableList.of(45, 46), originalPositions);
+      assertEquals(Arrays.asList(45, 46), originalPositions);
 
       // Check that retracing with position 5 is not ambiguous.
       retraceFrameResult = retracer.retraceFrame(methodReference, OptionalInt.of(5));
@@ -80,7 +81,7 @@ public class RetraceApiAmbiguousOriginalRangeTest extends RetraceApiTestBase {
           retraceFrameResult.stream()
               .map(element -> element.getTopFrame().getOriginalPositionOrDefault(5))
               .collect(Collectors.toList());
-      assertEquals(ImmutableList.of(47), originalPositions);
+      assertEquals(Collections.singletonList(47), originalPositions);
     }
   }
 }
