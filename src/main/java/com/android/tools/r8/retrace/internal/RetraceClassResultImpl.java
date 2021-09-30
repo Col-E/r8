@@ -6,7 +6,6 @@ package com.android.tools.r8.retrace.internal;
 
 
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
-import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
@@ -20,7 +19,6 @@ import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceUnknownJsonMappingInformationResult;
 import com.android.tools.r8.retrace.RetracedSourceFile;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -138,60 +136,15 @@ public class RetraceClassResultImpl implements RetraceClassResult {
             Reference.method(obfuscatedReference, methodName, formalTypes, returnType)));
   }
 
+  private RetraceFrameResultImpl lookupFrame(
+      RetraceStackTraceContext context, OptionalInt position, MethodDefinition definition) {
+    return lookupMethod(definition).narrowByPosition(context, position);
+  }
+
   @Override
   public RetraceThrownExceptionResultImpl lookupThrownException(RetraceStackTraceContext context) {
     return new RetraceThrownExceptionResultImpl(
         (RetraceStackTraceContextImpl) context, obfuscatedReference, mapper);
-  }
-
-  private RetraceFrameResultImpl lookupFrame(
-      RetraceStackTraceContext context, OptionalInt position, MethodDefinition definition) {
-    List<Pair<RetraceClassElementImpl, List<MappedRange>>> mappings = new ArrayList<>();
-    internalStream()
-        .forEach(
-            element -> {
-              getMappedRangesForFrame(element, definition, position)
-                  .forEach(
-                      mappedRanges -> {
-                        mappings.add(new Pair<>(element, mappedRanges));
-                      });
-            });
-    return new RetraceFrameResultImpl(
-        this, mappings, definition, position, retracer, (RetraceStackTraceContextImpl) context);
-  }
-
-  private List<List<MappedRange>> getMappedRangesForFrame(
-      RetraceClassElementImpl element, MethodDefinition definition, OptionalInt position) {
-    List<List<MappedRange>> overloadedRanges = new ArrayList<>();
-    if (mapper == null) {
-      overloadedRanges.add(null);
-      return overloadedRanges;
-    }
-    assert element.mapper != null;
-    MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(definition.getName());
-    if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
-      overloadedRanges.add(null);
-      return overloadedRanges;
-    }
-    List<MappedRange> mappedRangesForPosition = null;
-    if (position.isPresent() && position.getAsInt() >= 0) {
-      mappedRangesForPosition = mappedRanges.allRangesForLine(position.getAsInt(), false);
-    }
-    if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
-      mappedRangesForPosition = mappedRanges.getMappedRanges();
-    }
-    assert mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty();
-    // Mapped ranges can have references to overloaded signatures. We distinguish those by looking
-    // at the cardinal mapping range.
-    for (MappedRange mappedRange : mappedRangesForPosition) {
-      if (overloadedRanges.isEmpty()
-          || mappedRange.originalRange == null
-          || !mappedRange.originalRange.isCardinal) {
-        overloadedRanges.add(new ArrayList<>());
-      }
-      ListUtils.last(overloadedRanges).add(mappedRange);
-    }
-    return overloadedRanges;
   }
 
   @Override
@@ -366,23 +319,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
 
     private RetraceFrameResultImpl lookupFrame(
         RetraceStackTraceContext context, OptionalInt position, MethodDefinition definition) {
-      MethodDefinition methodDefinition =
-          MethodDefinition.create(classReference.getClassReference(), definition.getName());
-      ImmutableList.Builder<Pair<RetraceClassElementImpl, List<MappedRange>>> builder =
-          ImmutableList.builder();
-      classResult
-          .getMappedRangesForFrame(this, methodDefinition, position)
-          .forEach(
-              mappedRanges -> {
-                builder.add(new Pair<>(this, mappedRanges));
-              });
-      return new RetraceFrameResultImpl(
-          classResult,
-          builder.build(),
-          methodDefinition,
-          position,
-          classResult.retracer,
-          (RetraceStackTraceContextImpl) context);
+      return classResult.lookupFrame(context, position, definition);
     }
   }
 }

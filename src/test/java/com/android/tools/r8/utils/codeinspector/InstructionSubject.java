@@ -10,6 +10,7 @@ import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
+import java.util.OptionalInt;
 
 public interface InstructionSubject {
 
@@ -163,11 +164,13 @@ public interface InstructionSubject {
   }
 
   default RetraceFrameResult retraceLinePosition(Retracer retracer) {
-    return retrace(retracer).narrowByPosition(RetraceStackTraceContext.empty(), getLineNumber());
+    return retrace(retracer)
+        .narrowByPosition(RetraceStackTraceContext.empty(), OptionalInt.of(getLineNumber()));
   }
 
   default RetraceFrameResult retracePcPosition(Retracer retracer, MethodSubject methodSubject) {
     return retrace(retracer)
-        .narrowByPosition(RetraceStackTraceContext.empty(), getOffset(methodSubject).offset);
+        .narrowByPosition(
+            RetraceStackTraceContext.empty(), OptionalInt.of(getOffset(methodSubject).offset));
   }
 }

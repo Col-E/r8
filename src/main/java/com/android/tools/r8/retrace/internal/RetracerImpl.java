@@ -16,6 +16,7 @@ import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
 import java.io.BufferedReader;
+import java.util.OptionalInt;
 
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
 public class RetracerImpl implements Retracer {
@@ -62,13 +63,13 @@ public class RetracerImpl implements Retracer {
   }
 
   @Override
-  public RetraceFrameResult retraceFrame(MethodReference methodReference, int position) {
+  public RetraceFrameResult retraceFrame(MethodReference methodReference, OptionalInt position) {
     return retraceFrame(methodReference, position, RetraceStackTraceContext.empty());
   }
 
   @Override
   public RetraceFrameResult retraceFrame(
-      MethodReference methodReference, int position, RetraceStackTraceContext context) {
+      MethodReference methodReference, OptionalInt position, RetraceStackTraceContext context) {
     return retraceClass(methodReference.getHolderClass())
         .lookupMethod(methodReference.getMethodName())
         .narrowByPosition(context, position);

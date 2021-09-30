@@ -5,9 +5,10 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
+import java.util.OptionalInt;
 
 @Keep
 public interface RetraceMethodResult extends RetraceResult<RetraceMethodElement> {
 
-  RetraceFrameResult narrowByPosition(RetraceStackTraceContext context, int position);
+  RetraceFrameResult narrowByPosition(RetraceStackTraceContext context, OptionalInt position);
 }

@@ -11,6 +11,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
+import java.util.OptionalInt;
 
 /** This is the main api interface for retrace. */
 @Keep
@@ -20,10 +21,10 @@ public interface Retracer {
 
   RetraceMethodResult retraceMethod(MethodReference methodReference);
 
-  RetraceFrameResult retraceFrame(MethodReference methodReference, int position);
+  RetraceFrameResult retraceFrame(MethodReference methodReference, OptionalInt position);
 
   RetraceFrameResult retraceFrame(
-      MethodReference methodReference, int position, RetraceStackTraceContext context);
+      MethodReference methodReference, OptionalInt position, RetraceStackTraceContext context);
 
   RetraceFieldResult retraceField(FieldReference fieldReference);
 

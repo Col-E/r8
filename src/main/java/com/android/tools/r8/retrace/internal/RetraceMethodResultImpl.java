@@ -14,8 +14,8 @@ import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClassElementImpl;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
@@ -62,38 +62,40 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   }
 
   @Override
-  public RetraceFrameResultImpl narrowByPosition(RetraceStackTraceContext context, int position) {
+  public RetraceFrameResultImpl narrowByPosition(
+      RetraceStackTraceContext context, OptionalInt position) {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> narrowedRanges = new ArrayList<>();
-    List<Pair<RetraceClassElementImpl, List<MappedRange>>> noMappingRanges = new ArrayList<>();
     for (Pair<RetraceClassElementImpl, List<MappedRange>> mappedRange : mappedRanges) {
       if (mappedRange.getSecond() == null) {
-        noMappingRanges.add(new Pair<>(mappedRange.getFirst(), null));
+        narrowedRanges.add(new Pair<>(mappedRange.getFirst(), null));
         continue;
       }
-      List<MappedRange> ranges =
-          new MappedRangesOfName(mappedRange.getSecond()).allRangesForLine(position, false);
-      boolean hasAddedRanges = false;
-      if (!ranges.isEmpty()) {
-        narrowedRanges.add(new Pair<>(mappedRange.getFirst(), ranges));
-        hasAddedRanges = true;
-      } else {
-        narrowedRanges = new ArrayList<>();
-        for (MappedRange mapped : mappedRange.getSecond()) {
-          if (mapped.minifiedRange == null) {
-            narrowedRanges.add(new Pair<>(mappedRange.getFirst(), ImmutableList.of(mapped)));
-            hasAddedRanges = true;
-          }
-        }
+      MappedRangesOfName mappedRangesOfElement = new MappedRangesOfName(mappedRange.getSecond());
+      List<MappedRange> mappedRangesForPosition = null;
+      if (position.isPresent() && position.getAsInt() >= 0) {
+        mappedRangesForPosition =
+            mappedRangesOfElement.allRangesForLine(position.getAsInt(), false);
       }
-      if (!hasAddedRanges) {
-        narrowedRanges.add(new Pair<>(mappedRange.getFirst(), null));
+      if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
+        mappedRangesForPosition = mappedRangesOfElement.getMappedRanges();
+      }
+      assert mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty();
+      // Mapped ranges can have references to overloaded signatures. We distinguish those by looking
+      // at the cardinal mapping range.
+      for (MappedRange mappedRangeForPosition : mappedRangesForPosition) {
+        if (narrowedRanges.isEmpty()
+            || mappedRangeForPosition.originalRange == null
+            || !mappedRangeForPosition.originalRange.isCardinal) {
+          narrowedRanges.add(new Pair<>(mappedRange.getFirst(), new ArrayList<>()));
+        }
+        ListUtils.last(narrowedRanges).getSecond().add(mappedRangeForPosition);
       }
     }
     return new RetraceFrameResultImpl(
         classResult,
-        narrowedRanges.isEmpty() ? noMappingRanges : narrowedRanges,
+        narrowedRanges,
         methodDefinition,
-        OptionalInt.of(position),
+        position,
         retracer,
         (RetraceStackTraceContextImpl) context);
   }
