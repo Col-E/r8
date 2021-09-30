@@ -30,9 +30,19 @@ public class RetraceStackTraceCurrentEvaluationInformation {
   public static class Builder {
 
     private int removeInnerFramesCount;
+    private int position;
 
     public Builder incrementRemoveInnerFramesCount(int increment) {
       removeInnerFramesCount += increment;
+      return this;
+    }
+
+    public int getPosition() {
+      return position;
+    }
+
+    public Builder setPosition(int position) {
+      this.position = position;
       return this;
     }
 

@@ -17,6 +17,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -207,6 +208,7 @@ public class RewriteFrameMappingInformation extends MappingInformation {
   public static class RemoveInnerFramesAction extends RewriteAction {
 
     static final String REMOVE_INNER_FRAMES_NAME = "removeInnerFrames";
+
     private final int numberOfFrames;
 
     public RemoveInnerFramesAction(int numberOfFrames) {
@@ -248,6 +250,29 @@ public class RewriteFrameMappingInformation extends MappingInformation {
         throw new CompilationError(
             "Unexpected number for " + REMOVE_INNER_FRAMES_NAME + ": " + contents);
       }
+    }
+  }
+
+  public static class RewritePreviousObfuscatedPosition extends RewriteAction {
+
+    private final Int2IntMap rewriteMap;
+
+    private RewritePreviousObfuscatedPosition(Int2IntMap rewriteMap) {
+      this.rewriteMap = rewriteMap;
+    }
+
+    @Override
+    JsonElement serialize() {
+      throw new CompilationError("Do not serialize this");
+    }
+
+    @Override
+    public void evaluate(RetraceStackTraceCurrentEvaluationInformation.Builder builder) {
+      builder.setPosition(rewriteMap.getOrDefault(builder.getPosition(), builder.getPosition()));
+    }
+
+    public static RewritePreviousObfuscatedPosition create(Int2IntMap rewriteMap) {
+      return new RewritePreviousObfuscatedPosition(rewriteMap);
     }
   }
 }
