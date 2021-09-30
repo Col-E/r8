@@ -22,6 +22,9 @@ public class CompareToVisitorWithTypeTable extends CompareToVisitorWithStringTab
 
   @Override
   public int visitDexType(DexType type1, DexType type2) {
+    if (type1 == type2) {
+      return 0;
+    }
     return visitInt(typeTable.applyAsInt(type1), typeTable.applyAsInt(type2));
   }
 }

@@ -19,6 +19,9 @@ public class CompareToVisitorWithStringTable extends CompareToVisitorWithNamingL
 
   @Override
   public int visitDexString(DexString string1, DexString string2) {
+    if (string1 == string2) {
+      return 0;
+    }
     return visitInt(stringTable.applyAsInt(string1), stringTable.applyAsInt(string2));
   }
 }

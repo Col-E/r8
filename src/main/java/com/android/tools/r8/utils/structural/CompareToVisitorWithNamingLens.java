@@ -17,6 +17,9 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
 
   public static <T> int run(
       T item1, T item2, NamingLens namingLens, CompareToAccept<T> compareToAccept) {
+    if (item1 == item2) {
+      return 0;
+    }
     CompareToVisitorWithNamingLens state = new CompareToVisitorWithNamingLens(namingLens);
     return compareToAccept.acceptCompareTo(item1, item2, state);
   }
@@ -29,6 +32,9 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
 
   @Override
   public int visitDexType(DexType type1, DexType type2) {
+    if (type1 == type2) {
+      return 0;
+    }
     return debug(
         namingLens
             .lookupDescriptor(type1)
@@ -37,6 +43,9 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
 
   @Override
   public int visitDexField(DexField field1, DexField field2) {
+    if (field1 == field2) {
+      return 0;
+    }
     int order = field1.holder.acceptCompareTo(field2.holder, this);
     if (order != 0) {
       return debug(order);
@@ -50,6 +59,9 @@ public class CompareToVisitorWithNamingLens extends CompareToVisitorBase {
 
   @Override
   public int visitDexMethod(DexMethod method1, DexMethod method2) {
+    if (method1 == method2) {
+      return 0;
+    }
     int order = method1.holder.acceptCompareTo(method2.holder, this);
     if (order != 0) {
       return debug(order);
