@@ -14,20 +14,22 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.PrimaryMethodProcessor.MethodAction;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.Timing.TimingMerger;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
 
 public class PostMethodProcessor extends MethodProcessorWithWave {
 
@@ -126,25 +128,35 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     return waves;
   }
 
-  void forEachMethod(
-      BiConsumer<ProgramMethod, MethodProcessingContext> consumer,
+  <E extends Exception> void forEachMethod(
+      MethodAction<E> consumer,
       OptimizationFeedbackDelayed feedback,
-      ExecutorService executorService)
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
+    TimingMerger merger =
+        timing.beginMerger("secondary-processor", ThreadUtils.getNumberOfThreads(executorService));
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert !wave.isEmpty();
       assert waveExtension.isEmpty();
       do {
         assert feedback.noUpdatesLeft();
-        ThreadUtils.processItems(
-            wave,
-            method -> consumer.accept(method, createMethodProcessingContext(method)),
-            executorService);
+        Collection<Timing> timings =
+            ThreadUtils.processItemsWithResults(
+                wave,
+                method -> {
+                  Timing time = consumer.apply(method, createMethodProcessingContext(method));
+                  time.end();
+                  return time;
+                },
+                executorService);
+        merger.add(timings);
         feedback.updateVisibleOptimizationInfo();
         processed.addAll(wave);
         prepareForWaveExtensionProcessing();
       } while (!wave.isEmpty());
     }
+    merger.end();
   }
 }

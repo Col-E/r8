@@ -750,18 +750,25 @@ public class IRConverter {
     outliner.rewriteWithLens();
 
     timing.begin("IR conversion phase 2");
+    timing.begin("Build post method processor");
     PostMethodProcessor postMethodProcessor =
         postMethodProcessorBuilder.build(appView, executorService, timing);
+    timing.end();
     if (postMethodProcessor != null) {
       assert !options.debug;
       assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
+      timing.begin("Process code");
       postMethodProcessor.forEachMethod(
           (method, methodProcessingContext) ->
               processDesugaredMethod(
                   method, feedback, postMethodProcessor, methodProcessingContext),
           feedback,
-          executorService);
+          executorService,
+          timing);
+      timing.end();
+      timing.begin("Update visible optimization info");
       feedback.updateVisibleOptimizationInfo();
+      timing.end();
       assert appView.graphLens() == graphLensForSecondaryOptimizationPass;
     }
     timing.end();
@@ -1143,7 +1150,7 @@ public class IRConverter {
         new MutableMethodConversionOptions(methodProcessor);
     assert holder != null;
 
-    Timing timing = Timing.create(method.qualifiedName(), options);
+    Timing timing = Timing.create(context.toSourceString(), options);
 
     if (Log.ENABLED) {
       Log.debug(getClass(), "Initial (SSA) flow graph for %s:\n%s", method.toSourceString(), code);
