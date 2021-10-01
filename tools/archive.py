@@ -145,8 +145,6 @@ def Main():
     utils.D8,
     utils.R8LIB,
     utils.R8LIB_NO_DEPS,
-    utils.R8RETRACE,
-    utils.R8RETRACE_NO_DEPS,
     utils.LIBRARY_DESUGAR_CONVERSIONS,
     '-Pno_internal'
   ])
@@ -193,8 +191,6 @@ def Main():
       utils.R8_FULL_EXCLUDE_DEPS_JAR,
       utils.R8LIB_EXCLUDE_DEPS_JAR,
       utils.R8LIB_EXCLUDE_DEPS_JAR + '.map',
-      utils.R8RETRACE_JAR,
-      utils.R8RETRACE_EXCLUDE_DEPS_JAR,
       utils.MAVEN_ZIP,
       utils.MAVEN_ZIP_LIB,
       utils.DESUGAR_CONFIGURATION,
