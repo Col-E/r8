@@ -276,7 +276,7 @@ public class JarClassFileReader<T extends DexClass> {
       assert enclosingMember == null;
       DexType ownerType = application.getTypeFromName(owner);
       enclosingMember =
-          name == null
+          name == null || name.equals("<clinit>")
               ? new EnclosingMethodAttribute(ownerType)
               : new EnclosingMethodAttribute(application.getMethod(ownerType, name, desc));
     }

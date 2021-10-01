@@ -8,7 +8,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.references.Reference;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -35,43 +34,27 @@ public class InvalidEnclosingMethodAttributeTest extends TestBase {
   @Test
   public void testRuntime() throws Exception {
     testForRuntime(parameters)
-        .addProgramClasses(Main.class, A.class)
+        .addProgramClasses(Main.class)
         .addProgramClassFileData(getProgramClassFileDataWithRewrittenEnclosingMethod())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(
-            parameters.isCfRuntime()
-                || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0),
-            "null",
-            typeName(Main.class))
-        .assertSuccessWithOutputLinesIf(
-            parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik(),
-            "<clinit>",
-            typeName(Main.class))
-        .assertFailureWithErrorThatThrowsIf(
-            parameters.isDexRuntime()
-                && parameters
-                    .getDexRuntimeVersion()
-                    .isInRangeInclusive(Version.V5_1_1, Version.V6_0_1),
-            IncompatibleClassChangeError.class);
+        .assertSuccessWithOutputLines("null", typeName(Main.class));
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, A.class)
+        .addProgramClasses(Main.class)
         .addProgramClassFileData(getProgramClassFileDataWithRewrittenEnclosingMethod())
         .setMinApi(parameters.getApiLevel())
         .addKeepAttributeInnerClassesAndEnclosingMethod()
         .addKeepAllClassesRule()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/201790364): We remove the method even if keeping all classes due to <clinit> not
-        //  being pinned.
-        .assertSuccessWithOutputLines("null", "null");
+        .assertSuccessWithOutputLines("null", typeName(Main.class));
   }
 
   private byte[] getProgramClassFileDataWithRewrittenEnclosingMethod() throws IOException {
     Path innerClass = ToolHelper.getClassFilesForInnerClasses(Main.class).iterator().next();
-    return transformer(innerClass, Reference.classFromBinaryName(binaryName(A.class) + "$1"))
+    return transformer(innerClass, Reference.classFromBinaryName(binaryName(Main.class) + "$1"))
         .rewriteEnclosingMethod(binaryName(Main.class), "<clinit>", "()V")
         .transform();
   }
