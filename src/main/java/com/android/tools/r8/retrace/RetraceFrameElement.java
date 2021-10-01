@@ -29,5 +29,5 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   List<? extends RetracedMethodReference> getOuterFrames();
 
-  RetraceStackTraceContext getContext();
+  RetraceStackTraceContext getRetraceStackTraceContext();
 }

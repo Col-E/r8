@@ -34,7 +34,15 @@ public abstract class MappingInformation {
     return false;
   }
 
+  public boolean isOutlineCallsiteInformation() {
+    return false;
+  }
+
   public boolean isCompilerSynthesizedMappingInformation() {
+    return false;
+  }
+
+  public boolean isOutlineMappingInformation() {
     return false;
   }
 
@@ -55,6 +63,10 @@ public abstract class MappingInformation {
   }
 
   public RewriteFrameMappingInformation asRewriteFrameMappingInformation() {
+    return null;
+  }
+
+  public OutlineCallsiteMappingInformation asOutlineCallsiteInformation() {
     return null;
   }
 
@@ -112,6 +124,12 @@ public abstract class MappingInformation {
         return;
       case RewriteFrameMappingInformation.ID:
         RewriteFrameMappingInformation.deserialize(version, object, onMappingInfo);
+        return;
+      case OutlineMappingInformation.ID:
+        OutlineMappingInformation.deserialize(version, onMappingInfo);
+        return;
+      case OutlineCallsiteMappingInformation.ID:
+        OutlineCallsiteMappingInformation.deserialize(version, object, onMappingInfo);
         return;
       default:
         diagnosticsHandler.info(MappingInformationDiagnostics.noHandlerFor(lineNumber, id));

@@ -8,6 +8,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Stores name information for a class.
@@ -447,21 +450,43 @@ public class ClassNamingForNameMapper implements ClassNaming {
 
     public boolean isCompilerSynthesized() {
       for (MappingInformation info : additionalMappingInfo) {
-        if (info.isCompilerSynthesizedMappingInformation()) {
+        if (info.isCompilerSynthesizedMappingInformation() || info.isOutlineMappingInformation()) {
           return true;
         }
       }
       return false;
     }
 
-    public List<RewriteFrameMappingInformation> getRewriteFrameMappingInformation() {
-      ImmutableList.Builder<RewriteFrameMappingInformation> builder = ImmutableList.builder();
+    public boolean isOutlineFrame() {
+      for (MappingInformation info : additionalMappingInfo) {
+        if (info.isOutlineMappingInformation()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    public <T> List<T> filter(
+        Predicate<MappingInformation> predicate, Function<MappingInformation, T> mapper) {
+      ImmutableList.Builder<T> builder = ImmutableList.builder();
       for (MappingInformation mappingInformation : additionalMappingInfo) {
-        if (mappingInformation.isRewriteFrameMappingInformation()) {
-          builder.add(mappingInformation.asRewriteFrameMappingInformation());
+        if (predicate.test(mappingInformation)) {
+          builder.add(mapper.apply(mappingInformation));
         }
       }
       return builder.build();
+    }
+
+    public List<OutlineCallsiteMappingInformation> getOutlineCallsiteInformation() {
+      return filter(
+          MappingInformation::isOutlineCallsiteInformation,
+          MappingInformation::asOutlineCallsiteInformation);
+    }
+
+    public List<RewriteFrameMappingInformation> getRewriteFrameMappingInformation() {
+      return filter(
+          MappingInformation::isRewriteFrameMappingInformation,
+          MappingInformation::asRewriteFrameMappingInformation);
     }
 
     public int getOriginalLineNumber(int lineNumberAfterMinification) {

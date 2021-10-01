@@ -307,10 +307,10 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
           context == null
               ? RetraceStackTraceCurrentEvaluationInformation.empty()
-              : contextImpl.computeRewritingInformation(
+              : contextImpl.computeRewriteFrameInformation(
                   ListUtils.map(mappedRanges, MappedRangeForFrame::getMappedRange));
       int index = 0;
-      int numberOfFramesToRemove = currentFrameInformation.getRemoveInnerFrames();
+      int numberOfFramesToRemove = currentFrameInformation.getRemoveInnerFramesCount();
       int totalNumberOfFrames =
           (mappedRanges == null || mappedRanges.isEmpty()) ? 1 : mappedRanges.size();
       if (numberOfFramesToRemove > totalNumberOfFrames) {
@@ -371,9 +371,14 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public RetraceStackTraceContext getContext() {
-      // This will change when supporting outline frames.
-      return RetraceStackTraceContext.empty();
+    public RetraceStackTraceContext getRetraceStackTraceContext() {
+      if (mappedRanges == null
+          || mappedRanges.isEmpty()
+          || !obfuscatedPosition.isPresent()
+          || !ListUtils.last(mappedRanges).getMappedRange().isOutlineFrame()) {
+        return RetraceStackTraceContext.empty();
+      }
+      return RetraceStackTraceContextImpl.builder().setRewritePosition(obfuscatedPosition).build();
     }
   }
 

@@ -12,20 +12,24 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
+import java.util.OptionalInt;
 
 public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
 
   private final ClassReference thrownException;
+  private final OptionalInt rewritePosition;
 
-  private RetraceStackTraceContextImpl(ClassReference thrownException) {
+  private RetraceStackTraceContextImpl(
+      ClassReference thrownException, OptionalInt rewritePosition) {
     this.thrownException = thrownException;
+    this.rewritePosition = rewritePosition;
   }
 
   public ClassReference getThrownException() {
     return thrownException;
   }
 
-  RetraceStackTraceCurrentEvaluationInformation computeRewritingInformation(
+  RetraceStackTraceCurrentEvaluationInformation computeRewriteFrameInformation(
       List<MappedRange> mappedRanges) {
     if (mappedRanges == null || mappedRanges.isEmpty()) {
       return RetraceStackTraceCurrentEvaluationInformation.empty();
@@ -44,6 +48,14 @@ public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
     return builder.build();
   }
 
+  public boolean hasRewritePosition() {
+    return rewritePosition.isPresent();
+  }
+
+  public int getRewritePosition() {
+    return rewritePosition.getAsInt();
+  }
+
   private boolean evaluateConditions(List<Condition> conditions) {
     for (Condition condition : conditions) {
       if (!condition.evaluate(this)) {
@@ -57,9 +69,14 @@ public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
     return Builder.create();
   }
 
+  public Builder buildFromThis() {
+    return builder().setThrownException(thrownException).setRewritePosition(rewritePosition);
+  }
+
   public static class Builder {
 
     private ClassReference thrownException;
+    private OptionalInt rewritePosition = OptionalInt.empty();
 
     private Builder() {}
 
@@ -68,8 +85,18 @@ public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
       return this;
     }
 
+    public Builder setRewritePosition(OptionalInt rewritePosition) {
+      this.rewritePosition = rewritePosition;
+      return this;
+    }
+
+    public Builder clearRewritePosition() {
+      this.rewritePosition = OptionalInt.empty();
+      return this;
+    }
+
     public RetraceStackTraceContextImpl build() {
-      return new RetraceStackTraceContextImpl(thrownException);
+      return new RetraceStackTraceContextImpl(thrownException, rewritePosition);
     }
 
     public static Builder create() {

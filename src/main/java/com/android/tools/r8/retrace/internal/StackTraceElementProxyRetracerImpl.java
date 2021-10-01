@@ -127,7 +127,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                     .setRetracedMethod(method)
                                     .joinAmbiguous(frameResult.isAmbiguous())
                                     .setTopFrame(isTopFrame)
-                                    .setContext(frameElement.getContext())
+                                    .setContext(frameElement.getRetraceStackTraceContext())
                                     .applyIf(
                                         element.hasLineNumber(),
                                         builder -> {

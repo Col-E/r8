@@ -9,14 +9,14 @@ public class RetraceStackTraceCurrentEvaluationInformation {
   private static final RetraceStackTraceCurrentEvaluationInformation EMPTY =
       new RetraceStackTraceCurrentEvaluationInformation(0);
 
-  private final int removeInnerFrames;
+  private final int removeInnerFramesCount;
 
-  private RetraceStackTraceCurrentEvaluationInformation(int removeInnerFrames) {
-    this.removeInnerFrames = removeInnerFrames;
+  private RetraceStackTraceCurrentEvaluationInformation(int removeInnerFramesCount) {
+    this.removeInnerFramesCount = removeInnerFramesCount;
   }
 
-  public int getRemoveInnerFrames() {
-    return removeInnerFrames;
+  public int getRemoveInnerFramesCount() {
+    return removeInnerFramesCount;
   }
 
   public static RetraceStackTraceCurrentEvaluationInformation empty() {

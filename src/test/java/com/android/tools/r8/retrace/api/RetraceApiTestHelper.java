@@ -48,7 +48,12 @@ public class RetraceApiTestHelper {
           RetraceApiRewriteFrameInlineNpeTest.ApiTest.class,
           RetraceApiAmbiguousOriginalRangeTest.ApiTest.class);
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(RetraceApiRewriteFrameInlineNpeResidualTest.ApiTest.class);
+      ImmutableList.of(
+          RetraceApiRewriteFrameInlineNpeResidualTest.ApiTest.class,
+          RetraceApiOutlineNoInlineTest.ApiTest.class,
+          RetraceApiOutlineInlineTest.ApiTest.class,
+          RetraceApiOutlineOutlineTest.ApiTest.class,
+          RetraceApiInlineInOutlineTest.ApiTest.class);
 
   public static void runJunitOnTests(
       CfRuntime runtime,

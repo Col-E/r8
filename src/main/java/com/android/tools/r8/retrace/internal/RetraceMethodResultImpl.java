@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
+import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodElement;
 import com.android.tools.r8.retrace.RetraceMethodResult;
@@ -65,6 +66,10 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   public RetraceFrameResultImpl narrowByPosition(
       RetraceStackTraceContext context, OptionalInt position) {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> narrowedRanges = new ArrayList<>();
+    RetraceStackTraceContextImpl stackTraceContext = null;
+    if (context instanceof RetraceStackTraceContextImpl) {
+      stackTraceContext = (RetraceStackTraceContextImpl) context;
+    }
     for (Pair<RetraceClassElementImpl, List<MappedRange>> mappedRange : mappedRanges) {
       if (mappedRange.getSecond() == null) {
         narrowedRanges.add(new Pair<>(mappedRange.getFirst(), null));
@@ -78,6 +83,19 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       }
       if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
         mappedRangesForPosition = mappedRangesOfElement.getMappedRanges();
+      } else if (stackTraceContext != null && stackTraceContext.hasRewritePosition()) {
+        List<OutlineCallsiteMappingInformation> outlineCallsiteInformation =
+            ListUtils.last(mappedRangesForPosition).getOutlineCallsiteInformation();
+        if (!outlineCallsiteInformation.isEmpty()) {
+          assert outlineCallsiteInformation.size() == 1
+              : "There can only be one outline entry for a line";
+          return narrowByPosition(
+              stackTraceContext.buildFromThis().clearRewritePosition().build(),
+              OptionalInt.of(
+                  outlineCallsiteInformation
+                      .get(0)
+                      .rewritePosition(stackTraceContext.getRewritePosition())));
+        }
       }
       assert mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty();
       // Mapped ranges can have references to overloaded signatures. We distinguish those by looking

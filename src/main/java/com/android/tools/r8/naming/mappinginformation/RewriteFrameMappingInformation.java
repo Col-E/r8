@@ -102,6 +102,11 @@ public class RewriteFrameMappingInformation extends MappingInformation {
     return this;
   }
 
+  public static RewriteFrameMappingInformation create(
+      List<Condition> conditions, List<RewriteAction> actions) {
+    return new RewriteFrameMappingInformation(conditions, actions);
+  }
+
   public abstract static class Condition {
 
     protected abstract JsonPrimitive serialize();
