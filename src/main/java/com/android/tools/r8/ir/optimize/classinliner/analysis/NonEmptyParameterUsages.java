@@ -176,6 +176,7 @@ public class NonEmptyParameterUsages extends ParameterUsages {
                 : usagePerContext);
   }
 
+  @Override
   NonEmptyParameterUsages rebuildParameters(
       IntObjToObjFunction<ParameterUsagePerContext, ParameterUsagePerContext> transformation) {
     Int2ObjectMap<ParameterUsagePerContext> rebuiltBacking = null;

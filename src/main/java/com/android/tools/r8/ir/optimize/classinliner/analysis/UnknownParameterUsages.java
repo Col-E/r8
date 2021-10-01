@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import com.android.tools.r8.utils.IntObjToObjFunction;
+
 public class UnknownParameterUsages extends ParameterUsages {
 
   private static final UnknownParameterUsages INSTANCE = new UnknownParameterUsages();
@@ -31,6 +33,12 @@ public class UnknownParameterUsages extends ParameterUsages {
 
   @Override
   ParameterUsages put(int parameter, ParameterUsagePerContext usagePerContext) {
+    return this;
+  }
+
+  @Override
+  ParameterUsages rebuildParameters(
+      IntObjToObjFunction<ParameterUsagePerContext, ParameterUsagePerContext> transformation) {
     return this;
   }
 

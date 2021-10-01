@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
+import com.android.tools.r8.utils.IntObjToObjFunction;
 
 public abstract class ParameterUsages extends AbstractState<ParameterUsages> {
 
@@ -55,6 +56,9 @@ public abstract class ParameterUsages extends AbstractState<ParameterUsages> {
   }
 
   abstract ParameterUsages put(int parameter, ParameterUsagePerContext usagePerContext);
+
+  abstract ParameterUsages rebuildParameters(
+      IntObjToObjFunction<ParameterUsagePerContext, ParameterUsagePerContext> transformation);
 
   public static BottomParameterUsages bottom() {
     return BottomParameterUsages.getInstance();

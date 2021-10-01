@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
 
@@ -26,6 +27,15 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
   static NonEmptyParameterUsagePerContext createInitial() {
     return new NonEmptyParameterUsagePerContext(
         ImmutableMap.of(DefaultAnalysisContext.getInstance(), ParameterUsage.bottom()));
+  }
+
+  public boolean allMatch(BiPredicate<AnalysisContext, ParameterUsage> predicate) {
+    for (Map.Entry<AnalysisContext, ParameterUsage> entry : backing.entrySet()) {
+      if (!predicate.test(entry.getKey(), entry.getValue())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   void forEach(BiConsumer<AnalysisContext, ParameterUsage> consumer) {
@@ -83,6 +93,10 @@ class NonEmptyParameterUsagePerContext extends ParameterUsagePerContext {
   @Override
   public ParameterUsage get(AnalysisContext context) {
     return backing.getOrDefault(context, ParameterUsage.top());
+  }
+
+  public int getNumberOfContexts() {
+    return backing.size();
   }
 
   @Override

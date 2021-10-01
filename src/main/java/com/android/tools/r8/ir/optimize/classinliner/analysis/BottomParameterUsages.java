@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
+import com.android.tools.r8.utils.IntObjToObjFunction;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 public class BottomParameterUsages extends ParameterUsages {
@@ -36,6 +37,12 @@ public class BottomParameterUsages extends ParameterUsages {
     Int2ObjectOpenHashMap<ParameterUsagePerContext> backing = new Int2ObjectOpenHashMap<>();
     backing.put(parameter, usagePerContext);
     return NonEmptyParameterUsages.create(backing);
+  }
+
+  @Override
+  ParameterUsages rebuildParameters(
+      IntObjToObjFunction<ParameterUsagePerContext, ParameterUsagePerContext> transformation) {
+    return this;
   }
 
   @Override

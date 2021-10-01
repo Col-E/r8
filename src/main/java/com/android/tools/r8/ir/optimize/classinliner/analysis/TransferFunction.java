@@ -93,7 +93,7 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
       // argument that may be eligible for class inlining.
       if (argument == lastArgument
           && result.asNonEmpty().allMatch((context, usagePerContext) -> usagePerContext.isTop())) {
-        return new FailedTransferFunctionResult<>();
+        return fail();
       }
       return result;
     }
@@ -104,7 +104,8 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     }
     assert !state.isBottom();
     assert !state.isTop();
-    return apply(instruction, state.asNonEmpty());
+    ParameterUsages outState = apply(instruction, state.asNonEmpty());
+    return outState != state ? widen(outState) : outState;
   }
 
   private ParameterUsages apply(Instruction instruction, NonEmptyParameterUsages state) {
@@ -338,6 +339,10 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
         theReturn.returnValue(), (context, usage) -> usage.setParameterReturned());
   }
 
+  private FailedTransferFunctionResult<ParameterUsages> fail() {
+    return new FailedTransferFunctionResult<>();
+  }
+
   private ParameterUsages fail(Instruction instruction, NonEmptyParameterUsages state) {
     return state.abandonClassInliningInCurrentContexts(
         instruction.inValues(), this::isArgumentOfInterest);
@@ -382,5 +387,30 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
   private boolean isMaybeEligibleForClassInlining(ClasspathOrLibraryClass clazz) {
     // We can only class inline a parameter that is either java.lang.Object or an interface type.
     return clazz.getType() == dexItemFactory.objectType || clazz.isInterface();
+  }
+
+  private TransferFunctionResult<ParameterUsages> widen(ParameterUsages state) {
+    // Currently we only fork one context.
+    int maxNumberOfContexts = 1;
+    ParameterUsages widened =
+        state.rebuildParameters(
+            (parameter, usagePerContext) -> {
+              if (usagePerContext.isBottom() || usagePerContext.isTop()) {
+                return usagePerContext;
+              }
+              NonEmptyParameterUsagePerContext nonEmptyUsagePerContext = usagePerContext.asKnown();
+              if (nonEmptyUsagePerContext.getNumberOfContexts() == maxNumberOfContexts
+                  && nonEmptyUsagePerContext.allMatch(
+                      (context, usageInContext) -> usageInContext.isTop())) {
+                return ParameterUsagePerContext.top();
+              }
+              return usagePerContext;
+            });
+    if (!widened.isBottom()
+        && !widened.isTop()
+        && widened.asNonEmpty().allMatch((parameter, usagePerContext) -> usagePerContext.isTop())) {
+      return fail();
+    }
+    return widened;
   }
 }
