@@ -1203,6 +1203,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     // See b/191469661 for why this is here.
     public boolean noCfMarkerForDesugaredCode =
         System.getProperty("com.android.tools.r8.noCfMarkerForDesugaredCode") != null;
+    // See b/182065081 for why this is here.
+    public boolean lambdaClassFieldsFinal =
+        System.getProperty("com.android.tools.r8.lambdaClassFieldsNotFinal") == null;
   }
 
   public class CallSiteOptimizationOptions {
