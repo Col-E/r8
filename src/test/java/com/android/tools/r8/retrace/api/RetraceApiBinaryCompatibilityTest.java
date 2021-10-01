@@ -4,13 +4,9 @@
 
 package com.android.tools.r8.retrace.api;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -46,14 +42,6 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
   public static void main(String[] args) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
-    RetraceApiTestCollection collection = new RetraceApiTestCollection(temp);
-    Path generatedJar = collection.generateJarForCheckedInTestClasses();
-    Files.move(generatedJar, collection.getCheckedInTestJar(), REPLACE_EXISTING);
-    System.out.println(
-        "Updated file in: "
-            + collection.getCheckedInTestJar()
-            + "\nRemember to upload to cloud storage:"
-            + "\n(cd third_party/retrace/"
-            + " && upload_to_google_storage.py -a --bucket r8-deps binary_compatibility)");
+    new RetraceApiTestCollection(temp).replaceJarForCheckedInTestClasses();
   }
 }

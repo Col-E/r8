@@ -29,6 +29,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -186,5 +187,25 @@ public abstract class BinaryCompatibilityTestCollection<T> {
       assertEquals(existing.size(), generated.size());
       assertNotEquals(0, existing.size());
     }
+  }
+
+  public void replaceJarForCheckedInTestClasses() throws Exception {
+    Path checkedInJar = getCheckedInTestJar();
+    Path tarballDir = checkedInJar.getParent();
+    Path parentDir = tarballDir.getParent();
+    if (!Files.exists(Paths.get(tarballDir + ".tar.gz.sha1"))) {
+      throw new RuntimeException("Could not locate the SHA file for " + tarballDir);
+    }
+    Path generatedJar = generateJarForCheckedInTestClasses();
+    Files.move(generatedJar, checkedInJar, StandardCopyOption.REPLACE_EXISTING);
+    System.out.println(
+        "Updated file in: "
+            + checkedInJar
+            + "\nRemember to upload to cloud storage:"
+            + "\n(cd "
+            + parentDir
+            + " && upload_to_google_storage.py -a --bucket r8-deps "
+            + tarballDir.getFileName()
+            + ")");
   }
 }

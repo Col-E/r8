@@ -7,6 +7,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -43,5 +44,15 @@ public class CompilerApiTestCollectionTest extends TestBase {
   @Test
   public void testCheckedInJarIsUpToDate() throws Exception {
     new CompilerApiTestCollection(temp).verifyCheckedInJarIsUpToDate();
+  }
+
+  /**
+   * To produce a new tests.jar run the code below. This will generate a new jar overwriting the
+   * existing one. Remember to upload to cloud storage afterwards.
+   */
+  public static void main(String[] args) throws Exception {
+    TemporaryFolder temp = new TemporaryFolder();
+    temp.create();
+    new CompilerApiTestCollection(temp).replaceJarForCheckedInTestClasses();
   }
 }

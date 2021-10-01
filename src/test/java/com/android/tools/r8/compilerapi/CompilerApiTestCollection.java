@@ -10,10 +10,8 @@ import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import org.junit.rules.TemporaryFolder;
 
@@ -78,24 +76,5 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
         makeProperty(
             CompilerApiTest.API_TEST_LIB_KEY,
             isTestingR8Lib() ? CompilerApiTest.API_TEST_LIB_YES : CompilerApiTest.API_TEST_LIB_NO));
-  }
-
-  /**
-   * To produce a new tests.jar run the code below. This will generate a new jar overwriting the
-   * existing one. Remember to upload to cloud storage afterwards.
-   */
-  public static void main(String[] args) throws Exception {
-    TemporaryFolder temp = new TemporaryFolder();
-    temp.create();
-    Path jar = new CompilerApiTestCollection(temp).generateJarForCheckedInTestClasses();
-    Files.move(jar, BINARY_COMPATIBILITY_JAR, StandardCopyOption.REPLACE_EXISTING);
-    System.out.println(
-        "Updated file in: "
-            + BINARY_COMPATIBILITY_JAR
-            + "\nRemember to upload to cloud storage:"
-            + "\n(cd third_party/binary_compatibility_tests"
-            + " && upload_to_google_storage.py -a --bucket r8-deps "
-            + DIRNAME
-            + ")");
   }
 }
