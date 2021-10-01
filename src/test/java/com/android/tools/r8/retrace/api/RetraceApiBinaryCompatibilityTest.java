@@ -5,24 +5,12 @@
 package com.android.tools.r8.retrace.api;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.ZipUtils;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -41,63 +29,14 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
     parameters.assertNoneRuntime();
   }
 
-  private static final Path BINARY_COMPATIBILITY_JAR =
-      Paths.get(ToolHelper.THIRD_PARTY_DIR, "retrace", "binary_compatibility", "tests.jar");
-
-  private Path generateJar() throws Exception {
-    return RetraceApiTestHelper.generateJarForRetraceBinaryTests(
-        temp, RetraceApiTestHelper.getBinaryCompatibilityTests());
-  }
-
   @Test
   public void testBinaryJarIsUpToDate() throws Exception {
-    Path binaryContents = temp.newFolder().toPath();
-    Path generatedContents = temp.newFolder().toPath();
-    ZipUtils.unzip(BINARY_COMPATIBILITY_JAR, binaryContents);
-    ZipUtils.unzip(generateJar(), generatedContents);
-    try (Stream<Path> existingPaths = Files.walk(binaryContents);
-        Stream<Path> generatedPaths = Files.walk(generatedContents)) {
-      List<Path> existing = existingPaths.filter(this::isClassFile).collect(Collectors.toList());
-      List<Path> generated = generatedPaths.filter(this::isClassFile).collect(Collectors.toList());
-      assertEquals(existing.size(), generated.size());
-      assertNotEquals(0, existing.size());
-      for (Path classFile : generated) {
-        Path otherClassFile = binaryContents.resolve(generatedContents.relativize(classFile));
-        assertTrue("Could not find file: " + otherClassFile, Files.exists(otherClassFile));
-        assertTrue(
-            "Non-equal files: " + otherClassFile,
-            TestBase.filesAreEqual(classFile, otherClassFile));
-      }
-    }
-  }
-
-  private boolean isClassFile(Path path) {
-    return path.toString().endsWith(".class");
+    new RetraceApiTestCollection(temp).verifyCheckedInJarIsUpToDate();
   }
 
   @Test
   public void runCheckedInBinaryJar() throws Exception {
-    // The retrace jar is only built when building r8lib.
-    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8LIB_JAR : ToolHelper.R8_JAR;
-    RetraceApiTestHelper.runJunitOnTests(
-        CfRuntime.getSystemRuntime(),
-        jar,
-        BINARY_COMPATIBILITY_JAR,
-        RetraceApiTestHelper.getBinaryCompatibilityTests());
-  }
-
-  @Test
-  public void runCheckedInWithNonExistingTest() {
-    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8LIB_JAR : ToolHelper.R8_JAR;
-    assertThrows(
-        AssertionError.class,
-        () -> {
-          RetraceApiTestHelper.runJunitOnTests(
-              CfRuntime.getSystemRuntime(),
-              jar,
-              BINARY_COMPATIBILITY_JAR,
-              ImmutableList.of(new RetraceApiBinaryTest() {}.getClass()));
-        });
+    new RetraceApiTestCollection(temp).runJunitOnCheckedInJar();
   }
 
   /**
@@ -107,9 +46,14 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
   public static void main(String[] args) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
-    Path generatedJar =
-        RetraceApiTestHelper.generateJarForRetraceBinaryTests(
-            temp, RetraceApiTestHelper.getBinaryCompatibilityTests());
-    Files.move(generatedJar, BINARY_COMPATIBILITY_JAR, REPLACE_EXISTING);
+    RetraceApiTestCollection collection = new RetraceApiTestCollection(temp);
+    Path generatedJar = collection.generateJarForCheckedInTestClasses();
+    Files.move(generatedJar, collection.getCheckedInTestJar(), REPLACE_EXISTING);
+    System.out.println(
+        "Updated file in: "
+            + collection.getCheckedInTestJar()
+            + "\nRemember to upload to cloud storage:"
+            + "\n(cd third_party/retrace/"
+            + " && upload_to_google_storage.py -a --bucket r8-deps binary_compatibility)");
   }
 }

@@ -4,49 +4,31 @@
 
 package com.android.tools.r8.retrace.api;
 
-import static com.android.tools.r8.retrace.api.RetraceApiTestHelper.runJunitOnTests;
-import static org.junit.Assert.assertTrue;
-
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import java.nio.file.Files;
-import org.junit.Assume;
 import org.junit.Test;
-import org.junit.runner.JUnitCore;
-import org.junit.runner.Result;
-import org.junit.runner.notification.Failure;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public abstract class RetraceApiTestBase extends TestBase {
-
-  private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return TestParametersBuilder.builder().withSystemRuntime().build();
+    return TestParametersBuilder.builder().withNoneRuntime().build();
   }
 
   public RetraceApiTestBase(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   protected abstract Class<? extends RetraceApiBinaryTest> binaryTestClass();
 
   @Test
-  public void testDirect() {
-    Result result = JUnitCore.runClasses(binaryTestClass());
-    for (Failure failure : result.getFailures()) {
-      System.out.println(failure.toString());
-    }
-    assertTrue(result.wasSuccessful());
-  }
-
-  @Test
-  public void testLib() throws Exception {
-    Assume.assumeTrue(Files.exists(ToolHelper.R8LIB_JAR));
-    runJunitOnTests(parameters.getRuntime().asCf(), ToolHelper.R8LIB_JAR, binaryTestClass(), temp);
+  public void testExternal() throws Exception {
+    new RetraceApiTestCollection(temp).runJunitOnTestClass(binaryTestClass());
   }
 }

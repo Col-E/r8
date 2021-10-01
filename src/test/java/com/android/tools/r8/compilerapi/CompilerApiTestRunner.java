@@ -22,8 +22,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public abstract class CompilerApiTestRunner extends TestBase {
 
-  private final CompilerApiTestCollection collection;
-
   public abstract Class<? extends CompilerApiTest> binaryTestClass();
 
   @Parameters(name = "{0}")
@@ -33,11 +31,10 @@ public abstract class CompilerApiTestRunner extends TestBase {
 
   public CompilerApiTestRunner(TestParameters parameters) {
     parameters.assertNoneRuntime();
-    collection = new CompilerApiTestCollection(temp);
   }
 
   @Test
   public void testExternal() throws Exception {
-    collection.runJunitOnTestClass(binaryTestClass());
+    new CompilerApiTestCollection(temp).runJunitOnTestClass(binaryTestClass());
   }
 }
