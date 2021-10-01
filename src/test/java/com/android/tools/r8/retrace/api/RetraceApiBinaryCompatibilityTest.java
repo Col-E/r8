@@ -78,7 +78,7 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
   @Test
   public void runCheckedInBinaryJar() throws Exception {
     // The retrace jar is only built when building r8lib.
-    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
+    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8LIB_JAR : ToolHelper.R8_JAR;
     RetraceApiTestHelper.runJunitOnTests(
         CfRuntime.getSystemRuntime(),
         jar,
@@ -88,7 +88,7 @@ public class RetraceApiBinaryCompatibilityTest extends TestBase {
 
   @Test
   public void runCheckedInWithNonExistingTest() {
-    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
+    Path jar = ToolHelper.isTestingR8Lib() ? ToolHelper.R8LIB_JAR : ToolHelper.R8_JAR;
     assertThrows(
         AssertionError.class,
         () -> {

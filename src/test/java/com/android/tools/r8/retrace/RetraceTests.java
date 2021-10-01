@@ -364,7 +364,7 @@ public class RetraceTests extends TestBase {
       command.add(testParameters.getRuntime().asCf().getJavaExecutable().toString());
       command.add("-ea");
       command.add("-cp");
-      command.add(ToolHelper.R8_RETRACE_JAR.toString());
+      command.add(ToolHelper.R8LIB_JAR.toString());
       if (allowExperimentalMapping) {
         command.add("-Dcom.android.tools.r8.experimentalmapping");
       }

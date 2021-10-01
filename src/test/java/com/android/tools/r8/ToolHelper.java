@@ -176,7 +176,6 @@ public class ToolHelper {
   public static final Path R8LIB_EXCLUDE_DEPS_MAP =
       Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar.map");
   public static final Path DEPS = Paths.get(LIBS_DIR, "deps_all.jar");
-  public static final Path R8_RETRACE_JAR = Paths.get(LIBS_DIR, "r8retrace.jar");
 
   public static final Path DESUGAR_LIB_CONVERSIONS =
       Paths.get(LIBS_DIR, "library_desugar_conversions.zip");

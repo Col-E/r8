@@ -45,9 +45,8 @@ public abstract class RetraceApiTestBase extends TestBase {
   }
 
   @Test
-  public void testRetraceLib() throws Exception {
-    Assume.assumeTrue(Files.exists(ToolHelper.R8_RETRACE_JAR));
-    runJunitOnTests(
-        parameters.getRuntime().asCf(), ToolHelper.R8_RETRACE_JAR, binaryTestClass(), temp);
+  public void testLib() throws Exception {
+    Assume.assumeTrue(Files.exists(ToolHelper.R8LIB_JAR));
+    runJunitOnTests(parameters.getRuntime().asCf(), ToolHelper.R8LIB_JAR, binaryTestClass(), temp);
   }
 }
