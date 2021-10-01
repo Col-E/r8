@@ -587,6 +587,18 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer rewriteEnclosingMethod(
+      String newOwner, String newName, String newDescriptor) {
+    return addClassTransformer(
+        new ClassTransformer() {
+
+          @Override
+          public void visitOuterClass(String owner, String name, String descriptor) {
+            super.visitOuterClass(newOwner, newName, newDescriptor);
+          }
+        });
+  }
+
   public ClassFileTransformer removeMethods(MethodPredicate predicate) {
     return addClassTransformer(
         new ClassTransformer() {
