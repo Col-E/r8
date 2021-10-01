@@ -20,7 +20,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RetraceInlineeWithNullCheck extends TestBase {
+public class RetraceInlineeWithNullCheckSequence extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -54,29 +54,38 @@ public class RetraceInlineeWithNullCheck extends TestBase {
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Caller.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        // TODO(b/197936862): The two should be the same
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
+              // TODO(b/197936862): The two stacktraces should be the same
               assertThat(stackTrace, not(isSame(expectedStackTrace)));
             });
   }
 
   static class Foo {
     @NeverInline
-    Object notInlinable() {
+    void notInlinable() {
       System.out.println("Hello, world!");
       throw new RuntimeException("Foo");
     }
 
-    Object inlinable() {
-      return notInlinable();
+    void inlinable1() {
+      notInlinable();
+    }
+
+    void inlinable2() {
+      inlinable1();
+    }
+
+    void inlinable3() {
+      inlinable2();
     }
   }
 
   static class Caller {
+
     @NeverInline
     static void caller(Foo f) {
-      f.inlinable();
+      f.inlinable3();
     }
 
     public static void main(String[] args) {
