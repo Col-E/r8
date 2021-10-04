@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
@@ -154,9 +155,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     // Produce r81 = R8Lib(R8WithDeps) and r82 = R8LibNoDeps + Deps(R8WithDeps) and test that r81 is
     // equal to r82. This test should only run if we are testing r8lib and we expect both R8libs to
     // be built by gradle. If we are not testing with R8Lib, do not run this test.
-    if (!ToolHelper.isTestingR8Lib()) {
-      return;
-    }
+    assumeTrue(ToolHelper.isTestingR8Lib());
     Path runR81 =
         testForExternalR8(parameters.getBackend(), parameters.getRuntime())
             .useProvidedR8(ToolHelper.R8LIB_JAR)

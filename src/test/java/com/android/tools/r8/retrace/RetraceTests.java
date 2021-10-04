@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
@@ -374,7 +375,8 @@ public class RetraceTests extends TestBase {
       assumeTrue(testParameters.isCfRuntime());
       // The external dependency is built on top of R8Lib. If test.py is run with
       // no r8lib, do not try and run the external R8 Retrace since it has not been built.
-      assumeTrue(Files.exists(ToolHelper.R8LIB_JAR));
+      assumeTrue(ToolHelper.isTestingR8Lib());
+      assertTrue(Files.exists(ToolHelper.R8LIB_JAR));
       Path path = temp.newFolder().toPath();
       Path mappingFile = path.resolve("mapping");
       Files.write(mappingFile, stackTraceForTest.mapping().getBytes());
