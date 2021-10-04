@@ -7,26 +7,33 @@ package com.android.tools.r8.retrace.internal;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.retrace.RetraceClassResult;
+import com.android.tools.r8.retrace.RetraceFieldElement;
 import com.android.tools.r8.retrace.RetraceFieldResult;
+import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceStackTraceElementProxy;
+import com.android.tools.r8.retrace.RetraceStackTraceElementProxyResult;
+import com.android.tools.r8.retrace.RetraceThrownExceptionElement;
 import com.android.tools.r8.retrace.RetraceTypeResult;
 import com.android.tools.r8.retrace.RetraceTypeResult.Element;
 import com.android.tools.r8.retrace.RetracedClassReference;
 import com.android.tools.r8.retrace.RetracedFieldReference;
 import com.android.tools.r8.retrace.RetracedMethodReference;
+import com.android.tools.r8.retrace.RetracedSingleFrame;
 import com.android.tools.r8.retrace.RetracedSourceFile;
 import com.android.tools.r8.retrace.RetracedTypeReference;
 import com.android.tools.r8.retrace.Retracer;
 import com.android.tools.r8.retrace.StackTraceElementProxy;
 import com.android.tools.r8.retrace.StackTraceElementProxyRetracer;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ListUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,185 +47,242 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
   }
 
   @Override
-  public Stream<? extends RetraceStackTraceElementProxy<T, ST>> retrace(
+  public RetraceStackTraceElementProxyResult<T, ST> retrace(
       ST element, RetraceStackTraceContext context) {
-    Stream<RetraceStackTraceElementProxyImpl<T, ST>> currentResults =
-        Stream.of(RetraceStackTraceElementProxyImpl.create(element, context));
+    RetraceStackTraceElementProxyResultImpl<T, ST> currentResult =
+        RetraceStackTraceElementProxyResultImpl.Builder.<T, ST>create()
+            .setResultStream(Stream.of(RetraceStackTraceElementProxyImpl.create(element, context)))
+            .setResultContext(RetraceStackTraceContext::empty)
+            .build();
     if (!element.hasClassName()
         && !element.hasFieldOrReturnType()
         && !element.hasMethodArguments()) {
-      return currentResults;
+      return currentResult;
     }
-    currentResults = retraceFieldOrReturnType(currentResults, element);
-    currentResults = retracedMethodArguments(currentResults, element);
+    currentResult = retraceFieldOrReturnType(currentResult, element);
+    currentResult = retracedMethodArguments(currentResult, element);
     if (element.hasClassName()) {
       RetraceClassResult classResult = retracer.retraceClass(element.getClassReference());
       if (element.hasMethodName()) {
-        currentResults = retraceMethod(currentResults, element, classResult);
+        currentResult = retraceMethod(currentResult, element, classResult, context);
       } else if (element.hasFieldName()) {
-        currentResults = retraceField(currentResults, element, classResult);
+        currentResult = retraceField(currentResult, element, classResult);
       } else {
-        currentResults = retraceClassOrType(currentResults, element, classResult);
+        currentResult = retraceClassOrType(currentResult, classResult);
       }
     }
-    return currentResults;
+    return currentResult;
   }
 
-  private Stream<RetraceStackTraceElementProxyImpl<T, ST>> retraceClassOrType(
-      Stream<RetraceStackTraceElementProxyImpl<T, ST>> currentResults,
-      ST element,
+  private RetraceStackTraceElementProxyResultImpl<T, ST> retraceClassOrType(
+      RetraceStackTraceElementProxyResultImpl<T, ST> currentResult,
       RetraceClassResult classResult) {
-    return currentResults.flatMap(
-        proxy ->
-            // We assume, since no method was defined for this stack trace element, that this was a
-            // thrown exception.
-            classResult.lookupThrownException(proxy.getContext()).stream()
-                .map(
-                    thrownExceptionElement ->
-                        proxy
-                            .builder()
-                            .setRetracedClass(thrownExceptionElement.getRetracedClass())
-                            .joinAmbiguous(classResult.isAmbiguous())
-                            .setTopFrame(true)
-                            .setContext(thrownExceptionElement.getContext())
-                            .applyIf(
-                                element.hasSourceFile(),
-                                builder -> {
-                                  RetracedSourceFile sourceFile =
-                                      thrownExceptionElement.getSourceFile();
-                                  builder.setSourceFile(
-                                      sourceFile.hasRetraceResult()
-                                          ? sourceFile.getSourceFile()
-                                          : RetraceUtils.inferSourceFile(
-                                              thrownExceptionElement
-                                                  .getRetracedClass()
-                                                  .getTypeName(),
-                                              element.getSourceFile(),
-                                              classResult.hasRetraceResult()));
-                                })
-                            .build()));
+    return currentResult
+        .builder()
+        .setResultStream(
+            currentResult.stream()
+                .flatMap(
+                    proxy ->
+                        // We assume, since no method was defined for this stack trace element, that
+                        // this was a thrown exception.
+                        classResult.lookupThrownException(proxy.getContext()).stream()
+                            .map(
+                                thrownExceptionElement ->
+                                    buildProxyForRewrittenThrownExceptionElement(
+                                        classResult, proxy, thrownExceptionElement))))
+        .build();
   }
 
-  private Stream<RetraceStackTraceElementProxyImpl<T, ST>> retraceMethod(
-      Stream<RetraceStackTraceElementProxyImpl<T, ST>> currentResults,
+  private RetraceStackTraceElementProxyImpl<T, ST> buildProxyForRewrittenThrownExceptionElement(
+      RetraceClassResult classResult,
+      RetraceStackTraceElementProxyImpl<T, ST> proxy,
+      RetraceThrownExceptionElement thrownExceptionElement) {
+    return proxy
+        .builder()
+        .setRetracedClass(thrownExceptionElement.getRetracedClass())
+        .joinAmbiguous(classResult.isAmbiguous())
+        .setTopFrame(true)
+        .setContext(thrownExceptionElement.getContext())
+        .apply(
+            setSourceFileOnProxy(
+                thrownExceptionElement::getSourceFile,
+                thrownExceptionElement.getRetracedClass(),
+                classResult))
+        .build();
+  }
+
+  private RetraceStackTraceElementProxyResultImpl<T, ST> retraceMethod(
+      RetraceStackTraceElementProxyResultImpl<T, ST> currentResult,
+      ST element,
+      RetraceClassResult classResult,
+      RetraceStackTraceContext context) {
+    Box<RetraceStackTraceContext> resultingContext = new Box<>(RetraceStackTraceContext.empty());
+    RetraceStackTraceElementProxyResultImpl.Builder<T, ST> resultBuilder =
+        currentResult.builder().setResultContext(resultingContext::get);
+    return resultBuilder
+        .setResultStream(
+            currentResult.stream()
+                .flatMap(
+                    proxy -> {
+                      RetraceFrameResult frameResult =
+                          classResult.lookupFrame(
+                              context,
+                              element.hasLineNumber()
+                                  ? OptionalInt.of(element.getLineNumber())
+                                  : OptionalInt.empty(),
+                              element.getMethodName());
+                      return frameResult.stream()
+                          .flatMap(
+                              frameElement -> {
+                                resultingContext.set(frameElement.getRetraceStackTraceContext());
+                                return frameElement
+                                    .streamRewritten(context)
+                                    .map(
+                                        singleFrame ->
+                                            buildProxyForRewrittenFrameElement(
+                                                element,
+                                                classResult,
+                                                proxy,
+                                                frameResult,
+                                                frameElement,
+                                                singleFrame));
+                              });
+                    }))
+        .build();
+  }
+
+  private RetraceStackTraceElementProxyImpl<T, ST> buildProxyForRewrittenFrameElement(
+      ST element,
+      RetraceClassResult classResult,
+      RetraceStackTraceElementProxyImpl<T, ST> proxy,
+      RetraceFrameResult frameResult,
+      RetraceFrameElement frameElement,
+      RetracedSingleFrame singleFrame) {
+    boolean isTopFrame = singleFrame.getIndex() == 0;
+    RetracedMethodReference method = singleFrame.getMethodReference();
+    return proxy
+        .builder()
+        .setRetracedClass(method.getHolderClass())
+        .setRetracedMethod(method)
+        .joinAmbiguous(frameResult.isAmbiguous())
+        .setTopFrame(isTopFrame)
+        .setContext(frameElement.getRetraceStackTraceContext())
+        .applyIf(
+            element.hasLineNumber(),
+            builder -> {
+              builder.setLineNumber(method.getOriginalPositionOrDefault(element.getLineNumber()));
+            })
+        .apply(
+            setSourceFileOnProxy(
+                () -> frameElement.getSourceFile(method), method.getHolderClass(), classResult))
+        .build();
+  }
+
+  private RetraceStackTraceElementProxyResultImpl<T, ST> retraceField(
+      RetraceStackTraceElementProxyResultImpl<T, ST> currentResult,
       ST element,
       RetraceClassResult classResult) {
-    return currentResults.flatMap(
-        proxy -> {
-          RetraceFrameResult frameResult =
-              classResult.lookupFrame(
-                  proxy.context,
-                  element.hasLineNumber()
-                      ? OptionalInt.of(element.getLineNumber())
-                      : OptionalInt.empty(),
-                  element.getMethodName());
-          return frameResult.stream()
-              .flatMap(
-                  frameElement ->
-                      frameElement
-                          .streamRewritten(proxy.getContext())
+    return currentResult
+        .builder()
+        .setResultStream(
+            currentResult.stream()
+                .flatMap(
+                    proxy -> {
+                      RetraceFieldResult retraceFieldResult =
+                          classResult.lookupField(element.getFieldName());
+                      return retraceFieldResult.stream()
                           .map(
-                              singleFrame -> {
-                                boolean isTopFrame = singleFrame.getIndex() == 0;
-                                RetracedMethodReference method = singleFrame.getMethodReference();
-                                return proxy
-                                    .builder()
-                                    .setRetracedClass(method.getHolderClass())
-                                    .setRetracedMethod(method)
-                                    .joinAmbiguous(frameResult.isAmbiguous())
-                                    .setTopFrame(isTopFrame)
-                                    .setContext(frameElement.getRetraceStackTraceContext())
-                                    .applyIf(
-                                        element.hasLineNumber(),
-                                        builder -> {
-                                          builder.setLineNumber(
-                                              method.getOriginalPositionOrDefault(
-                                                  element.getLineNumber()));
-                                        })
-                                    .applyIf(
-                                        element.hasSourceFile(),
-                                        builder -> {
-                                          RetracedSourceFile sourceFileResult =
-                                              frameElement.getSourceFile(method);
-                                          builder.setSourceFile(
-                                              sourceFileResult.hasRetraceResult()
-                                                  ? sourceFileResult.getSourceFile()
-                                                  : RetraceUtils.inferSourceFile(
-                                                      method.getHolderClass().getTypeName(),
-                                                      element.getSourceFile(),
-                                                      classResult.hasRetraceResult()));
-                                        })
-                                    .build();
-                              }));
-        });
+                              fieldElement ->
+                                  buildProxyForRewrittenFieldElement(
+                                      classResult, proxy, retraceFieldResult, fieldElement));
+                    }))
+        .build();
   }
 
-  private Stream<RetraceStackTraceElementProxyImpl<T, ST>> retraceField(
-      Stream<RetraceStackTraceElementProxyImpl<T, ST>> currentResults,
-      ST element,
+  private RetraceStackTraceElementProxyImpl<T, ST> buildProxyForRewrittenFieldElement(
+      RetraceClassResult classResult,
+      RetraceStackTraceElementProxyImpl<T, ST> proxy,
+      RetraceFieldResult retraceFieldResult,
+      RetraceFieldElement fieldElement) {
+    return proxy
+        .builder()
+        .setRetracedClass(fieldElement.getField().getHolderClass())
+        .setRetracedField(fieldElement.getField())
+        .joinAmbiguous(retraceFieldResult.isAmbiguous())
+        .setTopFrame(true)
+        .apply(
+            setSourceFileOnProxy(
+                fieldElement::getSourceFile, fieldElement.getField().getHolderClass(), classResult))
+        .build();
+  }
+
+  private Consumer<RetraceStackTraceElementProxyImpl.Builder<T, ST>> setSourceFileOnProxy(
+      Supplier<RetracedSourceFile> sourceFile,
+      RetracedClassReference classReference,
       RetraceClassResult classResult) {
-    return currentResults.flatMap(
-        proxy -> {
-          RetraceFieldResult retraceFieldResult = classResult.lookupField(element.getFieldName());
-          return retraceFieldResult.stream()
-              .map(
-                  fieldElement ->
-                      proxy
-                          .builder()
-                          .setRetracedClass(fieldElement.getField().getHolderClass())
-                          .setRetracedField(fieldElement.getField())
-                          .joinAmbiguous(retraceFieldResult.isAmbiguous())
-                          .setTopFrame(true)
-                          .applyIf(
-                              element.hasSourceFile(),
-                              builder -> {
-                                RetracedSourceFile sourceFile = fieldElement.getSourceFile();
-                                builder.setSourceFile(
-                                    sourceFile.hasRetraceResult()
-                                        ? sourceFile.getSourceFile()
-                                        : RetraceUtils.inferSourceFile(
-                                            fieldElement.getField().getHolderClass().getTypeName(),
-                                            element.getSourceFile(),
-                                            classResult.hasRetraceResult()));
-                              })
-                          .build());
-        });
+    return proxy -> {
+      ST original = proxy.originalElement;
+      if (!original.hasSourceFile()) {
+        return;
+      }
+      RetracedSourceFile retracedSourceFile = sourceFile.get();
+      proxy.setSourceFile(
+          retracedSourceFile.hasRetraceResult()
+              ? retracedSourceFile.getSourceFile()
+              : RetraceUtils.inferSourceFile(
+                  classReference.getTypeName(),
+                  original.getSourceFile(),
+                  classResult.hasRetraceResult()));
+    };
   }
 
-  private Stream<RetraceStackTraceElementProxyImpl<T, ST>> retraceFieldOrReturnType(
-      Stream<RetraceStackTraceElementProxyImpl<T, ST>> currentResults, ST element) {
+  private RetraceStackTraceElementProxyResultImpl<T, ST> retraceFieldOrReturnType(
+      RetraceStackTraceElementProxyResultImpl<T, ST> currentResult, ST element) {
     if (!element.hasFieldOrReturnType()) {
-      return currentResults;
+      return currentResult;
     }
+    RetraceStackTraceElementProxyResultImpl.Builder<T, ST> resultBuilder = currentResult.builder();
     String elementOrReturnType = element.getFieldOrReturnType();
     if (elementOrReturnType.equals("void")) {
-      return currentResults.map(
-          proxy ->
-              proxy
-                  .builder()
-                  .setRetracedFieldOrReturnType(RetracedTypeReferenceImpl.createVoid())
-                  .build());
+      return resultBuilder
+          .setResultStream(
+              currentResult.stream()
+                  .map(
+                      proxy ->
+                          buildProxyForRewrittenReturnType(
+                              proxy, RetracedTypeReferenceImpl.createVoid(), proxy.isAmbiguous())))
+          .build();
     } else {
       TypeReference typeReference = Reference.typeFromTypeName(elementOrReturnType);
       RetraceTypeResult retraceTypeResult = retracer.retraceType(typeReference);
       List<Element> retracedElements = retraceTypeResult.stream().collect(Collectors.toList());
-      return currentResults.flatMap(
-          proxy ->
-              retracedElements.stream()
-                  .map(
-                      retracedResult ->
-                          proxy
-                              .builder()
-                              .setRetracedFieldOrReturnType(retracedResult.getType())
-                              .joinAmbiguous(retraceTypeResult.isAmbiguous())
-                              .build()));
+      return resultBuilder
+          .setResultStream(
+              currentResult.stream()
+                  .flatMap(
+                      proxy ->
+                          retracedElements.stream()
+                              .map(
+                                  retracedResult ->
+                                      buildProxyForRewrittenReturnType(
+                                          proxy,
+                                          retracedResult.getType(),
+                                          retraceTypeResult.isAmbiguous()))))
+          .build();
     }
   }
 
-  private Stream<RetraceStackTraceElementProxyImpl<T, ST>> retracedMethodArguments(
-      Stream<RetraceStackTraceElementProxyImpl<T, ST>> currentResults, ST element) {
+  private RetraceStackTraceElementProxyImpl<T, ST> buildProxyForRewrittenReturnType(
+      RetraceStackTraceElementProxyImpl<T, ST> proxy,
+      RetracedTypeReference type,
+      boolean isAmbiguous) {
+    return proxy.builder().setRetracedFieldOrReturnType(type).joinAmbiguous(isAmbiguous).build();
+  }
+
+  private RetraceStackTraceElementProxyResultImpl<T, ST> retracedMethodArguments(
+      RetraceStackTraceElementProxyResultImpl<T, ST> currentResult, ST element) {
     if (!element.hasMethodArguments()) {
-      return currentResults;
+      return currentResult;
     }
     List<RetraceTypeResult> retracedResults =
         Arrays.stream(element.getMethodArguments().split(","))
@@ -243,19 +307,24 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
               return newResult;
             });
     boolean isAmbiguous = allRetracedArguments.size() > 1;
-    return currentResults.flatMap(
-        proxy ->
-            allRetracedArguments.stream()
-                .map(
-                    retracedArguments ->
-                        proxy
-                            .builder()
-                            .setRetracedMethodArguments(retracedArguments)
-                            .joinAmbiguous(isAmbiguous)
-                            .build()));
+    return currentResult
+        .builder()
+        .setResultStream(
+            currentResult.stream()
+                .flatMap(
+                    proxy ->
+                        allRetracedArguments.stream()
+                            .map(
+                                retracedArguments ->
+                                    proxy
+                                        .builder()
+                                        .setRetracedMethodArguments(retracedArguments)
+                                        .joinAmbiguous(isAmbiguous)
+                                        .build())))
+        .build();
   }
 
-  public static class RetraceStackTraceElementProxyImpl<T, ST extends StackTraceElementProxy<T, ST>>
+  static class RetraceStackTraceElementProxyImpl<T, ST extends StackTraceElementProxy<T, ST>>
       implements RetraceStackTraceElementProxy<T, ST> {
 
     private final ST originalItem;
@@ -383,7 +452,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
           originalItem, null, null, null, null, null, null, -1, false, false, context);
     }
 
-    private Builder<T, ST> builder() {
+    Builder<T, ST> builder() {
       Builder<T, ST> builder = new Builder<>(originalItem);
       builder.classContext = retracedClass;
       builder.methodContext = retracedMethod;
@@ -519,6 +588,11 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
 
       private Builder<T, ST> setContext(RetraceStackTraceContext context) {
         this.context = context;
+        return this;
+      }
+
+      private Builder<T, ST> apply(Consumer<Builder<T, ST>> consumer) {
+        consumer.accept(this);
         return this;
       }
 

@@ -199,8 +199,9 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
               ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
               List<RetracedNodeState<T, ST>> newLeaves = new ArrayList<>();
               for (RetracedNodeState<T, ST> previousNode : acc) {
-                proxyRetracer
-                    .retrace(parsedLine, previousNode.context)
+                RetraceStackTraceElementProxyResult<T, ST> result =
+                    proxyRetracer.retrace(parsedLine, previousNode.context);
+                result.stream()
                     .forEach(
                         retracedElement -> {
                           if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
@@ -212,7 +213,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
                 if (!previousNode.hasChildren()) {
                   // This happens when there is nothing to retrace. Add the node to newLeaves to
                   // ensure we keep retracing this path.
-                  previousNode.addChild(null, RetraceStackTraceContext.empty());
+                  previousNode.addChild(null, result.getResultContext());
                 }
                 newLeaves.addAll(previousNode.getChildren());
               }
@@ -232,8 +233,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     Map<RetraceStackTraceElementProxy<T, ST>, List<T>> ambiguousBlocks = new HashMap<>();
     List<RetraceStackTraceElementProxy<T, ST>> ambiguousKeys = new ArrayList<>();
     ST parsedLine = stackTraceLineParser.parse(stackTraceFrame);
-    proxyRetracer
-        .retrace(parsedLine, RetraceStackTraceContext.empty())
+    proxyRetracer.retrace(parsedLine, RetraceStackTraceContext.empty()).stream()
         .forEach(
             retracedElement -> {
               if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
@@ -259,8 +259,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    */
   public List<T> retraceLine(T stackTraceLine) {
     ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
-    return proxyRetracer
-        .retrace(parsedLine, RetraceStackTraceContext.empty())
+    return proxyRetracer.retrace(parsedLine, RetraceStackTraceContext.empty()).stream()
         .map(
             retraceFrame -> {
               retraceFrame.getOriginalItem().toRetracedItem(retraceFrame, isVerbose);

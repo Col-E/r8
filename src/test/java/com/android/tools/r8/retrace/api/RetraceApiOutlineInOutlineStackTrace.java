@@ -25,9 +25,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class RetraceApiOutlineOutlineTest extends RetraceApiTestBase {
+public class RetraceApiOutlineInOutlineStackTrace extends RetraceApiTestBase {
 
-  public RetraceApiOutlineOutlineTest(TestParameters parameters) {
+  public RetraceApiOutlineInOutlineStackTrace(TestParameters parameters) {
     super(parameters);
   }
 

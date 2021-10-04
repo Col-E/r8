@@ -38,7 +38,7 @@ public class RetraceApiTestCollection
           RetraceApiRewriteFrameInlineNpeResidualTest.ApiTest.class,
           RetraceApiOutlineNoInlineTest.ApiTest.class,
           RetraceApiOutlineInlineTest.ApiTest.class,
-          RetraceApiOutlineOutlineTest.ApiTest.class,
+          RetraceApiOutlineInOutlineStackTrace.ApiTest.class,
           RetraceApiInlineInOutlineTest.ApiTest.class,
           RetraceApiSingleFrameTest.ApiTest.class);
 

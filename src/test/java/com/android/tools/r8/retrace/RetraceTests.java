@@ -32,6 +32,7 @@ import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FoundMethodVerboseStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameWithInnerClassesStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineInOutlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
@@ -47,6 +48,9 @@ import com.android.tools.r8.retrace.stacktraces.NpeInlineRetraceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStackTrace;
+import com.android.tools.r8.retrace.stacktraces.OutlineInOutlineStackTrace;
+import com.android.tools.r8.retrace.stacktraces.OutlineSimpleStackTrace;
+import com.android.tools.r8.retrace.stacktraces.OutlineWithInliningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.OverloadSameLineTest;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SingleLineNoLineNumberStackTrace;
@@ -319,6 +323,26 @@ public class RetraceTests extends TestBase {
   @Test
   public void testDifferentLineNumberSpanStackTrace() throws Exception {
     runRetraceTest(new DifferentLineNumberSpanStackTrace());
+  }
+
+  @Test
+  public void testOutlineSimpleStackTrace() throws Exception {
+    runExperimentalRetraceTest(new OutlineSimpleStackTrace());
+  }
+
+  @Test
+  public void testOutlineWithInliningStackTrace() throws Exception {
+    runExperimentalRetraceTest(new OutlineWithInliningStackTrace());
+  }
+
+  @Test
+  public void testOutlineInOutlineStackTrace() throws Exception {
+    runExperimentalRetraceTest(new OutlineInOutlineStackTrace());
+  }
+
+  @Test
+  public void testInlineInOutlineStackTrace() throws Exception {
+    runExperimentalRetraceTest(new InlineInOutlineStackTrace());
   }
 
   private void inspectRetraceTest(
