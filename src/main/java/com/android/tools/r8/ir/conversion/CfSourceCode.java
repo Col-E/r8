@@ -901,10 +901,10 @@ public class CfSourceCode implements SourceCode {
 
   public Position getCanonicalPosition(Position position) {
     return canonicalPositions.getCanonical(
-        new Position(
-            position.line,
-            position.file,
-            position.method,
-            canonicalPositions.canonicalizeCallerPosition(position.callerPosition)));
+        position
+            .builderWithCopy()
+            .setCallerPosition(
+                canonicalPositions.canonicalizeCallerPosition(position.callerPosition))
+            .build());
   }
 }

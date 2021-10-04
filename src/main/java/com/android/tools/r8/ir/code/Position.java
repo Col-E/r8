@@ -46,12 +46,6 @@ public class Position implements StructuralItem<Position> {
         .withNullableItem(p -> p.callerPosition);
   }
 
-  public Position(int line, DexString file, DexMethod method, Position callerPosition) {
-    this(line, file, method, callerPosition, false);
-    assert line >= 0;
-    assert method != null;
-  }
-
   private Position(
       int line, DexString file, DexMethod method, Position callerPosition, boolean synthetic) {
     this.line = line;
@@ -141,15 +135,13 @@ public class Position implements StructuralItem<Position> {
     return callerPosition;
   }
 
-  public Position withCallerPosition(Position callerPosition) {
-    return new Position(line, file, method, callerPosition, synthetic);
-  }
-
   public Position withOutermostCallerPosition(Position newOutermostCallerPosition) {
-    return withCallerPosition(
-        hasCallerPosition()
-            ? getCallerPosition().withOutermostCallerPosition(newOutermostCallerPosition)
-            : newOutermostCallerPosition);
+    return builderWithCopy()
+        .setCallerPosition(
+            hasCallerPosition()
+                ? getCallerPosition().withOutermostCallerPosition(newOutermostCallerPosition)
+                : newOutermostCallerPosition)
+        .build();
   }
 
   @Override
@@ -192,5 +184,58 @@ public class Position implements StructuralItem<Position> {
   @Override
   public String toString() {
     return toString(false);
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public Builder builderWithCopy() {
+    return new Builder()
+        .setLine(line)
+        .setFile(file)
+        .setMethod(method)
+        .setCallerPosition(callerPosition)
+        .setSynthetic(synthetic);
+  }
+
+  public static class Builder {
+
+    public int line;
+    public DexString file;
+    public boolean synthetic;
+    public DexMethod method;
+    public Position callerPosition;
+
+    public Builder setLine(int line) {
+      this.line = line;
+      return this;
+    }
+
+    public Builder setFile(DexString file) {
+      this.file = file;
+      return this;
+    }
+
+    public Builder setSynthetic(boolean synthetic) {
+      this.synthetic = synthetic;
+      return this;
+    }
+
+    public Builder setMethod(DexMethod method) {
+      this.method = method;
+      return this;
+    }
+
+    public Builder setCallerPosition(Position callerPosition) {
+      this.callerPosition = callerPosition;
+      return this;
+    }
+
+    public Position build() {
+      assert line >= 0;
+      assert method != null;
+      return new Position(line, file, method, callerPosition, synthetic);
+    }
   }
 }

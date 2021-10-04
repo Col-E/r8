@@ -258,11 +258,12 @@ public class DexSourceCode implements SourceCode {
         || entry.callerPosition.getOutermostCaller().method == originalMethod;
 
     return canonicalPositions.getCanonical(
-        new Position(
-            entry.line,
-            entry.sourceFile,
-            entry.method,
-            canonicalPositions.canonicalizeCallerPosition(entry.callerPosition)));
+        Position.builder()
+            .setLine(entry.line)
+            .setFile(entry.sourceFile)
+            .setMethod(entry.method)
+            .setCallerPosition(canonicalPositions.canonicalizeCallerPosition(entry.callerPosition))
+            .build());
   }
 
   @Override

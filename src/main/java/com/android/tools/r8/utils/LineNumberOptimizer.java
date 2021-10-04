@@ -106,8 +106,11 @@ public class LineNumberOptimizer {
       }
 
       Position newPosition =
-          new Position(nextOptimizedLineNumber, position.file, position.method, null);
-      ++nextOptimizedLineNumber;
+          position
+              .builderWithCopy()
+              .setLine(nextOptimizedLineNumber++)
+              .setCallerPosition(null)
+              .build();
       previousSourceLine = position.line;
       previousMethod = position.method;
       return new Pair<>(position, newPosition);
@@ -180,14 +183,17 @@ public class LineNumberOptimizer {
           if (calleePosition != null) {
             // Take the first line as the callee position
             position =
-                new Position(
-                    calleePosition.getValue().getRange().from,
-                    position.file,
-                    position.method,
-                    position.callerPosition);
+                position
+                    .builderWithCopy()
+                    .setLine(calleePosition.getValue().getRange().from)
+                    .build();
           }
           return baseRemapper.createRemappedPosition(
-              new Position(originalInlineeLine, null, inlinee, position));
+              Position.builder()
+                  .setLine(originalInlineeLine)
+                  .setMethod(inlinee)
+                  .setCallerPosition(position)
+                  .build());
         }
         // This is the same position, so we should really not mark this as an inline position. Fall
         // through to the default case.
@@ -244,7 +250,8 @@ public class LineNumberOptimizer {
     private void emitPositionEvents(int currentPc, Position currentPosition) {
       if (previousPosition == null) {
         startLine = currentPosition.line;
-        previousPosition = new Position(startLine, null, method, null);
+        previousPosition =
+            Position.builder().setLine(startLine).setFile(null).setMethod(method).build();
       }
       DexDebugEventBuilder.emitAdvancementEvents(
           previousPc,
@@ -702,11 +709,12 @@ public class LineNumberOptimizer {
             super.visit(defaultEvent);
             assert getCurrentLine() >= 0;
             Position position =
-                new Position(
-                    getCurrentLine(),
-                    getCurrentFile(),
-                    getCurrentMethod(),
-                    getCurrentCallerPosition());
+                Position.builder()
+                    .setLine(getCurrentLine())
+                    .setFile(getCurrentFile())
+                    .setMethod(getCurrentMethod())
+                    .setCallerPosition(getCurrentCallerPosition())
+                    .build();
             Position currentPosition = remapAndAdd(position, positionRemapper, mappedPositions);
             positionEventEmitter.emitPositionEvents(getCurrentPc(), currentPosition);
             if (currentPosition != position) {
@@ -801,11 +809,12 @@ public class LineNumberOptimizer {
             }
             lastPosition.setFirst(getCurrentPc());
             lastPosition.setSecond(
-                new Position(
-                    getCurrentLine(),
-                    getCurrentFile(),
-                    getCurrentMethod(),
-                    getCurrentCallerPosition()));
+                Position.builder()
+                    .setLine(getCurrentLine())
+                    .setFile(getCurrentFile())
+                    .setMethod(getCurrentMethod())
+                    .setCallerPosition(getCurrentCallerPosition())
+                    .build());
           }
         };
 

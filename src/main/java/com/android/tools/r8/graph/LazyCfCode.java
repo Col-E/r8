@@ -997,7 +997,9 @@ public class LazyCfCode extends Code {
     @Override
     public void visitLineNumber(int line, Label start) {
       if (debugParsingOptions.lineInfo) {
-        instructions.add(new CfPosition(getLabel(start), new Position(line, null, method, null)));
+        instructions.add(
+            new CfPosition(
+                getLabel(start), Position.builder().setLine(line).setMethod(method).build()));
       }
     }
 

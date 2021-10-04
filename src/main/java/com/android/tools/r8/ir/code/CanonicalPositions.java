@@ -35,7 +35,12 @@ public class CanonicalPositions {
       preamblePosition =
           methodIsSynthesized
               ? callerPosition
-              : getCanonical(new Position(0, null, method, callerPosition));
+              : getCanonical(
+                  Position.builder()
+                      .setLine(0)
+                      .setMethod(method)
+                      .setCallerPosition(callerPosition)
+                      .build());
     } else {
       this.callerPosition = null;
       isCompilerSynthesizedInlinee = false;
@@ -77,7 +82,7 @@ public class CanonicalPositions {
     return getCanonical(
         caller.isNone()
             ? Position.noneWithMethod(caller.method, callerOfCaller)
-            : new Position(caller.line, caller.file, caller.method, callerOfCaller));
+            : caller.builderWithCopy().setCallerPosition(callerOfCaller).build());
   }
 
   // If we need to emit a synthetic position for exceptional monitor exits, we try to cook up a

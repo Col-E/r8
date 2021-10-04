@@ -191,7 +191,10 @@ public class DexDebugEventBuilder {
       }
       startLine = position.line;
       emittedPosition =
-          new Position(position.line, null, position.getOutermostCaller().method, null);
+          Position.builder()
+              .setLine(position.line)
+              .setMethod(position.getOutermostCaller().method)
+              .build();
     }
     assert emittedPc != pc;
     int previousPc = emittedPc == NO_PC_INFO ? 0 : emittedPc;

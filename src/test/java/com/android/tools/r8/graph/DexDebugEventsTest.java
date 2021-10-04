@@ -133,9 +133,9 @@ public class DexDebugEventsTest {
     List<DexDebugEvent> events = new ArrayList<>();
     DexDebugEventBuilder.emitAdvancementEvents(
         pc,
-        new Position(line, null, method, null),
+        Position.builder().setLine(line).setMethod(method).build(),
         nextPc,
-        new Position(nextLine, null, method, null),
+        Position.builder().setLine(nextLine).setMethod(method).build(),
         events,
         factory,
         false);
