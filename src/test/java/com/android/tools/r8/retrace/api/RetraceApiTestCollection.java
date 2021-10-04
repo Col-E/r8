@@ -31,7 +31,8 @@ public class RetraceApiTestCollection
           RetraceApiSynthesizedInnerFrameTest.ApiTest.class,
           RetraceApiUnknownJsonTest.ApiTest.class,
           RetraceApiRewriteFrameInlineNpeTest.ApiTest.class,
-          RetraceApiAmbiguousOriginalRangeTest.ApiTest.class);
+          RetraceApiAmbiguousOriginalRangeTest.ApiTest.class,
+          RetraceApiOutsideLineRangeTest.ApiTest.class);
 
   public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
       ImmutableList.of(

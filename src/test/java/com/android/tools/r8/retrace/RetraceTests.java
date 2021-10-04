@@ -52,6 +52,7 @@ import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStack
 import com.android.tools.r8.retrace.stacktraces.OutlineInOutlineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.OutlineSimpleStackTrace;
 import com.android.tools.r8.retrace.stacktraces.OutlineWithInliningStackTrace;
+import com.android.tools.r8.retrace.stacktraces.OutsideLineRangeStackTraceTest;
 import com.android.tools.r8.retrace.stacktraces.OverloadSameLineTest;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.SingleLineNoLineNumberStackTrace;
@@ -344,6 +345,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInlineInOutlineStackTrace() throws Exception {
     runExperimentalRetraceTest(new InlineInOutlineStackTrace());
+  }
+
+  @Test
+  public void testOutsideLineRangeStackTraceTest() throws Exception {
+    runRetraceTest(new OutsideLineRangeStackTraceTest());
   }
 
   private void inspectRetraceTest(
