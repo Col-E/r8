@@ -64,9 +64,6 @@ public abstract class BinaryCompatibilityTestCollection<T> {
   /** Additional classes that should always be included together to run tests. */
   public abstract List<Class<?>> getAdditionalClassesForTests();
 
-  /** Additional classes that should always be included together to run the pending tests. */
-  public abstract List<Class<?>> getPendingAdditionalClassesForTests();
-
   /** Additional JVM args supplied to any external execution. */
   public abstract List<String> getVmArgs();
 
@@ -95,8 +92,7 @@ public abstract class BinaryCompatibilityTestCollection<T> {
 
   public void runJunitOnTestClass(Class<? extends T> test) throws Exception {
     List<Class<? extends T>> testClasses = Collections.singletonList(test);
-    runJunitOnTestClasses(
-        generateJarForTestClasses(testClasses, getPendingAdditionalClassesForTests()), testClasses);
+    runJunitOnTestClasses(generateJarForTestClasses(testClasses), testClasses);
   }
 
   private void runJunitOnTestClasses(Path testJar, Collection<Class<? extends T>> tests)
@@ -144,12 +140,10 @@ public abstract class BinaryCompatibilityTestCollection<T> {
   }
 
   public Path generateJarForCheckedInTestClasses() throws Exception {
-    return generateJarForTestClasses(getCheckedInTestClasses(), Collections.emptyList());
+    return generateJarForTestClasses(getCheckedInTestClasses());
   }
 
-  private Path generateJarForTestClasses(
-      Collection<Class<? extends T>> classes, List<Class<?>> additionalPendingClassesForTest)
-      throws Exception {
+  private Path generateJarForTestClasses(Collection<Class<? extends T>> classes) throws Exception {
     Path jar = getTemp().newFolder().toPath().resolve("test.jar");
     ZipBuilder zipBuilder = ZipBuilder.builder(jar);
     for (Class<? extends T> test : classes) {
@@ -166,11 +160,6 @@ public abstract class BinaryCompatibilityTestCollection<T> {
     zipBuilder.addFilesRelative(
         ToolHelper.getClassPathForTests(),
         getAdditionalClassesForTests().stream()
-            .map(ToolHelper::getClassFileForTestClass)
-            .collect(Collectors.toList()));
-    zipBuilder.addFilesRelative(
-        ToolHelper.getClassPathForTests(),
-        additionalPendingClassesForTest.stream()
             .map(ToolHelper::getClassFileForTestClass)
             .collect(Collectors.toList()));
     return zipBuilder.build();

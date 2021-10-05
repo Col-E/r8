@@ -318,7 +318,6 @@ public final class D8Command extends BaseCompilerCommand {
           mainDexKeepRules,
           getThreadCount(),
           getDumpInputFlags(),
-          getMapIdProvider(),
           factory);
     }
   }
@@ -400,7 +399,6 @@ public final class D8Command extends BaseCompilerCommand {
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules,
       int threadCount,
       DumpInputFlags dumpInputFlags,
-      MapIdProvider mapIdProvider,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -416,8 +414,7 @@ public final class D8Command extends BaseCompilerCommand {
         assertionsConfiguration,
         outputInspections,
         threadCount,
-        dumpInputFlags,
-        mapIdProvider);
+        dumpInputFlags);
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;

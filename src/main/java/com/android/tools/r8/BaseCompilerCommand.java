@@ -50,7 +50,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final List<Consumer<Inspector>> outputInspections;
   private final int threadCount;
   private final DumpInputFlags dumpInputFlags;
-  private final MapIdProvider mapIdProvider;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -67,7 +66,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     outputInspections = null;
     threadCount = ThreadUtils.NOT_SPECIFIED;
     dumpInputFlags = DumpInputFlags.noDump();
-    mapIdProvider = null;
   }
 
   BaseCompilerCommand(
@@ -84,8 +82,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       int threadCount,
-      DumpInputFlags dumpInputFlags,
-      MapIdProvider mapIdProvider) {
+      DumpInputFlags dumpInputFlags) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -102,7 +99,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.outputInspections = outputInspections;
     this.threadCount = threadCount;
     this.dumpInputFlags = dumpInputFlags;
-    this.mapIdProvider = mapIdProvider;
   }
 
   /**
@@ -150,10 +146,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
   DesugarState getDesugarState() {
     return desugarState;
-  }
-
-  public MapIdProvider getMapIdProvider() {
-    return mapIdProvider;
   }
 
   /** True if the output dex files has checksum information encoded in it. False otherwise. */
@@ -225,7 +217,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private List<Consumer<Inspector>> outputInspections = new ArrayList<>();
     protected StringConsumer proguardMapConsumer = null;
     private DumpInputFlags dumpInputFlags = DumpInputFlags.noDump();
-    private MapIdProvider mapIdProvider = null;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -523,16 +514,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     DesugarState getDesugaringState() {
       return desugarState;
-    }
-
-    /** Set a custom provider for defining the map id for the build. */
-    public B setMapIdProvider(MapIdProvider mapIdProvider) {
-      this.mapIdProvider = mapIdProvider;
-      return self();
-    }
-
-    public MapIdProvider getMapIdProvider() {
-      return mapIdProvider;
     }
 
     @Deprecated

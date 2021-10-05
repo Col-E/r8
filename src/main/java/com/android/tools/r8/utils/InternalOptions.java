@@ -11,7 +11,6 @@ import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DumpOptions;
 import com.android.tools.r8.FeatureSplit;
-import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
@@ -866,8 +865,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public DesugarGraphConsumer desugarGraphConsumer = null;
 
   public Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
-
-  public MapIdProvider mapIdProvider = null;
 
   public static boolean assertionsEnabled() {
     boolean assertionsEnabled = false;

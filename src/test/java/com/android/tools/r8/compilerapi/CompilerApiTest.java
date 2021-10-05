@@ -5,15 +5,8 @@ package com.android.tools.r8.compilerapi;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.compilerapi.mockdata.MockClass;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -26,8 +19,6 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public abstract class CompilerApiTest {
-
-  public static final Object PARAMETERS = "none";
 
   public static final String API_TEST_MODE_KEY = "API_TEST_MODE";
   public static final String API_TEST_MODE_EXTERNAL = "external";
@@ -43,13 +34,11 @@ public abstract class CompilerApiTest {
     if (runtimes != null && !runtimes.contains("none")) {
       return Collections.emptyList();
     }
-    return Collections.singletonList(PARAMETERS);
+    return Collections.singletonList("none");
   }
 
-  @Rule public final TemporaryFolder temp = new TemporaryFolder();
-
   public CompilerApiTest(Object none) {
-    assertEquals(PARAMETERS, none);
+    assertEquals("none", none);
   }
 
   /** Predicate to determine if the test is being run externally. */
@@ -60,31 +49,5 @@ public abstract class CompilerApiTest {
   /** Predicate to determine if the test is being run for an R8 lib compilation. */
   public boolean isRunningR8Lib() {
     return API_TEST_LIB_YES.equals(System.getProperty(API_TEST_LIB_KEY));
-  }
-
-  public Path getNewTempFolder() throws IOException {
-    return temp.newFolder().toPath();
-  }
-
-  public Class<?> getMockClass() {
-    return MockClass.class;
-  }
-
-  public Path getJava8RuntimeJar() {
-    return Paths.get("third_party", "openjdk", "openjdk-rt-1.8", "rt.jar");
-  }
-
-  public List<String> getKeepMainRules(Class<?> clazz) {
-    return Collections.singletonList(
-        "-keep class " + clazz.getName() + " { public static void main(java.lang.String[]); }");
-  }
-
-  public Path getPathForClass(Class<?> clazz) {
-    String file = clazz.getName().replace('.', '/') + ".class";
-    return Paths.get("build", "classes", "java", "test", file);
-  }
-
-  public byte[] getBytesForClass(Class<?> clazz) throws IOException {
-    return Files.readAllBytes(getPathForClass(clazz));
   }
 }

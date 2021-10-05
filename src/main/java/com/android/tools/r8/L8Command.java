@@ -100,7 +100,6 @@ public final class L8Command extends BaseCompilerCommand {
       List<Consumer<Inspector>> outputInspections,
       int threadCount,
       DumpInputFlags dumpInputFlags,
-      MapIdProvider mapIdProvider,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -116,8 +115,7 @@ public final class L8Command extends BaseCompilerCommand {
         assertionsConfiguration,
         outputInspections,
         threadCount,
-        dumpInputFlags,
-        mapIdProvider);
+        dumpInputFlags);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;
@@ -411,7 +409,6 @@ public final class L8Command extends BaseCompilerCommand {
           getOutputInspections(),
           getThreadCount(),
           getDumpInputFlags(),
-          getMapIdProvider(),
           factory);
     }
   }
