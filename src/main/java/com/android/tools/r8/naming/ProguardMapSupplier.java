@@ -4,6 +4,8 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.MapIdEnvironment;
+import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
@@ -33,17 +35,19 @@ public class ProguardMapSupplier {
 
   // Hash of the Proguard map (excluding the header up to and including the hash marker).
   public static class ProguardMapId {
+    private final String id;
     private final String hash;
 
-    private ProguardMapId(String id) {
+    private ProguardMapId(String id, String hash) {
       assert id != null;
-      this.hash = id;
+      assert hash != null;
+      this.id = id;
+      this.hash = hash;
     }
 
-    /** Truncated prefix of the content hash. */
-    // TODO(b/201269335): Update this to be a full "source-file marker".
+    /** Id for the map file (user defined or a truncated prefix of the content hash). */
     public String getId() {
-      return hash.substring(0, PG_MAP_ID_LENGTH);
+      return id;
     }
 
     /** The actual content hash. */
@@ -84,7 +88,7 @@ public class ProguardMapSupplier {
   private ProguardMapId computeProguardMapId() {
     ProguardMapIdBuilder builder = new ProguardMapIdBuilder();
     classNameMapper.write(builder);
-    return builder.build();
+    return builder.build(options.mapIdProvider);
   }
 
   private void writeBody() {
@@ -138,14 +142,31 @@ public class ProguardMapSupplier {
 
     private final Hasher hasher = Hashing.sha256().newHasher();
 
+    private MapIdProvider getProviderOrDefault(MapIdProvider provider) {
+      return provider != null
+          ? provider
+          : environment -> environment.getMapHash().substring(0, PG_MAP_ID_LENGTH);
+    }
+
+    private MapIdEnvironment getEnvironment(String hash) {
+      return new MapIdEnvironment() {
+        @Override
+        public String getMapHash() {
+          return hash;
+        }
+      };
+    }
+
     @Override
     public ProguardMapIdBuilder accept(String string) {
       hasher.putString(string, StandardCharsets.UTF_8);
       return this;
     }
 
-    public ProguardMapId build() {
-      return new ProguardMapId(hasher.hash().toString());
+    public ProguardMapId build(MapIdProvider mapIdProvider) {
+      String hash = hasher.hash().toString();
+      String id = getProviderOrDefault(mapIdProvider).get(getEnvironment(hash));
+      return new ProguardMapId(id, hash);
     }
   }
 

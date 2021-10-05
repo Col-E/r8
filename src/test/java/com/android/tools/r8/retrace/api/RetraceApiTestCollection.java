@@ -80,6 +80,11 @@ public class RetraceApiTestCollection
   }
 
   @Override
+  public List<Class<?>> getPendingAdditionalClassesForTests() {
+    return ImmutableList.of();
+  }
+
+  @Override
   public List<String> getVmArgs() {
     return ImmutableList.of();
   }

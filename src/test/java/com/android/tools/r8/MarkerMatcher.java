@@ -179,6 +179,21 @@ public abstract class MarkerMatcher extends TypeSafeMatcher<Marker> {
     };
   }
 
+  public static Matcher<Marker> markerPgMapId(Matcher<String> predicate) {
+    return new MarkerMatcher() {
+      @Override
+      protected boolean eval(Marker marker) {
+        return predicate.matches(marker.getPgMapId());
+      }
+
+      @Override
+      protected void explain(Description description) {
+        description.appendText("with pg_map_id matching ");
+        predicate.describeTo(description);
+      }
+    };
+  }
+
   public static Matcher<Marker> markerR8Mode(String r8Mode) {
     return new MarkerMatcher() {
       @Override
