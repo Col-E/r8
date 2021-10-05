@@ -52,16 +52,17 @@ public class RetraceApiOutsideLineRangeTest extends RetraceApiTestBase {
             + someClassRenamed.getTypeName()
             + ":\n"
             + "  1:3:void method2():11:13 -> a\n"
-            + "  4:4:void method2():10:10 -> a\n";
+            + "  4:4:void method2():10:10 -> a\n"
+            + "  28:28:void foo.bar.inlinee():92:92 -> a\n"
+            + "  5:5:void method2():14 -> a\n";
 
     @Test
     public void testNoLine() {
       Retracer retracer =
           Retracer.createDefault(
               ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
-      // TODO(b/201981983): Should only give rise to method2 once.
       // TODO(b/201982044): Should be the empty set.
-      retraceClassMethodAndPosition(retracer, someClassRenamed, someClassOriginal, 2, 2);
+      retraceClassMethodAndPosition(retracer, someClassRenamed, someClassOriginal, 2, 4);
       retraceClassMethodAndPosition(retracer, someOtherClassRenamed, someOtherClassOriginal, 1, 1);
     }
 

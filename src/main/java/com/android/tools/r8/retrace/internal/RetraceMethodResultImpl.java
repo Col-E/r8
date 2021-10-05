@@ -18,8 +18,10 @@ import com.android.tools.r8.retrace.internal.RetraceClassResultImpl.RetraceClass
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class RetraceMethodResultImpl implements RetraceMethodResult {
@@ -134,17 +136,19 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                             methodDefinition.substituteHolder(
                                 classElement.getRetracedClass().getClassReference()))));
               }
-              return mappedRanges.stream()
-                  .map(
-                      mappedRange -> {
-                        MethodReference methodReference =
-                            RetraceUtils.methodReferenceFromMappedRange(
-                                mappedRange, classElement.getRetracedClass().getClassReference());
-                        return new ElementImpl(
-                            this,
-                            classElement,
-                            RetracedMethodReferenceImpl.create(methodReference));
-                      });
+              List<ElementImpl> results = new ArrayList<>();
+              Set<MethodReference> seenMethodReferences = new HashSet<>();
+              for (MappedRange mappedRange : mappedRanges) {
+                MethodReference methodReference =
+                    RetraceUtils.methodReferenceFromMappedRange(
+                        mappedRange, classElement.getRetracedClass().getClassReference());
+                if (seenMethodReferences.add(methodReference)) {
+                  results.add(
+                      new ElementImpl(
+                          this, classElement, RetracedMethodReferenceImpl.create(methodReference)));
+                }
+              }
+              return results.stream();
             });
   }
 
