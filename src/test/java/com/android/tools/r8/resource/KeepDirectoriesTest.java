@@ -15,7 +15,8 @@ import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
-import com.android.tools.r8.StringResource;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -51,12 +52,16 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}, Minify: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        ToolHelper.getBackends(),
+        BooleanUtils.values(),
+        TestParametersBuilder.builder().withNoneRuntime().build());
   }
 
-  public KeepDirectoriesTest(Backend backend, boolean minify) {
+  public KeepDirectoriesTest(Backend backend, boolean minify, TestParameters parameters) {
     this.backend = backend;
     this.minify = minify;
+    parameters.assertNoneRuntime();
   }
 
   // Return the original package name for this package.
@@ -66,14 +71,11 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
   // Return the package name in the app for this package.
   private String pathForThisPackage(AndroidApp app) throws Exception {
-    String name;
-    if (app.getProguardMapOutputData() != null) {
-      ClassNameMapper mapper =
-          ClassNameMapper.mapperFromString(app.getProguardMapOutputData().getString());
-      name = mapper.getObfuscatedToOriginalMapping().inverse.get(Main.class.getCanonicalName());
-    } else {
-      name = Main.class.getTypeName();
-    }
+    ClassNameMapper mapper =
+        ClassNameMapper.mapperFromString(app.getProguardMapOutputData().getString());
+    String originalName = Main.class.getTypeName();
+    String name =
+        mapper.getObfuscatedToOriginalMapping().inverse.getOrDefault(originalName, originalName);
     return name.substring(0, name.lastIndexOf('.')).replace('.', '/');
   }
 

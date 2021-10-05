@@ -59,7 +59,6 @@ public class ProguardMapSupplier {
 
   private ProguardMapSupplier(ClassNameMapper classNameMapper, InternalOptions options) {
     assert classNameMapper != null;
-    assert !classNameMapper.isEmpty();
     this.classNameMapper = classNameMapper.sorted();
     this.consumer =
         InternalOptions.assertionsEnabled()
@@ -71,7 +70,7 @@ public class ProguardMapSupplier {
 
   public static ProguardMapSupplier create(
       ClassNameMapper classNameMapper, InternalOptions options) {
-    return classNameMapper.isEmpty() ? null : new ProguardMapSupplier(classNameMapper, options);
+    return new ProguardMapSupplier(classNameMapper, options);
   }
 
   public ProguardMapId writeProguardMap() {
