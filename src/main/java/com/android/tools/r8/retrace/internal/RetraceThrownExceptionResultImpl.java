@@ -34,6 +34,11 @@ public class RetraceThrownExceptionResultImpl implements RetraceThrownExceptionR
     return Stream.of(createElement());
   }
 
+  @Override
+  public boolean isEmpty() {
+    return obfuscatedReference == null;
+  }
+
   private RetraceThrownExceptionElement createElement() {
     return new RetraceThrownExceptionElementImpl(
         this,

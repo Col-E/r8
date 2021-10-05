@@ -12,8 +12,6 @@ import java.util.OptionalInt;
 @Keep
 public interface RetraceClassResult extends RetraceResult<RetraceClassElement> {
 
-  boolean hasRetraceResult();
-
   RetraceFieldResult lookupField(String fieldName);
 
   RetraceFieldResult lookupField(String fieldName, TypeReference fieldType);

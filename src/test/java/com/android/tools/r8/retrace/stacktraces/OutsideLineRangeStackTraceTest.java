@@ -34,41 +34,26 @@ public class OutsideLineRangeStackTraceTest implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "java.io.IOException: INVALID_SENDER",
-        // TODO(b/201982044): Should not be ambiguous since b.a(:27) should be b.a(:27)
         "\tat some.other.Class.method1(Class.java:42)",
         "\tat some.other.Class.method1(Class.java:42)",
-        "\tat some.Class.method2(Class.java:10)",
-        "\tat some.Class.method2(Class.java)",
-        "<OR> java.io.IOException: INVALID_SENDER",
-        "\tat some.other.Class.method1(Class.java:42)",
-        "\tat some.other.Class.method1(Class.java:42)",
-        "\tat some.Class.method2(Class.java:27)",
+        "\tat some.Class.a(Class.java:27)",
         "\tat some.Class.method2(Class.java)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
-        "There are 4 ambiguous stack traces.",
+        "There are 2 ambiguous stack traces.",
         "java.io.IOException: INVALID_SENDER",
         "\tat some.other.Class.void method1()(Class.java:42)",
         "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.Class.void method2()(Class.java:10)",
+        "\tat some.Class.a(Class.java:27)",
+        // TODO(b/202055473): Could emit range 11-13.
         "\tat some.Class.void method2()(Class.java)",
         "<OR> java.io.IOException: INVALID_SENDER",
         "\tat some.other.Class.void method1()(Class.java:42)",
         "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.Class.void method2()(Class.java:10)",
-        "\tat some.Class.void method2()(Class.java:10)",
-        "<OR> java.io.IOException: INVALID_SENDER",
-        "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.Class.void method2()(Class.java:27)",
-        "\tat some.Class.void method2()(Class.java)",
-        "<OR> java.io.IOException: INVALID_SENDER",
-        "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.Class.void method2()(Class.java:27)",
+        "\tat some.Class.a(Class.java:27)",
         "\tat some.Class.void method2()(Class.java:10)");
   }
 

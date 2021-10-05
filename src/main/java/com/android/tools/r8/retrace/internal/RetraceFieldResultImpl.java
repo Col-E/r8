@@ -92,6 +92,11 @@ public class RetraceFieldResultImpl implements RetraceFieldResult {
     return mappings.size() > 1;
   }
 
+  @Override
+  public boolean isEmpty() {
+    return memberNamings == null || memberNamings.isEmpty();
+  }
+
   public static class ElementImpl implements RetraceFieldElement {
 
     private final RetracedFieldReferenceImpl fieldReference;

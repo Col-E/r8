@@ -31,4 +31,6 @@ public interface RetraceResult<E extends RetraceElement<?>> {
   default void forEach(Consumer<E> action) {
     stream().forEach(action);
   }
+
+  boolean isEmpty();
 }

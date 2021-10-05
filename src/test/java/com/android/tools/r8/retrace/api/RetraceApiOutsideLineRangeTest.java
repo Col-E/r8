@@ -61,8 +61,7 @@ public class RetraceApiOutsideLineRangeTest extends RetraceApiTestBase {
       Retracer retracer =
           Retracer.createDefault(
               ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
-      // TODO(b/201982044): Should be the empty set.
-      retraceClassMethodAndPosition(retracer, someClassRenamed, someClassOriginal, 2, 4);
+      retraceClassMethodAndPosition(retracer, someClassRenamed, someClassOriginal, 2, 0);
       retraceClassMethodAndPosition(retracer, someOtherClassRenamed, someOtherClassOriginal, 1, 1);
     }
 

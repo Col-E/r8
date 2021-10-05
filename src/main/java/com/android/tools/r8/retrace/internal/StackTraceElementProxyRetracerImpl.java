@@ -131,6 +131,25 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
                                   ? OptionalInt.of(element.getLineNumber())
                                   : OptionalInt.empty(),
                               element.getMethodName());
+                      if (!frameResult.isEmpty()) {
+                        return classResult.stream()
+                            .map(
+                                classElement ->
+                                    proxy
+                                        .builder()
+                                        .setTopFrame(true)
+                                        .joinAmbiguous(classResult.isAmbiguous())
+                                        .setRetracedClass(classElement.getRetracedClass())
+                                        .applyIf(
+                                            element.hasLineNumber(),
+                                            b -> b.setLineNumber(element.getLineNumber()))
+                                        .apply(
+                                            setSourceFileOnProxy(
+                                                classElement::getSourceFile,
+                                                classElement.getRetracedClass(),
+                                                classResult))
+                                        .build());
+                      }
                       return frameResult.stream()
                           .flatMap(
                               frameElement -> {
@@ -230,9 +249,7 @@ public class StackTraceElementProxyRetracerImpl<T, ST extends StackTraceElementP
           retracedSourceFile.hasRetraceResult()
               ? retracedSourceFile.getSourceFile()
               : RetraceUtils.inferSourceFile(
-                  classReference.getTypeName(),
-                  original.getSourceFile(),
-                  classResult.hasRetraceResult()));
+                  classReference.getTypeName(), original.getSourceFile(), classResult.isEmpty()));
     };
   }
 

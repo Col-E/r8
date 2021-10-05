@@ -65,6 +65,11 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
   }
 
   @Override
+  public boolean isEmpty() {
+    return mappedRanges == null || mappedRanges.isEmpty();
+  }
+
+  @Override
   public RetraceFrameResultImpl narrowByPosition(
       RetraceStackTraceContext context, OptionalInt position) {
     List<Pair<RetraceClassElementImpl, List<MappedRange>>> narrowedRanges = new ArrayList<>();
@@ -79,36 +84,43 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
       }
       MappedRangesOfName mappedRangesOfElement = new MappedRangesOfName(mappedRange.getSecond());
       List<MappedRange> mappedRangesForPosition = null;
-      if (position.isPresent() && position.getAsInt() >= 0) {
+      boolean hasPosition = position.isPresent() && position.getAsInt() >= 0;
+      if (hasPosition) {
         mappedRangesForPosition =
             mappedRangesOfElement.allRangesForLine(position.getAsInt(), false);
       }
       if (mappedRangesForPosition == null || mappedRangesForPosition.isEmpty()) {
-        mappedRangesForPosition = mappedRangesOfElement.getMappedRanges();
-      } else if (stackTraceContext != null && stackTraceContext.hasRewritePosition()) {
-        List<OutlineCallsiteMappingInformation> outlineCallsiteInformation =
-            ListUtils.last(mappedRangesForPosition).getOutlineCallsiteInformation();
-        if (!outlineCallsiteInformation.isEmpty()) {
-          assert outlineCallsiteInformation.size() == 1
-              : "There can only be one outline entry for a line";
-          return narrowByPosition(
-              stackTraceContext.buildFromThis().clearRewritePosition().build(),
-              OptionalInt.of(
-                  outlineCallsiteInformation
-                      .get(0)
-                      .rewritePosition(stackTraceContext.getRewritePosition())));
-        }
+        mappedRangesForPosition =
+            hasPosition
+                ? ListUtils.filter(
+                    mappedRangesOfElement.getMappedRanges(), range -> range.minifiedRange == null)
+                : mappedRangesOfElement.getMappedRanges();
       }
-      assert mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty();
-      // Mapped ranges can have references to overloaded signatures. We distinguish those by looking
-      // at the cardinal mapping range.
-      for (MappedRange mappedRangeForPosition : mappedRangesForPosition) {
-        if (narrowedRanges.isEmpty()
-            || mappedRangeForPosition.originalRange == null
-            || !mappedRangeForPosition.originalRange.isCardinal) {
-          narrowedRanges.add(new Pair<>(mappedRange.getFirst(), new ArrayList<>()));
+      if (mappedRangesForPosition != null && !mappedRangesForPosition.isEmpty()) {
+        if (stackTraceContext != null && stackTraceContext.hasRewritePosition()) {
+          List<OutlineCallsiteMappingInformation> outlineCallsiteInformation =
+              ListUtils.last(mappedRangesForPosition).getOutlineCallsiteInformation();
+          if (!outlineCallsiteInformation.isEmpty()) {
+            assert outlineCallsiteInformation.size() == 1
+                : "There can only be one outline entry for a line";
+            return narrowByPosition(
+                stackTraceContext.buildFromThis().clearRewritePosition().build(),
+                OptionalInt.of(
+                    outlineCallsiteInformation
+                        .get(0)
+                        .rewritePosition(stackTraceContext.getRewritePosition())));
+          }
         }
-        ListUtils.last(narrowedRanges).getSecond().add(mappedRangeForPosition);
+        // Mapped ranges can have references to overloaded signatures. We distinguish those by
+        // looking at the cardinal mapping range.
+        for (MappedRange mappedRangeForPosition : mappedRangesForPosition) {
+          if (narrowedRanges.isEmpty()
+              || mappedRangeForPosition.originalRange == null
+              || !mappedRangeForPosition.originalRange.isCardinal) {
+            narrowedRanges.add(new Pair<>(mappedRange.getFirst(), new ArrayList<>()));
+          }
+          ListUtils.last(narrowedRanges).getSecond().add(mappedRangeForPosition);
+        }
       }
     }
     return new RetraceFrameResultImpl(

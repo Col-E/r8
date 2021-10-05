@@ -148,7 +148,7 @@ public class RetraceClassResultImpl implements RetraceClassResult {
   }
 
   @Override
-  public boolean hasRetraceResult() {
+  public boolean isEmpty() {
     return mapper != null;
   }
 

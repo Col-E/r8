@@ -219,6 +219,11 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
             () -> mappedRange.getOriginalLineNumber(obfuscatedPosition.getAsInt())));
   }
 
+  @Override
+  public boolean isEmpty() {
+    return !mappedRanges.isEmpty();
+  }
+
   public static class ElementImpl implements RetraceFrameElement {
 
     private final RetracedMethodReferenceImpl methodReference;
