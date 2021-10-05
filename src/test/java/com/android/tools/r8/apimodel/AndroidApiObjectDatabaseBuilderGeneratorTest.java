@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodel.AndroidApiDatabaseBuilderGenerator.generatedMainDescriptor;
+import static com.android.tools.r8.apimodel.AndroidApiObjectDatabaseBuilderGenerator.generatedMainDescriptor;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
 
@@ -48,7 +48,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
+public class AndroidApiObjectDatabaseBuilderGeneratorTest extends TestBase {
 
   protected final TestParameters parameters;
   private static final Path API_VERSIONS_XML =
@@ -62,7 +62,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  public AndroidApiDatabaseBuilderGeneratorTest(TestParameters parameters) {
+  public AndroidApiObjectDatabaseBuilderGeneratorTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -75,7 +75,7 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
     ZipBuilder builder = ZipBuilder.builder(temp.newFile("out.jar").toPath());
-    AndroidApiDatabaseBuilderGenerator.generate(
+    AndroidApiObjectDatabaseBuilderGenerator.generate(
         apiClasses,
         (descriptor, content) -> {
           try {
@@ -139,10 +139,10 @@ public class AndroidApiDatabaseBuilderGeneratorTest extends TestBase {
   private static void validateJar(Path generated, List<ParsedApiClass> apiClasses) {
     List<BiFunction<Path, List<ParsedApiClass>, Boolean>> tests =
         ImmutableList.of(
-            AndroidApiDatabaseBuilderGeneratorTest::testGeneratedOutputForVisitClasses,
-            AndroidApiDatabaseBuilderGeneratorTest::testBuildClassesContinue,
-            AndroidApiDatabaseBuilderGeneratorTest::testBuildClassesBreak,
-            AndroidApiDatabaseBuilderGeneratorTest::testNoPlaceHolder);
+            AndroidApiObjectDatabaseBuilderGeneratorTest::testGeneratedOutputForVisitClasses,
+            AndroidApiObjectDatabaseBuilderGeneratorTest::testBuildClassesContinue,
+            AndroidApiObjectDatabaseBuilderGeneratorTest::testBuildClassesBreak,
+            AndroidApiObjectDatabaseBuilderGeneratorTest::testNoPlaceHolder);
     tests.forEach(
         test -> {
           try {

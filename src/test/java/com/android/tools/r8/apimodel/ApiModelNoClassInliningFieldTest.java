@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForField;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -40,7 +41,7 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
   public void testR8() throws Exception {
     Field apiField = Api.class.getDeclaredField("foo");
     testForR8(parameters.getBackend())
-        .addProgramClasses(ApiCaller.class, ApiCallerCaller.class, ApiBuilder.class, Main.class)
+        .addProgramClasses(ApiCallerCaller.class, ApiBuilder.class, Main.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
@@ -48,6 +49,7 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForField(apiField, AndroidApiLevel.L_MR1))
+        .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
@@ -55,9 +57,9 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
             inspector -> {
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L_MR1)) {
-                assertThat(inspector.clazz(ApiCaller.class), not(isPresent()));
+                assertThat(inspector.clazz(ApiBuilder.class), not(isPresent()));
               } else {
-                assertThat(inspector.clazz(ApiCaller.class), isPresent());
+                assertThat(inspector.clazz(ApiBuilder.class), isPresent());
               }
             })
         .addRunClasspathClasses(Api.class)
@@ -72,19 +74,14 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
 
   public static class ApiBuilder {
 
-    public static Api build() {
-      return new Api();
+    public Api api;
+
+    public ApiBuilder() {
+      api = new Api();
     }
-  }
 
-  @NoHorizontalClassMerging
-  public static class ApiCaller {
-
-    private Api api;
-
-    public ApiCaller(Api api) {
-      this.api = api;
-      System.out.println(api.foo);
+    public String build() {
+      return api.foo;
     }
   }
 
@@ -93,7 +90,7 @@ public class ApiModelNoClassInliningFieldTest extends TestBase {
 
     @NeverInline
     public static void callCallApi() {
-      new ApiCaller(ApiBuilder.build());
+      System.out.println(new ApiBuilder().build());
     }
   }
 

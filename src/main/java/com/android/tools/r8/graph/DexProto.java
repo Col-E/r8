@@ -55,7 +55,7 @@ public class DexProto extends IndexedDexItem implements NamingLensComparable<Dex
 
   @Override
   public int computeHashCode() {
-    return shorty.hashCode() + returnType.hashCode() * 7 + parameters.hashCode() * 31;
+    return shorty.hashCode() * 7 + returnType.hashCode() * 13 + parameters.hashCode() * 31;
   }
 
   public DexType getReturnType() {
