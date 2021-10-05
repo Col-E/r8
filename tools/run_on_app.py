@@ -13,7 +13,7 @@ import sys
 import time
 
 import archive
-import as_utils
+import gradle
 import gmail_data
 import gmscore_data
 import golem
@@ -653,7 +653,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
 
   args.extend(inputs)
 
-  t0 = time.time()
+  t0 = None
   if options.dump_args_file:
     with open(options.dump_args_file, 'w') as args_file:
       args_file.writelines([arg + os.linesep for arg in args])
@@ -694,8 +694,11 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
         if options.hash:
           jar = os.path.join(utils.LIBS, 'r8-' + options.hash + '.jar')
           main = 'com.android.tools.r8.' + options.compiler.upper()
+        if should_build(options):
+          gradle.RunGradle(['r8lib' if tool.startswith('r8lib') else 'r8'])
+        t0 = time.time()
         exit_code = toolhelper.run(tool, args,
-            build=should_build(options),
+            build=False,
             debug=not options.no_debug,
             profile=options.profile,
             track_memory_file=options.track_memory_to_file,
