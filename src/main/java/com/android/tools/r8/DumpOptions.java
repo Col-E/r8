@@ -34,6 +34,7 @@ public class DumpOptions {
   private static final String TREE_SHAKING_KEY = "tree-shaking";
   private static final String MINIFICATION_KEY = "minification";
   private static final String FORCE_PROGUARD_COMPATIBILITY_KEY = "force-proguard-compatibility";
+  private static final String SYSTEM_PROPERTY_PREFIX = "system-property-";
 
   private final Tool tool;
   private final CompilationMode compilationMode;
@@ -110,6 +111,15 @@ public class DumpOptions {
     addOptionalDumpEntry(builder, TREE_SHAKING_KEY, treeShaking);
     addOptionalDumpEntry(builder, MINIFICATION_KEY, minification);
     addOptionalDumpEntry(builder, FORCE_PROGUARD_COMPATIBILITY_KEY, forceProguardCompatibility);
+    System.getProperties()
+        .stringPropertyNames()
+        .forEach(
+            name -> {
+              if (name.startsWith("com.android.tools.r8.")) {
+                String value = System.getProperty(name);
+                addDumpEntry(builder, SYSTEM_PROPERTY_PREFIX + name, value);
+              }
+            });
     return builder.toString();
   }
 
