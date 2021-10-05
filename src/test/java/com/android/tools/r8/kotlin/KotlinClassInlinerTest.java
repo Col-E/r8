@@ -11,21 +11,23 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +41,9 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
+  private final String INTERNAL_SYNTHETIC_MAIN_PREFIX =
+      "class_inliner_lambda_j_style.MainKt$$InternalSyntheticLambda";
+
   @Parameterized.Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     return buildParameters(
@@ -50,19 +55,12 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     super(parameters, kotlinParameters, true);
   }
 
-  private static boolean isKStyleLambda(DexClass clazz) {
-    return clazz.getSuperType().getTypeName().equals("kotlin.jvm.internal.Lambda");
-  }
-
-  private static boolean isJStyleLambda(DexClass clazz) {
-    return clazz.getSuperType().getTypeName().equals(Object.class.getTypeName())
-        && clazz.getInterfaces().size() == 1;
-  }
-
   @Test
   public void testJStyleLambdas() throws Exception {
-    // TODO(b/185497606): Unable to class inline j style lambdas.
-    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0));
+    // SAM interfaces lambdas are implemented by invoke dynamic in kotlin 1.5 unlike 1.4 where a
+    // class is generated for each. In CF we leave invokeDynamic but for DEX we desugar the classes
+    // and merge them.
+    boolean hasKotlinCGeneratedLambdaClasses = kotlinParameters.isOlderThan(KOTLINC_1_5_0);
     String mainClassName = "class_inliner_lambda_j_style.MainKt";
     runTest(
             "class_inliner_lambda_j_style",
@@ -74,7 +72,27 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                     .addNoHorizontalClassMergingRule(
                         "class_inliner_lambda_j_style.SamIface$Consumer")
                     .addHorizontallyMergedClassesInspector(
-                        inspector ->
+                        inspector -> {
+                          if (!hasKotlinCGeneratedLambdaClasses && testParameters.isCfRuntime()) {
+                            inspector.assertNoClassesMerged();
+                          } else if (!hasKotlinCGeneratedLambdaClasses) {
+                            Set<Set<DexType>> mergeGroups = inspector.getMergeGroups();
+                            assertEquals(2, mergeGroups.size());
+                            IntBox seenLambdas = new IntBox();
+                            assertTrue(
+                                mergeGroups.stream()
+                                    .flatMap(Collection::stream)
+                                    .allMatch(
+                                        type -> {
+                                          boolean isDesugaredLambda =
+                                              type.toSourceString()
+                                                  .startsWith(INTERNAL_SYNTHETIC_MAIN_PREFIX);
+                                          if (isDesugaredLambda) {
+                                            seenLambdas.increment();
+                                          }
+                                          return isDesugaredLambda;
+                                        }));
+                          } else {
                             inspector
                                 .assertIsCompleteMergeGroup(
                                     "class_inliner_lambda_j_style.MainKt$testStateless$1",
@@ -86,16 +104,31 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                                     "class_inliner_lambda_j_style.MainKt$testStateful$2$1",
                                     "class_inliner_lambda_j_style.MainKt$testStateful$3",
                                     "class_inliner_lambda_j_style.MainKt$testStateful2$1",
-                                    "class_inliner_lambda_j_style.MainKt$testStateful3$1"))
+                                    "class_inliner_lambda_j_style.MainKt$testStateful3$1");
+                          }
+                        })
                     .noClassInlining())
         .inspect(
             inspector -> {
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
-                  isPresent());
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"),
-                  isPresent());
+              if (testParameters.isCfRuntime() && !hasKotlinCGeneratedLambdaClasses) {
+                assertEquals(5, inspector.allClasses().size());
+              } else if (!hasKotlinCGeneratedLambdaClasses) {
+                assertThat(
+                    inspector.clazz(
+                        "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda1"),
+                    isPresent());
+                assertThat(
+                    inspector.clazz(
+                        "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda2"),
+                    isPresent());
+              } else {
+                assertThat(
+                    inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
+                    isPresent());
+                assertThat(
+                    inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"),
+                    isPresent());
+              }
             });
 
     runTest(
@@ -109,14 +142,28 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                         "class_inliner_lambda_j_style.SamIface$Consumer"))
         .inspect(
             inspector -> {
+              if (testParameters.isCfRuntime() && !hasKotlinCGeneratedLambdaClasses) {
+                assertEquals(5, inspector.allClasses().size());
+                return;
+              }
               // TODO(b/173337498): MainKt$testStateless$1 should always be class inlined.
-              assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
-                  notIf(isPresent(), testParameters.isDexRuntime()));
+              if (!hasKotlinCGeneratedLambdaClasses) {
+                assertThat(
+                    inspector.clazz(
+                        "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda1"),
+                    isPresent());
+              } else {
+                assertThat(
+                    inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
+                    notIf(isPresent(), testParameters.isDexRuntime()));
+              }
 
               // TODO(b/173337498): MainKt$testStateful$1 should be class inlined.
               assertThat(
-                  inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"),
+                  inspector.clazz(
+                      !hasKotlinCGeneratedLambdaClasses
+                          ? "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda2"
+                          : "class_inliner_lambda_j_style.MainKt$testStateful$1"),
                   isPresent());
             });
   }
