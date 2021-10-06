@@ -158,6 +158,13 @@ public abstract class CodeToKeep {
       // TODO(b/134734081): Stream the consumer instead of building the String.
       StringBuilder sb = new StringBuilder();
       String cr = System.lineSeparator();
+      Comparator<DexReference> comparator =
+          new Comparator<DexReference>() {
+            @Override
+            public int compare(DexReference o1, DexReference o2) {
+              return o1.compareTo(o2);
+            }
+          };
       for (DexType type : CollectionUtils.sort(toKeep.keySet(), getComparator())) {
         KeepStruct keepStruct = toKeep.get(type);
         sb.append("-keep class ").append(convertType(type));

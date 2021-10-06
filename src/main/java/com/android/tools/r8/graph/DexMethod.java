@@ -10,6 +10,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.ArrayList;
@@ -58,6 +59,13 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   @Override
   public int acceptCompareTo(DexMethod other, CompareToVisitor visitor) {
     return visitor.visitDexMethod(this, other);
+  }
+
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexType(holder);
+    visitor.visitDexString(name);
+    getReferencedTypes().forEach(visitor::visitDexType);
   }
 
   public DexType getArgumentType(int argumentIndex, boolean isStatic) {
@@ -207,9 +215,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public int computeHashCode() {
-    return holder.hashCode()
-        + proto.hashCode() * 7
-        + name.hashCode() * 31;
+    return holder.hashCode() * 7 + proto.hashCode() * 29 + name.hashCode() * 31;
   }
 
   @Override
@@ -225,7 +231,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public boolean match(DexMethod method) {
-    return match(method.getProto(), method.getName());
+    return method == this || match(method.getProto(), method.getName());
   }
 
   public boolean match(DexMethodSignature method) {
@@ -300,10 +306,11 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   public DexMethod withHolder(DexDefinition definition, DexItemFactory dexItemFactory) {
-    return withHolder(definition.getReference(), dexItemFactory);
+    return withHolder(definition.getContextType(), dexItemFactory);
   }
 
-  public DexMethod withHolder(DexReference reference, DexItemFactory dexItemFactory) {
+  @Override
+  public DexMethod withHolder(DexType reference, DexItemFactory dexItemFactory) {
     return dexItemFactory.createMethod(reference.getContextType(), proto, name);
   }
 

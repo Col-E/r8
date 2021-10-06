@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Collections;
@@ -46,6 +47,13 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     }
     int comparisonResult = getHolderType().compareTo(other.asDexType());
     return comparisonResult != 0 ? comparisonResult : 1;
+  }
+
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visitDexType(holder);
+    visitor.visitDexString(name);
+    getReferencedTypes().forEach(visitor::visitDexType);
   }
 
   @Override
@@ -192,6 +200,7 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
     return type.toSourceString() + " " + holder.toSourceString() + "." + name.toSourceString();
   }
 
+  @Override
   public DexField withHolder(DexType holder, DexItemFactory dexItemFactory) {
     return dexItemFactory.createField(holder, type, name);
   }

@@ -1370,6 +1370,11 @@ public class DexItemFactory {
     public final DexMethod constructor;
     public final DexMethod finalize;
     public final DexMethod toString;
+    public final DexMethod notify;
+    public final DexMethod notifyAll;
+    public final DexMethod wait;
+    public final DexMethod waitLong;
+    public final DexMethod waitLongInt;
 
     private ObjectMembers() {
       // The clone method is installed on each array, so one has to use method.match(clone).
@@ -1382,6 +1387,36 @@ public class DexItemFactory {
           finalizeMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
       toString = createMethod(objectDescriptor,
           toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
+      notify =
+          createMethod(objectDescriptor, notifyMethodName, voidDescriptor, DexString.EMPTY_ARRAY);
+      notifyAll =
+          createMethod(
+              objectDescriptor, notifyAllMethodName, voidDescriptor, DexString.EMPTY_ARRAY);
+      wait = createMethod(objectDescriptor, waitMethodName, voidDescriptor, DexString.EMPTY_ARRAY);
+      waitLong =
+          createMethod(
+              objectDescriptor, waitMethodName, voidDescriptor, new DexString[] {longDescriptor});
+      waitLongInt =
+          createMethod(
+              objectDescriptor,
+              waitMethodName,
+              voidDescriptor,
+              new DexString[] {longDescriptor, intDescriptor});
+    }
+
+    public boolean isObjectMember(DexMethod method) {
+      return method.match(clone)
+          || method.match(getClass)
+          || method.match(constructor)
+          || method.match(finalize)
+          || method.match(toString)
+          || method.match(hashCode)
+          || method.match(equals)
+          || method.match(notify)
+          || method.match(notifyAll)
+          || method.match(wait)
+          || method.match(waitLong)
+          || method.match(waitLongInt);
     }
   }
 

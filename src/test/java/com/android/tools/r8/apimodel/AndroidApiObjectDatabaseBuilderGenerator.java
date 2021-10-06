@@ -43,7 +43,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-public class AndroidApiDatabaseBuilderGenerator extends TestBase {
+public class AndroidApiObjectDatabaseBuilderGenerator extends TestBase {
 
   public static String generatedMainDescriptor() {
     return descriptor(AndroidApiDatabaseBuilderTemplate.class).replace("Template", "");

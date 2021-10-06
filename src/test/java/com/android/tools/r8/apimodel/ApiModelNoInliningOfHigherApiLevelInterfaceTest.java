@@ -37,10 +37,10 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Api.class);
-    Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall");
+    Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Object.class);
+    Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall", Object.class);
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, A.class, ApiCaller.class)
+        .addProgramClassesAndInnerClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
@@ -66,10 +66,10 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   public static class ApiCaller {
 
     @KeepConstantArguments
-    public static void callInterfaceMethod(Api api) {
+    public static void callInterfaceMethod(Object o) {
       System.out.println("ApiCaller::callInterfaceMethod");
-      if (api != null) {
-        api.apiLevel22();
+      if (o != null) {
+        ((Api) o).apiLevel22();
       }
     }
   }
@@ -78,16 +78,24 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   public static class A {
 
     @NeverInline
-    public static void noApiCall() {
+    public static void noApiCall(Object o) {
       System.out.println("A::noApiCall");
-      ApiCaller.callInterfaceMethod(null);
+      ApiCaller.callInterfaceMethod(o);
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      A.noApiCall();
+      A.noApiCall(
+          args.length > 0
+              ? new Api() {
+                @Override
+                public void apiLevel22() {
+                  throw new RuntimeException("Foo");
+                }
+              }
+              : null);
     }
   }
 }

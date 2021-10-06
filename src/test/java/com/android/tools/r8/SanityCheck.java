@@ -12,12 +12,14 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Enumeration;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -45,6 +47,11 @@ public class SanityCheck extends TestBase {
     }
     boolean licenseSeen = false;
     final Enumeration<? extends ZipEntry> entries = zipFile.entries();
+    Set<String> apiDatabaseFiles =
+        Sets.newHashSet(
+            "api_database/api_database_ambiguous.txt",
+            "api_database/api_database_api_level.ser",
+            "api_database/api_database_hash_lookup.ser");
     while (entries.hasMoreElements()) {
       ZipEntry entry = entries.nextElement();
       String name = entry.getName();
@@ -56,12 +63,16 @@ public class SanityCheck extends TestBase {
         licenseSeen = true;
       } else if (entryTester.test(name)) {
         // Allow.
+      } else if (apiDatabaseFiles.contains(name)) {
+        // Allow all api database files.
+        apiDatabaseFiles.remove(name);
       } else if (name.endsWith("/")) {
         assertTrue("Unexpected directory entry in" + jar, allowDirectories);
       } else {
         fail("Unexpected entry '" + name + "' in " + jar);
       }
     }
+    assertTrue(apiDatabaseFiles.isEmpty());
     assertTrue("No LICENSE entry found in " + jar, licenseSeen);
   }
 

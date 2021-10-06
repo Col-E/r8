@@ -16,11 +16,13 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 
-public class AndroidApiLevelDatabaseImpl implements AndroidApiLevelDatabase {
+public class AndroidApiLevelObjectDatabaseImpl implements AndroidApiLevelDatabase {
 
-  private final HashMap<DexType, AndroidApiClass> predefinedApiTypeLookup;
+  private final Map<DexType, AndroidApiClass> predefinedApiTypeLookup;
 
   private final AndroidApiClass SENTINEL =
       new AndroidApiClass(null) {
@@ -52,8 +54,57 @@ public class AndroidApiLevelDatabaseImpl implements AndroidApiLevelDatabase {
         }
       };
 
-  public AndroidApiLevelDatabaseImpl(HashMap<DexType, AndroidApiClass> predefinedApiTypeLookup) {
-    this.predefinedApiTypeLookup = predefinedApiTypeLookup;
+  public AndroidApiLevelObjectDatabaseImpl(
+      List<AndroidApiForHashingClass> predefinedApiTypeLookupForHashing) {
+    Map<DexType, AndroidApiClass> predefinedMap = new HashMap<>();
+    for (AndroidApiForHashingClass androidApiClass : predefinedApiTypeLookupForHashing) {
+      predefinedMap.put(
+          androidApiClass.getType(),
+          new AndroidApiClass(androidApiClass.getType().asClassReference()) {
+            @Override
+            public AndroidApiLevel getApiLevel() {
+              return androidApiClass.getApiLevel();
+            }
+
+            @Override
+            public int getMemberCount() {
+              return 0;
+            }
+
+            @Override
+            protected TraversalContinuation visitFields(
+                BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+                ClassReference holder,
+                int minApiClass) {
+              Box<TraversalContinuation> continuationBox =
+                  new Box<>(TraversalContinuation.CONTINUE);
+              androidApiClass.visitFieldsWithApiLevels(
+                  (field, apiLevel) -> {
+                    if (continuationBox.get().shouldContinue()) {
+                      continuationBox.set(visitor.apply(field.asFieldReference(), apiLevel));
+                    }
+                  });
+              return continuationBox.get();
+            }
+
+            @Override
+            protected TraversalContinuation visitMethods(
+                BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+                ClassReference holder,
+                int minApiClass) {
+              Box<TraversalContinuation> continuationBox =
+                  new Box<>(TraversalContinuation.CONTINUE);
+              androidApiClass.visitMethodsWithApiLevels(
+                  (method, apiLevel) -> {
+                    if (continuationBox.get().shouldContinue()) {
+                      continuationBox.set(visitor.apply(method.asMethodReference(), apiLevel));
+                    }
+                  });
+              return continuationBox.get();
+            }
+          });
+    }
+    this.predefinedApiTypeLookup = predefinedMap;
   }
 
   @Override

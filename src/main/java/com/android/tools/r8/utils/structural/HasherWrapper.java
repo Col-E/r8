@@ -35,7 +35,7 @@ public interface HasherWrapper {
     return new HasherWrapped(Hashing.sha256().newHasher());
   }
 
-  static HasherWrapper murmur3_128Hasher() {
+  static HasherWrapper murmur3128Hasher() {
     return new HasherWrapped(Hashing.murmur3_128().newHasher());
   }
 

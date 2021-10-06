@@ -60,4 +60,6 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
   public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {
     return Iterables.transform(getReferencedTypes(), type -> type.toBaseType(dexItemFactory));
   }
+
+  public abstract DexMember<D, R> withHolder(DexType holder, DexItemFactory dexItemFactory);
 }

@@ -69,7 +69,7 @@ abstract class SyntheticDefinition<
       boolean intermediate,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       SyntheticItems syntheticItems) {
-    HasherWrapper hasher = HasherWrapper.murmur3_128Hasher();
+    HasherWrapper hasher = HasherWrapper.murmur3128Hasher();
     hasher.putInt(kind.id);
     if (getKind().isFixedSuffixSynthetic) {
       // Fixed synthetics are non-shareable. Its unique type is used as the hash key.
