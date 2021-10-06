@@ -8,6 +8,7 @@ import static com.android.tools.r8.ToolHelper.R8_JAR;
 import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
 import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
 import com.google.common.collect.ImmutableList;
@@ -27,9 +28,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
       ImmutableList.of(ApiTestingSetUpTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(
-          // No pending APIs.
-          );
+      ImmutableList.of(CustomMapIdTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

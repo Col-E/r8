@@ -48,6 +48,7 @@ public interface StringConsumer {
   }
 
   /** Empty consumer to request the production of the resource but ignore its value. */
+  @Keep
   class EmptyConsumer implements StringConsumer {
 
     private static final EmptyConsumer EMPTY_CONSUMER = new EmptyConsumer();
@@ -65,7 +66,7 @@ public interface StringConsumer {
 
   /** Forwarding consumer to delegate to an optional existing consumer. */
   @Keep
-  public class ForwardingConsumer implements StringConsumer {
+  class ForwardingConsumer implements StringConsumer {
 
     private final StringConsumer consumer;
 
