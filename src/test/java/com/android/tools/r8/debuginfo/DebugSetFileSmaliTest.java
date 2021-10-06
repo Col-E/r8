@@ -4,7 +4,7 @@
 package com.android.tools.r8.debuginfo;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -62,7 +62,7 @@ public class DebugSetFileSmaliTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              assertTrue(
+              assertFalse(
                   Arrays.stream(
                           inspector
                               .clazz(CLASS_NAME)

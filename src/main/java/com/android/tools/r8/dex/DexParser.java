@@ -581,7 +581,9 @@ public class DexParser<T extends DexClass> {
         case Constants.DBG_SET_FILE: {
           int nameIdx = dexReader.getUleb128p1();
           DexString sourceFile = nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx);
-          events.add(dexItemFactory.createSetFile(sourceFile));
+          if (options.readDebugSetFileEvent) {
+            events.add(dexItemFactory.createSetFile(sourceFile));
+          }
           break;
         }
         default: {

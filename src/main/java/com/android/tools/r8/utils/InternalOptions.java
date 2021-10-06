@@ -281,6 +281,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
   public boolean cfToCfDesugar = false;
   public boolean forceAnnotateSynthetics = false;
+  public boolean readDebugSetFileEvent = false;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 

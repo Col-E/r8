@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
@@ -457,6 +458,13 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
   }
 
+  /**
+   * Unused/unsupported set-file event.
+   *
+   * <p>The set-file event is unused by all DEX VMs and incorrect on some older VMs. It is
+   * represented in the type of events for completeness, but should never be emitted as part of
+   * writing DEX code.
+   */
   public static class SetFile extends DexDebugEvent {
 
     DexString fileName;
@@ -468,8 +476,7 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     @Override
     public void writeOn(
         DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens) {
-      writer.putByte(Constants.DBG_SET_FILE);
-      writer.putString(fileName);
+      throw new InternalCompilerError("Unused/unsupported SetFile event should never be written");
     }
 
     @Override
