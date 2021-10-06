@@ -30,27 +30,21 @@ public class SourceFileRewriter {
   }
 
   public void run() {
+    boolean isMinifying = appView.options().isMinifying();
     ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
-    String renameSourceFile = proguardConfiguration.getRenameSourceFileAttribute();
-    boolean hasRenameSourceFileAttribute = renameSourceFile != null;
-    // Return early if a user wants to keep the current source file attribute as-is.
-    if (!hasRenameSourceFileAttribute
-        && proguardConfiguration.getKeepAttributes().sourceFile
-        && appView.options().forceProguardCompatibility) {
+    boolean hasKeptNonRenamedSourceFile =
+        proguardConfiguration.getRenameSourceFileAttribute() == null
+            && proguardConfiguration.getKeepAttributes().sourceFile;
+    // If source file is kept without a rewrite, it is only modified it in a minifing full-mode.
+    if (hasKeptNonRenamedSourceFile
+        && (!isMinifying || appView.options().forceProguardCompatibility)) {
       return;
     }
-    boolean isMinifying = appView.options().isMinifying();
     assert !isMinifying || appView.appInfo().hasLiveness();
-    // Now, the user wants either to remove source file attribute or to rename it for non-kept
-    // classes.
     DexString defaultRenaming = getSourceFileRenaming(proguardConfiguration);
     for (DexClass clazz : application.classes()) {
-      // We only parse sourceFile if -keepattributes SourceFile, but for compat we should add
-      // a source file name, otherwise line positions will not be printed on the JVM or old version
-      // of ART.
-      if (!hasRenameSourceFileAttribute
-          && proguardConfiguration.getKeepAttributes().sourceFile
-          && !(isMinifying && appView.withLiveness().appInfo().isMinificationAllowed(clazz.type))) {
+      if (hasKeptNonRenamedSourceFile
+          && !appView.withLiveness().appInfo().isMinificationAllowed(clazz.type)) {
         continue;
       }
       clazz.sourceFile = defaultRenaming;
