@@ -6,8 +6,8 @@ package com.android.tools.r8.synthesis;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.structural.HasherWrapper;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
-import com.google.common.hash.Hasher;
 import java.util.function.Consumer;
 
 /**
@@ -59,7 +59,7 @@ class SyntheticMethodDefinition
   }
 
   @Override
-  void internalComputeHash(Hasher hasher, RepresentativeMap map) {
+  void internalComputeHash(HasherWrapper hasher, RepresentativeMap map) {
     method.getDefinition().hashWithTypeEquivalence(hasher, map);
   }
 

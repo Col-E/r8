@@ -5,8 +5,8 @@ package com.android.tools.r8.synthesis;
 
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.structural.HasherWrapper;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
-import com.google.common.hash.Hasher;
 
 /**
  * Definition of a synthetic classpath class.
@@ -44,7 +44,7 @@ class SyntheticClasspathClassDefinition
   }
 
   @Override
-  void internalComputeHash(Hasher hasher, RepresentativeMap map) {
+  void internalComputeHash(HasherWrapper hasher, RepresentativeMap map) {
     clazz.hashWithTypeEquivalence(hasher, map);
   }
 

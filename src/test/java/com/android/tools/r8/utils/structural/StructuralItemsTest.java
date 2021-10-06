@@ -88,7 +88,9 @@ public class StructuralItemsTest extends TestBase {
   }
 
   private String getHash(StructuralItem<?> item) {
-    return item.hashForTesting();
+    HasherWrapper hasherWrapper = HasherWrapper.sha256Hasher();
+    item.hash(hasherWrapper);
+    return hasherWrapper.hashCodeAsString();
   }
 
   @Test

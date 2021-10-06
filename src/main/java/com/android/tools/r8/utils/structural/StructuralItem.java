@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.structural;
 
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
-
 /** Specified types must implement methods to determine equality, hashing and order. */
 public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> {
 
@@ -60,15 +57,8 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
    * <p>This should *not* be overwritten, instead items should overwrite acceptHashing which will
    * ensure that the effect is in place for any HashingVisitor.
    */
-  default void hash(Hasher hasher) {
+  default void hash(HasherWrapper hasher) {
     DefaultHashingVisitor.run(self(), hasher, StructuralItem::acceptHashing);
-  }
-
-  /** Hashing method to use from tests to avoid having guava types shared between R8 and tests. */
-  default String hashForTesting() {
-    Hasher hasher = Hashing.sha256().newHasher();
-    hash(hasher);
-    return hasher.hash().toString();
   }
 
   /**
@@ -77,7 +67,7 @@ public interface StructuralItem<T extends StructuralItem<T>> extends Ordered<T> 
    * <p>This should *not* be overwritten, instead items should overwrite acceptHashing which will
    * ensure that the effect is in place for any HashingVisitor.
    */
-  default void hashWithTypeEquivalence(Hasher hasher, RepresentativeMap map) {
+  default void hashWithTypeEquivalence(HasherWrapper hasher, RepresentativeMap map) {
     HashingVisitorWithTypeEquivalence.run(self(), hasher, map, StructuralItem::acceptHashing);
   }
 

@@ -8,10 +8,9 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.structural.HasherWrapper;
 import com.android.tools.r8.utils.structural.RepresentativeMap;
 import com.google.common.hash.HashCode;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
 
 /**
  * Base type for the definition of a synthetic item.
@@ -70,7 +69,7 @@ abstract class SyntheticDefinition<
       boolean intermediate,
       ClassToFeatureSplitMap classToFeatureSplitMap,
       SyntheticItems syntheticItems) {
-    Hasher hasher = Hashing.murmur3_128().newHasher();
+    HasherWrapper hasher = HasherWrapper.murmur3_128Hasher();
     hasher.putInt(kind.id);
     if (getKind().isFixedSuffixSynthetic) {
       // Fixed synthetics are non-shareable. Its unique type is used as the hash key.
@@ -87,7 +86,7 @@ abstract class SyntheticDefinition<
     return hasher.hash();
   }
 
-  abstract void internalComputeHash(Hasher hasher, RepresentativeMap map);
+  abstract void internalComputeHash(HasherWrapper hasher, RepresentativeMap map);
 
   final boolean isEquivalentTo(
       D other,

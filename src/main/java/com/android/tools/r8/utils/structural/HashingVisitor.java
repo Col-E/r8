@@ -9,11 +9,9 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
-import com.google.common.hash.Hasher;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.function.BiConsumer;
 
 public abstract class HashingVisitor {
 
@@ -55,7 +53,4 @@ public abstract class HashingVisitor {
   }
 
   public abstract <S> void visit(S item, StructuralMapping<S> accept);
-
-  @Deprecated
-  public abstract <S> void visit(S item, BiConsumer<S, Hasher> hasher);
 }

@@ -6,8 +6,7 @@ package com.android.tools.r8.contexts;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
+import com.android.tools.r8.utils.structural.HasherWrapper;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -143,9 +142,9 @@ public class CompilationContext {
 
     private StringBuilder buildSuffix(StringBuilder builder) {
       // TODO(b/172194101): Sanitize the method descriptor instead of hashing.
-      Hasher hasher = Hashing.sha256().newHasher();
+      HasherWrapper hasher = HasherWrapper.sha256Hasher();
       method.getReference().hash(hasher);
-      return builder.append('$').append(hasher.hash().toString());
+      return builder.append('$').append(hasher.hashCodeAsString());
     }
 
     @Override

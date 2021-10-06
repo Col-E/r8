@@ -4,7 +4,6 @@
 package com.android.tools.r8.utils.structural;
 
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
-import com.google.common.hash.Hasher;
 
 /**
  * Default visitor for hashing a structural item.
@@ -14,11 +13,11 @@ import com.google.common.hash.Hasher;
  */
 public class DefaultHashingVisitor {
 
-  public static <T> void run(T item, Hasher hasher, StructuralMapping<T> accept) {
+  public static <T> void run(T item, HasherWrapper hasher, StructuralMapping<T> accept) {
     run(item, hasher, (i, visitor) -> visitor.visit(i, accept));
   }
 
-  public static <T> void run(T item, Hasher hasher, HashingAccept<T> hashingAccept) {
+  public static <T> void run(T item, HasherWrapper hasher, HashingAccept<T> hashingAccept) {
     HashingVisitorWithTypeEquivalence.run(item, hasher, t -> t, hashingAccept);
   }
 }

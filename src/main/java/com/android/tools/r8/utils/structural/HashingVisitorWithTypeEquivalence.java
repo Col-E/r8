@@ -8,9 +8,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.structural.StructuralItem.CompareToAccept;
 import com.android.tools.r8.utils.structural.StructuralItem.HashingAccept;
-import com.google.common.hash.Hasher;
 import java.util.Iterator;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToDoubleFunction;
@@ -21,19 +19,19 @@ import java.util.function.ToLongFunction;
 public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
 
   public static <T> void run(
-      T item, Hasher hasher, RepresentativeMap map, StructuralMapping<T> accept) {
+      T item, HasherWrapper hasher, RepresentativeMap map, StructuralMapping<T> accept) {
     run(item, hasher, map, (i, visitor) -> visitor.visit(i, accept));
   }
 
   public static <T> void run(
-      T item, Hasher hasher, RepresentativeMap map, HashingAccept<T> hashingAccept) {
+      T item, HasherWrapper hasher, RepresentativeMap map, HashingAccept<T> hashingAccept) {
     hashingAccept.acceptHashing(item, new HashingVisitorWithTypeEquivalence(hasher, map));
   }
 
-  private final Hasher hash;
+  private final HasherWrapper hash;
   private final RepresentativeMap representatives;
 
-  private HashingVisitorWithTypeEquivalence(Hasher hash, RepresentativeMap representatives) {
+  private HashingVisitorWithTypeEquivalence(HasherWrapper hash, RepresentativeMap representatives) {
     this.hash = hash;
     this.representatives = representatives;
   }
@@ -83,11 +81,6 @@ public class HashingVisitorWithTypeEquivalence extends HashingVisitor {
     while (it.hasNext()) {
       hashingAccept.acceptHashing(it.next(), this);
     }
-  }
-
-  @Override
-  public <S> void visit(S item, BiConsumer<S, Hasher> hasher) {
-    hasher.accept(item, hash);
   }
 
   private static class ItemSpecification<T>
