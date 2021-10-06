@@ -8,6 +8,7 @@ import static com.android.tools.r8.ToolHelper.R8_JAR;
 import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.compilerapi.mockdata.MockClass;
 import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -53,7 +54,12 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
 
   @Override
   public List<Class<?>> getAdditionalClassesForTests() {
-    return ImmutableList.of(CompilerApiTest.class);
+    return ImmutableList.of(CompilerApiTest.class, MockClass.class);
+  }
+
+  @Override
+  public List<Class<?>> getPendingAdditionalClassesForTests() {
+    return ImmutableList.of();
   }
 
   @Override
