@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.utils.structural;
 
-import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
@@ -26,10 +25,9 @@ public interface HasherWrapper {
 
   void putBytes(byte[] content);
 
-  /** Do not use from tests */
-  HashCode hash();
-
   String hashCodeAsString();
+
+  <T> T hash();
 
   static HasherWrapper sha256Hasher() {
     return new HasherWrapped(Hashing.sha256().newHasher());
@@ -78,8 +76,8 @@ public interface HasherWrapper {
     }
 
     @Override
-    public HashCode hash() {
-      return hasher.hash();
+    public <T> T hash() {
+      return (T) hasher.hash();
     }
 
     @Override
