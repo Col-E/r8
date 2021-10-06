@@ -188,31 +188,31 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
   private void assertGeneratedKeepRulesAreCorrect(String keepRules) {
     String expectedResult =
         StringUtils.lines(
-            "-keep class j$.util.List$-EL {",
-            "    void sort(java.util.List, java.util.Comparator);",
-            "}",
             "-keep class j$.util.Collection$-EL {",
             "    j$.util.stream.Stream stream(java.util.Collection);",
-            "}",
-            "-keep class j$.util.stream.IntStream$-CC {",
-            "    j$.util.stream.IntStream range(int, int);",
             "}",
             "-keep class j$.util.Comparator$-CC {",
             "    java.util.Comparator comparingInt(j$.util.function.ToIntFunction);",
             "}",
+            "-keep class j$.util.DesugarArrays {",
+            "    j$.util.Spliterator spliterator(java.lang.Object[]);",
+            "    j$.util.Spliterator spliterator(java.lang.Object[], int, int);",
+            "    j$.util.stream.Stream stream(java.lang.Object[]);",
+            "    j$.util.stream.Stream stream(java.lang.Object[], int, int);",
+            "}",
+            "-keep class j$.util.List$-EL {",
+            "    void sort(java.util.List, java.util.Comparator);",
+            "}",
             "-keep class j$.util.Set$-EL {",
             "    j$.util.Spliterator spliterator(java.util.Set);",
             "}",
-            "-keep class j$.util.DesugarArrays {",
-            "    j$.util.Spliterator spliterator(java.lang.Object[]);",
-            "    j$.util.stream.Stream stream(java.lang.Object[], int, int);",
-            "    j$.util.stream.Stream stream(java.lang.Object[]);",
-            "    j$.util.Spliterator spliterator(java.lang.Object[], int, int);",
+            "-keep class j$.util.Spliterator",
+            "-keep class j$.util.function.ToIntFunction { *; }",
+            "-keep class j$.util.stream.IntStream$-CC {",
+            "    j$.util.stream.IntStream range(int, int);",
             "}",
             "-keep class j$.util.stream.IntStream",
-            "-keep class j$.util.stream.Stream",
-            "-keep class j$.util.Spliterator",
-            "-keep class j$.util.function.ToIntFunction { *; }");
+            "-keep class j$.util.stream.Stream");
     assertEquals(expectedResult, keepRules);
   }
 }

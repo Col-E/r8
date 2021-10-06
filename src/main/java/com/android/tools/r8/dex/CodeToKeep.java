@@ -8,12 +8,15 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -155,7 +158,7 @@ public abstract class CodeToKeep {
       // TODO(b/134734081): Stream the consumer instead of building the String.
       StringBuilder sb = new StringBuilder();
       String cr = System.lineSeparator();
-      for (DexType type : toKeep.keySet()) {
+      for (DexType type : CollectionUtils.sort(toKeep.keySet(), getComparator())) {
         KeepStruct keepStruct = toKeep.get(type);
         sb.append("-keep class ").append(convertType(type));
         if (keepStruct.all) {
@@ -167,7 +170,7 @@ public abstract class CodeToKeep {
           continue;
         }
         sb.append(" {").append(cr);
-        for (DexField field : keepStruct.fields) {
+        for (DexField field : CollectionUtils.sort(keepStruct.fields, getComparator())) {
           sb.append("    ")
               .append(convertType(field.type))
               .append(" ")
@@ -175,7 +178,7 @@ public abstract class CodeToKeep {
               .append(";")
               .append(cr);
         }
-        for (DexMethod method : keepStruct.methods) {
+        for (DexMethod method : CollectionUtils.sort(keepStruct.methods, getComparator())) {
           sb.append("    ")
               .append(convertType(method.proto.returnType))
               .append(" ")
@@ -193,6 +196,15 @@ public abstract class CodeToKeep {
       }
       options.desugaredLibraryKeepRuleConsumer.accept(sb.toString(), options.reporter);
       options.desugaredLibraryKeepRuleConsumer.finished(options.reporter);
+    }
+
+    private static <T extends DexReference> Comparator<T> getComparator() {
+      return new Comparator<T>() {
+        @Override
+        public int compare(T o1, T o2) {
+          return o1.compareTo(o2);
+        }
+      };
     }
   }
 

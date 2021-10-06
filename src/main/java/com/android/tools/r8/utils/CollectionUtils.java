@@ -5,7 +5,9 @@
 package com.android.tools.r8.utils;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -23,5 +25,11 @@ public class CollectionUtils {
     for (Collection<T> collection : collections) {
       collection.forEach(consumer);
     }
+  }
+
+  public static <T> Collection<T> sort(Collection<T> items, Comparator<T> comparator) {
+    ArrayList<T> ts = new ArrayList<>(items);
+    ts.sort(comparator);
+    return ts;
   }
 }
