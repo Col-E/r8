@@ -68,6 +68,11 @@ if (project.hasProperty('with_code_coverage')) {
 
 // Custom source set for example tests and generated tests.
 sourceSets {
+    main11 {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
     test {
         java {
             srcDirs = [
@@ -240,6 +245,27 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     implementation files('third_party/android_jar/api-database/api-database.jar')
+
+    main11Implementation "net.sf.jopt-simple:jopt-simple:$joptSimpleVersion"
+    main11Implementation "com.google.code.gson:gson:$gsonVersion"
+    // Include all of guava when compiling the code, but exclude annotations that we don't
+    // need from the packaging.
+    main11CompileOnly("com.google.guava:guava:$guavaVersion")
+    main11Implementation("com.google.guava:guava:$guavaVersion", {
+        exclude group: 'com.google.errorprone'
+        exclude group: 'com.google.code.findbugs'
+        exclude group: 'com.google.j2objc'
+        exclude group: 'org.codehaus.mojo'
+    })
+    main11Implementation group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
+    main11Implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:$kotlinExtMetadataJVMVersion"
+    main11Implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    main11Implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    main11Implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+    main11Implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
+    main11Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+    main11Implementation files('third_party/android_jar/api-database/api-database.jar')
+
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
@@ -272,7 +298,6 @@ def r8LibExludeDepsPath = "$buildDir/libs/r8lib-exclude-deps.jar"
 def r8DesugaredPath = "$buildDir/libs/r8desugared.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
-def java11ClassFiles = "$buildDir/classes/java/mainJava11"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -593,6 +618,11 @@ setJdkCompilationWithCompatibility(
         JavaVersion.VERSION_1_10,
         false)
 setJdkCompilationWithCompatibility(
+        sourceSets.main11.compileJavaTaskName,
+        'jdk-11',
+        JavaVersion.VERSION_11,
+        false)
+setJdkCompilationWithCompatibility(
         sourceSets.examplesJava11.compileJavaTaskName,
         'jdk-11',
         JavaVersion.VERSION_11,
@@ -607,25 +637,6 @@ setJdkCompilationWithCompatibility(
         'jdk-17',
         JavaVersion.VERSION_17,
         false)
-
-task compileMainWithJava11 (type: JavaCompile) {
-    dependsOn downloadDeps
-    def jdkDir = 'third_party/openjdk/jdk-11/'
-    options.fork = true
-    options.forkOptions.jvmArgs = []
-    if (OperatingSystem.current().isLinux()) {
-        options.forkOptions.javaHome = file(jdkDir + 'linux')
-    } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file(jdkDir + 'osx/Contents/Home')
-    } else {
-        options.forkOptions.javaHome = file(jdkDir + 'windows')
-    }
-    source = sourceSets.main.allSource
-    destinationDir = file(java11ClassFiles)
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-    classpath = sourceSets.main.compileClasspath
-}
 
 task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
     from sourceSets.examplesTestNGRunner.compileClasspath
@@ -762,8 +773,7 @@ task repackageSources(type: ShadowJar) {
 }
 
 task repackageSources11(type: ShadowJar) {
-    dependsOn compileMainWithJava11
-    from file(java11ClassFiles)
+    from sourceSets.main11.output
     mergeServiceFiles(it)
     baseName 'sources_main_11'
 }
