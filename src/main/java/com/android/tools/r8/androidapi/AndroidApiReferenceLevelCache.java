@@ -10,8 +10,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
+import java.util.HashMap;
 
 public class AndroidApiReferenceLevelCache {
 
@@ -20,21 +19,13 @@ public class AndroidApiReferenceLevelCache {
   private final AppView<?> appView;
 
   private AndroidApiReferenceLevelCache(AppView<?> appView) {
-    this(appView, ImmutableList.of());
+    this(appView, new HashMap<>());
   }
 
   private AndroidApiReferenceLevelCache(
-      AppView<?> appView, List<AndroidApiForHashingClass> predefinedApiTypeLookupForHashing) {
+      AppView<?> appView, HashMap<DexType, AndroidApiClass> predefinedApiTypeLookup) {
     this.appView = appView;
-    // TODO(b/199934316): When the implementation has been decided on, remove the others.
-    if (appView.options().apiModelingOptions().useHashingDatabase) {
-      androidApiLevelDatabase =
-          new AndroidApiLevelHashingDatabaseImpl(
-              appView.dexItemFactory(), predefinedApiTypeLookupForHashing);
-    } else {
-      androidApiLevelDatabase =
-          new AndroidApiLevelObjectDatabaseImpl(predefinedApiTypeLookupForHashing);
-    }
+    androidApiLevelDatabase = new AndroidApiLevelDatabaseImpl(predefinedApiTypeLookup);
     desugaredLibraryConfiguration = appView.options().desugaredLibraryConfiguration;
   }
 
@@ -49,12 +40,18 @@ public class AndroidApiReferenceLevelCache {
         }
       };
     }
-    ImmutableList.Builder<AndroidApiForHashingClass> builder = ImmutableList.builder();
+    // The apiTypeLookup is build lazily except for the mocked api types that we define in tests
+    // externally.
+    HashMap<DexType, AndroidApiClass> predefinedApiTypeLookup = new HashMap<>();
     appView
         .options()
         .apiModelingOptions()
-        .visitMockedApiLevelsForReferences(appView.dexItemFactory(), builder::add);
-    return new AndroidApiReferenceLevelCache(appView, builder.build());
+        .visitMockedApiReferences(
+            (classReference, androidApiClass) ->
+                predefinedApiTypeLookup.put(
+                    appView.dexItemFactory().createType(classReference.getDescriptor()),
+                    androidApiClass));
+    return new AndroidApiReferenceLevelCache(appView, predefinedApiTypeLookup);
   }
 
   public AndroidApiLevel lookupMax(DexReference reference, AndroidApiLevel minApiLevel) {
@@ -64,23 +61,16 @@ public class AndroidApiReferenceLevelCache {
   public AndroidApiLevel lookup(DexReference reference) {
     DexType contextType = reference.getContextType();
     if (contextType.isArrayType()) {
-      if (reference.isDexMethod()
-          && reference.asDexMethod().match(appView.dexItemFactory().objectMembers.clone)) {
-        return appView.options().minApiLevel;
-      }
       return lookup(contextType.toBaseType(appView.dexItemFactory()));
     }
     if (contextType.isPrimitiveType() || contextType.isVoidType()) {
-      return appView.options().minApiLevel;
+      return AndroidApiLevel.B;
     }
     DexClass clazz = appView.definitionFor(contextType);
     if (clazz == null) {
       return AndroidApiLevel.UNKNOWN;
     }
     if (!clazz.isLibraryClass()) {
-      return appView.options().minApiLevel;
-    }
-    if (isReferenceToJavaLangObject(reference)) {
       return appView.options().minApiLevel;
     }
     if (desugaredLibraryConfiguration.isSupported(reference, appView)) {
@@ -92,13 +82,5 @@ public class AndroidApiReferenceLevelCache {
         androidApiLevelDatabase::getTypeApiLevel,
         androidApiLevelDatabase::getFieldApiLevel,
         androidApiLevelDatabase::getMethodApiLevel);
-  }
-
-  private boolean isReferenceToJavaLangObject(DexReference reference) {
-    if (reference.getContextType() == appView.dexItemFactory().objectType) {
-      return true;
-    }
-    return reference.isDexMethod()
-        && appView.dexItemFactory().objectMembers.isObjectMember(reference.asDexMethod());
   }
 }

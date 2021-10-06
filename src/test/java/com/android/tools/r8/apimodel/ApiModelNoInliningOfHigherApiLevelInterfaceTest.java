@@ -37,10 +37,10 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Method apiMethod = Api.class.getDeclaredMethod("apiLevel22");
-    Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Object.class);
-    Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall", Object.class);
+    Method apiCaller = ApiCaller.class.getDeclaredMethod("callInterfaceMethod", Api.class);
+    Method apiCallerCaller = A.class.getDeclaredMethod("noApiCall");
     testForR8(parameters.getBackend())
-        .addProgramClassesAndInnerClasses(Main.class, A.class, ApiCaller.class)
+        .addProgramClasses(Main.class, A.class, ApiCaller.class)
         .addLibraryClasses(Api.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
@@ -66,10 +66,10 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   public static class ApiCaller {
 
     @KeepConstantArguments
-    public static void callInterfaceMethod(Object o) {
+    public static void callInterfaceMethod(Api api) {
       System.out.println("ApiCaller::callInterfaceMethod");
-      if (o != null) {
-        ((Api) o).apiLevel22();
+      if (api != null) {
+        api.apiLevel22();
       }
     }
   }
@@ -78,24 +78,16 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
   public static class A {
 
     @NeverInline
-    public static void noApiCall(Object o) {
+    public static void noApiCall() {
       System.out.println("A::noApiCall");
-      ApiCaller.callInterfaceMethod(o);
+      ApiCaller.callInterfaceMethod(null);
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      A.noApiCall(
-          args.length > 0
-              ? new Api() {
-                @Override
-                public void apiLevel22() {
-                  throw new RuntimeException("Foo");
-                }
-              }
-              : null);
+      A.noApiCall();
     }
   }
 }

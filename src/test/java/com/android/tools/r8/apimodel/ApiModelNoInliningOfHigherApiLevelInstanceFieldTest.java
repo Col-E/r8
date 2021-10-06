@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.apimodel;
 
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForField;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
@@ -50,7 +49,6 @@ public class ApiModelNoInliningOfHigherApiLevelInstanceFieldTest extends TestBas
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForField(apiField, L_MR1))
-        .apply(setMockApiLevelForClass(Api.class, L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()

@@ -5,7 +5,6 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelNoInliningOfHigherApiLevelVirtualTest.ApiCaller.callVirtualMethod;
-import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
@@ -50,7 +49,6 @@ public class ApiModelNoInliningOfHigherApiLevelVirtualTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
-        .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()

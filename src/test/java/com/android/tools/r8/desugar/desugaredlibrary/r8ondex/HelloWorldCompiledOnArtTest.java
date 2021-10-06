@@ -133,12 +133,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(
                 LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-            .addOptionsModification(
-                options -> {
-                  options.testing.enableD8ResourcesPassThrough = true;
-                  options.dataResourceConsumer = options.programConsumer.getDataResourceConsumer();
-                  options.testing.trackDesugaredAPIConversions = true;
-                })
+            .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
             .compile();
     TestDiagnosticMessages diagnosticMessages = compile.getDiagnosticMessages();
     assertTrue(

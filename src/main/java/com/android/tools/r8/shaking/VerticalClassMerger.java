@@ -440,6 +440,19 @@ public class VerticalClassMerger {
       }
       return false;
     }
+    // Only merge if api reference level of source class is equal to target class.
+    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      AndroidApiLevel sourceApiLevel =
+          sourceClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
+      AndroidApiLevel targetApiLevel =
+          targetClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
+      if (sourceApiLevel != targetApiLevel) {
+        if (Log.ENABLED) {
+          AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
+        }
+        return false;
+      }
+    }
     return true;
   }
 
@@ -504,20 +517,6 @@ public class VerticalClassMerger {
         AbortReason.RESOLUTION_FOR_FIELDS_MAY_CHANGE.printLogMessageForClass(sourceClass);
       }
       return false;
-    }
-    // Only merge if api reference level of source class is equal to target class. The check is
-    // somewhat expensive.
-    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
-      AndroidApiLevel sourceApiLevel =
-          sourceClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
-      AndroidApiLevel targetApiLevel =
-          targetClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
-      if (sourceApiLevel != targetApiLevel) {
-        if (Log.ENABLED) {
-          AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
-        }
-        return false;
-      }
     }
     return true;
   }

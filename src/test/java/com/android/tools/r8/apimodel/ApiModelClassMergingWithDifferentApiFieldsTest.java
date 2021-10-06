@@ -7,7 +7,6 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -42,7 +41,6 @@ public class ApiModelClassMergingWithDifferentApiFieldsTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .enableNoHorizontalClassMergingAnnotations()
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               if (parameters.isDexRuntime()
@@ -68,7 +66,6 @@ public class ApiModelClassMergingWithDifferentApiFieldsTest extends TestBase {
     }
   }
 
-  @NoHorizontalClassMerging
   static class ApiSetter {
     static void set() {
       A.api = new Api();

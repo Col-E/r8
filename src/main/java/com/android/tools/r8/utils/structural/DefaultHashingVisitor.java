@@ -21,9 +21,4 @@ public class DefaultHashingVisitor {
   public static <T> void run(T item, Hasher hasher, HashingAccept<T> hashingAccept) {
     HashingVisitorWithTypeEquivalence.run(item, hasher, t -> t, hashingAccept);
   }
-
-  /** Test entry-point where guava types are not present */
-  public static <T> void runFromTest(T item, Object hasher, HashingAccept<T> hashingAccept) {
-    run(item, (Hasher) hasher, hashingAccept);
-  }
 }
