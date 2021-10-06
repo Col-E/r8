@@ -250,6 +250,22 @@ def determine_class_file(args, build_properties):
     return True
   return None
 
+def determine_properties(build_properties):
+  args = []
+  for key, value in build_properties.items():
+    # When writing dumps all system properties starting with com.android.tools.r8
+    # are written to the build.properties file in the format
+    # system-property-com.android.tools.r8.XXX=<value>
+    if key.startswith('system-property-'):
+      name = key[len('system-property-'):]
+      if name.endswith('dumpinputtofile') or name.endswith('dumpinputtodirectory'):
+        continue
+      if len(value) == 0:
+        args.append('-D' + name)
+      else:
+        args.append('-D' + name + '=' + value)
+  return args
+
 def download_distribution(args, version, temp):
   if version == 'main':
     return utils.R8_JAR if args.nolib else utils.R8LIB_JAR
@@ -327,6 +343,7 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.append('-Dcom.android.tools.r8.printtimes=1')
     if hasattr(args, 'properties'):
       cmd.extend(args.properties);
+    cmd.extend(determine_properties(build_properties))
     cmd.extend(['-cp', '%s:%s' % (wrapper_dir, jar)])
     if compiler == 'd8':
       cmd.append('com.android.tools.r8.D8')
