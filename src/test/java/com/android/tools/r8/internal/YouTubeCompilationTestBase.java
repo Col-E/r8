@@ -5,14 +5,19 @@ package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -84,15 +89,33 @@ public abstract class YouTubeCompilationTestBase extends CompilationTestBase {
     return builder.build();
   }
 
-  protected List<Path> getLibraryFiles() {
+  protected Path getLibraryFile() {
     Path filtered =
         Paths.get(base).resolve("legacy_YouTubeRelease_combined_library_jars_filtered.jar");
     if (filtered.toFile().exists()) {
-      return ImmutableList.of(filtered);
+      return filtered;
     }
     Path unfiltered = Paths.get(base, "legacy_YouTubeRelease_combined_library_jars.jar");
     assertTrue(unfiltered.toFile().exists());
-    return ImmutableList.of(unfiltered);
+    return unfiltered;
+  }
+
+  Path getLibraryFileWithoutDesugaredLibrary() throws IOException {
+    Path libraryFile = getLibraryFile();
+    Path filteredLibraryFile =
+        Paths.get(libraryFile.toString().replace(".jar", "desugared_lib_filtered.jar"));
+    ArchiveConsumer consumer = new ArchiveConsumer(filteredLibraryFile);
+    ZipUtils.iter(
+        libraryFile,
+        (entry, inputStream) -> {
+          String entryString = entry.toString();
+          if (entryString.endsWith(".class") && !entryString.startsWith("j$")) {
+            byte[] bytes = ByteStreams.toByteArray(inputStream);
+            consumer.accept(ByteDataView.of(bytes), TestBase.extractClassDescriptor(bytes), null);
+          }
+        });
+    consumer.finished(null);
+    return filteredLibraryFile;
   }
 
   protected List<Path> getMainDexRuleFiles() {

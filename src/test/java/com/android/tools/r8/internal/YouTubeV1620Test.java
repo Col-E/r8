@@ -115,7 +115,7 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
       throws IOException, CompilationFailedException {
     return testForR8(parameters.getBackend())
         .addProgramFiles(getProgramFiles())
-        .addLibraryFiles(getLibraryFiles())
+        .addLibraryFiles(getLibraryFileWithoutDesugaredLibrary())
         .addKeepRuleFiles(getKeepRuleFiles())
         .addDontWarn("android.app.Activity$TranslucentConversionListener")
         .allowDiagnosticMessages()

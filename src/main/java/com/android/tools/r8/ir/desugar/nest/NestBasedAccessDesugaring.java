@@ -453,10 +453,12 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                   assert method.isClasspathMethod();
                   return appView
                       .getSyntheticItems()
-                      .createFixedClasspathClass(
+                      .ensureFixedClasspathClass(
                           SyntheticKind.INIT_TYPE_ARGUMENT,
                           method.asClasspathMethod().getHolder(),
-                          dexItemFactory)
+                          appView,
+                          ignored -> {},
+                          ignored -> {})
                       .getType();
                 }
               });
