@@ -25,6 +25,10 @@ public abstract class UseRegistry {
     method.registerCodeReferences(this);
   }
 
+  public DexItemFactory dexItemFactory() {
+    return factory;
+  }
+
   public void doBreak() {
     assert continuation.shouldContinue();
     continuation = TraversalContinuation.BREAK;

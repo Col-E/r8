@@ -106,7 +106,8 @@ public class CfInvoke extends CfInstruction {
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     MethodLookupResult lookup =
-        graphLens.lookupMethod(method, context.getReference(), getInvokeType(context));
+        graphLens.lookupMethod(
+            method, context.getReference(), getInvokeType(context, dexItemFactory));
     DexMethod rewrittenMethod = lookup.getReference();
     String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
     String name = namingLens.lookupName(rewrittenMethod).toString();
@@ -122,7 +123,7 @@ public class CfInvoke extends CfInstruction {
   @Override
   void internalRegisterUse(
       UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    Type invokeType = getInvokeType(context);
+    Type invokeType = getInvokeType(context, registry.dexItemFactory());
     switch (invokeType) {
       case DIRECT:
         registry.registerInvokeDirect(method);
@@ -146,7 +147,7 @@ public class CfInvoke extends CfInstruction {
 
   // We should avoid interpreting a CF invoke using DEX semantics.
   @Deprecated
-  public Invoke.Type getInvokeType(DexClassAndMethod context) {
+  private Invoke.Type getInvokeType(DexClassAndMethod context, DexItemFactory dexItemFactory) {
     switch (opcode) {
       case Opcodes.INVOKEINTERFACE:
         return Type.INTERFACE;
@@ -155,8 +156,8 @@ public class CfInvoke extends CfInstruction {
         return Type.VIRTUAL;
 
       case Opcodes.INVOKESPECIAL:
-        if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)
-            || method.holder == context.getHolderType()) {
+        if (method.isInstanceInitializer(dexItemFactory)
+            || method.getHolderType() == context.getHolderType()) {
           return Type.DIRECT;
         }
         return Type.SUPER;
