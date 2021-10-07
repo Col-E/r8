@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexDebugEventVisitor;
 import com.android.tools.r8.graph.DexDebugInfo;
-import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -67,8 +66,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class LineNumberOptimizer {
-
-  private static final int MAX_LINE_NUMBER = 65535;
 
   // PositionRemapper is a stateful function which takes a position (represented by a
   // DexDebugPositionState) and returns a remapped Position.
@@ -384,12 +381,7 @@ public class LineNumberOptimizer {
                 optimizeDexCodePositionsForPc(method, appView, kotlinRemapper, mappedPositions);
               } else {
                 optimizeDexCodePositions(
-                    method,
-                    appView,
-                    kotlinRemapper,
-                    mappedPositions,
-                    identityMapping,
-                    methods.size() != 1);
+                    method, appView, kotlinRemapper, mappedPositions, identityMapping);
               }
             } else if (code.isCfCode()
                 && doesContainPositions(code.asCfCode())
@@ -480,19 +472,9 @@ public class LineNumberOptimizer {
                 lastPosition = mp;
               }
             }
+            Range obfuscatedRange =
+                new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
             Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
-
-            Range obfuscatedRange;
-            if (method.getCode().isDexCode()
-                && method.getCode().asDexCode().getDebugInfo()
-                    == DexDebugInfoForSingleLineMethod.getInstance()) {
-              assert firstPosition.originalLine == lastPosition.originalLine;
-              method.getCode().asDexCode().setDebugInfo(null);
-              obfuscatedRange = new Range(0, MAX_LINE_NUMBER);
-            } else {
-              obfuscatedRange =
-                  new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
-            }
 
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
             MappedRange lastMappedRange =
@@ -689,10 +671,9 @@ public class LineNumberOptimizer {
       AppView<?> appView,
       PositionRemapper positionRemapper,
       List<MappedPosition> mappedPositions,
-      boolean identityMapping,
-      boolean hasOverloads) {
+      boolean identityMapping) {
     // Do the actual processing for each method.
-    DexApplication application = appView.appInfo().app();
+    final DexApplication application = appView.appInfo().app();
     DexCode dexCode = method.getCode().asDexCode();
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
     List<DexDebugEvent> processedEvents = new ArrayList<>();
@@ -706,7 +687,7 @@ public class LineNumberOptimizer {
     Box<Boolean> inlinedOriginalPosition = new Box<>(false);
 
     // Debug event visitor to map line numbers.
-    DexDebugPositionState visitor =
+    DexDebugEventVisitor visitor =
         new DexDebugPositionState(
             debugInfo.startLine,
             appView.graphLens().getOriginalMethodSignature(method.getReference())) {
@@ -784,13 +765,6 @@ public class LineNumberOptimizer {
 
     for (DexDebugEvent event : debugInfo.events) {
       event.accept(visitor);
-    }
-
-    // If we always map to a single original line number, we can completely remove the debug info
-    // since we retrace to the original line.
-    if (!visitor.getChangedLine() && !hasOverloads) {
-      dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
-      return;
     }
 
     DexDebugInfo optimizedDebugInfo =
