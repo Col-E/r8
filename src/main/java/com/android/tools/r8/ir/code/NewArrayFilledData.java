@@ -10,10 +10,13 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
 
 public class NewArrayFilledData extends Instruction {
@@ -117,6 +120,16 @@ public class NewArrayFilledData extends Instruction {
   @Override
   public boolean instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     return appView.options().debug || src().getType().isNullable();
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+    if (!instructionMayHaveSideEffects(appView, context) && size <= Integer.MAX_VALUE) {
+      assert !instructionInstanceCanThrow();
+      return appView.abstractValueFactory().createKnownLengthArrayValue((int) size);
+    }
+    return UnknownValue.getInstance();
   }
 
   @Override
