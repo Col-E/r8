@@ -165,11 +165,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public boolean neverInline() {
-    return false;
-  }
-
-  @Override
   public boolean checksNullReceiverBeforeAnySideEffect() {
     return UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
   }

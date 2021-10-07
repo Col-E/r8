@@ -79,12 +79,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     if (info == null) {
       return null;
     }
-
     assert method.getDefinition() != info.target.getDefinition();
-    // Even though call to Inliner::performForcedInlining is supposed to be controlled by
-    // the caller, it's still suspicious if we want to force inline something that is marked
-    // with neverInline() flag.
-    assert !info.target.getDefinition().getOptimizationInfo().neverInline();
     assert passesInliningConstraints(
         invoke, resolutionResult, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
     return new InlineAction(info.target, invoke, Reason.FORCE);

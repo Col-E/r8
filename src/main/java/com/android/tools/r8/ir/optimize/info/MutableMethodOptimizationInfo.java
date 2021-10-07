@@ -456,11 +456,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
-  public boolean neverInline() {
-    return inlining == InlinePreference.NeverInline;
-  }
-
-  @Override
   public boolean checksNullReceiverBeforeAnySideEffect() {
     return isFlagSet(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
@@ -594,13 +589,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     // For concurrent scenarios we should allow the flag to be already unset
     assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
     inlining = InlinePreference.Default;
-  }
-
-  // TODO(b/140214568): Should be package-private.
-  public void markNeverInline() {
-    // For concurrent scenarios we should allow the flag to be already set
-    assert inlining == InlinePreference.Default || inlining == InlinePreference.NeverInline;
-    inlining = InlinePreference.NeverInline;
   }
 
   void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
