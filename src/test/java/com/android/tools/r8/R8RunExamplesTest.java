@@ -95,7 +95,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
           makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
       fullTestList.add(
           makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG, test));
-      fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
       fullTestList.add(
           makeTest(
               Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
@@ -153,12 +152,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
 
   @Override
   protected Set<String> getFailingCompileCfToDex() {
-    return new ImmutableSet.Builder<String>()
-        .build();
-  }
-
-  @Override
-  protected Set<String> getFailingCompileDxToDex() {
     return new ImmutableSet.Builder<String>()
         .build();
   }

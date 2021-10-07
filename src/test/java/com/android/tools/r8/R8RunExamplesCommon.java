@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,7 +32,9 @@ import org.junit.rules.TemporaryFolder;
 public abstract class R8RunExamplesCommon {
 
   protected enum Input {
-    DX, JAVAC, JAVAC_ALL, JAVAC_NONE
+    JAVAC,
+    JAVAC_ALL,
+    JAVAC_NONE
   }
 
   protected enum Output {
@@ -90,8 +91,6 @@ public abstract class R8RunExamplesCommon {
 
   private Path getInputFile() {
     switch(input) {
-      case DX:
-        return getOriginalDexFile();
       case JAVAC:
         return getOriginalJarFile("");
       case JAVAC_ALL:
@@ -104,12 +103,7 @@ public abstract class R8RunExamplesCommon {
   }
 
   public R8Command.Builder addInputFile(R8Command.Builder builder) {
-    if (input == Input.DX) {
-      // If input is DEX code, use the tool helper to add the DEX sources as R8 disallows them.
-      ToolHelper.getAppBuilder(builder).addProgramFiles(getOriginalDexFile());
-    } else {
-      builder.addProgramFiles(getInputFile());
-    }
+    builder.addProgramFiles(getInputFile());
     return builder;
   }
 
@@ -119,10 +113,6 @@ public abstract class R8RunExamplesCommon {
 
   private Path getOriginalDexFile() {
     return Paths.get(getExampleDir(), pkg, ToolHelper.DEFAULT_DEX_FILENAME);
-  }
-
-  private DexTool getTool() {
-    return input == Input.DX ? DexTool.DX : DexTool.NONE;
   }
 
   @Rule
@@ -171,10 +161,6 @@ public abstract class R8RunExamplesCommon {
   }
 
   private boolean shouldCompileFail() {
-    if (input == Input.DX && getFailingCompileDxToDex().contains(mainClass)) {
-      assert output == Output.DEX;
-      return true;
-    }
     if (output == Output.CF && getFailingCompileCf().contains(mainClass)) {
       return true;
     }
@@ -212,7 +198,7 @@ public abstract class R8RunExamplesCommon {
 
     TestCondition condition =
         output == Output.CF ? getFailingRunCf().get(mainClass) : getFailingRun().get(mainClass);
-    if (condition != null && condition.test(getTool(), compiler, vm.getVersion(), mode)) {
+    if (condition != null && condition.test(DexTool.NONE, compiler, vm.getVersion(), mode)) {
       thrown.expect(Throwable.class);
     }
 
@@ -248,12 +234,12 @@ public abstract class R8RunExamplesCommon {
 
   private boolean shouldMatchJVMOutput(DexVm.Version version) {
     TestCondition condition = getOutputNotIdenticalToJVMOutput().get(mainClass);
-    return condition == null || !condition.test(getTool(), compiler, version, mode);
+    return condition == null || !condition.test(DexTool.NONE, compiler, version, mode);
   }
 
   private boolean shouldSkipVm(DexVm.Version version) {
     TestCondition condition = getSkip().get(mainClass);
-    return condition != null && condition.test(getTool(), compiler, version, mode);
+    return condition != null && condition.test(DexTool.NONE, compiler, version, mode);
   }
 
   protected abstract String getExampleDir();
@@ -263,10 +249,6 @@ public abstract class R8RunExamplesCommon {
   protected abstract Map<String, TestCondition> getFailingRunCf();
 
   protected abstract Set<String> getFailingCompileCfToDex();
-
-  protected Set<String> getFailingCompileDxToDex() {
-    return ImmutableSet.of();
-  }
 
   // TODO(mathiasr): Add CompilerSet for CfToDex so we can fold this into getFailingRun().
   protected abstract Set<String> getFailingRunCfToDex();
