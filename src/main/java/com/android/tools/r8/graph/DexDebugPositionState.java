@@ -21,10 +21,12 @@ import com.android.tools.r8.ir.code.Position;
  * the current state using the getters after a Default event.
  */
 public class DexDebugPositionState implements DexDebugEventVisitor {
+
   private int currentPc = 0;
   private int currentLine;
+  private boolean changedLine = false;
   private DexString currentFile = null;
-  private DexMethod currentMethod = null;
+  private DexMethod currentMethod;
   private Position currentCallerPosition = null;
 
   public DexDebugPositionState(int startLine, DexMethod method) {
@@ -54,6 +56,7 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
     assert defaultEvent.getPCDelta() >= 0;
     currentPc += defaultEvent.getPCDelta();
     currentLine += defaultEvent.getLineDelta();
+    changedLine = changedLine || defaultEvent.getLineDelta() != 0;
   }
 
   @Override
@@ -104,5 +107,9 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
 
   public Position getCurrentCallerPosition() {
     return currentCallerPosition;
+  }
+
+  public boolean getChangedLine() {
+    return changedLine;
   }
 }
