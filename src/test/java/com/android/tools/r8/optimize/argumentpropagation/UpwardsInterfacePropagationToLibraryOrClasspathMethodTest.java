@@ -23,15 +23,28 @@ import org.junit.runners.Parameterized.Parameters;
 
 // This is a regression test for b/202074964.
 @RunWith(Parameterized.class)
-public class UpwardsInterfacePropagationToLibraryMethodTest extends TestBase {
+public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends TestBase {
+
+  private enum LibraryOrClasspath {
+    LIBRARY,
+    CLASSPATH;
+
+    private boolean isLibrary() {
+      return this == LIBRARY;
+    }
+  }
 
   @Parameter(0)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
+  @Parameter(1)
+  public LibraryOrClasspath libraryOrClasspath;
+
+  @Parameters(name = "{0} {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
+        LibraryOrClasspath.values());
   }
 
   private static final String EXPECTED_OUTPUT =
@@ -53,7 +66,14 @@ public class UpwardsInterfacePropagationToLibraryMethodTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.S))
-        .addLibraryClasses(LIBRARY_CLASSES)
+        .apply(
+            b -> {
+              if (libraryOrClasspath.isLibrary()) {
+                b.addLibraryClasses(LIBRARY_CLASSES);
+              } else {
+                b.addClasspathClasses(LIBRARY_CLASSES);
+              }
+            })
         .addProgramClasses(PROGRAM_CLASSES)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
