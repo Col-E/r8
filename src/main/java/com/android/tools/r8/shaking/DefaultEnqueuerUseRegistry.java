@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -145,13 +146,26 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public void registerConstClass(
+      DexType type,
+      ListIterator<? extends CfOrDexInstruction> iterator,
+      boolean ignoreCompatRules) {
+    enqueuer.traceConstClass(type, context, iterator, ignoreCompatRules);
+  }
+
+  @Override
+  public void registerConstClass(
       DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
-    enqueuer.traceConstClass(type, context, iterator);
+    throw new Unreachable();
+  }
+
+  @Override
+  public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
+    enqueuer.traceCheckCast(type, context, ignoreCompatRules);
   }
 
   @Override
   public void registerCheckCast(DexType type) {
-    enqueuer.traceCheckCast(type, context);
+    throw new Unreachable();
   }
 
   @Override

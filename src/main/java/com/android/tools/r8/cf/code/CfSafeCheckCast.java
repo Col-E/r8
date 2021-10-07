@@ -14,7 +14,7 @@ import java.util.ListIterator;
 public class CfSafeCheckCast extends CfCheckCast {
 
   public CfSafeCheckCast(DexType type) {
-    super(type);
+    super(type, true);
   }
 
   @Override

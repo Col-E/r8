@@ -120,6 +120,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     }
   }
 
+  public boolean ignoreCompatRules() {
+    return false;
+  }
+
   public boolean hasInValueWithLocalInfo() {
     return hasInValueThatMatches(Value::hasLocalInfo);
   }

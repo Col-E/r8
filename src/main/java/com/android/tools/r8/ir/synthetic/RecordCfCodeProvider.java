@@ -158,7 +158,7 @@ public abstract class RecordCfCodeProvider {
       instructions.add(new CfLoad(recordType, 0));
       instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
       instructions.add(new CfLoad(objectType, 1));
-      instructions.add(new CfCheckCast(getHolder()));
+      instructions.add(new CfCheckCast(getHolder(), true));
       instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
       instructions.add(
           new CfInvoke(

@@ -93,6 +93,13 @@ public abstract class UseRegistry {
   }
 
   public void registerConstClass(
+      DexType type,
+      ListIterator<? extends CfOrDexInstruction> iterator,
+      boolean ignoreCompatRules) {
+    registerConstClass(type, iterator);
+  }
+
+  public void registerConstClass(
       DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
     registerTypeReference(type);
   }
@@ -101,8 +108,12 @@ public abstract class UseRegistry {
     registerTypeReference(type);
   }
 
-  public void registerSafeCheckCast(DexType type) {
+  public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
     registerCheckCast(type);
+  }
+
+  public void registerSafeCheckCast(DexType type) {
+    registerCheckCast(type, true);
   }
 
   public void registerExceptionGuard(DexType guard) {

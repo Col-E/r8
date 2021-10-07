@@ -497,7 +497,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
                   object.asProtoObjectFromStaticGet().getField(), dynamicMethod);
             } else if (object.isProtoTypeObject()) {
               worklist.enqueueTraceConstClassAction(
-                  object.asProtoTypeObject().getType(), dynamicMethod);
+                  object.asProtoTypeObject().getType(), dynamicMethod, false);
             }
           }
         }
