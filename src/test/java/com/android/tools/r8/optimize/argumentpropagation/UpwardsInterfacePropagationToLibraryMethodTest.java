@@ -12,6 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -24,7 +25,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class UpwardsInterfacePropagationToLibraryMethodTest extends TestBase {
 
-  @Parameter() public TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
@@ -55,14 +57,11 @@ public class UpwardsInterfacePropagationToLibraryMethodTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
-        .noMinification()
-        .addOptionsModification(
-            options -> {
-              options.horizontalClassMergerOptions().disable();
-            })
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addHorizontallyMergedClassesInspector(
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .compile()
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), TestClass.class)
