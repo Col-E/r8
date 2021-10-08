@@ -114,7 +114,6 @@ public class ApplyMappingRepackagingTest extends TestBase {
                   assertNotEquals("bar", methodA.getFinalName());
                   assertThat(clazzA.uniqueFieldWithName("fieldB"), isPresentAndRenamed());
                   assertThat(clazzA.uniqueMethodWithName("methodB"), isPresentAndRenamed());
-                  assertThat(clazzA.uniqueMethodWithName("methodC"), isPresentAndRenamed());
                 });
     // Ensure that the proguard map is extended with all the new minified names.
     for (String pgLine : pgMap) {
