@@ -1990,29 +1990,33 @@ public class VerticalClassMerger {
       this.appView = appView;
     }
 
-    private void checkFieldReference(DexField field) {
+    private boolean checkFieldReference(DexField field) {
       DexType baseType =
           appView.graphLens().lookupType(field.holder.toBaseType(appView.dexItemFactory()));
       if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        checkTypeReference(field.holder);
-        checkTypeReference(field.type);
+        if (checkTypeReference(field.holder) || checkTypeReference(field.type)) {
+          return true;
+        }
 
         DexEncodedField definition = appView.appInfo().resolveField(field).getResolvedField();
         if (definition == null || !definition.accessFlags.isPublic()) {
           setResult(true);
+          return true;
         }
       }
+      return false;
     }
 
-    private void checkMethodReference(DexMethod method, OptionalBool isInterface) {
+    private boolean checkMethodReference(DexMethod method, OptionalBool isInterface) {
       DexType baseType =
           appView.graphLens().lookupType(method.holder.toBaseType(appView.dexItemFactory()));
       if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
-        checkTypeReference(method.holder);
-        checkTypeReference(method.proto.returnType);
-        for (DexType type : method.proto.parameters.values) {
-          checkTypeReference(type);
+        if (checkTypeReference(method.holder)
+            || checkTypeReference(method.proto.returnType)
+            || Iterables.any(method.getParameters(), this::checkTypeReference)) {
+          return true;
         }
+
         MethodResolutionResult resolutionResult =
             isInterface.isUnknown()
                 ? appView.appInfo().unsafeResolveMethodDueToDexFormat(method)
@@ -2020,18 +2024,22 @@ public class VerticalClassMerger {
         if (!resolutionResult.isSingleResolution()
             || !resolutionResult.asSingleResolution().getResolvedMethod().isPublic()) {
           setResult(true);
+          return true;
         }
       }
+      return false;
     }
 
-    private void checkTypeReference(DexType type) {
+    private boolean checkTypeReference(DexType type) {
       DexType baseType = appView.graphLens().lookupType(type.toBaseType(appView.dexItemFactory()));
       if (baseType.isClassType() && baseType.isSamePackage(getContext().getHolderType())) {
         DexClass clazz = appView.definitionFor(baseType);
         if (clazz == null || !clazz.accessFlags.isPublic()) {
           setResult(true);
+          return true;
         }
       }
+      return false;
     }
 
     @Override
