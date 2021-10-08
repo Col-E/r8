@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.nestaccesscontrol;
 
-import static com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest.uploadJarsToCloudStorageIfTestFails;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -13,7 +12,6 @@ import com.android.tools.r8.Jdk11TestUtils;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
@@ -55,7 +53,7 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
   }
 
   @BeforeClass
@@ -95,7 +93,6 @@ public class Java11R8BootstrapTest extends TestBase {
 
   private Path[] jarsToCompare() {
     return new Path[] {
-      ToolHelper.R8_WITH_RELOCATED_DEPS_JAR,
       ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR,
       r8Lib11NoDesugar,
       r8Lib11Desugar
@@ -108,13 +105,8 @@ public class Java11R8BootstrapTest extends TestBase {
     Path prevGeneratedJar = null;
     String prevRunResult = null;
     for (Path jar : jarsToCompare()) {
-      // All jars except ToolHelper.R8_WITH_RELOCATED_DEPS_JAR are compiled for JDK11.
-      TestRuntime runtime =
-          jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
-              ? parameters.getRuntime()
-              : TestRuntime.getCheckedInJdk11();
       Path generatedJar =
-          testForExternalR8(Backend.CF, runtime)
+          testForExternalR8(Backend.CF, parameters.getRuntime())
               .useProvidedR8(jar)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRules(HELLO_KEEP)
@@ -140,7 +132,7 @@ public class Java11R8BootstrapTest extends TestBase {
   public void testR8() throws Exception {
     Assume.assumeTrue(!ToolHelper.isWindows());
     Assume.assumeTrue(parameters.isCfRuntime());
-    Assume.assumeTrue(CfVm.JDK11 == parameters.getRuntime().asCf().getVm());
+    Assume.assumeTrue(CfVm.JDK11.lessThanOrEqual(parameters.getRuntime().asCf().getVm()));
     Path prevGeneratedJar = null;
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
