@@ -766,9 +766,7 @@ public class TestBase {
             return builder.build();
           };
     }
-    InternalOptions options =
-        new InternalOptions(
-            CompilationMode.RELEASE, keepConfig.apply(dexItemFactory), new Reporter());
+    InternalOptions options = new InternalOptions(keepConfig.apply(dexItemFactory), new Reporter());
     if (optionsConsumer != null) {
       optionsConsumer.accept(options);
     }

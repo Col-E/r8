@@ -179,39 +179,23 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   // Constructor for R8.
-  public InternalOptions(
-      CompilationMode mode, ProguardConfiguration proguardConfiguration, Reporter reporter) {
+  public InternalOptions(ProguardConfiguration proguardConfiguration, Reporter reporter) {
     assert reporter != null;
     assert proguardConfiguration != null;
-    this.debug = mode == CompilationMode.DEBUG;
     this.reporter = reporter;
     this.proguardConfiguration = proguardConfiguration;
     itemFactory = proguardConfiguration.getDexItemFactory();
     enableTreeShaking = proguardConfiguration.isShrinking();
     enableMinification = proguardConfiguration.isObfuscating();
+    // TODO(b/171457102): Avoid the need for this.
+    // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
-      // TODO(b/171457102): Avoid the need for this.
-      // -dontoptimize disables optimizations by flipping related flags.
       disableAllOptimizations();
-    }
-    if (debug) {
-      assert !isMinifying();
-      assert !isOptimizing();
-      keepDebugRelatedInformation();
     }
     configurationDebugging = proguardConfiguration.isConfigurationDebugging();
     if (proguardConfiguration.isProtoShrinkingEnabled()) {
       enableProtoShrinking();
     }
-  }
-
-  private void keepDebugRelatedInformation() {
-    assert !proguardConfiguration.isObfuscating();
-    getProguardConfiguration().getKeepAttributes().sourceFile = true;
-    getProguardConfiguration().getKeepAttributes().sourceDebugExtension = true;
-    getProguardConfiguration().getKeepAttributes().lineNumberTable = true;
-    getProguardConfiguration().getKeepAttributes().localVariableTable = true;
-    getProguardConfiguration().getKeepAttributes().localVariableTypeTable = true;
   }
 
   void enableProtoShrinking() {

@@ -7,7 +7,6 @@ package com.android.tools.r8.ir;
 import static com.android.tools.r8.ToolHelper.getMostRecentAndroidJar;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -94,8 +93,7 @@ public class InlineTest extends IrInjectionTestBase {
     Reporter reporter = new Reporter();
     ProguardConfiguration proguardConfiguration =
         ProguardConfiguration.builder(new DexItemFactory(), reporter).build();
-    InternalOptions options =
-        new InternalOptions(CompilationMode.RELEASE, proguardConfiguration, reporter);
+    InternalOptions options = new InternalOptions(proguardConfiguration, reporter);
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
     return options;
   }

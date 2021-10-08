@@ -8,7 +8,6 @@ import com.android.tools.r8.BaseCompilerCommandParser;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
@@ -145,12 +144,7 @@ public class RelocatorCommand {
     // We are using the proguard configuration for adapting resources.
     InternalOptions options =
         new InternalOptions(
-            // Set debug to ensure that we are writing all information to the application writer.
-            CompilationMode.DEBUG,
             ProguardConfiguration.builder(factory, getReporter())
-                .disableShrinking()
-                .disableObfuscation()
-                .disableOptimization()
                 .addKeepAttributePatterns(ImmutableList.of("*"))
                 .addAdaptResourceFilenames(ProguardPathList.builder().addFileName("**").build())
                 .build(),
@@ -160,6 +154,8 @@ public class RelocatorCommand {
     options.programConsumer = consumer;
     assert consumer != null;
     options.dataResourceConsumer = consumer.getDataResourceConsumer();
+    // Set debug to ensure that we are writing all information to the application writer.
+    options.debug = true;
     return options;
   }
 

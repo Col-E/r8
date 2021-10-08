@@ -170,9 +170,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "-keep class " + CLASS_NAME,
         "-keepclassmembers,allowobfuscation class " + CLASS_NAME + " { static <fields>; }",
         "-dontoptimize");
-    CodeInspector inspector =
-        compileWithR8(builder, testBuilder -> testBuilder.debug().addKeepRules(pgConfigs))
-            .inspector();
+    CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
     assertTrue(clazz.isPresent());
@@ -375,7 +373,6 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
                 builder,
                 testBuilder ->
                     testBuilder
-                        .addDontOptimize()
                         .addKeepRules(
                             "-identifiernamestring class "
                                 + CLASS_NAME
@@ -423,11 +420,9 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "invoke-static {v1}, LExample;->foo(Ljava/lang/String;)V",
         "return-void");
 
-    List<String> pgConfigs =
-        ImmutableList.of(
-            "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
-            "-keep class " + CLASS_NAME,
-            "-dontoptimize");
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
+        "-keep class " + CLASS_NAME);
     CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -470,12 +465,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
         "return-void");
     builder.addClass(BOO);
 
-    List<String> pgConfigs =
-        ImmutableList.of(
-            "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
-            "-keep class " + CLASS_NAME,
-            "-keep,allowobfuscation class " + BOO,
-            "-dontoptimize");
+    List<String> pgConfigs = ImmutableList.of(
+        "-identifiernamestring class " + CLASS_NAME + " { static void foo(...); }",
+        "-keep class " + CLASS_NAME,
+        "-keep,allowobfuscation class " + BOO);
     CodeInspector inspector = compileWithR8(builder, pgConfigs).inspector();
 
     ClassSubject clazz = inspector.clazz(CLASS_NAME);
@@ -732,6 +725,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     return testForR8(Backend.DEX)
         .addProgramDexFileData(builder.compile())
         .apply(configuration)
+        .debug()
         .compile();
   }
 }
