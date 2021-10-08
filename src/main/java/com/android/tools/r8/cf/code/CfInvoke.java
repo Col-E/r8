@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -15,7 +14,6 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -34,7 +32,6 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import java.util.Arrays;
@@ -248,7 +245,7 @@ public class CfInvoke extends CfInstruction {
           canonicalMethod = method;
           type =
               computeInvokeTypeForInvokeSpecial(
-                  builder.appView, method, code.getOriginalHolder(), code.getOrigin());
+                  builder.appView, method, builder.getProgramMethod(), code.getOriginalHolder());
           break;
         }
       case Opcodes.INVOKESTATIC:
@@ -297,8 +294,7 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKESPECIAL:
         {
           Type actualInvokeType =
-              computeInvokeTypeForInvokeSpecial(
-                  appView, method, code.getOriginalHolder(), context.getOrigin());
+              computeInvokeTypeForInvokeSpecial(appView, method, context, code.getOriginalHolder());
           type = graphLens.lookupMethod(target, context.getReference(), actualInvokeType).getType();
         }
         break;
@@ -363,55 +359,38 @@ public class CfInvoke extends CfInstruction {
   }
 
   private Type computeInvokeTypeForInvokeSpecial(
-      AppView<?> appView, DexMethod method, DexType originalHolder, Origin origin) {
+      AppView<?> appView, DexMethod method, ProgramMethod context, DexType originalHolder) {
     if (appView.dexItemFactory().isConstructor(method)) {
       return Type.DIRECT;
     }
-    if (originalHolder == method.holder) {
-      return invokeTypeForInvokeSpecialToNonInitMethodOnHolder(appView, origin);
+    if (originalHolder != method.getHolderType()) {
+      return Type.SUPER;
     }
-    return Type.SUPER;
+    return invokeTypeForInvokeSpecialToNonInitMethodOnHolder(context, appView.graphLens());
   }
 
   private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
-      AppView<?> appView, Origin origin) {
-    boolean desugaringEnabled = appView.options().isInterfaceMethodDesugaringEnabled();
-    MethodLookupResult lookupResult = appView.graphLens().lookupMethod(method, method, Type.DIRECT);
-    if (lookupResult.getType() == Type.VIRTUAL) {
-      // The method has been publicized. We can't always expect private methods that have been
-      // publicized to be final. For example, if a private method A.m() is publicized, and A is
-      // subsequently merged with a class B, with declares a public non-final method B.m(), then the
-      // horizontal class merger will merge A.m() and B.m() into a new non-final public method.
-      return Type.VIRTUAL;
-    }
-    DexMethod rewrittenMethod = lookupResult.getReference();
-    DexEncodedMethod definition = lookupMethodOnHolder(appView, rewrittenMethod);
+      ProgramMethod context, GraphLens graphLens) {
+    MethodLookupResult lookupResult =
+        graphLens.lookupMethod(method, context.getReference(), Type.DIRECT);
+    DexEncodedMethod definition = context.getHolder().lookupMethod(lookupResult.getReference());
     if (definition == null) {
-      // The method is not defined on the class, we can use super to target. When desugaring
-      // default interface methods, it is expected they are targeted with invoke-direct.
-      return this.itf && desugaringEnabled ? Type.DIRECT : Type.SUPER;
+      return Type.SUPER;
     }
-    if (definition.isPrivateMethod() || !definition.isVirtualMethod()) {
-      return Type.DIRECT;
-    }
-    if (definition.isFinal()) {
-      // This method is final which indicates no subtype will overwrite it, we can use
-      // invoke-virtual.
-      return Type.VIRTUAL;
-    }
-    if (itf && definition.isDefaultMethod()) {
-      return desugaringEnabled ? Type.DIRECT : Type.SUPER;
-    }
-    // We cannot emulate the semantics of invoke-special in this case and should throw a compilation
-    // error.
-    throw new CompilationError("Failed to compile unsupported use of invokespecial", origin);
-  }
 
-  private DexEncodedMethod lookupMethodOnHolder(AppView<?> appView, DexMethod method) {
-    // Directly lookup the program type for holder. This bypasses lookup order as well as looks
-    // directly on the application data, which bypasses and indirection or validation.
-    DexProgramClass clazz = appView.appInfo().unsafeDirectProgramTypeLookup(method.getHolderType());
-    assert clazz != null;
-    return clazz.lookupMethod(method);
+    if (context.getHolder().isInterface()) {
+      // On interfaces invoke-special should be mapped to invoke-super if the invoke-special
+      // instruction is used to target a default interface method.
+      if (definition.belongsToVirtualPool()) {
+        return Type.SUPER;
+      }
+    } else {
+      // Due to desugaring of invoke-special instructions that target virtual methods, this invoke
+      // should only target a virtual method if the method has been publicized in R8 (in which case
+      // the invoke instruction has a pending rewrite to invoke-virtual).
+      assert definition.isPrivate() || lookupResult.getType().isVirtual();
+    }
+
+    return Type.DIRECT;
   }
 }
