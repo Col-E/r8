@@ -89,7 +89,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
-              isSameExceptForFileName(expectedStackTrace));
+              isSameExceptForFileName(
+                  expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }
@@ -107,7 +108,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
-              isSameExceptForFileName(expectedStackTrace));
+              isSameExceptForFileName(
+                  expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }
@@ -126,7 +128,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   : retracedStackTrace.filter(this::filterSynthesizedMethod);
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
-              isSameExceptForFileNameAndLineNumber(expectedStackTrace));
+              isSameExceptForFileNameAndLineNumber(
+                  expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }

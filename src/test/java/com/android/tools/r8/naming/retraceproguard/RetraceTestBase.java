@@ -46,8 +46,7 @@ public abstract class RetraceTestBase extends TestBase {
             .addProgramClasses(getClasses())
             .run(parameters.getRuntime(), getMainClass())
             .assertFailure()
-            .map(StackTrace::extract)
-            .filter(this::isNotDalvikNativeStartMethod);
+            .map(StackTrace::extract);
   }
 
   public void runTest(List<String> keepRules, BiConsumer<StackTrace, StackTrace> checker)
