@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -30,14 +29,12 @@ import java.util.function.Predicate;
 public class MainDexDirectReferenceTracer {
   private final AnnotationDirectReferenceCollector annotationDirectReferenceCollector =
       new AnnotationDirectReferenceCollector();
-  private final DirectReferencesCollector codeDirectReferenceCollector;
 
   private final AppInfoWithClassHierarchy appInfo;
   private final Consumer<DexType> consumer;
 
   public MainDexDirectReferenceTracer(
       AppInfoWithClassHierarchy appInfo, Consumer<DexType> consumer) {
-    this.codeDirectReferenceCollector = new DirectReferencesCollector(appInfo.dexItemFactory());
     this.appInfo = appInfo;
     this.consumer = consumer;
   }
@@ -59,12 +56,12 @@ public class MainDexDirectReferenceTracer {
             traceMethodDirectDependencies(definition.getReference(), consumer);
             return definition.hasCode();
           },
-          method -> method.registerCodeReferences(codeDirectReferenceCollector));
+          this::runOnCode);
     }
   }
 
   public void runOnCode(ProgramMethod method) {
-    method.registerCodeReferences(codeDirectReferenceCollector);
+    method.registerCodeReferences(new DirectReferencesCollector(method));
   }
 
   public static boolean hasReferencesOutsideMainDexClasses(
@@ -102,10 +99,10 @@ public class MainDexDirectReferenceTracer {
     }
   }
 
-  private class DirectReferencesCollector extends UseRegistry {
+  private class DirectReferencesCollector extends UseRegistry<ProgramMethod> {
 
-    private DirectReferencesCollector(DexItemFactory factory) {
-      super(factory);
+    private DirectReferencesCollector(ProgramMethod context) {
+      super(context, appInfo.dexItemFactory());
     }
 
     @Override

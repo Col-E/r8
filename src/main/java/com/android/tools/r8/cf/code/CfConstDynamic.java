@@ -200,7 +200,7 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerTypeReference(reference.getType());
     registry.registerMethodHandle(
         reference.getBootstrapMethod(), NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);

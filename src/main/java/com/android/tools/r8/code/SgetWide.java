@@ -38,7 +38,7 @@ public class SgetWide extends SgetOrSput {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerStaticFieldRead(getField());
   }
 

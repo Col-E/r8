@@ -107,7 +107,7 @@ public class DexItemBasedConstString extends Format21c<DexReference> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     if (nameComputationInfo.needsToRegisterReference()) {
       assert getItem().isDexType();
       registry.registerTypeReference(getItem().asDexType());

@@ -385,7 +385,8 @@ public final class ClassStaticizer {
 
       if (instruction.isInvokeCustom()) {
         // Just invalidate any candidates referenced from non-static context.
-        CallSiteReferencesInvalidator invalidator = new CallSiteReferencesInvalidator(factory);
+        CallSiteReferencesInvalidator invalidator =
+            new CallSiteReferencesInvalidator(context, factory);
         invalidator.registerCallSite(instruction.asInvokeCustom().getCallSite());
         continue;
       }
@@ -726,10 +727,10 @@ public final class ClassStaticizer {
     new StaticizingProcessor(appView, this, converter).run(feedback, executorService);
   }
 
-  private class CallSiteReferencesInvalidator extends UseRegistry {
+  private class CallSiteReferencesInvalidator extends UseRegistry<ProgramMethod> {
 
-    private CallSiteReferencesInvalidator(DexItemFactory factory) {
-      super(factory);
+    private CallSiteReferencesInvalidator(ProgramMethod context, DexItemFactory factory) {
+      super(context, factory);
     }
 
     private void registerMethod(DexMethod method) {

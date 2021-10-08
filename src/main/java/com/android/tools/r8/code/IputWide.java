@@ -38,7 +38,7 @@ public class IputWide extends IgetOrIput {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInstanceFieldWrite(getField());
   }
 

@@ -54,7 +54,7 @@ public class InvokeVirtualRange extends InvokeMethodRange {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeVirtual(getMethod());
   }
 

@@ -118,7 +118,7 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerConstClass(type, iterator);
   }
 

@@ -119,7 +119,7 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     Type invokeType = getInvokeType(context, registry.dexItemFactory());
     switch (invokeType) {
       case DIRECT:

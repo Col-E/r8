@@ -73,7 +73,7 @@ public class CfConstMethodHandle extends CfInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerMethodHandle(handle, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }
 

@@ -44,7 +44,7 @@ public class InvokeDirectRange extends InvokeMethodRange {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeDirect(getMethod());
   }
 

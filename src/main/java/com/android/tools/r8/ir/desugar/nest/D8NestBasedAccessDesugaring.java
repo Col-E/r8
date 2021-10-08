@@ -109,22 +109,20 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
                 new NestBasedAccessDesugaringUseRegistry(method, eventConsumer)));
   }
 
-  private class NestBasedAccessDesugaringUseRegistry extends UseRegistry {
+  private class NestBasedAccessDesugaringUseRegistry extends UseRegistry<ClasspathMethod> {
 
     private final NestBasedAccessDesugaringEventConsumer eventConsumer;
-    private final ClasspathMethod context;
 
     NestBasedAccessDesugaringUseRegistry(
         ClasspathMethod context, NestBasedAccessDesugaringEventConsumer eventConsumer) {
-      super(appView.dexItemFactory());
+      super(context, appView.dexItemFactory());
       this.eventConsumer = eventConsumer;
-      this.context = context;
     }
 
     private void registerFieldAccess(DexField reference, boolean isGet) {
       DexClassAndField field =
           reference.lookupMemberOnClass(appView.definitionForHolder(reference));
-      if (field != null && needsDesugaring(field, context)) {
+      if (field != null && needsDesugaring(field, getContext())) {
         ensureFieldAccessBridge(field, isGet, eventConsumer);
       }
     }
@@ -135,7 +133,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       }
       DexClassAndMethod method =
           reference.lookupMemberOnClass(appView.definitionForHolder(reference));
-      if (method != null && needsDesugaring(method, context)) {
+      if (method != null && needsDesugaring(method, getContext())) {
         ensureMethodBridge(method, eventConsumer);
       }
     }

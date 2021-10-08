@@ -66,7 +66,7 @@ public class ConstMethodType extends Format21c<DexProto> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerProto(getMethodType());
   }
 

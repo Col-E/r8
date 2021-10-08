@@ -68,7 +68,7 @@ public class InstanceOf extends Format22c<DexType> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInstanceOf(getType());
   }
 

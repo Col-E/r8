@@ -110,7 +110,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                       methodsToReprocessInClass.add(method);
                     } else {
                       AffectedMethodUseRegistry registry =
-                          new AffectedMethodUseRegistry(appView, graphLens);
+                          new AffectedMethodUseRegistry(appView, method, graphLens);
                       if (method.registerCodeReferencesWithResult(registry)) {
                         methodsToReprocessInClass.add(method);
                       }
@@ -125,14 +125,16 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
             methodsToReprocessBuilder.addAll(methodsToReprocessForClass, currentGraphLens));
   }
 
-  static class AffectedMethodUseRegistry extends UseRegistryWithResult<Boolean> {
+  static class AffectedMethodUseRegistry extends UseRegistryWithResult<Boolean, ProgramMethod> {
 
     private final AppView<AppInfoWithLiveness> appView;
     private final ArgumentPropagatorGraphLens graphLens;
 
     AffectedMethodUseRegistry(
-        AppView<AppInfoWithLiveness> appView, ArgumentPropagatorGraphLens graphLens) {
-      super(appView.dexItemFactory(), false);
+        AppView<AppInfoWithLiveness> appView,
+        ProgramMethod context,
+        ArgumentPropagatorGraphLens graphLens) {
+      super(context, appView.dexItemFactory(), false);
       this.appView = appView;
       this.graphLens = graphLens;
     }

@@ -44,7 +44,7 @@ public class InvokeSuperRange extends InvokeMethodRange {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeSuper(getMethod());
   }
 

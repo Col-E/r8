@@ -25,7 +25,7 @@ public class SafeCheckCast extends CheckCast {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerSafeCheckCast(getType());
   }
 }

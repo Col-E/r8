@@ -4,24 +4,24 @@
 
 package com.android.tools.r8.graph;
 
-public abstract class UseRegistryWithResult<T> extends UseRegistry {
+public abstract class UseRegistryWithResult<R, T extends Definition> extends UseRegistry<T> {
 
-  private T result;
+  private R result;
 
-  public UseRegistryWithResult(DexItemFactory factory) {
-    super(factory);
+  public UseRegistryWithResult(T context, DexItemFactory factory) {
+    super(context, factory);
   }
 
-  public UseRegistryWithResult(DexItemFactory factory, T defaultResult) {
-    super(factory);
+  public UseRegistryWithResult(T context, DexItemFactory factory, R defaultResult) {
+    super(context, factory);
     this.result = defaultResult;
   }
 
-  public T getResult() {
+  public R getResult() {
     return result;
   }
 
-  public void setResult(T result) {
+  public void setResult(R result) {
     this.result = result;
     doBreak();
   }

@@ -96,7 +96,7 @@ public class CfInstanceOf extends CfInstruction implements CfTypeInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerInstanceOf(type);
   }
 

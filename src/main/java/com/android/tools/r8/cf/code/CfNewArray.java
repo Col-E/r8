@@ -133,7 +133,7 @@ public class CfNewArray extends CfInstruction implements CfTypeInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     if (!type.isPrimitiveArrayType()) {
       registry.registerTypeReference(type);
     }

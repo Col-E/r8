@@ -101,10 +101,9 @@ public class MemberRebindingIdentityLensFactory {
         executorService);
   }
 
-  private static class NonReboundMemberReferencesRegistry extends UseRegistry {
+  private static class NonReboundMemberReferencesRegistry extends UseRegistry<ProgramMethod> {
 
     private final AppInfoWithClassHierarchy appInfo;
-    private final ProgramMethod context;
     private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
     private final MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder;
     private final Set<DexField> seenFieldReferences;
@@ -117,9 +116,8 @@ public class MemberRebindingIdentityLensFactory {
         MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder,
         Set<DexField> seenFieldReferences,
         Set<DexMethod> seenMethodReferences) {
-      super(appView.dexItemFactory());
+      super(context, appView.dexItemFactory());
       this.appInfo = appView.appInfo();
-      this.context = context;
       this.fieldAccessInfoCollection = fieldAccessInfoCollection;
       this.methodAccessInfoCollectionBuilder = methodAccessInfoCollectionBuilder;
       this.seenFieldReferences = seenFieldReferences;
@@ -209,7 +207,7 @@ public class MemberRebindingIdentityLensFactory {
       if (method.getHolderType().isArrayType()) {
         return;
       }
-      DexClass holder = appInfo.definitionFor(method.getHolderType(), context);
+      DexClass holder = appInfo.definitionFor(method.getHolderType(), getContext());
       if (holder == null) {
         return;
       }

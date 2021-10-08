@@ -92,7 +92,7 @@ public abstract class CfInstruction implements CfOrDexInstruction {
   }
 
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     // Intentionally empty.
   }
 

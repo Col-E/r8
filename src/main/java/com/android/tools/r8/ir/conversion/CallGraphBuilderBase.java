@@ -106,13 +106,13 @@ abstract class CallGraphBuilderBase {
 
   abstract boolean verifyAllMethodsWithCodeExists();
 
-  class InvokeExtractor extends UseRegistry {
+  class InvokeExtractor extends UseRegistry<ProgramMethod> {
 
     private final Node currentMethod;
     private final Predicate<ProgramMethod> targetTester;
 
     InvokeExtractor(Node currentMethod, Predicate<ProgramMethod> targetTester) {
-      super(appView.dexItemFactory());
+      super(currentMethod.getProgramMethod(), appView.dexItemFactory());
       this.currentMethod = currentMethod;
       this.targetTester = targetTester;
     }

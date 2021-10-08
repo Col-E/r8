@@ -44,7 +44,7 @@ public class InvokeStaticRange extends InvokeMethodRange {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeStatic(getMethod());
   }
 

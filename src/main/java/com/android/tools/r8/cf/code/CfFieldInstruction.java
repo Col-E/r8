@@ -111,7 +111,7 @@ public class CfFieldInstruction extends CfInstruction {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     switch (opcode) {
       case Opcodes.GETFIELD:
         registry.registerInstanceFieldRead(field);

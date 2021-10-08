@@ -7,9 +7,11 @@ import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ListIterator;
 
-public abstract class UseRegistry {
+public abstract class UseRegistry<T extends Definition> {
 
-  private DexItemFactory factory;
+  private final T context;
+  private final DexItemFactory factory;
+
   private TraversalContinuation continuation = TraversalContinuation.CONTINUE;
 
   public enum MethodHandleUse {
@@ -17,7 +19,8 @@ public abstract class UseRegistry {
     NOT_ARGUMENT_TO_LAMBDA_METAFACTORY
   }
 
-  public UseRegistry(DexItemFactory factory) {
+  public UseRegistry(T context, DexItemFactory factory) {
+    this.context = context;
     this.factory = factory;
   }
 
@@ -32,6 +35,10 @@ public abstract class UseRegistry {
   public void doBreak() {
     assert continuation.shouldContinue();
     continuation = TraversalContinuation.BREAK;
+  }
+
+  public final T getContext() {
+    return context;
   }
 
   public TraversalContinuation getTraversalContinuation() {

@@ -38,7 +38,7 @@ public class SputByte extends SgetOrSput {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerStaticFieldWrite(getField());
   }
 

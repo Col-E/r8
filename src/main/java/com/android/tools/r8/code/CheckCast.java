@@ -82,7 +82,7 @@ public class CheckCast extends Format21c<DexType> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerCheckCast(getType());
   }
 

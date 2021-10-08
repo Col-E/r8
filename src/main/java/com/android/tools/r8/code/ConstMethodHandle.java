@@ -67,7 +67,7 @@ public class ConstMethodHandle extends Format21c<DexMethodHandle> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerMethodHandle(
         getMethodHandle(), MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }

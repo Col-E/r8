@@ -54,7 +54,7 @@ public class InvokeCustom extends Format35c<DexCallSite> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerCallSite(getCallSite());
   }
 

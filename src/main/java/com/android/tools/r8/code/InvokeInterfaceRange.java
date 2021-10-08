@@ -44,7 +44,7 @@ public class InvokeInterfaceRange extends InvokeMethodRange {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeInterface(getMethod());
   }
 

@@ -59,7 +59,7 @@ public class InvokeCustomRange extends Format3rc<DexCallSite> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerCallSite(getCallSite());
   }
 

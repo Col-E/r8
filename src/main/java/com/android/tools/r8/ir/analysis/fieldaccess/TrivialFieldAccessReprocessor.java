@@ -287,13 +287,10 @@ public class TrivialFieldAccessReprocessor {
     return true;
   }
 
-  class TrivialFieldAccessUseRegistry extends UseRegistry {
-
-    private final ProgramMethod method;
+  class TrivialFieldAccessUseRegistry extends UseRegistry<ProgramMethod> {
 
     TrivialFieldAccessUseRegistry(ProgramMethod method) {
-      super(appView.dexItemFactory());
-      this.method = method;
+      super(method, appView.dexItemFactory());
     }
 
     private void registerFieldAccess(DexField reference, boolean isStatic, boolean isWrite) {
@@ -307,8 +304,8 @@ public class TrivialFieldAccessReprocessor {
       DexEncodedField definition = field.getDefinition();
 
       if (definition.isStatic() != isStatic
-          || appView.isCfByteCodePassThrough(method.getDefinition())
-          || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
+          || appView.isCfByteCodePassThrough(getContext().getDefinition())
+          || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()) {
         recordAccessThatCannotBeOptimized(field, definition);
         return;
       }
@@ -328,7 +325,7 @@ public class TrivialFieldAccessReprocessor {
 
       if (constantFields.contains(definition)
           || (!isWrite && nonConstantFields.contains(definition))) {
-        methodsToReprocess.add(method);
+        methodsToReprocess.add(getContext());
       }
     }
 
@@ -352,7 +349,7 @@ public class TrivialFieldAccessReprocessor {
           AbstractAccessContexts accessContexts =
               fieldAccesses.computeIfAbsent(field, ignore -> new ConcreteAccessContexts());
           assert accessContexts.isConcrete();
-          accessContexts.asConcrete().recordAccess(field.getReference(), method);
+          accessContexts.asConcrete().recordAccess(field.getReference(), getContext());
         } else if (!otherAccessContexts.isTop()) {
           // Now both read and written.
           fieldAccesses.put(field, AbstractAccessContexts.unknown());

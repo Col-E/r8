@@ -44,7 +44,7 @@ public class InvokeSuper extends InvokeMethod {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeSuper(getMethod());
   }
 

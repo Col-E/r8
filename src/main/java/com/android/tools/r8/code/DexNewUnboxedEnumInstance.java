@@ -69,7 +69,7 @@ public class DexNewUnboxedEnumInstance extends Format21c<DexType> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerNewUnboxedEnumInstance(getType());
   }
 

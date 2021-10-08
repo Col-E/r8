@@ -44,7 +44,7 @@ public class InvokeInterface extends InvokeMethod {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeInterface(getMethod());
   }
 

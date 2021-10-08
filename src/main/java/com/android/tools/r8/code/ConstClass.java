@@ -72,7 +72,7 @@ public class ConstClass extends Format21c<DexType> {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerConstClass(getType(), null);
   }
 

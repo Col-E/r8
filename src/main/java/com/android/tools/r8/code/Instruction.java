@@ -385,7 +385,7 @@ public abstract class Instruction implements CfOrDexInstruction, StructuralItem<
     return this.equals(other);
   }
 
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     // Intentionally empty
   }
 

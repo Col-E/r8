@@ -7,14 +7,16 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 
-public class InvokeSingleTargetExtractor extends UseRegistry {
+public class InvokeSingleTargetExtractor extends UseRegistry<ProgramMethod> {
+
   private InvokeKind kind = InvokeKind.NONE;
   private DexMethod target;
 
-  public InvokeSingleTargetExtractor(DexItemFactory factory) {
-    super(factory);
+  public InvokeSingleTargetExtractor(ProgramMethod context, DexItemFactory factory) {
+    super(context, factory);
   }
 
   private void setTarget(DexMethod target, InvokeKind kind) {

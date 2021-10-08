@@ -40,7 +40,7 @@ public class VisibilityBridgeRemover {
       return false;
     }
     InvokeSingleTargetExtractor targetExtractor =
-        new InvokeSingleTargetExtractor(appView.dexItemFactory());
+        new InvokeSingleTargetExtractor(method, appView.dexItemFactory());
     method.registerCodeReferences(targetExtractor);
     DexMethod target = targetExtractor.getTarget();
     // javac-generated visibility forward bridge method has same descriptor (name, signature and

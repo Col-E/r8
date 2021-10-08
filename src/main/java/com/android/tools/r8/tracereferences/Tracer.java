@@ -283,17 +283,15 @@ public class Tracer {
           });
     }
 
-    class MethodUseCollector extends UseRegistry {
+    class MethodUseCollector extends UseRegistry<ProgramMethod> {
 
-      private final ProgramMethod context;
       private final GraphLens graphLens;
       private final InitClassLens initClassLens;
       private final DefinitionContext referencedFrom;
 
       public MethodUseCollector(
           ProgramMethod context, GraphLens graphLens, InitClassLens initClassLens) {
-        super(appInfo.dexItemFactory());
-        this.context = context;
+        super(context, appInfo.dexItemFactory());
         this.graphLens = graphLens;
         this.initClassLens = initClassLens;
         this.referencedFrom = DefinitionContextUtils.create(context);
@@ -303,7 +301,7 @@ public class Tracer {
 
       @Override
       public void registerInvokeDirect(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeDirect(method, context);
+        MethodLookupResult lookupResult = graphLens.lookupInvokeDirect(method, getContext());
         assert lookupResult.getType().isDirect();
         DexMethod rewrittenMethod = lookupResult.getReference();
         DexClass holder = appInfo.definitionFor(rewrittenMethod.getHolderType());
@@ -313,14 +311,14 @@ public class Tracer {
 
       @Override
       public void registerInvokeInterface(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeInterface(method, context);
+        MethodLookupResult lookupResult = graphLens.lookupInvokeInterface(method, getContext());
         assert lookupResult.getType().isInterface();
         handleInvokeWithDynamicDispatch(lookupResult);
       }
 
       @Override
       public void registerInvokeStatic(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeStatic(method, context);
+        MethodLookupResult lookupResult = graphLens.lookupInvokeStatic(method, getContext());
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
         handleRewrittenMethodResolution(
@@ -329,7 +327,7 @@ public class Tracer {
 
       @Override
       public void registerInvokeSuper(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeSuper(method, context);
+        MethodLookupResult lookupResult = graphLens.lookupInvokeSuper(method, getContext());
         assert lookupResult.getType().isSuper();
         DexMethod rewrittenMethod = lookupResult.getReference();
         MethodResolutionResult resolutionResult =
@@ -341,12 +339,12 @@ public class Tracer {
         }
         handleRewrittenMethodReference(
             rewrittenMethod,
-            resolutionResult.lookupInvokeSuperTarget(context.getHolder(), appInfo));
+            resolutionResult.lookupInvokeSuperTarget(getContext().getHolder(), appInfo));
       }
 
       @Override
       public void registerInvokeVirtual(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeVirtual(method, context);
+        MethodLookupResult lookupResult = graphLens.lookupInvokeVirtual(method, getContext());
         assert lookupResult.getType().isVirtual();
         handleInvokeWithDynamicDispatch(lookupResult);
       }
@@ -489,7 +487,7 @@ public class Tracer {
 
         // For lambdas that implement an interface, also keep the interface method by simulating an
         // invoke to it from the current context.
-        LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context);
+        LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, getContext());
         if (descriptor != null) {
           for (DexType interfaceType : descriptor.interfaces) {
             DexClass interfaceDefinition = appInfo.definitionFor(interfaceType);

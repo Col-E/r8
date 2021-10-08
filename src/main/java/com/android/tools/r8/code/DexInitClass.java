@@ -107,7 +107,7 @@ public class DexInitClass extends Base2Format {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInitClass(clazz);
   }
 

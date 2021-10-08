@@ -397,7 +397,7 @@ public class MemberRebindingAnalysis {
         method -> {
           if (method.getDefinition().hasCode()) {
             method.registerCodeReferences(
-                new UseRegistry(appView.dexItemFactory()) {
+                new UseRegistry<ProgramMethod>(method, appView.dexItemFactory()) {
 
                   @Override
                   public void registerInstanceFieldRead(DexField field) {

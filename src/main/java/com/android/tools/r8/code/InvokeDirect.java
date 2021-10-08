@@ -44,7 +44,7 @@ public class InvokeDirect extends InvokeMethod {
   }
 
   @Override
-  public void registerUse(UseRegistry registry) {
+  public void registerUse(UseRegistry<?> registry) {
     registry.registerInvokeDirect(getMethod());
   }
 

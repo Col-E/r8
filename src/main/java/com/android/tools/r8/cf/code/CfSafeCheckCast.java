@@ -24,7 +24,7 @@ public class CfSafeCheckCast extends CfCheckCast {
 
   @Override
   void internalRegisterUse(
-      UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
+      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerSafeCheckCast(getType());
   }
 

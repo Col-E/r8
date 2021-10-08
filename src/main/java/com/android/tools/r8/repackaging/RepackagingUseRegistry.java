@@ -32,12 +32,11 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class RepackagingUseRegistry extends UseRegistry {
+public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
 
   private final AppInfoWithLiveness appInfo;
   private final InternalOptions options;
   private final RepackagingConstraintGraph constraintGraph;
-  private final ProgramDefinition context;
   private final InitClassLens initClassLens;
   private final RepackagingConstraintGraph.Node node;
   private final RepackagingConstraintGraph.Node missingTypeNode;
@@ -47,11 +46,10 @@ public class RepackagingUseRegistry extends UseRegistry {
       RepackagingConstraintGraph constraintGraph,
       ProgramDefinition context,
       RepackagingConstraintGraph.Node missingTypeNode) {
-    super(appView.dexItemFactory());
+    super(context, appView.dexItemFactory());
     this.appInfo = appView.appInfo();
     this.options = appView.options();
     this.constraintGraph = constraintGraph;
-    this.context = context;
     this.initClassLens = appView.initClassLens();
     this.node = constraintGraph.getNode(context.getDefinition());
     this.missingTypeNode = missingTypeNode;
@@ -63,7 +61,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       return true;
     }
     if (accessFlags.isProtected()
-        && !appInfo.isSubtype(context.getContextType(), referencedClass.getType())) {
+        && !appInfo.isSubtype(getContext().getContextType(), referencedClass.getType())) {
       return true;
     }
     return false;
@@ -77,7 +75,7 @@ public class RepackagingUseRegistry extends UseRegistry {
     }
     if (accessFlags.isProtected()) {
       if (!appInfo.isSubtype(
-          context.getContextType(), resolutionResult.getResolvedHolder().getType())) {
+          getContext().getContextType(), resolutionResult.getResolvedHolder().getType())) {
         return true;
       }
       // Check for assignability if we are generating CF:
@@ -85,7 +83,8 @@ public class RepackagingUseRegistry extends UseRegistry {
       if (isInvoke
           && options.isGeneratingClassFiles()
           && !appInfo.isSubtype(
-              resolutionResult.getInitialResolutionHolder().getType(), context.getContextType())) {
+              resolutionResult.getInitialResolutionHolder().getType(),
+              getContext().getContextType())) {
         return true;
       }
     }
@@ -129,7 +128,7 @@ public class RepackagingUseRegistry extends UseRegistry {
       MethodResolutionResult methodResult = resolutionResult.asMethodResolutionResult();
       if (methodResult.isClassNotFoundResult()
           || methodResult.isArrayCloneMethodResult()
-          || methodResult.isNoSuchMethodErrorResult(context.getContextClass(), appInfo)) {
+          || methodResult.isNoSuchMethodErrorResult(getContext().getContextClass(), appInfo)) {
         return;
       }
       node.addNeighbor(missingTypeNode);

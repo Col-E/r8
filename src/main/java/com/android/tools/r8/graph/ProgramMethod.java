@@ -52,7 +52,7 @@ public final class ProgramMethod extends DexClassAndMethod
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
-  public void registerCodeReferences(UseRegistry registry) {
+  public void registerCodeReferences(UseRegistry<?> registry) {
     Code code = getDefinition().getCode();
     if (code != null) {
       if (Log.ENABLED) {
@@ -62,7 +62,7 @@ public final class ProgramMethod extends DexClassAndMethod
     }
   }
 
-  public <T> T registerCodeReferencesWithResult(UseRegistryWithResult<T> registry) {
+  public <R> R registerCodeReferencesWithResult(UseRegistryWithResult<R, ?> registry) {
     registerCodeReferences(registry);
     return registry.getResult();
   }
