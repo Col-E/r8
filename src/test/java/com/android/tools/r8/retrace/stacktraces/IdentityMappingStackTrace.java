@@ -32,47 +32,24 @@ public class IdentityMappingStackTrace implements StackTraceForTest {
 
   @Override
   public List<String> retracedStackTrace() {
-    // TODO(b/202426891): Should not be ambiguous.
     return Arrays.asList(
         "java.lang.IndexOutOfBoundsException",
         "\tat com.android.tools.r8.One.foo(One.java:10)",
         "\tat com.android.tools.r8.Other.bar(Other.java:11)",
-        "\tat com.android.tools.r8.Third.quux(Third.java:12)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat com.android.tools.r8.One.foo(One.java:10)",
-        "\tat com.android.tools.r8.Other.bar(Other.java:11)",
+        "\tat com.android.tools.r8.Other.baz(Other.java:11)",
         "\tat com.android.tools.r8.Third.qux(Third.java:12)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat com.android.tools.r8.One.foo(One.java:10)",
-        "\tat com.android.tools.r8.Other.baz(Other.java:11)",
-        "\tat com.android.tools.r8.Third.quux(Third.java:12)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat com.android.tools.r8.One.foo(One.java:10)",
-        "\tat com.android.tools.r8.Other.baz(Other.java:11)",
-        "\tat com.android.tools.r8.Third.qux(Third.java:12)");
+        "\tat com.android.tools.r8.Third.quux(Third.java:12)");
   }
 
   @Override
   public List<String> retraceVerboseStackTrace() {
-    // TODO(b/202426891): Should not be ambiguous.
     return Arrays.asList(
-        "There are 4 ambiguous stack traces.",
         "java.lang.IndexOutOfBoundsException",
         "\tat com.android.tools.r8.One.void foo(int)(One.java:10)",
         "\tat com.android.tools.r8.Other.void bar(int,int)(Other.java:11)",
-        "\tat com.android.tools.r8.Third.boolean quux(int,int)(Third.java:12)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat com.android.tools.r8.One.void foo(int)(One.java:10)",
-        "\tat com.android.tools.r8.Other.void bar(int,int)(Other.java:11)",
+        "\tat com.android.tools.r8.Other.boolean baz(int,int)(Other.java:11)",
         "\tat com.android.tools.r8.Third.void qux(int)(Third.java:12)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat com.android.tools.r8.One.void foo(int)(One.java:10)",
-        "\tat com.android.tools.r8.Other.boolean baz(int,int)(Other.java:11)",
-        "\tat com.android.tools.r8.Third.boolean quux(int,int)(Third.java:12)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat com.android.tools.r8.One.void foo(int)(One.java:10)",
-        "\tat com.android.tools.r8.Other.boolean baz(int,int)(Other.java:11)",
-        "\tat com.android.tools.r8.Third.void qux(int)(Third.java:12)");
+        "\tat com.android.tools.r8.Third.boolean quux(int,int)(Third.java:12)");
   }
 
   @Override

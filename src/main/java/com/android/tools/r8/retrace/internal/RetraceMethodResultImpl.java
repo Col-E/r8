@@ -111,16 +111,7 @@ public class RetraceMethodResultImpl implements RetraceMethodResult {
                         .rewritePosition(stackTraceContext.getRewritePosition())));
           }
         }
-        // Mapped ranges can have references to overloaded signatures. We distinguish those by
-        // looking at the cardinal mapping range.
-        for (MappedRange mappedRangeForPosition : mappedRangesForPosition) {
-          if (narrowedRanges.isEmpty()
-              || mappedRangeForPosition.originalRange == null
-              || !mappedRangeForPosition.originalRange.isCardinal) {
-            narrowedRanges.add(new Pair<>(mappedRange.getFirst(), new ArrayList<>()));
-          }
-          ListUtils.last(narrowedRanges).getSecond().add(mappedRangeForPosition);
-        }
+        narrowedRanges.add(new Pair<>(mappedRange.getFirst(), mappedRangesForPosition));
       }
     }
     return new RetraceFrameResultImpl(
