@@ -38,6 +38,9 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
   public abstract <E extends Throwable> RR inspect(ThrowingConsumer<CodeInspector, E> consumer)
       throws IOException, ExecutionException, E;
 
+  public abstract <E extends Throwable> RR inspectFailure(
+      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, E;
+
   public abstract RR disassemble() throws IOException, ExecutionException;
 
   public <E extends Throwable> RR apply(ThrowingConsumer<RR, E> fn) throws E {

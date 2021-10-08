@@ -60,6 +60,10 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
   }
 
   public StackTrace getStackTrace() {
+    return getOriginalStackTrace();
+  }
+
+  public StackTrace getOriginalStackTrace() {
     if (runtime.isDex()) {
       return StackTrace.extractFromArt(getStdErr(), runtime.asDex().getVm());
     } else {
@@ -126,6 +130,12 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
   public <E extends Throwable> RR inspectStackTrace(ThrowingConsumer<StackTrace, E> consumer)
       throws E {
     consumer.accept(getStackTrace());
+    return self();
+  }
+
+  public <E extends Throwable> RR inspectOriginalStackTrace(
+      ThrowingConsumer<StackTrace, E> consumer) throws E {
+    consumer.accept(getOriginalStackTrace());
     return self();
   }
 

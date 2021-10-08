@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 public class ProguardTestRunResult extends SingleTestRunResult<ProguardTestRunResult> {
 
@@ -34,14 +33,8 @@ public class ProguardTestRunResult extends SingleTestRunResult<ProguardTestRunRe
     return super.getStackTrace().retrace(proguardMap);
   }
 
-  public StackTrace getOriginalStackTrace() {
-    return super.getStackTrace();
-  }
-
   @Override
-  public CodeInspector inspector() throws IOException, ExecutionException {
-    // See comment in base class.
-    assertSuccess();
+  protected CodeInspector internalGetCodeInspector() throws IOException {
     assertNotNull(app);
     return new CodeInspector(app, proguardMap);
   }

@@ -10,7 +10,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
@@ -52,20 +51,10 @@ public class R8TestRunResult extends SingleTestRunResult<R8TestRunResult> {
     return super.getStackTrace().retraceAllowExperimentalMapping(proguardMap);
   }
 
-  public StackTrace getOriginalStackTrace() {
-    return super.getStackTrace();
-  }
-
   @Override
   protected CodeInspector internalGetCodeInspector() throws IOException {
     assertNotNull(app);
     return new CodeInspector(app, proguardMap);
-  }
-
-  public <E extends Throwable> R8TestRunResult inspectOriginalStackTrace(
-      ThrowingConsumer<StackTrace, E> consumer) throws E {
-    consumer.accept(getOriginalStackTrace());
-    return self();
   }
 
   public <E extends Throwable> R8TestRunResult inspectOriginalStackTrace(

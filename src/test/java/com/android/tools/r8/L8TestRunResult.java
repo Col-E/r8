@@ -49,6 +49,12 @@ public class L8TestRunResult extends TestRunResult<L8TestRunResult> {
   }
 
   @Override
+  public <E extends Throwable> L8TestRunResult inspectFailure(
+      ThrowingConsumer<CodeInspector, E> consumer) {
+    throw new Unimplemented();
+  }
+
+  @Override
   public L8TestRunResult disassemble() throws IOException, ExecutionException {
     throw new Unimplemented();
   }

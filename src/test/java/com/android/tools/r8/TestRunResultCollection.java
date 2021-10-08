@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -55,6 +56,12 @@ public abstract class TestRunResultCollection<
   public <E extends Throwable> RR inspect(ThrowingConsumer<CodeInspector, E> consumer)
       throws IOException, ExecutionException, E {
     return inspectIf(Predicates.alwaysTrue(), consumer);
+  }
+
+  @Override
+  public <E extends Throwable> RR inspectFailure(ThrowingConsumer<CodeInspector, E> consumer)
+      throws IOException, E {
+    throw new Unimplemented();
   }
 
   public RR applyIf(Predicate<C> filter, Consumer<TestRunResult<?>> thenConsumer) {
