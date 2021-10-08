@@ -20,11 +20,9 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class LineNumberOptimizationTest extends DebugTestBase {
 
-  private static final int[] ORIGINAL_LINE_NUMBERS = {20, 7, 8, 28, 8, 20, 21, 12, 21, 22, 16, 22};
   private static final int[] ORIGINAL_LINE_NUMBERS_DEBUG = {
     20, 7, 8, 28, 29, 9, 21, 12, 13, 22, 16, 17
   };
-  private static final int[] OPTIMIZED_LINE_NUMBERS = {1, 1, 2, 1, 2, 1, 2, 3, 2, 3, 4, 3};
 
   private static final String CLASS1 = "LineNumberOptimization1";
   private static final String CLASS2 = "LineNumberOptimization2";
@@ -82,18 +80,6 @@ public class LineNumberOptimizationTest extends DebugTestBase {
   }
 
   @Test
-  public void testNotOptimized() throws Throwable {
-    assumeMappingIsNotToPCs();
-    testRelease(makeConfig(LineNumberOptimization.OFF, false, false), ORIGINAL_LINE_NUMBERS);
-  }
-
-  @Test
-  public void testNotOptimizedWithMap() throws Throwable {
-    assumeMappingIsNotToPCs();
-    testRelease(makeConfig(LineNumberOptimization.OFF, true, false), ORIGINAL_LINE_NUMBERS);
-  }
-
-  @Test
   public void testNotOptimizedByEnablingDebug() throws Throwable {
     testDebug(makeConfig(LineNumberOptimization.OFF, false, true), ORIGINAL_LINE_NUMBERS_DEBUG);
   }
@@ -101,20 +87,6 @@ public class LineNumberOptimizationTest extends DebugTestBase {
   @Test
   public void testNotOptimizedByEnablingDebugWithMap() throws Throwable {
     testDebug(makeConfig(LineNumberOptimization.OFF, true, true), ORIGINAL_LINE_NUMBERS_DEBUG);
-  }
-
-  @Test
-  public void testOptimized() throws Throwable {
-    assumeMappingIsNotToPCs();
-    DebugTestConfig config = makeConfig(LineNumberOptimization.ON, false, false);
-    config.allowUsingPcForMissingLineNumberTable();
-    testRelease(config, OPTIMIZED_LINE_NUMBERS);
-  }
-
-  @Test
-  public void testOptimizedWithMap() throws Throwable {
-    assumeMappingIsNotToPCs();
-    testRelease(makeConfig(LineNumberOptimization.ON, true, false), ORIGINAL_LINE_NUMBERS);
   }
 
   private void testDebug(DebugTestConfig config, int[] lineNumbers) throws Throwable {
@@ -157,57 +129,6 @@ public class LineNumberOptimizationTest extends DebugTestBase {
         checkLine(FILE1, lineNumbers[10]),
         stepOver(),
         checkMethod(CLASS1, "callThisFromSameFile", "(II)V"),
-        checkLine(FILE1, lineNumbers[11]),
-        run());
-  }
-
-  // If we compile in release mode the line numbers are slightly different from the debug mode.
-  // That's why we need a different set of checks for the release mode.
-  //
-  // In release mode void returns don't have line number information. On the other hand, because of
-  // the line number information is moved as late as possible stepping in the debugger is different:
-  // After a method call we step again on the invoke instructions's line number before moving onto
-  // the next instruction.
-  private void testRelease(DebugTestConfig config, int[] lineNumbers) throws Throwable {
-    runDebugTest(
-        config,
-        CLASS1,
-        breakpoint(CLASS1, "main", MAIN_SIGNATURE),
-        run(),
-        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
-        checkLine(FILE1, lineNumbers[0]),
-        stepInto(),
-        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
-        checkLine(FILE1, lineNumbers[1]),
-        stepOver(),
-        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
-        checkLine(FILE1, lineNumbers[2]),
-        stepInto(INTELLIJ_FILTER),
-        checkMethod(CLASS2, "callThisFromAnotherFile", "()V"),
-        checkLine(FILE2, lineNumbers[3]),
-        stepOver(),
-        checkMethod(CLASS1, "callThisFromSameFile", "()V"),
-        checkLine(FILE1, lineNumbers[4]),
-        stepOver(),
-        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
-        checkLine(FILE1, lineNumbers[5]),
-        stepOver(),
-        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
-        checkLine(FILE1, lineNumbers[6]),
-        stepInto(),
-        checkMethod(CLASS1, "callThisFromSameFile", "(I)V"),
-        checkLine(FILE1, lineNumbers[7]),
-        stepOver(),
-        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
-        checkLine(FILE1, lineNumbers[8]),
-        stepOver(),
-        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
-        checkLine(FILE1, lineNumbers[9]),
-        stepInto(),
-        checkMethod(CLASS1, "callThisFromSameFile", "(II)V"),
-        checkLine(FILE1, lineNumbers[10]),
-        stepOver(),
-        checkMethod(CLASS1, "main", MAIN_SIGNATURE),
         checkLine(FILE1, lineNumbers[11]),
         run());
   }
