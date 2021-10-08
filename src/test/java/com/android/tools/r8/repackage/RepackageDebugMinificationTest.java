@@ -5,7 +5,6 @@
 package com.android.tools.r8.repackage;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -70,7 +69,7 @@ public class RepackageDebugMinificationTest extends RepackageTestBase {
               MethodSubject main = mainClass.uniqueMethodWithName("main");
               assertThat(main, isPresentAndNotRenamed());
               ClassSubject aClass = inspector.clazz(A.class);
-              assertThat(aClass, isPresentAndRenamed());
+              assertThat(aClass, isPresentAndNotRenamed());
               LocalVariableTable localVariableTable = main.getLocalVariableTable();
               // Take the second index which is localValue
               assertEquals(2, localVariableTable.size());

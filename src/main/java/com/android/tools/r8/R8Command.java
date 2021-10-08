@@ -528,6 +528,11 @@ public final class R8Command extends BaseCompilerCommand {
                 }
               });
 
+      if (getMode() == CompilationMode.DEBUG) {
+        disableMinification = true;
+        configurationBuilder.disableOptimization();
+      }
+
       if (disableTreeShaking) {
         configurationBuilder.disableShrinking();
       }
@@ -823,10 +828,8 @@ public final class R8Command extends BaseCompilerCommand {
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal = new InternalOptions(proguardConfiguration, getReporter());
+    InternalOptions internal = new InternalOptions(getMode(), proguardConfiguration, getReporter());
     assert !internal.testing.allowOutlinerInterfaceArrayArguments;  // Only allow in tests.
-    assert !internal.debug;
-    internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
     internal.desugarState = getDesugarState();
@@ -835,40 +838,26 @@ public final class R8Command extends BaseCompilerCommand {
     assert !internal.ignoreMissingClasses;
     internal.ignoreMissingClasses =
         proguardConfiguration.isIgnoreWarnings()
-            // TODO(70706667): We probably only want this in Proguard compatibility mode.
             || (forceProguardCompatibility
-                && !proguardConfiguration.isOptimizing()
+                && !internal.isOptimizing()
                 && !internal.isShrinking()
                 && !internal.isMinifying());
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
-    internal.minimalMainDex = getMode() == CompilationMode.DEBUG;
+    internal.minimalMainDex = internal.debug;
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.lineNumberOptimization =
-        !internal.debug && (proguardConfiguration.isOptimizing() || internal.isMinifying())
+        (internal.isOptimizing() || internal.isMinifying())
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 
     HorizontalClassMergerOptions horizontalClassMergerOptions =
         internal.horizontalClassMergerOptions();
-    assert proguardConfiguration.isOptimizing()
-        || horizontalClassMergerOptions.isRestrictedToSynthetics();
+    assert internal.isOptimizing() || horizontalClassMergerOptions.isRestrictedToSynthetics();
 
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
-    assert internal.enableVerticalClassMerging || !proguardConfiguration.isOptimizing();
-    if (internal.debug) {
-      internal.getProguardConfiguration().getKeepAttributes().lineNumberTable = true;
-      internal.getProguardConfiguration().getKeepAttributes().localVariableTable = true;
-      internal.getProguardConfiguration().getKeepAttributes().localVariableTypeTable = true;
-      internal.enableInlining = false;
-      internal.enableClassInlining = false;
-      internal.enableVerticalClassMerging = false;
-      internal.enableClassStaticizer = false;
-      internal.outline.enabled = false;
-      internal.enableEnumUnboxing = false;
-      internal.callSiteOptimizationOptions().disableOptimization();
-    }
+    assert internal.enableVerticalClassMerging || !internal.isOptimizing();
 
     if (!internal.isShrinking()) {
       // If R8 is not shrinking, there is no point in running various optimizations since the
