@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation.propagation;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -43,12 +44,15 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
   // methods) on the seen but not finished interfaces.
   final Map<DexProgramClass, MethodStateCollectionBySignature> methodStatesToPropagate =
       new IdentityHashMap<>();
+  final Consumer<DexMethodSignature> interfaceDispatchOutsideProgram;
 
   public InterfaceMethodArgumentPropagator(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
-      MethodStateCollectionByReference methodStates) {
+      MethodStateCollectionByReference methodStates,
+      Consumer<DexMethodSignature> interfaceDispatchOutsideProgram) {
     super(appView, immediateSubtypingInfo, methodStates);
+    this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
 
   @Override
@@ -132,6 +136,12 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
                     // TODO(b/190154391): Do we need to propagate argument information to the first
                     //  virtual method above the inaccessible method in the class hierarchy?
                     assert resolutionResult.asFailedResolution().hasMethodsCausingError();
+                    return;
+                  }
+
+                  assert resolutionResult.isSingleResolution();
+                  if (!resolutionResult.getResolutionPair().isProgramMethod()) {
+                    interfaceDispatchOutsideProgram.accept(interfaceMethod);
                     return;
                   }
 

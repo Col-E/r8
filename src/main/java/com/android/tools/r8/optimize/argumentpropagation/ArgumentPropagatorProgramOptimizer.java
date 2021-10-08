@@ -100,14 +100,18 @@ public class ArgumentPropagatorProgramOptimizer {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
+  private final Map<Set<DexProgramClass>, DexMethodSignatureSet> interfaceDispatchOutsideProgram;
 
   private final Map<DexClass, DexMethodSignatureSet> libraryVirtualMethods =
       new ConcurrentHashMap<>();
 
   public ArgumentPropagatorProgramOptimizer(
-      AppView<AppInfoWithLiveness> appView, ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
+      AppView<AppInfoWithLiveness> appView,
+      ImmediateProgramSubtypingInfo immediateSubtypingInfo,
+      Map<Set<DexProgramClass>, DexMethodSignatureSet> interfaceDispatchOutsideProgram) {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
+    this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
 
   public ArgumentPropagatorGraphLens run(
@@ -121,7 +125,12 @@ public class ArgumentPropagatorProgramOptimizer {
         ThreadUtils.processItemsWithResults(
             stronglyConnectedProgramComponents,
             classes ->
-                new StronglyConnectedComponentOptimizer().optimize(classes, affectedClassConsumer),
+                new StronglyConnectedComponentOptimizer()
+                    .optimize(
+                        classes,
+                        interfaceDispatchOutsideProgram.getOrDefault(
+                            classes, DexMethodSignatureSet.empty()),
+                        affectedClassConsumer),
             executorService);
     timing.end();
 
@@ -204,8 +213,9 @@ public class ArgumentPropagatorProgramOptimizer {
     //  similarly to the way we deal with call chains in argument propagation. If a field is only
     //  assigned the parameter of a given method, we would add the flow constraint "parameter p ->
     //  field f".
-    public ArgumentPropagatorGraphLens.Builder optimize(
+    private ArgumentPropagatorGraphLens.Builder optimize(
         Set<DexProgramClass> stronglyConnectedProgramClasses,
+        DexMethodSignatureSet interfaceDispatchOutsideProgram,
         Consumer<DexProgramClass> affectedClassConsumer) {
       // First reserve pinned method signatures.
       reservePinnedMethodSignatures(stronglyConnectedProgramClasses);
@@ -213,7 +223,8 @@ public class ArgumentPropagatorProgramOptimizer {
       // To ensure that we preserve the overriding relationships between methods, we only remove a
       // constant or unused parameter from a virtual method when it can be removed from all other
       // virtual methods in the component with the same method signature.
-      computePrototypeChangesForVirtualMethods(stronglyConnectedProgramClasses);
+      computePrototypeChangesForVirtualMethods(
+          stronglyConnectedProgramClasses, interfaceDispatchOutsideProgram);
 
       // Build a graph lens while visiting the classes in the component.
       // TODO(b/190154391): Consider visiting the interfaces first, and then processing the
@@ -225,7 +236,7 @@ public class ArgumentPropagatorProgramOptimizer {
       stronglyConnectedProgramClassesWithDeterministicOrder.sort(
           Comparator.comparing(DexClass::getType));
       for (DexProgramClass clazz : stronglyConnectedProgramClassesWithDeterministicOrder) {
-        if (visitClass(clazz, partialGraphLensBuilder)) {
+        if (visitClass(clazz, interfaceDispatchOutsideProgram, partialGraphLensBuilder)) {
           affectedClassConsumer.accept(clazz);
         }
       }
@@ -276,7 +287,8 @@ public class ArgumentPropagatorProgramOptimizer {
     }
 
     private void computePrototypeChangesForVirtualMethods(
-        Set<DexProgramClass> stronglyConnectedProgramClasses) {
+        Set<DexProgramClass> stronglyConnectedProgramClasses,
+        DexMethodSignatureSet interfaceDispatchOutsideProgram) {
       // Group the virtual methods in the component by their signatures.
       Map<DexMethodSignature, ProgramMethodSet> virtualMethodsBySignature =
           computeVirtualMethodsBySignature(stronglyConnectedProgramClasses);
@@ -284,7 +296,9 @@ public class ArgumentPropagatorProgramOptimizer {
           (signature, methods) -> {
             // Check that there are no keep rules that prohibit prototype changes from any of the
             // methods.
-            if (Iterables.any(methods, method -> !isPrototypeChangesAllowed(method))) {
+            if (Iterables.any(
+                methods,
+                method -> !isPrototypeChangesAllowed(method, interfaceDispatchOutsideProgram))) {
               return;
             }
 
@@ -340,11 +354,13 @@ public class ArgumentPropagatorProgramOptimizer {
       return virtualMethodsBySignature;
     }
 
-    private boolean isPrototypeChangesAllowed(ProgramMethod method) {
+    private boolean isPrototypeChangesAllowed(
+        ProgramMethod method, DexMethodSignatureSet interfaceDispatchOutsideProgram) {
       return appView.getKeepInfo(method).isParameterRemovalAllowed(options)
           && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
           && !appView.appInfo().isBootstrapMethod(method)
-          && !appView.appInfo().isMethodTargetedByInvokeDynamic(method);
+          && !appView.appInfo().isMethodTargetedByInvokeDynamic(method)
+          && !interfaceDispatchOutsideProgram.contains(method);
     }
 
     private SingleValue getReturnValueForVirtualMethods(
@@ -416,7 +432,9 @@ public class ArgumentPropagatorProgramOptimizer {
 
     // Returns true if the class was changed as a result of argument propagation.
     private boolean visitClass(
-        DexProgramClass clazz, ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder) {
+        DexProgramClass clazz,
+        DexMethodSignatureSet interfaceDispatchOutsideProgram,
+        ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder) {
       BooleanBox affected = new BooleanBox();
       DexMethodSignatureSet instanceInitializerSignatures = DexMethodSignatureSet.create();
       clazz.forEachProgramInstanceInitializer(instanceInitializerSignatures::add);
@@ -424,7 +442,8 @@ public class ArgumentPropagatorProgramOptimizer {
           method -> {
             RewrittenPrototypeDescription prototypeChanges =
                 method.getDefinition().belongsToDirectPool()
-                    ? computePrototypeChangesForDirectMethod(method, instanceInitializerSignatures)
+                    ? computePrototypeChangesForDirectMethod(
+                        method, interfaceDispatchOutsideProgram, instanceInitializerSignatures)
                     : computePrototypeChangesForVirtualMethod(method);
             DexMethod newMethodSignature = getNewMethodSignature(method, prototypeChanges);
             if (newMethodSignature != method.getReference()) {
@@ -518,9 +537,11 @@ public class ArgumentPropagatorProgramOptimizer {
     }
 
     private RewrittenPrototypeDescription computePrototypeChangesForDirectMethod(
-        ProgramMethod method, DexMethodSignatureSet instanceInitializerSignatures) {
+        ProgramMethod method,
+        DexMethodSignatureSet interfaceDispatchOutsideProgram,
+        DexMethodSignatureSet instanceInitializerSignatures) {
       assert method.getDefinition().belongsToDirectPool();
-      if (!isPrototypeChangesAllowed(method)) {
+      if (!isPrototypeChangesAllowed(method, interfaceDispatchOutsideProgram)) {
         return RewrittenPrototypeDescription.none();
       }
       // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.

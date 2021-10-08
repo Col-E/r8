@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -48,10 +53,17 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
   }
 
   private static final String EXPECTED_OUTPUT =
-      StringUtils.lines("LibraryClass::libraryMethod(false)");
+      StringUtils.lines("LibraryClass::libraryMethod(false)", "ProgramClass2::libraryMethod(true)");
   private static final List<Class<?>> LIBRARY_CLASSES = ImmutableList.of(LibraryClass.class);
   private static final List<Class<?>> PROGRAM_CLASSES =
-      ImmutableList.of(ProgramClass.class, Delegate.class, Delegater.class, TestClass.class);
+      ImmutableList.of(
+          ProgramClass.class,
+          Delegate.class,
+          Delegater.class,
+          AnotherProgramClass.class,
+          AnotherDelegate.class,
+          AnotherDelegator.class,
+          TestClass.class);
 
   @Test
   public void testRuntime() throws Exception {
@@ -78,6 +90,7 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .enableNoVerticalClassMergingAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addHorizontallyMergedClassesInspector(
@@ -85,8 +98,18 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
         .compile()
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/202074964): This should not fail.
-        .assertFailureWithErrorThatThrows(AbstractMethodError.class);
+        .inspect(
+            inspector -> {
+              assertThat(
+                  inspector.clazz(Delegate.class).method("void", "libraryMethod", "boolean"),
+                  isPresent());
+              // Check that boolean argument to libraryMethod was removed for AnotherProgramClass.
+              inspector
+                  .clazz(AnotherProgramClass.class)
+                  .forAllMethods(
+                      method -> assertEquals(method.getFinalSignature().toDescriptor(), "()V"));
+            })
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   public static class LibraryClass {
@@ -115,6 +138,7 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
   }
 
   @NoVerticalClassMerging
+  @NoHorizontalClassMerging
   @NeverClassInline
   public static class Delegater {
     Delegate delegate;
@@ -128,10 +152,51 @@ public class UpwardsInterfacePropagationToLibraryOrClasspathMethodTest extends T
     }
   }
 
+  @NoVerticalClassMerging
+  @NoHorizontalClassMerging
+  public interface AnotherDelegate {
+    void libraryMethod(boolean visible);
+  }
+
+  @NeverClassInline
+  @NoHorizontalClassMerging
+  public static class AnotherProgramClass implements AnotherDelegate {
+    AnotherDelegator delegater;
+
+    public AnotherProgramClass() {
+      delegater = new AnotherDelegator(this);
+    }
+
+    @NeverInline
+    public void libraryMethod(boolean visible) {
+      System.out.println("ProgramClass2::libraryMethod(" + visible + ")");
+    }
+
+    @NeverInline
+    public void m() {
+      delegater.m();
+    }
+  }
+
+  @NoVerticalClassMerging
+  @NeverClassInline
+  public static class AnotherDelegator {
+    AnotherDelegate delegate;
+
+    AnotherDelegator(AnotherDelegate delegate) {
+      this.delegate = delegate;
+    }
+
+    public void m() {
+      delegate.libraryMethod(true);
+    }
+  }
+
   public static class TestClass {
 
     public static void main(String[] args) {
       new ProgramClass().m();
+      new AnotherProgramClass().m();
     }
   }
 }

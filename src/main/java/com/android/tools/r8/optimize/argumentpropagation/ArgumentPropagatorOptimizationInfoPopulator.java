@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
 
 /**
@@ -58,17 +60,22 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
   private final List<Set<DexProgramClass>> stronglyConnectedProgramComponents;
 
+  private final BiConsumer<Set<DexProgramClass>, DexMethodSignature>
+      interfaceDispatchOutsideProgram;
+
   ArgumentPropagatorOptimizationInfoPopulator(
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       MethodStateCollectionByReference methodStates,
       ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection,
-      List<Set<DexProgramClass>> stronglyConnectedProgramComponents) {
+      List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
+      BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram) {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.methodStates = methodStates;
     this.reprocessingCriteriaCollection = reprocessingCriteriaCollection;
     this.stronglyConnectedProgramComponents = stronglyConnectedProgramComponents;
+    this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
 
   /**
@@ -114,7 +121,12 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     //
     // To handle this we first propagate any argument information stored for I.m() to A.m() by doing
     // a top-down traversal over the interfaces in the strongly connected component.
-    new InterfaceMethodArgumentPropagator(appView, immediateSubtypingInfo, methodStates)
+    new InterfaceMethodArgumentPropagator(
+            appView,
+            immediateSubtypingInfo,
+            methodStates,
+            signature ->
+                interfaceDispatchOutsideProgram.accept(stronglyConnectedComponent, signature))
         .run(stronglyConnectedComponent);
 
     // Now all the argument information for a given method is guaranteed to be stored on a supertype

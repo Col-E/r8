@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -20,11 +21,15 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBid
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.google.common.collect.Sets;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
 
 /** Optimization that propagates information about arguments from call sites to method entries. */
 public class ArgumentPropagator {
@@ -144,14 +149,26 @@ public class ArgumentPropagator {
     timing.end();
 
     // Set the optimization info on each method.
+    Map<Set<DexProgramClass>, DexMethodSignatureSet> interfaceDispatchOutsideProgram =
+        new IdentityHashMap<>();
     populateParameterOptimizationInfo(
-        immediateSubtypingInfo, stronglyConnectedProgramComponents, executorService, timing);
+        immediateSubtypingInfo,
+        stronglyConnectedProgramComponents,
+        (stronglyConnectedProgramComponent, signature) -> {
+          interfaceDispatchOutsideProgram
+              .computeIfAbsent(
+                  stronglyConnectedProgramComponent, (unused) -> DexMethodSignatureSet.create())
+              .add(signature);
+        },
+        executorService,
+        timing);
 
     // Using the computed optimization info, build a graph lens that describes the mapping from
     // methods with constant parameters to methods with the constant parameters removed.
     Set<DexProgramClass> affectedClasses = Sets.newConcurrentHashSet();
     ArgumentPropagatorGraphLens graphLens =
-        new ArgumentPropagatorProgramOptimizer(appView, immediateSubtypingInfo)
+        new ArgumentPropagatorProgramOptimizer(
+                appView, immediateSubtypingInfo, interfaceDispatchOutsideProgram)
             .run(stronglyConnectedProgramComponents, affectedClasses::add, executorService, timing);
 
     // Find all the code objects that need reprocessing.
@@ -174,6 +191,7 @@ public class ArgumentPropagator {
   private void populateParameterOptimizationInfo(
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
+      BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
@@ -189,7 +207,8 @@ public class ArgumentPropagator {
             immediateSubtypingInfo,
             codeScannerResult,
             reprocessingCriteriaCollection,
-            stronglyConnectedProgramComponents)
+            stronglyConnectedProgramComponents,
+            interfaceDispatchOutsideProgram)
         .populateOptimizationInfo(executorService, timing);
     reprocessingCriteriaCollection = null;
     timing.end();
