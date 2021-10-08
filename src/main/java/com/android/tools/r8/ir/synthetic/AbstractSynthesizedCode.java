@@ -30,7 +30,7 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   public abstract SourceCodeProvider getSourceCodeProvider();
 
-  public abstract Consumer<UseRegistry> getRegistryCallback();
+  public abstract Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method);
 
   @Override
   public boolean isEmptyVoidMethod() {
@@ -78,7 +78,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
-    getRegistryCallback().accept(registry);
+    getRegistryCallback(method).accept(registry);
   }
 
   @Override

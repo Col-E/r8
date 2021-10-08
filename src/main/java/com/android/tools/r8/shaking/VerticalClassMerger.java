@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -2185,7 +2186,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public Consumer<UseRegistry> getRegistryCallback() {
+    public Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method) {
       return registry -> {
         assert registry.getTraversalContinuation().shouldContinue();
         switch (type) {

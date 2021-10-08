@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.synthetic;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import java.util.function.Consumer;
 
@@ -21,5 +22,5 @@ public abstract class SynthesizedCode extends AbstractSynthesizedCode {
   }
 
   @Override
-  public abstract Consumer<UseRegistry> getRegistryCallback();
+  public abstract Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method);
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging.code;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -15,7 +16,10 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.function.Consumer;
 
 public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
+
+  private final DexItemFactory dexItemFactory;
   private final Int2ReferenceSortedMap<DexMethod> mappedMethods;
+  private final DexMethod superMethod;
 
   public VirtualMethodEntryPointSynthesizedCode(
       Int2ReferenceSortedMap<DexMethod> mappedMethods,
@@ -33,7 +37,9 @@ public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
                 method,
                 position,
                 originalMethod));
+    this.dexItemFactory = factory;
     this.mappedMethods = mappedMethods;
+    this.superMethod = superMethod;
   }
 
   private static DexMethod computeSuperMethodTarget(
@@ -47,17 +53,22 @@ public class VirtualMethodEntryPointSynthesizedCode extends SynthesizedCode {
   }
 
   @Override
-  public Consumer<UseRegistry> getRegistryCallback() {
-    return this::registerReachableDefinitions;
+  public Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method) {
+    return registry -> registerReachableDefinitions(method, registry);
   }
 
-  private void registerReachableDefinitions(UseRegistry registry) {
+  private void registerReachableDefinitions(DexClassAndMethod method, UseRegistry registry) {
     assert registry.getTraversalContinuation().shouldContinue();
     for (DexMethod mappedMethod : mappedMethods.values()) {
       registry.registerInvokeDirect(mappedMethod);
       if (registry.getTraversalContinuation().shouldBreak()) {
         return;
       }
+    }
+    DexMethod superMethodTarget =
+        computeSuperMethodTarget(superMethod, method.asProgramMethod(), dexItemFactory);
+    if (superMethodTarget != null) {
+      registry.registerInvokeSuper(superMethodTarget);
     }
   }
 

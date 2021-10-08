@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -855,7 +856,7 @@ public class MainDexListTests extends TestBase {
             new SynthesizedCode(
                 (ignored, callerPosition) -> new ReturnVoidCode(voidReturnMethod, callerPosition)) {
               @Override
-              public Consumer<UseRegistry> getRegistryCallback() {
+              public Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method) {
                 throw new Unreachable();
               }
             };

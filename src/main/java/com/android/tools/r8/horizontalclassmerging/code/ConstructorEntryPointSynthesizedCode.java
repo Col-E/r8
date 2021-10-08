@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.horizontalclassmerging.code;
 
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.UseRegistry;
@@ -37,7 +38,7 @@ public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCod
   }
 
   @Override
-  public Consumer<UseRegistry> getRegistryCallback() {
+  public Consumer<UseRegistry> getRegistryCallback(DexClassAndMethod method) {
     return this::registerReachableDefinitions;
   }
 
