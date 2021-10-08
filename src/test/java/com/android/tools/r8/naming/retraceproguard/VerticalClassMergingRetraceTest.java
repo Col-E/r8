@@ -12,7 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retraceproguard.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +28,17 @@ import org.junit.runners.Parameterized.Parameters;
 public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   private Set<StackTraceLine> haveSeenLines = new HashSet<>();
 
-  @Parameters(name = "Backend: {0}, mode: {1}, compat: {2}")
+  @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        ToolHelper.getBackends(), CompilationMode.values(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values(),
+        BooleanUtils.values());
   }
 
-  public VerticalClassMergingRetraceTest(Backend backend, CompilationMode mode, boolean compat) {
-    super(backend, mode, compat);
+  public VerticalClassMergingRetraceTest(
+      TestParameters parameters, CompilationMode mode, boolean compat) {
+    super(parameters, mode, compat);
   }
 
   @Override
@@ -55,7 +58,12 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   private int expectedActualStackTraceHeight() {
     // In RELEASE mode, a synthetic bridge will be added by vertical class merger.
-    return mode == CompilationMode.RELEASE ? 3 : 2;
+    int height = mode == CompilationMode.RELEASE ? 3 : 2;
+    if (parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik()) {
+      // Dalvik places a stack trace line in the bottom.
+      height += 1;
+    }
+    return height;
   }
 
   private boolean filterSynthesizedMethodWhenLineNumberAvailable(
@@ -79,7 +87,9 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
               mode == CompilationMode.DEBUG
                   ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
-          assertThat(reprocessedStackTrace, isSameExceptForFileName(expectedStackTrace));
+          assertThat(
+              reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
+              isSameExceptForFileName(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }
@@ -87,7 +97,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   @Test
   public void testLineNumberTableOnly() throws Exception {
     assumeTrue(compat);
-    assumeTrue(backend == Backend.DEX);
+    assumeTrue(parameters.isDexRuntime());
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -95,7 +105,9 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
               mode == CompilationMode.DEBUG
                   ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
-          assertThat(reprocessedStackTrace, isSameExceptForFileName(expectedStackTrace));
+          assertThat(
+              reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
+              isSameExceptForFileName(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }
@@ -103,7 +115,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   @Test
   public void testNoLineNumberTable() throws Exception {
     assumeTrue(compat);
-    assumeTrue(backend == Backend.DEX);
+    assumeTrue(parameters.isDexRuntime());
     haveSeenLines.clear();
     runTest(
         ImmutableList.of(),
@@ -113,7 +125,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethod);
           assertThat(
-              reprocessedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
+              reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
+              isSameExceptForFileNameAndLineNumber(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }

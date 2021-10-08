@@ -11,12 +11,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,16 +23,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InliningRetraceTest extends RetraceTestBase {
 
-  @Parameters(name = "Backend: {0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
-    return ToolHelper.getDexVm().getVersion() == Version.V5_1_1
-        ? Collections.emptyList()
-        : buildParameters(
-            ToolHelper.getBackends(), CompilationMode.values(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values(),
+        BooleanUtils.values());
   }
 
-  public InliningRetraceTest(Backend backend, CompilationMode mode, boolean value) {
-    super(backend, mode, value);
+  public InliningRetraceTest(TestParameters parameters, CompilationMode mode, boolean value) {
+    super(parameters, mode, value);
   }
 
   @Override
@@ -43,7 +41,12 @@ public class InliningRetraceTest extends RetraceTestBase {
   }
 
   private int expectedActualStackTraceHeight() {
-    return mode == CompilationMode.RELEASE ? 1 : 4;
+    int height = mode == CompilationMode.RELEASE ? 1 : 4;
+    if (parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isDalvik()) {
+      // Dalvik places a stack trace line in the bottom.
+      height += 1;
+    }
+    return height;
   }
 
   @Test
@@ -60,7 +63,7 @@ public class InliningRetraceTest extends RetraceTestBase {
   @Test
   public void testLineNumberTableOnly() throws Exception {
     assumeTrue(compat);
-    assumeTrue(backend == Backend.DEX);
+    assumeTrue(parameters.isDexRuntime());
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -72,7 +75,7 @@ public class InliningRetraceTest extends RetraceTestBase {
   @Test
   public void testNoLineNumberTable() throws Exception {
     assumeTrue(compat);
-    assumeTrue(backend == Backend.DEX);
+    assumeTrue(parameters.isDexRuntime());
     runTest(
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
@@ -201,6 +202,20 @@ class StackTrace {
   public static StackTrace extractFromJvm(SingleTestRunResult result) {
     assertNotEquals(0, result.getExitCode());
     return extractFromJvm(result.getStdErr());
+  }
+
+  public static StackTrace extract(SingleTestRunResult<?> result) {
+    Box<StackTrace> stackTraceBox = new Box<>();
+    result.forCfRuntime(
+        ignored -> {
+          stackTraceBox.set(extractFromJvm(result.getStdErr()));
+        });
+    result.forDexRuntimeSatisfying(
+        version -> true,
+        ignored -> {
+          stackTraceBox.set(extractFromArt(result.getStdErr()));
+        });
+    return stackTraceBox.get();
   }
 
   public StackTrace retrace(String map, Path tempFolder) throws IOException {

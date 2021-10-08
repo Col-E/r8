@@ -8,6 +8,8 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.naming.retraceproguard.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -15,12 +17,13 @@ import java.util.function.BiConsumer;
 import org.junit.Before;
 
 public abstract class RetraceTestBase extends TestBase {
-  protected Backend backend;
+
+  protected TestParameters parameters;
   protected CompilationMode mode;
   protected boolean compat;
 
-  public RetraceTestBase(Backend backend, CompilationMode mode, boolean compat) {
-    this.backend = backend;
+  public RetraceTestBase(TestParameters parameters, CompilationMode mode, boolean compat) {
+    this.parameters = parameters;
     this.mode = mode;
     this.compat = compat;
   }
@@ -39,24 +42,26 @@ public abstract class RetraceTestBase extends TestBase {
   public void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
     expectedStackTrace =
-        testForJvm()
-            .addTestClasspath()
-            .run(getMainClass())
+        testForRuntime(parameters)
+            .addProgramClasses(getClasses())
+            .run(parameters.getRuntime(), getMainClass())
             .assertFailure()
-            .map(StackTrace::extractFromJvm);
+            .map(StackTrace::extract)
+            .filter(this::isNotDalvikNativeStartMethod);
   }
 
   public void runTest(List<String> keepRules, BiConsumer<StackTrace, StackTrace> checker)
       throws Exception {
     R8TestRunResult result =
-        (compat ? testForR8Compat(backend) : testForR8(backend))
+        (compat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
             .setMode(mode)
             .enableProguardTestOptions()
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
+            .setMinApi(parameters.getApiLevel())
             .apply(this::configure)
-            .run(getMainClass())
+            .run(parameters.getRuntime(), getMainClass())
             .assertFailure();
 
     // Extract actual stack trace and retraced stack trace from failed run result.
@@ -69,5 +74,10 @@ public abstract class RetraceTestBase extends TestBase {
         actualStackTrace.retrace(result.proguardMap(), temp.newFolder().toPath());
 
     checker.accept(actualStackTrace, retracedStackTrace);
+  }
+
+  protected boolean isNotDalvikNativeStartMethod(StackTraceLine retracedStackTraceLine) {
+    return !(retracedStackTraceLine.className.equals("dalvik.system.NativeStart")
+        && retracedStackTraceLine.methodName.equals("main"));
   }
 }

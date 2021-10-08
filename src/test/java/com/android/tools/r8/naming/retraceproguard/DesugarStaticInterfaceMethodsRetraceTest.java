@@ -11,7 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -23,15 +23,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
 
-  @Parameters(name = "Backend: {0}, mode: {1}, compat: {2}")
+  @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        ToolHelper.getBackends(), CompilationMode.values(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values(),
+        BooleanUtils.values());
   }
 
   public DesugarStaticInterfaceMethodsRetraceTest(
-      Backend backend, CompilationMode mode, boolean compat) {
-    super(backend, mode, compat);
+      TestParameters parameters, CompilationMode mode, boolean compat) {
+    super(parameters, mode, compat);
   }
 
   @Override
@@ -54,11 +56,13 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
   public void testSourceFileAndLineNumberTable() throws Exception {
     // TODO(b/186015503): This test fails when mapping via PCs.
     //  also the test should be updated to use TestParameters and api levels.
-    assumeTrue("b/186015503", !backend.isDex() || mode != CompilationMode.RELEASE);
+    assumeTrue("b/186015503", !parameters.isDexRuntime() || mode != CompilationMode.RELEASE);
     // This also fails when desugaring due to the change in companion method stacks.
     assumeTrue(
-        ToolHelper.getMinApiLevelForDexVm()
-            .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport()));
+        parameters.isCfRuntime()
+            || parameters
+                .getApiLevel()
+                .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport()));
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         // For the desugaring to companion classes the retrace stacktrace is still the same
