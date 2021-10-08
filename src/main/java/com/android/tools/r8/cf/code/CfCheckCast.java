@@ -30,19 +30,9 @@ import org.objectweb.asm.Opcodes;
 public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
 
   private final DexType type;
-  private final boolean ignoreCompatRules;
 
   public CfCheckCast(DexType type) {
-    this(type, false);
-  }
-
-  public CfCheckCast(DexType type, boolean ignoreCompatRules) {
     this.type = type;
-    this.ignoreCompatRules = ignoreCompatRules;
-  }
-
-  public boolean ignoreCompatRules() {
-    return ignoreCompatRules;
   }
 
   @Override
@@ -62,7 +52,7 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
 
   @Override
   public CfInstruction withType(DexType newType) {
-    return new CfCheckCast(newType, ignoreCompatRules());
+    return new CfCheckCast(newType);
   }
 
   @Override
@@ -98,7 +88,7 @@ public class CfCheckCast extends CfInstruction implements CfTypeInstruction {
   @Override
   void internalRegisterUse(
       UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    registry.registerCheckCast(type, ignoreCompatRules());
+    registry.registerCheckCast(type);
   }
 
   @Override

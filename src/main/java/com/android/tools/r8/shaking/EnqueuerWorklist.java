@@ -227,17 +227,15 @@ public abstract class EnqueuerWorklist {
     private final DexType type;
     // TODO(b/175854431): Avoid pushing context on worklist.
     private final ProgramMethod context;
-    private final boolean ignoreCompatRules;
 
-    TraceConstClassAction(DexType type, ProgramMethod context, boolean ignoreCompatRules) {
+    TraceConstClassAction(DexType type, ProgramMethod context) {
       this.type = type;
       this.context = context;
-      this.ignoreCompatRules = ignoreCompatRules;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceConstClass(type, context, null, ignoreCompatRules);
+      enqueuer.traceConstClass(type, context, null);
     }
   }
 
@@ -358,8 +356,7 @@ public abstract class EnqueuerWorklist {
 
   public abstract void enqueueTraceCodeAction(ProgramMethod method);
 
-  public abstract void enqueueTraceConstClassAction(
-      DexType type, ProgramMethod context, boolean ignoreCompatRules);
+  public abstract void enqueueTraceConstClassAction(DexType type, ProgramMethod context);
 
   public abstract void enqueueTraceInvokeDirectAction(
       DexMethod invokedMethod, ProgramMethod context);
@@ -467,9 +464,8 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
-    public void enqueueTraceConstClassAction(
-        DexType type, ProgramMethod context, boolean ignoreCompatRules) {
-      queue.add(new TraceConstClassAction(type, context, ignoreCompatRules));
+    public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
+      queue.add(new TraceConstClassAction(type, context));
     }
 
     @Override
@@ -584,23 +580,26 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
-    public void enqueueTraceConstClassAction(
-        DexType type, ProgramMethod context, boolean ignoreCompatRules) {
+    public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
+
       throw attemptToEnqueue();
     }
 
     @Override
     public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
+
       throw attemptToEnqueue();
     }
 
     @Override
     public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
+
       throw attemptToEnqueue();
     }
 
     @Override
     public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
+
       throw attemptToEnqueue();
     }
   }

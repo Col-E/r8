@@ -16,7 +16,7 @@ public class SafeCheckCast extends CheckCast {
   }
 
   public SafeCheckCast(int valueRegister, DexType type) {
-    super(valueRegister, type, true);
+    super(valueRegister, type);
   }
 
   @Override

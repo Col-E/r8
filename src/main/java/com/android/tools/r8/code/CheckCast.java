@@ -21,16 +21,12 @@ public class CheckCast extends Format21c<DexType> {
   public static final String NAME = "CheckCast";
   public static final String SMALI_NAME = "check-cast";
 
-  private final boolean ignoreCompatRules;
-
   CheckCast(int high, BytecodeStream stream, OffsetToObjectMapping mapping) {
     super(high, stream, mapping.getTypeMap());
-    this.ignoreCompatRules = false;
   }
 
-  public CheckCast(int valueRegister, DexType type, boolean ignoreCompatRules) {
+  public CheckCast(int valueRegister, DexType type) {
     super(valueRegister, type);
-    this.ignoreCompatRules = ignoreCompatRules;
   }
 
   @Override
@@ -51,11 +47,6 @@ public class CheckCast extends Format21c<DexType> {
   @Override
   void internalSubSpecify(StructuralSpecification<Format21c<DexType>, ?> spec) {
     spec.withItem(i -> i.BBBB);
-  }
-
-  @Override
-  public boolean ignoreCompatRules() {
-    return ignoreCompatRules;
   }
 
   @Override
@@ -92,7 +83,7 @@ public class CheckCast extends Format21c<DexType> {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    registry.registerCheckCast(getType(), ignoreCompatRules());
+    registry.registerCheckCast(getType());
   }
 
   public DexType getType() {

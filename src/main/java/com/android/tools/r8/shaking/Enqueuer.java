@@ -1034,23 +1034,22 @@ public class Enqueuer {
     }
   }
 
-  void traceCheckCast(DexType type, ProgramMethod currentMethod, boolean ignoreCompatRules) {
+  void traceCheckCast(DexType type, ProgramMethod currentMethod) {
     checkCastAnalyses.forEach(analysis -> analysis.traceCheckCast(type, currentMethod));
-    internalTraceConstClassOrCheckCast(type, currentMethod, ignoreCompatRules);
+    traceConstClassOrCheckCast(type, currentMethod);
   }
 
   void traceSafeCheckCast(DexType type, ProgramMethod currentMethod) {
     checkCastAnalyses.forEach(analysis -> analysis.traceSafeCheckCast(type, currentMethod));
-    internalTraceConstClassOrCheckCast(type, currentMethod, true);
+    traceCompilerSynthesizedConstClassOrCheckCast(type, currentMethod);
   }
 
   void traceConstClass(
       DexType type,
       ProgramMethod currentMethod,
-      ListIterator<? extends CfOrDexInstruction> iterator,
-      boolean ignoreCompatRules) {
+      ListIterator<? extends CfOrDexInstruction> iterator) {
     handleLockCandidate(type, currentMethod, iterator);
-    internalTraceConstClassOrCheckCast(type, currentMethod, ignoreCompatRules);
+    traceConstClassOrCheckCast(type, currentMethod);
   }
 
   private void handleLockCandidate(
@@ -1104,10 +1103,22 @@ public class Enqueuer {
     return result;
   }
 
+  private void traceConstClassOrCheckCast(DexType type, ProgramMethod currentMethod) {
+    internalTraceConstClassOrCheckCast(type, currentMethod, false);
+  }
+
+  // TODO(b/190487539): Currently only used by traceSafeCheckCast(), but should also be used to
+  //  ensure we don't trigger compat behavior for const-class instructions synthesized for
+  //  synchronized methods.
+  private void traceCompilerSynthesizedConstClassOrCheckCast(
+      DexType type, ProgramMethod currentMethod) {
+    internalTraceConstClassOrCheckCast(type, currentMethod, true);
+  }
+
   private void internalTraceConstClassOrCheckCast(
-      DexType type, ProgramMethod currentMethod, boolean ignoreCompatRules) {
+      DexType type, ProgramMethod currentMethod, boolean isCompilerSynthesized) {
     traceTypeReference(type, currentMethod);
-    if (!forceProguardCompatibility || ignoreCompatRules) {
+    if (!forceProguardCompatibility || isCompilerSynthesized) {
       return;
     }
     DexType baseType = type.toBaseType(appView.dexItemFactory());

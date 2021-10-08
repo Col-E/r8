@@ -563,9 +563,7 @@ public class LensCodeRewriter {
               CheckCast checkCast = current.asCheckCast();
               new InstructionReplacer(code, current, iterator, affectedPhis)
                   .replaceInstructionIfTypeChanged(
-                      checkCast.getType(),
-                      (t, v) ->
-                          new CheckCast(v, checkCast.object(), t, checkCast.ignoreCompatRules()));
+                      checkCast.getType(), (t, v) -> new CheckCast(v, checkCast.object(), t));
             }
             break;
 

@@ -30,19 +30,9 @@ import org.objectweb.asm.Type;
 public class CfConstClass extends CfInstruction implements CfTypeInstruction {
 
   private final DexType type;
-  private final boolean ignoreCompatRules;
 
   public CfConstClass(DexType type) {
-    this(type, false);
-  }
-
-  public CfConstClass(DexType type, boolean ignoreCompatRules) {
     this.type = type;
-    this.ignoreCompatRules = ignoreCompatRules;
-  }
-
-  public boolean ignoreCompatRules() {
-    return ignoreCompatRules;
   }
 
   @Override
@@ -129,7 +119,7 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
   @Override
   void internalRegisterUse(
       UseRegistry registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    registry.registerConstClass(type, iterator, ignoreCompatRules());
+    registry.registerConstClass(type, iterator);
   }
 
   @Override
