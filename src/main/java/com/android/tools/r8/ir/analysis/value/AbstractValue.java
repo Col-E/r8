@@ -57,14 +57,6 @@ public abstract class AbstractValue {
     return null;
   }
 
-  public boolean isKnownLengthArrayValue() {
-    return false;
-  }
-
-  public KnownLengthArrayValue asKnownLengthArrayValue() {
-    return null;
-  }
-
   public boolean isSingleConstValue() {
     return false;
   }
