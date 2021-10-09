@@ -18,12 +18,12 @@ public abstract class CallSiteInformation {
    *
    * <p>For pinned methods (methods kept through Proguard keep rules) this will always answer <code>
    * false</code>.
-   *
-   * @param method
    */
   public abstract boolean hasSingleCallSite(ProgramMethod method);
 
   public abstract boolean hasDoubleCallSite(ProgramMethod method);
+
+  public abstract void unsetCallSiteInformation(ProgramMethod method);
 
   public static CallSiteInformation empty() {
     return EmptyCallSiteInformation.EMPTY_INFO;
@@ -41,6 +41,11 @@ public abstract class CallSiteInformation {
     @Override
     public boolean hasDoubleCallSite(ProgramMethod method) {
       return false;
+    }
+
+    @Override
+    public void unsetCallSiteInformation(ProgramMethod method) {
+      // Intentionally empty.
     }
   }
 
@@ -94,6 +99,12 @@ public abstract class CallSiteInformation {
     @Override
     public boolean hasDoubleCallSite(ProgramMethod method) {
       return doubleCallSite.contains(method.getReference());
+    }
+
+    @Override
+    public void unsetCallSiteInformation(ProgramMethod method) {
+      singleCallSite.remove(method.getReference());
+      doubleCallSite.remove(method.getReference());
     }
   }
 }

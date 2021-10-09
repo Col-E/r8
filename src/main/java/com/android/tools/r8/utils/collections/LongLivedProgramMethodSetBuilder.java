@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.utils.collections;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
@@ -13,6 +16,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.Set;
 import java.util.function.IntFunction;
+import java.util.function.Predicate;
 
 public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
 
@@ -98,12 +102,34 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
     return this;
   }
 
+  @Deprecated
   public void remove(DexMethod method) {
+    methods.remove(method);
+  }
+
+  public void remove(DexMethod method, GraphLens currentGraphLens) {
+    assert isEmpty() || verifyIsRewrittenWithLens(currentGraphLens);
     methods.remove(method);
   }
 
   public LongLivedProgramMethodSetBuilder<T> removeAll(Iterable<DexMethod> methods) {
     methods.forEach(this::remove);
+    return this;
+  }
+
+  public LongLivedProgramMethodSetBuilder<T> removeIf(
+      DexDefinitionSupplier definitions, Predicate<ProgramMethod> predicate) {
+    methods.removeIf(
+        method -> {
+          DexProgramClass holder =
+              asProgramClassOrNull(definitions.definitionFor(method.getHolderType()));
+          ProgramMethod definition = method.lookupOnProgramClass(holder);
+          if (definition == null) {
+            assert false;
+            return true;
+          }
+          return predicate.test(definition);
+        });
     return this;
   }
 

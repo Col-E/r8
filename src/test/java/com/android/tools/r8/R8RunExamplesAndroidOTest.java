@@ -204,7 +204,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b ->
                 b.addProguardConfiguration(
                     getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 2, "lambdadesugaringnplus"))
         .run();
   }
 
@@ -244,7 +244,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b ->
                 b.addProguardConfiguration(
                     getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 0, "lambdadesugaringnplus"))
         .run();
   }
 

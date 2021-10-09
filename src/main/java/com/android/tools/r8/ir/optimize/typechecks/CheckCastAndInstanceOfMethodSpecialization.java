@@ -15,10 +15,10 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 
@@ -34,7 +34,7 @@ import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
  *
  * <p>TODO(b/151596599): Also handle methods that implement casts.
  */
-public class CheckCastAndInstanceOfMethodSpecialization implements Action {
+public class CheckCastAndInstanceOfMethodSpecialization {
 
   private static final OptimizationFeedbackSimple feedback =
       OptimizationFeedbackSimple.getInstance();
@@ -52,14 +52,16 @@ public class CheckCastAndInstanceOfMethodSpecialization implements Action {
     this.converter = converter;
   }
 
-  public void addCandidateForOptimization(ProgramMethod method, AbstractValue abstractReturnValue) {
+  public void addCandidateForOptimization(
+      ProgramMethod method, AbstractValue abstractReturnValue, MethodProcessor methodProcessor) {
     if (!converter.isInWave()) {
       return;
     }
+    assert methodProcessor.isPrimaryMethodProcessor();
     if (isCandidateForInstanceOfOptimization(method, abstractReturnValue)) {
       synchronized (this) {
         if (candidatesForInstanceOfOptimization.isEmpty()) {
-          converter.addWaveDoneAction(this);
+          converter.addWaveDoneAction(() -> execute(methodProcessor));
         }
         candidatesForInstanceOfOptimization.add(method);
       }
@@ -72,18 +74,18 @@ public class CheckCastAndInstanceOfMethodSpecialization implements Action {
         && abstractReturnValue.isSingleBoolean();
   }
 
-  @Override
-  public void execute() {
+  public void execute(MethodProcessor methodProcessor) {
     assert !candidatesForInstanceOfOptimization.isEmpty();
     ProgramMethodSet processed = ProgramMethodSet.create();
     for (ProgramMethod method : candidatesForInstanceOfOptimization) {
       if (!processed.contains(method)) {
-        processCandidateForInstanceOfOptimization(method);
+        processCandidateForInstanceOfOptimization(method, methodProcessor);
       }
     }
   }
 
-  private void processCandidateForInstanceOfOptimization(ProgramMethod method) {
+  private void processCandidateForInstanceOfOptimization(
+      ProgramMethod method, MethodProcessor methodProcessor) {
     DexEncodedMethod definition = method.getDefinition();
     if (!definition.isNonPrivateVirtualMethod()) {
       return;
@@ -140,16 +142,27 @@ public class CheckCastAndInstanceOfMethodSpecialization implements Action {
           parentMethodDefinition.getCode().buildIR(parentMethod, appView, parentMethod.getOrigin());
       converter.markProcessed(code, feedback);
       // Fixup method optimization info (the method no longer returns a constant).
-      feedback.unsetAbstractReturnValue(parentMethod.getDefinition());
+      feedback.unsetAbstractReturnValue(parentMethod);
       feedback.unsetClassInlinerMethodConstraint(parentMethod);
     } else {
       return;
     }
 
-    method.getHolder().removeMethod(method.getReference());
-
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.transferArgumentInformation(method, parentMethod));
+
+    // Each call to the override is now a call to the parent method, so it is no longer true that
+    // parent method has been inlined into its single call site.
+    feedback.unsetInlinedIntoSingleCallSite(parentMethod);
+
+    // For the same reason, we no longer have single or dual caller information for the parent
+    // method.
+    methodProcessor.getCallSiteInformation().unsetCallSiteInformation(parentMethod);
+
+    // Remove the method and notify other optimizations that the override has been removed to allow
+    // the optimizations to fixup their state.
+    method.getHolder().removeMethod(method.getReference());
+    converter.pruneMethod(method);
   }
 
   private ProgramMethod resolveOnSuperClass(ProgramMethod method) {

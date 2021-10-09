@@ -107,8 +107,10 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void unsetAbstractReturnValue(DexEncodedMethod method) {
-    method.getMutableOptimizationInfo().unsetAbstractReturnValue();
+  public void unsetAbstractReturnValue(ProgramMethod method) {
+    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
+      method.getDefinition().getMutableOptimizationInfo().unsetAbstractReturnValue();
+    }
   }
 
   @Override
@@ -241,5 +243,14 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {
     method.getDefinition().getMutableOptimizationInfo().setUnusedArguments(unusedArguments);
+  }
+
+  public void unsetInlinedIntoSingleCallSite(ProgramMethod method) {
+    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
+      method
+          .getOptimizationInfo()
+          .asMutableMethodOptimizationInfo()
+          .unsetInlinedIntoSingleCallSite();
+    }
   }
 }

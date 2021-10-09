@@ -137,7 +137,7 @@ public class MethodOptimizationInfoCollector {
       Timing timing) {
     DexEncodedMethod definition = method.getDefinition();
     identifyBridgeInfo(definition, code, feedback, timing);
-    analyzeReturns(code, feedback, timing);
+    analyzeReturns(code, feedback, methodProcessor, timing);
     if (options.enableInlining) {
       identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
     }
@@ -166,13 +166,15 @@ public class MethodOptimizationInfoCollector {
     timing.end();
   }
 
-  private void analyzeReturns(IRCode code, OptimizationFeedback feedback, Timing timing) {
+  private void analyzeReturns(
+      IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor, Timing timing) {
     timing.begin("Identify returns argument");
-    analyzeReturns(code, feedback);
+    analyzeReturns(code, feedback, methodProcessor);
     timing.end();
   }
 
-  private void analyzeReturns(IRCode code, OptimizationFeedback feedback) {
+  private void analyzeReturns(
+      IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
     ProgramMethod context = code.context();
     DexEncodedMethod method = context.getDefinition();
     List<BasicBlock> normalExits = code.computeNormalExitBlocks();
@@ -204,7 +206,7 @@ public class MethodOptimizationInfoCollector {
           feedback.methodReturnsAbstractValue(method, appView, abstractReturnValue);
           if (checkCastAndInstanceOfMethodSpecialization != null) {
             checkCastAndInstanceOfMethodSpecialization.addCandidateForOptimization(
-                context, abstractReturnValue);
+                context, abstractReturnValue, methodProcessor);
           }
         }
       }

@@ -37,7 +37,7 @@ public interface MethodOptimizationFeedback {
   void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue);
 
-  void unsetAbstractReturnValue(DexEncodedMethod method);
+  void unsetAbstractReturnValue(ProgramMethod method);
 
   void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type);

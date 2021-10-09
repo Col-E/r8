@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -61,7 +62,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public InlineAction computeInlining(
+  public InlineResult computeInlining(
       InvokeMethod invoke,
       SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,

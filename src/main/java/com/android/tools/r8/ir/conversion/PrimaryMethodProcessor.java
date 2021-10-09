@@ -38,29 +38,25 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
 
   private final AppView<?> appView;
   private final CallSiteInformation callSiteInformation;
-  private final PostMethodProcessor.Builder postMethodProcessorBuilder;
   private final Deque<SortedProgramMethodSet> waves;
 
   private ProcessorContext processorContext;
 
   private PrimaryMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
-      PostMethodProcessor.Builder postMethodProcessorBuilder,
       CallGraph callGraph) {
     this.appView = appView;
     this.callSiteInformation = callGraph.createCallSiteInformation(appView);
-    this.postMethodProcessorBuilder = postMethodProcessorBuilder;
-    this.waves = createWaves(appView, callGraph, callSiteInformation);
+    this.waves = createWaves(appView, callGraph);
   }
 
   static PrimaryMethodProcessor create(
       AppView<AppInfoWithLiveness> appView,
-      PostMethodProcessor.Builder postMethodProcessorBuilder,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
     CallGraph callGraph = CallGraph.builder(appView).build(executorService, timing);
-    return new PrimaryMethodProcessor(appView, postMethodProcessorBuilder, callGraph);
+    return new PrimaryMethodProcessor(appView, callGraph);
   }
 
   @Override
@@ -84,28 +80,17 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
     return callSiteInformation;
   }
 
-  private Deque<SortedProgramMethodSet> createWaves(
-      AppView<?> appView, CallGraph callGraph, CallSiteInformation callSiteInformation) {
+  private Deque<SortedProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
     InternalOptions options = appView.options();
     Deque<SortedProgramMethodSet> waves = new ArrayDeque<>();
     Set<Node> nodes = callGraph.nodes;
-    ProgramMethodSet reprocessing = ProgramMethodSet.create();
     int waveCount = 1;
     while (!nodes.isEmpty()) {
       SortedProgramMethodSet wave = callGraph.extractLeaves();
-      wave.forEach(
-          method -> {
-            if (callSiteInformation.hasSingleCallSite(method) && options.enableInlining) {
-              callGraph.cycleEliminationResult.forEachRemovedCaller(method, reprocessing::add);
-            }
-          });
       waves.addLast(wave);
       if (Log.ENABLED && Log.isLoggingEnabledFor(PrimaryMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
       }
-    }
-    if (!reprocessing.isEmpty()) {
-      postMethodProcessorBuilder.put(reprocessing);
     }
     options.testing.waveModifier.accept(waves);
     return waves;

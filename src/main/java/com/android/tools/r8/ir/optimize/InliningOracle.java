@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 
@@ -29,7 +29,7 @@ public interface InliningOracle {
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
-  InlineAction computeInlining(
+  InlineResult computeInlining(
       InvokeMethod invoke,
       SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,

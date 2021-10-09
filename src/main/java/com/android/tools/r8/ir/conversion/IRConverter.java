@@ -677,8 +677,7 @@ public class IRConverter {
     {
       timing.begin("Build primary method processor");
       PrimaryMethodProcessor primaryMethodProcessor =
-          PrimaryMethodProcessor.create(
-              appView.withLiveness(), postMethodProcessorBuilder, executorService, timing);
+          PrimaryMethodProcessor.create(appView.withLiveness(), executorService, timing);
       timing.end();
       timing.begin("IR conversion phase 1");
       assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
@@ -1976,5 +1975,17 @@ public class IRConverter {
       return current;
     }
     return previous;
+  }
+
+  /**
+   * Called when a method is pruned as a result of optimizations during IR processing in R8, to
+   * allow optimizations that track sets of methods to fixup their state.
+   */
+  public void pruneMethod(ProgramMethod method) {
+    assert appView.enableWholeProgramOptimizations();
+    assert method.getHolder().lookupMethod(method.getReference()) == null;
+    if (inliner != null) {
+      inliner.pruneMethod(method);
+    }
   }
 }

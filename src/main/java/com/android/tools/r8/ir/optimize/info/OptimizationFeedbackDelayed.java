@@ -199,7 +199,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void unsetAbstractReturnValue(DexEncodedMethod method) {
+  public synchronized void unsetAbstractReturnValue(ProgramMethod method) {
     getMethodOptimizationInfoForUpdating(method).unsetAbstractReturnValue();
   }
 

@@ -361,6 +361,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     return isFlagSet(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
   }
 
+  void unsetInlinedIntoSingleCallSite() {
+    clearFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
+  }
+
   void markInlinedIntoSingleCallSite() {
     setFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
   }

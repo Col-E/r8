@@ -32,8 +32,10 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.Inliner.RetryAction;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
@@ -258,7 +260,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public InlineAction computeInlining(
+  public InlineResult computeInlining(
       InvokeMethod invoke,
       SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
@@ -285,6 +287,15 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         reasonStrategy.computeInliningReason(invoke, singleTarget, context, methodProcessor);
     if (reason == Reason.NEVER) {
       return null;
+    }
+
+    if (reason == Reason.SIMPLE
+        && !singleTarget.getDefinition().isProcessed()
+        && methodProcessor.isPrimaryMethodProcessor()) {
+      // The single target has this method as single caller, but the single target is not yet
+      // processed. Enqueue the context for processing in the secondary optimization pass to allow
+      // the single caller inlining to happen.
+      return new RetryAction();
     }
 
     if (!singleTarget
