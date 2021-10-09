@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -31,7 +32,10 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
 
   @Override
   public Reason computeInliningReason(
-      InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
+      InvokeMethod invoke,
+      ProgramMethod target,
+      ProgramMethod context,
+      MethodProcessor methodProcessor) {
     DexEncodedMethod targetMethod = target.getDefinition();
     DexMethod targetReference = target.getReference();
     if (targetMethod.getOptimizationInfo().forceInline()) {
@@ -52,7 +56,7 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     if (isSingleCallerInliningTarget(target)) {
       return Reason.SINGLE_CALLER;
     }
-    if (isDoubleInliningTarget(target)) {
+    if (isDoubleInliningTarget(target, methodProcessor)) {
       return Reason.DUAL_CALLER;
     }
     return Reason.SIMPLE;
@@ -72,11 +76,13 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     return true;
   }
 
-  private boolean isDoubleInliningTarget(ProgramMethod candidate) {
-    // 10 is found from measuring.
-    if (callSiteInformation.hasDoubleCallSite(candidate)
-        || inliner.isDoubleInlineSelectedTarget(candidate)) {
-      return candidate.getDefinition().getCode().estimatedSizeForInliningAtMost(10);
+  private boolean isDoubleInliningTarget(ProgramMethod candidate, MethodProcessor methodProcessor) {
+    if (methodProcessor.isPrimaryMethodProcessor() || methodProcessor.isPostMethodProcessor()) {
+      if (callSiteInformation.hasDoubleCallSite(candidate)
+          || inliner.isDoubleInlineSelectedTarget(candidate)) {
+        // 10 is found from measuring.
+        return candidate.getDefinition().getCode().estimatedSizeForInliningAtMost(10);
+      }
     }
     return false;
   }

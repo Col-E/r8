@@ -6,9 +6,14 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 
 public interface InliningReasonStrategy {
 
-  Reason computeInliningReason(InvokeMethod invoke, ProgramMethod target, ProgramMethod context);
+  Reason computeInliningReason(
+      InvokeMethod invoke,
+      ProgramMethod target,
+      ProgramMethod context,
+      MethodProcessor methodProcessor);
 }

@@ -87,7 +87,6 @@ public class Inliner {
   final MainDexInfo mainDexInfo;
 
   // State for inlining methods which are known to be called twice.
-  private boolean applyDoubleInlining = false;
   private LongLivedProgramMethodSetBuilder<ProgramMethodSet> doubleInlineCallers;
   private final ProgramMethodSet doubleInlineSelectedTargets = ProgramMethodSet.create();
   private final Map<DexEncodedMethod, ProgramMethod> doubleInlineeCandidates =
@@ -149,8 +148,8 @@ public class Inliner {
     return false;
   }
 
-  boolean isDoubleInliningEnabled() {
-    return applyDoubleInlining;
+  boolean isDoubleInliningEnabled(MethodProcessor methodProcessor) {
+    return methodProcessor.isPostMethodProcessor();
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(
@@ -210,19 +209,20 @@ public class Inliner {
   }
 
   synchronized boolean satisfiesRequirementsForDoubleInlining(
-      ProgramMethod method, ProgramMethod target) {
-    if (applyDoubleInlining) {
+      ProgramMethod method, ProgramMethod target, MethodProcessor methodProcessor) {
+    if (isDoubleInliningEnabled(methodProcessor)) {
       // Don't perform the actual inlining if this was not selected.
       return doubleInlineSelectedTargets.contains(target);
     }
 
     // Just preparing for double inlining.
-    recordDoubleInliningCandidate(method, target);
+    recordDoubleInliningCandidate(method, target, methodProcessor);
     return false;
   }
 
-  synchronized void recordDoubleInliningCandidate(ProgramMethod method, ProgramMethod target) {
-    if (applyDoubleInlining) {
+  synchronized void recordDoubleInliningCandidate(
+      ProgramMethod method, ProgramMethod target, MethodProcessor methodProcessor) {
+    if (isDoubleInliningEnabled(methodProcessor)) {
       return;
     }
 
@@ -252,7 +252,6 @@ public class Inliner {
     // rewritten with a newer graph lens).
     postMethodProcessorBuilder.getMethodsToReprocessBuilder().merge(doubleInlineCallers);
     doubleInlineCallers = null;
-    applyDoubleInlining = true;
   }
 
   /**

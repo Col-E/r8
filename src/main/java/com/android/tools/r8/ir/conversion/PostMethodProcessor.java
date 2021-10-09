@@ -50,6 +50,11 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
+  public boolean isPostMethodProcessor() {
+    return true;
+  }
+
+  @Override
   public boolean shouldApplyCodeRewritings(ProgramMethod method) {
     assert !wave.contains(method);
     return !processed.contains(method);

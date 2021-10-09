@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.proto.ProtoReferences.MethodToInvokeMemb
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 
@@ -34,7 +35,10 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
 
   @Override
   public Reason computeInliningReason(
-      InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
+      InvokeMethod invoke,
+      ProgramMethod target,
+      ProgramMethod context,
+      MethodProcessor methodProcessor) {
     if (references.isAbstractGeneratedMessageLiteBuilder(context.getHolder())
         && invoke.isInvokeSuper()) {
       // Aggressively inline invoke-super calls inside the GeneratedMessageLite builders. Such
@@ -44,7 +48,7 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
     }
     return references.isDynamicMethod(target) || references.isDynamicMethodBridge(target)
         ? computeInliningReasonForDynamicMethod(invoke, target, context)
-        : parent.computeInliningReason(invoke, target, context);
+        : parent.computeInliningReason(invoke, target, context, methodProcessor);
   }
 
   private Reason computeInliningReasonForDynamicMethod(

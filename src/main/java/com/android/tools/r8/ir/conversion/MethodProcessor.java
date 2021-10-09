@@ -12,6 +12,10 @@ public abstract class MethodProcessor {
     return false;
   }
 
+  public boolean isPostMethodProcessor() {
+    return false;
+  }
+
   public abstract MethodProcessingContext createMethodProcessingContext(ProgramMethod method);
 
   public abstract boolean isProcessedConcurrently(ProgramMethod method);
