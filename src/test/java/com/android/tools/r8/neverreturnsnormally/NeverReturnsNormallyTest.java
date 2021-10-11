@@ -212,10 +212,12 @@ public class NeverReturnsNormallyTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    runTest(this::validate, true, CompilationMode.DEBUG);
+  public void testRelease() throws Exception {
     runTest(this::validate, true, CompilationMode.RELEASE);
-    runTest(this::validate, false, CompilationMode.DEBUG);
+  }
+
+  @Test
+  public void testReleaseNoClassInline() throws Exception {
     runTest(this::validate, false, CompilationMode.RELEASE);
   }
 }

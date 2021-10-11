@@ -3,17 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.switchmaps;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8Command;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.List;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,14 +20,16 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RewriteSwitchMapsTest extends TestBase {
 
-  private Backend backend;
+  private final Backend backend;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}, backend: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        TestParametersBuilder.builder().withNoneRuntime().build(), ToolHelper.getBackends());
   }
 
-  public RewriteSwitchMapsTest(Backend backend) {
+  public RewriteSwitchMapsTest(TestParameters parameters, Backend backend) {
+    parameters.assertNoneRuntime();
     this.backend = backend;
   }
 
@@ -41,25 +42,13 @@ public class RewriteSwitchMapsTest extends TestBase {
 
   @Test
   public void checkSwitchMapsRemoved() throws Exception {
-    run(CompilationMode.RELEASE);
-  }
-
-  @Test
-  public void checkSwitchMapsRemovedDebug() throws Exception {
-    run(CompilationMode.DEBUG);
-  }
-
-  private void run(CompilationMode compilationMode) throws Exception {
-    R8Command command =
-        R8Command.builder()
-            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE))
-            .addLibraryFiles(runtimeJar(backend))
-            .addProguardConfiguration(PG_CONFIG, Origin.unknown())
-            .setMode(compilationMode)
-            .setProgramConsumer(emptyConsumer(backend))
-            .build();
-    AndroidApp result = ToolHelper.runR8(command);
-    CodeInspector inspector = new CodeInspector(result);
-    Assert.assertFalse(inspector.clazz(SWITCHMAP_CLASS_NAME).isPresent());
+    testForR8(backend)
+        .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE))
+        .addKeepRules(PG_CONFIG)
+        .compile()
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(SWITCHMAP_CLASS_NAME), isAbsent());
+            });
   }
 }

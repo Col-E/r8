@@ -621,7 +621,8 @@ public class LineNumberOptimizer {
       DexString renamedName = namingLens.lookupName(method);
       if (renamedName != method.name
           || graphLens.getOriginalMethodSignature(method) != method
-          || doesContainPositions(encodedMethod)) {
+          || doesContainPositions(encodedMethod)
+          || encodedMethod.isD8R8Synthesized()) {
         methodsByRenamedName
             .computeIfAbsent(renamedName, key -> new ArrayList<>())
             .add(encodedMethod);
