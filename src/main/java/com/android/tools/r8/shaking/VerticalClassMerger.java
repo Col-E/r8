@@ -442,6 +442,22 @@ public class VerticalClassMerger {
       }
       return false;
     }
+
+    // If there is an invoke-special to a default interface method and we are not merging into an
+    // interface, then abort, since invoke-special to a virtual class method requires desugaring.
+    if (sourceClass.isInterface() && !targetClass.isInterface()) {
+      TraversalContinuation result =
+          sourceClass.traverseProgramMethods(
+              method -> {
+                boolean foundInvokeSpecialToDefaultLibraryMethod =
+                    method.registerCodeReferencesWithResult(
+                        new InvokeSpecialToDefaultLibraryMethodUseRegistry(appView, method));
+                return TraversalContinuation.breakIf(foundInvokeSpecialToDefaultLibraryMethod);
+              });
+      if (result.shouldBreak()) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -2111,6 +2127,62 @@ public class VerticalClassMerger {
     public void registerInstanceOf(DexType type) {
       checkTypeReference(type);
     }
+  }
+
+  public static class InvokeSpecialToDefaultLibraryMethodUseRegistry
+      extends UseRegistryWithResult<Boolean, ProgramMethod> {
+
+    InvokeSpecialToDefaultLibraryMethodUseRegistry(
+        AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+      super(appView, context, false);
+      assert context.getHolder().isInterface();
+    }
+
+    @Override
+    public void registerInvokeSpecial(DexMethod method) {
+      ProgramMethod context = getContext();
+      if (method.getHolderType() != context.getHolderType()) {
+        return;
+      }
+
+      DexEncodedMethod definition = context.getHolder().lookupMethod(method);
+      if (definition != null && definition.belongsToVirtualPool()) {
+        setResult(true);
+      }
+    }
+
+    @Override
+    public void registerInitClass(DexType type) {}
+
+    @Override
+    public void registerInvokeDirect(DexMethod method) {}
+
+    @Override
+    public void registerInvokeInterface(DexMethod method) {}
+
+    @Override
+    public void registerInvokeStatic(DexMethod method) {}
+
+    @Override
+    public void registerInvokeSuper(DexMethod method) {}
+
+    @Override
+    public void registerInvokeVirtual(DexMethod method) {}
+
+    @Override
+    public void registerInstanceFieldRead(DexField field) {}
+
+    @Override
+    public void registerInstanceFieldWrite(DexField field) {}
+
+    @Override
+    public void registerStaticFieldRead(DexField field) {}
+
+    @Override
+    public void registerStaticFieldWrite(DexField field) {}
+
+    @Override
+    public void registerTypeReference(DexType type) {}
   }
 
   protected static class SynthesizedBridgeCode extends AbstractSynthesizedCode {

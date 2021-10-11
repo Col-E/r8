@@ -9,6 +9,10 @@ public enum TraversalContinuation {
   CONTINUE,
   BREAK;
 
+  public static TraversalContinuation breakIf(boolean condition) {
+    return continueIf(!condition);
+  }
+
   public static TraversalContinuation continueIf(boolean condition) {
     return condition ? CONTINUE : BREAK;
   }
