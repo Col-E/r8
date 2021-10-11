@@ -62,6 +62,10 @@ def ParseOptions():
   result.add_option('--archive-failures', '--archive_failures',
       help='Upload test results to cloud storage on failure.',
       default=False, action='store_true')
+  result.add_option('--archive-failures-file-name',
+                    '--archive_failures_file_name',
+                    help='Set file name for the archived failures file name',
+                    default=uuid.uuid4())
   result.add_option('--only-internal', '--only_internal',
       help='Only run Google internal tests.',
       default=False, action='store_true')
@@ -194,14 +198,13 @@ def ParseOptions():
                     default=False, action='store_true')
   return result.parse_args()
 
-def archive_failures():
+def archive_failures(options):
   upload_dir = os.path.join(utils.REPO_ROOT, 'build', 'reports', 'tests')
-  u_dir = uuid.uuid4()
-  destination = 'gs://%s/%s' % (BUCKET, u_dir)
+  file_name = options.archive_failures_file_name
+  destination = 'gs://%s/%s' % (BUCKET, file_name)
   utils.upload_dir_to_cloud_storage(upload_dir, destination, is_html=True)
-  url = 'https://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, u_dir)
-  print 'Test results available at: %s' % url
-  print '@@@STEP_LINK@Test failures@%s@@@' % url
+  url = 'https://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, file_name)
+  print('Test results available at: %s' % url)
 
 def Main():
   (options, args) = ParseOptions()
@@ -450,7 +453,7 @@ def Main():
 def archive_and_return(return_code, options):
   if return_code != 0:
     if options.archive_failures and os.name != 'nt':
-      archive_failures()
+      archive_failures(options)
   return return_code
 
 def print_jstacks():
