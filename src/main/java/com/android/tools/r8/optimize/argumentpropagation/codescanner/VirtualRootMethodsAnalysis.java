@@ -28,10 +28,16 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
 
   static class VirtualRootMethod {
 
+    private final VirtualRootMethod parent;
     private final ProgramMethod root;
     private final ProgramMethodSet overrides = ProgramMethodSet.create();
 
     VirtualRootMethod(ProgramMethod root) {
+      this(root, null);
+    }
+
+    VirtualRootMethod(ProgramMethod root, VirtualRootMethod parent) {
+      this.parent = parent;
       this.root = root;
     }
 
@@ -39,6 +45,17 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
       assert override != root;
       assert override.getMethodSignature().equals(root.getMethodSignature());
       overrides.add(override);
+      if (hasParent()) {
+        getParent().addOverride(override);
+      }
+    }
+
+    boolean hasParent() {
+      return parent != null;
+    }
+
+    VirtualRootMethod getParent() {
+      return parent;
     }
 
     ProgramMethod getRoot() {
@@ -116,13 +133,14 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
               virtualRootMethodsPerClass.get(superclass);
           virtualRootMethodsForSuperclass.forEach(
               (signature, info) ->
-                  virtualRootMethodsForClass.computeIfAbsent(signature, ignoreKey(() -> info)));
+                  virtualRootMethodsForClass.computeIfAbsent(
+                      signature, ignoreKey(() -> new VirtualRootMethod(info.getRoot(), info))));
         });
     clazz.forEachProgramVirtualMethod(
         method -> {
           DexMethodSignature signature = method.getMethodSignature();
           if (virtualRootMethodsForClass.containsKey(signature)) {
-            virtualRootMethodsForClass.get(signature).addOverride(method);
+            virtualRootMethodsForClass.get(signature).getParent().addOverride(method);
           } else {
             virtualRootMethodsForClass.put(signature, new VirtualRootMethod(method));
           }
@@ -139,6 +157,12 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
         rootCandidate -> {
           VirtualRootMethod virtualRootMethod =
               virtualRootMethodsForClass.remove(rootCandidate.getMethodSignature());
+          if (!clazz.isInterface()
+              && !rootCandidate.getAccessFlags().isAbstract()
+              && !virtualRootMethod.hasOverrides()
+              && appView.getKeepInfo(rootCandidate).isOptimizationAllowed(appView.options())) {
+            rootCandidate.getAccessFlags().promoteToFinal();
+          }
           if (!rootCandidate.isStructurallyEqualTo(virtualRootMethod.getRoot())) {
             return;
           }
