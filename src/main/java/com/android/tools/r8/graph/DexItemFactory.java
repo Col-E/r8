@@ -2064,20 +2064,22 @@ public class DexItemFactory {
             "weakCompareAndSetRelease");
 
     public DexMethod canonicalize(DexMethod invokeProto) {
+      DexMethod result = null;
       if (invokeProto.holder == methodHandleType) {
         if (invokeProto.name == invokeMethodName || invokeProto.name == invokeExactMethodName) {
-          return createMethod(methodHandleType, signature, invokeProto.name);
+          result = createMethod(methodHandleType, signature, invokeProto.name);
         }
       } else if (invokeProto.holder == varHandleType) {
         if (varHandleMethods.contains(invokeProto.name)) {
-          return createMethod(varHandleType, signature, invokeProto.name);
+          result = createMethod(varHandleType, signature, invokeProto.name);
         } else if (varHandleSetMethods.contains(invokeProto.name)) {
-          return createMethod(varHandleType, setSignature, invokeProto.name);
+          result = createMethod(varHandleType, setSignature, invokeProto.name);
         } else if (varHandleCompareAndSetMethods.contains(invokeProto.name)) {
-          return createMethod(varHandleType, compareAndSetSignature, invokeProto.name);
+          result = createMethod(varHandleType, compareAndSetSignature, invokeProto.name);
         }
       }
-      return null;
+      assert (result != null) == isPolymorphicInvoke(invokeProto);
+      return result;
     }
 
     private Set<DexString> createStrings(String... strings) {
@@ -2087,6 +2089,18 @@ public class DexItemFactory {
         map.put(dexString, dexString);
       }
       return map.keySet();
+    }
+
+    public boolean isPolymorphicInvoke(DexMethod invokeProto) {
+      if (invokeProto.holder == methodHandleType) {
+        return invokeProto.name == invokeMethodName || invokeProto.name == invokeExactMethodName;
+      }
+      if (invokeProto.holder == varHandleType) {
+        return varHandleMethods.contains(invokeProto.name)
+            || varHandleSetMethods.contains(invokeProto.name)
+            || varHandleCompareAndSetMethods.contains(invokeProto.name);
+      }
+      return false;
     }
   }
 

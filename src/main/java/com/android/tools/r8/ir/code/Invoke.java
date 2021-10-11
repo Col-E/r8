@@ -16,18 +16,23 @@ import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.objectweb.asm.Opcodes;
 
 public abstract class Invoke extends Instruction {
@@ -53,12 +58,77 @@ public abstract class Invoke extends Instruction {
       this.dexOpcodeRange = dexOpcodeRange;
     }
 
+    public static Type fromCfOpcode(
+        int opcode,
+        DexMethod invokedMethod,
+        DexClassAndMethod context,
+        DexItemFactory dexItemFactory,
+        GraphLens graphLens,
+        Supplier<DexType> originalContextProvider) {
+      switch (opcode) {
+        case Opcodes.INVOKEINTERFACE:
+          return Type.INTERFACE;
+        case Opcodes.INVOKESPECIAL:
+          return fromInvokeSpecial(
+              invokedMethod, context, dexItemFactory, graphLens, originalContextProvider);
+        case Opcodes.INVOKESTATIC:
+          return Type.STATIC;
+        case Opcodes.INVOKEVIRTUAL:
+          return dexItemFactory.polymorphicMethods.isPolymorphicInvoke(invokedMethod)
+              ? Type.POLYMORPHIC
+              : Type.VIRTUAL;
+        default:
+          throw new Unreachable("unknown CfInvoke opcode " + opcode);
+      }
+    }
+
+    public static Type fromInvokeSpecial(
+        DexMethod invokedMethod,
+        DexClassAndMethod context,
+        DexItemFactory dexItemFactory,
+        GraphLens graphLens,
+        Supplier<DexType> originalContextProvider) {
+      if (invokedMethod.isInstanceInitializer(dexItemFactory)) {
+        return Type.DIRECT;
+      }
+
+      DexType originalContext = originalContextProvider.get();
+      if (invokedMethod.getHolderType() != originalContext) {
+        return Type.SUPER;
+      }
+
+      MethodLookupResult lookupResult =
+          graphLens.lookupMethod(invokedMethod, context.getReference(), Type.DIRECT);
+      DexEncodedMethod definition = context.getHolder().lookupMethod(lookupResult.getReference());
+      if (definition == null) {
+        return Type.SUPER;
+      }
+
+      if (context.getHolder().isInterface()) {
+        // On interfaces invoke-special should be mapped to invoke-super if the invoke-special
+        // instruction is used to target a default interface method.
+        if (definition.belongsToVirtualPool()) {
+          return Type.SUPER;
+        }
+      } else {
+        // Due to desugaring of invoke-special instructions that target virtual methods, this should
+        // never target a virtual method.
+        // TODO(b/201984767): Reenable this assert. The assert does not always hold when this method
+        //  is called from the UseRegistry and there is a non-empty graph lens.
+        // assert definition.isPrivate() || lookupResult.getType().isVirtual();
+      }
+
+      return Type.DIRECT;
+    }
+
     public int getCfOpcode() {
       switch (this) {
         case DIRECT:
           return Opcodes.INVOKESPECIAL;
         case INTERFACE:
           return Opcodes.INVOKEINTERFACE;
+        case POLYMORPHIC:
+          return Opcodes.INVOKEVIRTUAL;
         case STATIC:
           return Opcodes.INVOKESTATIC;
         case SUPER:
@@ -67,7 +137,6 @@ public abstract class Invoke extends Instruction {
           return Opcodes.INVOKEVIRTUAL;
         case NEW_ARRAY:
         case MULTI_NEW_ARRAY:
-        case POLYMORPHIC:
         default:
           throw new Unreachable();
       }

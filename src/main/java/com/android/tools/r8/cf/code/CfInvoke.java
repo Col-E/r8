@@ -102,9 +102,15 @@ public class CfInvoke extends CfInstruction {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    MethodLookupResult lookup =
-        graphLens.lookupMethod(
-            method, context.getReference(), getInvokeType(context, dexItemFactory));
+    Invoke.Type invokeType =
+        Invoke.Type.fromCfOpcode(
+            opcode,
+            method,
+            context,
+            dexItemFactory,
+            graphLens,
+            () -> context.getDefinition().getCode().asCfCode().getOriginalHolder());
+    MethodLookupResult lookup = graphLens.lookupMethod(method, context.getReference(), invokeType);
     DexMethod rewrittenMethod = lookup.getReference();
     String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
     String name = namingLens.lookupName(rewrittenMethod).toString();
@@ -120,50 +126,21 @@ public class CfInvoke extends CfInstruction {
   @Override
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    Type invokeType = getInvokeType(context, registry.dexItemFactory());
-    switch (invokeType) {
-      case DIRECT:
-        registry.registerInvokeDirect(method);
-        break;
-      case INTERFACE:
+    switch (opcode) {
+      case Opcodes.INVOKEINTERFACE:
         registry.registerInvokeInterface(method);
         break;
-      case STATIC:
+      case Opcodes.INVOKESPECIAL:
+        registry.registerInvokeSpecial(method, itf);
+        break;
+      case Opcodes.INVOKESTATIC:
         registry.registerInvokeStatic(method, itf);
         break;
-      case SUPER:
-        registry.registerInvokeSuper(method);
-        break;
-      case VIRTUAL:
+      case Opcodes.INVOKEVIRTUAL:
         registry.registerInvokeVirtual(method);
         break;
       default:
-        throw new Unreachable("Unexpected invoke type " + invokeType);
-    }
-  }
-
-  // We should avoid interpreting a CF invoke using DEX semantics.
-  @Deprecated
-  private Invoke.Type getInvokeType(DexClassAndMethod context, DexItemFactory dexItemFactory) {
-    switch (opcode) {
-      case Opcodes.INVOKEINTERFACE:
-        return Type.INTERFACE;
-
-      case Opcodes.INVOKEVIRTUAL:
-        return Type.VIRTUAL;
-
-      case Opcodes.INVOKESPECIAL:
-        if (method.isInstanceInitializer(dexItemFactory)
-            || method.getHolderType() == context.getHolderType()) {
-          return Type.DIRECT;
-        }
-        return Type.SUPER;
-
-      case Opcodes.INVOKESTATIC:
-        return Type.STATIC;
-
-      default:
-        throw new Unreachable("unknown CfInvoke opcode " + opcode);
+        throw new Unreachable("Unknown CfInvoke opcode " + opcode);
     }
   }
 
@@ -218,8 +195,7 @@ public class CfInvoke extends CfInstruction {
         }
       case Opcodes.INVOKEVIRTUAL:
         {
-          canonicalMethod =
-              builder.appView.dexItemFactory().polymorphicMethods.canonicalize(method);
+          canonicalMethod = builder.dexItemFactory().polymorphicMethods.canonicalize(method);
           if (canonicalMethod == null) {
             type = Type.VIRTUAL;
             canonicalMethod = method;
@@ -242,10 +218,16 @@ public class CfInvoke extends CfInstruction {
           // direct superinterface of T."
           // Using invoke-super should therefore observe the correct semantics since we cannot
           // target less specific targets (up in the hierarchy).
+          AppView<?> appView = builder.appView;
+          ProgramMethod context = builder.getProgramMethod();
           canonicalMethod = method;
           type =
-              computeInvokeTypeForInvokeSpecial(
-                  builder.appView, method, builder.getProgramMethod(), code.getOriginalHolder());
+              Invoke.Type.fromInvokeSpecial(
+                  method,
+                  context,
+                  appView.dexItemFactory(),
+                  appView.graphLens(),
+                  code::getOriginalHolder);
           break;
         }
       case Opcodes.INVOKESTATIC:
@@ -257,7 +239,8 @@ public class CfInvoke extends CfInstruction {
       default:
         throw new Unreachable("unknown CfInvoke opcode " + opcode);
     }
-    int parameterCount = method.proto.parameters.size();
+
+    int parameterCount = method.getParameters().size();
     if (type != Type.STATIC) {
       parameterCount += 1;
     }
@@ -270,9 +253,17 @@ public class CfInvoke extends CfInstruction {
     }
     builder.addInvoke(
         type, canonicalMethod, callSiteProto, Arrays.asList(types), Arrays.asList(registers), itf);
-    if (!method.proto.returnType.isVoidType()) {
-      builder.addMoveResult(state.push(method.proto.returnType).register);
+    if (!method.getReturnType().isVoidType()) {
+      builder.addMoveResult(state.push(method.getReturnType()).register);
     }
+    assert type
+        == Invoke.Type.fromCfOpcode(
+            opcode,
+            method,
+            builder.getProgramMethod(),
+            builder.dexItemFactory(),
+            builder.appView.graphLens(),
+            code::getOriginalHolder);
   }
 
   @Override

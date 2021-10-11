@@ -48,11 +48,7 @@ public class InvokeSpecialToMissingMethodDeclaredInSuperInterfaceTest extends Te
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/202381923): invoke-special is not mapped correctly.
-        .applyIf(
-            parameters.canUseDefaultAndStaticInterfaceMethods(),
-            runResult -> runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class),
-            runResult -> runResult.assertSuccessWithOutputLines("A.foo()"));
+        .assertSuccessWithOutputLines("A.foo()");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.GraphLens.getIdentityLens;
+
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ListIterator;
 
@@ -41,6 +44,11 @@ public abstract class UseRegistry<T extends Definition> {
     return context;
   }
 
+  public final DexClassAndMethod getMethodContext() {
+    assert context.isMethod();
+    return context.asMethod();
+  }
+
   public TraversalContinuation getTraversalContinuation() {
     return continuation;
   }
@@ -50,6 +58,25 @@ public abstract class UseRegistry<T extends Definition> {
   public abstract void registerInvokeVirtual(DexMethod method);
 
   public abstract void registerInvokeDirect(DexMethod method);
+
+  public void registerInvokeSpecial(DexMethod method, boolean itf) {
+    registerInvokeSpecial(method);
+  }
+
+  public void registerInvokeSpecial(DexMethod method) {
+    // TODO(b/201984767, b/202381923): This needs to supply the right graph lens and original
+    //  context to produce correct invoke types for invoke-special instructions.
+    DexClassAndMethod context = getMethodContext();
+    Invoke.Type type =
+        Invoke.Type.fromInvokeSpecial(
+            method, context, dexItemFactory(), getIdentityLens(), context::getHolderType);
+    if (type.isDirect()) {
+      registerInvokeDirect(method);
+    } else {
+      assert type.isSuper();
+      registerInvokeSuper(method);
+    }
+  }
 
   public abstract void registerInvokeStatic(DexMethod method);
 
