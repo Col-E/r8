@@ -214,7 +214,7 @@ public class CfInvoke extends CfInstruction {
           AppView<?> appView = builder.appView;
           ProgramMethod context = builder.getProgramMethod();
           canonicalMethod = method;
-          type = Invoke.Type.fromInvokeSpecial(method, context, appView);
+          type = Invoke.Type.fromInvokeSpecial(method, context, appView, builder.getCodeLens());
           break;
         }
       case Opcodes.INVOKESTATIC:
@@ -244,7 +244,8 @@ public class CfInvoke extends CfInstruction {
       builder.addMoveResult(state.push(method.getReturnType()).register);
     }
     assert type
-        == Invoke.Type.fromCfOpcode(opcode, method, builder.getProgramMethod(), builder.appView);
+        == Invoke.Type.fromCfOpcode(
+            opcode, method, builder.getProgramMethod(), builder.appView, builder.getCodeLens());
   }
 
   @Override

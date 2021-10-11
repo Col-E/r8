@@ -427,7 +427,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
     verifyFramesOrRemove(
         method.getDefinition(), appView, origin, IRBuilder.lookupPrototypeChanges(appView, method));
-    return internalBuildPossiblyWithLocals(method, method, appView, null, null, origin, null);
+    return internalBuildPossiblyWithLocals(
+        method, method, appView, appView.codeLens(), null, null, origin, null);
   }
 
   @Override
@@ -435,6 +436,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
@@ -444,7 +446,14 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     assert protoChanges != null;
     verifyFramesOrRemove(method.getDefinition(), appView, origin, protoChanges);
     return internalBuildPossiblyWithLocals(
-        context, method, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
+        context,
+        method,
+        appView,
+        codeLens,
+        valueNumberGenerator,
+        callerPosition,
+        origin,
+        protoChanges);
   }
 
   private void verifyFramesOrRemove(
@@ -465,6 +474,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
@@ -475,13 +485,21 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           context,
           method,
           appView,
+          codeLens,
           valueNumberGenerator,
           callerPosition,
           origin,
           protoChanges);
     } else {
       return internalBuildWithLocals(
-          context, method, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
+          context,
+          method,
+          appView,
+          codeLens,
+          valueNumberGenerator,
+          callerPosition,
+          origin,
+          protoChanges);
     }
   }
 
@@ -490,6 +508,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
@@ -500,6 +519,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           context,
           method,
           appView,
+          codeLens,
           valueNumberGenerator,
           callerPosition,
           origin,
@@ -511,6 +531,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
           context,
           method,
           appView,
+          codeLens,
           valueNumberGenerator,
           callerPosition,
           origin,
@@ -524,6 +545,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
@@ -544,7 +566,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     } else {
       builder =
           IRBuilder.createForInlining(
-              method, appView, source, origin, valueNumberGenerator, protoChanges);
+              method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges);
     }
     return builder.build(context);
   }

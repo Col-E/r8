@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.UseRegistry;
@@ -48,6 +49,7 @@ public abstract class AbstractSynthesizedCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
@@ -55,6 +57,7 @@ public abstract class AbstractSynthesizedCode extends Code {
     return IRBuilder.createForInlining(
             method,
             appView,
+            codeLens,
             getSourceCodeProvider().get(context, callerPosition),
             origin,
             valueNumberGenerator,

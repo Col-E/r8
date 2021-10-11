@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.origin.Origin;
 import java.util.IdentityHashMap;
@@ -41,12 +40,7 @@ public class InliningIRProvider {
     Position position = Position.getPositionForInlining(appView, invoke, context);
     Origin origin = method.getOrigin();
     return method.buildInliningIR(
-        context,
-        appView,
-        valueNumberGenerator,
-        position,
-        origin,
-        IRBuilder.lookupPrototypeChangesForInlinee(appView, method, methodProcessor));
+        context, appView, valueNumberGenerator, position, origin, methodProcessor);
   }
 
   public IRCode getAndCacheInliningIR(InvokeMethod invoke, ProgramMethod method) {

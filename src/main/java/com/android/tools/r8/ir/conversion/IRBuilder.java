@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
@@ -399,6 +400,7 @@ public class IRBuilder {
   private final ProgramMethod method;
   private ProgramMethod context;
   public final AppView<?> appView;
+  private final GraphLens codeLens;
   private final Origin origin;
   private final RewrittenPrototypeDescription prototypeChanges;
   private Value receiverValue;
@@ -438,6 +440,7 @@ public class IRBuilder {
     return new IRBuilder(
         method,
         appView,
+        appView.codeLens(),
         source,
         origin,
         lookupPrototypeChanges(appView, method),
@@ -447,11 +450,13 @@ public class IRBuilder {
   public static IRBuilder createForInlining(
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       SourceCode source,
       Origin origin,
       NumberGenerator valueNumberGenerator,
       RewrittenPrototypeDescription protoChanges) {
-    return new IRBuilder(method, appView, source, origin, protoChanges, valueNumberGenerator);
+    return new IRBuilder(
+        method, appView, codeLens, source, origin, protoChanges, valueNumberGenerator);
   }
 
   public static RewrittenPrototypeDescription lookupPrototypeChanges(
@@ -470,6 +475,7 @@ public class IRBuilder {
   private IRBuilder(
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       SourceCode source,
       Origin origin,
       RewrittenPrototypeDescription prototypeChanges,
@@ -480,6 +486,7 @@ public class IRBuilder {
     this.appView = appView;
     this.source = source;
     this.origin = origin;
+    this.codeLens = codeLens;
     this.prototypeChanges = prototypeChanges;
     this.valueNumberGenerator = valueNumberGenerator;
     this.basicBlockNumberGenerator = new NumberGenerator();
@@ -487,6 +494,10 @@ public class IRBuilder {
 
   public DexItemFactory dexItemFactory() {
     return appView.dexItemFactory();
+  }
+
+  public GraphLens getCodeLens() {
+    return codeLens;
   }
 
   public DexEncodedMethod getMethod() {

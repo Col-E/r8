@@ -253,6 +253,7 @@ public class ClassInitializerMerger {
                     method,
                     classInitializer,
                     appView,
+                    appView.codeLens(),
                     valueNumberGenerator,
                     callerPosition,
                     classInitializer.getOrigin(),

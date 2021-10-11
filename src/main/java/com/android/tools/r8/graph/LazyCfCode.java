@@ -235,13 +235,21 @@ public class LazyCfCode extends Code {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       RewrittenPrototypeDescription protoChanges) {
     return asCfCode()
         .buildInliningIR(
-            context, method, appView, valueNumberGenerator, callerPosition, origin, protoChanges);
+            context,
+            method,
+            appView,
+            codeLens,
+            valueNumberGenerator,
+            callerPosition,
+            origin,
+            protoChanges);
   }
 
   @Override

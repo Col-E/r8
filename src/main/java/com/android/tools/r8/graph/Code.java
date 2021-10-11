@@ -21,6 +21,7 @@ public abstract class Code extends CachedHashValueDexItem {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,

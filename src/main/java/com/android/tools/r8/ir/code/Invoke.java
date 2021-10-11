@@ -59,11 +59,20 @@ public abstract class Invoke extends Instruction {
 
     public static Type fromCfOpcode(
         int opcode, DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView) {
+      return fromCfOpcode(opcode, invokedMethod, context, appView, appView.codeLens());
+    }
+
+    public static Type fromCfOpcode(
+        int opcode,
+        DexMethod invokedMethod,
+        DexClassAndMethod context,
+        AppView<?> appView,
+        GraphLens codeLens) {
       switch (opcode) {
         case Opcodes.INVOKEINTERFACE:
           return Type.INTERFACE;
         case Opcodes.INVOKESPECIAL:
-          return fromInvokeSpecial(invokedMethod, context, appView);
+          return fromInvokeSpecial(invokedMethod, context, appView, codeLens);
         case Opcodes.INVOKESTATIC:
           return Type.STATIC;
         case Opcodes.INVOKEVIRTUAL:
@@ -77,12 +86,19 @@ public abstract class Invoke extends Instruction {
 
     public static Type fromInvokeSpecial(
         DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView) {
+      return fromInvokeSpecial(invokedMethod, context, appView, appView.codeLens());
+    }
+
+    public static Type fromInvokeSpecial(
+        DexMethod invokedMethod,
+        DexClassAndMethod context,
+        AppView<?> appView,
+        GraphLens codeLens) {
       if (invokedMethod.isInstanceInitializer(appView.dexItemFactory())) {
         return Type.DIRECT;
       }
 
       GraphLens graphLens = appView.graphLens();
-      GraphLens codeLens = appView.codeLens();
       DexMethod originalContext =
           graphLens.getOriginalMethodSignature(context.getReference(), codeLens);
       if (invokedMethod.getHolderType() != originalContext.getHolderType()) {

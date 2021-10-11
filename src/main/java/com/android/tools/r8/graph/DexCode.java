@@ -275,6 +275,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
       ProgramMethod context,
       ProgramMethod method,
       AppView<?> appView,
+      GraphLens codeLens,
       NumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
@@ -286,7 +287,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
             appView.graphLens().getOriginalMethodSignature(method.getReference()),
             callerPosition);
     return IRBuilder.createForInlining(
-            method, appView, source, origin, valueNumberGenerator, protoChanges)
+            method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
         .build(context);
   }
 
