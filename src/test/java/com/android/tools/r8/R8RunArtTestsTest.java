@@ -291,17 +291,19 @@ public abstract class R8RunArtTestsTest {
   );
 
   // Tests that may produce different output on consecutive runs or when processed or not.
-  private static List<String> outputMayDiffer = ImmutableList.of(
-      // One some versions of art, this will print the address of the boot classloader, which
-      // may change between runs.
-      "506-verify-aput",
-      // Art does fail during validation of dex files if it encounters an ill-typed virtual-invoke
-      // but allows interface-invokes to pass. As we rewrite one kind into the other, we remove
-      // a verification error and thus change output.
-      "135-MirandaDispatch",
-      // We resolve a conflicting definition of default methods, thus removing an ICCE.
-      "972-iface-super-multidex"
-  );
+  private static Multimap<String, TestCondition> outputMayDiffer =
+      new ImmutableListMultimap.Builder<String, TestCondition>()
+          // Art does fail during validation of dex files if it encounters an ill-typed
+          // virtual-invoke
+          // but allows interface-invokes to pass. As we rewrite one kind into the other, we remove
+          // a verification error and thus change output.
+          .put("135-MirandaDispatch", TestCondition.any())
+          // One some versions of art, this will print the address of the boot classloader, which
+          // may change between runs.
+          .put("506-verify-aput", TestCondition.any())
+          // We resolve a conflicting definition of default methods, thus removing an ICCE.
+          .put("972-iface-super-multidex", TestCondition.any())
+          .build();
 
   // Tests that make use of agents/native code.
   // Our test setup does not handle flags/linking of these.
@@ -1642,6 +1644,10 @@ public abstract class R8RunArtTestsTest {
           collectTestsMatchingConditions(
               dexTool, compilerUnderTest, version, compilationMode, failingRunWithArtOriginalOnly);
 
+      Set<String> testsWhereOutputMayDiffer =
+          collectTestsMatchingConditions(
+              dexTool, compilerUnderTest, version, compilationMode, outputMayDiffer);
+
       File compilerTestDir = artTestDir.toPath().resolve(dexToolDirectory(dexTool)).toFile();
       File[] testDirs = compilerTestDir.listFiles();
       assert testDirs != null;
@@ -1664,7 +1670,7 @@ public abstract class R8RunArtTestsTest {
                 failsRunWithArtOriginalOnly.contains(name),
                 useNativeLibrary.contains(name) ? "arttest" : null,
                 expectedToFailWithCompilerSet.contains(name),
-                outputMayDiffer.contains(name),
+                testsWhereOutputMayDiffer.contains(name),
                 requireInliningToBeDisabled.contains(name),
                 requireClassInliningToBeDisabled.contains(name),
                 hasMissingClasses.contains(name),
