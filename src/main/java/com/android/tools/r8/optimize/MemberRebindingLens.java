@@ -68,11 +68,6 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexMethod getOriginalMethodSignature(DexMethod method) {
-    return getPrevious().getOriginalMethodSignature(method);
-  }
-
-  @Override
   public DexField getRenamedFieldSignature(DexField originalField) {
     return getPrevious().getRenamedFieldSignature(originalField);
   }

@@ -130,12 +130,6 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexMethod getOriginalMethodSignature(DexMethod method) {
-    DexMethod originalMethod = internalGetPreviousMethodSignature(method);
-    return getPrevious().getOriginalMethodSignature(originalMethod);
-  }
-
-  @Override
   public DexField getRenamedFieldSignature(DexField originalField) {
     DexField renamedField = getPrevious().getRenamedFieldSignature(originalField);
     return internalGetNextFieldSignature(renamedField);

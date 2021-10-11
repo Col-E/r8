@@ -285,7 +285,21 @@ public abstract class GraphLens {
 
   public abstract DexField getOriginalFieldSignature(DexField field);
 
-  public abstract DexMethod getOriginalMethodSignature(DexMethod method);
+  public final DexMethod getOriginalMethodSignature(DexMethod method) {
+    return getOriginalMethodSignature(method, null);
+  }
+
+  public final DexMethod getOriginalMethodSignature(DexMethod method, GraphLens atGraphLens) {
+    GraphLens current = this;
+    DexMethod original = method;
+    while (current.isNonIdentityLens() && current != atGraphLens) {
+      NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
+      original = nonIdentityLens.internalGetPreviousMethodSignature(original);
+      current = nonIdentityLens.getPrevious();
+    }
+    assert atGraphLens == null ? current.isIdentityLens() : (current == atGraphLens);
+    return original;
+  }
 
   public abstract DexField getRenamedFieldSignature(DexField originalField);
 
@@ -856,11 +870,6 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexMethod getOriginalMethodSignature(DexMethod method) {
-      return method;
-    }
-
-    @Override
     public DexField getRenamedFieldSignature(DexField originalField) {
       return originalField;
     }
@@ -947,11 +956,6 @@ public abstract class GraphLens {
     @Override
     public DexField getOriginalFieldSignature(DexField field) {
       return getPrevious().getOriginalFieldSignature(field);
-    }
-
-    @Override
-    public DexMethod getOriginalMethodSignature(DexMethod method) {
-      return getPrevious().getOriginalMethodSignature(method);
     }
 
     @Override

@@ -95,12 +95,6 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
-  public DexMethod getOriginalMethodSignature(DexMethod method) {
-    return super.getOriginalMethodSignature(
-        originalMethodSignaturesForBridges.getOrDefault(method, method));
-  }
-
-  @Override
   public MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context) {
     assert context != null || verifyIsContextFreeForMethod(previous.getReference());
@@ -132,6 +126,12 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
             internalDescribePrototypeChanges(previous.getPrototypeChanges(), newMethod))
         .setType(mapInvocationType(newMethod, previous.getReference(), previous.getType()))
         .build();
+  }
+
+  @Override
+  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+    return super.internalGetPreviousMethodSignature(
+        originalMethodSignaturesForBridges.getOrDefault(method, method));
   }
 
   @Override

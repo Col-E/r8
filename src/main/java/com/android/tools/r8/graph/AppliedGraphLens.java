@@ -120,14 +120,6 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexMethod getOriginalMethodSignature(DexMethod method) {
-    if (extraOriginalMethodSignatures.containsKey(method)) {
-      return extraOriginalMethodSignatures.get(method);
-    }
-    return originalMethodSignatures.getOrDefault(method, method);
-  }
-
-  @Override
   public DexField getRenamedFieldSignature(DexField originalField) {
     return originalFieldSignatures.inverse().getOrDefault(originalField, originalField);
   }
@@ -162,7 +154,10 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
 
   @Override
   protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
-    return method;
+    if (extraOriginalMethodSignatures.containsKey(method)) {
+      return extraOriginalMethodSignatures.get(method);
+    }
+    return originalMethodSignatures.getOrDefault(method, method);
   }
 
   @Override

@@ -27,11 +27,6 @@ class BridgeHoistingLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexMethod getOriginalMethodSignature(DexMethod method) {
-    return getPrevious().getOriginalMethodSignature(internalGetPreviousMethodSignature(method));
-  }
-
-  @Override
   public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
     DexMethod renamedMethod = getPrevious().getRenamedMethodSignature(originalMethod, applied);
     return bridgeToHoistedBridgeMap.getOrDefault(renamedMethod, renamedMethod);
