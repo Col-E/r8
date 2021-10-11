@@ -199,11 +199,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void unsetAbstractReturnValue(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetAbstractReturnValue();
-  }
-
-  @Override
   public synchronized void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type) {
     getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithUpperBoundType(appView, type);
@@ -216,7 +211,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void methodNeverReturnsNormally(DexEncodedMethod method) {
+  public synchronized void methodNeverReturnsNormally(ProgramMethod method) {
     getMethodOptimizationInfoForUpdating(method).markNeverReturnsNormally();
   }
 
@@ -272,11 +267,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetEnumUnboxerMethodClassification();
-  }
-
-  @Override
   public synchronized void setInstanceInitializerInfoCollection(
       DexEncodedMethod method,
       InstanceInitializerInfoCollection instanceInitializerInfoCollection) {
@@ -313,5 +303,122 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   @Override
   public synchronized void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {
     getMethodOptimizationInfoForUpdating(method).setUnusedArguments(unusedArguments);
+  }
+
+  // Unset methods.
+
+  @Override
+  public synchronized void unsetAbstractReturnValue(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetAbstractReturnValue();
+  }
+
+  @Override
+  public synchronized void unsetBridgeInfo(DexEncodedMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetBridgeInfo();
+  }
+
+  @Override
+  public synchronized void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetCheckNullReceiverBeforeAnySideEffect();
+  }
+
+  @Override
+  public synchronized void unsetClassInitializerMayBePostponed(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetClassInitializerMayBePostponed();
+  }
+
+  @Override
+  public synchronized void unsetClassInlinerMethodConstraint(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetClassInlinerMethodConstraint();
+  }
+
+  @Override
+  public synchronized void unsetDynamicLowerBoundReturnType(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetDynamicLowerBoundReturnType();
+  }
+
+  @Override
+  public synchronized void unsetDynamicUpperBoundReturnType(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetDynamicUpperBoundReturnType();
+  }
+
+  @Override
+  public synchronized void unsetEnumUnboxerMethodClassification(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetEnumUnboxerMethodClassification();
+  }
+
+  @Override
+  public synchronized void unsetForceInline(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetForceInline();
+  }
+
+  @Override
+  public synchronized void unsetInitializedClassesOnNormalExit(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetInitializedClassesOnNormalExit();
+  }
+
+  @Override
+  public synchronized void unsetInitializerEnablingJavaVmAssertions(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetInitializerEnablingJavaVmAssertions();
+  }
+
+  @Override
+  public synchronized void unsetInlinedIntoSingleCallSite(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetInlinedIntoSingleCallSite();
+  }
+
+  @Override
+  public synchronized void unsetInstanceInitializerInfoCollection(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetInstanceInitializerInfoCollection();
+  }
+
+  @Override
+  public synchronized void unsetMayNotHaveSideEffects(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetMayNotHaveSideEffects();
+  }
+
+  @Override
+  public synchronized void unsetNeverReturnsNormally(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetNeverReturnsNormally();
+  }
+
+  @Override
+  public synchronized void unsetNonNullParamOnNormalExits(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetNonNullParamOnNormalExits();
+  }
+
+  @Override
+  public synchronized void unsetNonNullParamOrThrow(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetNonNullParamOrThrow();
+  }
+
+  @Override
+  public synchronized void unsetReachabilitySensitive(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetReachabilitySensitive();
+  }
+
+  @Override
+  public synchronized void unsetReturnedArgument(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetReturnedArgument();
+  }
+
+  @Override
+  public synchronized void unsetReturnValueOnlyDependsOnArguments(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetReturnValueOnlyDependsOnArguments();
+  }
+
+  @Override
+  public synchronized void unsetSimpleInliningConstraint(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetSimpleInliningConstraint();
+  }
+
+  @Override
+  public synchronized void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetTriggerClassInitBeforeAnySideEffect();
+  }
+
+  @Override
+  public synchronized void unsetUnusedArguments(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetUnusedArguments();
   }
 }

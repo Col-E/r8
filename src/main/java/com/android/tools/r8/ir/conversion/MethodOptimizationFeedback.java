@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodCl
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BitSetUtils;
 import java.util.BitSet;
 import java.util.Set;
 
@@ -37,8 +38,6 @@ public interface MethodOptimizationFeedback {
   void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue);
 
-  void unsetAbstractReturnValue(ProgramMethod method);
-
   void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type);
 
@@ -48,7 +47,7 @@ public interface MethodOptimizationFeedback {
 
   void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method);
 
-  void methodNeverReturnsNormally(DexEncodedMethod method);
+  void methodNeverReturnsNormally(ProgramMethod method);
 
   void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);
 
@@ -66,8 +65,6 @@ public interface MethodOptimizationFeedback {
   void setEnumUnboxerMethodClassification(
       ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification);
 
-  void unsetEnumUnboxerMethodClassification(ProgramMethod method);
-
   void setInstanceInitializerInfoCollection(
       DexEncodedMethod method, InstanceInitializerInfoCollection instanceInitializerInfoCollection);
 
@@ -82,4 +79,89 @@ public interface MethodOptimizationFeedback {
   void classInitializerMayBePostponed(DexEncodedMethod method);
 
   void setUnusedArguments(ProgramMethod method, BitSet unusedArguments);
+
+  // Unset methods.
+
+  void unsetAbstractReturnValue(ProgramMethod method);
+
+  void unsetBridgeInfo(DexEncodedMethod method);
+
+  void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method);
+
+  void unsetClassInitializerMayBePostponed(ProgramMethod method);
+
+  void unsetClassInlinerMethodConstraint(ProgramMethod method);
+
+  void unsetDynamicLowerBoundReturnType(ProgramMethod method);
+
+  void unsetDynamicUpperBoundReturnType(ProgramMethod method);
+
+  void unsetEnumUnboxerMethodClassification(ProgramMethod method);
+
+  void unsetForceInline(ProgramMethod method);
+
+  void unsetInitializedClassesOnNormalExit(ProgramMethod method);
+
+  void unsetInitializerEnablingJavaVmAssertions(ProgramMethod method);
+
+  void unsetInlinedIntoSingleCallSite(ProgramMethod method);
+
+  void unsetInstanceInitializerInfoCollection(ProgramMethod method);
+
+  void unsetMayNotHaveSideEffects(ProgramMethod method);
+
+  void unsetNeverReturnsNormally(ProgramMethod method);
+
+  void unsetNonNullParamOnNormalExits(ProgramMethod method);
+
+  void unsetNonNullParamOrThrow(ProgramMethod method);
+
+  void unsetReachabilitySensitive(ProgramMethod method);
+
+  void unsetReturnedArgument(ProgramMethod method);
+
+  void unsetReturnValueOnlyDependsOnArguments(ProgramMethod method);
+
+  void unsetSimpleInliningConstraint(ProgramMethod method);
+
+  void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method);
+
+  void unsetUnusedArguments(ProgramMethod method);
+
+  default void unsetOptimizationInfoForAbstractMethod(ProgramMethod method) {
+    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
+      unsetAbstractReturnValue(method);
+      unsetBridgeInfo(method.getDefinition());
+      unsetCheckNullReceiverBeforeAnySideEffect(method);
+      unsetClassInitializerMayBePostponed(method);
+      unsetClassInlinerMethodConstraint(method);
+      unsetDynamicLowerBoundReturnType(method);
+      unsetDynamicUpperBoundReturnType(method);
+      unsetEnumUnboxerMethodClassification(method);
+      unsetForceInline(method);
+      unsetInitializedClassesOnNormalExit(method);
+      unsetInitializerEnablingJavaVmAssertions(method);
+      unsetInstanceInitializerInfoCollection(method);
+      unsetMayNotHaveSideEffects(method);
+      unsetNeverReturnsNormally(method);
+      unsetNonNullParamOnNormalExits(method);
+      unsetNonNullParamOrThrow(method);
+      unsetReachabilitySensitive(method);
+      unsetReturnedArgument(method);
+      unsetReturnValueOnlyDependsOnArguments(method);
+      unsetSimpleInliningConstraint(method);
+      unsetTriggerClassInitBeforeAnySideEffect(method);
+      unsetUnusedArguments(method);
+    }
+  }
+
+  default void unsetOptimizationInfoForThrowNullMethod(ProgramMethod method) {
+    unsetOptimizationInfoForAbstractMethod(method);
+    methodNeverReturnsNormally(method);
+    setUnusedArguments(
+        method, BitSetUtils.createFilled(true, method.getDefinition().getNumberOfArguments()));
+    if (method.getDefinition().isInstance()) {
+      markCheckNullReceiverBeforeAnySideEffect(method.getDefinition(), true);
+    }
+  }
 }

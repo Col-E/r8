@@ -8,6 +8,14 @@ import java.util.BitSet;
 
 public class BitSetUtils {
 
+  public static BitSet createFilled(boolean value, int length) {
+    BitSet bitSet = new BitSet(length);
+    for (int i = 0; i < length; i++) {
+      bitSet.set(i, value);
+    }
+    return bitSet;
+  }
+
   @SuppressWarnings("unchecked")
   public static BitSet or(BitSet bitSet, BitSet other) {
     BitSet newBitSet = (BitSet) bitSet.clone();

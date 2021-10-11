@@ -79,9 +79,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {}
 
   @Override
-  public void unsetAbstractReturnValue(ProgramMethod method) {}
-
-  @Override
   public void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type) {}
 
@@ -96,7 +93,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {}
 
   @Override
-  public void methodNeverReturnsNormally(DexEncodedMethod method) {}
+  public void methodNeverReturnsNormally(ProgramMethod method) {}
 
   @Override
   public void markAsPropagated(DexEncodedMethod method) {}
@@ -122,9 +119,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       ProgramMethod method, EnumUnboxerMethodClassification enumUnboxerMethodClassification) {}
 
   @Override
-  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {}
-
-  @Override
   public void setInstanceInitializerInfoCollection(
       DexEncodedMethod method,
       InstanceInitializerInfoCollection instanceInitializerInfoCollection) {}
@@ -147,4 +141,75 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void setUnusedArguments(ProgramMethod method, BitSet unusedArguments) {}
+
+  // Unset methods.
+
+  @Override
+  public void unsetAbstractReturnValue(ProgramMethod method) {}
+
+  @Override
+  public void unsetBridgeInfo(DexEncodedMethod method) {}
+
+  @Override
+  public void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method) {}
+
+  @Override
+  public void unsetClassInitializerMayBePostponed(ProgramMethod method) {}
+
+  @Override
+  public void unsetClassInlinerMethodConstraint(ProgramMethod method) {}
+
+  @Override
+  public void unsetDynamicLowerBoundReturnType(ProgramMethod method) {}
+
+  @Override
+  public void unsetDynamicUpperBoundReturnType(ProgramMethod method) {}
+
+  @Override
+  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {}
+
+  @Override
+  public void unsetForceInline(ProgramMethod method) {}
+
+  @Override
+  public void unsetInitializedClassesOnNormalExit(ProgramMethod method) {}
+
+  @Override
+  public void unsetInitializerEnablingJavaVmAssertions(ProgramMethod method) {}
+
+  @Override
+  public void unsetInlinedIntoSingleCallSite(ProgramMethod method) {}
+
+  @Override
+  public void unsetInstanceInitializerInfoCollection(ProgramMethod method) {}
+
+  @Override
+  public void unsetMayNotHaveSideEffects(ProgramMethod method) {}
+
+  @Override
+  public void unsetNeverReturnsNormally(ProgramMethod method) {}
+
+  @Override
+  public void unsetNonNullParamOnNormalExits(ProgramMethod method) {}
+
+  @Override
+  public void unsetNonNullParamOrThrow(ProgramMethod method) {}
+
+  @Override
+  public void unsetReachabilitySensitive(ProgramMethod method) {}
+
+  @Override
+  public void unsetReturnedArgument(ProgramMethod method) {}
+
+  @Override
+  public void unsetReturnValueOnlyDependsOnArguments(ProgramMethod method) {}
+
+  @Override
+  public void unsetSimpleInliningConstraint(ProgramMethod method) {}
+
+  @Override
+  public void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method) {}
+
+  @Override
+  public void unsetUnusedArguments(ProgramMethod method) {}
 }

@@ -36,8 +36,16 @@ public abstract class OptimizationFeedback
     }
   }
 
+  public static OptimizationFeedbackIgnore getIgnoreFeedback() {
+    return OptimizationFeedbackIgnore.getInstance();
+  }
+
   public static OptimizationFeedbackSimple getSimple() {
     return OptimizationFeedbackSimple.getInstance();
+  }
+
+  public static OptimizationFeedbackSimple getSimpleFeedback() {
+    return getSimple();
   }
 
   public void fixupOptimizationInfos(

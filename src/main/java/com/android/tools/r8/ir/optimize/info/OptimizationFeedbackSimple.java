@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
@@ -80,7 +81,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
+  public void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
     method.getMutableOptimizationInfo().markInlinedIntoSingleCallSite();
   }
 
@@ -107,13 +108,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void unsetAbstractReturnValue(ProgramMethod method) {
-    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
-      method.getDefinition().getMutableOptimizationInfo().unsetAbstractReturnValue();
-    }
-  }
-
-  @Override
   public void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeElement type) {
     method.getMutableOptimizationInfo().markReturnsObjectWithUpperBoundType(appView, type);
@@ -136,8 +130,8 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void methodNeverReturnsNormally(DexEncodedMethod method) {
-    // Ignored.
+  public void methodNeverReturnsNormally(ProgramMethod method) {
+    method.getDefinition().getMutableOptimizationInfo().markNeverReturnsNormally();
   }
 
   @Override
@@ -152,7 +146,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   @Override
   public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
-    // Ignored.
+    method.getMutableOptimizationInfo().markCheckNullReceiverBeforeAnySideEffect(mark);
   }
 
   @Override
@@ -165,25 +159,10 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     method.getMutableOptimizationInfo().setBridgeInfo(bridgeInfo);
   }
 
-  public void unsetBridgeInfo(DexEncodedMethod method) {
-    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
-      method.getOptimizationInfo().asMutableMethodOptimizationInfo().unsetBridgeInfo();
-    }
-  }
-
   @Override
   public void setClassInlinerMethodConstraint(
       ProgramMethod method, ClassInlinerMethodConstraint classInlinerConstraint) {
     // Ignored.
-  }
-
-  public void unsetClassInlinerMethodConstraint(ProgramMethod method) {
-    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
-      method
-          .getOptimizationInfo()
-          .asMutableMethodOptimizationInfo()
-          .unsetClassInlinerMethodConstraint();
-    }
   }
 
   @Override
@@ -193,16 +172,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
         .getDefinition()
         .getMutableOptimizationInfo()
         .setEnumUnboxerMethodClassification(enumUnboxerMethodClassification);
-  }
-
-  @Override
-  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {
-    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
-      method
-          .getOptimizationInfo()
-          .asMutableMethodOptimizationInfo()
-          .unsetEnumUnboxerMethodClassification();
-    }
   }
 
   @Override
@@ -245,12 +214,154 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     method.getDefinition().getMutableOptimizationInfo().setUnusedArguments(unusedArguments);
   }
 
+  // Unset methods.
+
+  @Override
+  public void unsetAbstractReturnValue(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetAbstractReturnValue);
+  }
+
+  @Override
+  public void unsetBridgeInfo(DexEncodedMethod method) {
+    withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetBridgeInfo);
+  }
+
+  @Override
+  public void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetCheckNullReceiverBeforeAnySideEffect);
+  }
+
+  @Override
+  public void unsetClassInitializerMayBePostponed(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetClassInitializerMayBePostponed);
+  }
+
+  @Override
+  public void unsetClassInlinerMethodConstraint(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetClassInlinerMethodConstraint);
+  }
+
+  @Override
+  public void unsetDynamicLowerBoundReturnType(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetDynamicLowerBoundReturnType);
+  }
+
+  @Override
+  public void unsetDynamicUpperBoundReturnType(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetDynamicUpperBoundReturnType);
+  }
+
+  @Override
+  public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetEnumUnboxerMethodClassification);
+  }
+
+  @Override
+  public void unsetForceInline(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetForceInline);
+  }
+
+  @Override
+  public void unsetInitializedClassesOnNormalExit(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetInitializedClassesOnNormalExit);
+  }
+
+  @Override
+  public void unsetInitializerEnablingJavaVmAssertions(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetInitializerEnablingJavaVmAssertions);
+  }
+
+  @Override
   public void unsetInlinedIntoSingleCallSite(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetInlinedIntoSingleCallSite);
+  }
+
+  @Override
+  public void unsetInstanceInitializerInfoCollection(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetInstanceInitializerInfoCollection);
+  }
+
+  @Override
+  public void unsetMayNotHaveSideEffects(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetMayNotHaveSideEffects);
+  }
+
+  @Override
+  public void unsetNeverReturnsNormally(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetNeverReturnsNormally);
+  }
+
+  @Override
+  public void unsetNonNullParamOnNormalExits(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetNonNullParamOnNormalExits);
+  }
+
+  @Override
+  public void unsetNonNullParamOrThrow(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetNonNullParamOrThrow);
+  }
+
+  @Override
+  public void unsetReachabilitySensitive(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetReachabilitySensitive);
+  }
+
+  @Override
+  public void unsetReturnedArgument(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetReturnedArgument);
+  }
+
+  @Override
+  public void unsetReturnValueOnlyDependsOnArguments(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetReturnValueOnlyDependsOnArguments);
+  }
+
+  @Override
+  public void unsetSimpleInliningConstraint(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetSimpleInliningConstraint);
+  }
+
+  @Override
+  public void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(
+        method, MutableMethodOptimizationInfo::unsetTriggerClassInitBeforeAnySideEffect);
+  }
+
+  @Override
+  public void unsetUnusedArguments(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetUnusedArguments);
+  }
+
+  private void withMutableMethodOptimizationInfo(
+      ProgramMethod method, Consumer<MutableMethodOptimizationInfo> consumer) {
     if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
-      method
-          .getOptimizationInfo()
-          .asMutableMethodOptimizationInfo()
-          .unsetInlinedIntoSingleCallSite();
+      consumer.accept(method.getOptimizationInfo().asMutableMethodOptimizationInfo());
+    }
+  }
+
+  @Deprecated
+  private void withMutableMethodOptimizationInfo(
+      DexEncodedMethod method, Consumer<MutableMethodOptimizationInfo> consumer) {
+    if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
+      consumer.accept(method.getOptimizationInfo().asMutableMethodOptimizationInfo());
     }
   }
 }

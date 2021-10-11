@@ -179,7 +179,7 @@ public class MethodOptimizationInfoCollector {
     DexEncodedMethod method = context.getDefinition();
     List<BasicBlock> normalExits = code.computeNormalExitBlocks();
     if (normalExits.isEmpty()) {
-      feedback.methodNeverReturnsNormally(method);
+      feedback.methodNeverReturnsNormally(context);
       return;
     }
     Return firstExit = normalExits.get(0).exit().asReturn();

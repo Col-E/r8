@@ -29,6 +29,7 @@ import com.android.tools.r8.utils.BitSetUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Set;
 
 public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
@@ -251,6 +252,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     setFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
   }
 
+  void unsetClassInitializerMayBePostponed() {
+    clearFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
+  }
+
   @Override
   public ClassInlinerMethodConstraint getClassInlinerMethodConstraint() {
     return classInlinerConstraint;
@@ -341,6 +346,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.nonNullParamOrThrow = facts;
   }
 
+  void unsetNonNullParamOrThrow() {
+    this.nonNullParamOrThrow = null;
+  }
+
   @Override
   public BitSet getNonNullParamOnNormalExits() {
     return nonNullParamOnNormalExits;
@@ -356,17 +365,21 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.nonNullParamOnNormalExits = facts;
   }
 
+  void unsetNonNullParamOnNormalExits() {
+    nonNullParamOnNormalExits = null;
+  }
+
   @Override
   public boolean hasBeenInlinedIntoSingleCallSite() {
     return isFlagSet(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
   }
 
-  void unsetInlinedIntoSingleCallSite() {
-    clearFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
-  }
-
   void markInlinedIntoSingleCallSite() {
     setFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
+  }
+
+  void unsetInlinedIntoSingleCallSite() {
+    clearFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
   }
 
   @Override
@@ -449,6 +462,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
         unusedArguments != null && !unusedArguments.isEmpty() ? unusedArguments : null;
   }
 
+  void unsetUnusedArguments() {
+    unusedArguments = null;
+  }
+
   @Override
   public boolean isInitializerEnablingJavaVmAssertions() {
     return isFlagSet(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
@@ -494,8 +511,16 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     setFlag(REACHABILITY_SENSITIVE_FLAG, reachabilitySensitive);
   }
 
+  void unsetReachabilitySensitive() {
+    clearFlag(REACHABILITY_SENSITIVE_FLAG);
+  }
+
   void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {
     this.simpleInliningConstraint = constraint;
+  }
+
+  void unsetSimpleInliningConstraint() {
+    simpleInliningConstraint = NeverSimpleInliningConstraint.getInstance();
   }
 
   public MutableMethodOptimizationInfo fixupSimpleInliningConstraint(
@@ -511,18 +536,34 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     this.instanceInitializerInfoCollection = instanceInitializerInfoCollection;
   }
 
+  void unsetInstanceInitializerInfoCollection() {
+    instanceInitializerInfoCollection = InstanceInitializerInfoCollection.empty();
+  }
+
   void setInitializerEnablingJavaAssertions() {
     setFlag(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
+  }
+
+  void unsetInitializerEnablingJavaVmAssertions() {
+    clearFlag(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
   }
 
   void markInitializesClassesOnNormalExit(Set<DexType> initializedClassesOnNormalExit) {
     this.initializedClassesOnNormalExit = initializedClassesOnNormalExit;
   }
 
+  void unsetInitializedClassesOnNormalExit() {
+    initializedClassesOnNormalExit = Collections.emptySet();
+  }
+
   void markReturnsArgument(int returnedArgumentIndex) {
     assert returnedArgumentIndex >= 0;
     assert returnedArgument == -1 || returnedArgument == returnedArgumentIndex;
     returnedArgument = returnedArgumentIndex;
+  }
+
+  void unsetReturnedArgument() {
+    returnedArgument = -1;
   }
 
   public MutableMethodOptimizationInfo fixupReturnedArgumentIndex(
@@ -535,12 +576,24 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     clearFlag(MAY_HAVE_SIDE_EFFECT_FLAG);
   }
 
+  void unsetMayNotHaveSideEffects() {
+    setFlag(MAY_HAVE_SIDE_EFFECT_FLAG);
+  }
+
   void markReturnValueOnlyDependsOnArguments() {
     setFlag(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
   }
 
+  void unsetReturnValueOnlyDependsOnArguments() {
+    clearFlag(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
+  }
+
   void markNeverReturnsNormally() {
     setFlag(NEVER_RETURNS_NORMALLY_FLAG);
+  }
+
+  void unsetNeverReturnsNormally() {
+    clearFlag(NEVER_RETURNS_NORMALLY_FLAG);
   }
 
   void markReturnsAbstractValue(AbstractValue value) {
@@ -571,6 +624,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     }
   }
 
+  void unsetDynamicUpperBoundReturnType() {
+    returnsObjectWithUpperBoundType = null;
+  }
+
   void markReturnsObjectWithLowerBoundType(ClassTypeElement type) {
     assert type != null;
     // Currently, we only have a lower bound type when we have _exact_ runtime type information.
@@ -579,6 +636,10 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
             || type.equalUpToNullability(returnsObjectWithLowerBoundType)
         : "lower bound type changed from " + returnsObjectWithLowerBoundType + " to " + type;
     returnsObjectWithLowerBoundType = type;
+  }
+
+  void unsetDynamicLowerBoundReturnType() {
+    returnsObjectWithLowerBoundType = null;
   }
 
   // TODO(b/140214568): Should be package-private.
@@ -599,8 +660,16 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     setFlag(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
   }
 
+  void unsetCheckNullReceiverBeforeAnySideEffect() {
+    clearFlag(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG);
+  }
+
   void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
     setFlag(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
+  }
+
+  void unsetTriggerClassInitBeforeAnySideEffect() {
+    clearFlag(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
 
   // TODO(b/140214568): Should be package-private.
