@@ -91,6 +91,11 @@ public abstract class Invoke extends Instruction {
 
       MethodLookupResult lookupResult =
           graphLens.lookupMethod(invokedMethod, context.getReference(), Type.DIRECT);
+      if (lookupResult.getType().isVirtual()) {
+        // This method has been publicized. The original invoke-type is DIRECT.
+        return Type.DIRECT;
+      }
+
       DexEncodedMethod definition = context.getHolder().lookupMethod(lookupResult.getReference());
       if (definition == null) {
         return Type.SUPER;
@@ -101,12 +106,7 @@ public abstract class Invoke extends Instruction {
       DexType originalHolderOfDefinition =
           graphLens.getOriginalMethodSignature(definition.getReference(), codeLens).getHolderType();
       if (originalHolderOfDefinition != originalContext.getHolderType()) {
-        if (appView.hasVerticallyMergedClasses()
-            && appView
-                .verticallyMergedClasses()
-                .hasBeenMergedIntoSubtype(originalHolderOfDefinition)) {
-          return Type.SUPER;
-        }
+        return Type.SUPER;
       }
 
       boolean originalContextIsInterface =

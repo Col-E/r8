@@ -5,15 +5,13 @@
 package com.android.tools.r8.graph.invokespecial;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeFalse;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import java.io.IOException;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,25 +19,20 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InvokeSpecialToMissingMethodDeclaredInSuperClassTest extends TestBase {
+public class InvokeSpecialToMergedVirtualMethodTest extends TestBase {
 
   @Parameter(0)
-  public boolean testHorizontalClassMerging;
-
-  @Parameter(1)
   public TestParameters parameters;
 
-  @Parameters(name = "{1}, horizontal: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void testRuntime() throws Exception {
-    assumeFalse(testHorizontalClassMerging);
     testForRuntime(parameters)
-        .addProgramClasses(A.class, Main.class, MergeIntoB.class)
+        .addProgramClasses(Main.class, MergeIntoA.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()");
@@ -48,36 +41,28 @@ public class InvokeSpecialToMissingMethodDeclaredInSuperClassTest extends TestBa
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, Main.class)
+        .addProgramClasses(Main.class, MergeIntoA.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
-        .applyIf(
-            testHorizontalClassMerging,
-            testBuilder ->
-                testBuilder
-                    .addProgramClasses(MainWithHorizontalClassMerging.class, MergeIntoB.class)
-                    .addKeepMainRule(MainWithHorizontalClassMerging.class)
-                    .addHorizontallyMergedClassesInspector(
-                        inspector -> {
-                          if (testHorizontalClassMerging) {
-                            inspector.assertMergedInto(MergeIntoB.class, B.class);
-                          }
-                          inspector.assertNoOtherClassesMerged();
-                        }))
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertMergedInto(MergeIntoA.class, MergeIntoA.class)
+                    .assertNoOtherClassesMerged())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A.foo()");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {
-    return transformer(B.class)
+    return transformer(A.class)
         .transformMethodInsnInMethod(
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
               assertEquals("notify", name);
               continuation.visitMethodInsn(
-                  INVOKESPECIAL, binaryName(B.class), "foo", descriptor, isInterface);
+                  INVOKESPECIAL, binaryName(A.class), "foo", descriptor, isInterface);
             })
         .transform();
   }
@@ -87,37 +72,24 @@ public class InvokeSpecialToMissingMethodDeclaredInSuperClassTest extends TestBa
     public void foo() {
       System.out.println("A.foo()");
     }
-  }
-
-  public static class B extends A {
 
     public void bar() {
-      // Will be rewritten to invoke-special B.foo() which is missing (except when testing
-      // horizontal class merging), but found in A.
+      // Will be rewritten to invoke-special A.foo(), which is merged with MergeIntoA.foo().
       notify();
+    }
+  }
+
+  public static class MergeIntoA {
+
+    public void foo() {
+      System.out.println("B.foo()");
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      new B().bar();
-    }
-  }
-
-  // Extra program inputs when testing horizontal class merging.
-
-  public static class MergeIntoB extends A {
-
-    public void foo() {
-      System.out.println("MergeIntoB.foo()");
-    }
-  }
-
-  public static class MainWithHorizontalClassMerging {
-
-    public static void main(String[] args) {
-      new MergeIntoB().foo();
+      new A().bar();
     }
   }
 }
