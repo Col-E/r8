@@ -11,6 +11,7 @@ import static com.android.tools.r8.graph.MethodResolutionResult.SingleResolution
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMember;
@@ -50,6 +51,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
+import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -976,11 +978,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return keepInfo.getInfo(reference, this).isAccessModificationAllowed(options());
   }
 
-  public boolean isRepackagingAllowed(DexProgramClass clazz) {
+  public boolean isRepackagingAllowed(DexProgramClass clazz, AppView<?> appView) {
     if (!options().isRepackagingEnabled()) {
       return false;
     }
     if (!keepInfo.getInfo(clazz).isRepackagingAllowed(clazz, options())) {
+      return false;
+    }
+    SeedMapper applyMappingSeedMapper = appView.getApplyMappingSeedMapper();
+    if (applyMappingSeedMapper != null && applyMappingSeedMapper.hasMapping(clazz.type)) {
       return false;
     }
     return clazz

@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelCollection;
+import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -45,6 +46,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -102,6 +104,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
   private Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
+
+  private SeedMapper applyMappingSeedMapper;
 
   // When input has been (partially) desugared these are the classes which has been library
   // desugared. This information is populated in the IR converter.
@@ -805,6 +809,22 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     }
     assert alreadyLibraryDesugared != null;
     return alreadyLibraryDesugared.contains(clazz.getType());
+  }
+
+  public void loadApplyMappingSeedMapper() throws IOException {
+    if (options().getProguardConfiguration().hasApplyMappingFile()) {
+      applyMappingSeedMapper =
+          SeedMapper.seedMapperFromFile(
+              options().reporter, options().getProguardConfiguration().getApplyMappingFile());
+    }
+  }
+
+  public SeedMapper getApplyMappingSeedMapper() {
+    return applyMappingSeedMapper;
+  }
+
+  public void clearApplyMappingSeedMapper() {
+    applyMappingSeedMapper = null;
   }
 
   public boolean checkForTesting(Supplier<Boolean> test) {

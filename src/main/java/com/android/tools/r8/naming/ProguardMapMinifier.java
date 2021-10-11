@@ -85,10 +85,11 @@ public class ProguardMapMinifier {
   private final Map<DexMethod, DexString> additionalMethodNamings = Maps.newIdentityHashMap();
   private final Map<DexField, DexString> additionalFieldNamings = Maps.newIdentityHashMap();
 
-  public ProguardMapMinifier(AppView<AppInfoWithLiveness> appView, SeedMapper seedMapper) {
+  public ProguardMapMinifier(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.seedMapper = seedMapper;
+    this.seedMapper = appView.getApplyMappingSeedMapper();
+    assert seedMapper != null;
   }
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {

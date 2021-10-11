@@ -204,7 +204,7 @@ public class Repackaging {
       ProgramPackage pkg = iterator.next();
       if (repackagingConfiguration.isPackageInTargetLocation(pkg)) {
         for (DexProgramClass alreadyRepackagedClass : pkg) {
-          if (!appView.appInfo().isRepackagingAllowed(alreadyRepackagedClass)) {
+          if (!appView.appInfo().isRepackagingAllowed(alreadyRepackagedClass, appView)) {
             mappings.put(alreadyRepackagedClass.getType(), alreadyRepackagedClass.getType());
           }
         }
@@ -350,7 +350,6 @@ public class Repackaging {
       if (packageObfuscationMode.isRepackageClasses()) {
         return newPackageDescriptor;
       } else if (packageObfuscationMode.isMinification()) {
-        assert !proguardConfiguration.hasApplyMappingFile();
         // Always keep top-level classes since their packages can never be minified.
         if (pkg.getPackageDescriptor().equals("")
             || proguardConfiguration.getKeepPackageNamesPatterns().matches(pkg)

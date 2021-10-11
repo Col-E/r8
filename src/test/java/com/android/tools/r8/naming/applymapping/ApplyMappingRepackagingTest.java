@@ -7,7 +7,7 @@ package com.android.tools.r8.naming.applymapping;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
@@ -102,16 +102,13 @@ public class ApplyMappingRepackagingTest extends TestBase {
                   assertThat(inspector.clazz(B.class), isPresentAndRenamed());
                   ClassSubject clazzA = inspector.clazz(A.class);
                   assertThat(clazzA, isPresent());
-                  // TODO(b/202194059): Should be baz
-                  assertNotEquals("baz", clazzA.getFinalName());
+                  assertEquals("baz", clazzA.getFinalName());
                   FieldSubject fieldA = clazzA.uniqueFieldWithName("fieldA");
                   assertThat(fieldA, isPresent());
-                  // TODO(b/202194059): Should be foo
-                  assertNotEquals("foo", fieldA.getFinalName());
+                  assertEquals("foo", fieldA.getFinalName());
                   MethodSubject methodA = clazzA.uniqueMethodWithName("methodA");
                   assertThat(methodA, isPresent());
-                  // TODO(b/202194059): Should be bar
-                  assertNotEquals("bar", methodA.getFinalName());
+                  assertEquals("bar", methodA.getFinalName());
                   assertThat(clazzA.uniqueFieldWithName("fieldB"), isPresentAndRenamed());
                   assertThat(clazzA.uniqueMethodWithName("methodB"), isPresentAndRenamed());
                 });

@@ -58,7 +58,7 @@ public class RepackagingConstraintGraph {
     // package descriptor.
     boolean hasPinnedItem = false;
     for (DexProgramClass clazz : pkg) {
-      boolean isPinned = !appView.appInfo().isRepackagingAllowed(clazz);
+      boolean isPinned = !appView.appInfo().isRepackagingAllowed(clazz, appView);
       Node classNode = createNode(clazz);
       if (isPinned) {
         pinnedNodes.add(classNode);

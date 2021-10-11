@@ -67,7 +67,6 @@ import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
-import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
@@ -703,6 +702,11 @@ public class R8 {
           MemberRebindingIdentityLensFactory.create(appView, executorService);
       appView.setGraphLens(memberRebindingLens);
 
+      // Read any -applymapping input to allow for repackaging to not relocate the classes.
+      timing.begin("read -applymapping file");
+      appView.loadApplyMappingSeedMapper();
+      timing.end();
+
       // Perform repackaging.
       if (options.isRepackagingEnabled()) {
         DirectMappedDexApplication.Builder appBuilder =
@@ -749,14 +753,11 @@ public class R8 {
       // Perform minification.
       NamingLens namingLens;
       if (options.getProguardConfiguration().hasApplyMappingFile()) {
-        SeedMapper seedMapper =
-            SeedMapper.seedMapperFromFile(
-                options.reporter, options.getProguardConfiguration().getApplyMappingFile());
         timing.begin("apply-mapping");
-        namingLens =
-            new ProguardMapMinifier(appView.withLiveness(), seedMapper)
-                .run(executorService, timing);
+        namingLens = new ProguardMapMinifier(appView.withLiveness()).run(executorService, timing);
         timing.end();
+        // Clear the applymapping data
+        appView.clearApplyMappingSeedMapper();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
         namingLens = new Minifier(appView.withLiveness()).run(executorService, timing);

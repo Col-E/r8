@@ -408,9 +408,7 @@ public class ProguardConfiguration {
         synthesizeKeepRulesForRecompilation();
       }
 
-      if (packageObfuscationMode == PackageObfuscationMode.NONE
-          && obfuscating
-          && !hasApplyMappingFile()) {
+      if (packageObfuscationMode == PackageObfuscationMode.NONE && obfuscating) {
         packageObfuscationMode = PackageObfuscationMode.MINIFICATION;
       }
 
