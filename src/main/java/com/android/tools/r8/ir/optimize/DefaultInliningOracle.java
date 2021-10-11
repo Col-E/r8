@@ -208,13 +208,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // If we do this it can increase the size of the main dex dependent classes.
     if (reason != Reason.FORCE
         && inliner.mainDexInfo.disallowInliningIntoContext(
-            appView.appInfo(), method, singleTarget, appView.getSyntheticItems())) {
+            appView, method, singleTarget, appView.getSyntheticItems())) {
       whyAreYouNotInliningReporter.reportInlineeRefersToClassesNotInMainDex();
       return false;
     }
     assert reason != Reason.FORCE
         || !inliner.mainDexInfo.disallowInliningIntoContext(
-            appView.appInfo(), method, singleTarget, appView.getSyntheticItems());
+            appView, method, singleTarget, appView.getSyntheticItems());
     return true;
   }
 

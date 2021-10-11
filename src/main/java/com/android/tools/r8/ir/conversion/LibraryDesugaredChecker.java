@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
@@ -112,15 +111,15 @@ public class LibraryDesugaredChecker {
       if (!isLibraryDesugared) {
         isLibraryDesugared =
             method.registerCodeReferencesWithResult(
-                new IsLibraryDesugaredUseRegistry(method, appView.dexItemFactory()));
+                new IsLibraryDesugaredUseRegistry(appView, method));
       }
     }
 
     private class IsLibraryDesugaredUseRegistry
         extends UseRegistryWithResult<Boolean, ProgramMethod> {
 
-      public IsLibraryDesugaredUseRegistry(ProgramMethod context, DexItemFactory factory) {
-        super(context, factory, false);
+      public IsLibraryDesugaredUseRegistry(AppView<?> appView, ProgramMethod context) {
+        super(appView, context, false);
       }
 
       private boolean registerField(DexField field) {

@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.GraphLens.getIdentityLens;
-
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -12,8 +10,8 @@ import java.util.ListIterator;
 
 public abstract class UseRegistry<T extends Definition> {
 
+  private final AppView<?> appView;
   private final T context;
-  private final DexItemFactory factory;
 
   private TraversalContinuation continuation = TraversalContinuation.CONTINUE;
 
@@ -22,9 +20,9 @@ public abstract class UseRegistry<T extends Definition> {
     NOT_ARGUMENT_TO_LAMBDA_METAFACTORY
   }
 
-  public UseRegistry(T context, DexItemFactory factory) {
+  public UseRegistry(AppView<?> appView, T context) {
+    this.appView = appView;
     this.context = context;
-    this.factory = factory;
   }
 
   public final void accept(ProgramMethod method) {
@@ -32,7 +30,7 @@ public abstract class UseRegistry<T extends Definition> {
   }
 
   public DexItemFactory dexItemFactory() {
-    return factory;
+    return appView.dexItemFactory();
   }
 
   public void doBreak() {
@@ -64,12 +62,12 @@ public abstract class UseRegistry<T extends Definition> {
   }
 
   public void registerInvokeSpecial(DexMethod method) {
-    // TODO(b/201984767, b/202381923): This needs to supply the right graph lens and original
-    //  context to produce correct invoke types for invoke-special instructions.
+    // TODO(b/201984767, b/202381923): This needs to supply the right original context to produce
+    //  correct invoke types for invoke-special instructions.
     DexClassAndMethod context = getMethodContext();
     Invoke.Type type =
         Invoke.Type.fromInvokeSpecial(
-            method, context, dexItemFactory(), getIdentityLens(), context::getHolderType);
+            method, context, dexItemFactory(), appView.graphLens(), context::getHolderType);
     if (type.isDirect()) {
       registerInvokeDirect(method);
     } else {
@@ -184,7 +182,7 @@ public abstract class UseRegistry<T extends Definition> {
 
   public void registerCallSite(DexCallSite callSite) {
     boolean isLambdaMetaFactory =
-        factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+        dexItemFactory().isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
 
     if (!isLambdaMetaFactory) {
       registerMethodHandle(

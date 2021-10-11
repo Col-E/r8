@@ -1860,7 +1860,7 @@ public class VerticalClassMerger {
         // Constructors can have references beyond the root main dex classes. This can increase the
         // size of the main dex dependent classes and we should bail out.
         if (mainDexInfo.disallowInliningIntoContext(
-            appView.appInfo(), context, method, appView.getSyntheticItems())) {
+            appView, context, method, appView.getSyntheticItems())) {
           return AbortReason.MAIN_DEX_ROOT_OUTSIDE_REFERENCE;
         }
         return null;
@@ -1893,11 +1893,6 @@ public class VerticalClassMerger {
 
     @Override
     public DexField getOriginalFieldSignature(DexField field) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public DexMethod getOriginalMethodSignature(DexMethod method) {
       throw new Unreachable();
     }
 
@@ -1986,7 +1981,7 @@ public class VerticalClassMerger {
 
     public IllegalAccessDetector(
         AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
-      super(context, appView.dexItemFactory(), false);
+      super(appView, context, false);
       this.appView = appView;
     }
 

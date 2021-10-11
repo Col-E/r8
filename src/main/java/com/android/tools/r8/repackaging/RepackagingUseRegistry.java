@@ -46,7 +46,7 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
       RepackagingConstraintGraph constraintGraph,
       ProgramDefinition context,
       RepackagingConstraintGraph.Node missingTypeNode) {
-    super(context, appView.dexItemFactory());
+    super(appView, context);
     this.appInfo = appView.appInfo();
     this.options = appView.options();
     this.constraintGraph = constraintGraph;

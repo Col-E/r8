@@ -112,7 +112,7 @@ abstract class CallGraphBuilderBase {
     private final Predicate<ProgramMethod> targetTester;
 
     InvokeExtractor(Node currentMethod, Predicate<ProgramMethod> targetTester) {
-      super(currentMethod.getProgramMethod(), appView.dexItemFactory());
+      super(appView, currentMethod.getProgramMethod());
       this.currentMethod = currentMethod;
       this.targetTester = targetTester;
     }

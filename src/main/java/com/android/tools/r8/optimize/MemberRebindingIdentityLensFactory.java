@@ -116,7 +116,7 @@ public class MemberRebindingIdentityLensFactory {
         MethodAccessInfoCollection.ConcurrentBuilder methodAccessInfoCollectionBuilder,
         Set<DexField> seenFieldReferences,
         Set<DexMethod> seenMethodReferences) {
-      super(context, appView.dexItemFactory());
+      super(appView, context);
       this.appInfo = appView.appInfo();
       this.fieldAccessInfoCollection = fieldAccessInfoCollection;
       this.methodAccessInfoCollectionBuilder = methodAccessInfoCollectionBuilder;

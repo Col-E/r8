@@ -192,6 +192,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         appInfo, WholeProgramOptimizations.OFF, defaultPrefixRewritingMapper(appInfo));
   }
 
+  public static AppView<AppInfoWithClassHierarchy> createForTracer(
+      AppInfoWithClassHierarchy appInfo) {
+    return new AppView<>(
+        appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
+  }
+
   public AbstractValueFactory abstractValueFactory() {
     return abstractValueFactory;
   }

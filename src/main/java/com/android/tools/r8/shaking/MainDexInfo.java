@@ -8,6 +8,7 @@ import static com.android.tools.r8.shaking.MainDexInfo.MainDexGroup.MAIN_DEX_ROO
 import static com.android.tools.r8.utils.LensUtils.rewriteAndApplyIfNotPrimitiveType;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -201,7 +202,7 @@ public class MainDexInfo {
   }
 
   public boolean disallowInliningIntoContext(
-      AppInfoWithClassHierarchy appInfo,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramDefinition context,
       ProgramMethod method,
       SyntheticItems synthetics) {
@@ -215,11 +216,11 @@ public class MainDexInfo {
     }
     if (mainDexGroupInternal == MainDexGroup.MAIN_DEX_LIST) {
       return MainDexDirectReferenceTracer.hasReferencesOutsideMainDexClasses(
-          appInfo, method, t -> !isFromList(t, synthetics));
+          appView, method, t -> !isFromList(t, synthetics));
     }
     assert mainDexGroupInternal == MAIN_DEX_ROOT;
     return MainDexDirectReferenceTracer.hasReferencesOutsideMainDexClasses(
-        appInfo, method, t -> !isTracedRoot(t, synthetics));
+        appView, method, t -> !isTracedRoot(t, synthetics));
   }
 
   public boolean isEmpty() {

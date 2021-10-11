@@ -290,7 +290,7 @@ public class TrivialFieldAccessReprocessor {
   class TrivialFieldAccessUseRegistry extends UseRegistry<ProgramMethod> {
 
     TrivialFieldAccessUseRegistry(ProgramMethod method) {
-      super(method, appView.dexItemFactory());
+      super(appView, method);
     }
 
     private void registerFieldAccess(DexField reference, boolean isStatic, boolean isWrite) {

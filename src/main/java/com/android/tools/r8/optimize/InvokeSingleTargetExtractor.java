@@ -3,20 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class InvokeSingleTargetExtractor extends UseRegistry<ProgramMethod> {
 
   private InvokeKind kind = InvokeKind.NONE;
   private DexMethod target;
 
-  public InvokeSingleTargetExtractor(ProgramMethod context, DexItemFactory factory) {
-    super(context, factory);
+  public InvokeSingleTargetExtractor(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+    super(appView, context);
   }
 
   private void setTarget(DexMethod target, InvokeKind kind) {

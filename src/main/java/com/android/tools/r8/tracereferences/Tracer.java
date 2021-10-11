@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -54,24 +53,21 @@ import java.util.function.Predicate;
 
 public class Tracer {
 
-  private final AppInfoWithClassHierarchy appInfo;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DiagnosticsHandler diagnostics;
-  private final GraphLens graphLens;
-  private final InitClassLens initClassLens;
   private final Predicate<DexType> targetPredicate;
 
   Tracer(Set<String> targetDescriptors, AndroidApp inputApp, DiagnosticsHandler diagnostics)
       throws IOException {
     this(
-        AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-            new ApplicationReader(inputApp, new InternalOptions(), Timing.empty())
-                .read()
-                .toDirect(),
-            ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
-            MainDexInfo.none()),
+        AppView.createForTracer(
+            AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
+                new ApplicationReader(inputApp, new InternalOptions(), Timing.empty())
+                    .read()
+                    .toDirect(),
+                ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
+                MainDexInfo.none())),
         diagnostics,
-        GraphLens.getIdentityLens(),
-        InitClassLens.getThrowingInstance(),
         type -> targetDescriptors.contains(type.toDescriptorString()));
   }
 
@@ -79,30 +75,14 @@ public class Tracer {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       DiagnosticsHandler diagnostics,
       Predicate<DexType> targetPredicate) {
-    this(
-        appView.appInfo(),
-        diagnostics,
-        appView.graphLens(),
-        appView.initClassLens(),
-        targetPredicate);
-  }
-
-  private Tracer(
-      AppInfoWithClassHierarchy appInfo,
-      DiagnosticsHandler diagnostics,
-      GraphLens graphLens,
-      InitClassLens initClassLens,
-      Predicate<DexType> targetPredicate) {
-    this.appInfo = appInfo;
+    this.appView = appView;
     this.diagnostics = diagnostics;
-    this.graphLens = graphLens;
-    this.initClassLens = initClassLens;
     this.targetPredicate = targetPredicate;
   }
 
   public void run(TraceReferencesConsumer consumer) {
-    UseCollector useCollector = new UseCollector(appInfo, consumer, diagnostics, targetPredicate);
-    for (DexProgramClass clazz : appInfo.classes()) {
+    UseCollector useCollector = new UseCollector(appView, consumer, diagnostics, targetPredicate);
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       DefinitionContext classContext = DefinitionContextUtils.create(clazz);
       useCollector.registerSuperType(clazz, clazz.superType, classContext);
       for (DexType implementsType : clazz.getInterfaces()) {
@@ -112,7 +92,7 @@ public class Tracer {
       clazz.forEachProgramMethod(
           method -> {
             useCollector.registerMethod(method);
-            useCollector.traceCode(method, graphLens, initClassLens);
+            useCollector.traceCode(method);
           });
     }
     consumer.finished(diagnostics);
@@ -122,7 +102,7 @@ public class Tracer {
   // graph lens should only be applied to the code.
   static class UseCollector {
 
-    private final AppInfoWithClassHierarchy appInfo;
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final DexItemFactory factory;
     private final TraceReferencesConsumer consumer;
     private final DiagnosticsHandler diagnostics;
@@ -133,15 +113,23 @@ public class Tracer {
     private final Set<MethodReference> missingMethods = new HashSet<>();
 
     UseCollector(
-        AppInfoWithClassHierarchy appInfo,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         TraceReferencesConsumer consumer,
         DiagnosticsHandler diagnostics,
         Predicate<DexType> targetPredicate) {
-      this.appInfo = appInfo;
-      this.factory = appInfo.dexItemFactory();
+      this.appView = appView;
+      this.factory = appView.dexItemFactory();
       this.consumer = consumer;
       this.diagnostics = diagnostics;
       this.targetPredicate = targetPredicate;
+    }
+
+    AppInfoWithClassHierarchy appInfo() {
+      return appView.appInfo();
+    }
+
+    GraphLens graphLens() {
+      return appView.graphLens();
     }
 
     private boolean isTargetType(DexType type) {
@@ -168,7 +156,7 @@ public class Tracer {
 
     private void addClassType(DexType type, DefinitionContext referencedFrom) {
       assert type.isClassType();
-      DexClass clazz = appInfo.definitionFor(type);
+      DexClass clazz = appView.definitionFor(type);
       if (clazz != null) {
         addClass(clazz, referencedFrom);
       } else {
@@ -242,7 +230,7 @@ public class Tracer {
       addTypes(method.getParameters(), referencedFrom);
       addType(method.getReturnType(), referencedFrom);
       for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
-        if (annotation.getAnnotationType() == appInfo.dexItemFactory().annotationThrows) {
+        if (annotation.getAnnotationType() == factory.annotationThrows) {
           DexValueArray dexValues = annotation.annotation.elements[0].value.asDexValueArray();
           for (DexValue dexValType : dexValues.getValues()) {
             addType(dexValType.asDexValueType().value, referencedFrom);
@@ -251,9 +239,9 @@ public class Tracer {
       }
 
       DexClassAndMethod superTarget =
-          appInfo
+          appInfo()
               .resolveMethodOn(method.getHolder(), method.getReference())
-              .lookupInvokeSpecialTarget(method.getHolder(), appInfo);
+              .lookupInvokeSpecialTarget(method.getHolder(), appInfo());
       if (superTarget != null
           && !superTarget.isProgramMethod()
           && isTargetType(superTarget.getHolderType())) {
@@ -261,8 +249,8 @@ public class Tracer {
       }
     }
 
-    private void traceCode(ProgramMethod method, GraphLens graphLens, InitClassLens initClassLens) {
-      method.registerCodeReferences(new MethodUseCollector(method, graphLens, initClassLens));
+    private void traceCode(ProgramMethod method) {
+      method.registerCodeReferences(new MethodUseCollector(method));
     }
 
     private void registerSuperType(
@@ -272,7 +260,7 @@ public class Tracer {
       clazz.forEachMethod(
           method -> {
             DexClassAndMethod resolvedMethod =
-                appInfo
+                appInfo()
                     .resolveMethodOn(superType, method.getReference(), superType != clazz.superType)
                     .getResolutionPair();
             if (resolvedMethod != null
@@ -285,15 +273,10 @@ public class Tracer {
 
     class MethodUseCollector extends UseRegistry<ProgramMethod> {
 
-      private final GraphLens graphLens;
-      private final InitClassLens initClassLens;
       private final DefinitionContext referencedFrom;
 
-      public MethodUseCollector(
-          ProgramMethod context, GraphLens graphLens, InitClassLens initClassLens) {
-        super(context, appInfo.dexItemFactory());
-        this.graphLens = graphLens;
-        this.initClassLens = initClassLens;
+      public MethodUseCollector(ProgramMethod context) {
+        super(appView, context);
         this.referencedFrom = DefinitionContextUtils.create(context);
       }
 
@@ -301,37 +284,37 @@ public class Tracer {
 
       @Override
       public void registerInvokeDirect(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeDirect(method, getContext());
+        MethodLookupResult lookupResult = graphLens().lookupInvokeDirect(method, getContext());
         assert lookupResult.getType().isDirect();
         DexMethod rewrittenMethod = lookupResult.getReference();
-        DexClass holder = appInfo.definitionFor(rewrittenMethod.getHolderType());
+        DexClass holder = appView.definitionFor(rewrittenMethod.getHolderType());
         handleRewrittenMethodReference(
             rewrittenMethod, rewrittenMethod.lookupMemberOnClass(holder));
       }
 
       @Override
       public void registerInvokeInterface(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeInterface(method, getContext());
+        MethodLookupResult lookupResult = graphLens().lookupInvokeInterface(method, getContext());
         assert lookupResult.getType().isInterface();
         handleInvokeWithDynamicDispatch(lookupResult);
       }
 
       @Override
       public void registerInvokeStatic(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeStatic(method, getContext());
+        MethodLookupResult lookupResult = graphLens().lookupInvokeStatic(method, getContext());
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
         handleRewrittenMethodResolution(
-            rewrittenMethod, appInfo.unsafeResolveMethodDueToDexFormat(rewrittenMethod));
+            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod));
       }
 
       @Override
       public void registerInvokeSuper(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeSuper(method, getContext());
+        MethodLookupResult lookupResult = graphLens().lookupInvokeSuper(method, getContext());
         assert lookupResult.getType().isSuper();
         DexMethod rewrittenMethod = lookupResult.getReference();
         MethodResolutionResult resolutionResult =
-            appInfo.unsafeResolveMethodDueToDexFormat(rewrittenMethod);
+            appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod);
         if (resolutionResult.isFailedResolution()
             && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
           handleRewrittenMethodResolution(rewrittenMethod, resolutionResult);
@@ -339,12 +322,12 @@ public class Tracer {
         }
         handleRewrittenMethodReference(
             rewrittenMethod,
-            resolutionResult.lookupInvokeSuperTarget(getContext().getHolder(), appInfo));
+            resolutionResult.lookupInvokeSuperTarget(getContext().getHolder(), appInfo()));
       }
 
       @Override
       public void registerInvokeVirtual(DexMethod method) {
-        MethodLookupResult lookupResult = graphLens.lookupInvokeVirtual(method, getContext());
+        MethodLookupResult lookupResult = graphLens().lookupInvokeVirtual(method, getContext());
         assert lookupResult.getType().isVirtual();
         handleInvokeWithDynamicDispatch(lookupResult);
       }
@@ -360,8 +343,8 @@ public class Tracer {
         handleRewrittenMethodResolution(
             method,
             lookupResult.getType().isInterface()
-                ? appInfo.resolveMethodOnInterface(method)
-                : appInfo.resolveMethodOnClass(method));
+                ? appInfo().resolveMethodOnInterface(method)
+                : appInfo().resolveMethodOnClass(method));
       }
 
       private void handleRewrittenMethodResolution(
@@ -417,8 +400,8 @@ public class Tracer {
 
       @Override
       public void registerInitClass(DexType clazz) {
-        DexType rewrittenClass = graphLens.lookupType(clazz);
-        DexField clinitField = initClassLens.getInitClassField(rewrittenClass);
+        DexType rewrittenClass = graphLens().lookupType(clazz);
+        DexField clinitField = appView.initClassLens().getInitClassField(rewrittenClass);
         handleRewrittenFieldReference(clinitField);
       }
 
@@ -443,7 +426,7 @@ public class Tracer {
       }
 
       private void handleFieldAccess(DexField field) {
-        FieldLookupResult lookupResult = graphLens.lookupFieldResult(field);
+        FieldLookupResult lookupResult = graphLens().lookupFieldResult(field);
         handleRewrittenFieldReference(lookupResult.getReference());
       }
 
@@ -451,7 +434,7 @@ public class Tracer {
         addType(field.getHolderType(), referencedFrom);
         addType(field.getType(), referencedFrom);
 
-        DexClassAndField resolvedField = appInfo.resolveField(field).getResolutionPair();
+        DexClassAndField resolvedField = appInfo().resolveField(field).getResolutionPair();
         if (resolvedField != null) {
           if (isTargetType(resolvedField.getHolderType())) {
             if (resolvedField.getHolderType() != field.getHolderType()) {
@@ -476,7 +459,7 @@ public class Tracer {
 
       @Override
       public void registerTypeReference(DexType type) {
-        addType(graphLens.lookupType(type), referencedFrom);
+        addType(graphLens().lookupType(type), referencedFrom);
       }
 
       // Call sites.
@@ -487,10 +470,10 @@ public class Tracer {
 
         // For lambdas that implement an interface, also keep the interface method by simulating an
         // invoke to it from the current context.
-        LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, getContext());
+        LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo(), getContext());
         if (descriptor != null) {
           for (DexType interfaceType : descriptor.interfaces) {
-            DexClass interfaceDefinition = appInfo.definitionFor(interfaceType);
+            DexClass interfaceDefinition = appView.definitionFor(interfaceType);
             if (interfaceDefinition != null) {
               DexEncodedMethod mainMethod =
                   interfaceDefinition.lookupMethod(descriptor.getMainMethod());

@@ -135,7 +135,7 @@ public class MainDexListBuilder {
   }
 
   private void traceMainDexDirectDependencies() {
-    new MainDexDirectReferenceTracer(appInfo(), this::addDirectDependency).run(roots);
+    new MainDexDirectReferenceTracer(appView, this::addDirectDependency).run(roots);
   }
 
   private void addAnnotationsWithEnum(DexProgramClass clazz) {

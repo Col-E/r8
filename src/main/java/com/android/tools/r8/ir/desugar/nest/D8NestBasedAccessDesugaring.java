@@ -115,7 +115,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
     NestBasedAccessDesugaringUseRegistry(
         ClasspathMethod context, NestBasedAccessDesugaringEventConsumer eventConsumer) {
-      super(context, appView.dexItemFactory());
+      super(appView, context);
       this.eventConsumer = eventConsumer;
     }
 

@@ -8,12 +8,12 @@ public abstract class UseRegistryWithResult<R, T extends Definition> extends Use
 
   private R result;
 
-  public UseRegistryWithResult(T context, DexItemFactory factory) {
-    super(context, factory);
+  public UseRegistryWithResult(AppView<?> appView, T context) {
+    super(appView, context);
   }
 
-  public UseRegistryWithResult(T context, DexItemFactory factory, R defaultResult) {
-    super(context, factory);
+  public UseRegistryWithResult(AppView<?> appView, T context, R defaultResult) {
+    super(appView, context);
     this.result = defaultResult;
   }
 

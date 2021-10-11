@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
@@ -30,24 +31,24 @@ public class MainDexDirectReferenceTracer {
   private final AnnotationDirectReferenceCollector annotationDirectReferenceCollector =
       new AnnotationDirectReferenceCollector();
 
-  private final AppInfoWithClassHierarchy appInfo;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Consumer<DexType> consumer;
 
   public MainDexDirectReferenceTracer(
-      AppInfoWithClassHierarchy appInfo, Consumer<DexType> consumer) {
-    this.appInfo = appInfo;
+      AppView<? extends AppInfoWithClassHierarchy> appView, Consumer<DexType> consumer) {
+    this.appView = appView;
     this.consumer = consumer;
   }
 
   public void run(Set<DexType> roots) {
     for (DexType type : roots) {
-      DexProgramClass clazz = asProgramClassOrNull(appInfo.definitionFor(type));
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
       // Should only happen for library classes, which are filtered out.
       assert clazz != null;
       consumer.accept(type);
       // Super and interfaces are live, no need to add them.
       if (!DexAnnotation.hasSynthesizedClassAnnotation(
-          clazz.annotations(), appInfo.dexItemFactory())) {
+          clazz.annotations(), appView.dexItemFactory())) {
         traceAnnotationsDirectDependencies(clazz.annotations());
       }
       clazz.forEachField(field -> consumer.accept(field.getReference().type));
@@ -65,19 +66,23 @@ public class MainDexDirectReferenceTracer {
   }
 
   public static boolean hasReferencesOutsideMainDexClasses(
-      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Predicate<DexType> isOutside) {
-    return getFirstReferenceOutsideFromCode(appInfo, method, isOutside) != null;
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod method,
+      Predicate<DexType> isOutside) {
+    return getFirstReferenceOutsideFromCode(appView, method, isOutside) != null;
   }
 
   public static DexProgramClass getFirstReferenceOutsideFromCode(
-      AppInfoWithClassHierarchy appInfo, ProgramMethod method, Predicate<DexType> isOutside) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod method,
+      Predicate<DexType> isOutside) {
     Box<DexProgramClass> result = new Box<>();
     new MainDexDirectReferenceTracer(
-            appInfo,
+            appView,
             type -> {
-              DexType baseType = type.toBaseType(appInfo.dexItemFactory());
+              DexType baseType = type.toBaseType(appView.dexItemFactory());
               if (baseType.isClassType() && isOutside.test(baseType)) {
-                DexClass cls = appInfo.definitionFor(baseType);
+                DexClass cls = appView.definitionFor(baseType);
                 if (cls != null && cls.isProgramClass()) {
                   result.set(cls.asProgramClass());
                 }
@@ -102,7 +107,7 @@ public class MainDexDirectReferenceTracer {
   private class DirectReferencesCollector extends UseRegistry<ProgramMethod> {
 
     private DirectReferencesCollector(ProgramMethod context) {
-      super(context, appInfo.dexItemFactory());
+      super(appView, context);
     }
 
     @Override

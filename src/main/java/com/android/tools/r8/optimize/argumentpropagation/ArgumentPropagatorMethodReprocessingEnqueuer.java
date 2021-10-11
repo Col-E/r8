@@ -134,7 +134,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
         AppView<AppInfoWithLiveness> appView,
         ProgramMethod context,
         ArgumentPropagatorGraphLens graphLens) {
-      super(context, appView.dexItemFactory(), false);
+      super(appView, context, false);
       this.appView = appView;
       this.graphLens = graphLens;
     }

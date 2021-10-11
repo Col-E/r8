@@ -33,7 +33,7 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
       ProgramMethod context,
       Enqueuer enqueuer,
       AndroidApiLevelCompute computeApiLevel) {
-    super(context, appView.dexItemFactory());
+    super(appView, context);
     this.appView = appView;
     this.enqueuer = enqueuer;
     this.computeApiLevel = computeApiLevel;
