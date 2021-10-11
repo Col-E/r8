@@ -64,7 +64,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private AppServices appServices;
   private final DontWarnConfiguration dontWarnConfiguration;
   private final WholeProgramOptimizations wholeProgramOptimizations;
-  private GraphLens graphLens;
+  private GraphLens codeLens = GraphLens.getIdentityLens();
+  private GraphLens graphLens = GraphLens.getIdentityLens();
   private InitClassLens initClassLens;
   private ProguardCompatibilityActions proguardCompatibilityActions;
   private RootSet rootSet;
@@ -119,7 +120,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.appInfo = appInfo;
     this.dontWarnConfiguration = DontWarnConfiguration.create(options().getProguardConfiguration());
     this.wholeProgramOptimizations = wholeProgramOptimizations;
-    this.graphLens = GraphLens.getIdentityLens();
     this.initClassLens = InitClassLens.getThrowingInstance();
     this.rewritePrefix = mapper;
 
@@ -260,7 +260,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public GraphLens clearCodeRewritings() {
-    return graphLens = graphLens.withCodeRewritingsApplied(dexItemFactory());
+    GraphLens newLens = graphLens.withCodeRewritingsApplied(dexItemFactory());
+    setGraphLens(newLens);
+    return newLens;
   }
 
   public AppServices appServices() {
@@ -431,6 +433,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return defaultValue;
   }
 
+  public GraphLens codeLens() {
+    return codeLens;
+  }
+
+  private void setCodeLens(GraphLens codeLens) {
+    this.codeLens = codeLens;
+  }
+
   public GraphLens graphLens() {
     return graphLens;
   }
@@ -439,6 +449,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public boolean setGraphLens(GraphLens graphLens) {
     if (graphLens != this.graphLens) {
       this.graphLens = graphLens;
+
+      // TODO(b/202368283): Currently, we always set an applied lens or a clear code rewriting lens
+      //  when the graph lens has been fully applied to all code. Therefore, we implicitly update
+      //  the code lens when these lenses are set. Now that we have an explicit code lens, the clear
+      //  code rewriting lens is redundant and could be removed.
+      if (graphLens.isAppliedLens() || graphLens.isClearCodeRewritingLens()) {
+        setCodeLens(graphLens);
+      }
       return true;
     }
     return false;

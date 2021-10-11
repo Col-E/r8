@@ -50,8 +50,7 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/166210854): Fails but should not.
-        .assertFailure();
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

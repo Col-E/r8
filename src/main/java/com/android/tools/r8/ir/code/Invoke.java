@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import org.objectweb.asm.Opcodes;
 
 public abstract class Invoke extends Instruction {
@@ -59,22 +58,16 @@ public abstract class Invoke extends Instruction {
     }
 
     public static Type fromCfOpcode(
-        int opcode,
-        DexMethod invokedMethod,
-        DexClassAndMethod context,
-        DexItemFactory dexItemFactory,
-        GraphLens graphLens,
-        Supplier<DexType> originalContextProvider) {
+        int opcode, DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView) {
       switch (opcode) {
         case Opcodes.INVOKEINTERFACE:
           return Type.INTERFACE;
         case Opcodes.INVOKESPECIAL:
-          return fromInvokeSpecial(
-              invokedMethod, context, dexItemFactory, graphLens, originalContextProvider);
+          return fromInvokeSpecial(invokedMethod, context, appView);
         case Opcodes.INVOKESTATIC:
           return Type.STATIC;
         case Opcodes.INVOKEVIRTUAL:
-          return dexItemFactory.polymorphicMethods.isPolymorphicInvoke(invokedMethod)
+          return appView.dexItemFactory().polymorphicMethods.isPolymorphicInvoke(invokedMethod)
               ? Type.POLYMORPHIC
               : Type.VIRTUAL;
         default:
@@ -83,17 +76,16 @@ public abstract class Invoke extends Instruction {
     }
 
     public static Type fromInvokeSpecial(
-        DexMethod invokedMethod,
-        DexClassAndMethod context,
-        DexItemFactory dexItemFactory,
-        GraphLens graphLens,
-        Supplier<DexType> originalContextProvider) {
-      if (invokedMethod.isInstanceInitializer(dexItemFactory)) {
+        DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView) {
+      if (invokedMethod.isInstanceInitializer(appView.dexItemFactory())) {
         return Type.DIRECT;
       }
 
-      DexType originalContext = originalContextProvider.get();
-      if (invokedMethod.getHolderType() != originalContext) {
+      GraphLens graphLens = appView.graphLens();
+      GraphLens codeLens = appView.codeLens();
+      DexMethod originalContext =
+          graphLens.getOriginalMethodSignature(context.getReference(), codeLens);
+      if (invokedMethod.getHolderType() != originalContext.getHolderType()) {
         return Type.SUPER;
       }
 
@@ -104,7 +96,26 @@ public abstract class Invoke extends Instruction {
         return Type.SUPER;
       }
 
-      if (context.getHolder().isInterface()) {
+      // If the definition was moved to the current context from a super class due to vertical class
+      // merging, then this used to be an invoke-super.
+      DexType originalHolderOfDefinition =
+          graphLens.getOriginalMethodSignature(definition.getReference(), codeLens).getHolderType();
+      if (originalHolderOfDefinition != originalContext.getHolderType()) {
+        if (appView.hasVerticallyMergedClasses()
+            && appView
+                .verticallyMergedClasses()
+                .hasBeenMergedIntoSubtype(originalHolderOfDefinition)) {
+          return Type.SUPER;
+        }
+      }
+
+      boolean originalContextIsInterface =
+          context.getHolder().isInterface()
+              || (appView.hasVerticallyMergedClasses()
+                  && appView
+                      .verticallyMergedClasses()
+                      .hasInterfaceBeenMergedIntoSubtype(originalContext.getHolderType()));
+      if (originalContextIsInterface) {
         // On interfaces invoke-special should be mapped to invoke-super if the invoke-special
         // instruction is used to target a default interface method.
         if (definition.belongsToVirtualPool()) {
@@ -113,9 +124,7 @@ public abstract class Invoke extends Instruction {
       } else {
         // Due to desugaring of invoke-special instructions that target virtual methods, this should
         // never target a virtual method.
-        // TODO(b/201984767): Reenable this assert. The assert does not always hold when this method
-        //  is called from the UseRegistry and there is a non-empty graph lens.
-        // assert definition.isPrivate() || lookupResult.getType().isVirtual();
+        assert definition.isPrivate() || lookupResult.getType().isVirtual();
       }
 
       return Type.DIRECT;

@@ -469,6 +469,10 @@ public abstract class GraphLens {
     return false;
   }
 
+  public boolean isClearCodeRewritingLens() {
+    return false;
+  }
+
   public abstract boolean isIdentityLens();
 
   public boolean isMemberRebindingLens() {
@@ -968,6 +972,11 @@ public abstract class GraphLens {
       return this != applied
           ? getPrevious().getRenamedMethodSignature(originalMethod, applied)
           : originalMethod;
+    }
+
+    @Override
+    public boolean isClearCodeRewritingLens() {
+      return true;
     }
 
     @Override

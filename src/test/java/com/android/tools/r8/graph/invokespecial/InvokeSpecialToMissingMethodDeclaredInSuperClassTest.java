@@ -48,7 +48,7 @@ public class InvokeSpecialToMissingMethodDeclaredInSuperClassTest extends TestBa
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+        .assertSuccessWithOutputLines("A.foo()");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

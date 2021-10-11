@@ -17,13 +17,19 @@ import java.util.function.BiConsumer;
 public class VerticallyMergedClasses implements MergedClasses {
 
   private final BidirectionalManyToOneMap<DexType, DexType> mergedClasses;
+  private final BidirectionalManyToOneMap<DexType, DexType> mergedInterfaces;
 
-  public VerticallyMergedClasses(BidirectionalManyToOneMap<DexType, DexType> mergedClasses) {
+  public VerticallyMergedClasses(
+      BidirectionalManyToOneMap<DexType, DexType> mergedClasses,
+      BidirectionalManyToOneMap<DexType, DexType> mergedInterfaces) {
     this.mergedClasses = mergedClasses;
+    this.mergedInterfaces = mergedInterfaces;
   }
 
   public static VerticallyMergedClasses empty() {
-    return new VerticallyMergedClasses(new EmptyBidirectionalOneToOneMap<>());
+    EmptyBidirectionalOneToOneMap<DexType, DexType> emptyMap =
+        new EmptyBidirectionalOneToOneMap<>();
+    return new VerticallyMergedClasses(emptyMap, emptyMap);
   }
 
   @Override
@@ -50,6 +56,10 @@ public class VerticallyMergedClasses implements MergedClasses {
 
   public boolean hasBeenMergedIntoSubtype(DexType type) {
     return mergedClasses.containsKey(type);
+  }
+
+  public boolean hasInterfaceBeenMergedIntoSubtype(DexType type) {
+    return mergedInterfaces.containsKey(type);
   }
 
   public boolean isEmpty() {

@@ -102,14 +102,7 @@ public class CfInvoke extends CfInstruction {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    Invoke.Type invokeType =
-        Invoke.Type.fromCfOpcode(
-            opcode,
-            method,
-            context,
-            dexItemFactory,
-            graphLens,
-            () -> context.getDefinition().getCode().asCfCode().getOriginalHolder());
+    Invoke.Type invokeType = Invoke.Type.fromCfOpcode(opcode, method, context, appView);
     MethodLookupResult lookup = graphLens.lookupMethod(method, context.getReference(), invokeType);
     DexMethod rewrittenMethod = lookup.getReference();
     String owner = namingLens.lookupInternalName(rewrittenMethod.holder);
@@ -221,13 +214,7 @@ public class CfInvoke extends CfInstruction {
           AppView<?> appView = builder.appView;
           ProgramMethod context = builder.getProgramMethod();
           canonicalMethod = method;
-          type =
-              Invoke.Type.fromInvokeSpecial(
-                  method,
-                  context,
-                  appView.dexItemFactory(),
-                  appView.graphLens(),
-                  code::getOriginalHolder);
+          type = Invoke.Type.fromInvokeSpecial(method, context, appView);
           break;
         }
       case Opcodes.INVOKESTATIC:
@@ -257,13 +244,7 @@ public class CfInvoke extends CfInstruction {
       builder.addMoveResult(state.push(method.getReturnType()).register);
     }
     assert type
-        == Invoke.Type.fromCfOpcode(
-            opcode,
-            method,
-            builder.getProgramMethod(),
-            builder.dexItemFactory(),
-            builder.appView.graphLens(),
-            code::getOriginalHolder);
+        == Invoke.Type.fromCfOpcode(opcode, method, builder.getProgramMethod(), builder.appView);
   }
 
   @Override

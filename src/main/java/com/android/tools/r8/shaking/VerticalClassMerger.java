@@ -231,6 +231,9 @@ public class VerticalClassMerger {
   private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedClasses =
       BidirectionalManyToOneHashMap.newIdentityHashMap();
 
+  private final MutableBidirectionalManyToOneMap<DexType, DexType> mergedInterfaces =
+      BidirectionalManyToOneHashMap.newIdentityHashMap();
+
   // Set of types that must not be merged into their subtype.
   private final Set<DexType> pinnedTypes = Sets.newIdentityHashSet();
 
@@ -701,7 +704,8 @@ public class VerticalClassMerger {
     }
     timing.end();
 
-    VerticallyMergedClasses verticallyMergedClasses = new VerticallyMergedClasses(mergedClasses);
+    VerticallyMergedClasses verticallyMergedClasses =
+        new VerticallyMergedClasses(mergedClasses, mergedInterfaces);
     appView.setVerticallyMergedClasses(verticallyMergedClasses);
     if (verticallyMergedClasses.isEmpty()) {
       return null;
@@ -1177,6 +1181,9 @@ public class VerticalClassMerger {
       source.clearStaticFields();
       // Step 5: Record merging.
       mergedClasses.put(source.type, target.type);
+      if (source.isInterface()) {
+        mergedInterfaces.put(source.type, target.type);
+      }
       assert !abortMerge;
       assert GenericSignatureCorrectnessHelper.createForVerification(
               appView, GenericSignatureContextBuilder.createForSingleClass(appView, target))

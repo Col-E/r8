@@ -53,8 +53,7 @@ public class InvokeSpecialForNonDeclaredInvokeVirtualTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/166210854): Fails but should not.
-        .assertFailure();
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private byte[] getClassCWithTransformedInvoked() throws IOException {
