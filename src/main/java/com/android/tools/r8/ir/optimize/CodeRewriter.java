@@ -3449,10 +3449,14 @@ public class CodeRewriter {
       }
 
       Value array = arrayLength.array().getAliasedValue();
-      if (array.isPhi() || !array.isNeverNull() || array.hasLocalInfo()) {
+      if (array.isPhi() || !arrayLength.array().isNeverNull() || array.hasLocalInfo()) {
         continue;
       }
 
+      AbstractValue abstractValue = array.getAbstractValue(appView, code.context());
+      if (!abstractValue.isKnownLengthArrayValue() && !array.isNeverNull()) {
+        continue;
+      }
       Instruction arrayDefinition = array.getDefinition();
       assert arrayDefinition != null;
 
@@ -3462,9 +3466,14 @@ public class CodeRewriter {
         arrayLength.outValue().replaceUsers(size);
         iterator.removeOrReplaceByDebugLocalRead();
       } else if (arrayDefinition.isNewArrayFilledData()) {
-        int size = (int) arrayDefinition.asNewArrayFilledData().size;
-        ConstNumber constSize = code.createIntConstant(size);
-        iterator.replaceCurrentInstruction(constSize);
+        long size = arrayDefinition.asNewArrayFilledData().size;
+        if (size > Integer.MAX_VALUE) {
+          continue;
+        }
+        iterator.replaceCurrentInstructionWithConstInt(code, (int) size);
+      } else if (abstractValue.isKnownLengthArrayValue()) {
+        iterator.replaceCurrentInstructionWithConstInt(
+            code, abstractValue.asKnownLengthArrayValue().getLength());
       } else {
         continue;
       }

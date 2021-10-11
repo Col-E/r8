@@ -18,9 +18,15 @@ public class AbstractValueFactory {
   private ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues = new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexString, SingleStringValue> singleStringValues =
       new ConcurrentHashMap<>();
+  private ConcurrentHashMap<Integer, KnownLengthArrayValue> knownArrayLengthValues =
+      new ConcurrentHashMap<>();
 
   public SingleConstClassValue createSingleConstClassValue(DexType type) {
     return singleConstClassValues.computeIfAbsent(type, SingleConstClassValue::new);
+  }
+
+  public AbstractValue createKnownLengthArrayValue(int length) {
+    return knownArrayLengthValues.computeIfAbsent(length, KnownLengthArrayValue::new);
   }
 
   public SingleFieldValue createSingleFieldValue(DexField field, ObjectState state) {

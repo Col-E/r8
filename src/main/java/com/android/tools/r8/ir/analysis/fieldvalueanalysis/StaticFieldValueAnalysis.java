@@ -188,7 +188,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   private AbstractValue getOrComputeAbstractValue(Value value, DexEncodedField field) {
     Value root = value.getAliasedValue();
     AbstractValue abstractValue = root.getAbstractValue(appView, context);
-    if (abstractValue.isUnknown()) {
+    if (!abstractValue.isSingleValue()) {
       return computeSingleFieldValue(field, root);
     }
     return abstractValue;
