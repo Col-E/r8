@@ -5,9 +5,12 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.classhierarchy.MethodOverridesCollector;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -55,13 +58,22 @@ public abstract class CallSiteInformation {
     private final Set<DexMethod> doubleCallSite = Sets.newIdentityHashSet();
 
     CallGraphBasedCallSiteInformation(AppView<AppInfoWithLiveness> appView, CallGraph graph) {
+      ProgramMethodSet pinned =
+          MethodOverridesCollector.findAllMethodsAndOverridesThatMatches(
+              appView,
+              ImmediateProgramSubtypingInfo.create(appView),
+              appView.appInfo().classes(),
+              method ->
+                  appView.getKeepInfo(method).isPinned(appView.options())
+                      || appView.appInfo().isMethodTargetedByInvokeDynamic(method));
+
       for (Node node : graph.nodes) {
         ProgramMethod method = node.getProgramMethod();
         DexMethod reference = method.getReference();
 
         // For non-pinned methods and methods that override library methods we do not know the exact
         // number of call sites.
-        if (appView.appInfo().isPinned(reference)) {
+        if (pinned.contains(method)) {
           continue;
         }
 
