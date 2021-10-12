@@ -391,7 +391,7 @@ public class RecordDesugaring
     assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(getFieldsAsObjects) != null;
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
-    instructions.add(new CfConstClass(recordInvokeDynamic.getRecordClass().type));
+    instructions.add(new CfConstClass(recordInvokeDynamic.getRecordClass().type, true));
     instructions.add(new CfConstString(recordInvokeDynamic.getFieldNames()));
     ProgramMethod programMethod =
         synthesizeRecordHelper(

@@ -67,6 +67,22 @@ public class RecordShrinkFieldTest extends TestBase {
   }
 
   @Test
+  public void testR8Compat() throws Exception {
+    testForR8Compat(parameters.getBackend())
+        .addProgramClassFileData(PROGRAM_DATA)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_TYPE)
+        .addKeepRules(
+            "-keepclassmembers,allowshrinking,allowoptimization class"
+                + " records.RecordShrinkField$Person { <fields>; }")
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .compile()
+        .inspect(this::assertSingleField)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8);
+  }
+
+  @Test
   public void testR8CfThenDex() throws Exception {
     Path desugared =
         testForR8(Backend.CF)

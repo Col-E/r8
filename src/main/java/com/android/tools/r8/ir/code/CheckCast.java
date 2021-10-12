@@ -30,14 +30,20 @@ import com.android.tools.r8.utils.InternalOptions;
 public class CheckCast extends Instruction {
 
   private final DexType type;
+  private final boolean ignoreCompatRules;
 
   // A CheckCast dex instruction takes only one register containing a value and changes
   // the associated type information for that value. In the IR we let the CheckCast
   // instruction define a new value. During register allocation we then need to arrange it
   // so that the source and destination are assigned the same register.
   public CheckCast(Value dest, Value value, DexType type) {
+    this(dest, value, type, false);
+  }
+
+  public CheckCast(Value dest, Value value, DexType type, boolean ignoreCompatRules) {
     super(dest, value);
     this.type = type;
+    this.ignoreCompatRules = ignoreCompatRules;
   }
 
   public static Builder builder() {
@@ -63,6 +69,11 @@ public class CheckCast extends Instruction {
     }
     ClassTypeElement inClassType = inType.asClassType();
     return type != inClassType.getClassType();
+  }
+
+  @Override
+  public boolean ignoreCompatRules() {
+    return ignoreCompatRules;
   }
 
   @Override
@@ -107,7 +118,7 @@ public class CheckCast extends Instruction {
   }
 
   com.android.tools.r8.code.CheckCast createCheckCast(int register) {
-    return new com.android.tools.r8.code.CheckCast(register, getType());
+    return new com.android.tools.r8.code.CheckCast(register, getType(), ignoreCompatRules());
   }
 
   @Override

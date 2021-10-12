@@ -139,13 +139,15 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerConstClass(
-      DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
-    enqueuer.traceConstClass(type, getContext(), iterator);
+      DexType type,
+      ListIterator<? extends CfOrDexInstruction> iterator,
+      boolean ignoreCompatRules) {
+    enqueuer.traceConstClass(type, getContext(), iterator, ignoreCompatRules);
   }
 
   @Override
-  public void registerCheckCast(DexType type) {
-    enqueuer.traceCheckCast(type, getContext());
+  public void registerCheckCast(DexType type, boolean ignoreCompatRules) {
+    enqueuer.traceCheckCast(type, getContext(), ignoreCompatRules);
   }
 
   @Override

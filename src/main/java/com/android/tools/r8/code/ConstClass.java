@@ -21,17 +21,26 @@ public class ConstClass extends Format21c<DexType> {
   public static final String NAME = "ConstClass";
   public static final String SMALI_NAME = "const-class";
 
+  private final boolean ignoreCompatRules;
+
   ConstClass(int high, BytecodeStream stream, OffsetToObjectMapping mapping) {
     super(high, stream, mapping.getTypeMap());
+    this.ignoreCompatRules = false;
   }
 
-  public ConstClass(int dest, DexType type) {
+  public ConstClass(int dest, DexType type, boolean ignoreCompatRules) {
     super(dest, type);
+    this.ignoreCompatRules = ignoreCompatRules;
   }
 
   @Override
   void internalSubSpecify(StructuralSpecification<Format21c<DexType>, ?> spec) {
     spec.withItem(i -> i.BBBB);
+  }
+
+  @Override
+  public boolean ignoreCompatRules() {
+    return ignoreCompatRules;
   }
 
   @Override
@@ -73,7 +82,7 @@ public class ConstClass extends Format21c<DexType> {
 
   @Override
   public void registerUse(UseRegistry<?> registry) {
-    registry.registerConstClass(getType(), null);
+    registry.registerConstClass(getType(), null, ignoreCompatRules());
   }
 
   public DexType getType() {

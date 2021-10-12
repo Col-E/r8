@@ -243,6 +243,10 @@ public abstract class Instruction implements CfOrDexInstruction, StructuralItem<
     return 0;
   }
 
+  public boolean ignoreCompatRules() {
+    return false;
+  }
+
   static String formatOffset(int offset) {
     return StringUtils.hexString(offset, 2);
   }

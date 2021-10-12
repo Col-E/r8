@@ -26,10 +26,16 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 public class ConstClass extends ConstInstruction {
 
   private final DexType clazz;
+  private final boolean ignoreCompatRules;
 
   public ConstClass(Value dest, DexType clazz) {
+    this(dest, clazz, false);
+  }
+
+  public ConstClass(Value dest, DexType clazz, boolean ignoreCompatRules) {
     super(dest);
     this.clazz = clazz;
+    this.ignoreCompatRules = ignoreCompatRules;
   }
 
   public static Builder builder() {
@@ -72,7 +78,12 @@ public class ConstClass extends ConstInstruction {
   @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
-    builder.add(this, new com.android.tools.r8.code.ConstClass(dest, clazz));
+    builder.add(this, new com.android.tools.r8.code.ConstClass(dest, clazz, ignoreCompatRules()));
+  }
+
+  @Override
+  public boolean ignoreCompatRules() {
+    return ignoreCompatRules;
   }
 
   @Override

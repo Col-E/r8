@@ -40,20 +40,23 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
   }
 
   /**
-   * Unlike {@link DefaultEnqueuerUseRegistry#registerConstClass(DexType, ListIterator)}, this
-   * method does not trace any const-class instructions in every implementation of dynamicMethod().
+   * Unlike {@link DefaultEnqueuerUseRegistry#registerConstClass(DexType, ListIterator, boolean)},
+   * this method does not trace any const-class instructions in every implementation of
+   * dynamicMethod().
    *
    * <p>The const-class instructions that remain after the proto schema has been optimized will be
    * traced manually by {@link ProtoEnqueuerExtension#tracePendingInstructionsInDynamicMethods}.
    */
   @Override
   public void registerConstClass(
-      DexType type, ListIterator<? extends CfOrDexInstruction> iterator) {
+      DexType type,
+      ListIterator<? extends CfOrDexInstruction> iterator,
+      boolean ignoreCompatRules) {
     if (references.isDynamicMethod(getContextMethod())) {
       enqueuer.addDeadProtoTypeCandidate(type);
       return;
     }
-    super.registerConstClass(type, iterator);
+    super.registerConstClass(type, iterator, ignoreCompatRules);
   }
 
   /**
