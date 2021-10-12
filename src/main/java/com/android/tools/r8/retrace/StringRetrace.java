@@ -142,9 +142,7 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
                     int firstCharIndex = firstNonWhiteSpaceCharacterFromIndex(retracedString, 0);
                     joinedConsumer.accept(
                         retracedString.substring(0, firstCharIndex)
-                            + "<OR #"
-                            + (index)
-                            + "> "
+                            + "<OR> "
                             + retracedString.substring(firstCharIndex));
                   } else {
                     joinedConsumer.accept(retracedString);
