@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexDebugEventVisitor;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -66,6 +67,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class LineNumberOptimizer {
+
+  private static final int MAX_LINE_NUMBER = 65535;
 
   // PositionRemapper is a stateful function which takes a position (represented by a
   // DexDebugPositionState) and returns a remapped Position.
@@ -373,21 +376,26 @@ public class LineNumberOptimizer {
 
         for (DexEncodedMethod method : methods) {
           kotlinRemapper.currentMethod = method;
-          List<MappedPosition> mappedPositions = new ArrayList<>();
+          List<MappedPosition> mappedPositions;
           Code code = method.getCode();
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1) {
-                optimizeDexCodePositionsForPc(method, appView, kotlinRemapper, mappedPositions);
+                mappedPositions = optimizeDexCodePositionsForPc(method, appView, kotlinRemapper);
               } else {
-                optimizeDexCodePositions(
-                    method, appView, kotlinRemapper, mappedPositions, identityMapping);
+                mappedPositions =
+                    optimizeDexCodePositions(
+                        method, appView, kotlinRemapper, identityMapping, methods.size() != 1);
               }
             } else if (code.isCfCode()
                 && doesContainPositions(code.asCfCode())
                 && !appView.isCfByteCodePassThrough(method)) {
-              optimizeCfCodePositions(method, kotlinRemapper, mappedPositions, appView);
+              mappedPositions = optimizeCfCodePositions(method, kotlinRemapper, appView);
+            } else {
+              mappedPositions = new ArrayList<>();
             }
+          } else {
+            mappedPositions = new ArrayList<>();
           }
 
           DexMethod originalMethod =
@@ -472,9 +480,19 @@ public class LineNumberOptimizer {
                 lastPosition = mp;
               }
             }
-            Range obfuscatedRange =
-                new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
             Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
+
+            Range obfuscatedRange;
+            if (method.getCode().isDexCode()
+                && method.getCode().asDexCode().getDebugInfo()
+                    == DexDebugInfoForSingleLineMethod.getInstance()) {
+              assert firstPosition.originalLine == lastPosition.originalLine;
+              method.getCode().asDexCode().setDebugInfo(null);
+              obfuscatedRange = new Range(0, MAX_LINE_NUMBER);
+            } else {
+              obfuscatedRange =
+                  new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
+            }
 
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
             MappedRange lastMappedRange =
@@ -497,6 +515,11 @@ public class LineNumberOptimizer {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
             i = j;
+          }
+          if (method.getCode().isDexCode()
+              && method.getCode().asDexCode().getDebugInfo()
+                  == DexDebugInfoForSingleLineMethod.getInstance()) {
+            method.getCode().asDexCode().setDebugInfo(null);
           }
         } // for each method of the group
       } // for each method group, grouped by name
@@ -667,14 +690,15 @@ public class LineNumberOptimizer {
     return false;
   }
 
-  private static void optimizeDexCodePositions(
+  private static List<MappedPosition> optimizeDexCodePositions(
       DexEncodedMethod method,
       AppView<?> appView,
       PositionRemapper positionRemapper,
-      List<MappedPosition> mappedPositions,
-      boolean identityMapping) {
+      boolean identityMapping,
+      boolean hasOverloads) {
+    List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
-    final DexApplication application = appView.appInfo().app();
+    DexApplication application = appView.appInfo().app();
     DexCode dexCode = method.getCode().asDexCode();
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
     List<DexDebugEvent> processedEvents = new ArrayList<>();
@@ -688,7 +712,7 @@ public class LineNumberOptimizer {
     Box<Boolean> inlinedOriginalPosition = new Box<>(false);
 
     // Debug event visitor to map line numbers.
-    DexDebugEventVisitor visitor =
+    DexDebugPositionState visitor =
         new DexDebugPositionState(
             debugInfo.startLine,
             appView.graphLens().getOriginalMethodSignature(method.getReference())) {
@@ -768,6 +792,15 @@ public class LineNumberOptimizer {
       event.accept(visitor);
     }
 
+    // If we only have one line event we can always retrace back uniquely.
+    if (mappedPositions.size() <= 1
+        && !hasOverloads
+        && !appView.options().debug
+        && appView.options().lineNumberOptimization != LineNumberOptimization.OFF) {
+      dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
+      return mappedPositions;
+    }
+
     DexDebugInfo optimizedDebugInfo =
         new DexDebugInfo(
             positionEventEmitter.getStartLine(),
@@ -779,13 +812,12 @@ public class LineNumberOptimizer {
         || verifyIdentityMapping(debugInfo, optimizedDebugInfo);
 
     dexCode.setDebugInfo(optimizedDebugInfo);
+    return mappedPositions;
   }
 
-  private static void optimizeDexCodePositionsForPc(
-      DexEncodedMethod method,
-      AppView<?> appView,
-      PositionRemapper positionRemapper,
-      List<MappedPosition> mappedPositions) {
+  private static List<MappedPosition> optimizeDexCodePositionsForPc(
+      DexEncodedMethod method, AppView<?> appView, PositionRemapper positionRemapper) {
+    List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     DexCode dexCode = method.getCode().asDexCode();
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
@@ -834,6 +866,7 @@ public class LineNumberOptimizer {
     }
 
     dexCode.setDebugInfo(null);
+    return mappedPositions;
   }
 
   private static boolean verifyIdentityMapping(
@@ -846,11 +879,9 @@ public class LineNumberOptimizer {
     return true;
   }
 
-  private static void optimizeCfCodePositions(
-      DexEncodedMethod method,
-      PositionRemapper positionRemapper,
-      List<MappedPosition> mappedPositions,
-      AppView<?> appView) {
+  private static List<MappedPosition> optimizeCfCodePositions(
+      DexEncodedMethod method, PositionRemapper positionRemapper, AppView<?> appView) {
+    List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     CfCode oldCode = method.getCode().asCfCode();
     List<CfInstruction> oldInstructions = oldCode.getInstructions();
@@ -877,6 +908,7 @@ public class LineNumberOptimizer {
             oldCode.getTryCatchRanges(),
             oldCode.getLocalVariables()),
         appView);
+    return mappedPositions;
   }
 
   private static Position remapAndAdd(

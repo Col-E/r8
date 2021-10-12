@@ -6,7 +6,6 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -37,20 +36,9 @@ public class R8DebugNonMinifiedProgramTestRunner extends DebugTestBase {
   private static BiFunction<Backend, AndroidApiLevel, R8TestCompileResult> compiledDebug
       = memoizeBiFunction(R8DebugNonMinifiedProgramTestRunner::compileDebug);
 
-  private static BiFunction<Backend, AndroidApiLevel, R8TestCompileResult> compiledNoOptNoMinify
-      = memoizeBiFunction(R8DebugNonMinifiedProgramTestRunner::compileNoOptNoMinify);
-
   private static R8TestCompileResult compileDebug(Backend backend, AndroidApiLevel apiLevel)
       throws Exception {
     return compile(testForR8(getStaticTemp(), backend).debug(), apiLevel);
-  }
-
-  private static R8TestCompileResult compileNoOptNoMinify(Backend backend, AndroidApiLevel apiLevel)
-      throws Exception {
-    return compile(
-        testForR8(getStaticTemp(), backend)
-            .addKeepRules("-dontoptimize", "-dontobfuscate", "-keepattributes LineNumberTable"),
-        apiLevel);
   }
 
   private static R8TestCompileResult compile(R8FullTestBuilder builder, AndroidApiLevel apiLevel)
@@ -70,22 +58,9 @@ public class R8DebugNonMinifiedProgramTestRunner extends DebugTestBase {
             });
   }
 
-  private void assumeMappingIsNotToPCs() {
-    assumeTrue(
-        "Ignoring test when the line number table is removed.",
-        parameters.isCfRuntime()
-            || parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport()));
-  }
-
   @Test
   public void testDebugMode() throws Throwable {
     runTest(compiledDebug.apply(parameters.getBackend(), parameters.getApiLevel()));
-  }
-
-  @Test
-  public void testNoOptimizationAndNoMinification() throws Throwable {
-    assumeMappingIsNotToPCs();
-    runTest(compiledNoOptNoMinify.apply(parameters.getBackend(), parameters.getApiLevel()));
   }
 
   private void runTest(R8TestCompileResult compileResult) throws Throwable {

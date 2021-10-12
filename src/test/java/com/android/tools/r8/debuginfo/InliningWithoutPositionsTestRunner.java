@@ -140,7 +140,6 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
     int expectedLineNumber = throwLocation == Location.FOO2 ? 2 : 1;
     String expectedFilePos = TEST_CLASS + ".java:" + expectedLineNumber;
     int idx = line.indexOf(expectedFilePos);
-    assertTrue(idx >= 0);
 
     // And the next character must be a non-digit or nothing.
     int idxAfter = idx + expectedFilePos.length();

@@ -567,6 +567,10 @@ public class Matchers {
     };
   }
 
+  public static Matcher<MethodSubject> hasLineNumberTable() {
+    return isMethodSatisfying("line number table", method -> method.getLineNumberTable() != null);
+  }
+
   public static Matcher<RetraceFrameResult> isInlineFrame() {
     return new TypeSafeMatcher<RetraceFrameResult>() {
       @Override

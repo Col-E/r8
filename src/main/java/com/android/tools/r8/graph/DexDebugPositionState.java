@@ -21,10 +21,11 @@ import com.android.tools.r8.ir.code.Position;
  * the current state using the getters after a Default event.
  */
 public class DexDebugPositionState implements DexDebugEventVisitor {
+
   private int currentPc = 0;
   private int currentLine;
   private DexString currentFile = null;
-  private DexMethod currentMethod = null;
+  private DexMethod currentMethod;
   private Position currentCallerPosition = null;
 
   public DexDebugPositionState(int startLine, DexMethod method) {

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -40,7 +39,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
                   .noMinification()
                   .addKeepRules("-keepattributes SourceFile,LineNumberTable")
                   .addProgramClasses(CLASS)
-                  .setMode(CompilationMode.DEBUG)
+                  .debug()
                   .debugConfig());
     }
     return parameters.build();

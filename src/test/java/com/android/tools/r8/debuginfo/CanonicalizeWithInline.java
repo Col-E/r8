@@ -66,7 +66,7 @@ public class CanonicalizeWithInline extends TestBase {
     result.app.write(classesPath, OutputMode.DexIndexed);
     int numberOfDebugInfos =
         getNumberOfDebugInfos(Paths.get(temp.getRoot().getCanonicalPath(), "classes.dex"));
-    Assert.assertEquals(1, numberOfDebugInfos);
+    Assert.assertEquals(0, numberOfDebugInfos);
   }
 
   // Two classes which has debug info that looks exactly the same, except for SetInlineFrame.
