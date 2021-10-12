@@ -57,6 +57,7 @@ public class DesugaredLibraryConfiguration {
   private final Map<DexType, DexType> backportCoreLibraryMember;
   private final Map<DexType, DexType> customConversions;
   private final List<Pair<DexType, DexString>> dontRewriteInvocation;
+  private final Set<DexType> dontRetargetLibMember;
   private final List<String> extraKeepRules;
   private final Set<DexType> wrapperConversions;
   private final PrefixRewritingMapper prefixRewritingMapper;
@@ -81,6 +82,7 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableList.of(),
+        ImmutableSet.of(),
         ImmutableList.of(),
         new DesugarPrefixRewritingMapper(prefix, options.itemFactory, true));
   }
@@ -100,6 +102,7 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableList.of(),
+        ImmutableSet.of(),
         ImmutableList.of(),
         PrefixRewritingMapper.empty()) {
 
@@ -129,6 +132,7 @@ public class DesugaredLibraryConfiguration {
       Map<DexType, DexType> customConversions,
       Set<DexType> wrapperConversions,
       List<Pair<DexType, DexString>> dontRewriteInvocation,
+      Set<DexType> dontRetargetLibMember,
       List<String> extraKeepRules,
       PrefixRewritingMapper prefixRewritingMapper) {
     this.requiredCompilationAPILevel = requiredCompilationAPILevel;
@@ -144,6 +148,7 @@ public class DesugaredLibraryConfiguration {
     this.customConversions = customConversions;
     this.wrapperConversions = wrapperConversions;
     this.dontRewriteInvocation = dontRewriteInvocation;
+    this.dontRetargetLibMember = dontRetargetLibMember;
     this.extraKeepRules = extraKeepRules;
     this.prefixRewritingMapper = prefixRewritingMapper;
   }
@@ -233,6 +238,10 @@ public class DesugaredLibraryConfiguration {
     return dontRewriteInvocation;
   }
 
+  public Set<DexType> getDontRetargetLibMember() {
+    return dontRetargetLibMember;
+  }
+
   public List<String> getExtraKeepRules() {
     return extraKeepRules;
   }
@@ -262,6 +271,8 @@ public class DesugaredLibraryConfiguration {
     private Map<DexType, DexType> customConversions = new IdentityHashMap<>();
     private Set<DexType> wrapperConversions = Sets.newIdentityHashSet();
     private List<Pair<DexType, DexString>> dontRewriteInvocation = new ArrayList<>();
+    private Set<DexType> dontRetargetLibMember = Sets.newIdentityHashSet();
+    ;
     private List<String> extraKeepRules = Collections.emptyList();
     private boolean supportAllCallbacksFromLibrary = FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY;
 
@@ -395,6 +406,11 @@ public class DesugaredLibraryConfiguration {
       return this;
     }
 
+    public Builder addDontRetargetLibMember(String dontRetargetLibMember) {
+      this.dontRetargetLibMember.add(stringClassToDexType(dontRetargetLibMember));
+      return this;
+    }
+
     private int sharpIndex(String typeAndSelector, String descr) {
       int index = typeAndSelector.lastIndexOf('#');
       if (index <= 0 || index >= typeAndSelector.length() - 1) {
@@ -428,6 +444,7 @@ public class DesugaredLibraryConfiguration {
           ImmutableMap.copyOf(customConversions),
           ImmutableSet.copyOf(wrapperConversions),
           ImmutableList.copyOf(dontRewriteInvocation),
+          ImmutableSet.copyOf(dontRetargetLibMember),
           ImmutableList.copyOf(extraKeepRules),
           rewritePrefix.isEmpty()
               ? PrefixRewritingMapper.empty()

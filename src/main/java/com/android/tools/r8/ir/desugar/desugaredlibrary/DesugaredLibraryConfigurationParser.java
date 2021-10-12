@@ -45,6 +45,7 @@ public class DesugaredLibraryConfigurationParser {
   static final String RETARGET_LIB_MEMBER_KEY = "retarget_lib_member";
   static final String EMULATE_INTERFACE_KEY = "emulate_interface";
   static final String DONT_REWRITE_KEY = "dont_rewrite";
+  static final String DONT_RETARGET_LIB_MEMBER_KEY = "dont_retarget_lib_member";
   static final String BACKPORT_KEY = "backport";
   static final String SHRINKER_CONFIG_KEY = "shrinker_config";
   static final String SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY = "support_all_callbacks_from_library";
@@ -220,6 +221,12 @@ public class DesugaredLibraryConfigurationParser {
       JsonArray dontRewrite = jsonFlagSet.get(DONT_REWRITE_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRewrite) {
         configurationBuilder.addDontRewriteInvocation(rewrite.getAsString());
+      }
+    }
+    if (jsonFlagSet.has(DONT_RETARGET_LIB_MEMBER_KEY)) {
+      JsonArray dontRetarget = jsonFlagSet.get(DONT_RETARGET_LIB_MEMBER_KEY).getAsJsonArray();
+      for (JsonElement rewrite : dontRetarget) {
+        configurationBuilder.addDontRetargetLibMember(rewrite.getAsString());
       }
     }
   }
