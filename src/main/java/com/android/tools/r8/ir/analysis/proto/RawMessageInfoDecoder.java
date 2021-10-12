@@ -214,9 +214,7 @@ public class RawMessageInfoDecoder {
         DexItemBasedConstString constString = definition.asDexItemBasedConstString();
         DexReference reference = constString.getItem();
         NameComputationInfo<?> nameComputationInfo = constString.getNameComputationInfo();
-        if (reference.isDexField()
-            && nameComputationInfo.isFieldNameComputationInfo()
-            && nameComputationInfo.asFieldNameComputationInfo().isForFieldName()) {
+        if (reference.isDexField() && nameComputationInfo.isFieldNameComputationInfo()) {
           DexField field = reference.asDexField();
           DexEncodedField encodedField = context.getHolder().lookupInstanceField(field);
           if (encodedField != null) {
