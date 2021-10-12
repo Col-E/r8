@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.sourcefile;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ProguardVersion;
-import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -107,15 +106,7 @@ public class RenameSourceFileAttributeCompatTest extends TestBase {
     builder
         .addKeepRules("-dontobfuscate")
         .run(parameters.getRuntime(), TestClass.class)
-        .applyIf(
-            fullMode,
-            this::checkSourceFileIsRemoved,
-            // TODO(b/202799460): Compat should only -renamesourcefileattribute when obfuscating.
-            b ->
-                b.applyIf(
-                    builder instanceof R8CompatTestBuilder,
-                    this::checkSourceFileIsRenamed,
-                    this::checkSourceFileIsOriginal));
+        .applyIf(fullMode, this::checkSourceFileIsRemoved, this::checkSourceFileIsOriginal);
   }
 
   private <RR extends SingleTestRunResult<RR>> void testDontOptimize(
