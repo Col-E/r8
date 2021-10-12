@@ -11,7 +11,6 @@ OUTPUT_DIR = os.path.join('build', 'generated', 'test', 'java', 'com',
                           'android', 'tools', 'r8', 'art')
 TEST_DIR = os.path.join('tests', '2017-10-04', 'art')
 TOOLCHAINS = [
-    ("dx", os.path.join(TEST_DIR, "dx")),
     ("none", os.path.join(TEST_DIR, "dx")),
 ]
 TOOLS = ["r8", "d8", "r8cf"]
