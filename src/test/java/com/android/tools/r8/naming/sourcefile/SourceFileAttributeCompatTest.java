@@ -54,6 +54,10 @@ public class SourceFileAttributeCompatTest extends TestBase {
     checkSourceFile(result, originalSourceFile, originalSourceFile, originalSourceFile);
   }
 
+  private void checkSourceFileIsReplacedByDefault(SingleTestRunResult<?> result) throws Exception {
+    checkSourceFile(result, "SourceFile", "SourceFile", "SourceFile");
+  }
+
   private void checkSourceFile(
       SingleTestRunResult<?> result, String keptValue, String semiKeptValue, String nonKeptValue)
       throws Exception {
@@ -127,19 +131,14 @@ public class SourceFileAttributeCompatTest extends TestBase {
   private <RR extends SingleTestRunResult<RR>> void testKeepSourceFileAttribute(
       TestShrinkerBuilder<?, ?, ?, RR, ?> builder, boolean fullMode) throws Exception {
     // If the source file attribute is kept, then PG and compat R8 will preserve it in original
-    // form for every input class. R8 will only preserve it for (soft) pinned classes. Others will
-    // be replaced by 'SourceFile'. The use of 'SourceFile' is to ensure VMs still print lines.
-    // TODO(b/202367773): R8 (non-compat) should rather replace it for all classes like line opt.
-    String originalSourceFile = getOriginalSourceFile();
-    String residualSourceFile = fullMode ? "SourceFile" : originalSourceFile;
+    // form for every input class. R8 (full) will replace it by 'SourceFile'. The use of
+    // 'SourceFile' is to ensure VMs still print lines.
     commonSetUp(builder);
     builder
         .addKeepAttributeSourceFile()
         .run(parameters.getRuntime(), TestClass.class)
-        .apply(
-            result ->
-                checkSourceFile(
-                    result, originalSourceFile, originalSourceFile, residualSourceFile));
+        .applyIf(
+            fullMode, this::checkSourceFileIsReplacedByDefault, this::checkSourceFileIsOriginal);
   }
 
   private <RR extends SingleTestRunResult<RR>> void runAllTests(

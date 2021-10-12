@@ -69,7 +69,7 @@ public class RenameSourceFileRetraceTest extends TestBase {
     }
     String minifiedFileName =
         (keepSourceFile && isCompat) ? FILENAME_CLASS_TO_BE_MINIFIED : getDefaultExpectedName();
-    String mainFileName = keepSourceFile ? FILENAME_MAIN : getDefaultExpectedName();
+    String mainFileName = (keepSourceFile && isCompat) ? FILENAME_MAIN : getDefaultExpectedName();
     r8TestBuilder
         .addProgramClasses(ClassToBeMinified.class, Main.class)
         .addKeepAttributes(ProguardKeepAttributes.LINE_NUMBER_TABLE)

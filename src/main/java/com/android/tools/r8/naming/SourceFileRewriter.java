@@ -35,17 +35,13 @@ public class SourceFileRewriter {
     boolean hasKeptNonRenamedSourceFile =
         proguardConfiguration.getRenameSourceFileAttribute() == null
             && proguardConfiguration.getKeepAttributes().sourceFile;
-    // If source file is kept without a rewrite, it is only modified it in a minifing full-mode.
+    // If source file is kept without a rewrite, it is only modified in a minifing full-mode.
     if (hasKeptNonRenamedSourceFile && (!isMinifying || isCompatR8)) {
       return;
     }
     assert !isMinifying || appView.appInfo().hasLiveness();
     DexString defaultRenaming = getSourceFileRenaming(proguardConfiguration);
     for (DexClass clazz : application.classes()) {
-      if (hasKeptNonRenamedSourceFile
-          && !appView.withLiveness().appInfo().isMinificationAllowed(clazz.type)) {
-        continue;
-      }
       clazz.sourceFile = defaultRenaming;
     }
   }
