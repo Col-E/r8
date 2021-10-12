@@ -591,8 +591,8 @@ public final class R8Command extends BaseCompilerCommand {
               skipDump,
               getThreadCount(),
               getDumpInputFlags(),
-              getMapIdProvider());
-
+              getMapIdProvider(),
+              getSourceFileProvider());
       return command;
     }
 
@@ -753,7 +753,8 @@ public final class R8Command extends BaseCompilerCommand {
       boolean skipDump,
       int threadCount,
       DumpInputFlags dumpInputFlags,
-      MapIdProvider mapIdProvider) {
+      MapIdProvider mapIdProvider,
+      SourceFileProvider sourceFileProvider) {
     super(
         inputApp,
         mode,
@@ -769,7 +770,8 @@ public final class R8Command extends BaseCompilerCommand {
         outputInspections,
         threadCount,
         dumpInputFlags,
-        mapIdProvider);
+        mapIdProvider,
+        sourceFileProvider);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -867,6 +869,7 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     internal.mapIdProvider = getMapIdProvider();
+    internal.sourceFileProvider = getSourceFileProvider();
 
     // Amend the proguard-map consumer with options from the proguard configuration.
     internal.proguardMapConsumer =

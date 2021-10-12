@@ -51,6 +51,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final int threadCount;
   private final DumpInputFlags dumpInputFlags;
   private final MapIdProvider mapIdProvider;
+  private final SourceFileProvider sourceFileProvider;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -68,6 +69,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     threadCount = ThreadUtils.NOT_SPECIFIED;
     dumpInputFlags = DumpInputFlags.noDump();
     mapIdProvider = null;
+    sourceFileProvider = null;
   }
 
   BaseCompilerCommand(
@@ -85,7 +87,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       List<Consumer<Inspector>> outputInspections,
       int threadCount,
       DumpInputFlags dumpInputFlags,
-      MapIdProvider mapIdProvider) {
+      MapIdProvider mapIdProvider,
+      SourceFileProvider sourceFileProvider) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -103,6 +106,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.threadCount = threadCount;
     this.dumpInputFlags = dumpInputFlags;
     this.mapIdProvider = mapIdProvider;
+    this.sourceFileProvider = sourceFileProvider;
   }
 
   /**
@@ -154,6 +158,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
   public MapIdProvider getMapIdProvider() {
     return mapIdProvider;
+  }
+
+  public SourceFileProvider getSourceFileProvider() {
+    return sourceFileProvider;
   }
 
   /** True if the output dex files has checksum information encoded in it. False otherwise. */
@@ -226,6 +234,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     protected StringConsumer proguardMapConsumer = null;
     private DumpInputFlags dumpInputFlags = DumpInputFlags.noDump();
     private MapIdProvider mapIdProvider = null;
+    private SourceFileProvider sourceFileProvider = null;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -533,6 +542,16 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     public MapIdProvider getMapIdProvider() {
       return mapIdProvider;
+    }
+
+    /** Set a custom provider for defining source-file attributes for classes. */
+    public B setSourceFileProvider(SourceFileProvider sourceFileProvider) {
+      this.sourceFileProvider = sourceFileProvider;
+      return self();
+    }
+
+    public SourceFileProvider getSourceFileProvider() {
+      return sourceFileProvider;
     }
 
     @Deprecated

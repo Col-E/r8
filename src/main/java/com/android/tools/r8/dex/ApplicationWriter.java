@@ -14,6 +14,7 @@ import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.SourceFileEnvironment;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
@@ -233,10 +234,10 @@ public class ApplicationWriter {
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
     Timing timing = appView.appInfo().app().timing;
     timing.begin("DexApplication.write");
-    ProguardMapId proguardMapId = null;
-    if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      proguardMapId = proguardMapSupplier.writeProguardMap();
-    }
+    ProguardMapId proguardMapId =
+        (proguardMapSupplier != null && options.proguardMapConsumer != null)
+            ? proguardMapSupplier.writeProguardMap()
+            : null;
 
     // If we do have a map then we're called from R8. In that case we have at least one marker.
     assert proguardMapId == null || (markers != null && markers.size() >= 1);
@@ -250,6 +251,12 @@ public class ApplicationWriter {
         markerStrings.add(appView.dexItemFactory().createString(marker.toString()));
       }
     }
+
+    if (options.sourceFileProvider != null) {
+      SourceFileEnvironment environment = createSourceFileEnvironment(proguardMapId);
+      appView.appInfo().classes().forEach(clazz -> rewriteSourceFile(clazz, environment));
+    }
+
     try {
       timing.begin("Insert Attribute Annotations");
       // TODO(b/151313715): Move this to the writer threads.
@@ -312,6 +319,39 @@ public class ApplicationWriter {
     } finally {
       timing.end();
     }
+  }
+
+  private SourceFileEnvironment createSourceFileEnvironment(ProguardMapId proguardMapId) {
+    if (proguardMapId == null) {
+      return new SourceFileEnvironment() {
+        @Override
+        public String getMapId() {
+          return null;
+        }
+
+        @Override
+        public String getMapHash() {
+          return null;
+        }
+      };
+    }
+    return new SourceFileEnvironment() {
+      @Override
+      public String getMapId() {
+        return proguardMapId.getId();
+      }
+
+      @Override
+      public String getMapHash() {
+        return proguardMapId.getHash();
+      }
+    };
+  }
+
+  private void rewriteSourceFile(DexProgramClass clazz, SourceFileEnvironment environment) {
+    assert options.sourceFileProvider != null;
+    clazz.setSourceFile(
+        options.itemFactory.createString(options.sourceFileProvider.get(environment)));
   }
 
   private void writeVirtualFile(VirtualFile virtualFile, Timing timing) {

@@ -10,6 +10,7 @@ import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
+import com.android.tools.r8.compilerapi.sourcefile.CustomSourceFileTest;
 import com.android.tools.r8.compilerapi.testsetup.ApiTestingSetUpTest;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -28,7 +29,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
       ImmutableList.of(ApiTestingSetUpTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(CustomMapIdTest.ApiTest.class);
+      ImmutableList.of(CustomMapIdTest.ApiTest.class, CustomSourceFileTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 

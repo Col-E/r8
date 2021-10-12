@@ -417,7 +417,8 @@ public final class D8Command extends BaseCompilerCommand {
         outputInspections,
         threadCount,
         dumpInputFlags,
-        mapIdProvider);
+        mapIdProvider,
+        null);
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;

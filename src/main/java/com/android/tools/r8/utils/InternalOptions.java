@@ -13,6 +13,7 @@ import com.android.tools.r8.DumpOptions;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
+import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.androidapi.AndroidApiForHashingClass;
@@ -884,6 +885,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
 
   public MapIdProvider mapIdProvider = null;
+  public SourceFileProvider sourceFileProvider = null;
 
   public static boolean assertionsEnabled() {
     boolean assertionsEnabled = false;

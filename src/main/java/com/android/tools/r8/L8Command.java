@@ -117,7 +117,8 @@ public final class L8Command extends BaseCompilerCommand {
         outputInspections,
         threadCount,
         dumpInputFlags,
-        mapIdProvider);
+        mapIdProvider,
+        null);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;
