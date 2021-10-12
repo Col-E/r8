@@ -58,21 +58,21 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   private void checkIsSame(StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
     assertThat(retracedStackTrace, isSame(expectedStackTrace));
-    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
   }
 
   private void checkIsSameExceptForFileName(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
     assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
-    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
   }
 
   private void checkIsSameExceptForFileNameAndLineNumber(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
     assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
-    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
   }
 
   @Test

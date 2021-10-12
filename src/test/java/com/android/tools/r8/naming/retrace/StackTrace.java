@@ -14,11 +14,13 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.retrace.RetraceHelper;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -35,6 +37,7 @@ public class StackTrace {
 
   public static class Builder {
 
+    private String exceptionLine;
     private List<StackTraceLine> stackTraceLines = new ArrayList<>();
 
     private Builder() {}
@@ -80,8 +83,14 @@ public class StackTrace {
       return this;
     }
 
+    public Builder setExceptionLine(String exceptionLine) {
+      this.exceptionLine = exceptionLine;
+      return this;
+    }
+
     public StackTrace build() {
       return new StackTrace(
+          exceptionLine,
           stackTraceLines,
           StringUtils.join(
               "\n",
@@ -224,16 +233,19 @@ public class StackTrace {
     }
   }
 
+  private final String exceptionLine;
   private final List<StackTraceLine> stackTraceLines;
   private final String originalStderr;
 
-  private StackTrace(List<StackTraceLine> stackTraceLines, String originalStderr) {
+  private StackTrace(
+      String exceptionLine, List<StackTraceLine> stackTraceLines, String originalStderr) {
+    this.exceptionLine = exceptionLine;
     this.stackTraceLines = stackTraceLines;
     this.originalStderr = originalStderr;
   }
 
   public int size() {
-    return stackTraceLines.size();
+    return stackTraceLines.size() + 1;
   }
 
   public StackTraceLine get(int index) {
@@ -272,6 +284,7 @@ public class StackTrace {
     // \tat com.android.tools.r8.naming.retrace.Main.a(:150)
     // \tat com.android.tools.r8.naming.retrace.Main.a(:156)
     // \tat com.android.tools.r8.naming.retrace.Main.main(:162)
+    Optional<String> exceptionLine = Optional.empty();
     for (int i = 0; i < stderrLines.size(); i++) {
       String line = stderrLines.get(i);
       // Find all lines starting with "\tat" except "dalvik.system.NativeStart.main" frame
@@ -279,23 +292,27 @@ public class StackTrace {
       if (line.startsWith(TAB_AT_PREFIX)
           && !(vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
               && line.contains("dalvik.system.NativeStart.main"))) {
+        if (!exceptionLine.isPresent() && i > 0) {
+          exceptionLine = Optional.of(stderrLines.get(i - 1));
+        }
         stackTraceLines.add(StackTraceLine.parse(stderrLines.get(i)));
       }
     }
-    return new StackTrace(stackTraceLines, stderr);
+    return new StackTrace(exceptionLine.orElse(""), stackTraceLines, stderr);
   }
 
   private static List<StackTraceLine> internalConvert(Stream<String> lines) {
     return lines.map(StackTraceLine::parse).collect(Collectors.toList());
   }
 
-  private static List<StackTraceLine> internalExtractFromJvm(String stderr) {
-    return internalConvert(
-        StringUtils.splitLines(stderr).stream().filter(s -> s.startsWith(TAB_AT_PREFIX)));
+  private static List<StackTraceLine> internalExtractFromJvm(List<String> strings) {
+    return internalConvert(strings.stream().filter(s -> s.startsWith(TAB_AT_PREFIX)));
   }
 
   public static StackTrace extractFromJvm(String stderr) {
-    return new StackTrace(internalExtractFromJvm(stderr), stderr);
+    List<String> strings = StringUtils.splitLines(stderr);
+    return new StackTrace(
+        strings.isEmpty() ? "" : strings.get(0), internalExtractFromJvm(strings), stderr);
   }
 
   public static StackTrace extractFromJvm(SingleTestRunResult result) {
@@ -312,27 +329,27 @@ public class StackTrace {
   }
 
   public StackTrace retrace(String map, boolean allowExperimentalMapping) {
-    class Box {
-      List<String> result;
-    }
-    Box box = new Box();
+    Box<List<String>> box = new Box<>();
+    List<String> stackTrace =
+        stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList());
+    stackTrace.add(0, exceptionLine);
     RetraceHelper.runForTesting(
         RetraceCommand.builder()
             .setProguardMapProducer(ProguardMapProducer.fromString(map))
-            .setStackTrace(
-                stackTraceLines.stream()
-                    .map(line -> line.originalLine)
-                    .collect(Collectors.toList()))
-            .setRetracedStackTraceConsumer(retraced -> box.result = retraced)
+            .setStackTrace(stackTrace)
+            .setRetracedStackTraceConsumer(box::set)
             .build(),
         allowExperimentalMapping);
     // Keep the original stderr in the retraced stacktrace.
-    return new StackTrace(internalConvert(box.result.stream()), originalStderr);
+    return new StackTrace(
+        box.get().get(0), internalConvert(box.get().stream().skip(1)), originalStderr);
   }
 
   public StackTrace filter(Predicate<StackTraceLine> filter) {
     return new StackTrace(
-        stackTraceLines.stream().filter(filter).collect(Collectors.toList()), originalStderr);
+        exceptionLine,
+        stackTraceLines.stream().filter(filter).collect(Collectors.toList()),
+        originalStderr);
   }
 
   @Override

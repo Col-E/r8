@@ -53,6 +53,10 @@ import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.RemoveInnerFramesAction;
+import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
@@ -481,19 +485,16 @@ public class LineNumberOptimizer {
               }
             }
             Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
-
             Range obfuscatedRange;
             if (method.getCode().isDexCode()
                 && method.getCode().asDexCode().getDebugInfo()
                     == DexDebugInfoForSingleLineMethod.getInstance()) {
               assert firstPosition.originalLine == lastPosition.originalLine;
-              method.getCode().asDexCode().setDebugInfo(null);
               obfuscatedRange = new Range(0, MAX_LINE_NUMBER);
             } else {
               obfuscatedRange =
                   new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
             }
-
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
             MappedRange lastMappedRange =
                 classNamingBuilder.addMappedRange(
@@ -502,13 +503,26 @@ public class LineNumberOptimizer {
                     originalRange,
                     obfuscatedName);
             Position caller = firstPosition.caller;
+            int inlineFramesCount = 0;
             while (caller != null) {
+              inlineFramesCount += 1;
               lastMappedRange =
                   classNamingBuilder.addMappedRange(
                       obfuscatedRange,
                       getOriginalMethodSignature.apply(caller.method),
                       new Range(Math.max(caller.line, 0)), // Prevent against "no-position".
                       obfuscatedName);
+              if (caller.removeInnerFrameIfThrowingNpe) {
+                lastMappedRange.addMappingInformation(
+                    RewriteFrameMappingInformation.builder()
+                        .addCondition(
+                            ThrowsCondition.create(
+                                Reference.classFromDescriptor(
+                                    appView.options().dexItemFactory().npeDescriptor.toString())))
+                        .addRewriteAction(RemoveInnerFramesAction.create(inlineFramesCount))
+                        .build(),
+                    Unreachable::raise);
+              }
               caller = caller.callerPosition;
             }
             for (MappingInformation info : methodMappingInfo) {

@@ -642,7 +642,12 @@ public class Inliner {
       InternalOptions options = appView.options();
 
       // Build the IR for a yet not processed method, and perform minimal IR processing.
-      IRCode code = inliningIRProvider.getInliningIR(invoke, target);
+      boolean removeInnerFramesIfThrowingNpe =
+          invoke.isInvokeMethodWithReceiver()
+              && invoke.asInvokeMethodWithReceiver().getReceiver().isMaybeNull()
+              && !shouldSynthesizeNullCheckForReceiver;
+      IRCode code =
+          inliningIRProvider.getInliningIR(invoke, target, removeInnerFramesIfThrowingNpe);
 
       // Insert a init class instruction if this is needed to preserve class initialization
       // semantics.

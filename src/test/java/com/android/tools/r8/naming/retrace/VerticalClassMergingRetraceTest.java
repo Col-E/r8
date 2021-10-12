@@ -86,7 +86,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
           assertThat(reprocessedStackTrace, isSameExceptForFileName(expectedStackTrace));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+          assertEquals(
+              expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });
   }
 
@@ -102,7 +103,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
           assertThat(reprocessedStackTrace, isSameExceptForFileName(expectedStackTrace));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+          assertEquals(
+              expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });
   }
 
@@ -144,7 +146,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
                   : retracedStackTrace.filter(this::filterSynthesizedBridgeMethod);
           assertThat(
               reprocessedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+          assertEquals(
+              expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });
   }
 }

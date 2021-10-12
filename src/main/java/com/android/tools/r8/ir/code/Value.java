@@ -476,6 +476,10 @@ public class Value implements Comparable<Value> {
     return false;
   }
 
+  public boolean isMaybeNull() {
+    return !isNeverNull();
+  }
+
   public boolean usedInMonitorOperation() {
     for (Instruction instruction : uniqueUsers()) {
       if (instruction.isMonitor()) {

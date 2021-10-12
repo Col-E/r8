@@ -72,7 +72,7 @@ class ClassInlinerCostAnalysis {
         // Not a direct inlinee.
         continue;
       }
-      IRCode inliningIR = inliningIRProvider.getAndCacheInliningIR(invoke, inlinee);
+      IRCode inliningIR = inliningIRProvider.getAndCacheInliningIR(invoke, inlinee, false);
       int increment =
           inlinee.getDefinition().getCode().estimatedSizeForInlining()
               - estimateNumberOfNonMaterializingInstructions(invoke, inliningIR);

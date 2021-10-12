@@ -17,14 +17,15 @@ public class Position implements StructuralItem<Position> {
 
   // A no-position marker. Not having a position means the position is implicitly defined by the
   // context, e.g., the marker does not materialize anything concrete.
-  private static final Position NO_POSITION = new Position(-1, null, null, null, false);
+  private static final Position NO_POSITION = new Position(-1, null, null, null, false, false);
 
   // A synthetic marker position that should never materialize.
   // This is used specifically to mark exceptional exit blocks from synchronized methods in release.
-  private static final Position NO_POSITION_SYNTHETIC = new Position(-1, null, null, null, true);
+  private static final Position NO_POSITION_SYNTHETIC =
+      new Position(-1, null, null, null, true, false);
 
   // Fake position to use for representing an actual position in testing code.
-  private static final Position TESTING_POSITION = new Position(0, null, null, null, true);
+  private static final Position TESTING_POSITION = new Position(0, null, null, null, true, false);
 
   public final int line;
   public final DexString file;
@@ -37,6 +38,7 @@ public class Position implements StructuralItem<Position> {
 
   public final DexMethod method;
   public final Position callerPosition;
+  public final boolean removeInnerFrameIfThrowingNpe;
 
   private static void specify(StructuralSpecification<Position, ?> spec) {
     spec.withInt(p -> p.line)
@@ -47,19 +49,25 @@ public class Position implements StructuralItem<Position> {
   }
 
   private Position(
-      int line, DexString file, DexMethod method, Position callerPosition, boolean synthetic) {
+      int line,
+      DexString file,
+      DexMethod method,
+      Position callerPosition,
+      boolean synthetic,
+      boolean removeInnerFrameIfThrowingNpe) {
     this.line = line;
     this.file = file;
     this.synthetic = synthetic;
     this.method = method;
     this.callerPosition = callerPosition;
+    this.removeInnerFrameIfThrowingNpe = removeInnerFrameIfThrowingNpe;
     assert callerPosition == null || callerPosition.method != null;
   }
 
   public static Position synthetic(int line, DexMethod method, Position callerPosition) {
     assert line >= 0;
     assert method != null;
-    return new Position(line, null, method, callerPosition, true);
+    return new Position(line, null, method, callerPosition, true, false);
   }
 
   public static Position none() {
@@ -80,7 +88,7 @@ public class Position implements StructuralItem<Position> {
   // it as the caller of the inlined Positions.
   public static Position noneWithMethod(DexMethod method, Position callerPosition) {
     assert method != null;
-    return new Position(-1, null, method, callerPosition, false);
+    return new Position(-1, null, method, callerPosition, false, false);
   }
 
   public static Position getPositionForInlining(
@@ -151,12 +159,8 @@ public class Position implements StructuralItem<Position> {
 
   @Override
   public int hashCode() {
-    int result = line;
-    result = 31 * result + Objects.hashCode(file);
-    result = 31 * result + (synthetic ? 1 : 0);
-    result = 31 * result + Objects.hashCode(method);
-    result = 31 * result + Objects.hashCode(callerPosition);
-    return result;
+    return Objects.hash(
+        line, file, synthetic, method, callerPosition, removeInnerFrameIfThrowingNpe);
   }
 
   private String toString(boolean forceMethod) {
@@ -196,7 +200,8 @@ public class Position implements StructuralItem<Position> {
         .setFile(file)
         .setMethod(method)
         .setCallerPosition(callerPosition)
-        .setSynthetic(synthetic);
+        .setSynthetic(synthetic)
+        .setRemoveInnerFramesIfThrowingNpe(removeInnerFrameIfThrowingNpe);
   }
 
   public static class Builder {
@@ -206,6 +211,7 @@ public class Position implements StructuralItem<Position> {
     public boolean synthetic;
     public DexMethod method;
     public Position callerPosition;
+    public boolean removeInnerFrameIfThrowingNpe;
 
     public Builder setLine(int line) {
       this.line = line;
@@ -232,10 +238,16 @@ public class Position implements StructuralItem<Position> {
       return this;
     }
 
+    public Builder setRemoveInnerFramesIfThrowingNpe(boolean removeInnerFramesIfThrowingNpe) {
+      this.removeInnerFrameIfThrowingNpe = removeInnerFramesIfThrowingNpe;
+      return this;
+    }
+
     public Position build() {
       assert line >= 0;
       assert method != null;
-      return new Position(line, file, method, callerPosition, synthetic);
+      return new Position(
+          line, file, method, callerPosition, synthetic, removeInnerFrameIfThrowingNpe);
     }
   }
 }

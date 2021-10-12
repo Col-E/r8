@@ -9,6 +9,8 @@ import static com.android.tools.r8.naming.mappinginformation.RewriteFrameMapping
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.naming.MapVersion;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceStackTraceContextImpl;
 import com.android.tools.r8.retrace.internal.RetraceStackTraceCurrentEvaluationInformation;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -18,6 +20,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -102,9 +105,28 @@ public class RewriteFrameMappingInformation extends MappingInformation {
     return this;
   }
 
-  public static RewriteFrameMappingInformation create(
-      List<Condition> conditions, List<RewriteAction> actions) {
-    return new RewriteFrameMappingInformation(conditions, actions);
+  public static RewriteFrameMappingInformation.Builder builder() {
+    return new Builder();
+  }
+
+  public static class Builder {
+
+    private final List<Condition> conditions = new ArrayList<>();
+    private final List<RewriteAction> actions = new ArrayList<>();
+
+    public Builder addCondition(Condition condition) {
+      this.conditions.add(condition);
+      return this;
+    }
+
+    public Builder addRewriteAction(RewriteAction action) {
+      this.actions.add(action);
+      return this;
+    }
+
+    public RewriteFrameMappingInformation build() {
+      return new RewriteFrameMappingInformation(conditions, actions);
+    }
   }
 
   public abstract static class Condition {
@@ -140,24 +162,20 @@ public class RewriteFrameMappingInformation extends MappingInformation {
 
     static final String FUNCTION_NAME = "throws";
 
-    private final String descriptor;
+    private final ClassReference classReference;
 
-    private ThrowsCondition(String descriptor) {
-      this.descriptor = descriptor;
+    private ThrowsCondition(ClassReference classReference) {
+      this.classReference = classReference;
     }
 
     @Override
     protected JsonPrimitive serialize() {
-      return new JsonPrimitive(FUNCTION_NAME + "(" + asThrowsCondition().getDescriptor() + ")");
+      return new JsonPrimitive(FUNCTION_NAME + "(" + classReference.getDescriptor() + ")");
     }
 
     @Override
     public boolean isThrowsCondition() {
       return true;
-    }
-
-    public String getDescriptor() {
-      return descriptor;
     }
 
     @Override
@@ -167,15 +185,18 @@ public class RewriteFrameMappingInformation extends MappingInformation {
 
     @Override
     public boolean evaluate(RetraceStackTraceContextImpl context) {
-      return context.getThrownException() != null
-          && context.getThrownException().getDescriptor().equals(descriptor);
+      return classReference.equals(context.getThrownException());
     }
 
     public static ThrowsCondition deserialize(String conditionString) {
       if (!DescriptorUtils.isClassDescriptor(conditionString)) {
         throw new CompilationError("Unexpected throws-descriptor: " + conditionString);
       }
-      return new ThrowsCondition(conditionString);
+      return new ThrowsCondition(Reference.classFromDescriptor(conditionString));
+    }
+
+    public static ThrowsCondition create(ClassReference classReference) {
+      return new ThrowsCondition(classReference);
     }
   }
 
@@ -244,7 +265,7 @@ public class RewriteFrameMappingInformation extends MappingInformation {
       builder.incrementRemoveInnerFramesCount(numberOfFrames);
     }
 
-    static RemoveInnerFramesAction create(int numberOfFrames) {
+    public static RemoveInnerFramesAction create(int numberOfFrames) {
       return new RemoveInnerFramesAction(numberOfFrames);
     }
 

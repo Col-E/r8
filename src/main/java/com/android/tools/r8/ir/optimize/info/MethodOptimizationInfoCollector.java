@@ -527,7 +527,7 @@ public class MethodOptimizationInfoCollector {
           method, triggersClassInitializationBeforeSideEffect(code));
     } else {
       // Identifies if the method preserves null check of the receiver after inlining.
-      final Value receiver = code.getThis();
+      Value receiver = code.getThis();
       feedback.markCheckNullReceiverBeforeAnySideEffect(
           method, receiver.isUsed() && checksNullBeforeSideEffect(code, receiver));
     }

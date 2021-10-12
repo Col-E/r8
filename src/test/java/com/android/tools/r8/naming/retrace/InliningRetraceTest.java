@@ -52,7 +52,8 @@ public class InliningRetraceTest extends RetraceTestBase {
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           assertThat(retracedStackTrace, isSame(expectedStackTrace));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+          assertEquals(
+              expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });
   }
 
@@ -64,7 +65,8 @@ public class InliningRetraceTest extends RetraceTestBase {
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+          assertEquals(
+              expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });
   }
 
@@ -76,7 +78,8 @@ public class InliningRetraceTest extends RetraceTestBase {
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           assertThat(retracedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
-          assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+          assertEquals(
+              expectedActualStackTraceHeight(), actualStackTrace.getStackTraceLines().size());
         });
   }
 

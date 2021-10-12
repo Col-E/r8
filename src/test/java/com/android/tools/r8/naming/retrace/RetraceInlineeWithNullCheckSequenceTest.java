@@ -4,13 +4,12 @@
 package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +19,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RetraceInlineeWithNullCheck extends TestBase {
+public class RetraceInlineeWithNullCheckSequenceTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
@@ -35,12 +34,17 @@ public class RetraceInlineeWithNullCheck extends TestBase {
   @Before
   public void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
-    expectedStackTrace =
-        testForJvm()
-            .addTestClasspath()
-            .run(CfRuntime.getSystemRuntime(), Caller.class)
-            .assertFailure()
-            .map(StackTrace::extractFromJvm);
+    SingleTestRunResult<?> runResult =
+        testForRuntime(parameters)
+            .addProgramClasses(Caller.class, Foo.class)
+            .run(parameters.getRuntime(), Caller.class)
+            .assertFailureWithErrorThatThrows(NullPointerException.class);
+    if (parameters.isCfRuntime()) {
+      expectedStackTrace = runResult.map(StackTrace::extractFromJvm);
+    } else {
+      expectedStackTrace =
+          StackTrace.extractFromArt(runResult.getStdErr(), parameters.asDexRuntime().getVm());
+    }
   }
 
   @Test
@@ -52,31 +56,41 @@ public class RetraceInlineeWithNullCheck extends TestBase {
         .addKeepAttributeSourceFile()
         .setMinApi(parameters.getApiLevel())
         .enableInliningAnnotations()
+        .enableExperimentalMapFileVersion()
         .run(parameters.getRuntime(), Caller.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        // TODO(b/197936862): The two should be the same
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
-              assertThat(stackTrace, not(isSame(expectedStackTrace)));
+              assertThat(stackTrace, isSame(expectedStackTrace));
             });
   }
 
   static class Foo {
+
     @NeverInline
-    Object notInlinable() {
+    void notInlinable() {
       System.out.println("Hello, world!");
       throw new RuntimeException("Foo");
     }
 
-    Object inlinable() {
-      return notInlinable();
+    void inlinable1() {
+      notInlinable();
+    }
+
+    void inlinable2() {
+      inlinable1();
+    }
+
+    void inlinable3() {
+      inlinable2();
     }
   }
 
   static class Caller {
+
     @NeverInline
     static void caller(Foo f) {
-      f.inlinable();
+      f.inlinable3();
     }
 
     public static void main(String[] args) {

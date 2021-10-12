@@ -51,7 +51,8 @@ public class StackTraceTest extends TestBase {
   }
 
   private void checkOneLine(StackTrace stackTrace) {
-    assertEquals(1, stackTrace.size());
+    assertEquals(2, stackTrace.size());
+    assertEquals(1, stackTrace.getStackTraceLines().size());
     StackTraceLine stackTraceLine = stackTrace.get(0);
     assertEquals("Test", stackTraceLine.className);
     assertEquals("main", stackTraceLine.methodName);
