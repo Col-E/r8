@@ -19,10 +19,12 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.records.RecordCfToCfRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -35,11 +37,13 @@ class IdentifierMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ProguardClassFilter adaptClassStrings;
+  private final RecordCfToCfRewriter recordCfToCfRewriter;
   private final NamingLens lens;
 
   IdentifierMinifier(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     this.appView = appView;
     this.adaptClassStrings = appView.options().getProguardConfiguration().getAdaptClassStrings();
+    this.recordCfToCfRewriter = RecordCfToCfRewriter.create(appView);
     this.lens = lens;
   }
 
@@ -117,12 +121,10 @@ class IdentifierMinifier {
           for (DexEncodedField field : clazz.staticFields()) {
             replaceDexItemBasedConstStringInStaticField(field);
           }
-          clazz
-              .methods(DexEncodedMethod::hasCode)
-              .forEach(this::replaceDexItemBasedConstStringInMethod);
+          clazz.forEachProgramMethodMatching(
+              DexEncodedMethod::hasCode, this::replaceDexItemBasedConstStringInMethod);
         },
-        executorService
-    );
+        executorService);
   }
 
   private void replaceDexItemBasedConstStringInStaticField(DexEncodedField encodedField) {
@@ -137,8 +139,8 @@ class IdentifierMinifier {
     }
   }
 
-  private void replaceDexItemBasedConstStringInMethod(DexEncodedMethod encodedMethod) {
-    Code code = encodedMethod.getCode();
+  private void replaceDexItemBasedConstStringInMethod(ProgramMethod programMethod) {
+    Code code = programMethod.getDefinition().getCode();
     assert code != null;
     if (code.isDexCode()) {
       Instruction[] instructions = code.asDexCode().instructions;
@@ -157,23 +159,23 @@ class IdentifierMinifier {
     } else {
       assert code.isCfCode();
       List<CfInstruction> instructions = code.asCfCode().getInstructions();
-      List<CfInstruction> newInstructions = null;
-      for (int i = 0; i < instructions.size(); ++i) {
-        CfInstruction instruction = instructions.get(i);
-        if (instruction.isDexItemBasedConstString()) {
-          CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
-          DexString replacement =
-              cnst.getNameComputationInfo()
-                  .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens);
-          if (newInstructions == null) {
-            newInstructions = new ArrayList<>(instructions);
-          }
-          newInstructions.set(i, new CfConstString(replacement));
-        }
-      }
-      if (newInstructions != null) {
-        code.asCfCode().setInstructions(newInstructions);
-      }
+      List<CfInstruction> newInstructions =
+          ListUtils.mapOrElse(
+              instructions,
+              (int i, CfInstruction instruction) -> {
+                if (instruction.isDexItemBasedConstString()) {
+                  CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
+                  return new CfConstString(
+                      cnst.getNameComputationInfo()
+                          .computeNameFor(cnst.getItem(), appView, appView.graphLens(), lens));
+                } else if (recordCfToCfRewriter != null && instruction.isInvokeDynamic()) {
+                  return recordCfToCfRewriter.rewriteRecordInvokeDynamic(
+                      instruction.asInvokeDynamic(), programMethod, lens);
+                }
+                return instruction;
+              },
+              instructions);
+      code.asCfCode().setInstructions(newInstructions);
     }
   }
 }

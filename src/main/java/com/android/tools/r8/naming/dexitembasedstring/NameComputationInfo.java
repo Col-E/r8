@@ -27,6 +27,10 @@ public abstract class NameComputationInfo<T extends DexReference> {
         return asClassNameComputationInfo()
             .internalComputeNameFor(rewritten.asDexType(), definitions, namingLens);
       }
+      if (isRecordFieldNamesComputationInfo()) {
+        return asRecordFieldNamesComputationInfo()
+            .internalComputeNameFor(rewritten.asDexType(), definitions, graphLens, namingLens);
+      }
     }
     return namingLens.lookupName(rewritten, definitions.dexItemFactory());
   }
@@ -51,6 +55,14 @@ public abstract class NameComputationInfo<T extends DexReference> {
   }
 
   public ClassNameComputationInfo asClassNameComputationInfo() {
+    return null;
+  }
+
+  public boolean isRecordFieldNamesComputationInfo() {
+    return false;
+  }
+
+  public RecordFieldNamesComputationInfo asRecordFieldNamesComputationInfo() {
     return null;
   }
 }

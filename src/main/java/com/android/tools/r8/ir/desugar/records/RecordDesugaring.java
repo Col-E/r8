@@ -6,9 +6,12 @@ package com.android.tools.r8.ir.desugar.records;
 
 import static com.android.tools.r8.cf.code.CfStackInstruction.Opcode.Dup;
 import static com.android.tools.r8.cf.code.CfStackInstruction.Opcode.Swap;
+import static com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.isInvokeDynamicOnRecord;
+import static com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.parseInvokeDynamicOnRecord;
 
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -21,20 +24,14 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
@@ -48,6 +45,7 @@ import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaringEventConsumer.RecordInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.RecordInvokeDynamic;
 import com.android.tools.r8.ir.synthetic.CallObjectInitCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordEqualsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordGetFieldsAsObjectsCfCodeProvider;
@@ -100,14 +98,15 @@ public class RecordDesugaring
     CfCode cfCode = method.getDefinition().getCode().asCfCode();
     for (CfInstruction instruction : cfCode.getInstructions()) {
       if (instruction.isInvokeDynamic() && needsDesugaring(instruction, method)) {
-        prepareInvokeDynamicOnRecord(instruction.asInvokeDynamic(), method, programAdditions);
+        prepareInvokeDynamicOnRecord(instruction.asInvokeDynamic(), programAdditions, method);
       }
     }
   }
 
   private void prepareInvokeDynamicOnRecord(
-      CfInvokeDynamic invokeDynamic, ProgramMethod context, ProgramAdditions programAdditions) {
-    RecordInvokeDynamic recordInvokeDynamic = parseInvokeDynamicOnRecord(invokeDynamic, context);
+      CfInvokeDynamic invokeDynamic, ProgramAdditions programAdditions, ProgramMethod context) {
+    RecordInvokeDynamic recordInvokeDynamic =
+        parseInvokeDynamicOnRecord(invokeDynamic, appView, context);
     if (recordInvokeDynamic.getMethodName() == factory.toStringMethodName
         || recordInvokeDynamic.getMethodName() == factory.hashCodeMethodName) {
       ensureGetFieldsAsObjects(recordInvokeDynamic, programAdditions);
@@ -178,8 +177,8 @@ public class RecordDesugaring
       return desugarInvokeDynamicOnRecord(
           instruction.asInvokeDynamic(),
           localStackAllocator,
-          context,
           eventConsumer,
+          context,
           methodProcessingContext);
     }
     assert instruction.isInvoke();
@@ -191,71 +190,17 @@ public class RecordDesugaring
         new CfInvoke(cfInvoke.getOpcode(), newMethod, cfInvoke.isInterface()));
   }
 
-  static class RecordInvokeDynamic {
-
-    private final DexString methodName;
-    private final DexString fieldNames;
-    private final DexField[] fields;
-    private final DexProgramClass recordClass;
-
-    private RecordInvokeDynamic(
-        DexString methodName,
-        DexString fieldNames,
-        DexField[] fields,
-        DexProgramClass recordClass) {
-      this.methodName = methodName;
-      this.fieldNames = fieldNames;
-      this.fields = fields;
-      this.recordClass = recordClass;
-    }
-
-    DexField[] getFields() {
-      return fields;
-    }
-
-    DexProgramClass getRecordClass() {
-      return recordClass;
-    }
-
-    DexString getFieldNames() {
-      return fieldNames;
-    }
-
-    DexString getMethodName() {
-      return methodName;
-    }
-  }
-
-  private RecordInvokeDynamic parseInvokeDynamicOnRecord(
-      CfInvokeDynamic invokeDynamic, ProgramMethod context) {
-    assert needsDesugaring(invokeDynamic, context);
-    DexCallSite callSite = invokeDynamic.getCallSite();
-    DexValueType recordValueType = callSite.bootstrapArgs.get(0).asDexValueType();
-    DexValueString valueString = callSite.bootstrapArgs.get(1).asDexValueString();
-    DexString fieldNames = valueString.getValue();
-    DexField[] fields = new DexField[callSite.bootstrapArgs.size() - 2];
-    for (int i = 2; i < callSite.bootstrapArgs.size(); i++) {
-      DexValueMethodHandle handle = callSite.bootstrapArgs.get(i).asDexValueMethodHandle();
-      fields[i - 2] = handle.value.member.asDexField();
-    }
-    DexProgramClass recordClass =
-        appView.definitionFor(recordValueType.getValue()).asProgramClass();
-    return new RecordInvokeDynamic(callSite.methodName, fieldNames, fields, recordClass);
-  }
-
   private List<CfInstruction> desugarInvokeDynamicOnRecord(
       CfInvokeDynamic invokeDynamic,
       LocalStackAllocator localStackAllocator,
-      ProgramMethod context,
       CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
-    RecordInvokeDynamic recordInvokeDynamic = parseInvokeDynamicOnRecord(invokeDynamic, context);
+    RecordInvokeDynamic recordInvokeDynamic =
+        parseInvokeDynamicOnRecord(invokeDynamic, appView, context);
     if (recordInvokeDynamic.getMethodName() == factory.toStringMethodName) {
       return desugarInvokeRecordToString(
-          recordInvokeDynamic,
-          localStackAllocator,
-          eventConsumer,
-          methodProcessingContext);
+          recordInvokeDynamic, localStackAllocator, eventConsumer, methodProcessingContext);
     }
     if (recordInvokeDynamic.getMethodName() == factory.hashCodeMethodName) {
       return desugarInvokeRecordHashCode(
@@ -392,7 +337,15 @@ public class RecordDesugaring
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
     instructions.add(new CfConstClass(recordInvokeDynamic.getRecordClass().type, true));
-    instructions.add(new CfConstString(recordInvokeDynamic.getFieldNames()));
+    if (appView.options().testing.enableRecordModeling
+        && appView.enableWholeProgramOptimizations()) {
+      instructions.add(
+          new CfDexItemBasedConstString(
+              recordInvokeDynamic.getRecordClass().type,
+              recordInvokeDynamic.computeRecordFieldNamesComputationInfo()));
+    } else {
+      instructions.add(new CfConstString(recordInvokeDynamic.getFieldNames()));
+    }
     ProgramMethod programMethod =
         synthesizeRecordHelper(
             recordToStringHelperProto,
@@ -426,9 +379,7 @@ public class RecordDesugaring
             appView,
             builder -> {
               DexEncodedMethod init = synthesizeRecordInitMethod();
-              builder
-                  .setAbstract()
-                  .setDirectMethods(ImmutableList.of(init));
+              builder.setAbstract().setDirectMethods(ImmutableList.of(init));
             },
             eventConsumer::acceptRecordClass);
   }
@@ -484,75 +435,7 @@ public class RecordDesugaring
   }
 
   private boolean needsDesugaring(CfInvokeDynamic invokeDynamic, ProgramMethod context) {
-    DexCallSite callSite = invokeDynamic.getCallSite();
-    // 1. Validates this is an invoke-static to ObjectMethods#bootstrap.
-    DexMethodHandle bootstrapMethod = callSite.bootstrapMethod;
-    if (!bootstrapMethod.type.isInvokeStatic()) {
-      return false;
-    }
-    if (bootstrapMethod.member != factory.objectMethodsMembers.bootstrap) {
-      return false;
-    }
-    // From there on we assume in the assertions that the invoke to the library method is
-    // well-formed. If the invoke is not well formed assertions will fail but the execution is
-    // correct.
-    if (bootstrapMethod.isInterface) {
-      assert false
-          : "Invoke-dynamic invoking non interface method ObjectMethods#bootstrap as an interface"
-              + " method.";
-      return false;
-    }
-    // 2. Validate the bootstrapArgs include the record type, the instance field names and
-    // the corresponding instance getters.
-    if (callSite.bootstrapArgs.size() < 2) {
-      assert false
-          : "Invoke-dynamic invoking method ObjectMethods#bootstrap with less than 2 parameters.";
-      return false;
-    }
-    DexValueType recordType = callSite.bootstrapArgs.get(0).asDexValueType();
-    if (recordType == null) {
-      assert false : "Invoke-dynamic invoking method ObjectMethods#bootstrap with an invalid type.";
-      return false;
-    }
-    DexClass recordClass = appView.definitionFor(recordType.getValue());
-    if (recordClass == null || recordClass.isNotProgramClass()) {
-      return false;
-    }
-    DexValueString valueString = callSite.bootstrapArgs.get(1).asDexValueString();
-    if (valueString == null) {
-      assert false
-          : "Invoke-dynamic invoking method ObjectMethods#bootstrap with invalid field names.";
-      return false;
-    }
-    DexString fieldNames = valueString.getValue();
-    assert fieldNames.toString().isEmpty()
-        || (fieldNames.toString().split(";").length == callSite.bootstrapArgs.size() - 2);
-    assert recordClass.instanceFields().size() == callSite.bootstrapArgs.size() - 2;
-    for (int i = 2; i < callSite.bootstrapArgs.size(); i++) {
-      DexValueMethodHandle handle = callSite.bootstrapArgs.get(i).asDexValueMethodHandle();
-      if (handle == null
-          || !handle.value.type.isInstanceGet()
-          || !handle.value.member.isDexField()) {
-        assert false
-            : "Invoke-dynamic invoking method ObjectMethods#bootstrap with invalid getters.";
-        return false;
-      }
-    }
-    // 3. Create the invoke-record instruction.
-    if (callSite.methodName == factory.toStringMethodName) {
-      assert callSite.methodProto == factory.createProto(factory.stringType, recordClass.getType());
-      return true;
-    }
-    if (callSite.methodName == factory.hashCodeMethodName) {
-      assert callSite.methodProto == factory.createProto(factory.intType, recordClass.getType());
-      return true;
-    }
-    if (callSite.methodName == factory.equalsMethodName) {
-      assert callSite.methodProto
-          == factory.createProto(factory.booleanType, recordClass.getType(), factory.objectType);
-      return true;
-    }
-    return false;
+    return isInvokeDynamicOnRecord(invokeDynamic, appView, context);
   }
 
   @SuppressWarnings("ConstantConditions")

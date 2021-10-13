@@ -29,6 +29,13 @@ public class RecordShrinkFieldTest extends TestBase {
   private static final String EXPECTED_RESULT_D8 =
       String.format(EXPECTED_RESULT, "Person", "Person");
   private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "a");
+  // TODO(b/201277582): These results are temporary while we transition into pruned minified record
+  //  fields.
+  private static final String EXPECTED_RESULT_R8_ADVANCED_DEX =
+      StringUtils.lines(
+          "a[a=Jane Doe, <pruned>=42, <pruned>=-1]", "a[a=Bob, <pruned>=42, <pruned>=-1]");
+  private static final String EXPECTED_RESULT_R8_ADVANCED_CF =
+      StringUtils.lines("a[a=Jane Doe, b=42, c=-1]", "a[a=Bob, b=42, c=-1]");
 
   private final TestParameters parameters;
 
@@ -80,6 +87,43 @@ public class RecordShrinkFieldTest extends TestBase {
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
+  }
+
+  @Test
+  public void testR8AdvancedShrinking() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(PROGRAM_DATA)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_TYPE)
+        .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .compile()
+        .inspect(this::assertSingleField)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8_ADVANCED_DEX);
+  }
+
+  @Test
+  public void testR8CfThenDexAdvancedShrinking() throws Exception {
+    Path desugared =
+        testForR8(Backend.CF)
+            .addProgramClassFileData(PROGRAM_DATA)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(MAIN_TYPE)
+            .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
+            .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
+            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .compile()
+            .writeToZip();
+    testForR8(parameters.getBackend())
+        .addProgramFiles(desugared)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MAIN_TYPE)
+        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+        .compile()
+        .inspect(this::assertSingleField)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8_ADVANCED_CF);
   }
 
   @Test
