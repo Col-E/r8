@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.shaking.ProguardConfiguration;
 
 /**
  * Visit program {@link DexClass}es and replace their sourceFile with the given string.
@@ -25,52 +24,50 @@ public class SourceFileRewriter {
   }
 
   public void run() {
-    boolean isMinifying = appView.options().isMinifying();
-    boolean isCompatR8 = appView.options().forceProguardCompatibility;
-    if (!isMinifying && isCompatR8) {
-      // Compatibility mode will only apply -renamesourcefileattribute when minifying names.
-      return;
-    }
-    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
-    boolean hasKeptNonRenamedSourceFile =
-        proguardConfiguration.getRenameSourceFileAttribute() == null
-            && proguardConfiguration.getKeepAttributes().sourceFile;
-    // If source file is kept without a rewrite, it is only modified in a minifing full-mode.
-    if (hasKeptNonRenamedSourceFile && (!isMinifying || isCompatR8)) {
-      return;
-    }
-    assert !isMinifying || appView.appInfo().hasLiveness();
-    DexString defaultRenaming = getSourceFileRenaming(proguardConfiguration);
-    for (DexClass clazz : application.classes()) {
-      clazz.sourceFile = defaultRenaming;
+    if (!appView.options().getProguardConfiguration().getKeepAttributes().sourceFile) {
+      doRenaming(getDefaultSourceFileAttribute());
+    } else if (appView.options().forceProguardCompatibility) {
+      runCompat();
+    } else {
+      runNonCompat();
     }
   }
 
-  private DexString getSourceFileRenaming(ProguardConfiguration proguardConfiguration) {
-    // If we should not be keeping the source file, null it out.
-    if (!proguardConfiguration.getKeepAttributes().sourceFile) {
-      // For class files, we always remove the attribute
-      if (appView.options().isGeneratingClassFiles()) {
-        return null;
-      }
-      assert appView.options().isGeneratingDex();
-      // When generating DEX we only remove the attribute for full-mode to ensure that we get
-      // line-numbers printed in stack traces.
-      if (!appView.options().forceProguardCompatibility) {
-        return null;
+  private void runCompat() {
+    // Compatibility mode will only apply -renamesourcefileattribute when minifying names.
+    if (appView.options().isMinifying()) {
+      String renaming = getRenameSourceFileAttribute();
+      if (renaming != null) {
+        doRenaming(renaming);
       }
     }
+  }
 
-    String renamedSourceFileAttribute = proguardConfiguration.getRenameSourceFileAttribute();
-    if (renamedSourceFileAttribute != null) {
-      return appView.dexItemFactory().createString(renamedSourceFileAttribute);
+  private void runNonCompat() {
+    String renaming = getRenameSourceFileAttribute();
+    if (renaming != null) {
+      doRenaming(renaming);
+    } else if (appView.options().isMinifying()) {
+      // TODO(b/202367773): This should also apply if optimizing.
+      doRenaming(getDefaultSourceFileAttribute());
     }
+  }
 
-    // Otherwise, take the smallest size depending on platform. We cannot use NULL since the jvm
-    // and art will write at foo.bar.baz(Unknown Source) without a line-number. Newer version of ART
-    // will report the DEX PC.
-    return appView
-        .dexItemFactory()
-        .createString(appView.options().isGeneratingClassFiles() ? "SourceFile" : "");
+  private String getRenameSourceFileAttribute() {
+    return appView.options().getProguardConfiguration().getRenameSourceFileAttribute();
+  }
+
+  private DexString getDefaultSourceFileAttribute() {
+    return appView.dexItemFactory().defaultSourceFileAttribute;
+  }
+
+  private void doRenaming(String renaming) {
+    doRenaming(appView.dexItemFactory().createString(renaming));
+  }
+
+  private void doRenaming(DexString renaming) {
+    for (DexClass clazz : application.classes()) {
+      clazz.sourceFile = renaming;
+    }
   }
 }

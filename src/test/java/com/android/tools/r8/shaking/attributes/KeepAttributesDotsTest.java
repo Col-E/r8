@@ -29,7 +29,6 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class KeepAttributesDotsTest extends TestBase {
 
-  private final TestParameters parameters;
   private final String keepAttributes;
 
   @Parameterized.Parameters(name = "-keepattributes {1}")
@@ -40,7 +39,7 @@ public class KeepAttributesDotsTest extends TestBase {
   }
 
   public KeepAttributesDotsTest(TestParameters parameters, String keepAttributes) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
     this.keepAttributes = keepAttributes;
   }
 
@@ -76,7 +75,7 @@ public class KeepAttributesDotsTest extends TestBase {
     assertTrue(field.getField().annotations().isEmpty());
     assertTrue(
         clazz.getDexProgramClass().sourceFile == null
-            || clazz.getDexProgramClass().sourceFile.size == 0);
+            || clazz.getDexProgramClass().sourceFile.toString().equals("SourceFile"));
     assertNull(main.getLineNumberTable());
     assertTrue(main.getLocalVariableTable().isEmpty());
   }

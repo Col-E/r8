@@ -46,8 +46,8 @@ public class RenameSourceFileAttributeCompatTest extends TestBase {
   }
 
   private void checkSourceFileIsRemoved(SingleTestRunResult<?> result) throws Exception {
-    // TODO(b/202368282): We should likely emit a "default" source file attribute rather than strip.
-    checkSourceFile(result, null, null, null);
+    String removalValue = result.isR8TestRunResult() ? "SourceFile" : null;
+    checkSourceFile(result, removalValue, removalValue, removalValue);
   }
 
   private void checkSourceFileIsOriginal(SingleTestRunResult<?> result) throws Exception {

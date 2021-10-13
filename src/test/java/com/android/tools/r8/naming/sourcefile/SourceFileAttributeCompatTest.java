@@ -45,8 +45,13 @@ public class SourceFileAttributeCompatTest extends TestBase {
   }
 
   private void checkSourceFileIsRemoved(SingleTestRunResult<?> result) throws Exception {
-    // TODO(b/202368282): We should likely emit a "default" source file attribute rather than strip.
-    checkSourceFile(result, null, null, null);
+    if (result.isR8TestRunResult()) {
+      // R8 and R8/compat differ from PG in that at least the default source file attribute is
+      // retained. This ensures better stack traces on various VMs and has next to no size overhead.
+      checkSourceFileIsReplacedByDefault(result);
+    } else {
+      checkSourceFile(result, null, null, null);
+    }
   }
 
   private void checkSourceFileIsOriginal(SingleTestRunResult<?> result) throws Exception {
