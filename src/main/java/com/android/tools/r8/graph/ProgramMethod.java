@@ -3,16 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
+
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
 public final class ProgramMethod extends DexClassAndMethod
@@ -64,6 +69,44 @@ public final class ProgramMethod extends DexClassAndMethod
     }
     definition.annotations().collectIndexedItems(indexedItems);
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
+  }
+
+  public void convertToAbstractOrThrowNullMethod(AppView<AppInfoWithLiveness> appView) {
+    if (!convertToAbstractMethodIfPossible(appView)) {
+      convertToThrowNullMethod(appView);
+    }
+  }
+
+  private boolean convertToAbstractMethodIfPossible(AppView<AppInfoWithLiveness> appView) {
+    boolean canBeAbstract =
+        (appView.options().canUseAbstractMethodOnNonAbstractClass()
+                || getHolder().isAbstract()
+                || getHolder().isInterface())
+            && !getAccessFlags().isNative()
+            && !getAccessFlags().isPrivate()
+            && !getAccessFlags().isStatic()
+            && !appView.appInfo().isFailedResolutionTarget(getReference());
+    if (canBeAbstract) {
+      MethodAccessFlags accessFlags = getAccessFlags();
+      accessFlags.demoteFromFinal();
+      accessFlags.demoteFromStrict();
+      accessFlags.demoteFromSynchronized();
+      accessFlags.promoteToAbstract();
+      getDefinition().clearApiLevelForCode(appView);
+      getDefinition().unsetCode();
+      getSimpleFeedback().unsetOptimizationInfoForAbstractMethod(this);
+    }
+    return canBeAbstract;
+  }
+
+  public void convertToThrowNullMethod(AppView<?> appView) {
+    MethodAccessFlags accessFlags = getAccessFlags();
+    accessFlags.demoteFromAbstract();
+    Code emptyThrowingCode = getDefinition().buildEmptyThrowingCode(appView.options());
+    getDefinition().setApiLevelForCode(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView));
+    getDefinition().setCode(emptyThrowingCode, appView);
+    getSimpleFeedback().markProcessed(getDefinition(), ConstraintWithTarget.ALWAYS);
+    getSimpleFeedback().unsetOptimizationInfoForThrowNullMethod(this);
   }
 
   public void registerCodeReferences(UseRegistry<?> registry) {

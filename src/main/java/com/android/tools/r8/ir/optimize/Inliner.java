@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.androidapi.AvailableApiExceptions;
@@ -47,6 +48,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
@@ -78,10 +80,12 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Inliner {
 
   protected final AppView<AppInfoWithLiveness> appView;
+  private final IRConverter converter;
   private final Set<DexMethod> extraNeverInlineMethods;
   private final LensCodeRewriter lensCodeRewriter;
   final MainDexInfo mainDexInfo;
@@ -96,13 +100,18 @@ public class Inliner {
   private final Map<DexEncodedMethod, ProgramMethod> doubleInlineeCandidates =
       new IdentityHashMap<>();
 
+  private final Map<DexProgramClass, ProgramMethodSet> singleCallerInlinedMethods =
+      new ConcurrentHashMap<>();
+
   private final AvailableApiExceptions availableApiExceptions;
 
   public Inliner(
       AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
+    this.converter = converter;
     this.extraNeverInlineMethods =
         appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations
             ? ImmutableSet.of()
@@ -1130,7 +1139,15 @@ public class Inliner {
               appView, code, inlinee.code, blockIterator, blocksToRemove, downcastClass);
 
           if (inlinee.reason == Reason.SINGLE_CALLER) {
+            assert converter.isInWave();
             feedback.markInlinedIntoSingleCallSite(singleTargetMethod);
+            if (singleCallerInlinedMethods.isEmpty()) {
+              converter.addWaveDoneAction(this::onWaveDone);
+            }
+            singleCallerInlinedMethods
+                .computeIfAbsent(
+                    singleTarget.getHolder(), ignoreKey(ProgramMethodSet::createConcurrent))
+                .add(singleTarget);
           }
 
           classInitializationAnalysis.notifyCodeHasChanged();
@@ -1304,10 +1321,37 @@ public class Inliner {
     singleInlineCallers.remove(method.getReference(), appView.graphLens());
   }
 
-  public static boolean verifyNoMethodsInlinedDueToSingleCallSite(AppView<?> appView) {
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
+  private void onWaveDone() {
+    singleCallerInlinedMethods.forEach(
+        (clazz, singleCallerInlinedMethodsForClass) -> {
+          // Convert and remove virtual single caller inlined methods to abstract or throw null.
+          singleCallerInlinedMethodsForClass.removeIf(
+              singleCallerInlinedMethod -> {
+                if (singleCallerInlinedMethod.getDefinition().belongsToVirtualPool() || true) {
+                  singleCallerInlinedMethod.convertToAbstractOrThrowNullMethod(appView);
+                  return true;
+                }
+                return false;
+              });
+
+          // Remove direct single caller inlined methods from the application.
+          if (!singleCallerInlinedMethodsForClass.isEmpty()) {
+            clazz
+                .getMethodCollection()
+                .removeMethods(
+                    singleCallerInlinedMethodsForClass.toDefinitionSet(
+                        SetUtils::newIdentityHashSet));
+            singleCallerInlinedMethodsForClass.forEach(converter::pruneMethod);
+          }
+        });
+    singleCallerInlinedMethods.clear();
+  }
+
+  public static boolean verifyAllSingleCallerMethodsHaveBeenPruned(AppView<?> appView) {
+    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       for (DexEncodedMethod method : clazz.methods()) {
-        assert !method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite();
+        assert !method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite() || !method.hasCode()
+            : "Method was single caller inlined: " + method.toSourceString();
       }
     }
     return true;

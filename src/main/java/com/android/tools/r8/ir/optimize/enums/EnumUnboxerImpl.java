@@ -638,9 +638,21 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     postMethodProcessorBuilder
         .getMethodsToReprocessBuilder()
         .rewrittenWithLens(appView)
-        .merge(dependencies)
-        .merge(methodsDependingOnLibraryModelisation)
-        .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods());
+        .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods())
+        .merge(
+            dependencies
+                .rewrittenWithLens(appView)
+                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods())
+                .removeIf(
+                    appView,
+                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()))
+        .merge(
+            methodsDependingOnLibraryModelisation
+                .rewrittenWithLens(appView)
+                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods())
+                .removeIf(
+                    appView,
+                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()));
     methodsDependingOnLibraryModelisation.clear();
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult);

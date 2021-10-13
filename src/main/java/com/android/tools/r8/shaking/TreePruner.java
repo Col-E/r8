@@ -17,13 +17,13 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -283,11 +283,13 @@ public class TreePruner {
     return -1;
   }
 
-  private DexEncodedMethod[] reachableMethods(Iterable<DexEncodedMethod> methods, DexClass clazz) {
+  private DexEncodedMethod[] reachableMethods(
+      Iterable<DexEncodedMethod> methods, DexProgramClass clazz) {
     return reachableMethods(IterableUtils.ensureUnmodifiableList(methods), clazz);
   }
 
-  private DexEncodedMethod[] reachableMethods(List<DexEncodedMethod> methods, DexClass clazz) {
+  private DexEncodedMethod[] reachableMethods(
+      List<DexEncodedMethod> methods, DexProgramClass clazz) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
     int firstUnreachable =
@@ -320,27 +322,11 @@ public class TreePruner {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Making method %s abstract.", method.getReference());
         }
-        // Final classes cannot be abstract, so we have to keep the method in that case.
-        // Also some other kinds of methods cannot be abstract, so keep them around.
-        boolean allowAbstract =
-            (options.canUseAbstractMethodOnNonAbstractClass() || clazz.isAbstract())
-                && !method.isFinal()
-                && !method.accessFlags.isNative()
-                && !method.accessFlags.isStrict()
-                && !method.isSynchronized()
-                && !method.accessFlags.isPrivate()
-                && !method.isStatic()
-                && !appInfo.isFailedResolutionTarget(method.getReference());
         // Private methods and static methods can only be targeted yet non-live as the result of
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.
-        if (!allowAbstract) {
-          // If the method was not marked as live and we cannot make it abstract, set the api level
-          // to be min or unknown.
-          method.setApiLevelForCode(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView));
-        }
-        reachableMethods.add(
-            allowAbstract ? method.toAbstractMethod() : method.toEmptyThrowingMethod(options));
+        new ProgramMethod(clazz, method).convertToAbstractOrThrowNullMethod(appView);
+        reachableMethods.add(method);
       } else {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Removing method %s.", method.getReference());

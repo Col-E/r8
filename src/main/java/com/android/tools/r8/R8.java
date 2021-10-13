@@ -52,6 +52,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetarget
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
+import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
@@ -621,8 +622,7 @@ public class R8 {
 
             new BridgeHoisting(appViewWithLiveness).run();
 
-            // TODO(b/130721661): Enable this assert.
-            // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);
+            assert Inliner.verifyAllSingleCallerMethodsHaveBeenPruned(appView);
 
             assert appView.allMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
             assert appView.validateUnboxedEnumsHaveBeenPruned();

@@ -6,16 +6,14 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,17 +22,14 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class LibraryOverrideInliningTest extends TestBase {
 
-  private final boolean disableInliningOfLibraryMethodOverrides;
   private final TestParameters parameters;
 
-  @Parameters(name = "{1}, disableInliningOfLibraryMethodOverrides: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public LibraryOverrideInliningTest(
-      boolean disableInliningOfLibraryMethodOverrides, TestParameters parameters) {
-    this.disableInliningOfLibraryMethodOverrides = disableInliningOfLibraryMethodOverrides;
+  public LibraryOverrideInliningTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -43,12 +38,8 @@ public class LibraryOverrideInliningTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(LibraryOverrideInliningTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options ->
-                options.disableInliningOfLibraryMethodOverrides =
-                    disableInliningOfLibraryMethodOverrides)
         .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
@@ -64,12 +55,7 @@ public class LibraryOverrideInliningTest extends TestBase {
 
               MethodSubject mainMethodSubject = testClassSubject.mainMethod();
               assertThat(mainMethodSubject, isPresent());
-
-              if (disableInliningOfLibraryMethodOverrides) {
-                assertThat(mainMethodSubject, invokesMethod(toStringMethodSubject));
-              } else {
-                assertThat(mainMethodSubject, not(invokesMethod(toStringMethodSubject)));
-              }
+              assertThat(mainMethodSubject, invokesMethod(toStringMethodSubject));
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

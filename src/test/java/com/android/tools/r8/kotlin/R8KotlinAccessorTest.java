@@ -10,7 +10,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -91,6 +90,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
         .inspect(
             inspector -> {
+              if (allowAccessModification) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "primitiveProp";
@@ -124,6 +128,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
         .inspect(
             inspector -> {
+              if (allowAccessModification) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "privateProp";
@@ -159,6 +168,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
         .inspect(
             inspector -> {
+              if (allowAccessModification) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "internalProp";
@@ -193,6 +207,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
         .inspect(
             inspector -> {
+              if (allowAccessModification) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "publicProp";
@@ -227,6 +246,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
         .inspect(
             inspector -> {
+              if (allowAccessModification) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "privateLateInitProp";
@@ -260,6 +284,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
+              if (true) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "internalLateInitProp";
@@ -293,6 +322,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
+              if (true) {
+                checkClassIsRemoved(inspector, testedClass.getOuterClassName());
+                return;
+              }
+
               ClassSubject outerClass =
                   checkClassIsKept(inspector, testedClass.getOuterClassName());
               String propertyName = "publicLateInitProp";
@@ -375,9 +409,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest("accessors", mainClass)
         .inspect(
             inspector -> {
-              if (allowAccessModification
-                  && (testParameters.isCfRuntime()
-                      || !kotlinParameters.is(KOTLINC_1_5_0, KotlinTargetVersion.JAVA_8))) {
+              if (allowAccessModification) {
                 checkClassIsRemoved(inspector, testedClass.getClassName());
                 return;
               }

@@ -82,10 +82,6 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       methodsToRevisit.forEach(this::add);
     }
 
-    public void put(PostOptimization postOptimization) {
-      put(postOptimization.methodsToRevisit());
-    }
-
     // Some optimizations may change methods, creating new instances of the encoded methods with a
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.

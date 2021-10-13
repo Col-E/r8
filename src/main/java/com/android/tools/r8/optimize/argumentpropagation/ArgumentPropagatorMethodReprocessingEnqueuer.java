@@ -81,7 +81,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
             CallSiteOptimizationInfo callSiteOptimizationInfo =
                 method.getDefinition().getCallSiteOptimizationInfo();
             if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()
-                && !appView.appInfo().isNeverReprocessMethod(method.getReference())) {
+                && !appView.appInfo().isNeverReprocessMethod(method)) {
               methodsToReprocessBuilder.add(method, currentGraphLens);
               appView.testing().callSiteOptimizationInfoInspector.accept(method);
             }
@@ -107,11 +107,14 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                   method -> {
                     if (graphLens.internalGetNextMethodSignature(method.getReference())
                         != method.getReference()) {
-                      methodsToReprocessInClass.add(method);
+                      if (!method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()) {
+                        methodsToReprocessInClass.add(method);
+                      }
                     } else {
                       AffectedMethodUseRegistry registry =
                           new AffectedMethodUseRegistry(appView, method, graphLens);
                       if (method.registerCodeReferencesWithResult(registry)) {
+                        assert !method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite();
                         methodsToReprocessInClass.add(method);
                       }
                     }

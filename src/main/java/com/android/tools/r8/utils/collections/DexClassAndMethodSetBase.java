@@ -7,11 +7,13 @@ package com.android.tools.r8.utils.collections;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.SetUtils;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -78,6 +80,10 @@ public abstract class DexClassAndMethodSetBase<T extends DexClassAndMethod> impl
     return remove(method.getReference());
   }
 
+  public boolean removeIf(Predicate<? super T> predicate) {
+    return backing.values().removeIf(predicate);
+  }
+
   public int size() {
     return backing.size();
   }
@@ -88,7 +94,11 @@ public abstract class DexClassAndMethodSetBase<T extends DexClassAndMethod> impl
 
   public Set<DexEncodedMethod> toDefinitionSet() {
     assert backing instanceof IdentityHashMap;
-    Set<DexEncodedMethod> definitions = Sets.newIdentityHashSet();
+    return toDefinitionSet(SetUtils::newIdentityHashSet);
+  }
+
+  public Set<DexEncodedMethod> toDefinitionSet(IntFunction<Set<DexEncodedMethod>> factory) {
+    Set<DexEncodedMethod> definitions = factory.apply(size());
     forEach(method -> definitions.add(method.getDefinition()));
     return definitions;
   }

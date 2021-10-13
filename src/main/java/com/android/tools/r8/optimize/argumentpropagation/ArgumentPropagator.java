@@ -213,4 +213,20 @@ public class ArgumentPropagator {
     reprocessingCriteriaCollection = null;
     timing.end();
   }
+
+  /**
+   * Called by {@link IRConverter} at the end of a wave if a method is pruned by an optimization.
+   *
+   * <p>We only prune (1) direct single caller methods and (2) isX()/asX() virtual method overrides.
+   * For (2), we always transfer the argument information for the isX()/asX() method to its parent
+   * method using {@link #transferArgumentInformation(ProgramMethod, ProgramMethod)}, which unsets
+   * the argument information for the override.
+   *
+   * <p>Therefore, we assert that we only find a method state for direct methods.
+   */
+  public void pruneMethod(ProgramMethod method) {
+    assert codeScanner != null;
+    MethodState methodState = codeScanner.getMethodStates().removeOrElse(method, null);
+    assert methodState == null || method.getDefinition().belongsToDirectPool();
+  }
 }

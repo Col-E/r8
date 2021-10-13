@@ -234,7 +234,13 @@ final class StaticizingProcessor {
         LongLivedProgramMethodSetBuilder<?> referencedFromBuilder =
             classStaticizer.referencedFrom.remove(info);
         assert referencedFromBuilder != null;
-        referencedFrom = referencedFromBuilder.build(appView);
+        referencedFrom =
+            referencedFromBuilder
+                .rewrittenWithLens(appView)
+                .removeIf(
+                    appView,
+                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite())
+                .build(appView);
         materializedReferencedFromCollections.put(info, referencedFrom);
       } else {
         referencedFrom = ProgramMethodSet.empty();

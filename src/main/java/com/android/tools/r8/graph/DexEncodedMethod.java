@@ -733,6 +733,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     setCode(builder.build(), appView);
   }
 
+  public void unsetCode() {
+    checkIfObsolete();
+    code = null;
+  }
+
   public boolean keepLocals(InternalOptions options) {
     if (options.testing.noLocalsTableOnInput) {
       return false;
@@ -906,24 +911,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public String toSourceString() {
     checkIfObsolete();
     return getReference().toSourceString();
-  }
-
-  public DexEncodedMethod toAbstractMethod() {
-    checkIfObsolete();
-    // 'final' wants this to be *not* overridden, while 'abstract' wants this to be implemented in
-    // a subtype, i.e., self contradict.
-    assert !accessFlags.isFinal();
-    // static abstract is an invalid access combination and we should never create that.
-    assert !accessFlags.isStatic();
-    return builder(this)
-        .modifyAccessFlags(MethodAccessFlags::setAbstract)
-        .setIsLibraryMethodOverrideIf(
-            isNonPrivateVirtualMethod() && !isLibraryMethodOverride().isUnknown(),
-            isLibraryMethodOverride())
-        .unsetCode()
-        .addBuildConsumer(
-            method -> OptimizationFeedbackSimple.getInstance().unsetBridgeInfo(method))
-        .build();
   }
 
   /**
@@ -1367,6 +1354,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public AndroidApiLevel getApiLevelForCode() {
     return apiLevelForCode;
+  }
+
+  public void clearApiLevelForCode(AppView<?> appView) {
+    this.apiLevelForCode = AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView);
   }
 
   public void setApiLevelForCode(AndroidApiLevel apiLevel) {

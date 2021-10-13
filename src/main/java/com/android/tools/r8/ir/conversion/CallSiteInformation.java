@@ -82,6 +82,12 @@ public abstract class CallSiteInformation {
           continue;
         }
 
+        if (method.getDefinition().isDefaultInitializer()
+            && appView.hasProguardCompatibilityActions()
+            && appView.getProguardCompatibilityActions().isCompatInstantiated(method.getHolder())) {
+          continue;
+        }
+
         int numberOfCallSites = node.getNumberOfCallSites();
         if (numberOfCallSites == 1) {
           singleCallSite.add(reference);

@@ -657,8 +657,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return keepUnusedArguments.contains(method);
   }
 
-  public boolean isNeverReprocessMethod(DexMethod method) {
-    return neverReprocess.contains(method);
+  public boolean isNeverReprocessMethod(ProgramMethod method) {
+    return neverReprocess.contains(method.getReference())
+        || method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite();
   }
 
   public Set<DexMethod> getReprocessMethods() {

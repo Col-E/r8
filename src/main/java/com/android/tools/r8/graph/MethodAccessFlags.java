@@ -127,6 +127,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     set(Constants.ACC_SYNCHRONIZED);
   }
 
+  public void demoteFromSynchronized() {
+    demote(Constants.ACC_SYNCHRONIZED);
+  }
+
   public void unsetSynchronized() {
     unset(Constants.ACC_SYNCHRONIZED);
   }
@@ -179,6 +183,14 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     set(Constants.ACC_ABSTRACT);
   }
 
+  public void demoteFromAbstract() {
+    demote(Constants.ACC_ABSTRACT);
+  }
+
+  public void promoteToAbstract() {
+    promote(Constants.ACC_ABSTRACT);
+  }
+
   public void unsetAbstract() {
     unset(Constants.ACC_ABSTRACT);
   }
@@ -189,6 +201,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
   public void setStrict() {
     set(Constants.ACC_STRICT);
+  }
+
+  public void demoteFromStrict() {
+    demote(Constants.ACC_STRICT);
   }
 
   public void unsetStrict() {

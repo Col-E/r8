@@ -68,7 +68,7 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
 
   public void addAll(Iterable<ProgramMethod> methodsToAdd, GraphLens currentGraphLens) {
     assert verifyIsRewrittenWithLens(currentGraphLens);
-    methodsToAdd.forEach(method -> methods.add(method.getReference()));
+    methodsToAdd.forEach(method -> add(method, currentGraphLens));
   }
 
   public void clear() {

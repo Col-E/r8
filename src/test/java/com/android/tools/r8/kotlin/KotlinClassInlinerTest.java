@@ -6,8 +6,10 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -120,7 +122,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                 assertThat(
                     inspector.clazz(
                         "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda2"),
-                    isPresent());
+                    isAbsent());
               } else {
                 assertThat(
                     inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
@@ -164,7 +166,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                       !hasKotlinCGeneratedLambdaClasses
                           ? "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda2"
                           : "class_inliner_lambda_j_style.MainKt$testStateful$1"),
-                  isPresent());
+                  onlyIf(hasKotlinCGeneratedLambdaClasses, isPresent()));
             });
   }
 

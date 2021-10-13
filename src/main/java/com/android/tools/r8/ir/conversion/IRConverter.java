@@ -270,7 +270,7 @@ public class IRConverter {
               : null;
       this.enumUnboxer = EnumUnboxer.create(appViewWithLiveness);
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
-      this.inliner = new Inliner(appViewWithLiveness, lensCodeRewriter);
+      this.inliner = new Inliner(appViewWithLiveness, this, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -360,8 +360,7 @@ public class IRConverter {
   public void convert(AppView<AppInfo> appView, ExecutorService executor)
       throws ExecutionException {
     LambdaDeserializationMethodRemover.run(appView);
-    workaroundAbstractMethodOnNonAbstractClassVerificationBug(
-        executor, OptimizationFeedbackIgnore.getInstance());
+    workaroundAbstractMethodOnNonAbstractClassVerificationBug(executor);
     DexApplication application = appView.appInfo().app();
     D8MethodProcessor methodProcessor = new D8MethodProcessor(this, executor);
     InterfaceProcessor interfaceProcessor =
@@ -603,7 +602,7 @@ public class IRConverter {
   }
 
   private void workaroundAbstractMethodOnNonAbstractClassVerificationBug(
-      ExecutorService executorService, OptimizationFeedback feedback) throws ExecutionException {
+      ExecutorService executorService) throws ExecutionException {
     if (!options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()) {
       return;
     }
@@ -612,13 +611,8 @@ public class IRConverter {
         appView.appInfo().classes(),
         clazz -> {
           if (!clazz.isAbstract()) {
-            clazz.forEachMethod(
-                method -> {
-                  if (method.isAbstract()) {
-                    method.accessFlags.unsetAbstract();
-                    finalizeEmptyThrowingCode(method, feedback);
-                  }
-                });
+            clazz.forEachProgramMethodMatching(
+                DexEncodedMethod::isAbstract, method -> method.convertToThrowNullMethod(appView));
           }
         },
         executorService);
@@ -633,8 +627,7 @@ public class IRConverter {
     DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
-    workaroundAbstractMethodOnNonAbstractClassVerificationBug(
-        executorService, simpleOptimizationFeedback);
+    workaroundAbstractMethodOnNonAbstractClassVerificationBug(executorService);
 
     // The process is in two phases in general.
     // 1) Subject all DexEncodedMethods to optimization, except some optimizations that require
@@ -975,16 +968,6 @@ public class IRConverter {
     processMethodsConcurrently(methods, executorService);
   }
 
-  public void optimizeSynthesizedClasses(
-      Collection<DexProgramClass> classes, ExecutorService executorService)
-      throws ExecutionException {
-    SortedProgramMethodSet methods = SortedProgramMethodSet.create();
-    for (DexProgramClass clazz : classes) {
-      clazz.forEachProgramMethod(methods::add);
-    }
-    processMethodsConcurrently(methods, executorService);
-  }
-
   public void optimizeSynthesizedMethod(ProgramMethod synthesizedMethod) {
     if (!synthesizedMethod.getDefinition().isProcessed()) {
       // Process the generated method, but don't apply any outlining.
@@ -1188,8 +1171,8 @@ public class IRConverter {
             + ExceptionUtils.getMainStackTrace();
     assert !method.isProcessed()
             || !appView.enableWholeProgramOptimizations()
-            || !appView.appInfo().withLiveness().isNeverReprocessMethod(method.getReference())
-        : "Illegal reprocessing due to -neverreprocess rule: " + context.toSourceString();
+            || !appView.appInfo().withLiveness().isNeverReprocessMethod(context)
+        : "Unexpected reprocessing of method: " + context.toSourceString();
 
     if (typeChecker != null && !typeChecker.check(code)) {
       assert appView.enableWholeProgramOptimizations();
@@ -1200,14 +1183,14 @@ public class IRConverter {
                   + method.toSourceString()
                   + "` does not type check and will be assumed to be unreachable.");
       options.reporter.warning(warning);
-      finalizeEmptyThrowingCode(method, feedback);
+      context.convertToThrowNullMethod(appView);
       return timing;
     }
 
     // This is the first point in time where we can assert that the types are sound. If this
     // assert fails, then the types that we have inferred are unsound, or the method does not type
     // check. In the latter case, the type checker should be extended to detect the issue such that
-    // we will return with finalizeEmptyThrowingCode() above.
+    // we will return with a throw-null method above.
     assert code.verifyTypes(appView);
     assert code.isConsistentSSA();
 
@@ -1653,13 +1636,6 @@ public class IRConverter {
     }
   }
 
-  private void finalizeEmptyThrowingCode(DexEncodedMethod method, OptimizationFeedback feedback) {
-    assert options.isGeneratingClassFiles() || options.isGeneratingDex();
-    Code emptyThrowingCode = method.buildEmptyThrowingCode(options);
-    method.setCode(emptyThrowingCode, appView);
-    feedback.markProcessed(method, ConstraintWithTarget.ALWAYS);
-  }
-
   private void finalizeToCf(
       IRCode code, OptimizationFeedback feedback, MethodConversionOptions conversionOptions) {
     DexEncodedMethod method = code.method();
@@ -1984,6 +1960,7 @@ public class IRConverter {
   public void pruneMethod(ProgramMethod method) {
     assert appView.enableWholeProgramOptimizations();
     assert method.getHolder().lookupMethod(method.getReference()) == null;
+    appView.withArgumentPropagator(argumentPropagator -> argumentPropagator.pruneMethod(method));
     if (inliner != null) {
       inliner.pruneMethod(method);
     }

@@ -97,12 +97,15 @@ public class OutlineCollection {
               DexProgramClass.asProgramClassOrNull(
                   appView.definitionFor(rewrittenReference.getHolderType()));
           ProgramMethod method = rewrittenReference.lookupOnProgramClass(holder);
-          if (method != null) {
-            for (Outline outline : outlinesForMethod) {
-              methodsPerOutline.computeIfAbsent(outline, ignoreKey(ArrayList::new)).add(method);
-            }
-          } else {
+          if (method == null) {
             assert false;
+            return;
+          }
+          if (method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()) {
+            return;
+          }
+          for (Outline outline : outlinesForMethod) {
+            methodsPerOutline.computeIfAbsent(outline, ignoreKey(ArrayList::new)).add(method);
           }
         });
     return methodsPerOutline;
