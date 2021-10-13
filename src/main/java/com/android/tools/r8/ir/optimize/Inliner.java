@@ -1347,12 +1347,15 @@ public class Inliner {
     singleCallerInlinedMethods.clear();
   }
 
-  public static boolean verifyAllSingleCallerMethodsHaveBeenPruned(AppView<?> appView) {
+  public static boolean verifyAllSingleCallerMethodsHaveBeenPruned(
+      AppView<AppInfoWithLiveness> appView) {
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
-      for (DexEncodedMethod method : clazz.methods()) {
-        assert !method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite() || !method.hasCode()
-            : "Method was single caller inlined: " + method.toSourceString();
-      }
+      clazz.forEachProgramMethodMatching(
+          method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite(),
+          method -> {
+            assert !method.getDefinition().hasCode()
+                || !method.canBeConvertedToAbstractMethod(appView);
+          });
     }
     return true;
   }

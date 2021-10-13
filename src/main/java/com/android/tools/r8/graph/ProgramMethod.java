@@ -71,6 +71,16 @@ public final class ProgramMethod extends DexClassAndMethod
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
+  public boolean canBeConvertedToAbstractMethod(AppView<AppInfoWithLiveness> appView) {
+    return (appView.options().canUseAbstractMethodOnNonAbstractClass()
+            || getHolder().isAbstract()
+            || getHolder().isInterface())
+        && !getAccessFlags().isNative()
+        && !getAccessFlags().isPrivate()
+        && !getAccessFlags().isStatic()
+        && !appView.appInfo().isFailedResolutionTarget(getReference());
+  }
+
   public void convertToAbstractOrThrowNullMethod(AppView<AppInfoWithLiveness> appView) {
     if (!convertToAbstractMethodIfPossible(appView)) {
       convertToThrowNullMethod(appView);
@@ -78,14 +88,7 @@ public final class ProgramMethod extends DexClassAndMethod
   }
 
   private boolean convertToAbstractMethodIfPossible(AppView<AppInfoWithLiveness> appView) {
-    boolean canBeAbstract =
-        (appView.options().canUseAbstractMethodOnNonAbstractClass()
-                || getHolder().isAbstract()
-                || getHolder().isInterface())
-            && !getAccessFlags().isNative()
-            && !getAccessFlags().isPrivate()
-            && !getAccessFlags().isStatic()
-            && !appView.appInfo().isFailedResolutionTarget(getReference());
+    boolean canBeAbstract = canBeConvertedToAbstractMethod(appView);
     if (canBeAbstract) {
       MethodAccessFlags accessFlags = getAccessFlags();
       accessFlags.demoteFromFinal();
