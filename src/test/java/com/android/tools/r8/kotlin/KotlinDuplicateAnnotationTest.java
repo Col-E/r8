@@ -60,8 +60,9 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dex() {
-    // TODO(b/179860027): Make it run on all tests.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
+    assumeTrue(
+        "kotlinc > 1.3.72 will no longer compile kotlin files with duplicate annotations",
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     assumeTrue("test DEX", parameters.isDexRuntime());
     try {
       testForR8(parameters.getBackend())
@@ -80,8 +81,9 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_cf() throws Exception {
-    // TODO(b/179860027): Make it run on all tests.
-    assumeTrue(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
+    assumeTrue(
+        "kotlinc > 1.3.72 will no longer compile kotlin files with duplicate annotations",
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     assumeTrue("test CF", parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
