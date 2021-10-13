@@ -20,10 +20,18 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
+/**
+ * Computes the set of virtual methods for which we can use a monomorphic method state as well as
+ * the mapping from virtual methods to their representative root methods.
+ *
+ * <p>The analysis can be used to easily mark effectively final classes and methods as final, and
+ * therefore does this as a side effect.
+ */
 public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyTraversal {
 
   static class VirtualRootMethod {
@@ -118,6 +126,16 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
   }
 
   @Override
+  public void forEachSubClass(DexProgramClass clazz, Consumer<DexProgramClass> consumer) {
+    List<DexProgramClass> subclasses = immediateSubtypingInfo.getSubclasses(clazz);
+    if (subclasses.isEmpty()) {
+      promoteToFinalIfPossible(clazz);
+    } else {
+      subclasses.forEach(consumer);
+    }
+  }
+
+  @Override
   public void visit(DexProgramClass clazz) {
     Map<DexMethodSignature, VirtualRootMethod> state = computeVirtualRootMethodsState(clazz);
     virtualRootMethodsPerClass.put(clazz, state);
@@ -157,12 +175,7 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
         rootCandidate -> {
           VirtualRootMethod virtualRootMethod =
               virtualRootMethodsForClass.remove(rootCandidate.getMethodSignature());
-          if (!clazz.isInterface()
-              && !rootCandidate.getAccessFlags().isAbstract()
-              && !virtualRootMethod.hasOverrides()
-              && appView.getKeepInfo(rootCandidate).isOptimizationAllowed(appView.options())) {
-            rootCandidate.getAccessFlags().promoteToFinal();
-          }
+          promoteToFinalIfPossible(rootCandidate, virtualRootMethod);
           if (!rootCandidate.isStructurallyEqualTo(virtualRootMethod.getRoot())) {
             return;
           }
@@ -192,5 +205,22 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
             }
           }
         });
+  }
+
+  private void promoteToFinalIfPossible(DexProgramClass clazz) {
+    if (!clazz.isAbstract()
+        && !clazz.isInterface()
+        && appView.getKeepInfo(clazz).isOptimizationAllowed(appView.options())) {
+      clazz.getAccessFlags().promoteToFinal();
+    }
+  }
+
+  private void promoteToFinalIfPossible(ProgramMethod method, VirtualRootMethod virtualRootMethod) {
+    if (!method.getHolder().isInterface()
+        && !method.getAccessFlags().isAbstract()
+        && !virtualRootMethod.hasOverrides()
+        && appView.getKeepInfo(method).isOptimizationAllowed(appView.options())) {
+      method.getAccessFlags().promoteToFinal();
+    }
   }
 }

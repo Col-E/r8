@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelColl
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
@@ -535,6 +536,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public KeepInfoCollection getKeepInfo() {
     return keepInfo;
+  }
+
+  public KeepClassInfo getKeepInfo(DexProgramClass clazz) {
+    return getKeepInfo().getClassInfo(clazz);
   }
 
   public KeepMethodInfo getKeepInfo(ProgramMethod method) {
