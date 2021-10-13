@@ -643,7 +643,9 @@ public class DexItemFactory {
   public final DexProto deserializeLambdaMethodProto =
       createProto(objectType, serializedLambdaType);
 
-  public final DexString defaultSourceFileAttribute = createString("SourceFile");
+  public final String defaultSourceFileAttributeString = "SourceFile";
+  public final DexString defaultSourceFileAttribute =
+      createString(defaultSourceFileAttributeString);
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation

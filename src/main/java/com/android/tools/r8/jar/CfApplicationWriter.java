@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.SourceFileEnvironment;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
@@ -40,6 +41,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.AsmUtils;
@@ -131,16 +133,24 @@ public class CfApplicationWriter {
   }
 
   private void writeApplication(ClassFileConsumer consumer) {
-    if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      marker.setPgMapId(proguardMapSupplier.writeProguardMap().getId());
+    ProguardMapId proguardMapId =
+        (proguardMapSupplier != null && options.proguardMapConsumer != null)
+            ? proguardMapSupplier.writeProguardMap()
+            : null;
+    if (proguardMapId != null) {
+      marker.setPgMapId(proguardMapId.getId());
     }
     Optional<String> markerString =
         includeMarker(marker) ? Optional.of(marker.toString()) : Optional.empty();
+    SourceFileEnvironment sourceFileEnvironment = null;
+    if (options.sourceFileProvider != null) {
+      sourceFileEnvironment = ApplicationWriter.createSourceFileEnvironment(proguardMapId);
+    }
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
     for (DexProgramClass clazz : application.classes()) {
       assert SyntheticNaming.verifyNotInternalSynthetic(clazz.getType());
       try {
-        writeClass(clazz, consumer, rewriter, markerString);
+        writeClass(clazz, consumer, rewriter, markerString, sourceFileEnvironment);
       } catch (ClassTooLargeException e) {
         throw appView
             .options()
@@ -172,14 +182,21 @@ public class CfApplicationWriter {
       DexProgramClass clazz,
       ClassFileConsumer consumer,
       LensCodeRewriterUtils rewriter,
-      Optional<String> markerString) {
+      Optional<String> markerString,
+      SourceFileEnvironment sourceFileEnvironment) {
     ClassWriter writer = new ClassWriter(0);
     if (markerString.isPresent()) {
       int markerStringPoolIndex = writer.newConst(markerString.get());
       assert markerStringPoolIndex == MARKER_STRING_CONSTANT_POOL_INDEX;
     }
+    String sourceFile;
+    if (options.sourceFileProvider == null) {
+      sourceFile = clazz.sourceFile != null ? clazz.sourceFile.toString() : null;
+    } else {
+      sourceFile = options.sourceFileProvider.get(sourceFileEnvironment);
+    }
     String sourceDebug = getSourceDebugExtension(clazz.annotations());
-    writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, sourceDebug);
+    writer.visitSource(sourceFile, sourceDebug);
     CfVersion version = getClassFileVersion(clazz);
     if (version.isGreaterThanOrEqualTo(CfVersion.V1_8)) {
       // JDK8 and after ignore ACC_SUPER so unset it.

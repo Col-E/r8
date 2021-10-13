@@ -778,7 +778,7 @@ public class R8 {
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appView, appView.appInfo().app()).run();
+      new SourceFileRewriter(appView).run();
       timing.end();
 
       // If a method filter is present don't produce output since the application is likely partial.

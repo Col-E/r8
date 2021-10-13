@@ -321,7 +321,7 @@ public class ApplicationWriter {
     }
   }
 
-  private SourceFileEnvironment createSourceFileEnvironment(ProguardMapId proguardMapId) {
+  public static SourceFileEnvironment createSourceFileEnvironment(ProguardMapId proguardMapId) {
     if (proguardMapId == null) {
       return new SourceFileEnvironment() {
         @Override
