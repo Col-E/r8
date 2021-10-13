@@ -201,24 +201,6 @@ public abstract class R8RunArtTestsTest {
           .put(
               "145-alloc-tracking-stress",
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V12_0_0)))
-          // Art in 12.0.0 beta4 will hang on this test when running on dx input.
-          // D8 will never generate the code introducing this (goto32 0)
-          // See: b/200660605
-          .put(
-              "083-compiler-regressions",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.D8),
-                  TestCondition.runtimes(DexVm.Version.V12_0_0)))
-          // Art in 12.0.0 beta4 will hang on this test when running on dx input.
-          // D8 will never generate the code introducing this (goto32 0)
-          // See: b/200660605
-          .put(
-              "121-simple-suspend-check",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.D8),
-                  TestCondition.runtimes(DexVm.Version.V12_0_0)))
           .build();
 
   // Tests that are flaky with the Art version we currently use.
@@ -666,15 +648,6 @@ public abstract class R8RunArtTestsTest {
   // Tests where the output of R8 fails when run with Art.
   private static final Multimap<String, TestCondition> failingRunWithArt =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // The itf cache issue is hit on dx inputs on the runtime with the issue as we no longer
-          // desugar.
-          // TODO(b/198306901): Investigate this behavior change fully. Do we need a workaround?
-          .put(
-              "666-dex-cache-itf",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.R8),
-                  TestCondition.runtimes(DexVm.Version.DEFAULT)))
           // The growth limit test fails after processing by R8 because R8 will eliminate an
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
           // large array as still live and the subsequent allocations will fail to reach the desired
@@ -703,14 +676,6 @@ public abstract class R8RunArtTestsTest {
               "111-unresolvable-exception",
               TestCondition.match(
                   TestCondition.D8_COMPILER, TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
-          // Fails because the code has to be desugared to run on art <= 6.0.1
-          // When running from dx code we don't desugar.
-          .put(
-              "530-checker-lse2",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.R8, CompilerUnderTest.D8),
-                  TestCondition.runtimesUpTo(DexVm.Version.V6_0_1)))
           .put(
               "534-checker-bce-deoptimization",
               TestCondition.match(
@@ -771,17 +736,6 @@ public abstract class R8RunArtTestsTest {
               "550-new-instance-clinit",
               TestCondition.match(
                   TestCondition.D8_COMPILER, TestCondition.runtimes(DexVm.Version.V6_0_1)))
-          // Regression test for an issue that is not fixed on version 5.1.1. Throws an Exception
-          // instance instead of the expected NullPointerException. This bug is only tickled when
-          // running the R8 generated code when starting from jar or from dex code generated with
-          // dx. However, the code that R8 generates is valid and there is nothing we can do for
-          // this one.
-          .put(
-              "551-implicit-null-checks",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.NONE, DexTool.DX),
-                  TestCondition.R8DEX_COMPILER,
-                  TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
           .put(
@@ -804,14 +758,6 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
           // Illegal class flags in Dalvik 4.0.4.
           .put("121-modifiers", TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
-          // Switch regression still present in the DEX code produced by DX on Dalvik 4.0.4.
-          // The fix for b/177790310 is not applied for DEX input (when merging).
-          .put(
-              "095-switch-MAX_INT",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.D8),
-                  TestCondition.runtimes(DexVm.Version.V4_0_4)))
           .build();
 
   // Tests where the output of R8/D8 runs in Art but produces different output than the expected.txt
@@ -901,17 +847,6 @@ public abstract class R8RunArtTestsTest {
                           CompilerUnderTest.R8,
                           CompilerUnderTest.R8CF,
                           CompilerUnderTest.R8_AFTER_D8))))
-          // Uses dex file version 37 and therefore only runs on Android N and above.
-          .put(
-              "370-dex-v37",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.compilers(CompilerUnderTest.D8),
-                  TestCondition.runtimes(
-                      DexVm.Version.V4_0_4,
-                      DexVm.Version.V4_4_4,
-                      DexVm.Version.V5_1_1,
-                      DexVm.Version.V6_0_1)))
           // Class.forName() that fails due to verification error is removed.
           .put(
               "412-new-array",
@@ -1001,36 +936,6 @@ public abstract class R8RunArtTestsTest {
           .put("973-default-multidex", beforeAndroidN) // --min-sdk = 24
           .put("974-verify-interface-super", beforeAndroidN) // --min-sdk = 24
           .put("975-iface-private", beforeAndroidN) // --min-sdk = 24
-          // Uses dex file version 37 and therefore only runs on Android N and above.
-          .put(
-              "972-iface-super-multidex",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.runtimes(
-                      DexVm.Version.V4_0_4,
-                      DexVm.Version.V4_4_4,
-                      DexVm.Version.V5_1_1,
-                      DexVm.Version.V6_0_1)))
-          // Uses dex file version 37 and therefore only runs on Android N and above.
-          .put(
-              "978-virtual-interface",
-              TestCondition.or(
-                  TestCondition.match(
-                      TestCondition.tools(DexTool.DX),
-                      TestCondition.compilers(CompilerUnderTest.D8),
-                      TestCondition.runtimes(
-                          DexVm.Version.V4_0_4,
-                          DexVm.Version.V4_4_4,
-                          DexVm.Version.V5_1_1,
-                          DexVm.Version.V6_0_1)),
-                  // On V4_0_4 and V4_4_4 the test will throw a verification error.
-                  TestCondition.match(
-                      TestCondition.tools(DexTool.DX),
-                      TestCondition.compilers(
-                          CompilerUnderTest.R8,
-                          CompilerUnderTest.R8_AFTER_D8,
-                          CompilerUnderTest.D8_AFTER_R8CF),
-                      TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4))))
           .put("979-const-method-handle", beforeAndroidP)
           // Missing class junit.framework.Assert (see JunitAvailabilityInHostArtTest).
           // TODO(120884788): Add this again.
@@ -1068,16 +973,6 @@ public abstract class R8RunArtTestsTest {
           // Dex code contains a method (B.<init>) which pass too few arguments to invoke, and it
           // also contains an iput on a static field.
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8DEX_COMPILER))
-          // Contains a method that falls off the end without a return.
-          .put(
-              "606-erroneous-class",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
-                  LEGACY_RUNTIME))
-          // Dex input contains an illegal InvokeSuper in Z.foo() to Y.foo()
-          // that R8 will fail to compile.
-          .put("974-verify-interface-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // R8 generates too large code in Goto.bigGoto(). b/74327727
           .put("003-omnibus-opcodes", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
           .build();
@@ -1102,8 +997,6 @@ public abstract class R8RunArtTestsTest {
           .put("506-verify-aput", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: returns a register of either long or double.
           .put("510-checker-try-catch", TestCondition.match(TestCondition.R8DEX_COMPILER))
-          // Test with backport method which is still present in DX input.
-          .put("530-checker-lse2", TestCondition.match(TestCondition.tools(DexTool.DX)))
           // Test with invalid register usage: contains an int-to-byte on the result of aget-object.
           .put("518-null-array-get", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: phi of int and float.
@@ -1112,21 +1005,11 @@ public abstract class R8RunArtTestsTest {
           .put("552-checker-primitive-typeprop", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Test with invalid register usage: invoke-static {v0,v0}, foo(IL)V
           .put("557-checker-ref-equivalent", TestCondition.match(TestCondition.R8DEX_COMPILER))
-          // Test with smali code that calls a method that needs to be desugared.
-          // The smali code is only present in the non-legacy test distrubution, so this only fails
-          // when running the "default" runtime.
-          .put(
-              "567-checker-compare",
-              TestCondition.or(
-                  TestCondition.match(TestCondition.runtimes(Runtime.ART_DEFAULT)),
-                  TestCondition.match(TestCondition.tools(DexTool.DX))))
           // This test is starting from invalid dex code. It splits up a double value and uses
           // the first register of a double with the second register of another double.
           .put("800-smali", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Contains a loop in the class hierarchy.
           .put("804-class-extends-itself", TestCondition.any())
-          // Test with backport method which is still present in DX input.
-          .put("912-classes", TestCondition.match(TestCondition.tools(DexTool.DX)))
           // These tests have illegal class flag combinations, so we reject them.
           .put("161-final-abstract-class", TestCondition.any())
           .build();
@@ -1227,14 +1110,6 @@ public abstract class R8RunArtTestsTest {
                   TestCondition.tools(DexTool.DX, DexTool.NONE), TestCondition.R8_COMPILER))
           // Produces wrong output when compiled in release mode, which we cannot express.
           .put("015-switch", TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
-          // To prevent "Dex file with version '37' cannot be used with min sdk level '21'", which
-          // would otherwise happen because D8 passes through the DEX code from DX.
-          .put(
-              "800-smali",
-              TestCondition.match(
-                  TestCondition.tools(DexTool.DX),
-                  TestCondition.D8_COMPILER,
-                  TestCondition.runtimesFrom(DexVm.Version.V5_1_1)))
           .build();
 
   public static List<String> requireInliningToBeDisabled =
