@@ -62,4 +62,8 @@ public class Box<T> {
   public int hashCode() {
     return Objects.hashCode(value);
   }
+
+  public void empty() {
+    value = null;
+  }
 }

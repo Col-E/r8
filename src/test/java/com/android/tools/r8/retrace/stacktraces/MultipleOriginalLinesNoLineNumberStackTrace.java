@@ -33,12 +33,10 @@ public class MultipleOriginalLinesNoLineNumberStackTrace implements StackTraceFo
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
-        "There are 2 ambiguous stack traces.",
         "Exception in thread \"main\" java.lang.NullPointerException",
         "\tat com.android.tools.r8.naming.retrace.Main.void"
             + " method1(java.lang.String)(Main.java:42)",
-        "<OR> Exception in thread \"main\" java.lang.NullPointerException",
-        "\tat com.android.tools.r8.naming.retrace.Main.void"
+        "\t<OR> at com.android.tools.r8.naming.retrace.Main.void"
             + " method1(java.lang.String)(Main.java:43)");
   }
 

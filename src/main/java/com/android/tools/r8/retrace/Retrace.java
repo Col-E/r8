@@ -16,18 +16,18 @@ import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.internal.RetraceAbortException;
 import com.android.tools.r8.retrace.internal.RetracerImpl;
 import com.android.tools.r8.retrace.internal.StackTraceRegularExpressionParser;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Charsets;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -39,17 +39,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -178,7 +175,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
    * @param stackTrace the stack trace to be retrace
    * @return list of potentially ambiguous stack traces.
    */
-  public List<Iterator<T>> retraceStackTrace(List<T> stackTrace) {
+  public List<List<List<T>>> retraceStackTrace(List<T> stackTrace) {
     ListUtils.forEachWithIndex(
         stackTrace,
         (line, lineNumber) -> {
@@ -190,37 +187,43 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
         });
     RetraceStackTraceElementProxyEquivalence<T, ST> equivalence =
         new RetraceStackTraceElementProxyEquivalence<>(isVerbose);
-    RetracedNodeState<T, ST> root = RetracedNodeState.initial(equivalence);
-    List<RetracedNodeState<T, ST>> allLeaves =
-        ListUtils.fold(
-            stackTrace,
-            (List<RetracedNodeState<T, ST>>) ImmutableList.of(root),
-            (acc, stackTraceLine) -> {
-              ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
-              List<RetracedNodeState<T, ST>> newLeaves = new ArrayList<>();
-              for (RetracedNodeState<T, ST> previousNode : acc) {
-                RetraceStackTraceElementProxyResult<T, ST> result =
-                    proxyRetracer.retrace(parsedLine, previousNode.context);
-                result.stream()
-                    .forEach(
-                        retracedElement -> {
-                          if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
-                            previousNode.addChild(retracedElement, retracedElement.getContext());
-                          }
-                          previousNode.addFrameToCurrentChild(
-                              parsedLine.toRetracedItem(retracedElement, isVerbose));
-                        });
-                if (!previousNode.hasChildren()) {
-                  // This happens when there is nothing to retrace. Add the node to newLeaves to
-                  // ensure we keep retracing this path.
-                  previousNode.addChild(null, result.getResultContext());
-                }
-                newLeaves.addAll(previousNode.getChildren());
-              }
-              return newLeaves;
-            });
-    assert !allLeaves.isEmpty();
-    return ListUtils.map(allLeaves, RetracedNodeState::iterator);
+    List<List<List<T>>> finalResult = new ArrayList<>();
+    ListUtils.fold(
+        stackTrace,
+        RetraceStackTraceContext.empty(),
+        (context, stackTraceLine) -> {
+          ST parsedLine = stackTraceLineParser.parse(stackTraceLine);
+          List<Pair<RetraceStackTraceElementProxy<T, ST>, List<T>>> resultsForLine =
+              new ArrayList<>();
+          Box<List<T>> currentList = new Box<>();
+          Set<Wrapper<RetraceStackTraceElementProxy<T, ST>>> seen = new HashSet<>();
+          List<RetraceStackTraceContext> contexts = new ArrayList<>();
+          RetraceStackTraceElementProxyResult<T, ST> retraceResult =
+              proxyRetracer.retrace(parsedLine, context);
+          retraceResult.stream()
+              .forEach(
+                  retracedElement -> {
+                    if (retracedElement.isTopFrame() || !retracedElement.hasRetracedClass()) {
+                      if (seen.add(equivalence.wrap(retracedElement))) {
+                        currentList.set(new ArrayList<>());
+                        resultsForLine.add(Pair.create(retracedElement, currentList.get()));
+                        contexts.add(retracedElement.getContext());
+                      } else {
+                        currentList.empty();
+                      }
+                    }
+                    if (currentList.isSet()) {
+                      currentList.get().add(parsedLine.toRetracedItem(retracedElement, isVerbose));
+                    }
+                  });
+          resultsForLine.sort(Comparator.comparing(Pair::getFirst));
+          finalResult.add(ListUtils.map(resultsForLine, Pair::getSecond));
+          if (contexts.isEmpty()) {
+            return retraceResult.getResultContext();
+          }
+          return contexts.size() == 1 ? contexts.get(0) : RetraceStackTraceContext.empty();
+        });
+    return finalResult;
   }
 
   /**
@@ -596,65 +599,6 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
     public static <T, ST extends StackTraceElementProxy<T, ST>>
         RetraceStackTraceElementProxyEquivalence<T, ST> getInstance(boolean isVerbose) {
       return new RetraceStackTraceElementProxyEquivalence<>(isVerbose);
-    }
-  }
-
-  private static class RetracedNodeState<T, ST extends StackTraceElementProxy<T, ST>>
-      implements Iterable<T> {
-
-    private final RetracedNodeState<T, ST> parent;
-    private final Set<Wrapper<RetraceStackTraceElementProxy<T, ST>>> seenSet = new HashSet<>();
-    private final Map<RetraceStackTraceElementProxy<T, ST>, RetracedNodeState<T, ST>> children =
-        new TreeMap<>(Comparator.nullsFirst(Comparator.naturalOrder()));
-    private RetracedNodeState<T, ST> currentChild;
-    private final RetraceStackTraceContext context;
-    private final List<T> frames = new ArrayList<>();
-    private final RetraceStackTraceElementProxyEquivalence<T, ST> equivalence;
-
-    private RetracedNodeState(
-        RetracedNodeState<T, ST> parent,
-        RetraceStackTraceContext context,
-        RetraceStackTraceElementProxyEquivalence<T, ST> equivalence) {
-      this.parent = parent;
-      this.context = context;
-      this.equivalence = equivalence;
-    }
-
-    private void addFrameToCurrentChild(T frame) {
-      if (currentChild != null) {
-        currentChild.frames.add(frame);
-      }
-    }
-
-    private void addChild(
-        RetraceStackTraceElementProxy<T, ST> element, RetraceStackTraceContext context) {
-      if (seenSet.add(equivalence.wrap(element))) {
-        RetracedNodeState<T, ST> newChild = new RetracedNodeState<>(this, context, equivalence);
-        this.currentChild = newChild;
-        children.put(element, newChild);
-      } else {
-        this.currentChild = null;
-      }
-    }
-
-    private static <T, ST extends StackTraceElementProxy<T, ST>> RetracedNodeState<T, ST> initial(
-        RetraceStackTraceElementProxyEquivalence<T, ST> equivalence) {
-      return new RetracedNodeState<>(null, RetraceStackTraceContext.empty(), equivalence);
-    }
-
-    @Override
-    public Iterator<T> iterator() {
-      return parent != null
-          ? Iterators.concat(parent.iterator(), frames.iterator())
-          : frames.iterator();
-    }
-
-    public boolean hasChildren() {
-      return !children.isEmpty();
-    }
-
-    public Collection<? extends RetracedNodeState<T, ST>> getChildren() {
-      return children.values();
     }
   }
 }

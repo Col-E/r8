@@ -9,12 +9,10 @@ import static com.android.tools.r8.retrace.internal.RetraceUtils.firstNonWhiteSp
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.retrace.internal.StackTraceElementStringProxy;
-import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -79,31 +77,28 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
    */
   public List<String> retrace(List<String> stackTrace) {
     List<String> retracedStrings = new ArrayList<>();
-    List<Iterator<String>> retracedStackTraces = retraceStackTrace(stackTrace);
-    if (retracedStackTraces.size() > 1 && isVerbose) {
-      retracedStrings.add("There are " + retracedStackTraces.size() + " ambiguous stack traces.");
-    }
-    for (int i = 0; i < retracedStackTraces.size(); i++) {
-      Iterator<String> result = retracedStackTraces.get(i);
-      BooleanBox insertOr = new BooleanBox(i > 0);
-      result.forEachRemaining(
-          stackTraceLine -> {
-            if (insertOr.get()) {
-              // We are reporting an ambiguous frame. To support retracing tools that retrace line
-              // by line we have to emit <OR> at the point of the first ' at ' if we can find it.
-              int indexToInsertOr = stackTraceLine.indexOf(" at ");
-              boolean hasSpace = indexToInsertOr >= 0;
-              if (indexToInsertOr < 0) {
-                indexToInsertOr =
-                    Math.max(StringUtils.firstNonWhitespaceCharacter(stackTraceLine), 0);
+    List<List<List<String>>> lists = retraceStackTrace(stackTrace);
+    for (List<List<String>> newLines : lists) {
+      ListUtils.forEachWithIndex(
+          newLines,
+          (inlineFrames, ambiguousIndex) -> {
+            for (int i = 0; i < inlineFrames.size(); i++) {
+              String stackTraceLine = inlineFrames.get(i);
+              if (i == 0 && ambiguousIndex > 0) {
+                // We are reporting an ambiguous frame. To support retracing tools that retrace line
+                // by line we have to emit <OR> at the point of the first 'at ' if we can find it.
+                int indexToInsertOr = stackTraceLine.indexOf("at ");
+                if (indexToInsertOr < 0) {
+                  indexToInsertOr =
+                      Math.max(StringUtils.firstNonWhitespaceCharacter(stackTraceLine), 0);
+                }
+                retracedStrings.add(
+                    stackTraceLine.substring(0, indexToInsertOr)
+                        + "<OR> "
+                        + stackTraceLine.substring(indexToInsertOr));
+              } else {
+                retracedStrings.add(stackTraceLine);
               }
-              retracedStrings.add(
-                  stackTraceLine.substring(0, indexToInsertOr)
-                      + (hasSpace ? "<OR>" : "<OR> ")
-                      + stackTraceLine.substring(indexToInsertOr));
-              insertOr.set(false);
-            } else {
-              retracedStrings.add(stackTraceLine);
             }
           });
     }

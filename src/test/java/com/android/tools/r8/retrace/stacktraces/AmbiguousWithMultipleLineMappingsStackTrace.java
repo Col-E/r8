@@ -38,16 +38,11 @@ public class AmbiguousWithMultipleLineMappingsStackTrace implements StackTraceFo
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
-        "There are 3 ambiguous stack traces.",
         "java.lang.IndexOutOfBoundsException",
         "\tat java.util.ArrayList.get(ArrayList.java:411)",
         "\tat com.android.tools.r8.Internal.void foo(int)(Internal.java:10)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat java.util.ArrayList.get(ArrayList.java:411)",
-        "\tat com.android.tools.r8.Internal.void foo(int)(Internal.java:11)",
-        "<OR> java.lang.IndexOutOfBoundsException",
-        "\tat java.util.ArrayList.get(ArrayList.java:411)",
-        "\tat com.android.tools.r8.Internal.void foo(int)(Internal.java:12)");
+        "\t<OR> at com.android.tools.r8.Internal.void foo(int)(Internal.java:11)",
+        "\t<OR> at com.android.tools.r8.Internal.void foo(int)(Internal.java:12)");
   }
 
   @Override

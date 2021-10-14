@@ -43,18 +43,12 @@ public class OutsideLineRangeStackTraceTest implements StackTraceForTest {
   @Override
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
-        "There are 2 ambiguous stack traces.",
         "java.io.IOException: INVALID_SENDER",
         "\tat some.other.Class.void method1()(Class.java:42)",
         "\tat some.other.Class.void method1()(Class.java:42)",
         "\tat some.Class.a(Class.java:27)",
-        // TODO(b/202055473): Could emit range 11-13.
         "\tat some.Class.void method2()(Class.java)",
-        "<OR> java.io.IOException: INVALID_SENDER",
-        "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.other.Class.void method1()(Class.java:42)",
-        "\tat some.Class.a(Class.java:27)",
-        "\tat some.Class.void method2()(Class.java:10)");
+        "\t<OR> at some.Class.void method2()(Class.java:10)");
   }
 
   @Override
