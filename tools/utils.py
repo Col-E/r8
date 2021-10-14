@@ -316,9 +316,12 @@ def makedirs_if_needed(path):
     if not os.path.isdir(path):
         raise
 
+def get_gsutil():
+  return 'gsutil.py' if os.name != 'nt' else 'gsutil.py.bat'
+
 def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_read=True):
   # Upload and make the content encoding right for viewing directly
-  cmd = ['gsutil.py', '-m', 'cp']
+  cmd = [get_gsutil(), '-m', 'cp']
   if is_html:
     cmd += ['-z', 'html']
   if public_read:
@@ -328,7 +331,7 @@ def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_re
   subprocess.check_call(cmd)
 
 def upload_file_to_cloud_storage(source, destination, public_read=True):
-  cmd = ['gsutil.py', 'cp']
+  cmd = [get_gsutil(), 'cp']
   if public_read:
     cmd += ['-a', 'public-read']
   cmd += [source, destination]
@@ -336,17 +339,17 @@ def upload_file_to_cloud_storage(source, destination, public_read=True):
   subprocess.check_call(cmd)
 
 def delete_file_from_cloud_storage(destination):
-  cmd = ['gsutil.py', 'rm', destination]
+  cmd = [get_gsutil(), 'rm', destination]
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
 def ls_files_on_cloud_storage(destination):
-  cmd = ['gsutil.py', 'ls', destination]
+  cmd = [get_gsutil(), 'ls', destination]
   PrintCmd(cmd)
   return subprocess.check_output(cmd)
 
 def cat_file_on_cloud_storage(destination, ignore_errors=False):
-  cmd = ['gsutil.py', 'cat', destination]
+  cmd = [get_gsutil(), 'cat', destination]
   PrintCmd(cmd)
   try:
     return subprocess.check_output(cmd)
@@ -357,12 +360,12 @@ def cat_file_on_cloud_storage(destination, ignore_errors=False):
       raise e
 
 def file_exists_on_cloud_storage(destination):
-  cmd = ['gsutil.py', 'ls', destination]
+  cmd = [get_gsutil(), 'ls', destination]
   PrintCmd(cmd)
   return subprocess.call(cmd) == 0
 
 def download_file_from_cloud_storage(source, destination, quiet=False):
-  cmd = ['gsutil.py', 'cp', source, destination]
+  cmd = [get_gsutil(), 'cp', source, destination]
   PrintCmd(cmd, quiet=quiet)
   subprocess.check_call(cmd)
 
@@ -394,7 +397,7 @@ def check_gcert():
 # This is not a problem in our case, but don't ever use this method
 # for synchronization.
 def cloud_storage_exists(destination):
-  cmd = ['gsutil.py', 'ls', destination]
+  cmd = [get_gsutil(), 'ls', destination]
   PrintCmd(cmd)
   exit_code = subprocess.call(cmd)
   return exit_code == 0

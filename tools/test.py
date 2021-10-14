@@ -452,7 +452,7 @@ def Main():
 
 def archive_and_return(return_code, options):
   if return_code != 0:
-    if options.archive_failures and os.name != 'nt':
+    if options.archive_failures:
       archive_failures(options)
   return return_code
 
