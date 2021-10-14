@@ -250,10 +250,7 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);
               assertEquals(
-                  // TODO(b/202947898): Should be able to class inline alpha
-                  kotlinc.is(KOTLINC_1_5_0)
-                      ? Collections.singleton("class_inliner_data_class.Alpha")
-                      : Collections.emptySet(),
+                  Collections.emptySet(),
                   collectAccessedTypes(
                       type -> !type.toSourceString().startsWith("java."),
                       clazz,

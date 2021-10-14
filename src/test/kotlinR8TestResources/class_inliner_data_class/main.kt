@@ -9,7 +9,9 @@ fun main(args: Array<String>) {
     alpha.right = "l"
     alpha.left = "r"
     alpha.rotate()
-    println("result: ${alpha.toString()}")
+    // For Kotlin 1.5 we need to have the toString call outside the concat.
+    val alphaString = alpha.toString()
+    println("result: ${alphaString} is good")
 }
 
 data class Alpha(var left: String, val middle: String, var right: String) {
