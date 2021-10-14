@@ -132,8 +132,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
                   receiverLowerBoundType);
     } else {
       // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is
-      // used
-      // for library modeling.
+      // used for library modeling.
       DexType holder = method.holder;
       if (holder.isClassType()) {
         DexClass clazz = appView.definitionFor(holder);

@@ -8,7 +8,6 @@ import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTL
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestBuilder;
@@ -388,8 +387,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testAccessorForInnerClassIsRemovedWhenNotUsed() throws Exception {
-    // TODO(b/185493636): Kotlinc 1.5 generated property accessors are not removed.
-    assumeTrue(kotlinc.isNot(KOTLINC_1_5_0));
     String mainClass =
         addMainToClasspath(
             "accessors.PropertyAccessorForInnerClassKt", "noUseOfPropertyAccessorFromInnerClass");
@@ -397,7 +394,12 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
         .inspect(
             inspector -> {
               // Class is removed because the instantiation of the inner class has no side effects.
-              checkClassIsRemoved(inspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
+              // TODO(b/202952541): Should be able to remove class.
+              if (kotlinc.is(KOTLINC_1_5_0) && testParameters.isDexRuntime()) {
+                checkClassIsKept(inspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
+              } else {
+                checkClassIsRemoved(inspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
+              }
             });
   }
 
