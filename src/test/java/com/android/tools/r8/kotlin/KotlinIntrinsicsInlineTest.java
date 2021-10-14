@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -53,8 +53,6 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
 
   @Test
   public void b139432507() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     testForR8(parameters.getBackend())
         .addProgramFiles(
             compiledJars.getForConfiguration(kotlinc, targetVersion),
@@ -78,7 +76,9 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
               MethodSubject isSupported = main.uniqueMethodWithName("isSupported");
               assertThat(isSupported, isPresent());
               assertEquals(
-                  allowAccessModification ? 0 : 1,
+                  !kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72) || allowAccessModification
+                      ? 0
+                      : 1,
                   countCall(isSupported, "checkParameterIsNotNull"));
 
               // In general cases, null check won't be invoked only once or twice, hence no subtle
@@ -91,21 +91,22 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
 
   @Test
   public void b139432507_isSupported() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
-    testSingle("isSupported");
+    testSingle(
+        "isSupported",
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72) && !allowAccessModification);
   }
 
   @Test
   public void b139432507_containsArray() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
-    testSingle("containsArray");
+    // One for each of the method's own arguments, unless building with
+    // -allowaccessmodification.
+    testSingle("containsArray", allowAccessModification);
   }
 
-  private void testSingle(String methodName) throws Exception {
+  private void testSingle(String methodName, boolean checkParameterIsNotNullCountIsArity)
+      throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(
             compiledJars.getForConfiguration(kotlinc, targetVersion),
@@ -129,10 +130,8 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
               MethodSubject method = main.uniqueMethodWithName(methodName);
               assertThat(method, isPresent());
               int arity = method.getMethod().getReference().getArity();
-              // One for each of the method's own arguments, unless building with
-              // -allowaccessmodification.
               assertEquals(
-                  allowAccessModification ? 0 : arity,
+                  checkParameterIsNotNullCountIsArity ? arity : 0,
                   countCall(method, "checkParameterIsNotNull"));
             });
   }

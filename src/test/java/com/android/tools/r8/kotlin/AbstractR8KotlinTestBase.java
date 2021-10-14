@@ -31,10 +31,10 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.Assume;
@@ -66,32 +66,49 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   }
 
   protected static void checkMethodIsInvokedAtLeastOnce(
-      DexCode dexCode, MethodSignature... methodSignatures) {
+      MethodSubject subject, MethodSignature... methodSignatures) {
     for (MethodSignature methodSignature : methodSignatures) {
-      checkMethodIsInvokedAtLeastOnce(dexCode, methodSignature);
+      checkMethodIsInvokedAtLeastOnce(subject, methodSignature);
     }
   }
 
   private static void checkMethodIsInvokedAtLeastOnce(
-      DexCode dexCode, MethodSignature methodSignature) {
-    assertTrue("No invoke to '" + methodSignature.toString() + "'",
-        Arrays.stream(dexCode.instructions)
-            .filter((instr) -> instr.getMethod() != null)
-            .anyMatch((instr) -> instr.getMethod().name.toString().equals(methodSignature.name)));
+      MethodSubject subject, MethodSignature methodSignature) {
+    assertTrue(
+        "No invoke to '" + methodSignature.toString() + "'",
+        subject
+            .streamInstructions()
+            .filter(InstructionSubject::isInvoke)
+            .anyMatch(
+                instructionSubject ->
+                    instructionSubject
+                        .getMethod()
+                        .getName()
+                        .toString()
+                        .equals(methodSignature.name)));
   }
 
   protected static void checkMethodIsNeverInvoked(
-      DexCode dexCode, MethodSignature... methodSignatures) {
+      MethodSubject subject, MethodSignature... methodSignatures) {
     for (MethodSignature methodSignature : methodSignatures) {
-      checkMethodIsNeverInvoked(dexCode, methodSignature);
+      checkMethodIsNeverInvoked(subject, methodSignature);
     }
   }
 
-  private static void checkMethodIsNeverInvoked(DexCode dexCode, MethodSignature methodSignature) {
-    assertTrue("At least one invoke to '" + methodSignature.toString() + "'",
-        Arrays.stream(dexCode.instructions)
-            .filter((instr) -> instr.getMethod() != null)
-            .noneMatch((instr) -> instr.getMethod().name.toString().equals(methodSignature.name)));
+  private static void checkMethodIsNeverInvoked(
+      MethodSubject subject, MethodSignature methodSignature) {
+    assertTrue(
+        "At least one invoke to '" + methodSignature.toString() + "'",
+        subject
+            .streamInstructions()
+            .filter(InstructionSubject::isInvoke)
+            .noneMatch(
+                instructionSubject ->
+                    instructionSubject
+                        .getMethod()
+                        .getName()
+                        .toString()
+                        .equals(methodSignature.name)));
   }
 
   protected static void checkMethodsPresence(

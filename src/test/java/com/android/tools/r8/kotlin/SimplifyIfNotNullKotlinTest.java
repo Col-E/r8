@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -69,20 +67,20 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
               // Find forMakeAndModel(...) after parameter removal.
               MethodSubject testMethod = clazz.uniqueMethodWithName(testMethodSignature.name);
               long ifzCount =
-                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
+                  testMethod
+                      .streamInstructions()
+                      .filter(i -> i.isIfEqz() || i.isIfNez() || i.isIfNonNull())
+                      .count();
               long paramNullCheckCount =
                   countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
               // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
-              // TODO(b/179951729): Not the same amount of ifz on CF and DEX.
-              assertEquals(testParameters.isCfRuntime() ? 1 : 2, ifzCount);
+              assertEquals(2, ifzCount);
               assertEquals(0, paramNullCheckCount);
             });
   }
 
   @Test
   public void test_example2() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) || allowAccessModification);
     final TestKotlinClass ex2 = new TestKotlinClass("non_null.Example2Kt");
     final MethodSignature testMethodSignature =
         new MethodSignature("aOrDefault", STRING, ImmutableList.of(STRING, STRING));
@@ -93,15 +91,13 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
         .inspect(
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex2.getClassName());
-
               MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
               long ifzCount =
-                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
+                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNull()).count();
               long paramNullCheckCount =
                   countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
               // ?: in aOrDefault
-              // TODO(b/179951729): Not the same amount of ifz on CF and DEX.
-              assertEquals(testParameters.isCfRuntime() ? 0 : 1, ifzCount);
+              assertEquals(1, ifzCount);
               assertEquals(0, paramNullCheckCount);
             });
   }
@@ -118,14 +114,12 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
         .inspect(
             inspector -> {
               ClassSubject clazz = checkClassIsKept(inspector, ex3.getClassName());
-
               MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
               long ifzCount =
-                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
+                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNull()).count();
               // !! operator inside explicit null check should be gone.
               // One explicit null-check as well as 4 bar? accesses.
-              // TODO(b/179951729): Not the same amount of ifz on CF and DEX.
-              assertEquals(testParameters.isCfRuntime() ? 0 : 5, ifzCount);
+              assertEquals(5, ifzCount);
             });
   }
 }

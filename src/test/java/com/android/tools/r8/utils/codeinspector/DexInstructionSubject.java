@@ -336,6 +336,18 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isIfNull() {
+    // Not in DEX.
+    return false;
+  }
+
+  @Override
+  public boolean isIfNonNull() {
+    // Not in DEX.
+    return false;
+  }
+
+  @Override
   public boolean isReturn() {
     return instruction instanceof Return;
   }
@@ -495,5 +507,9 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public String toString() {
     return instruction.toString();
+  }
+
+  public Instruction getInstruction() {
+    return instruction;
   }
 }

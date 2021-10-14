@@ -3,13 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -49,8 +47,6 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void b110196118() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72));
     final String mainClassName = "unused_singleton.MainKt";
     final String moduleName = "unused_singleton.TestModule";
     runTest("unused_singleton", mainClassName)

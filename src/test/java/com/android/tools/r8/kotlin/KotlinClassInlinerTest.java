@@ -14,13 +14,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.SgetObject;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.IntBox;
@@ -35,7 +36,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -244,15 +244,16 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testDataClass() throws Exception {
-    // TODO(b/179866251): Update tests.
-    assumeTrue(kotlinc.is(KOTLINC_1_3_72) && testParameters.isDexRuntime());
     String mainClassName = "class_inliner_data_class.MainKt";
     runTest("class_inliner_data_class", mainClassName)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(mainClassName);
               assertEquals(
-                  Collections.emptySet(),
+                  // TODO(b/202947898): Should be able to class inline alpha
+                  kotlinc.is(KOTLINC_1_5_0)
+                      ? Collections.singleton("class_inliner_data_class.Alpha")
+                      : Collections.emptySet(),
                   collectAccessedTypes(
                       type -> !type.toSourceString().startsWith("java."),
                       clazz,
@@ -260,7 +261,10 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                       String[].class.getCanonicalName()));
               assertEquals(
                   Lists.newArrayList(
-                      "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"),
+                      kotlinc.is(KOTLINC_1_3_72)
+                          ? "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"
+                          : "void kotlin.jvm.internal.Intrinsics.checkNotNullParameter(java.lang.Object,"
+                                + " java.lang.String)"),
                   collectStaticCalls(clazz, "main", String[].class.getCanonicalName()));
             });
   }
@@ -272,15 +276,30 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
       String... params) {
     assertNotNull(clazz);
     MethodSignature signature = new MethodSignature(methodName, "void", params);
-    // TODO(b/179866251): Allow for CF code here.
-    DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
-    return Stream.concat(
-        filterInstructionKind(code, NewInstance.class)
-            .map(insn -> ((NewInstance) insn).getType()),
-        filterInstructionKind(code, SgetObject.class)
-            .map(insn -> insn.getField().holder)
-    )
-        .filter(isTypeOfInterest)
+    return clazz
+        .method(signature)
+        .streamInstructions()
+        .filter(instruction -> instruction.isNewInstance() || instruction.isStaticGet())
+        .map(
+            instruction -> {
+              if (instruction.isCfInstruction()) {
+                CfInstruction baseInstruction = instruction.asCfInstruction().getInstruction();
+                if (baseInstruction instanceof CfNew) {
+                  return ((CfNew) baseInstruction).getType();
+                } else if (instruction.getField().getType().isReferenceType()) {
+                  return instruction.getField().getHolderType();
+                }
+              } else {
+                Instruction baseInstruction = instruction.asDexInstruction().getInstruction();
+                if (baseInstruction instanceof SgetObject) {
+                  return baseInstruction.getField().getHolderType();
+                } else if (baseInstruction instanceof NewInstance) {
+                  return ((NewInstance) baseInstruction).getType();
+                }
+              }
+              return null;
+            })
+        .filter(type -> type != null && isTypeOfInterest.test(type))
         .map(DexType::toSourceString)
         .collect(Collectors.toSet());
   }

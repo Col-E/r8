@@ -312,8 +312,14 @@ public class CfInstructionSubject implements InstructionSubject {
         && ((CfStackInstruction) instruction).getOpcode() == opcode;
   }
 
+  @Override
   public boolean isIfNull() {
     return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IFNULL;
+  }
+
+  @Override
+  public boolean isIfNonNull() {
+    return instruction instanceof CfIf && ((CfIf) instruction).getOpcode() == Opcodes.IFNONNULL;
   }
 
   public boolean isLoad() {
@@ -406,5 +412,9 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public String toString() {
     return instruction.toString();
+  }
+
+  public CfInstruction getInstruction() {
+    return instruction;
   }
 }

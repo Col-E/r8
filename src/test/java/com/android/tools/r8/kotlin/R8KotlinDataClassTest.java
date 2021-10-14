@@ -4,11 +4,8 @@
 
 package com.android.tools.r8.kotlin;
 
-import static org.junit.Assume.assumeTrue;
-
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -62,8 +59,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dataclass_gettersOnly() throws Exception {
-    // TODO(b/179866251): Allow for CF code.
-    assumeTrue(testParameters.isDexRuntime());
     String mainClassName = "dataclass.MainGettersOnlyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testDataClassGetters", "void", Collections.emptyList());
@@ -99,20 +94,17 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
               ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
               MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
-              DexCode dexCode = getDexCode(testMethod);
               if (allowAccessModification) {
                 // Both getters should be inlined
-                checkMethodIsNeverInvoked(dexCode, NAME_GETTER_METHOD, AGE_GETTER_METHOD);
+                checkMethodIsNeverInvoked(testMethod, NAME_GETTER_METHOD, AGE_GETTER_METHOD);
               } else {
-                checkMethodIsInvokedAtLeastOnce(dexCode, NAME_GETTER_METHOD, AGE_GETTER_METHOD);
+                checkMethodIsInvokedAtLeastOnce(testMethod, NAME_GETTER_METHOD, AGE_GETTER_METHOD);
               }
             });
   }
 
   @Test
   public void test_dataclass_componentOnly() throws Exception {
-    // TODO(b/179866251): Allow for CF code.
-    assumeTrue(testParameters.isDexRuntime());
     String mainClassName = "dataclass.MainComponentOnlyKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testAllDataClassComponentFunctions", "void", Collections.emptyList());
@@ -150,19 +142,16 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
               ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
               MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
-              DexCode dexCode = getDexCode(testMethod);
               if (allowAccessModification) {
-                checkMethodIsNeverInvoked(dexCode, COMPONENT1_METHOD, COMPONENT2_METHOD);
+                checkMethodIsNeverInvoked(testMethod, COMPONENT1_METHOD, COMPONENT2_METHOD);
               } else {
-                checkMethodIsInvokedAtLeastOnce(dexCode, COMPONENT1_METHOD, COMPONENT2_METHOD);
+                checkMethodIsInvokedAtLeastOnce(testMethod, COMPONENT1_METHOD, COMPONENT2_METHOD);
               }
             });
   }
 
   @Test
   public void test_dataclass_componentPartial() throws Exception {
-    // TODO(b/179866251): Allow for CF code.
-    assumeTrue(testParameters.isDexRuntime());
     String mainClassName = "dataclass.MainComponentPartialKt";
     MethodSignature testMethodSignature =
         new MethodSignature("testSomeDataClassComponentFunctions", "void", Collections.emptyList());
@@ -198,11 +187,10 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
               ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
               MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
-              DexCode dexCode = getDexCode(testMethod);
               if (allowAccessModification) {
-                checkMethodIsNeverInvoked(dexCode, COMPONENT2_METHOD);
+                checkMethodIsNeverInvoked(testMethod, COMPONENT2_METHOD);
               } else {
-                checkMethodIsInvokedAtLeastOnce(dexCode, COMPONENT2_METHOD);
+                checkMethodIsInvokedAtLeastOnce(testMethod, COMPONENT2_METHOD);
               }
             });
   }

@@ -98,6 +98,10 @@ public interface InstructionSubject {
 
   boolean isIfEqz();
 
+  boolean isIfNull();
+
+  boolean isIfNonNull();
+
   boolean isReturn();
 
   boolean isReturnVoid();
