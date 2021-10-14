@@ -394,12 +394,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
         .inspect(
             inspector -> {
               // Class is removed because the instantiation of the inner class has no side effects.
-              // TODO(b/202952541): Should be able to remove class.
-              if (kotlinc.is(KOTLINC_1_5_0) && testParameters.isDexRuntime()) {
-                checkClassIsKept(inspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
-              } else {
-                checkClassIsRemoved(inspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
-              }
+              checkClassIsRemoved(inspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
             });
   }
 
