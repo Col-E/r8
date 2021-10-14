@@ -736,6 +736,17 @@ public abstract class R8RunArtTestsTest {
               "550-new-instance-clinit",
               TestCondition.match(
                   TestCondition.D8_COMPILER, TestCondition.runtimes(DexVm.Version.V6_0_1)))
+          // Regression test for an issue that is not fixed on version 5.1.1. Throws an Exception
+          // instance instead of the expected NullPointerException. This bug is only tickled when
+          // running the R8 generated code when starting from jar or from dex code generated with
+          // dx. However, the code that R8 generates is valid and there is nothing we can do for
+          // this one.
+          .put(
+              "551-implicit-null-checks",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.NONE, DexTool.DX),
+                  TestCondition.R8DEX_COMPILER,
+                  TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
           .put(
