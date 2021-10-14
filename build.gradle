@@ -988,14 +988,19 @@ def d8CfCommandLine(input, output, args = ["--release"], libs = []) {
     return baseD8CommandLine(allArgs)
 }
 
-def r8LibCreateTask(name, pgConfs = [], r8Task, output, args = ["--release"], libs = []) {
+def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = []) {
     return tasks.create("r8Lib${name}", Exec) {
-        inputs.files ([pgConfs, r8WithRelocatedDeps.outputs, r8Task.outputs, libs])
+        inputs.files ([pgConfs, r8WithRelocatedDeps.outputs, r8Task.outputs])
         outputs.file output
         dependsOn downloadOpenJDKrt
         dependsOn r8WithRelocatedDeps
         dependsOn r8Task
-        commandLine r8CfCommandLine(r8Task.outputs.files[0], output, pgConfs, args, libs)
+        commandLine ([
+                "tools/create_r8lib.py",
+                "--r8jar", r8Task.outputs.files[0],
+                "--output", output]
+                + (pgConfs.collectMany { ["--pg-conf", it] })
+                + (libs.collectMany { ["--lib", it] }))
         workingDir = projectDir
     }
 }
@@ -1090,11 +1095,10 @@ task R8Lib {
 
 task R8LibNoDeps {
     dependsOn r8LibCreateTask(
-            "NoDeps",
+            "MainNoDeps",
             ["src/main/keep.txt"],
             r8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
-            "--release",
             repackageDeps.outputs.files
     ).dependsOn(repackageDeps)
     inputs.files ([r8NoManifestWithoutDeps.outputs, repackageDeps.outputs])
