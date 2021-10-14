@@ -2423,8 +2423,7 @@ public abstract class R8RunArtTestsTest {
         expectException(CompilationError.class);
         throw new CompilationError(e.getMessage(), e);
       }
-      System.err.println("Should have failed R8/D8 compilation with a CompilationError.");
-      return;
+      throw new RuntimeException("Should have failed R8/D8 compilation with a CompilationError.");
     } else if (specification.failsWithX8) {
       expectException(Throwable.class);
       executeCompilerUnderTest(
