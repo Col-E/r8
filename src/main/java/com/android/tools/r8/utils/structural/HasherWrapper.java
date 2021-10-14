@@ -75,6 +75,7 @@ public interface HasherWrapper {
       hasher.putBytes(content);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T hash() {
       return (T) hasher.hash();
