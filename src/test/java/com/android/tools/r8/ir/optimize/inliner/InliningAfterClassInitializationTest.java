@@ -223,7 +223,9 @@ public class InliningAfterClassInitializationTest extends TestBase {
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .addKeepMainRule(mainClass)
         .addOptionsModification(
-            options -> options.enableInliningOfInvokesWithClassInitializationSideEffects = false)
+            options ->
+                options.inlinerOptions().enableInliningOfInvokesWithClassInitializationSideEffects =
+                    false)
         .enableConstantArgumentAnnotations()
         .enableUnusedArgumentAnnotations()
         .enableInliningAnnotations()

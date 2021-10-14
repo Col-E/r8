@@ -216,7 +216,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   void enableProtoShrinking() {
-    applyInliningToInlinee = true;
+    inlinerOptions.applyInliningToInlinee = true;
     enableFieldBitAccessAnalysis = true;
     protoShrinking.enableGeneratedMessageLiteShrinking = true;
     protoShrinking.enableGeneratedMessageLiteBuilderShrinking = true;
@@ -231,7 +231,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public void disableGlobalOptimizations() {
-    enableInlining = false;
+    inlinerOptions.enableInlining = false;
     enableClassInlining = false;
     enableClassStaticizer = false;
     enableDevirtualization = false;
@@ -272,17 +272,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean enableVerticalClassMerging = true;
   public boolean enableUnusedInterfaceRemoval = true;
   public boolean enableDevirtualization = true;
-  public boolean enableInlining =
-      !Version.isDevelopmentVersion()
-          || System.getProperty("com.android.tools.r8.disableinlining") == null;
   public boolean enableEnumUnboxing = true;
-  // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
-  public boolean applyInliningToInlinee =
-      System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;
-  public int applyInliningToInlineeMaxDepth = 0;
-  public boolean enableInliningOfInvokesWithClassInitializationSideEffects = true;
-  public boolean enableInliningOfInvokesWithNullableReceivers = true;
-  public boolean disableInliningOfLibraryMethodOverrides = true;
   public boolean enableSimpleInliningConstraints = true;
   public final int simpleInliningConstraintThreshold = 0;
   public boolean enableClassInlining = true;
@@ -318,25 +308,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return 16383;
   }
 
-  // TODO(b/141719453): The inlining limit at least should be consistent with normal inlining.
-  public int classInliningInstructionLimit = 10;
-  public int classInliningInstructionAllowance = 50;
-  // This defines the limit of instructions in the inlinee
-  public int inliningInstructionLimit =
-      !Version.isDevelopmentVersion()
-          ? 3
-          : System.getProperty("com.android.tools.r8.inliningInstructionLimit") != null
-              ? Integer.parseInt(
-                  System.getProperty("com.android.tools.r8.inliningInstructionLimit"))
-              : 3;
-  // This defines how many instructions of inlinees we can inlinee overall.
-  public int inliningInstructionAllowance = 1500;
-  // Maximum number of distinct values in a method that may be used in a monitor-enter instruction.
-  public int inliningMonitorEnterValuesAllowance = 4;
-  // Maximum number of control flow resolution blocks that setup the register state before
-  // the actual catch handler allowed when inlining. Threshold found empirically by testing on
-  // GMS Core.
-  public int inliningControlFlowResolutionBlocksThreshold = 15;
   public boolean enableSwitchRewriting = true;
   public boolean enableStringSwitchConversion = true;
   public int minimumStringSwitchSize = 3;
@@ -721,6 +692,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   private final CallSiteOptimizationOptions callSiteOptimizationOptions =
       new CallSiteOptimizationOptions();
+  private final ClassInlinerOptions classInlinerOptions = new ClassInlinerOptions();
+  private final InlinerOptions inlinerOptions = new InlinerOptions();
   private final HorizontalClassMergerOptions horizontalClassMergerOptions =
       new HorizontalClassMergerOptions();
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
@@ -745,6 +718,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public CallSiteOptimizationOptions callSiteOptimizationOptions() {
     return callSiteOptimizationOptions;
+  }
+
+  public ClassInlinerOptions classInlinerOptions() {
+    return classInlinerOptions;
+  }
+
+  public InlinerOptions inlinerOptions() {
+    return inlinerOptions;
   }
 
   public HorizontalClassMergerOptions horizontalClassMergerOptions() {
@@ -794,6 +775,24 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return builder.build();
     }
     return ImmutableSet.of();
+  }
+
+  private static boolean isSystemPropertyForDevelopmentSet(String propertyName) {
+    if (Version.isDevelopmentVersion()) {
+      return System.getProperty(propertyName) != null;
+    }
+    return false;
+  }
+
+  private static int parseSystemPropertyForDevelopmentOrDefault(
+      String propertyName, int defaultValue) {
+    if (Version.isDevelopmentVersion()) {
+      String propertyValue = System.getProperty(propertyName);
+      if (propertyValue != null) {
+        return Integer.parseInt(propertyValue);
+      }
+    }
+    return defaultValue;
   }
 
   public static class InvalidParameterAnnotationInfo {
@@ -1300,6 +1299,87 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
+  public class ClassInlinerOptions {
+
+    public int classInliningInstructionAllowance = -1;
+
+    public int getClassInliningInstructionAllowance() {
+      if (classInliningInstructionAllowance >= 0) {
+        return classInliningInstructionAllowance;
+      }
+      if (isGeneratingClassFiles()) {
+        return 50;
+      }
+      assert isGeneratingDex();
+      return 65;
+    }
+  }
+
+  public class InlinerOptions {
+
+    public boolean enableInlining =
+        !isSystemPropertyForDevelopmentSet("com.android.tools.r8.disableinlining");
+
+    // This defines the limit of instructions in the inlinee
+    public int simpleInliningInstructionLimit =
+        parseSystemPropertyForDevelopmentOrDefault(
+            "com.android.tools.r8.inliningInstructionLimit", -1);
+
+    // This defines the limit of instructions in the inlinee
+    public int doubleInliningInstructionLimit =
+        parseSystemPropertyForDevelopmentOrDefault(
+            "com.android.tools.r8.doubleInliningInstructionLimit", -1);
+
+    // This defines how many instructions of inlinees we can inlinee overall.
+    public int inliningInstructionAllowance = 1500;
+
+    // Maximum number of distinct values in a method that may be used in a monitor-enter
+    // instruction.
+    public int inliningMonitorEnterValuesAllowance = 4;
+
+    // Maximum number of control flow resolution blocks that setup the register state before
+    // the actual catch handler allowed when inlining. Threshold found empirically by testing on
+    // GMS Core.
+    public int inliningControlFlowResolutionBlocksThreshold = 15;
+
+    // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
+    public boolean applyInliningToInlinee =
+        System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;
+    public int applyInliningToInlineeMaxDepth = 0;
+
+    public boolean enableInliningOfInvokesWithClassInitializationSideEffects = true;
+    public boolean enableInliningOfInvokesWithNullableReceivers = true;
+    public boolean disableInliningOfLibraryMethodOverrides = true;
+
+    public int getSimpleInliningInstructionLimit() {
+      // If a custom simple inlining instruction limit is set, then use that.
+      if (simpleInliningInstructionLimit >= 0) {
+        return simpleInliningInstructionLimit;
+      }
+      // Allow 3 instructions when generating to class files.
+      if (isGeneratingClassFiles()) {
+        return 3;
+      }
+      // Allow the size of the dex code to be up to 5 bytes.
+      assert isGeneratingDex();
+      return 5;
+    }
+
+    public int getDoubleInliningInstructionLimit() {
+      // If a custom double inlining instruction limit is set, then use that.
+      if (doubleInliningInstructionLimit >= 0) {
+        return doubleInliningInstructionLimit;
+      }
+      // Allow 10 instructions when generating to class files.
+      if (isGeneratingClassFiles()) {
+        return 10;
+      }
+      // Allow the size of the dex code to be up to 20 bytes.
+      assert isGeneratingDex();
+      return 20;
+    }
+  }
+
   public class HorizontalClassMergerOptions {
 
     // TODO(b/138781768): Set enable to true when this bug is resolved.
@@ -1342,7 +1422,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         return false;
       }
       if (mode.isInitial()) {
-        return enableInlining && isShrinking();
+        return inlinerOptions.enableInlining && isShrinking();
       }
       assert mode.isFinal();
       return true;

@@ -14,7 +14,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeVirtual;
 import com.android.tools.r8.graph.Code;
@@ -27,7 +26,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 class TestClass {
   public interface Act {
@@ -76,11 +74,14 @@ public class B111893131 extends TestBase {
     builder.setDisableMinification(true);
     String config = keepMainProguardConfiguration(TestClass.class);
     builder.addProguardConfiguration(ImmutableList.of(config), Origin.unknown());
-    AndroidApp app = ToolHelper.runR8(builder.build(), options -> {
-      // To trigger outliner, set # of expected outline candidate as threshold.
-      options.outline.threshold = 2;
-      options.enableInlining = false;
-    });
+    AndroidApp app =
+        ToolHelper.runR8(
+            builder.build(),
+            options -> {
+              // To trigger outliner, set # of expected outline candidate as threshold.
+              options.outline.threshold = 2;
+              options.inlinerOptions().enableInlining = false;
+            });
     ProcessResult result = runOnArtRaw(app, TestClass.class);
     assertEquals(result.toString(), 0, result.exitCode);
     assertEquals(javaResult, result.stdout);

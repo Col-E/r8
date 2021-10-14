@@ -38,7 +38,7 @@ public class MissingInterfaceTest extends TestBase {
         .addDontWarn(GoingToBeMissed.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClassForB112849320.class)
-        .addOptionsModification(options -> options.enableInlining = false)
+        .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .addKeepPackageNamesRule(GoingToBeMissed.class.getPackage())
         .compile()
         .addRunClasspathFiles(
@@ -64,7 +64,7 @@ public class MissingInterfaceTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClassForB112849320.class)
-        .addOptionsModification(options -> options.enableInlining = false)
+        .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .addRunClasspathFiles(buildOnDexRuntime(parameters, lib))
         .run(parameters.getRuntime(), TestClassForB112849320.class)
         .assertSuccessWithOutputLines(EXPECTED);

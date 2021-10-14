@@ -71,7 +71,7 @@ public class PrintUsageTest extends TestBase {
                 && parameters.getApiLevel().isLessThan(AndroidApiLevel.K),
             builder -> builder.addDontWarn(ReflectiveOperationException.class))
         // Disable inlining to make this test not depend on inlining decisions.
-        .addOptionsModification(o -> o.enableInlining = false)
+        .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .enableProguardTestOptions()
         .setMinApi(parameters.getApiLevel())
         .compile();

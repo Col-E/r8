@@ -7,6 +7,9 @@ import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEn
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiSafeForInlining;
 
+import com.android.tools.r8.code.MoveResult;
+import com.android.tools.r8.code.MoveResultObject;
+import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppView;
@@ -43,7 +46,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -55,10 +58,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Inliner inliner;
+  private final InlinerOptions inlinerOptions;
   private final ProgramMethod method;
   private final MethodProcessor methodProcessor;
   private final InliningReasonStrategy reasonStrategy;
-  private final int inliningInstructionLimit;
   private int instructionAllowance;
 
   DefaultInliningOracle(
@@ -67,14 +70,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       InliningReasonStrategy inliningReasonStrategy,
       ProgramMethod method,
       MethodProcessor methodProcessor,
-      int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     this.appView = appView;
     this.inliner = inliner;
+    this.inlinerOptions = appView.options().inlinerOptions();
     this.reasonStrategy = inliningReasonStrategy;
     this.method = method;
     this.methodProcessor = methodProcessor;
-    this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
   }
 
@@ -168,7 +170,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       }
     }
 
-    Set<Reason> validInliningReasons = appView.options().testing.validInliningReasons;
+    Set<Reason> validInliningReasons = appView.testing().validInliningReasons;
     if (validInliningReasons != null && !validInliningReasons.contains(reason)) {
       whyAreYouNotInliningReporter.reportInvalidInliningReason(reason, validInliningReasons);
       return false;
@@ -222,7 +224,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       InvokeMethod invoke, ProgramMethod target) {
     // If we are looking for a simple method, only inline if actually simple.
     Code code = target.getDefinition().getCode();
-    int instructionLimit = computeInstructionLimit(invoke, target);
+    int instructionLimit =
+        inlinerOptions.getSimpleInliningInstructionLimit()
+            + getInliningInstructionLimitIncrement(invoke, target);
     if (code.estimatedSizeForInliningAtMost(instructionLimit)) {
       return true;
     }
@@ -233,15 +237,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     return simpleInliningConstraint.isSatisfied(invoke);
   }
 
-  private int computeInstructionLimit(InvokeMethod invoke, ProgramMethod candidate) {
-    int instructionLimit = inliningInstructionLimit;
+  private int getInliningInstructionLimitIncrement(InvokeMethod invoke, ProgramMethod candidate) {
+    int instructionLimit = 0;
     BitSet hints = candidate.getDefinition().getOptimizationInfo().getNonNullParamOrThrow();
     if (hints != null) {
-      List<Value> arguments = invoke.inValues();
-      if (invoke.isInvokeMethodWithReceiver()) {
-        arguments = arguments.subList(1, arguments.size());
-      }
-      for (int index = 0; index < arguments.size(); index++) {
+      List<Value> arguments = invoke.arguments();
+      for (int index = invoke.getFirstNonReceiverArgumentIndex();
+          index < arguments.size();
+          index++) {
         Value argument = arguments.get(index);
         if ((argument.isArgument()
                 || (argument.getType().isReferenceType() && argument.isNeverNull()))
@@ -250,6 +253,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           instructionLimit += 4;
         }
       }
+    }
+    if (appView.options().isGeneratingDex()
+        && invoke.hasOutValue()
+        && invoke.outValue().hasNonDebugUsers()) {
+      assert MoveResult.SIZE == MoveResultObject.SIZE;
+      assert MoveResult.SIZE == MoveResultWide.SIZE;
+      instructionLimit += MoveResult.SIZE;
     }
     return instructionLimit;
   }
@@ -336,8 +346,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           .getDefinition()
           .getOptimizationInfo()
           .checksNullReceiverBeforeAnySideEffect()) {
-        InternalOptions options = appView.options();
-        if (!options.enableInliningOfInvokesWithNullableReceivers) {
+        if (!inlinerOptions.enableInliningOfInvokesWithNullableReceivers) {
           whyAreYouNotInliningReporter.reportReceiverMaybeNull();
           return null;
         }
@@ -358,7 +367,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return action;
     }
     if (appView.canUseInitClass()
-        && appView.options().enableInliningOfInvokesWithClassInitializationSideEffects) {
+        && inlinerOptions.enableInliningOfInvokesWithClassInitializationSideEffects) {
       action.setShouldSynthesizeInitClass();
       return action;
     }
@@ -438,7 +447,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return true;
     }
 
-    int threshold = appView.options().applyInliningToInlineeMaxDepth;
+    int threshold = inlinerOptions.applyInliningToInlineeMaxDepth;
     if (inliningDepth <= threshold) {
       return true;
     }
@@ -644,7 +653,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     int numberOfMonitorEnterValuesAfterInlining =
         constantMonitorEnterValues.size() + nonConstantMonitorEnterValues.size();
-    int threshold = appView.options().inliningMonitorEnterValuesAllowance;
+    int threshold = inlinerOptions.inliningMonitorEnterValuesAllowance;
     if (numberOfMonitorEnterValuesAfterInlining > threshold) {
       whyAreYouNotInliningReporter.reportWillExceedMonitorEnterValuesBudget(
           numberOfMonitorEnterValuesAfterInlining, threshold);
@@ -693,7 +702,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         numberOfThrowingInstructionsInInlinee * block.numberOfCatchHandlers();
     // Abort if inlining could lead to an explosion in the number of control flow
     // resolution blocks that setup the register state before the actual catch handler.
-    int threshold = appView.options().inliningControlFlowResolutionBlocksThreshold;
+    int threshold = inlinerOptions.inliningControlFlowResolutionBlocksThreshold;
     if (estimatedNumberOfControlFlowResolutionBlocks >= threshold) {
       whyAreYouNotInliningReporter.reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
           estimatedNumberOfControlFlowResolutionBlocks, threshold);

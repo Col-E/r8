@@ -77,7 +77,7 @@ public abstract class CallSiteInformation {
           continue;
         }
 
-        if (appView.options().disableInliningOfLibraryMethodOverrides
+        if (appView.options().inlinerOptions().disableInliningOfLibraryMethodOverrides
             && method.getDefinition().isLibraryMethodOverride().isTrue()) {
           continue;
         }

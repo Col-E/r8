@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking.proxy.testclasses;
 
+import com.android.tools.r8.AlwaysInline;
+
 public class TestClass extends BaseClass implements SubInterface, Interface2 {
   public final String name;  // Must be public to allow inlining.
 
@@ -11,6 +13,7 @@ public class TestClass extends BaseClass implements SubInterface, Interface2 {
     this.name = name;
   }
 
+  @AlwaysInline
   @Override
   public void method() {
     System.out.println(name);

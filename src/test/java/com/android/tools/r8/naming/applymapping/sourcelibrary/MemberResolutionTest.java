@@ -124,7 +124,7 @@ public class MemberResolutionTest extends TestBase {
             .addKeepRules("-applymapping " + mapPath)
             .enableMemberValuePropagationAnnotations()
             .enableNoVerticalClassMergingAnnotations()
-            .addOptionsModification(options -> options.enableInlining = false)
+            .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MemberResolutionTestMain.class)
             .assertSuccessWithOutput(expectedOutput)

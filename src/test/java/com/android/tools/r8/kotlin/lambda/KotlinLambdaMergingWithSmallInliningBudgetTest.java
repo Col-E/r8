@@ -37,7 +37,7 @@ public class KotlinLambdaMergingWithSmallInliningBudgetTest extends AbstractR8Ko
         "lambdas_jstyle_runnable",
         mainClassName,
         testBuilder ->
-            testBuilder
-                .addOptionsModification(options -> options.inliningInstructionAllowance = 3));
+            testBuilder.addOptionsModification(
+                options -> options.inlinerOptions().inliningInstructionAllowance = 3));
   }
 }

@@ -97,7 +97,7 @@ public class WarnReflectiveAccessTestRunner extends TestBase {
     return ToolHelper.runR8(
         commandBuilder.build(),
         o -> {
-          o.enableInlining = false;
+          o.inlinerOptions().enableInlining = false;
           o.forceProguardCompatibility = forceProguardCompatibility;
         });
   }

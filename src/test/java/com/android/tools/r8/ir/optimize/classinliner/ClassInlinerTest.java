@@ -41,7 +41,8 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
@@ -248,8 +249,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addOptionsModification(
                 o -> {
                   // TODO(b/143129517, 141719453): The limit seems to only be needed for DEX...
-                  o.classInliningInstructionLimit = 100;
-                  o.classInliningInstructionAllowance = 1000;
+                  o.classInlinerOptions().classInliningInstructionAllowance = 1000;
                 })
             .allowAccessModification()
             .noMinification()
@@ -300,35 +300,32 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addProgramClasses(classes)
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
-            .addOptionsModification(
-                o -> {
-                  // TODO(b/141719453): Identify single instances instead of increasing the limit.
-                  o.classInliningInstructionLimit = 20;
-                })
             .allowAccessModification()
             .enableInliningAnnotations()
             .noMinification()
-            .run(main)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
 
-    assertEquals(
-        Sets.newHashSet("java.lang.StringBuilder"),
-        collectTypes(clazz.uniqueMethodWithName("testStatelessLambda")));
-
-    // TODO(b/120814598): Should only be "java.lang.StringBuilder". Lambdas are not class inlined
-    // because parameter usage is not available for each lambda constructor.
-    Set<String> expectedTypes = Sets.newHashSet("java.lang.StringBuilder");
-    expectedTypes.addAll(
+    List<String> synthesizedJavaLambdaClasses =
         inspector.allClasses().stream()
             .filter(FoundClassSubject::isSynthesizedJavaLambdaClass)
             .map(FoundClassSubject::getFinalName)
-            .collect(Collectors.toList()));
-    assertEquals(expectedTypes, collectTypes(clazz.uniqueMethodWithName("testStatefulLambda")));
+            .collect(Collectors.toList());
+
+    // TODO(b/120814598): Should only be "java.lang.StringBuilder".
+    assertEquals(
+        new HashSet<>(synthesizedJavaLambdaClasses),
+        collectTypes(clazz.uniqueMethodWithName("testStatelessLambda")));
     assertTrue(
-        inspector.allClasses().stream().noneMatch(ClassSubject::isSynthesizedJavaLambdaClass));
+        inspector.allClasses().stream().anyMatch(ClassSubject::isSynthesizedJavaLambdaClass));
+
+    assertEquals(
+        Sets.newHashSet("java.lang.StringBuilder"),
+        collectTypes(clazz.uniqueMethodWithName("testStatefulLambda")));
   }
 
   private String getProguardConfig(String main) {

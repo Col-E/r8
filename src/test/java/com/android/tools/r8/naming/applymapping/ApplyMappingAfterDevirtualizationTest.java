@@ -105,7 +105,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
             .addProgramClasses(LIBRARY_CLASSES)
             .addKeepClassAndMembersRulesWithAllowObfuscation(LibClassA.class)
             .addKeepMainRule(LibClassB.class)
-            .addOptionsModification(options -> options.enableInlining = false)
+            .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();
@@ -136,7 +136,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
             .addProgramClasses(LIBRARY_CLASSES)
             .addKeepClassAndMembersRulesWithAllowObfuscation(LibClassA.class, LibInterfaceA.class)
             .addKeepMainRule(LibClassB.class)
-            .addOptionsModification(options -> options.enableInlining = false)
+            .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();

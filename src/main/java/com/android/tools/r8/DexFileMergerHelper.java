@@ -78,7 +78,7 @@ public class DexFileMergerHelper {
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
     assert !options.isMinifying();
-    options.enableInlining = false;
+    options.inlinerOptions().enableInlining = false;
     options.outline.enabled = false;
 
     ExecutorService executor = ThreadUtils.getExecutorService(ThreadUtils.NOT_SPECIFIED);

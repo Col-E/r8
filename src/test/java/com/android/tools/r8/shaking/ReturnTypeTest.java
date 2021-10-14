@@ -86,7 +86,7 @@ public class ReturnTypeTest extends TestBase {
               // always null, and replace the last call with null-throwing instruction.
               // However, we want to test return type and parameter type are kept in this scenario.
               o.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
-              o.enableInlining = false;
+              o.inlinerOptions().enableInlining = false;
             })
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT)

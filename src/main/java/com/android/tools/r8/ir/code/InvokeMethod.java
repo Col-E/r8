@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import java.util.BitSet;
@@ -68,6 +69,10 @@ public abstract class InvokeMethod extends Invoke {
       default:
         throw new Unreachable("Unexpected invoke type: " + type);
     }
+  }
+
+  public int getFirstNonReceiverArgumentIndex() {
+    return BooleanUtils.intValue(isInvokeMethodWithReceiver());
   }
 
   public abstract boolean getInterfaceBit();

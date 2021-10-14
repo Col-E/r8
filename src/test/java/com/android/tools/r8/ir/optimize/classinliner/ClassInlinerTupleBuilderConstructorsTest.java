@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.AlwaysClassInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
@@ -44,6 +45,7 @@ public class ClassInlinerTupleBuilderConstructorsTest extends ClassInlinerTestBa
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInlinerTupleBuilderConstructorsTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableAlwaysClassInlineAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -89,6 +91,7 @@ public class ClassInlinerTupleBuilderConstructorsTest extends ClassInlinerTestBa
     }
   }
 
+  @AlwaysClassInline
   static class Tuple {
 
     boolean z;

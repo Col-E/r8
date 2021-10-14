@@ -90,7 +90,7 @@ public class B112247415 extends TestBase {
                 options -> {
                   // To trigger outliner, set # of expected outline candidate as threshold.
                   options.outline.threshold = 2;
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                 })
             .noHorizontalClassMergingOfSynthetics()
             .run(parameters.getRuntime(), TestClass.class)

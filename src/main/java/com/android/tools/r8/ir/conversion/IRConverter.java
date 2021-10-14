@@ -258,7 +258,9 @@ public class IRConverter {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       assumeInserter = new AssumeInserter(appViewWithLiveness);
       this.classInliner =
-          options.enableClassInlining && options.enableInlining ? new ClassInliner() : null;
+          options.enableClassInlining && options.inlinerOptions().enableInlining
+              ? new ClassInliner()
+              : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.dynamicTypeOptimization = new DynamicTypeOptimization(appViewWithLiveness);
@@ -1257,7 +1259,7 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after generated message lite shrinking (SSA)", previous);
 
-    if (!isDebugMode && options.enableInlining && inliner != null) {
+    if (!isDebugMode && options.inlinerOptions().enableInlining && inliner != null) {
       timing.begin("Inlining");
       inliner.performInlining(code.context(), code, feedback, methodProcessor, timing);
       timing.end();
@@ -1408,7 +1410,7 @@ public class IRConverter {
       timing.begin("Inline classes");
       // Class inliner should work before lambda merger, so if it inlines the
       // lambda, it does not get collected by merger.
-      assert options.enableInlining && inliner != null;
+      assert options.inlinerOptions().enableInlining && inliner != null;
       classInliner.processMethodCode(
           appView.withLiveness(),
           codeRewriter,
@@ -1425,7 +1427,6 @@ public class IRConverter {
                   inliner.createDefaultOracle(
                       code.context(),
                       methodProcessor,
-                      options.classInliningInstructionLimit,
                       // Inlining instruction allowance is not needed for the class inliner since it
                       // always uses a force inlining oracle for inlining.
                       -1)));
@@ -1684,7 +1685,7 @@ public class IRConverter {
   }
 
   private boolean shouldComputeInliningConstraint(ProgramMethod method) {
-    if (!options.enableInlining || inliner == null) {
+    if (!options.inlinerOptions().enableInlining || inliner == null) {
       return false;
     }
     DexEncodedMethod definition = method.getDefinition();

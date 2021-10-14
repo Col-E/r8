@@ -86,7 +86,8 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
             "-keep,allowobfuscation class **.*$Super* { <methods>; }",
             "-keep,allowobfuscation class **.*$Sub* { <methods>; }",
             overloadAggressively ? "-overloadaggressively" : "# Not overload aggressively")
-        .addOptionsModification(internalOptions -> internalOptions.enableInlining = false)
+        .addOptionsModification(
+            internalOptions -> internalOptions.inlinerOptions().enableInlining = false)
         .run(parameters.getRuntime(), TestMain.class)
         .inspect(inspector -> inspect(inspector, overloadAggressively));
   }

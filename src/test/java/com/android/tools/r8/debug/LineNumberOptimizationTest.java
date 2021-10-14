@@ -61,7 +61,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
                   if (!dontOptimizeByEnablingDebug) {
                     options.lineNumberOptimization = lineNumberOptimization;
                   }
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                 })
             .compile();
 

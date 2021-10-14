@@ -67,7 +67,7 @@ public final class DexSplitterHelper {
     options.ignoreMainDexMissingClasses = true;
     options.minimalMainDex = false;
     assert !options.isMinifying();
-    options.enableInlining = false;
+    options.inlinerOptions().enableInlining = false;
     options.outline.enabled = false;
 
     try {

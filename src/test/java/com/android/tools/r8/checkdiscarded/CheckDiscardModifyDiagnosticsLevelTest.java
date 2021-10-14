@@ -48,7 +48,7 @@ public class CheckDiscardModifyDiagnosticsLevelTest extends TestBase {
   }
 
   private void noInlining(InternalOptions options) {
-    options.enableInlining = false;
+    options.inlinerOptions().enableInlining = false;
   }
 
   private Matcher<Diagnostic> discardCheckFailedMatcher() {

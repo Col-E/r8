@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -57,13 +57,9 @@ public class Regress160394262Test extends TestBase {
   }
 
   private void checkJoinerIsClassInlined(CodeInspector inspector) {
-    assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), not(isPresent()));
-    // TODO(b/160640028): When compiling to DEX the outer Joiner class is not inlined.
-    if (parameters.isDexRuntime()) {
-      assertThat(inspector.clazz(Joiner.class), isPresent());
-    } else {
-      assertThat(inspector.clazz(Joiner.class), not(isPresent()));
-    }
+    assertThat(inspector.clazz(Joiner.class.getTypeName() + "$1"), isAbsent());
+    // TODO(b/160640028): Joiner should be class inlined.
+    assertThat(inspector.clazz(Joiner.class), isPresent());
   }
 
   static class TestClass {

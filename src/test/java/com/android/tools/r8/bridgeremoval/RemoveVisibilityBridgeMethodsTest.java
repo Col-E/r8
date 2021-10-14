@@ -104,7 +104,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(programClassFileData)
         .addKeepMainRule(mainClass.name)
-        .addOptionsModification(options -> options.enableInlining = false)
+        .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .allowAccessModification()
         .minification(minification)
         .setMinApi(parameters.getApiLevel())

@@ -517,7 +517,8 @@ public class ReflectionTest extends TestBase {
         ImmutableList.of(keepMainProguardConfigurationWithInliningAnnotation(mainClass)),
         Origin.unknown());
     ToolHelper.allowTestProguardOptions(builder);
-    AndroidApp output = ToolHelper.runR8(builder.build(), o -> o.enableInlining = false);
+    AndroidApp output =
+        ToolHelper.runR8(builder.build(), o -> o.inlinerOptions().enableInlining = false);
 
     runOnVM(output, mainClass, backend);
   }

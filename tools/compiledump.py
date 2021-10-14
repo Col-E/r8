@@ -52,6 +52,9 @@ def make_parser():
     help='Path to an R8 jar.',
     default=None)
   parser.add_argument(
+    '--r8-flags', '--r8_flags',
+    help='Additional option(s) for the compiler.')
+  parser.add_argument(
     '-override',
     help='Do not override any extracted dump in temp-dir',
     default=False,
@@ -341,6 +344,8 @@ def run1(out, args, otherargs, jdkhome=None):
       cmd.append('-Dcom.android.tools.r8.enableTestAssertions=1')
     if args.print_times:
       cmd.append('-Dcom.android.tools.r8.printtimes=1')
+    if args.r8_flags:
+      cmd.extend(args.r8_flags.split(' '))
     if hasattr(args, 'properties'):
       cmd.extend(args.properties);
     cmd.extend(determine_properties(build_properties))

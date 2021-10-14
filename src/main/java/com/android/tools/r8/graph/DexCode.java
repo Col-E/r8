@@ -118,7 +118,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
 
   @Override
   public int estimatedSizeForInlining() {
-    return instructions.length;
+    return codeSizeInBytes();
   }
 
   @Override

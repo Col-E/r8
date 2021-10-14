@@ -119,9 +119,9 @@ public class R8InliningTest extends TestBase {
               // and
               // that the class is therefore made abstract.
               o.enableClassInlining = false;
-              o.enableInlining = inlining;
-              o.enableInliningOfInvokesWithNullableReceivers = false;
-              o.inliningInstructionLimit = 6;
+              o.inlinerOptions().enableInlining = inlining;
+              o.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
+              o.inlinerOptions().simpleInliningInstructionLimit = 6;
               // Tests depend on nullability of receiver and argument in general. Learning very
               // accurate
               // nullability from actual usage in tests bothers what we want to test.

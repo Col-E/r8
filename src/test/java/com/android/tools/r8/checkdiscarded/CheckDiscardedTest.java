@@ -69,7 +69,7 @@ public class CheckDiscardedTest extends TestBase {
   }
 
   private void noInlining(InternalOptions options) {
-    options.enableInlining = false;
+    options.inlinerOptions().enableInlining = false;
   }
 
   private String checkDiscardRule(boolean member, Class<?> annotation) {

@@ -39,7 +39,10 @@ public class NonMaterializingFieldAccessesAfterClassInliningTest extends TestBas
         .addInnerClasses(NonMaterializingFieldAccessesAfterClassInliningTest.class)
         .addKeepMainRule(TestClass.class)
         // Should be able to class inline Builder even when the threshold is low.
-        .addOptionsModification(options -> options.classInliningInstructionAllowance = 3)
+        .addOptionsModification(
+            options ->
+                options.classInlinerOptions().classInliningInstructionAllowance =
+                    parameters.isCfRuntime() ? 3 : 6)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

@@ -40,7 +40,7 @@ public class MergeSynthesizingContextIntoSyntheticLambdaTest extends TestBase {
         .addKeepMainRule(Main.class)
         // Disable inlining to ensure that the synthetic lambdas remain in the residual
         // program.
-        .addOptionsModification(options -> options.enableInlining = false)
+        .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .addVerticallyMergedClassesInspector(
             inspector -> {
               if (parameters.isCfRuntime()) {

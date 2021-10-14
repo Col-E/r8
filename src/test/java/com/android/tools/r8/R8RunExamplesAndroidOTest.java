@@ -120,14 +120,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 9, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 2, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaring"))
         .run();
   }
 
@@ -159,14 +159,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 9, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 10, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
         .withMinApiLevel(AndroidApiLevel.N)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 2, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 3, "lambdadesugaring"))
         .run();
   }
 
@@ -244,7 +244,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b ->
                 b.addProguardConfiguration(
                     getProguardOptionsNPlus(enableProguardCompatibilityMode), Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 0, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 2, "lambdadesugaringnplus"))
         .run();
   }
 

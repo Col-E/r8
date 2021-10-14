@@ -88,7 +88,7 @@ public class ServiceLoaderTest extends TestBase {
                   dataResourceConsumer =
                       new DataResourceConsumerForTesting(options.dataResourceConsumer);
                   options.dataResourceConsumer = dataResourceConsumer;
-                  options.enableInliningOfInvokesWithNullableReceivers = false;
+                  options.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
                 })
             .enableGraphInspector()
             .enableMemberValuePropagationAnnotations()

@@ -36,7 +36,8 @@ public class IllegalInliningOfMergedConstructorTest extends TestBase {
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(Reprocess.class))
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class))
-        .addOptionsModification(options -> options.inliningInstructionLimit = 4)
+        .addOptionsModification(
+            options -> options.inlinerOptions().simpleInliningInstructionLimit = 4)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

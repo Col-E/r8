@@ -345,6 +345,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T enableAlwaysClassInlineAnnotations() {
+    return addAlwaysClassInlineAnnotation()
+        .enableAlwaysClassInlineAnnotations(AlwaysClassInline.class.getPackage().getName());
+  }
+
+  public T enableAlwaysClassInlineAnnotations(String annotationPackageName) {
+    return addInternalKeepRules(
+        "-alwaysclassinline @" + annotationPackageName + ".AlwaysClassInline class *");
+  }
+
   public T enableAlwaysInliningAnnotations() {
     return addAlwaysInliningAnnotations()
         .enableAlwaysInliningAnnotations(AlwaysInline.class.getPackage().getName());

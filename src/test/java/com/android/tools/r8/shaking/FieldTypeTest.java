@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNotEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -25,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 public class FieldTypeTest extends TestBase {
 
@@ -126,7 +124,7 @@ public class FieldTypeTest extends TestBase {
             // Disable inlining to avoid the (short) tested method from being inlined and then
             // removed.
             options -> {
-              options.enableInlining = false;
+              options.inlinerOptions().enableInlining = false;
               options.testing.allowTypeErrors = true;
             });
 
@@ -201,15 +199,16 @@ public class FieldTypeTest extends TestBase {
     assertEquals(0, javaResult.exitCode);
     assertThat(javaResult.stdout, containsString(impl2.name));
 
-    AndroidApp processedApp = compileWithR8(
-        jasminBuilder.build(),
-        proguardConfig,
-        internalOptions -> {
-          // Disable inlining to avoid the (short) tested method from being inlined and then
-          // removed.
-          internalOptions.enableInlining = false;
-          internalOptions.testing.allowTypeErrors = true;
-        });
+    AndroidApp processedApp =
+        compileWithR8(
+            jasminBuilder.build(),
+            proguardConfig,
+            internalOptions -> {
+              // Disable inlining to avoid the (short) tested method from being inlined and then
+              // removed.
+              internalOptions.inlinerOptions().enableInlining = false;
+              internalOptions.testing.allowTypeErrors = true;
+            });
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);

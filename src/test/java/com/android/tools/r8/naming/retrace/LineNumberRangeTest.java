@@ -86,7 +86,7 @@ public class LineNumberRangeTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(
                 options -> {
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                 })
             .run(parameters.getRuntime(), Main.class)
             .assertFailure();

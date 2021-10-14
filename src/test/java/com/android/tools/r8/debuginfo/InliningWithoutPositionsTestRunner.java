@@ -104,7 +104,8 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
             .noMinification()
             .addKeepAttributeSourceFile()
             .addKeepAttributeLineNumberTable()
-            .addOptionsModification(options -> options.inliningInstructionLimit = 40)
+            .addOptionsModification(
+                options -> options.inlinerOptions().simpleInliningInstructionLimit = 40)
             .run(parameters.getRuntime(), MAIN_CLASS)
             .assertFailure();
 

@@ -41,7 +41,7 @@ public class InlineCmpDoubleTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> options.enableInlining = enableInlining)
+        .addOptionsModification(options -> options.inlinerOptions().enableInlining = enableInlining)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

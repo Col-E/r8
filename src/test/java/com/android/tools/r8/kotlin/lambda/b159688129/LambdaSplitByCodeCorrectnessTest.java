@@ -70,7 +70,7 @@ public class LambdaSplitByCodeCorrectnessTest extends KotlinTestBase {
                     internalOptions ->
                         // Setting inliningInstructionAllowance = 1 will force each switch branch to
                         // contain an invoke instruction to a private method.
-                        internalOptions.inliningInstructionAllowance = 1))
+                        internalOptions.inlinerOptions().inliningInstructionAllowance = 1))
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertIsCompleteMergeGroup(

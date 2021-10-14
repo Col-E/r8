@@ -37,7 +37,7 @@ public class LambdaAbstractMethodErrorTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addOptionsModification(
             internalOptions -> {
-              internalOptions.enableInlining = false;
+              internalOptions.inlinerOptions().enableInlining = false;
               internalOptions.enableClassInlining = false;
               internalOptions.enableVerticalClassMerging = false;
             })

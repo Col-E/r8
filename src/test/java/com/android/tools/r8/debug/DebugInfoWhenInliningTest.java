@@ -43,7 +43,8 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
                   options.testing.forceJumboStringProcessing = forceJumboStringProcessing;
                   // TODO(b/117848700): Can we make these tests neutral to inlining threshold?
                   // Also CF needs improvements here.
-                  options.inliningInstructionLimit = parameters.isCfRuntime() ? 5 : 4;
+                  options.inlinerOptions().simpleInliningInstructionLimit =
+                      parameters.isCfRuntime() ? 5 : 4;
                 })
             .compile();
     DebugTestConfig config = result.debugConfig();

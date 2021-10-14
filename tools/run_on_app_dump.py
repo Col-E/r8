@@ -655,6 +655,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
   args = AttrDict({
     'dump': dump_for_app(app_dir, app),
     'r8_jar': get_r8_jar(options, temp_dir, shrinker),
+    'r8_flags': options.r8_flags,
     'ea': False if options.disable_assertions else True,
     'version': options.version,
     'compiler': 'r8full' if is_full_r8(shrinker) else 'r8',
@@ -931,6 +932,8 @@ def parse_options(argv):
                       help='Number of times R8 should be run on each app',
                       default=2,
                       type=int)
+  result.add_argument('--r8-flags', '--r8_flags',
+                      help='Additional option(s) for the compiler.')
   result.add_argument('--run-tests', '--run_tests',
                       help='Whether to run instrumentation tests',
                       default=False,

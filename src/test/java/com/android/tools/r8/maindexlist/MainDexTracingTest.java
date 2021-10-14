@@ -118,7 +118,7 @@ public class MainDexTracingTest extends TestBase {
         builder ->
             builder.addOptionsModification(
                 options -> {
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                   options.mainDexKeptGraphConsumer = graphConsumer;
                 }));
     {
@@ -211,7 +211,9 @@ public class MainDexTracingTest extends TestBase {
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         Paths.get(EXAMPLE_O_SRC_DIR, "multidex004", "ref-list-1.txt"),
         AndroidApiLevel.I,
-        builder -> builder.addOptionsModification(options -> options.enableInlining = false));
+        builder ->
+            builder.addOptionsModification(
+                options -> options.inlinerOptions().enableInlining = false));
   }
 
   @Test
@@ -311,7 +313,9 @@ public class MainDexTracingTest extends TestBase {
         expectedR8MainDexList,
         expectedMainDexList,
         minSdk,
-        builder -> builder.addOptionsModification(options -> options.enableInlining = false));
+        builder ->
+            builder.addOptionsModification(
+                options -> options.inlinerOptions().enableInlining = false));
   }
 
   private void doTest(

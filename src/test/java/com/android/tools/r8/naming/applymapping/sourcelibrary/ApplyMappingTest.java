@@ -219,7 +219,7 @@ public class ApplyMappingTest extends TestBase {
         command,
         options -> {
           // Disable inlining to make this test not depend on inlining decisions.
-          options.enableInlining = false;
+          options.inlinerOptions().enableInlining = false;
         });
   }
 }

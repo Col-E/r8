@@ -61,9 +61,11 @@ public class B77944861 extends TestBase {
             .setDisableTreeShaking(true)
             .setDisableMinification(true)
             .build();
-    return ToolHelper.runR8(command, o -> {
-      o.enableInlining = false;
-    });
+    return ToolHelper.runR8(
+        command,
+        o -> {
+          o.inlinerOptions().enableInlining = false;
+        });
   }
 
   @Test

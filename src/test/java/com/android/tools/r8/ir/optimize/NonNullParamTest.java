@@ -70,7 +70,7 @@ public class NonNullParamTest extends TestBase {
         .addOptionsModification(
             options -> {
               // Need to increase a little bit to inline System.out.println
-              options.inliningInstructionLimit = 4;
+              options.inlinerOptions().simpleInliningInstructionLimit = 4;
             })
         .apply(configuration)
         .setMinApi(parameters.getApiLevel())
@@ -119,7 +119,8 @@ public class NonNullParamTest extends TestBase {
         buildAndRun(
             mainClass,
             ImmutableList.of(IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
-            R8TestBuilder::enableInliningAnnotations);
+            testBuilder ->
+                testBuilder.enableAlwaysInliningAnnotations().enableInliningAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
@@ -147,7 +148,8 @@ public class NonNullParamTest extends TestBase {
         buildAndRun(
             mainClass,
             ImmutableList.of(IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
-            R8TestBuilder::enableInliningAnnotations);
+            testBuilder ->
+                testBuilder.enableAlwaysInliningAnnotations().enableInliningAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
@@ -179,7 +181,11 @@ public class NonNullParamTest extends TestBase {
                 NonNullParamAfterInvokeVirtual.class,
                 NotPinnedClass.class,
                 mainClass),
-            builder -> builder.enableNeverClassInliningAnnotations().enableInliningAnnotations());
+            builder ->
+                builder
+                    .enableAlwaysInliningAnnotations()
+                    .enableNeverClassInliningAnnotations()
+                    .enableInliningAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeVirtual.class);
     assertThat(mainSubject, isPresent());
@@ -232,6 +238,7 @@ public class NonNullParamTest extends TestBase {
                                     NonNullParamAfterInvokeInterface.class,
                                     NonNullParamInterfaceImpl.class))
                     .addOptionsModification(this::disableDevirtualization)
+                    .enableAlwaysInliningAnnotations()
                     .enableInliningAnnotations()
                     .enableNeverClassInliningAnnotations()
                     .enableNoVerticalClassMergingAnnotations());

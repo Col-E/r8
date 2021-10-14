@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.nonnull;
 
+import com.android.tools.r8.AlwaysInline;
+
 public class NotPinnedClass {
   final int field;
 
@@ -10,6 +12,7 @@ public class NotPinnedClass {
     this.field = field;
   }
 
+  @AlwaysInline
   void act() {
     System.out.println(field);
   }

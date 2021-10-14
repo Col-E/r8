@@ -61,7 +61,7 @@ public class NestedInterfaceMethodTest extends TestBase {
             .addOptionsModification(
                 options -> {
                   options.enableDevirtualization = false;
-                  options.enableInliningOfInvokesWithNullableReceivers = false;
+                  options.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
                 })
             .setMinApi(AndroidApiLevel.B)
             .run(parameters.getRuntime(), TestClass.class)

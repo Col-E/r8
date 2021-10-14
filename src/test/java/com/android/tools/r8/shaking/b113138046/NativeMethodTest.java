@@ -48,7 +48,7 @@ public class NativeMethodTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addProgramClassesAndInnerClasses(Keep.class, Data.class, Handler.class, Outer.class)
             .addKeepRules(config)
-            .addOptionsModification(options -> options.enableInlining = false)
+            .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
             .compile();
     compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
     CodeInspector inspector = compileResult.inspector();

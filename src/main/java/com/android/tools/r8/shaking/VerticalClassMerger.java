@@ -1867,7 +1867,7 @@ public class VerticalClassMerger {
   }
 
   private AbortReason disallowInlining(ProgramMethod method, DexProgramClass context) {
-    if (appView.options().enableInlining) {
+    if (appView.options().inlinerOptions().enableInlining) {
       Code code = method.getDefinition().getCode();
       if (code.isCfCode()) {
         CfCode cfCode = code.asCfCode();

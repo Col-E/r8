@@ -9,6 +9,9 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
+import com.android.tools.r8.code.Iget;
+import com.android.tools.r8.code.Iput;
+import com.android.tools.r8.code.Return;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -75,7 +78,7 @@ class ClassInlinerCostAnalysis {
       IRCode inliningIR = inliningIRProvider.getAndCacheInliningIR(invoke, inlinee, false);
       int increment =
           inlinee.getDefinition().getCode().estimatedSizeForInlining()
-              - estimateNumberOfNonMaterializingInstructions(invoke, inliningIR);
+              - estimateSizeOfNonMaterializingInstructions(invoke, inliningIR);
       assert increment >= 0;
       if (exceedsInstructionBudgetAfterIncrement(increment)) {
         return true;
@@ -93,7 +96,8 @@ class ClassInlinerCostAnalysis {
 
   private boolean exceedsInstructionBudgetAfterIncrement(int increment) {
     estimatedCost += increment;
-    return estimatedCost > appView.options().classInliningInstructionAllowance;
+    return estimatedCost
+        > appView.options().classInlinerOptions().getClassInliningInstructionAllowance();
   }
 
   // TODO(b/143176500): Do not include instructions that will be canonicalized after inlining.
@@ -101,7 +105,7 @@ class ClassInlinerCostAnalysis {
   //  in the caller, which could then lead to a constant in the second inlinee being canonicalized.
   // TODO(b/143176500): Do not include instructions that will be dead code eliminated as a result of
   //  constant arguments.
-  private int estimateNumberOfNonMaterializingInstructions(InvokeMethod invoke, IRCode inlinee) {
+  private int estimateSizeOfNonMaterializingInstructions(InvokeMethod invoke, IRCode inlinee) {
     int result = 0;
     Set<Value> receiverAliasesInInlinee = null;
     for (Instruction instruction : inlinee.instructions()) {
@@ -123,13 +127,21 @@ class ClassInlinerCostAnalysis {
             receiverAliasesInInlinee = getReceiverAliasesInInlinee(invoke, inlinee);
           }
           if (receiverAliasesInInlinee.contains(root)) {
-            result++;
+            if (appView.options().isGeneratingClassFiles()) {
+              result++;
+            } else {
+              result += instruction.isInstanceGet() ? Iget.SIZE : Iput.SIZE;
+            }
           }
           break;
 
         case RETURN:
           // Wil not materialize after class inlining.
-          result++;
+          if (appView.options().isGeneratingClassFiles()) {
+            result++;
+          } else {
+            result += Return.SIZE;
+          }
           break;
 
         default:

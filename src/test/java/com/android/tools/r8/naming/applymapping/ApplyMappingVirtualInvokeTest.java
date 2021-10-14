@@ -109,7 +109,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
         .setMinApi(parameters.getRuntime())
         .addOptionsModification(
             options -> {
-              options.enableInlining = false;
+              options.inlinerOptions().enableInlining = false;
               options.enableVerticalClassMerging = false;
               options.enableClassInlining = false;
             })

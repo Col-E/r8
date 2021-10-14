@@ -193,7 +193,7 @@ public abstract class TreeShakingTest extends TestBase {
             .addDefaultRuntimeLibrary(parameters)
             .addOptionsModification(
                 options -> {
-                  options.enableInlining = programFile.contains("inlining");
+                  options.inlinerOptions().enableInlining = programFile.contains("inlining");
                   if (optionsConsumer != null) {
                     optionsConsumer.accept(options);
                   }

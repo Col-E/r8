@@ -63,6 +63,7 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
@@ -953,12 +954,11 @@ public class Inliner {
       MethodProcessor methodProcessor,
       Timing timing,
       InliningReasonStrategy inliningReasonStrategy) {
-    InternalOptions options = appView.options();
+    InlinerOptions options = appView.options().inlinerOptions();
     DefaultInliningOracle oracle =
         createDefaultOracle(
             method,
             methodProcessor,
-            options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code),
             inliningReasonStrategy);
     InliningIRProvider inliningIRProvider =
@@ -979,12 +979,10 @@ public class Inliner {
   public DefaultInliningOracle createDefaultOracle(
       ProgramMethod method,
       MethodProcessor methodProcessor,
-      int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     return createDefaultOracle(
         method,
         methodProcessor,
-        inliningInstructionLimit,
         inliningInstructionAllowance,
         createDefaultInliningReasonStrategy(methodProcessor));
   }
@@ -992,7 +990,6 @@ public class Inliner {
   public DefaultInliningOracle createDefaultOracle(
       ProgramMethod method,
       MethodProcessor methodProcessor,
-      int inliningInstructionLimit,
       int inliningInstructionAllowance,
       InliningReasonStrategy inliningReasonStrategy) {
     return new DefaultInliningOracle(
@@ -1001,7 +998,6 @@ public class Inliner {
         inliningReasonStrategy,
         method,
         methodProcessor,
-        inliningInstructionLimit,
         inliningInstructionAllowance);
   }
 
@@ -1019,7 +1015,7 @@ public class Inliner {
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
     Deque<BasicBlock> inlineeStack = new ArrayDeque<>();
-    InternalOptions options = appView.options();
+    InlinerOptions options = appView.options().inlinerOptions();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!inlineeStack.isEmpty() && inlineeStack.peekFirst() == block) {

@@ -139,7 +139,7 @@ public class MethodOptimizationInfoCollector {
     DexEncodedMethod definition = method.getDefinition();
     identifyBridgeInfo(definition, code, feedback, timing);
     analyzeReturns(code, feedback, methodProcessor, timing);
-    if (options.enableInlining) {
+    if (options.inlinerOptions().enableInlining) {
       identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
     }
     if (options.enableClassInlining) {

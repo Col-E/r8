@@ -41,7 +41,7 @@ public class B114554345 extends TestBase {
         compileWithR8(
             input,
             keepMainProguardConfiguration(TestDriver.class),
-            options -> options.enableInlining = false,
+            options -> options.inlinerOptions().enableInlining = false,
             backend);
     String mainClass = TestDriver.class.getName();
     assertEquals(runOnJava(TestDriver.class), runOnVM(output, mainClass, backend));

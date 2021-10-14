@@ -32,9 +32,9 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   );
 
   private Consumer<InternalOptions> optionsModifier =
-    o -> {
-      o.enableInlining = false;
-    };
+      o -> {
+        o.inlinerOptions().enableInlining = false;
+      };
 
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {

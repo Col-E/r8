@@ -386,6 +386,10 @@ public abstract class TestShrinkerBuilder<
 
   public abstract T addApplyMapping(String proguardMap);
 
+  public final T addAlwaysClassInlineAnnotation() {
+    return addTestingAnnotation(AlwaysClassInline.class);
+  }
+
   public final T addAlwaysInliningAnnotations() {
     return addTestingAnnotation(AlwaysInline.class);
   }

@@ -59,10 +59,12 @@ public class OverloadAggressivelyTest extends TestBase {
             .setOutput(out, outputMode(backend))
             .addLibraryFiles(TestBase.runtimeJar(backend))
             .build();
-    return ToolHelper.runR8(command, o -> {
-      o.enableInlining = false;
-      o.forceProguardCompatibility = true;
-    });
+    return ToolHelper.runR8(
+        command,
+        o -> {
+          o.inlinerOptions().enableInlining = false;
+          o.forceProguardCompatibility = true;
+        });
   }
 
   private ProcessResult runRaw(AndroidApp app, String main) throws IOException {
@@ -183,7 +185,7 @@ public class OverloadAggressivelyTest extends TestBase {
     testForR8Compat(backend)
         .addProgramClasses(MethodResolution.class, B.class)
         .addKeepMainRule(MethodResolution.class)
-        .addOptionsModification(options -> options.enableInlining = false)
+        .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .applyIf(overloadaggressively, builder -> builder.addKeepRules("-overloadaggressively"))
         .enableMemberValuePropagationAnnotations()
         .compile()

@@ -105,7 +105,7 @@ public class MemberResolutionAsmTest extends TestBase {
             .addApplyMapping(pgMap)
             .addOptionsModification(
                 options -> {
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                   options.enableVerticalClassMerging = false;
                 })
             .run(parameters.getRuntime(), noMappingMain)
@@ -197,7 +197,7 @@ public class MemberResolutionAsmTest extends TestBase {
             .addApplyMapping(pgMap)
             .addOptionsModification(
                 options -> {
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                   options.enableVerticalClassMerging = false;
                 })
             .compile();

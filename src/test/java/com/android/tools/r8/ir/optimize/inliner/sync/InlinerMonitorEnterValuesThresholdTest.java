@@ -41,7 +41,8 @@ public class InlinerMonitorEnterValuesThresholdTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> options.inliningMonitorEnterValuesAllowance = threshold)
+        .addOptionsModification(
+            options -> options.inlinerOptions().inliningMonitorEnterValuesAllowance = threshold)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

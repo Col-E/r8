@@ -187,7 +187,7 @@ public class RemoveAssertionsTest extends TestBase {
     return testForR8(staticTemp, backend)
         .addProgramClasses(ClassWithAssertions.class)
         .addKeepMainRule(ClassWithAssertions.class)
-        .addOptionsModification(o -> o.enableInlining = false)
+        .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .allowAccessModification()
         .noMinification()
         .compile();

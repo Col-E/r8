@@ -223,7 +223,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     internal.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     internal.minimalMainDex = internal.debug;
     internal.enableEnumValueOptimization = false;
-    internal.enableInlining = false;
+    internal.inlinerOptions().enableInlining = false;
     return internal;
   }
 }

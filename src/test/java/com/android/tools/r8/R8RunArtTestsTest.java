@@ -1641,7 +1641,7 @@ public abstract class R8RunArtTestsTest {
     @Override
     public void accept(InternalOptions options) {
       if (disableInlining) {
-        options.enableInlining = false;
+        options.inlinerOptions().enableInlining = false;
       }
       if (disableClassInlining) {
         options.enableClassInlining = false;
@@ -1848,7 +1848,7 @@ public abstract class R8RunArtTestsTest {
               options -> {
                 compilationOptions.accept(options);
                 // Make sure we don't depend on this settings.
-                options.classInliningInstructionAllowance = 10000;
+                options.classInlinerOptions().classInliningInstructionAllowance = 10000;
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
               });
           break;

@@ -65,11 +65,9 @@ public class ProxiesTest extends TestBase {
         .addOptionsModification(
             o -> {
               o.enableDevirtualization = false;
-              o.enableInliningOfInvokesWithNullableReceivers = false;
-              // Tests indirectly check if a certain method is inlined or not, where the target
-              // method has at least 4 instructions.
-              o.inliningInstructionLimit = 4;
+              o.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
             })
+        .enableAlwaysInliningAnnotations()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()

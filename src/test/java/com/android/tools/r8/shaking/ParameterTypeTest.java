@@ -128,7 +128,7 @@ public class ParameterTypeTest extends TestBase {
             .addKeepMainRule(B112452064TestMain.class)
             .addOptionsModification(
                 options -> {
-                  options.enableInlining = false;
+                  options.inlinerOptions().enableInlining = false;
                   options.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
                   options.enableVerticalClassMerging = enableVerticalClassMerging;
                 })
@@ -227,7 +227,7 @@ public class ParameterTypeTest extends TestBase {
             proguardConfig,
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
-              options.enableInlining = false;
+              options.inlinerOptions().enableInlining = false;
               options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             });
 
@@ -306,7 +306,7 @@ public class ParameterTypeTest extends TestBase {
         .addOptionsModification(
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
-              options.enableInlining = false;
+              options.inlinerOptions().enableInlining = false;
               options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             })
         .noMinification()
@@ -409,7 +409,7 @@ public class ParameterTypeTest extends TestBase {
             proguardConfig,
             options -> {
               // Disable inlining to avoid the (short) tested method from being inlined and removed.
-              options.enableInlining = false;
+              options.inlinerOptions().enableInlining = false;
               options.callSiteOptimizationOptions().setEnabled(enableArgumentPropagation);
             });
 

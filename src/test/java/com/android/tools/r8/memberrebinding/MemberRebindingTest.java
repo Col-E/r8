@@ -104,7 +104,7 @@ public class MemberRebindingTest {
     ToolHelper.runR8(
         builder.build(),
         options -> {
-          options.enableInlining = false;
+          options.inlinerOptions().enableInlining = false;
           options.enableRedundantFieldLoadElimination = false;
         });
   }

@@ -9,6 +9,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.AlwaysClassInline;
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
@@ -55,8 +57,8 @@ public class ClassInlinerSimplePairBuilderTest extends ClassInlinerTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassInlinerSimplePairBuilderTest.class)
         .addKeepMainRule(TestClass.class)
-        // TODO(b/143129517): This relies on PairBuilder::build being inlined, thus the limit of 6.
-        .addOptionsModification(options -> options.inliningInstructionLimit = 6)
+        .enableAlwaysClassInlineAnnotations()
+        .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .noMinification()
@@ -128,6 +130,7 @@ public class ClassInlinerSimplePairBuilderTest extends ClassInlinerTestBase {
     }
   }
 
+  @AlwaysClassInline
   @NoHorizontalClassMerging
   static class PairBuilder<F, S> {
 
@@ -148,6 +151,7 @@ public class ClassInlinerSimplePairBuilderTest extends ClassInlinerTestBase {
       return this;
     }
 
+    @AlwaysInline
     public Pair<F, S> build() {
       return new Pair<>(first, second);
     }

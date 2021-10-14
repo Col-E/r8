@@ -72,7 +72,7 @@ public class OutlineTest extends SmaliTestBase {
   private Consumer<InternalOptions> configureOptions(Consumer<InternalOptions> optionsConsumer) {
     return options -> {
       // Disable inlining to make sure that code looks as expected.
-      options.enableInlining = false;
+      options.inlinerOptions().enableInlining = false;
       // Disable string concatenation optimization to not bother outlining of StringBuilder usage.
       options.enableStringConcatenationOptimization = false;
       // Also apply outline options.
@@ -84,7 +84,7 @@ public class OutlineTest extends SmaliTestBase {
       Consumer<OutlineOptions> optionsConsumer) {
     return options -> {
       // Disable inlining to make sure that code looks as expected.
-      options.enableInlining = false;
+      options.inlinerOptions().enableInlining = false;
       // Disable the devirtulizer to not remove the super calls
       options.enableDevirtualization = false;
       // Disable string concatenation optimization to not bother outlining of StringBuilder usage.

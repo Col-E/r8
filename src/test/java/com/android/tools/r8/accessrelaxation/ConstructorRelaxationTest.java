@@ -186,7 +186,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
             .addProgramClasses(CLASSES)
             .addOptionsModification(
                 o -> {
-                  o.enableInlining = false;
+                  o.inlinerOptions().enableInlining = false;
                   o.enableVerticalClassMerging = false;
                 })
             .noMinification()
