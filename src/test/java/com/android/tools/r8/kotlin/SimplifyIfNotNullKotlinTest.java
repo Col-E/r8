@@ -93,7 +93,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
               ClassSubject clazz = checkClassIsKept(inspector, ex2.getClassName());
               MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
               long ifzCount =
-                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNull()).count();
+                  testMethod
+                      .streamInstructions()
+                      .filter(i -> i.isIfEqz() || i.isIfNez() || i.isIfNull() || i.isIfNonNull())
+                      .count();
               long paramNullCheckCount =
                   countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
               // ?: in aOrDefault
@@ -116,7 +119,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
               ClassSubject clazz = checkClassIsKept(inspector, ex3.getClassName());
               MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
               long ifzCount =
-                  testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNull()).count();
+                  testMethod
+                      .streamInstructions()
+                      .filter(i -> i.isIfEqz() || i.isIfNez() || i.isIfNull() || i.isIfNonNull())
+                      .count();
               // !! operator inside explicit null check should be gone.
               // One explicit null-check as well as 4 bar? accesses.
               assertEquals(5, ifzCount);
