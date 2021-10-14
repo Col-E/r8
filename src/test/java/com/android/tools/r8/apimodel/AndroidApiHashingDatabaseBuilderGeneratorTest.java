@@ -121,16 +121,6 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
   }
 
   @Test
-  public void initializeApiDatabaseTimeTest() {
-    DexItemFactory factory = new DexItemFactory();
-    long start = System.currentTimeMillis();
-    new AndroidApiLevelHashingDatabaseImpl(factory, ImmutableList.of());
-    long end = System.currentTimeMillis();
-    long timeSpan = end - start;
-    assertTrue("Time used was " + timeSpan, timeSpan < 100);
-  }
-
-  @Test
   public void testCanLookUpAllParsedApiClassesAndMembers() throws Exception {
     List<ParsedApiClass> parsedApiClasses =
         AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL);
