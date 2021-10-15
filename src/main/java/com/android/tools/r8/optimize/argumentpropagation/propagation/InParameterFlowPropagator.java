@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
@@ -42,11 +43,15 @@ import java.util.function.Consumer;
 public class InParameterFlowPropagator {
 
   final AppView<AppInfoWithLiveness> appView;
+  final IRConverter converter;
   final MethodStateCollectionByReference methodStates;
 
   public InParameterFlowPropagator(
-      AppView<AppInfoWithLiveness> appView, MethodStateCollectionByReference methodStates) {
+      AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
+      MethodStateCollectionByReference methodStates) {
     this.appView = appView;
+    this.converter = converter;
     this.methodStates = methodStates;
   }
 
@@ -206,6 +211,16 @@ public class InParameterFlowPropagator {
       ParameterNode node = getOrCreateParameterNode(method, parameterIndex, methodState);
       for (MethodParameter inParameter : concreteParameterState.getInParameters()) {
         ProgramMethod enclosingMethod = getEnclosingMethod(inParameter);
+        if (enclosingMethod == null) {
+          // This is a parameter of a single caller inlined method. Since this method has been
+          // pruned, the call from inside the method no longer exists, and we can therefore safely
+          // skip it.
+          assert converter
+              .getInliner()
+              .verifyIsPrunedDueToSingleCallerInlining(inParameter.getMethod());
+          continue;
+        }
+
         MethodState enclosingMethodState = getMethodState(enclosingMethod);
         if (enclosingMethodState.isBottom()) {
           // The current method is called from a dead method; no need to propagate any information
