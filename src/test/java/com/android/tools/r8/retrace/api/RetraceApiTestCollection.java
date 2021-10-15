@@ -56,7 +56,7 @@ public class RetraceApiTestCollection
 
   @Override
   public Path getTargetJar() {
-    return ToolHelper.isTestingR8Lib() ? ToolHelper.R8LIB_JAR : ToolHelper.R8_JAR;
+    return ToolHelper.isTestingR8Lib() ? ToolHelper.R8_RETRACE_JAR : ToolHelper.R8_JAR;
   }
 
   @Override
