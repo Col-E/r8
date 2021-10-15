@@ -656,9 +656,6 @@ public class IRConverter {
         classStaticizer,
         classStaticizer ->
             classStaticizer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass));
-    ConsumerUtils.acceptIfNotNull(
-        inliner,
-        inliner -> inliner.initializeDoubleInlineCallers(graphLensForPrimaryOptimizationPass));
     outliner.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
 
     if (fieldAccessAnalysis != null) {

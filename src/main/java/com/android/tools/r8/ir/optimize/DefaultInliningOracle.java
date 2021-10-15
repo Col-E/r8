@@ -182,26 +182,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    if (reason == Reason.DUAL_CALLER) {
-      assert methodProcessor.isPrimaryMethodProcessor() || methodProcessor.isPostMethodProcessor();
-      if (satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
-        // When we have a method with two call sites, we simply inline the method as we normally do
-        // when the method is small. We still need to ensure that the other call site is also
-        // inlined, though. Therefore, we record here that we have seen one of the two call sites
-        // as we normally do.
-        inliner.recordDoubleInliningCandidate(method, singleTarget, methodProcessor);
-      } else if (inliner.isDoubleInliningEnabled(methodProcessor)) {
-        if (!inliner.satisfiesRequirementsForDoubleInlining(
-            method, singleTarget, methodProcessor)) {
-          whyAreYouNotInliningReporter.reportInvalidDoubleInliningCandidate();
-          return false;
-        }
-      } else {
-        // TODO(b/142300882): Should in principle disallow inlining in this case.
-        inliner.recordDoubleInliningCandidate(method, singleTarget, methodProcessor);
-      }
-    } else if (reason == Reason.SIMPLE
-        && !satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
+    if (reason == Reason.SIMPLE && !satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
       whyAreYouNotInliningReporter.reportInlineeNotSimple();
       return false;
     }

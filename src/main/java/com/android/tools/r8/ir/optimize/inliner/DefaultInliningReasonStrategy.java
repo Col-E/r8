@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
@@ -20,16 +19,12 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final CallSiteInformation callSiteInformation;
-  private final Inliner inliner;
   private final InlinerOptions options;
 
   public DefaultInliningReasonStrategy(
-      AppView<AppInfoWithLiveness> appView,
-      CallSiteInformation callSiteInformation,
-      Inliner inliner) {
+      AppView<AppInfoWithLiveness> appView, CallSiteInformation callSiteInformation) {
     this.appView = appView;
     this.callSiteInformation = callSiteInformation;
-    this.inliner = inliner;
     this.options = appView.options().inlinerOptions();
   }
 
@@ -59,7 +54,8 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     if (isSingleCallerInliningTarget(target)) {
       return Reason.SINGLE_CALLER;
     }
-    if (isDoubleInliningTarget(target, methodProcessor)) {
+    if (isDoubleInliningTarget(target)) {
+      assert methodProcessor.isPrimaryMethodProcessor();
       return Reason.DUAL_CALLER;
     }
     return Reason.SIMPLE;
@@ -79,16 +75,11 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     return true;
   }
 
-  private boolean isDoubleInliningTarget(ProgramMethod candidate, MethodProcessor methodProcessor) {
-    if (methodProcessor.isPrimaryMethodProcessor() || methodProcessor.isPostMethodProcessor()) {
-      if (callSiteInformation.hasDoubleCallSite(candidate)
-          || inliner.isDoubleInlineSelectedTarget(candidate)) {
-        return candidate
+  private boolean isDoubleInliningTarget(ProgramMethod candidate) {
+    return callSiteInformation.hasDoubleCallSite(candidate)
+        && candidate
             .getDefinition()
             .getCode()
             .estimatedSizeForInliningAtMost(options.getDoubleInliningInstructionLimit());
-      }
-    }
-    return false;
   }
 }
