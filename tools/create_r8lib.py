@@ -4,11 +4,21 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import argparse
+import os
 import subprocess
 import sys
 
 import jdk
+import utils
 
+VERSION_EXTRACTOR = """
+import com.android.tools.r8.Version;
+public class VersionExtractor {
+  public static void main(String[] args) {
+    System.out.println(Version.LABEL);
+  }
+}
+"""
 
 def parse_options():
   parser = argparse.ArgumentParser(description='Tag R8 Versions')
@@ -30,24 +40,34 @@ def parse_options():
       help='Additional libraries (JDK 1.8 rt.jar already included)')
   return parser.parse_args()
 
+def compile_version_extractor(r8jar):
+
 def get_r8_version(r8jar):
-  cmd = [
-    jdk.GetJavaExecutable(),
-    '-ea',
-    '-cp',
-    r8jar,
-    'com.android.tools.r8.R8',
-    '--version']
-  result = subprocess.check_output(cmd).decode('UTF-8')
-  if 'build engineering' in result:
-    return subprocess.check_output(
+  with utils.TempDir() as temp:
+    name = os.path.join(temp, "VersionExtractor.java")
+    fd = open(name, 'w')
+    fd.write(VERSION_EXTRACTOR)
+    fd.close()
+    cmd = [jdk.GetJavacExecutable(), '-cp', r8jar, name]
+    print(' '.join(cmd))
+    subprocess.check_call(cmd)
+    output = subprocess.check_output([
+      jdk.GetJavaExecutable(),
+      '-cp',
+      ':'.join([r8jar, os.path.dirname(name)]),
+      'VersionExtractor'
+    ]).decode('UTF-8').strip()
+    if output == 'main':
+      return subprocess.check_output(
         ['git', 'rev-parse', 'HEAD']).decode('UTF-8').strip()
-  else:
-    # --version format is 'R8 <version> (build <build-info>)'
-    return result.split(' ')[1]
+    else:
+      return output
 
 def main():
   args = parse_options()
+  if not os.path.exists(args.r8jar):
+    print("Could not find jar: " + args.r8jar)
+    return 1
   version = get_r8_version(args.r8jar)
   map_id_template = version
   source_file_template = 'R8_%MAP_ID_%MAP_HASH'
