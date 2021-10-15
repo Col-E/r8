@@ -23,6 +23,7 @@ import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 /**
  * A {@link MethodProcessor} that processes methods in the whole program in a bottom-up manner,
@@ -33,12 +34,6 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
   interface WaveStartAction {
 
     void notifyWaveStart(ProgramMethodSet wave);
-  }
-
-  interface WaveDoneAction {
-
-    void notifyWaveDone(ProgramMethodSet wave, ExecutorService executorService)
-        throws ExecutionException;
   }
 
   private final AppView<?> appView;
@@ -115,7 +110,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
   <E extends Exception> void forEachMethod(
       MethodAction<E> consumer,
       WaveStartAction waveStartAction,
-      WaveDoneAction waveDoneAction,
+      Consumer<ProgramMethodSet> waveDone,
       Timing timing,
       ExecutorService executorService)
       throws ExecutionException {
@@ -138,7 +133,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
                 },
                 executorService);
         merger.add(timings);
-        waveDoneAction.notifyWaveDone(wave, executorService);
+        waveDone.accept(wave);
         prepareForWaveExtensionProcessing();
       } while (!wave.isEmpty());
     }

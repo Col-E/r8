@@ -24,7 +24,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -113,12 +112,10 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -174,7 +171,6 @@ public class IRConverter {
   private DexString highestSortingString;
 
   private List<Action> onWaveDoneActions = null;
-  private final Set<DexMethod> prunedMethodsInWave = Sets.newIdentityHashSet();
 
   private final List<DexString> neverMergePrefixes;
   // Use AtomicBoolean to satisfy TSAN checking (see b/153714743).
@@ -328,10 +324,6 @@ public class IRConverter {
 
   public IRConverter(AppInfo appInfo, Timing timing, CfgPrinter printer) {
     this(AppView.createForD8(appInfo), timing, printer);
-  }
-
-  public Inliner getInliner() {
-    return inliner;
   }
 
   private void synthesizeBridgesForNestBasedAccessesOnClasspath(
@@ -718,7 +710,7 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator ->
             argumentPropagator.tearDownCodeScanner(
-                this, postMethodProcessorBuilder, executorService, timing));
+                postMethodProcessorBuilder, executorService, timing));
     appView.withCallSiteOptimizationInfoPropagator(
         callSiteOptimizationInfoPropagator ->
             callSiteOptimizationInfoPropagator.enqueueMethodsForReprocessing(
@@ -852,8 +844,7 @@ public class IRConverter {
     onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
   }
 
-  private void waveDone(ProgramMethodSet wave, ExecutorService executorService)
-      throws ExecutionException {
+  private void waveDone(ProgramMethodSet wave) {
     delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
     if (options.enableFieldAssignmentTracker) {
@@ -867,15 +858,6 @@ public class IRConverter {
     assert delayedOptimizationFeedback.noUpdatesLeft();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;
-    if (!prunedMethodsInWave.isEmpty()) {
-      appView.pruneItems(
-          PrunedItems.builder()
-              .setRemovedMethods(prunedMethodsInWave)
-              .setPrunedApp(appView.appInfo().app())
-              .build(),
-          executorService);
-      prunedMethodsInWave.clear();
-    }
   }
 
   public void addWaveDoneAction(com.android.tools.r8.utils.Action action) {
@@ -1979,13 +1961,9 @@ public class IRConverter {
     appView.withArgumentPropagator(argumentPropagator -> argumentPropagator.onMethodPruned(method));
     enumUnboxer.onMethodPruned(method);
     outliner.onMethodPruned(method);
-    if (classStaticizer != null) {
-      classStaticizer.onMethodPruned(method);
-    }
     if (inliner != null) {
       inliner.onMethodPruned(method);
     }
-    prunedMethodsInWave.add(method.getReference());
   }
 
   /**
@@ -1999,9 +1977,6 @@ public class IRConverter {
         argumentPropagator -> argumentPropagator.onMethodCodePruned(method));
     enumUnboxer.onMethodCodePruned(method);
     outliner.onMethodCodePruned(method);
-    if (classStaticizer != null) {
-      classStaticizer.onMethodCodePruned(method);
-    }
     if (inliner != null) {
       inliner.onMethodCodePruned(method);
     }

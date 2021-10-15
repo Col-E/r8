@@ -514,10 +514,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return options().testing;
   }
 
-  public boolean hasRootSet() {
-    return rootSet != null;
-  }
-
   public RootSet rootSet() {
     return rootSet;
   }
@@ -715,10 +711,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       setProguardCompatibilityActions(
           getProguardCompatibilityActions().withoutPrunedItems(prunedItems));
     }
-    if (hasRootSet()) {
-      rootSet.pruneItems(prunedItems);
-    }
-    if (hasMainDexRootSet()) {
+    if (mainDexRootSet != null) {
       setMainDexRootSet(mainDexRootSet.withoutPrunedItems(prunedItems));
     }
   }

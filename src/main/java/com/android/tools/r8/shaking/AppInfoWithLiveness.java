@@ -348,7 +348,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
         previous.fieldAccessInfoCollection,
         previous.methodAccessInfoCollection,
-        previous.objectAllocationInfoCollection.withoutPrunedItems(prunedItems),
+        previous.objectAllocationInfoCollection,
         previous.callSites,
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
@@ -431,7 +431,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private static <T> Set<T> pruneItems(
       Set<T> items, Set<T> removedItems, ExecutorService executorService, List<Future<?>> futures) {
     if (!removedItems.isEmpty()) {
-
       futures.add(
           ThreadUtils.processAsynchronously(
               () -> {

@@ -19,10 +19,8 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -144,25 +142,6 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   public ObjectAllocationInfoCollectionImpl rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens) {
     return builder(true, null).rewrittenWithLens(this, definitions, lens).build(definitions);
-  }
-
-  public ObjectAllocationInfoCollectionImpl withoutPrunedItems(PrunedItems prunedItems) {
-    if (prunedItems.hasRemovedMethods()) {
-      Iterator<Entry<DexProgramClass, Set<DexEncodedMethod>>> iterator =
-          classesWithAllocationSiteTracking.entrySet().iterator();
-      while (iterator.hasNext()) {
-        Entry<DexProgramClass, Set<DexEncodedMethod>> entry = iterator.next();
-        Set<DexEncodedMethod> allocationSites = entry.getValue();
-        allocationSites.removeIf(
-            allocationSite ->
-                prunedItems.getRemovedMethods().contains(allocationSite.getReference()));
-        if (allocationSites.isEmpty()) {
-          classesWithoutAllocationSiteTracking.add(entry.getKey());
-          iterator.remove();
-        }
-      }
-    }
-    return this;
   }
 
   public void forEachInstantiatedSubType(
