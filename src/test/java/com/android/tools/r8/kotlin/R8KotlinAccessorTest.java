@@ -440,14 +440,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     String mainClass = addMainToClasspath(testedClass.className + "Kt",
         "usePrivateLateInitPropertyAccessorFromInnerClass");
     runTest("accessors", mainClass)
-        .inspect(
-            inspector -> {
-              if (kotlinc.getCompilerVersion() == KOTLINC_1_5_0 && testParameters.isDexRuntime()) {
-                checkClassIsKept(inspector, testedClass.getClassName());
-              } else {
-                checkClassIsRemoved(inspector, testedClass.getClassName());
-              }
-            });
+        .inspect(inspector -> checkClassIsRemoved(inspector, testedClass.getClassName()));
   }
 
   @Test
