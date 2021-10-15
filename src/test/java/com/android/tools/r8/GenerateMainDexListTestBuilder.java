@@ -7,12 +7,14 @@ import com.android.tools.r8.GenerateMainDexListCommand.Builder;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class GenerateMainDexListTestBuilder
     extends TestBaseBuilder<
@@ -21,6 +23,10 @@ public class GenerateMainDexListTestBuilder
         GenerateMainDexListResult,
         GenerateMainDexListRunResult,
         GenerateMainDexListTestBuilder> {
+
+  public static final Consumer<InternalOptions> DEFAULT_OPTIONS = options -> {};
+
+  private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
 
   private GenerateMainDexListTestBuilder(TestState state, Builder builder) {
     super(state, builder);
@@ -68,8 +74,12 @@ public class GenerateMainDexListTestBuilder
     throw new Unimplemented("No support for class path");
   }
 
-  public GenerateMainDexListRunResult run() throws CompilationFailedException {
-    return new GenerateMainDexListRunResult(GenerateMainDexList.run(builder.build()), getState());
+  public GenerateMainDexListRunResult run() throws CompilationFailedException, IOException {
+    GenerateMainDexListCommand command = builder.build();
+    InternalOptions internalOptions = command.getInternalOptions();
+    optionsConsumer.accept(internalOptions);
+    return new GenerateMainDexListRunResult(
+        GenerateMainDexList.runForTesting(command.getInputApp(), internalOptions), getState());
   }
 
   public GenerateMainDexListTestBuilder addMainDexRules(Collection<String> rules) {
@@ -92,6 +102,14 @@ public class GenerateMainDexListTestBuilder
 
   public GenerateMainDexListTestBuilder setMainDexListOutputPath(Path output) {
     builder.setMainDexListOutputPath(output);
+    return self();
+  }
+
+  public GenerateMainDexListTestBuilder addOptionsModification(
+      Consumer<InternalOptions> optionsConsumer) {
+    if (optionsConsumer != null) {
+      this.optionsConsumer = this.optionsConsumer.andThen(optionsConsumer);
+    }
     return self();
   }
 }

@@ -118,12 +118,9 @@ public class GenerateMainDexList {
    */
   public static List<String> run(GenerateMainDexListCommand command)
       throws CompilationFailedException {
-    ExecutorService executorService = ThreadUtils.getExecutorService(command.getInternalOptions());
-    try {
-      return run(command, executorService);
-    } finally {
-      executorService.shutdown();
-    }
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    return runForTesting(app, options);
   }
 
   /**
@@ -145,26 +142,41 @@ public class GenerateMainDexList {
     InternalOptions options = command.getInternalOptions();
     List<String> result = new ArrayList<>();
     ExceptionUtils.withMainDexListHandler(
-        command.getReporter(),
+        command.getReporter(), () -> run(app, executor, options, result));
+    return result;
+  }
+
+  static List<String> runForTesting(AndroidApp app, InternalOptions options)
+      throws CompilationFailedException {
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    List<String> result = new ArrayList<>();
+    ExceptionUtils.withMainDexListHandler(
+        options.reporter,
         () -> {
           try {
-            new GenerateMainDexList(options)
-                .run(
-                    app,
-                    executor,
-                    new SortingStringConsumer(
-                        new ForwardingConsumer(options.mainDexListConsumer) {
-                          @Override
-                          public void accept(String string, DiagnosticsHandler handler) {
-                            result.add(string);
-                            super.accept(string, handler);
-                          }
-                        }));
+            run(app, executorService, options, result);
           } finally {
-            executor.shutdown();
+            executorService.shutdown();
           }
         });
     return result;
+  }
+
+  private static void run(
+      AndroidApp app, ExecutorService executor, InternalOptions options, List<String> result)
+      throws IOException {
+    new GenerateMainDexList(options)
+        .run(
+            app,
+            executor,
+            new SortingStringConsumer(
+                new ForwardingConsumer(options.mainDexListConsumer) {
+                  @Override
+                  public void accept(String string, DiagnosticsHandler handler) {
+                    result.add(string);
+                    super.accept(string, handler);
+                  }
+                }));
   }
 
   public static void main(String[] args) throws CompilationFailedException {
