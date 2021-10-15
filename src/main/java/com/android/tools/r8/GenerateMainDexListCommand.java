@@ -224,6 +224,8 @@ public class GenerateMainDexListCommand extends BaseCommand {
     internal.minimalMainDex = internal.debug;
     internal.enableEnumValueOptimization = false;
     internal.inlinerOptions().enableInlining = false;
+    assert internal.retainCompileTimeAnnotations;
+    internal.retainCompileTimeAnnotations = false;
     return internal;
   }
 }

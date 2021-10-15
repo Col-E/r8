@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -15,6 +16,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.Reference;
+import java.util.List;
 
 public class FoundFieldSubject extends FieldSubject {
 
@@ -109,6 +111,11 @@ public class FoundFieldSubject extends FieldSubject {
   @Override
   public String getFinalSignatureAttribute() {
     return dexField.getGenericSignature().toString();
+  }
+
+  @Override
+  public List<AnnotationSubject> annotations() {
+    throw new Unimplemented();
   }
 
   @Override

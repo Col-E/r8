@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import java.util.List;
 
 public class AbsentMethodSubject extends MethodSubject {
 
@@ -113,6 +114,11 @@ public class AbsentMethodSubject extends MethodSubject {
   @Override
   public boolean hasLocalVariableTable() {
     throw new Unreachable("Cannot determine if an absent method has a local variable table");
+  }
+
+  @Override
+  public List<AnnotationSubject> annotations() {
+    throw new Unreachable("Cannot determine if an absent method has annotations");
   }
 
   @Override

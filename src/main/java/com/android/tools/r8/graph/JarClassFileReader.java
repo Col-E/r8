@@ -175,9 +175,8 @@ public class JarClassFileReader<T extends DexClass> {
 
   private static boolean retainCompileTimeAnnotation(
       String desc, JarApplicationReader application) {
-    return application.options.readCompileTimeAnnotations
-        || DexAnnotation.retainCompileTimeAnnotation(
-            application.getTypeFromDescriptor(desc), application.options);
+    return DexAnnotation.retainCompileTimeAnnotation(
+        application.getTypeFromDescriptor(desc), application.options);
   }
 
   private static DexEncodedAnnotation createEncodedAnnotation(String desc,

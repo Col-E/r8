@@ -32,6 +32,12 @@ public class GenerateMainDexListRunResult
         });
   }
 
+  public final GenerateMainDexListRunResult inspectMainDexClasses(
+      Consumer<List<ClassReference>> consumer) {
+    consumer.accept(getMainDexList());
+    return self();
+  }
+
   public GenerateMainDexListRunResult inspectDiagnosticMessages(
       Consumer<TestDiagnosticMessages> consumer) {
     consumer.accept(state.getDiagnosticsMessages());

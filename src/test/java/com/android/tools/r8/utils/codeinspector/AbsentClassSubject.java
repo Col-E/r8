@@ -110,6 +110,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public List<AnnotationSubject> annotations() {
+    throw new Unreachable("Cannot determine if an absent class has annotations");
+  }
+
+  @Override
   public AnnotationSubject annotation(String name) {
     return new AbsentAnnotationSubject();
   }

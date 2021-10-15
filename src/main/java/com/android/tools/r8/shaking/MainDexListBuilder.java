@@ -76,7 +76,9 @@ public class MainDexListBuilder {
       }
       DexType dexType = clazz.type;
       if (isAnnotation(dexType) && isAnnotationWithEnum(dexType)) {
-        addAnnotationsWithEnum(clazz);
+        if (isVisibleAnnotation(clazz)) {
+          addAnnotationsWithEnum(clazz);
+        }
         continue;
       }
       // Classes with annotations must be in the same dex file as the annotation. As all
@@ -91,6 +93,23 @@ public class MainDexListBuilder {
             }
           });
     }
+  }
+
+  private boolean isVisibleAnnotation(DexProgramClass clazz) {
+    if (retainCompileTimeAnnotation(clazz.type)) {
+      return true;
+    }
+    DexAnnotation retentionAnnotation =
+        clazz.annotations().getFirstMatching(appView.dexItemFactory().retentionType);
+    // Default is CLASS retention
+    if (retentionAnnotation == null) {
+      return false;
+    }
+    return retentionAnnotation.annotation.toString().contains("RUNTIME");
+  }
+
+  private boolean retainCompileTimeAnnotation(DexType type) {
+    return DexAnnotation.retainCompileTimeAnnotation(type, appView.options());
   }
 
   private boolean isAnnotationWithEnum(DexType dexType) {

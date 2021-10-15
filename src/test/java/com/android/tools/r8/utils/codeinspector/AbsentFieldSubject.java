@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.references.FieldReference;
+import java.util.List;
 
 public class AbsentFieldSubject extends FieldSubject {
 
@@ -56,6 +57,11 @@ public class AbsentFieldSubject extends FieldSubject {
   @Override
   public String getFinalSignatureAttribute() {
     return null;
+  }
+
+  @Override
+  public List<AnnotationSubject> annotations() {
+    throw new Unreachable("Cannot determine if an absent field has annotations");
   }
 
   @Override

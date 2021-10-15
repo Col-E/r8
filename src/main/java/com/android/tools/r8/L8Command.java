@@ -166,7 +166,7 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.minimalMainDex;
     internal.minApiLevel = AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
     assert !internal.intermediate;
-    assert internal.readCompileTimeAnnotations;
+    assert internal.retainCompileTimeAnnotations;
     internal.programConsumer = getProgramConsumer();
     assert internal.programConsumer instanceof ClassFileConsumer;
 

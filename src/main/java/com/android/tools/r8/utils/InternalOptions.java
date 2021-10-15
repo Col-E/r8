@@ -518,7 +518,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Skipping min_api check and compiling an intermediate result intended for later merging.
   // Intermediate builds also emits or update synthesized classes mapping.
   public boolean intermediate = false;
-  public boolean readCompileTimeAnnotations = true;
+  public boolean retainCompileTimeAnnotations = true;
   public List<String> logArgumentsFilter = ImmutableList.of();
 
   // Flag to turn on/offLoad/store optimization in the Cf back-end.

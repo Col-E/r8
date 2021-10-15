@@ -111,7 +111,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   public static boolean retainCompileTimeAnnotation(DexType annotation, InternalOptions options) {
-    if (options.readCompileTimeAnnotations) {
+    if (options.retainCompileTimeAnnotations) {
       return true;
     }
     if (annotation == options.itemFactory.dalvikFastNativeAnnotation

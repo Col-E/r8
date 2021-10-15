@@ -6,8 +6,11 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.AccessFlags;
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 public abstract class ClassOrMemberSubject extends Subject {
+
+  public abstract List<AnnotationSubject> annotations();
 
   public abstract AnnotationSubject annotation(String name);
 

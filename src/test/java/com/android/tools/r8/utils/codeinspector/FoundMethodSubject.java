@@ -325,6 +325,11 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public List<AnnotationSubject> annotations() {
+    throw new Unimplemented();
+  }
+
+  @Override
   public AnnotationSubject annotation(String name) {
     DexAnnotation annotation = codeInspector.findAnnotation(name, dexMethod.annotations());
     return annotation == null

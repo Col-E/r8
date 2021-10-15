@@ -349,6 +349,15 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public List<AnnotationSubject> annotations() {
+    List<AnnotationSubject> result = new ArrayList<>();
+    for (DexAnnotation annotation : dexClass.annotations().annotations) {
+      result.add(new FoundAnnotationSubject(annotation));
+    }
+    return result;
+  }
+
+  @Override
   public AnnotationSubject annotation(String name) {
     // Ensure we don't check for annotations represented as attributes.
     assert !name.endsWith("EnclosingClass")

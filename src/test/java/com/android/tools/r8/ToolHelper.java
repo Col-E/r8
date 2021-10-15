@@ -1342,6 +1342,14 @@ public class ToolHelper {
     D8.runForTesting(command.getInputApp(), internalOptions);
   }
 
+  public static List<String> runGenerateMainDexList(
+      GenerateMainDexListCommand command, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
+    InternalOptions internalOptions = command.getInternalOptions();
+    optionsConsumer.accept(internalOptions);
+    return GenerateMainDexList.runForTesting(command.getInputApp(), internalOptions);
+  }
+
   public static AndroidApp runDexer(String fileName, String outDir, String... extraArgs)
       throws IOException {
     List<String> args = new ArrayList<>();
