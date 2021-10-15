@@ -58,6 +58,7 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
@@ -68,12 +69,16 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -179,13 +184,13 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * All methods and fields whose value *must* never be propagated due to a configuration directive.
    * (testing only).
    */
-  private final Set<DexReference> neverPropagateValue;
+  private final Set<DexMember<?, ?>> neverPropagateValue;
   /**
    * All items with -identifiernamestring rule. Bound boolean value indicates the rule is explicitly
    * specified by users (<code>true</code>) or not, i.e., implicitly added by R8 (<code>false</code>
    * ).
    */
-  public final Object2BooleanMap<DexReference> identifierNameStrings;
+  public final Object2BooleanMap<DexMember<?, ?>> identifierNameStrings;
   /** A set of types that have been removed by the {@link TreePruner}. */
   final Set<DexType> prunedTypes;
   /** A map from switchmap class types to their corresponding switchmaps. */
@@ -230,8 +235,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> noClassMerging,
       Set<DexType> noVerticalClassMerging,
       Set<DexType> noHorizontalClassMerging,
-      Set<DexReference> neverPropagateValue,
-      Object2BooleanMap<DexReference> identifierNameStrings,
+      Set<DexMember<?, ?>> neverPropagateValue,
+      Object2BooleanMap<DexMember<?, ?>> identifierNameStrings,
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Set<DexType> lockCandidates,
@@ -283,7 +288,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.getMainDexInfo(),
         previous.deadProtoTypes,
         previous.getMissingClasses(),
-        CollectionUtils.mergeSets(previous.liveTypes, committedItems.getCommittedProgramTypes()),
+        CollectionUtils.addAll(previous.liveTypes, committedItems.getCommittedProgramTypes()),
         previous.targetedMethods,
         previous.failedMethodResolutionTargets,
         previous.failedFieldResolutionTargets,
@@ -320,52 +325,208 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.initClassReferences);
   }
 
-  private AppInfoWithLiveness(AppInfoWithLiveness previous, PrunedItems prunedItems) {
+  private AppInfoWithLiveness(
+      AppInfoWithLiveness previous,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
     this(
         previous.getSyntheticItems().commitPrunedItems(prunedItems),
         previous.getClassToFeatureSplitMap().withoutPrunedItems(prunedItems),
         previous.getMainDexInfo().withoutPrunedItems(prunedItems),
         previous.deadProtoTypes,
         previous.getMissingClasses(),
-        prunedItems.hasRemovedClasses()
-            ? Sets.difference(previous.liveTypes, prunedItems.getRemovedClasses())
-            : previous.liveTypes,
-        previous.targetedMethods,
-        previous.failedMethodResolutionTargets,
-        previous.failedFieldResolutionTargets,
-        previous.bootstrapMethods,
-        previous.methodsTargetedByInvokeDynamic,
-        previous.virtualMethodsTargetedByInvokeDirect,
-        previous.liveMethods,
+        pruneClasses(previous.liveTypes, prunedItems, executorService, futures),
+        pruneMethods(previous.targetedMethods, prunedItems, executorService, futures),
+        pruneMethods(previous.failedMethodResolutionTargets, prunedItems, executorService, futures),
+        pruneFields(previous.failedFieldResolutionTargets, prunedItems, executorService, futures),
+        pruneMethods(previous.bootstrapMethods, prunedItems, executorService, futures),
+        pruneMethods(
+            previous.methodsTargetedByInvokeDynamic, prunedItems, executorService, futures),
+        pruneMethods(
+            previous.virtualMethodsTargetedByInvokeDirect, prunedItems, executorService, futures),
+        pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
         previous.fieldAccessInfoCollection,
         previous.methodAccessInfoCollection,
         previous.objectAllocationInfoCollection,
         previous.callSites,
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
-        previous.noSideEffects,
-        previous.assumedValues,
-        previous.alwaysInline,
-        previous.neverInline,
-        previous.neverInlineDueToSingleCaller,
-        previous.whyAreYouNotInlining,
-        previous.keepConstantArguments,
-        previous.keepUnusedArguments,
-        previous.reprocess,
-        previous.neverReprocess,
+        pruneMapFromMembers(previous.noSideEffects, prunedItems, executorService, futures),
+        pruneMapFromMembers(previous.assumedValues, prunedItems, executorService, futures),
+        pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
+        pruneMethods(previous.neverInline, prunedItems, executorService, futures),
+        pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, executorService, futures),
+        pruneMethods(previous.whyAreYouNotInlining, prunedItems, executorService, futures),
+        pruneMethods(previous.keepConstantArguments, prunedItems, executorService, futures),
+        pruneMethods(previous.keepUnusedArguments, prunedItems, executorService, futures),
+        pruneMethods(previous.reprocess, prunedItems, executorService, futures),
+        pruneMethods(previous.neverReprocess, prunedItems, executorService, futures),
         previous.alwaysClassInline,
-        previous.neverClassInline,
-        previous.noClassMerging,
-        previous.noVerticalClassMerging,
-        previous.noHorizontalClassMerging,
-        previous.neverPropagateValue,
-        previous.identifierNameStrings,
+        pruneClasses(previous.neverClassInline, prunedItems, executorService, futures),
+        pruneClasses(previous.noClassMerging, prunedItems, executorService, futures),
+        pruneClasses(previous.noVerticalClassMerging, prunedItems, executorService, futures),
+        pruneClasses(previous.noHorizontalClassMerging, prunedItems, executorService, futures),
+        pruneMembers(previous.neverPropagateValue, prunedItems, executorService, futures),
+        pruneMapFromMembers(previous.identifierNameStrings, prunedItems, executorService, futures),
         prunedItems.hasRemovedClasses()
             ? CollectionUtils.mergeSets(previous.prunedTypes, prunedItems.getRemovedClasses())
             : previous.prunedTypes,
         previous.switchMaps,
-        previous.lockCandidates,
-        previous.initClassReferences);
+        pruneClasses(previous.lockCandidates, prunedItems, executorService, futures),
+        pruneMapFromClasses(previous.initClassReferences, prunedItems, executorService, futures));
+  }
+
+  private static Set<DexType> pruneClasses(
+      Set<DexType> methods,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    return pruneItems(methods, prunedItems.getRemovedClasses(), executorService, futures);
+  }
+
+  private static Set<DexField> pruneFields(
+      Set<DexField> fields,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    return pruneItems(fields, prunedItems.getRemovedFields(), executorService, futures);
+  }
+
+  private static Set<DexMember<?, ?>> pruneMembers(
+      Set<DexMember<?, ?>> members,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    if (prunedItems.hasRemovedMembers()) {
+      futures.add(
+          ThreadUtils.processAsynchronously(
+              () -> {
+                Set<DexField> removedFields = prunedItems.getRemovedFields();
+                Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
+                if (members.size() <= removedFields.size() + removedMethods.size()) {
+                  members.removeIf(
+                      member ->
+                          member.isDexField()
+                              ? removedFields.contains(member.asDexField())
+                              : removedMethods.contains(member.asDexMethod()));
+                } else {
+                  removedFields.forEach(members::remove);
+                  removedMethods.forEach(members::remove);
+                }
+              },
+              executorService));
+    }
+    return members;
+  }
+
+  private static Set<DexMethod> pruneMethods(
+      Set<DexMethod> methods,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    return pruneItems(methods, prunedItems.getRemovedMethods(), executorService, futures);
+  }
+
+  private static <T> Set<T> pruneItems(
+      Set<T> items, Set<T> removedItems, ExecutorService executorService, List<Future<?>> futures) {
+    if (!removedItems.isEmpty()) {
+      futures.add(
+          ThreadUtils.processAsynchronously(
+              () -> {
+                if (items.size() <= removedItems.size()) {
+                  items.removeAll(removedItems);
+                } else {
+                  removedItems.forEach(items::remove);
+                }
+              },
+              executorService));
+    }
+    return items;
+  }
+
+  private static <V> Map<DexType, V> pruneMapFromClasses(
+      Map<DexType, V> map,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    return pruneMap(map, prunedItems.getRemovedClasses(), executorService, futures);
+  }
+
+  private static <V> Map<DexMember<?, ?>, V> pruneMapFromMembers(
+      Map<DexMember<?, ?>, V> map,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    if (prunedItems.hasRemovedMembers()) {
+      futures.add(
+          ThreadUtils.processAsynchronously(
+              () -> {
+                Set<DexField> removedFields = prunedItems.getRemovedFields();
+                Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
+                if (map.size() <= removedFields.size() + removedMethods.size()) {
+                  map.keySet()
+                      .removeIf(
+                          member ->
+                              member.isDexField()
+                                  ? removedFields.contains(member.asDexField())
+                                  : removedMethods.contains(member.asDexMethod()));
+                } else {
+                  removedFields.forEach(map::remove);
+                  removedMethods.forEach(map::remove);
+                }
+              },
+              executorService));
+    }
+    return map;
+  }
+
+  private static Object2BooleanMap<DexMember<?, ?>> pruneMapFromMembers(
+      Object2BooleanMap<DexMember<?, ?>> map,
+      PrunedItems prunedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    if (prunedItems.hasRemovedMembers()) {
+      futures.add(
+          ThreadUtils.processAsynchronously(
+              () -> {
+                Set<DexField> removedFields = prunedItems.getRemovedFields();
+                Set<DexMethod> removedMethods = prunedItems.getRemovedMethods();
+                if (map.size() <= removedFields.size() + removedMethods.size()) {
+                  map.keySet()
+                      .removeIf(
+                          member ->
+                              member.isDexField()
+                                  ? removedFields.contains(member.asDexField())
+                                  : removedMethods.contains(member.asDexMethod()));
+                } else {
+                  removedFields.forEach(map::remove);
+                  removedMethods.forEach(map::remove);
+                }
+              },
+              executorService));
+    }
+    return map;
+  }
+
+  private static <K, V> Map<K, V> pruneMap(
+      Map<K, V> map,
+      Set<K> removedItems,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
+    if (!removedItems.isEmpty()) {
+      futures.add(
+          ThreadUtils.processAsynchronously(
+              () -> {
+                if (map.size() <= removedItems.size()) {
+                  map.keySet().removeAll(removedItems);
+                } else {
+                  removedItems.forEach(map::remove);
+                }
+              },
+              executorService));
+    }
+    return map;
   }
 
   private boolean verify() {
@@ -1038,7 +1199,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    * DexApplication object.
    */
   @Override
-  public AppInfoWithLiveness prunedCopyFrom(PrunedItems prunedItems) {
+  public AppInfoWithLiveness prunedCopyFrom(
+      PrunedItems prunedItems, ExecutorService executorService) throws ExecutionException {
     assert getClass() == AppInfoWithLiveness.class;
     assert checkIfObsolete();
     if (prunedItems.isEmpty()) {
@@ -1049,14 +1211,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       // Rebuild the hierarchy.
       objectAllocationInfoCollection.mutate(
           mutator -> mutator.removeAllocationsForPrunedItems(prunedItems), this);
-      keepInfo.mutate(
-          keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems.getRemovedClasses()));
+      keepInfo.mutate(keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems));
+    } else if (prunedItems.hasRemovedMembers()) {
+      keepInfo.mutate(keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems));
     }
-    if (!prunedItems.getRemovedMethods().isEmpty()) {
-      keepInfo.mutate(
-          keepInfo -> keepInfo.removeKeepInfoForPrunedItems(prunedItems.getRemovedMethods()));
-    }
-    return new AppInfoWithLiveness(this, prunedItems);
+    List<Future<?>> futures = new ArrayList<>();
+    AppInfoWithLiveness appInfoWithLiveness =
+        new AppInfoWithLiveness(this, prunedItems, executorService, futures);
+    ThreadUtils.awaitFutures(futures);
+    return appInfoWithLiveness;
   }
 
   public AppInfoWithLiveness rebuildWithLiveness(CommittedItems committedItems) {
@@ -1084,14 +1247,14 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         getMainDexInfo().rewrittenWithLens(getSyntheticItems(), lens),
         deadProtoTypes,
         getMissingClasses().commitSyntheticItems(committedItems),
-        lens.rewriteTypes(liveTypes),
-        lens.rewriteMethods(targetedMethods),
-        lens.rewriteMethods(failedMethodResolutionTargets),
-        lens.rewriteFields(failedFieldResolutionTargets),
-        lens.rewriteMethods(bootstrapMethods),
-        lens.rewriteMethods(methodsTargetedByInvokeDynamic),
-        lens.rewriteMethods(virtualMethodsTargetedByInvokeDirect),
-        lens.rewriteMethods(liveMethods),
+        lens.rewriteReferences(liveTypes),
+        lens.rewriteReferences(targetedMethods),
+        lens.rewriteReferences(failedMethodResolutionTargets),
+        lens.rewriteReferences(failedFieldResolutionTargets),
+        lens.rewriteReferences(bootstrapMethods),
+        lens.rewriteReferences(methodsTargetedByInvokeDynamic),
+        lens.rewriteReferences(virtualMethodsTargetedByInvokeDirect),
+        lens.rewriteReferences(liveMethods),
         fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         methodAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),
         objectAllocationInfoCollection.rewrittenWithLens(definitionSupplier, lens),
@@ -1102,25 +1265,25 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         // Drop assume rules in case of collisions.
         lens.rewriteReferenceKeys(noSideEffects, rules -> null),
         lens.rewriteReferenceKeys(assumedValues, rules -> null),
-        lens.rewriteMethods(alwaysInline),
-        lens.rewriteMethods(neverInline),
-        lens.rewriteMethods(neverInlineDueToSingleCaller),
-        lens.rewriteMethods(whyAreYouNotInlining),
-        lens.rewriteMethods(keepConstantArguments),
-        lens.rewriteMethods(keepUnusedArguments),
-        lens.rewriteMethods(reprocess),
-        lens.rewriteMethods(neverReprocess),
+        lens.rewriteReferences(alwaysInline),
+        lens.rewriteReferences(neverInline),
+        lens.rewriteReferences(neverInlineDueToSingleCaller),
+        lens.rewriteReferences(whyAreYouNotInlining),
+        lens.rewriteReferences(keepConstantArguments),
+        lens.rewriteReferences(keepUnusedArguments),
+        lens.rewriteReferences(reprocess),
+        lens.rewriteReferences(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),
-        lens.rewriteTypes(neverClassInline),
-        lens.rewriteTypes(noClassMerging),
-        lens.rewriteTypes(noVerticalClassMerging),
-        lens.rewriteTypes(noHorizontalClassMerging),
+        lens.rewriteReferences(neverClassInline),
+        lens.rewriteReferences(noClassMerging),
+        lens.rewriteReferences(noVerticalClassMerging),
+        lens.rewriteReferences(noHorizontalClassMerging),
         lens.rewriteReferences(neverPropagateValue),
         lens.rewriteReferenceKeys(identifierNameStrings),
         // Don't rewrite pruned types - the removed types are identified by their original name.
         prunedTypes,
         lens.rewriteFieldKeys(switchMaps),
-        lens.rewriteTypes(lockCandidates),
+        lens.rewriteReferences(lockCandidates),
         rewriteInitClassReferences(lens));
   }
 

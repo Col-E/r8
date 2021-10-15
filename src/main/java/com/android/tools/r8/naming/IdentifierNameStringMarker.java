@@ -12,6 +12,7 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflection
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -52,7 +53,7 @@ import java.util.stream.Collectors;
 public class IdentifierNameStringMarker {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Object2BooleanMap<DexReference> identifierNameStrings;
+  private final Object2BooleanMap<DexMember<?, ?>> identifierNameStrings;
 
   public IdentifierNameStringMarker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;

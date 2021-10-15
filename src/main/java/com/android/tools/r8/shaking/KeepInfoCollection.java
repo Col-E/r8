@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.shaking.KeepFieldInfo.Joiner;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MapUtils;
@@ -244,20 +245,16 @@ public abstract class KeepInfoCollection {
       this.methodRuleInstances = methodRuleInstances;
     }
 
-    public void removeKeepInfoForPrunedItems(Set<? extends DexReference> removedReferences) {
-      keepClassInfo.keySet().removeIf(removedReferences::contains);
-      keepFieldInfo
-          .keySet()
-          .removeIf(
-              field ->
-                  (removedReferences.contains(field)
-                      || removedReferences.contains(field.getHolderType())));
-      keepMethodInfo
-          .keySet()
-          .removeIf(
-              method ->
-                  (removedReferences.contains(method)
-                      || removedReferences.contains(method.getHolderType())));
+    public void removeKeepInfoForPrunedItems(PrunedItems prunedItems) {
+      if (prunedItems.hasRemovedClasses()) {
+        keepClassInfo.keySet().removeAll(prunedItems.getRemovedClasses());
+      }
+      if (prunedItems.hasRemovedClasses() || prunedItems.hasRemovedFields()) {
+        keepFieldInfo.keySet().removeIf(prunedItems::isRemoved);
+      }
+      if (prunedItems.hasRemovedClasses() || prunedItems.hasRemovedMembers()) {
+        keepMethodInfo.keySet().removeIf(prunedItems::isRemoved);
+      }
     }
 
     @Override

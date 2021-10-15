@@ -261,7 +261,7 @@ public final class D8 {
 
       if (options.isGeneratingClassFiles()) {
         ProguardMapSupplier proguardMapSupplier =
-            finalizeApplication(inputApp, appView, namingLens);
+            finalizeApplication(inputApp, appView, executor, namingLens);
         new CfApplicationWriter(
                 appView, marker, GraphLens.getIdentityLens(), namingLens, proguardMapSupplier)
             .write(options.getClassFileConsumer());
@@ -306,7 +306,7 @@ public final class D8 {
           appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
         }
         ProguardMapSupplier proguardMapSupplier =
-            finalizeApplication(inputApp, appView, namingLens);
+            finalizeApplication(inputApp, appView, executor, namingLens);
 
         new ApplicationWriter(
                 appView,
@@ -330,8 +330,12 @@ public final class D8 {
   }
 
   private static ProguardMapSupplier finalizeApplication(
-      AndroidApp inputApp, AppView<AppInfo> appView, NamingLens namingLens) {
-    SyntheticFinalization.finalize(appView);
+      AndroidApp inputApp,
+      AppView<AppInfo> appView,
+      ExecutorService executorService,
+      NamingLens namingLens)
+      throws ExecutionException {
+    SyntheticFinalization.finalize(appView, executorService);
     if (appView.options().proguardMapConsumer == null) {
       return null;
     }

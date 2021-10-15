@@ -26,7 +26,6 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -564,9 +563,9 @@ public abstract class GraphLens {
             this::lookupType, this::getRenamedFieldSignature, this::getRenamedMethodSignature);
   }
 
-  public Set<DexReference> rewriteReferences(Set<DexReference> references) {
-    Set<DexReference> result = SetUtils.newIdentityHashSet(references.size());
-    for (DexReference reference : references) {
+  public <T extends DexReference> Set<T> rewriteReferences(Set<T> references) {
+    Set<T> result = SetUtils.newIdentityHashSet(references.size());
+    for (T reference : references) {
       result.add(rewriteReference(reference));
     }
     return result;
@@ -602,28 +601,13 @@ public abstract class GraphLens {
     return result;
   }
 
-  public Object2BooleanMap<DexReference> rewriteReferenceKeys(Object2BooleanMap<DexReference> map) {
-    Object2BooleanMap<DexReference> result = new Object2BooleanArrayMap<>();
-    for (Object2BooleanMap.Entry<DexReference> entry : map.object2BooleanEntrySet()) {
+  public <T extends DexReference> Object2BooleanMap<T> rewriteReferenceKeys(
+      Object2BooleanMap<T> map) {
+    Object2BooleanMap<T> result = new Object2BooleanArrayMap<>();
+    for (Object2BooleanMap.Entry<T> entry : map.object2BooleanEntrySet()) {
       result.put(rewriteReference(entry.getKey()), entry.getBooleanValue());
     }
     return result;
-  }
-
-  public ImmutableSet<DexMethod> rewriteMethods(Set<DexMethod> methods) {
-    ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
-    for (DexMethod method : methods) {
-      builder.add(getRenamedMethodSignature(method));
-    }
-    return builder.build();
-  }
-
-  public ImmutableSet<DexField> rewriteFields(Set<DexField> fields) {
-    ImmutableSet.Builder<DexField> builder = ImmutableSet.builder();
-    for (DexField field : fields) {
-      builder.add(getRenamedFieldSignature(field));
-    }
-    return builder.build();
   }
 
   public <T> ImmutableMap<DexField, T> rewriteFieldKeys(Map<DexField, T> map) {
@@ -649,7 +633,7 @@ public abstract class GraphLens {
           newMap.put(
               rewrittenType, previousValue != null ? merge.apply(value, previousValue) : value);
         });
-    return Collections.unmodifiableMap(newMap);
+    return newMap;
   }
 
   public boolean verifyMappingToOriginalProgram(

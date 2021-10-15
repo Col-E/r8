@@ -122,14 +122,14 @@ public class RootSetUtils {
     private final Set<DexType> noUnusedInterfaceRemoval = Sets.newIdentityHashSet();
     private final Set<DexType> noVerticalClassMerging = Sets.newIdentityHashSet();
     private final Set<DexType> noHorizontalClassMerging = Sets.newIdentityHashSet();
-    private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
+    private final Set<DexMember<?, ?>> neverPropagateValue = Sets.newIdentityHashSet();
     private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
         new IdentityHashMap<>();
     private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects =
         new IdentityHashMap<>();
     private final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
     private final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
-    private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
+    private final Set<DexMember<?, ?>> identifierNameStrings = Sets.newIdentityHashSet();
     private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
         new ConcurrentLinkedQueue<>();
     private final InternalOptions options;
@@ -1612,11 +1612,11 @@ public class RootSetUtils {
     public final Set<DexType> noUnusedInterfaceRemoval;
     public final Set<DexType> noVerticalClassMerging;
     public final Set<DexType> noHorizontalClassMerging;
-    public final Set<DexReference> neverPropagateValue;
+    public final Set<DexMember<?, ?>> neverPropagateValue;
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
     public final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects;
     public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
-    public final Set<DexReference> identifierNameStrings;
+    public final Set<DexMember<?, ?>> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
     private RootSet(
@@ -1636,12 +1636,12 @@ public class RootSetUtils {
         Set<DexType> noUnusedInterfaceRemoval,
         Set<DexType> noVerticalClassMerging,
         Set<DexType> noHorizontalClassMerging,
-        Set<DexReference> neverPropagateValue,
+        Set<DexMember<?, ?>> neverPropagateValue,
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
         Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
-        Set<DexReference> identifierNameStrings,
+        Set<DexMember<?, ?>> identifierNameStrings,
         Set<ProguardIfRule> ifRules,
         List<DelayedRootSetActionItem> delayedRootSetActionItems,
         ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {

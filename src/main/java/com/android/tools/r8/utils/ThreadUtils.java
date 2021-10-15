@@ -20,6 +20,16 @@ public class ThreadUtils {
   public static final int NOT_SPECIFIED = -1;
 
   public static <T> Future<T> processAsynchronously(
+      Action action, ExecutorService executorService) {
+    return processAsynchronously(
+        () -> {
+          action.execute();
+          return null;
+        },
+        executorService);
+  }
+
+  public static <T> Future<T> processAsynchronously(
       Callable<T> callable, ExecutorService executorService) {
     return executorService.submit(callable);
   }

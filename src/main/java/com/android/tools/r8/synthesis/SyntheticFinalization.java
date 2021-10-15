@@ -54,6 +54,8 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -152,7 +154,8 @@ public class SyntheticFinalization {
     this.committed = committed;
   }
 
-  public static void finalize(AppView<AppInfo> appView) {
+  public static void finalize(AppView<AppInfo> appView, ExecutorService executorService)
+      throws ExecutionException {
     assert !appView.appInfo().hasClassHierarchy();
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
@@ -168,10 +171,12 @@ public class SyntheticFinalization {
                       .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
       appView.setGraphLens(result.lens);
     }
-    appView.pruneItems(result.prunedItems);
+    appView.pruneItems(result.prunedItems, executorService);
   }
 
-  public static void finalizeWithClassHierarchy(AppView<AppInfoWithClassHierarchy> appView) {
+  public static void finalizeWithClassHierarchy(
+      AppView<AppInfoWithClassHierarchy> appView, ExecutorService executorService)
+      throws ExecutionException {
     assert !appView.appInfo().hasLiveness();
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithClassHierarchy(result.commit));
@@ -187,10 +192,12 @@ public class SyntheticFinalization {
                       .getMainDexInfo()
                       .rewrittenWithLens(appView.getSyntheticItems(), result.lens)));
     }
-    appView.pruneItems(result.prunedItems);
+    appView.pruneItems(result.prunedItems, executorService);
   }
 
-  public static void finalizeWithLiveness(AppView<AppInfoWithLiveness> appView) {
+  public static void finalizeWithLiveness(
+      AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
+      throws ExecutionException {
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {
@@ -199,7 +206,7 @@ public class SyntheticFinalization {
       assert result.commit.getApplication() == appView.appInfo().app();
     }
     appView.setAppInfo(appView.appInfo().rebuildWithLiveness(result.commit));
-    appView.pruneItems(result.prunedItems);
+    appView.pruneItems(result.prunedItems, executorService);
   }
 
   Result computeFinalSynthetics(AppView<?> appView) {

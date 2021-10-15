@@ -15,6 +15,8 @@ import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 public class AppInfo implements DexDefinitionSupplier {
@@ -63,7 +65,8 @@ public class AppInfo implements DexDefinitionSupplier {
     this.obsolete = obsolete;
   }
 
-  public AppInfo prunedCopyFrom(PrunedItems prunedItems) {
+  public AppInfo prunedCopyFrom(PrunedItems prunedItems, ExecutorService executorService)
+      throws ExecutionException {
     assert getClass() == AppInfo.class;
     assert checkIfObsolete();
     assert prunedItems.getPrunedApp() == app();

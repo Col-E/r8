@@ -41,6 +41,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -705,7 +706,10 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
   private void updateKeepInfo(Set<DexType> enumsToUnbox) {
     KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
-    keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(enumsToUnbox));
+    keepInfo.mutate(
+        mutator ->
+            mutator.removeKeepInfoForPrunedItems(
+                PrunedItems.builder().setRemovedClasses(enumsToUnbox).build()));
   }
 
   public EnumDataMap finishAnalysis() {

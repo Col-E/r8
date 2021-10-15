@@ -40,6 +40,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 /* Specific subclass of AppInfo designed to support desugaring in D8. Desugaring requires a
@@ -123,7 +125,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   @Override
-  public AppInfoWithClassHierarchy prunedCopyFrom(PrunedItems prunedItems) {
+  public AppInfoWithClassHierarchy prunedCopyFrom(
+      PrunedItems prunedItems, ExecutorService executorService) throws ExecutionException {
     assert getClass() == AppInfoWithClassHierarchy.class;
     assert checkIfObsolete();
     assert prunedItems.getPrunedApp() == app();

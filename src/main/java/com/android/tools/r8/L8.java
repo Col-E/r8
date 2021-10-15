@@ -141,7 +141,7 @@ public class L8 {
 
       new IRConverter(appView, timing).convert(appView, executor);
 
-      SyntheticFinalization.finalize(appView);
+      SyntheticFinalization.finalize(appView, executor);
 
       NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
       new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);

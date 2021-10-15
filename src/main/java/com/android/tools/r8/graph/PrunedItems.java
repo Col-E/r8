@@ -41,15 +41,18 @@ public class PrunedItems {
   }
 
   public boolean isEmpty() {
-    return removedClasses.isEmpty() && additionalPinnedItems.isEmpty();
+    return removedClasses.isEmpty()
+        && removedFields.isEmpty()
+        && removedMethods.isEmpty()
+        && additionalPinnedItems.isEmpty();
   }
 
   public boolean isRemoved(DexField field) {
-    return removedFields.contains(field);
+    return removedFields.contains(field) || removedClasses.contains(field.getHolderType());
   }
 
   public boolean isRemoved(DexMethod method) {
-    return removedMethods.contains(method);
+    return removedMethods.contains(method) || removedClasses.contains(method.getHolderType());
   }
 
   public boolean isRemoved(DexType type) {
@@ -72,8 +75,24 @@ public class PrunedItems {
     return !removedClasses.isEmpty();
   }
 
+  public boolean hasRemovedFields() {
+    return !removedFields.isEmpty();
+  }
+
+  public boolean hasRemovedMembers() {
+    return hasRemovedFields() || hasRemovedMethods();
+  }
+
+  public boolean hasRemovedMethods() {
+    return !removedMethods.isEmpty();
+  }
+
   public Set<DexType> getRemovedClasses() {
     return removedClasses;
+  }
+
+  public Set<DexField> getRemovedFields() {
+    return removedFields;
   }
 
   public Set<DexMethod> getRemovedMethods() {
@@ -86,7 +105,7 @@ public class PrunedItems {
 
     private final Set<DexReference> additionalPinnedItems = Sets.newIdentityHashSet();
     private final Set<DexType> noLongerSyntheticItems = Sets.newIdentityHashSet();
-    private final Set<DexType> removedClasses = Sets.newIdentityHashSet();
+    private Set<DexType> removedClasses = Sets.newIdentityHashSet();
     private final Set<DexField> removedFields = Sets.newIdentityHashSet();
     private final Set<DexMethod> removedMethods = Sets.newIdentityHashSet();
 
@@ -119,6 +138,11 @@ public class PrunedItems {
 
     public Builder addRemovedMethod(DexMethod removedMethod) {
       removedMethods.add(removedMethod);
+      return this;
+    }
+
+    public Builder setRemovedClasses(Set<DexType> removedClasses) {
+      this.removedClasses = removedClasses;
       return this;
     }
 

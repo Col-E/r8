@@ -419,7 +419,8 @@ public class R8 {
                   .setPrunedApp(prunedApp)
                   .addRemovedClasses(removedClasses)
                   .addAdditionalPinnedItems(pruner.getMethodsToKeepForConfigurationDebugging())
-                  .build());
+                  .build(),
+              executorService);
           new AbstractMethodRemover(
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
@@ -618,7 +619,8 @@ public class R8 {
                     .setPrunedApp(application)
                     .addRemovedClasses(CollectionUtils.mergeSets(prunedTypes, removedClasses))
                     .addAdditionalPinnedItems(pruner.getMethodsToKeepForConfigurationDebugging())
-                    .build());
+                    .build(),
+                executorService);
 
             new BridgeHoisting(appViewWithLiveness).run();
 
@@ -728,9 +730,9 @@ public class R8 {
       }
 
       if (appView.appInfo().hasLiveness()) {
-        SyntheticFinalization.finalizeWithLiveness(appView.withLiveness());
+        SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService);
       } else {
-        SyntheticFinalization.finalizeWithClassHierarchy(appView);
+        SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService);
       }
 
       // Clear the reference type lattice element cache. This is required since class merging may

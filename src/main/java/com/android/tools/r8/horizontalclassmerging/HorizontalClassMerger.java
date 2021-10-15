@@ -123,7 +123,10 @@ public class HorizontalClassMerger {
 
     // Prune keep info.
     KeepInfoCollection keepInfo = appView.getKeepInfo();
-    keepInfo.mutate(mutator -> mutator.removeKeepInfoForPrunedItems(mergedClasses.getSources()));
+    keepInfo.mutate(
+        mutator ->
+            mutator.removeKeepInfoForPrunedItems(
+                PrunedItems.builder().setRemovedClasses(mergedClasses.getSources()).build()));
 
     // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that allocation
     // sites, fields accesses, etc. are correctly transferred to the target classes.
@@ -142,7 +145,8 @@ public class HorizontalClassMerger {
             .setPrunedApp(appView.appInfo().app())
             .addRemovedClasses(mergedClasses.getSources())
             .addNoLongerSyntheticItems(mergedClasses.getSources())
-            .build());
+            .build(),
+        executorService);
   }
 
   private FieldAccessInfoCollectionModifier createFieldAccessInfoCollectionModifier(

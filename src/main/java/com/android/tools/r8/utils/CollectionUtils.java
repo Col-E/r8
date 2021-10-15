@@ -13,6 +13,11 @@ import java.util.function.Consumer;
 
 public class CollectionUtils {
 
+  public static <S, T extends Collection<S>> T addAll(T collection, Collection<S> elementsToAdd) {
+    collection.addAll(elementsToAdd);
+    return collection;
+  }
+
   public static <T> Set<T> mergeSets(Collection<T> first, Collection<T> second) {
     ImmutableSet.Builder<T> builder = ImmutableSet.builder();
     builder.addAll(first);

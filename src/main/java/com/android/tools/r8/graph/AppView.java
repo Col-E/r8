@@ -51,6 +51,8 @@ import java.io.IOException;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -687,19 +689,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return !cfByteCodePassThrough.isEmpty();
   }
 
-  public void pruneItems(PrunedItems prunedItems) {
+  public void pruneItems(PrunedItems prunedItems, ExecutorService executorService)
+      throws ExecutionException {
     if (prunedItems.isEmpty()) {
       assert appInfo().app() == prunedItems.getPrunedApp();
       return;
     }
     if (appInfo.hasLiveness()) {
       AppView<AppInfoWithLiveness> self = withLiveness();
-      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems));
+      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService));
     } else if (appInfo.hasClassHierarchy()) {
       AppView<AppInfoWithClassHierarchy> self = withClassHierarchy();
-      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems));
+      self.setAppInfo(self.appInfo().prunedCopyFrom(prunedItems, executorService));
     } else {
-      pruneAppInfo(prunedItems, this);
+      pruneAppInfo(prunedItems, this, executorService);
     }
     if (appServices() != null) {
       setAppServices(appServices().prunedCopy(prunedItems));
@@ -714,8 +717,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   @SuppressWarnings("unchecked")
-  private static void pruneAppInfo(PrunedItems prunedItems, AppView<?> appView) {
-    ((AppView<AppInfo>) appView).setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems));
+  private static void pruneAppInfo(
+      PrunedItems prunedItems, AppView<?> appView, ExecutorService executorService)
+      throws ExecutionException {
+    ((AppView<AppInfo>) appView)
+        .setAppInfo(appView.appInfo().prunedCopyFrom(prunedItems, executorService));
   }
 
   public void rewriteWithLens(NonIdentityGraphLens lens) {

@@ -261,7 +261,7 @@ public class Enqueuer {
   private final ObjectAllocationInfoCollectionImpl.Builder objectAllocationInfoCollection;
   private final Map<DexCallSite, ProgramMethodSet> callSites = new IdentityHashMap<>();
 
-  private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
+  private final Set<DexMember<?, ?>> identifierNameStrings = Sets.newIdentityHashSet();
 
   private final AndroidApiLevelCompute apiLevelCompute;
 
@@ -3830,13 +3830,13 @@ public class Enqueuer {
     return builder.build();
   }
 
-  private static Object2BooleanMap<DexReference> joinIdentifierNameStrings(
-      Set<DexReference> explicit, Set<DexReference> implicit) {
-    Object2BooleanMap<DexReference> result = new Object2BooleanArrayMap<>();
-    for (DexReference e : explicit) {
+  private static Object2BooleanMap<DexMember<?, ?>> joinIdentifierNameStrings(
+      Set<DexMember<?, ?>> explicit, Set<DexMember<?, ?>> implicit) {
+    Object2BooleanMap<DexMember<?, ?>> result = new Object2BooleanArrayMap<>();
+    for (DexMember<?, ?> e : explicit) {
       result.putIfAbsent(e, true);
     }
-    for (DexReference i : implicit) {
+    for (DexMember<?, ?> i : implicit) {
       result.putIfAbsent(i, false);
     }
     return result;
