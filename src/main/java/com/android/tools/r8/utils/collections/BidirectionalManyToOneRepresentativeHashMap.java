@@ -80,6 +80,7 @@ public class BidirectionalManyToOneRepresentativeHashMap<K, V>
     return Collections.emptySet();
   }
 
+  @Override
   public void putAll(BidirectionalManyToOneRepresentativeMap<K, V> map) {
     map.forEachManyToOneMapping(
         (keys, value, representative) -> {
