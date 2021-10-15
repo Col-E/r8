@@ -162,7 +162,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
     // Remove the method and notify other optimizations that the override has been removed to allow
     // the optimizations to fixup their state.
     method.getHolder().removeMethod(method.getReference());
-    converter.pruneMethod(method);
+    converter.onMethodPruned(method);
   }
 
   private ProgramMethod resolveOnSuperClass(ProgramMethod method) {

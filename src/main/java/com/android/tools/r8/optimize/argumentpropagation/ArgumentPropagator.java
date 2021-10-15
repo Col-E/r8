@@ -224,9 +224,13 @@ public class ArgumentPropagator {
    *
    * <p>Therefore, we assert that we only find a method state for direct methods.
    */
-  public void pruneMethod(ProgramMethod method) {
+  public void onMethodPruned(ProgramMethod method) {
     assert codeScanner != null;
     MethodState methodState = codeScanner.getMethodStates().removeOrElse(method, null);
     assert methodState == null || method.getDefinition().belongsToDirectPool();
+  }
+
+  public void onMethodCodePruned(ProgramMethod method) {
+    // Intentionally empty.
   }
 }

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -25,6 +26,7 @@ import java.util.function.Consumer;
 public class EnumUnboxingCandidateInfoCollection {
 
   private final Map<DexType, EnumUnboxingCandidateInfo> enumTypeToInfo = new ConcurrentHashMap<>();
+  private final Set<DexMethod> prunedMethods = Sets.newIdentityHashSet();
 
   public void addCandidate(
       AppView<AppInfoWithLiveness> appView,
@@ -34,6 +36,10 @@ public class EnumUnboxingCandidateInfoCollection {
     enumTypeToInfo.put(
         enumClass.type,
         new EnumUnboxingCandidateInfo(appView, enumClass, graphLensForPrimaryOptimizationPass));
+  }
+
+  public void addPrunedMethod(ProgramMethod method) {
+    prunedMethods.add(method.getReference());
   }
 
   public void removeCandidate(DexProgramClass enumClass) {
@@ -80,6 +86,7 @@ public class EnumUnboxingCandidateInfoCollection {
     while (candidateInfoIterator.hasNext()) {
       allMethodDependencies.merge(candidateInfoIterator.next().methodDependencies);
     }
+    allMethodDependencies.removeAll(prunedMethods);
     return allMethodDependencies;
   }
 

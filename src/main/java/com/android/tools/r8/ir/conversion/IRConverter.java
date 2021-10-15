@@ -1955,12 +1955,30 @@ public class IRConverter {
    * Called when a method is pruned as a result of optimizations during IR processing in R8, to
    * allow optimizations that track sets of methods to fixup their state.
    */
-  public void pruneMethod(ProgramMethod method) {
+  public void onMethodPruned(ProgramMethod method) {
     assert appView.enableWholeProgramOptimizations();
     assert method.getHolder().lookupMethod(method.getReference()) == null;
-    appView.withArgumentPropagator(argumentPropagator -> argumentPropagator.pruneMethod(method));
+    appView.withArgumentPropagator(argumentPropagator -> argumentPropagator.onMethodPruned(method));
+    enumUnboxer.onMethodPruned(method);
+    outliner.onMethodPruned(method);
     if (inliner != null) {
-      inliner.pruneMethod(method);
+      inliner.onMethodPruned(method);
+    }
+  }
+
+  /**
+   * Called when a method is transformed into an abstract or "throw null" method as a result of
+   * optimizations during IR processing in R8.
+   */
+  public void onMethodCodePruned(ProgramMethod method) {
+    assert appView.enableWholeProgramOptimizations();
+    assert method.getHolder().lookupMethod(method.getReference()) != null;
+    appView.withArgumentPropagator(
+        argumentPropagator -> argumentPropagator.onMethodCodePruned(method));
+    enumUnboxer.onMethodCodePruned(method);
+    outliner.onMethodCodePruned(method);
+    if (inliner != null) {
+      inliner.onMethodCodePruned(method);
     }
   }
 }

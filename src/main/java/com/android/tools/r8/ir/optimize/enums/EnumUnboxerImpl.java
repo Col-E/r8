@@ -643,17 +643,11 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         .merge(
             dependencies
                 .rewrittenWithLens(appView)
-                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods())
-                .removeIf(
-                    appView,
-                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()))
+                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods()))
         .merge(
             methodsDependingOnLibraryModelisation
                 .rewrittenWithLens(appView)
-                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods())
-                .removeIf(
-                    appView,
-                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()));
+                .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods()));
     methodsDependingOnLibraryModelisation.clear();
 
     updateOptimizationInfos(executorService, feedback, treeFixerResult);
@@ -1413,6 +1407,17 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       return true;
     }
     return false;
+  }
+
+  @Override
+  public void onMethodPruned(ProgramMethod method) {
+    onMethodCodePruned(method);
+  }
+
+  @Override
+  public void onMethodCodePruned(ProgramMethod method) {
+    enumUnboxingCandidatesInfo.addPrunedMethod(method);
+    methodsDependingOnLibraryModelisation.remove(method.getReference(), appView.graphLens());
   }
 
   @Override

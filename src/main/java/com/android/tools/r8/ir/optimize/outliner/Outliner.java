@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.outliner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.OutlinerImpl;
@@ -25,6 +26,16 @@ public abstract class Outliner {
     return new Outliner() {
       @Override
       public void collectOutlineSites(IRCode code, Timing timing) {
+        // Intentionally empty.
+      }
+
+      @Override
+      public void onMethodPruned(ProgramMethod method) {
+        // Intentionally empty.
+      }
+
+      @Override
+      public void onMethodCodePruned(ProgramMethod method) {
         // Intentionally empty.
       }
 
@@ -51,6 +62,10 @@ public abstract class Outliner {
   }
 
   public abstract void collectOutlineSites(IRCode code, Timing timing);
+
+  public abstract void onMethodPruned(ProgramMethod method);
+
+  public abstract void onMethodCodePruned(ProgramMethod method);
 
   public abstract void prepareForPrimaryOptimizationPass(
       GraphLens graphLensForPrimaryOptimizationPass);

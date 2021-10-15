@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.enums;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
@@ -34,6 +35,10 @@ public abstract class EnumUnboxer {
       GraphLens graphLensForPrimaryOptimizationPass);
 
   public abstract void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions);
+
+  public abstract void onMethodPruned(ProgramMethod method);
+
+  public abstract void onMethodCodePruned(ProgramMethod method);
 
   public abstract void recordEnumState(DexProgramClass clazz, StaticFieldValues staticFieldValues);
 

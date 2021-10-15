@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.enums;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
@@ -37,6 +38,16 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
 
   @Override
   public void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions) {
+    // Intentionally empty.
+  }
+
+  @Override
+  public void onMethodPruned(ProgramMethod method) {
+    // Intentionally empty.
+  }
+
+  @Override
+  public void onMethodCodePruned(ProgramMethod method) {
     // Intentionally empty.
   }
 

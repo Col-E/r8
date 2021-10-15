@@ -34,6 +34,11 @@ public class OutlineCollection {
     this.appliedGraphLens = graphLensForPrimaryOptimizationPass;
   }
 
+  public void remove(AppView<AppInfoWithLiveness> appView, ProgramMethod method) {
+    assert appView.graphLens() == appliedGraphLens;
+    outlines.remove(method.getReference());
+  }
+
   public void set(
       AppView<AppInfoWithLiveness> appView, ProgramMethod method, List<Outline> outlinesForMethod) {
     assert appView.graphLens() == appliedGraphLens;
@@ -101,9 +106,7 @@ public class OutlineCollection {
             assert false;
             return;
           }
-          if (method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()) {
-            return;
-          }
+          assert !method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite();
           for (Outline outline : outlinesForMethod) {
             methodsPerOutline.computeIfAbsent(outline, ignoreKey(ArrayList::new)).add(method);
           }

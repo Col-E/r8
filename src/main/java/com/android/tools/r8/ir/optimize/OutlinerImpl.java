@@ -1318,6 +1318,16 @@ public class OutlinerImpl extends Outliner {
   }
 
   @Override
+  public void onMethodPruned(ProgramMethod method) {
+    onMethodCodePruned(method);
+  }
+
+  @Override
+  public void onMethodCodePruned(ProgramMethod method) {
+    outlineCollection.remove(appView, method);
+  }
+
+  @Override
   public void prepareForPrimaryOptimizationPass(GraphLens graphLensForPrimaryOptimizationPass) {
     assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
     assert outlineCollection == null;

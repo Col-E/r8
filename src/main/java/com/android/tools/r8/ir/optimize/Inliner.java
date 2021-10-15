@@ -223,12 +223,7 @@ public class Inliner {
     postMethodProcessorBuilder
         .getMethodsToReprocessBuilder()
         .rewrittenWithLens(appView)
-        .merge(
-            singleInlineCallers
-                .rewrittenWithLens(appView)
-                .removeIf(
-                    appView,
-                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()));
+        .merge(singleInlineCallers);
     singleInlineCallers.clear();
   }
 
@@ -1260,7 +1255,11 @@ public class Inliner {
     singleInlineCallers.add(method, appView.graphLens());
   }
 
-  public void pruneMethod(ProgramMethod method) {
+  public void onMethodPruned(ProgramMethod method) {
+    onMethodCodePruned(method);
+  }
+
+  public void onMethodCodePruned(ProgramMethod method) {
     singleInlineCallers.remove(method.getReference(), appView.graphLens());
   }
 
@@ -1272,6 +1271,7 @@ public class Inliner {
               singleCallerInlinedMethod -> {
                 if (singleCallerInlinedMethod.getDefinition().belongsToVirtualPool() || true) {
                   singleCallerInlinedMethod.convertToAbstractOrThrowNullMethod(appView);
+                  converter.onMethodCodePruned(singleCallerInlinedMethod);
                   return true;
                 }
                 return false;
@@ -1284,7 +1284,7 @@ public class Inliner {
                 .removeMethods(
                     singleCallerInlinedMethodsForClass.toDefinitionSet(
                         SetUtils::newIdentityHashSet));
-            singleCallerInlinedMethodsForClass.forEach(converter::pruneMethod);
+            singleCallerInlinedMethodsForClass.forEach(converter::onMethodPruned);
           }
         });
     singleCallerInlinedMethodsInWave.clear();
