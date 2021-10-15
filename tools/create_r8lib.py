@@ -40,8 +40,6 @@ def parse_options():
       help='Additional libraries (JDK 1.8 rt.jar already included)')
   return parser.parse_args()
 
-def compile_version_extractor(r8jar):
-
 def get_r8_version(r8jar):
   with utils.TempDir() as temp:
     name = os.path.join(temp, "VersionExtractor.java")
