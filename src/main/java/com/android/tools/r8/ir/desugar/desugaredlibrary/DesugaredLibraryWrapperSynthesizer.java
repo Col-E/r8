@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
@@ -32,6 +33,9 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -109,13 +113,17 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   public boolean shouldConvert(DexType type, DexMethod method) {
+    return shouldConvert(type, method, null);
+  }
+
+  public boolean shouldConvert(DexType type, DexMethod method, ProgramMethod context) {
     if (!appView.rewritePrefix.hasRewrittenType(type, appView)) {
       return false;
     }
     if (canConvert(type)) {
       return true;
     }
-    reportInvalidInvoke(type, method);
+    reportInvalidInvoke(type, method, context);
     return false;
   }
 
@@ -173,8 +181,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         || canGenerateWrapper(type);
   }
 
-  private void reportInvalidInvoke(DexType type, DexMethod invokedMethod) {
+  private void reportInvalidInvoke(DexType type, DexMethod invokedMethod, ProgramMethod context) {
     DexType desugaredType = appView.rewritePrefix.rewrittenType(type, appView);
+    Origin origin = context != null ? context.getOrigin() : Origin.unknown();
+    Position position =
+        context != null ? new MethodPosition(context.getMethodReference()) : Position.UNKNOWN;
     StringDiagnostic diagnostic =
         new StringDiagnostic(
             "Invoke to "
@@ -183,7 +194,9 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                 + invokedMethod.name
                 + " may not work correctly at runtime (Cannot convert type "
                 + desugaredType
-                + ").");
+                + ").",
+            origin,
+            position);
     if (appView.options().isDesugaredLibraryCompilation()) {
       throw appView.options().reporter.fatalError(diagnostic);
     } else {

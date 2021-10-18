@@ -287,9 +287,10 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
 
   private DexMethod computeReturnConversion(
       DexMethod invokedMethod,
-      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      ProgramMethod context) {
     DexType returnType = invokedMethod.proto.returnType;
-    if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod)) {
+    if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod, context)) {
       DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
       return wrapperSynthesizor.ensureConversionMethod(
           returnType, newReturnType, returnType, eventConsumer);
@@ -299,12 +300,13 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
 
   private DexMethod[] computeParameterConversions(
       DexMethod invokedMethod,
-      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      ProgramMethod context) {
     DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
     DexType[] parameters = invokedMethod.proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
       DexType argType = parameters[i];
-      if (wrapperSynthesizor.shouldConvert(argType, invokedMethod)) {
+      if (wrapperSynthesizor.shouldConvert(argType, invokedMethod, context)) {
         DexType argVivifiedType = vivifiedTypeFor(argType, appView);
         parameterConversions[i] =
             wrapperSynthesizor.ensureConversionMethod(
@@ -326,12 +328,12 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     }
     if (shouldOutlineAPIConversion(invoke, context)) {
       DexMethod outlinedAPIConversion =
-          createOutlinedAPIConversion(invoke, methodProcessingContext, eventConsumer);
+          createOutlinedAPIConversion(invoke, methodProcessingContext, eventConsumer, context);
       return Collections.singletonList(
           new CfInvoke(Opcodes.INVOKESTATIC, outlinedAPIConversion, false));
     }
     return rewriteLibraryInvokeToInlineAPIConversion(
-        invoke, methodProcessingContext, localStackAllocator, eventConsumer);
+        invoke, methodProcessingContext, localStackAllocator, eventConsumer, context);
   }
 
   // If the option is set, we try to outline API conversions as much as possible to reduce the
@@ -354,11 +356,13 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
       CfInvoke invoke,
       MethodProcessingContext methodProcessingContext,
       LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer) {
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context) {
 
     DexMethod invokedMethod = invoke.getMethod();
-    DexMethod returnConversion = computeReturnConversion(invokedMethod, eventConsumer);
-    DexMethod[] parameterConversions = computeParameterConversions(invokedMethod, eventConsumer);
+    DexMethod returnConversion = computeReturnConversion(invokedMethod, eventConsumer, context);
+    DexMethod[] parameterConversions =
+        computeParameterConversions(invokedMethod, eventConsumer, context);
 
     // If only the last 2 parameters require conversion, we do everything inlined.
     // If other parameters require conversion, we outline the parameter conversion but keep the API
@@ -502,14 +506,16 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   private DexMethod createOutlinedAPIConversion(
       CfInvoke invoke,
       MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringEventConsumer eventConsumer) {
+      CfInstructionDesugaringEventConsumer eventConsumer,
+      ProgramMethod context) {
     DexMethod invokedMethod = invoke.getMethod();
     DexProto newProto =
         invoke.isInvokeStatic()
             ? invokedMethod.proto
             : factory.prependTypeToProto(invokedMethod.getHolderType(), invokedMethod.getProto());
-    DexMethod returnConversion = computeReturnConversion(invokedMethod, eventConsumer);
-    DexMethod[] parameterConversions = computeParameterConversions(invokedMethod, eventConsumer);
+    DexMethod returnConversion = computeReturnConversion(invokedMethod, eventConsumer, context);
+    DexMethod[] parameterConversions =
+        computeParameterConversions(invokedMethod, eventConsumer, context);
     ProgramMethod outline =
         appView
             .getSyntheticItems()
