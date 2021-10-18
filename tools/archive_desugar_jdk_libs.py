@@ -33,6 +33,10 @@ LIBRARY_NAME = 'desugar_jdk_libs'
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
+  result.add_option('--variant',
+      help='.',
+      choices = ['jdk8', 'jdk11'],
+      default='jdk8')
   result.add_option('--dry-run', '--dry_run',
       help='Running on bot, use third_party dependency.',
       default=False,
@@ -90,7 +94,11 @@ def BuildDesugaredLibrary(checkout_dir, variant):
     raise Exception('Variant ' + variant + 'is not supported')
   with utils.ChangedWorkingDirectory(checkout_dir):
     bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
-    cmd = [bazel, 'build', 'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
+    cmd = [
+        bazel,
+        '--bazelrc=/dev/null',
+        'build',
+        'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd)
     cmd = [bazel, 'shutdown']
@@ -108,7 +116,7 @@ def BuildDesugaredLibrary(checkout_dir, variant):
     maven_zip = os.path.join(
       checkout_dir,
       'bazel-bin',
-      LIBRARY_NAME + ('_jdk11' if variant != 'jdk11' else '') +'.zip')
+      LIBRARY_NAME + ('_jdk11' if variant == 'jdk11' else '') +'.zip')
     return (library_jar, maven_zip)
 
 
@@ -138,7 +146,7 @@ def Main(argv):
   if options.build_only:
     with utils.TempDir() as checkout_dir:
       CloneDesugaredLibrary(options.github_account, checkout_dir)
-      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, "jdk8")
+      (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, options.variant)
       shutil.copyfile(
         library_jar,
         os.path.join(options.build_only, os.path.basename(library_jar)))
@@ -160,7 +168,7 @@ def Main(argv):
       raise Exception(
           'Target archive directory %s already exists' % destination)
 
-    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, "jdk8")
+    (library_jar, maven_zip) = BuildDesugaredLibrary(checkout_dir, options.variant)
 
     storage_path = LIBRARY_NAME + '/' + version
     # Upload the jar file with the library.
