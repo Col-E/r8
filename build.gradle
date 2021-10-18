@@ -1138,7 +1138,6 @@ task R8RetraceNoDeps {
             ["src/main/keep_retrace.txt"],
             R8LibNoDeps,
             r8RetraceExludeDepsPath,
-            "--release",
             repackageDeps.outputs.files
     ).dependsOn(R8LibNoDeps)
     outputs.file r8RetraceExludeDepsPath
