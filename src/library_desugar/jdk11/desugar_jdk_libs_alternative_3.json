@@ -71,15 +71,53 @@
   ],
   "library_flags": [
     {
+      "api_level_below_or_equal": 10000,
+      "rewrite_prefix": {
+        "desugar.": "j$.desugar.",
+        "libcore.": "j$.libcore.",
+        "java.net.URLDecoder": "j$.net.URLDecoder",
+        "java.net.URLEncoder": "j$.net.URLEncoder",
+        "java.lang.Desugar": "j$.lang.Desugar",
+        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner"
+      }
+    },
+    {
+      "api_level_below_or_equal": 29,
+      "rewrite_prefix": {
+        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
+      }
+    },
+    {
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
         "j$.time.": "java.time.",
         "java.time.": "j$.time.",
+        "java.io.DesugarFile" : "j$.io.DesugarFile",
         "java.util.Desugar": "j$.util.Desugar",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
-        "jdk.internal.util.Preconditions": "j$.jdk.internal.util.Preconditions"
+        "sun.security.action.": "j$.sun.security.action.",
+        "jdk.internal.": "j$.jdk.internal.",
+        "java.nio.Desugar": "j$.nio.Desugar",
+        "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
+        "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
+        "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
+        "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
+        "java.nio.file.": "j$.nio.file.",
+        "sun.nio.cs." : "j$.sun.nio.cs.",
+        "sun.nio.fs.AbstractFileSystemProvider": "j$.sun.nio.fs.AbstractFileSystemProvider",
+        "sun.nio.fs.AbstractFileTypeDetector": "j$.sun.nio.fs.AbstractFileTypeDetector",
+        "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
+        "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
+        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
+      },
+      "backport": {
+        "java.lang.DesugarDouble": "java.lang.Double",
+        "java.lang.DesugarInteger": "java.lang.Integer",
+        "java.lang.DesugarLong": "java.lang.Long",
+        "java.lang.DesugarMath": "java.lang.Math"
       },
       "retarget_lib_member": {
+        "java.io.File#toPath": "java.io.DesugarFile",
         "java.util.Date#toInstant": "java.util.DesugarDate",
         "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
         "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
@@ -96,10 +134,15 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
+        "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
+        "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
+        "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
+        "java.io.UncheckedIOException": "j$.io.UncheckedIOException",
         "j$.util.Optional": "java.util.Optional",
         "j$.util.LongSummaryStatistics": "java.util.LongSummaryStatistics",
         "j$.util.IntSummaryStatistics": "java.util.IntSummaryStatistics",
         "j$.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatistics",
+        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
         "java.util.stream.": "j$.util.stream.",
         "java.util.function.": "j$.util.function.",
         "java.util.Comparators": "j$.util.Comparators",
@@ -120,9 +163,7 @@
         "java.util.AbstractList": "j$.util.AbstractList",
         "java.util.CollSer": "j$.util.CollSer",
         "java.util.ImmutableCollections": "j$.util.ImmutableCollections",
-        "java.util.KeyValueHolder": "j$.util.KeyValueHolder",
-        "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
-        "java.io.UncheckedIOException": "j$.io.UncheckedIOException"
+        "java.util.KeyValueHolder": "j$.util.KeyValueHolder"
       },
       "retarget_lib_member": {
         "java.util.Arrays#stream": "java.util.DesugarArrays",
@@ -134,6 +175,7 @@
         "java.util.Iterator#remove"
       ],
       "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
         "java.util.Map": "j$.util.Map",
@@ -152,6 +194,15 @@
         "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
         "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
         "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
+      }
+    },
+    {
+      "api_level_below_or_equal": 18,
+      "rewrite_prefix": {
+        "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
+      },
+      "retarget_lib_member": {
+        "java.lang.Character#isBmpCodePoint": "j$.lang.DesugarCharacter"
       }
     }
   ],
@@ -222,6 +273,7 @@
         "java.util.Iterator#remove"
       ],
       "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
         "java.util.Map": "j$.util.Map",
@@ -248,7 +300,7 @@
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
-    "-keeppackagenames j$",
+    "-keeppackagenames j$.**",
     "-keepclassmembers class j$.util.IntSummaryStatistics { long count; long sum; int min; int max; }",
     "-keepclassmembers class j$.util.LongSummaryStatistics { long count; long sum; long min; long max; }",
     "-keepclassmembers class j$.util.DoubleSummaryStatistics { long count; double sum; double min; double max; }",
