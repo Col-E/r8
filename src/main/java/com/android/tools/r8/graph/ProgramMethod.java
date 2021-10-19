@@ -78,6 +78,7 @@ public final class ProgramMethod extends DexClassAndMethod
         && !getAccessFlags().isNative()
         && !getAccessFlags().isPrivate()
         && !getAccessFlags().isStatic()
+        && !getDefinition().isInstanceInitializer()
         && !appView.appInfo().isFailedResolutionTarget(getReference());
   }
 
