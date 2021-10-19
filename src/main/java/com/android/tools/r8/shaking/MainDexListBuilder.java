@@ -129,8 +129,9 @@ public class MainDexListBuilder {
             DexType valueType = proto.returnType.toBaseType(appView.dexItemFactory());
             if (valueType.isClassType()) {
               assert !value;
+              DexClass valueTypeClass = appInfo().definitionFor(valueType);
               boolean notLibraryOrTakeBootClasspath =
-                  !appInfo().definitionFor(valueType).isLibraryClass()
+                  (valueTypeClass != null && !valueTypeClass.isLibraryClass())
                       || !appView.options().ignoreBootClasspathEnumsForMaindexTracing;
               value =
                   (isEnum(valueType) && notLibraryOrTakeBootClasspath)
