@@ -20,6 +20,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.UnsupportedMainDexListUsageDiagnostic;
 import com.android.tools.r8.graph.ApplicationReaderMap;
 import com.android.tools.r8.graph.ClassKind;
+import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplicationReadFlags;
 import com.android.tools.r8.graph.DexClass;
@@ -379,6 +380,20 @@ public class ApplicationReader {
       }
     }
 
+    private boolean includeAnnotationClass(DexProgramClass clazz) {
+      if (!options.pruneNonVissibleAnnotationClasses) {
+        return true;
+      }
+      DexAnnotation retentionAnnotation =
+          clazz.annotations().getFirstMatching(itemFactory.retentionType);
+      // Default is CLASS retention, read if retained.
+      if (retentionAnnotation == null) {
+        return DexAnnotation.retainCompileTimeAnnotation(clazz.getType(), application.options);
+      }
+      // Otherwise only read runtime visible annotations.
+      return retentionAnnotation.annotation.toString().contains("RUNTIME");
+    }
+
     private void readClassSources(
         List<ProgramResource> classSources, Queue<DexProgramClass> classes) {
       if (classSources.isEmpty()) {
@@ -386,7 +401,15 @@ public class ApplicationReader {
       }
       hasReadProgramResourceFromCf = true;
       JarClassFileReader<DexProgramClass> reader =
-          new JarClassFileReader<>(application, classes::add, PROGRAM);
+          new JarClassFileReader<>(
+              application,
+              clazz -> {
+                if (clazz.isAnnotation() && !includeAnnotationClass(clazz)) {
+                  return;
+                }
+                classes.add(clazz);
+              },
+              PROGRAM);
       // Read classes in parallel.
       for (ProgramResource input : classSources) {
         futures.add(

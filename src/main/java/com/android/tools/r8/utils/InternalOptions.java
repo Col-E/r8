@@ -519,6 +519,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Intermediate builds also emits or update synthesized classes mapping.
   public boolean intermediate = false;
   public boolean retainCompileTimeAnnotations = true;
+  public boolean ignoreBootClasspathEnumsForMaindexTracing =
+      System.getProperty("com.android.tools.r8.ignoreBootClasspathEnumsForMaindexTracing") != null;
+  public boolean pruneNonVissibleAnnotationClasses =
+      System.getProperty("com.android.tools.r8.pruneNonVissibleAnnotationClasses") != null;
   public List<String> logArgumentsFilter = ImmutableList.of();
 
   // Flag to turn on/offLoad/store optimization in the Cf back-end.

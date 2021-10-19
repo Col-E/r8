@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.maindexlist;
 
+import static com.android.tools.r8.maindexlist.MainDexRuntimeAndProgramEnumInAnnotationTest.EnumForAnnotation.TEST;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -12,6 +13,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -27,17 +29,29 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class MainDexSourceAndClassRetentionTest extends TestBase {
+public class MainDexRuntimeAndProgramEnumInAnnotationTest extends TestBase {
 
-  private static final Set<Class<?>> MAINDEX_CLASSES = ImmutableSet.of(Main.class);
+  Set<Class<?>> CUSTOM_CLASSES =
+      ImmutableSet.of(
+          B.class,
+          Main.class,
+          EnumForAnnotation.class,
+          RuntimeRetentionAnnotationWithProgramEnum.class);
+  Set<Class<?>> DEFAULT_CLASSES =
+      Sets.union(
+          CUSTOM_CLASSES,
+          ImmutableSet.of(
+              C.class,
+              RuntimeRetentionAnnotationWithRuntimeEnum.class,
+              RuntimeRetentionAnnotationWithoutEnum.class));
 
   @Parameter(0)
   public TestParameters parameters;
 
   @Parameter(1)
-  public boolean pruneNonVisibleAnnotationClasses;
+  public boolean ignoreBootclasspathEnumsForMaindexTracing;
 
-  @Parameters(name = "{0}, pruneNonVisibleAnnotationClasses: {1}")
+  @Parameters(name = "{0}, ignoreBootclasspathEnumsForMaindexTracing: {1}")
   public static List<Object[]> parameters() {
     return buildParameters(
         getTestParameters()
@@ -57,18 +71,18 @@ public class MainDexSourceAndClassRetentionTest extends TestBase {
             "  public static void main(java.lang.String[]);",
             "}")
         .applyIf(
-            pruneNonVisibleAnnotationClasses,
-            builder -> {
-              builder.addOptionsModification(
-                  options -> options.pruneNonVissibleAnnotationClasses = true);
-            })
+            ignoreBootclasspathEnumsForMaindexTracing,
+            builder ->
+                builder.addOptionsModification(
+                    options -> {
+                      options.ignoreBootClasspathEnumsForMaindexTracing = true;
+                    }))
         .run()
         .inspectMainDexClasses(
             mainDexList -> {
               assertEquals(
-                  MAINDEX_CLASSES.stream()
-                      .map(Reference::classFromClass)
-                      .collect(Collectors.toSet()),
+                  (ignoreBootclasspathEnumsForMaindexTracing ? CUSTOM_CLASSES : DEFAULT_CLASSES)
+                      .stream().map(Reference::classFromClass).collect(Collectors.toSet()),
                   new HashSet<>(mainDexList));
             });
   }
@@ -80,72 +94,69 @@ public class MainDexSourceAndClassRetentionTest extends TestBase {
         .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
         .setMinApi(parameters.getApiLevel())
         .applyIf(
-            pruneNonVisibleAnnotationClasses,
-            builder -> {
-              builder.addOptionsModification(
-                  options -> options.pruneNonVissibleAnnotationClasses = true);
-            })
+            ignoreBootclasspathEnumsForMaindexTracing,
+            builder ->
+                builder.addOptionsModification(
+                    options -> options.ignoreBootClasspathEnumsForMaindexTracing = true))
         .collectMainDexClasses()
         .addMainDexRules(
             "-keep class " + Main.class.getTypeName() + " {",
             "  public static void main(java.lang.String[]);",
             "}")
-        .allowStdoutMessages()
         .compile()
-        .inspect(
-            inspector -> {
-              // Source and class retention annotation classes are still in the output, but does not
-              // annotate anything.
-              assertEquals(
-                  pruneNonVisibleAnnotationClasses,
-                  !inspector.clazz(SourceRetentionAnnotation.class).isPresent());
-              assertEquals(
-                  pruneNonVisibleAnnotationClasses,
-                  !inspector.clazz(ClassRetentionAnnotation.class).isPresent());
-              assertEquals(0, inspector.clazz(Main.class).annotations().size());
-              assertEquals(0, inspector.clazz(A.class).annotations().size());
-            })
         .inspectMainDexClasses(
             mainDexClasses -> {
               assertEquals(
-                  MAINDEX_CLASSES.stream().map(TestBase::typeName).collect(Collectors.toSet()),
-                  new HashSet<>(mainDexClasses));
+                  (ignoreBootclasspathEnumsForMaindexTracing ? CUSTOM_CLASSES : DEFAULT_CLASSES)
+                      .stream().map(TestBase::typeName).collect(Collectors.toSet()),
+                  mainDexClasses);
             });
   }
 
-  public enum Foo {
+  public enum EnumForAnnotation {
     TEST
   }
 
-  public enum Bar {
-    TEST
-  }
-
-  @Retention(RetentionPolicy.SOURCE)
+  @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
-  public @interface SourceRetentionAnnotation {
+  public @interface RuntimeRetentionAnnotationWithoutEnum {}
 
-    Foo value();
-  }
-
-  @Retention(RetentionPolicy.CLASS)
+  @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.TYPE)
-  public @interface ClassRetentionAnnotation {
+  public @interface RuntimeRetentionAnnotationWithProgramEnum {
 
-    Bar value();
+    EnumForAnnotation value() default TEST;
   }
 
-  @SourceRetentionAnnotation(Foo.TEST)
-  @ClassRetentionAnnotation(Bar.TEST)
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.TYPE)
+  public @interface RuntimeRetentionAnnotationWithRuntimeEnum {
+
+    ElementType value();
+  }
+
+  @RuntimeRetentionAnnotationWithoutEnum
   public static class A {
 
     public static void main(String[] args) {}
   }
 
-  @SourceRetentionAnnotation(Foo.TEST)
-  @ClassRetentionAnnotation(Bar.TEST)
-  public static class Main {
+  @RuntimeRetentionAnnotationWithProgramEnum
+  public static class B {
 
     public static void main(String[] args) {}
+  }
+
+  @RuntimeRetentionAnnotationWithRuntimeEnum(ElementType.TYPE)
+  public static class C {
+
+    public static void main(String[] args) {}
+  }
+
+  public static class Main {
+
+    public static void main(String[] args) {
+      System.out.println("Hello, world!");
+    }
   }
 }
