@@ -35,4 +35,23 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
   }
 
   public abstract ArrayAccess withMemberType(MemberType newMemberType);
+
+  @Override
+  public boolean instructionTypeCanThrow() {
+    return true;
+  }
+
+  @Override
+  public boolean instructionInstanceCanThrow() {
+    // TODO(b/203731608): Add parameters to the method and use abstract value in R8.
+    if (index().isConstant() && !array().isPhi() && array().definition.isNewArrayEmpty()) {
+      Value newArraySizeValue = array().definition.asNewArrayEmpty().size();
+      if (newArraySizeValue.isConstant()) {
+        int newArraySize = newArraySizeValue.getConstInstruction().asConstNumber().getIntValue();
+        int index = index().getConstInstruction().asConstNumber().getIntValue();
+        return newArraySize <= 0 || index < 0 || newArraySize <= index;
+      }
+    }
+    return true;
+  }
 }

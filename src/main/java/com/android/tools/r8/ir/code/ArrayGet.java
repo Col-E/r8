@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
@@ -132,12 +133,6 @@ public class ArrayGet extends ArrayAccess {
   @Override
   public int maxOutValueRegister() {
     return Constants.U8BIT_MAX;
-  }
-
-  @Override
-  public boolean instructionTypeCanThrow() {
-    // TODO: Determine if the array index out-of-bounds exception cannot happen.
-    return true;
   }
 
   @Override
@@ -271,5 +266,21 @@ public class ArrayGet extends ArrayAccess {
   @Override
   public ArrayAccess withMemberType(MemberType newMemberType) {
     return new ArrayGet(newMemberType, outValue(), array(), index());
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+    // TODO(b/203731608): Move to instructionInstanceCanThrow and remove the method.
+    if (array().isPhi() || !index().isConstant()) {
+      return true;
+    }
+    AbstractValue abstractValue = array().getAliasedValue().getAbstractValue(appView, context);
+    if (!abstractValue.isKnownLengthArrayValue()) {
+      return true;
+    }
+    int newArraySize = abstractValue.asKnownLengthArrayValue().getLength();
+    int index = index().getConstInstruction().asConstNumber().getIntValue();
+    return newArraySize <= 0 || index < 0 || newArraySize <= index;
   }
 }
