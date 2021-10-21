@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.concurrent.ConcurrentHashMap;
 

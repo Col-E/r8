@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.ObjectState;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class StaticFieldValues {
