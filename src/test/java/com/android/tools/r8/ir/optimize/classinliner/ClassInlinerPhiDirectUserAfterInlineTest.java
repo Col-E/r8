@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -84,6 +85,10 @@ public class ClassInlinerPhiDirectUserAfterInlineTest extends TestBase {
               ClassSubject aSubject = inspector.clazz(A.class);
               assertThat(aSubject, not(isPresent()));
             });
+  }
+
+  private void modifyIr(IRCode irCode, AppView<?> appView) {
+    modifyIr(irCode);
   }
 
   private void modifyIr(IRCode irCode) {

@@ -1647,7 +1647,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
     public boolean enableNarrowAndWideningingChecksInD8 = false;
-    public Consumer<IRCode> irModifier = null;
+    public BiConsumer<IRCode, AppView<?>> irModifier = null;
     public Consumer<IRCode> inlineeIrModifier = null;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
     public boolean dontReportFailingCheckDiscarded = false;

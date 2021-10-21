@@ -85,7 +85,6 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
@@ -156,15 +155,12 @@ public class CodeRewriter {
   private static final int STOP_SHARED_CONSTANT_THRESHOLD = 50;
   private static final int SELF_RECURSION_LIMIT = 4;
 
-  public final IRConverter converter;
-
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
 
-  public CodeRewriter(AppView<?> appView, IRConverter converter) {
+  public CodeRewriter(AppView<?> appView) {
     this.appView = appView;
-    this.converter = converter;
     this.options = appView.options();
     this.dexItemFactory = appView.dexItemFactory();
   }

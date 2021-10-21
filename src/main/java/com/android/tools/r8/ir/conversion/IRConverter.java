@@ -189,7 +189,7 @@ public class IRConverter {
     this.appView = appView;
     this.options = appView.options();
     this.printer = printer;
-    this.codeRewriter = new CodeRewriter(appView, this);
+    this.codeRewriter = new CodeRewriter(appView);
     this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
         new ClassInitializerDefaultsOptimization(appView, this);
@@ -1141,7 +1141,7 @@ public class IRConverter {
     String previous = printMethod(code, "Initial IR (SSA)", null);
 
     if (options.testing.irModifier != null) {
-      options.testing.irModifier.accept(code);
+      options.testing.irModifier.accept(code, appView);
     }
 
     if (options.canHaveArtStringNewInitBug()) {

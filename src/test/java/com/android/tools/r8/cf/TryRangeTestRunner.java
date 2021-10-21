@@ -13,6 +13,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -84,7 +85,7 @@ public class TryRangeTestRunner extends TestBase {
     assert instructions.get(index + 4) instanceof CfStackInstruction;
   }
 
-  private void processIR(IRCode code) {
+  private void processIR(IRCode code, AppView<?> appView) {
     if (!code.method().qualifiedName().equals(TryRangeTestLimitRange.class.getName() + ".main")) {
       return;
     }
