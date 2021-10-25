@@ -75,15 +75,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     return height;
   }
 
-  private boolean filterSynthesizedMethodWhenLineNumberAvailable(
-      StackTraceLine retracedStackTraceLine) {
-    return retracedStackTraceLine.lineNumber > 0;
-  }
-
   private boolean filterSynthesizedMethod(StackTraceLine retracedStackTraceLine) {
-    return haveSeenLines.add(retracedStackTraceLine)
-        && (retracedStackTraceLine.className.contains("ResourceWrapper")
-            || retracedStackTraceLine.className.contains("MainApp"));
+    return retracedStackTraceLine.lineNumber > 0;
   }
 
   @Test
@@ -95,7 +88,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
           StackTrace reprocessedStackTrace =
               mode == CompilationMode.DEBUG
                   ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
+                  : retracedStackTrace.filter(this::filterSynthesizedMethod);
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
               isSameExceptForFileName(
@@ -114,7 +107,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
           StackTrace reprocessedStackTrace =
               mode == CompilationMode.DEBUG
                   ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
+                  : retracedStackTrace.filter(this::filterSynthesizedMethod);
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
               isSameExceptForFileName(

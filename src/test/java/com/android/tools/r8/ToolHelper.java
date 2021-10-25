@@ -155,8 +155,6 @@ public class ToolHelper {
   public static final Path JACOCO_CLI = JACOCO_ROOT.resolve(Paths.get("lib", "jacococli.jar"));
   public static final String PROGUARD_SETTINGS_FOR_INTERNAL_APPS = "third_party/proguardsettings/";
 
-  private static final String RETRACE6_0_1 = "third_party/proguard/proguard6.0.1/bin/retrace";
-  private static final String RETRACE = RETRACE6_0_1;
   public static final Path RETRACE_MAPS_DIR = Paths.get(THIRD_PARTY_DIR, "r8mappings");
 
   public static final long BOT_MAX_HEAP_SIZE = 7908360192L;
@@ -775,13 +773,6 @@ public class ToolHelper {
       return Backend.values();
     }
     return new Backend[]{Backend.DEX};
-  }
-
-  private static String getRetraceScript() {
-    if (isWindows()) {
-      return RETRACE + ".bat";
-    }
-    return RETRACE + ".sh";
   }
 
   private static Path getDxExecutablePath() {
@@ -2021,17 +2012,19 @@ public class ToolHelper {
     return runProguard(getProguard6Script(), inJar, outJar, configs, map);
   }
 
-  public static ProcessResult runRetraceRaw(Path map, Path stackTrace) throws IOException {
+  public static ProcessResult runRetraceRaw(Path retracePath, Path map, Path stackTrace)
+      throws IOException {
     List<String> command = new ArrayList<>();
-    command.add(getRetraceScript());
+    command.add(retracePath.toString());
     command.add(map.toString());
     command.add(stackTrace.toString());
     ProcessBuilder builder = new ProcessBuilder(command);
     return ToolHelper.runProcess(builder);
   }
 
-  public static String runRetrace(Path map, Path stackTrace) throws IOException {
-    ProcessResult result = runRetraceRaw(map, stackTrace);
+  public static String runRetrace(ProguardVersion pgRetracer, Path map, Path stackTrace)
+      throws IOException {
+    ProcessResult result = runRetraceRaw(pgRetracer.getRetraceScript(), map, stackTrace);
     if (result.exitCode != 0) {
       fail("Retrace failed, exit code " + result.exitCode + ", stderr:\n" + result.stderr);
     }

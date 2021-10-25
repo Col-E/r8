@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ProguardVersion;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -219,6 +220,11 @@ class StackTrace {
   }
 
   public StackTrace retrace(String map, Path tempFolder) throws IOException {
+    return retrace(ProguardVersion.getLatest(), map, tempFolder);
+  }
+
+  public StackTrace retrace(ProguardVersion proguardVersion, String map, Path tempFolder)
+      throws IOException {
     Path mapFile = tempFolder.resolve("map");
     Path stackTraceFile = tempFolder.resolve("stackTrace");
     FileUtils.writeTextFile(mapFile, map);
@@ -227,7 +233,8 @@ class StackTrace {
         stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList()));
     // Keep the original stderr in the retraced stacktrace.
     return new StackTrace(
-        internalExtractFromJvm(ToolHelper.runRetrace(mapFile, stackTraceFile)), originalStderr);
+        internalExtractFromJvm(ToolHelper.runRetrace(proguardVersion, mapFile, stackTraceFile)),
+        originalStderr);
   }
 
   public StackTrace filter(Predicate<StackTraceLine> filter) {

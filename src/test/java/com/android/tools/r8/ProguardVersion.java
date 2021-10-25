@@ -25,16 +25,25 @@ public enum ProguardVersion {
   }
 
   public Path getProguardScript() {
+    return isWindows()
+        ? getScriptDirectory().resolve("proguard.bat")
+        : getScriptDirectory().resolve("proguard.sh");
+  }
+
+  public Path getRetraceScript() {
+    return isWindows()
+        ? getScriptDirectory().resolve("retrace.bat")
+        : getScriptDirectory().resolve("retrace.sh");
+  }
+
+  private Path getScriptDirectory() {
     Path scriptDirectory = Paths.get(ToolHelper.THIRD_PARTY_DIR).resolve("proguard");
     if (this == V7_0_0) {
-      scriptDirectory = scriptDirectory.resolve("proguard-" + version);
+      scriptDirectory = scriptDirectory.resolve("proguard-" + version).resolve("bin");
     } else {
-      scriptDirectory = scriptDirectory.resolve("proguard" + version);
+      scriptDirectory = scriptDirectory.resolve("proguard" + version).resolve("bin");
     }
-    if (isWindows()) {
-      return scriptDirectory.resolve("bin/proguard.bat");
-    }
-    return scriptDirectory.resolve("bin/proguard.sh");
+    return scriptDirectory;
   }
 
   public String getVersion() {
