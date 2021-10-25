@@ -5,8 +5,8 @@
 package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.KeepForRetraceApi;
 import java.util.Objects;
 
 /** Reference to a package. */

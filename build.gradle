@@ -301,6 +301,9 @@ def r8LibExludeDepsPath = "$buildDir/libs/r8lib-exclude-deps.jar"
 def r8DesugaredPath = "$buildDir/libs/r8desugared.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
+def java11ClassFiles = "$buildDir/classes/java/mainJava11"
+def r8RetracePath = "$buildDir/libs/r8retrace.jar"
+def r8RetraceExludeDepsPath = "$buildDir/libs/r8retrace-exclude-deps.jar"
 
 def osString = OperatingSystem.current().isLinux() ? "linux" :
         OperatingSystem.current().isMacOsX() ? "mac" : "windows"
@@ -1115,6 +1118,29 @@ task R8Desugared(type: Exec) {
             ["--release"])
     workingDir = projectDir
     outputs.file r8DesugaredPath
+}
+
+task R8Retrace {
+    dependsOn R8Lib
+    dependsOn r8LibCreateTask(
+            "Retrace",
+            ["src/main/keep_retrace.txt"],
+            R8Lib,
+            r8RetracePath,
+    ).dependsOn(R8Lib)
+    outputs.file r8RetracePath
+}
+
+task R8RetraceNoDeps {
+    dependsOn R8LibNoDeps
+    dependsOn r8LibCreateTask(
+            "RetraceNoDeps",
+            ["src/main/keep_retrace.txt"],
+            R8LibNoDeps,
+            r8RetraceExludeDepsPath,
+            repackageDeps.outputs.files
+    ).dependsOn(R8LibNoDeps)
+    outputs.file r8RetraceExludeDepsPath
 }
 
 task sourceJar(type: Jar, dependsOn: classes) {

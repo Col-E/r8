@@ -4,8 +4,8 @@
 package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.KeepForRetraceApi;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.KeepForRetraceApi;
 
 /** Reference to a class type or interface type. */
 @Keep
