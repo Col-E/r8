@@ -1717,7 +1717,7 @@ tasks.withType(Test) {
       maxParallelForks = processors.intdiv(3) ?: 1
       // On low cpu count machines (bots) we under subscribe, so increase the count.
       if (processors == 8) {
-        maxParallelForks = 4
+        maxParallelForks = 3
       }
     }
     println("NOTE: Max parallel forks " + maxParallelForks)
