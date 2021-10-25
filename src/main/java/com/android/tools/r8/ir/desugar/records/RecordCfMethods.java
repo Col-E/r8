@@ -110,10 +110,10 @@ public final class RecordCfMethods {
                 182,
                 options.itemFactory.createMethod(
                     options.itemFactory.stringType,
-                    options.itemFactory.createProto(options.itemFactory.booleanType),
-                    options.itemFactory.createString("isEmpty")),
+                    options.itemFactory.createProto(options.itemFactory.intType),
+                    options.itemFactory.createString("length")),
                 false),
-            new CfIf(If.Type.EQ, ValueType.INT, label1),
+            new CfIf(If.Type.NE, ValueType.INT, label1),
             new CfConstNumber(0, ValueType.INT),
             new CfNewArray(options.itemFactory.createType("[Ljava/lang/String;")),
             new CfGoto(label2),

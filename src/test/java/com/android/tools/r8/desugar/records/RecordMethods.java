@@ -13,7 +13,7 @@ public class RecordMethods {
   public static String toString(
       Object[] recordFieldsValues, Class<?> recordClass, String fieldNames) {
     // Example: "Person[name=Jane Doe, age=42]"
-    String[] fieldNamesSplit = fieldNames.isEmpty() ? new String[0] : fieldNames.split(";");
+    String[] fieldNamesSplit = fieldNames.length() == 0 ? new String[0] : fieldNames.split(";");
     StringBuilder builder = new StringBuilder();
     builder.append(recordClass.getSimpleName()).append("[");
     for (int i = 0; i < fieldNamesSplit.length; i++) {
