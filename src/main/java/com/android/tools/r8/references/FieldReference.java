@@ -4,6 +4,7 @@
 package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.utils.KeepForRetraceApi;
 import java.util.Objects;
 
 /**
@@ -13,6 +14,7 @@ import java.util.Objects;
  * type of the field.
  */
 @Keep
+@KeepForRetraceApi
 public final class FieldReference {
   private final ClassReference holderClass;
   private final String fieldName;

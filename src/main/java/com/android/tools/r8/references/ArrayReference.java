@@ -6,10 +6,12 @@ package com.android.tools.r8.references;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.KeepForRetraceApi;
 import java.util.Objects;
 
 /** Reference to an array type. */
 @Keep
+@KeepForRetraceApi
 public final class ArrayReference implements TypeReference {
 
   private final int dimensions;

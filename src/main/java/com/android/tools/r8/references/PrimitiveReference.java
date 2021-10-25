@@ -5,8 +5,10 @@ package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.KeepForRetraceApi;
 
 @Keep
+@KeepForRetraceApi
 public abstract class PrimitiveReference implements TypeReference {
 
   static final PrimitiveReference BOOL =

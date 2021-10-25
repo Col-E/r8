@@ -4,6 +4,7 @@
 package com.android.tools.r8.references;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.utils.KeepForRetraceApi;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -17,6 +18,7 @@ import java.util.Objects;
  * full list of formal parameters.
  */
 @Keep
+@KeepForRetraceApi
 public final class MethodReference {
   private final ClassReference holderClass;
   private final String methodName;
