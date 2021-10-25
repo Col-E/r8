@@ -321,6 +321,7 @@ def Main():
     # Force gradle to build a version of r8lib without dependencies for
     # BootstrapCurrentEqualityTest.
     gradle_args.append('R8LibNoDeps')
+    gradle_args.append('R8Retrace')
   if options.r8lib_no_deps:
     gradle_args.append('-Pr8lib_no_deps')
   if options.worktree:

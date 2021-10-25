@@ -303,7 +303,7 @@ public class RetraceCommandLineTests {
       command.add(ToolHelper.getSystemJavaExecutable());
       command.add("-ea");
       command.add("-cp");
-      command.add(ToolHelper.R8LIB_JAR.toString());
+      command.add(ToolHelper.R8_RETRACE_JAR.toString());
       command.add("com.android.tools.r8.retrace.Retrace");
       command.addAll(args);
       ProcessBuilder builder = new ProcessBuilder(command);

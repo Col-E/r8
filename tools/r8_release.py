@@ -363,6 +363,7 @@ def prepare_google3(args):
       g4_open('src.jar')
       g4_open('lib.jar')
       g4_open('lib.jar.map')
+      g4_open('retrace_lib.jar')
       g4_open('desugar_jdk_libs_configuration.jar')
       download_file(options.version, 'r8-full-exclude-deps.jar', 'full.jar')
       download_file(options.version, 'r8-src.jar', 'src.jar')
@@ -371,6 +372,7 @@ def prepare_google3(args):
           options.version, 'r8lib-exclude-deps.jar.map', 'lib.jar.map')
       download_file(options.version, 'desugar_jdk_libs_configuration.jar',
                     'desugar_jdk_libs_configuration.jar')
+      download_file(options.version, 'r8retrace-exclude-deps.jar', 'retrace_lib.jar')
       g4_open('METADATA')
       sed(r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev',
           options.version,
