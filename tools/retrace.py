@@ -151,7 +151,7 @@ def run(map_path, stacktrace, no_r8lib, quiet=False, debug=False, regex=None, ve
 
   retrace_args += [
     '-cp',
-    utils.R8_JAR if no_r8lib else utils.R8LIB_JAR,
+    utils.R8_JAR if no_r8lib else utils.R8RETRACE_JAR,
     'com.android.tools.r8.retrace.Retrace',
     map_path
   ]
