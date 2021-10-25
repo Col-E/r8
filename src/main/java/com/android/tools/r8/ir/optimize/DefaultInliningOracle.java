@@ -127,8 +127,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     // Do not inline if the inlinee is greater than the api caller level.
     // TODO(b/188498051): We should not force inline lower api method calls.
-    if (reason != Reason.FORCE
-        && isApiSafeForInlining(method, singleTarget, appView.options()).isPossiblyFalse()) {
+    if (reason != Reason.FORCE && !isApiSafeForInlining(method, singleTarget, appView.options())) {
       whyAreYouNotInliningReporter.reportInlineeHigherApiCall();
       return false;
     }

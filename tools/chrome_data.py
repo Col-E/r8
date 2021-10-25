@@ -248,6 +248,7 @@ VERSIONS = {
         'inputs': [os.path.join(V180917_BASE, path) for path in INPUT_JARS],
         'pgconf': [os.path.join(V180917_BASE, path) for path in PG_CONFS],
         'libraries': [os.path.join(V180917_BASE, path) for path in LIBRARIES],
+        'min-api': '21',
     },
   },
   '200430': {

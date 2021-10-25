@@ -1473,7 +1473,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Map<ClassReference, AndroidApiLevel> classApiMapping = new HashMap<>();
     public BiConsumer<MethodReference, AndroidApiLevel> tracedMethodApiLevelCallback = null;
 
-    public boolean enableApiCallerIdentification = false;
+    public boolean enableApiCallerIdentification = true;
     public boolean checkAllApiReferencesAreSet = true;
     public boolean useHashingDatabase = true;
 

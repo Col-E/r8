@@ -88,10 +88,12 @@ public class AndroidApiReferenceLevelCache {
       // of the program.
       return appView.options().minApiLevel;
     }
-    return reference.apply(
-        androidApiLevelDatabase::getTypeApiLevel,
-        androidApiLevelDatabase::getFieldApiLevel,
-        androidApiLevelDatabase::getMethodApiLevel);
+    return reference
+        .apply(
+            androidApiLevelDatabase::getTypeApiLevel,
+            androidApiLevelDatabase::getFieldApiLevel,
+            androidApiLevelDatabase::getMethodApiLevel)
+        .max(appView.options().minApiLevel);
   }
 
   private boolean isReferenceToJavaLangObject(DexReference reference) {

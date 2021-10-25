@@ -12,10 +12,12 @@ import static junit.framework.TestCase.assertSame;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.Jdk9TestUtils;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.utils.StringUtils;
@@ -51,33 +53,72 @@ public class NestAttributesUpdateTest extends TestBase {
 
   @Test
   public void testClassMergingNestMemberRemoval() throws Exception {
-    testNestAttributesCorrect(MERGING_OUTER_CLASS, MERGING_OUTER_CLASS, MERGING_EXPECTED_RESULT, 3);
+    testNestAttributesCorrect(
+        MERGING_OUTER_CLASS,
+        MERGING_OUTER_CLASS,
+        MERGING_EXPECTED_RESULT,
+        3,
+        ThrowableConsumer.empty());
   }
 
   @Test
   public void testClassMergingNestHostRemoval() throws Exception {
     testNestAttributesCorrect(
-        MERGING_OUTER_CLASS + "$MiddleOuter", MERGING_OUTER_CLASS, MERGING_EXPECTED_RESULT, 2);
+        MERGING_OUTER_CLASS + "$MiddleOuter",
+        MERGING_OUTER_CLASS,
+        MERGING_EXPECTED_RESULT,
+        2,
+        builder -> {
+          builder.addOptionsModification(
+              internalOptions -> {
+                // The test makes an invoke to StringConcatFactory which is not known to DEX and
+                // we therefore fail to merge the classes.
+                internalOptions.apiModelingOptions().enableApiCallerIdentification = false;
+              });
+        });
   }
 
   @Test
   public void testTreePruningNestMemberRemoval() throws Exception {
-    testNestAttributesCorrect(PRUNING_OUTER_CLASS, PRUNING_OUTER_CLASS, PRUNING_EXPECTED_RESULT, 2);
+    testNestAttributesCorrect(
+        PRUNING_OUTER_CLASS,
+        PRUNING_OUTER_CLASS,
+        PRUNING_EXPECTED_RESULT,
+        2,
+        ThrowableConsumer.empty());
   }
 
   @Test
   public void testTreePruningNestHostRemoval() throws Exception {
     testNestAttributesCorrect(
-        PRUNING_OUTER_CLASS + "$Pruned", PRUNING_OUTER_CLASS, PRUNING_EXPECTED_RESULT, 1);
+        PRUNING_OUTER_CLASS + "$Pruned",
+        PRUNING_OUTER_CLASS,
+        PRUNING_EXPECTED_RESULT,
+        1,
+        ThrowableConsumer.empty());
   }
 
   public void testNestAttributesCorrect(
-      String mainClassName, String outerNestName, String expectedResult, int expectedNumClassesLeft)
+      String mainClassName,
+      String outerNestName,
+      String expectedResult,
+      int expectedNumClassesLeft,
+      ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer)
       throws Exception {
     testNestAttributesCorrect(
-        mainClassName, outerNestName, expectedResult, true, expectedNumClassesLeft);
+        mainClassName,
+        outerNestName,
+        expectedResult,
+        true,
+        expectedNumClassesLeft,
+        testBuilderConsumer);
     testNestAttributesCorrect(
-        mainClassName, outerNestName, expectedResult, false, expectedNumClassesLeft);
+        mainClassName,
+        outerNestName,
+        expectedResult,
+        false,
+        expectedNumClassesLeft,
+        testBuilderConsumer);
   }
 
   public void testNestAttributesCorrect(
@@ -85,7 +126,8 @@ public class NestAttributesUpdateTest extends TestBase {
       String outerNestName,
       String expectedResult,
       boolean minification,
-      int expectedNumClassesLeft)
+      int expectedNumClassesLeft,
+      ThrowableConsumer<R8FullTestBuilder> testBuilderConsumer)
       throws Exception {
     String actualMainClassName = PACKAGE_NAME + mainClassName;
     testForR8(parameters.getBackend())
@@ -101,6 +143,7 @@ public class NestAttributesUpdateTest extends TestBase {
         .applyIf(parameters.isCfRuntime(), Jdk9TestUtils.addJdk9LibraryFiles(temp))
         .addKeepPackageNamesRule("nesthostexample")
         .addInliningAnnotations()
+        .apply(testBuilderConsumer)
         .compile()
         .inspect(
             inspector -> {

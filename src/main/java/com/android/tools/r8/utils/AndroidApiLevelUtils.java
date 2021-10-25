@@ -8,18 +8,17 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public class AndroidApiLevelUtils {
 
-  public static OptionalBool isApiSafeForInlining(
+  public static boolean isApiSafeForInlining(
       ProgramMethod caller, ProgramMethod inlinee, InternalOptions options) {
     if (!options.apiModelingOptions().enableApiCallerIdentification) {
-      return OptionalBool.TRUE;
+      return true;
     }
     if (caller.getHolderType() == inlinee.getHolderType()) {
-      return OptionalBool.TRUE;
+      return true;
     }
-    return OptionalBool.of(
-        caller
-            .getDefinition()
-            .getApiLevel()
-            .isGreaterThanOrEqualTo(inlinee.getDefinition().getApiLevelForCode()));
+    return caller
+        .getDefinition()
+        .getApiLevel()
+        .isGreaterThanOrEqualTo(inlinee.getDefinition().getApiLevelForCode());
   }
 }

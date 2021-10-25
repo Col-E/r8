@@ -880,7 +880,7 @@ final class InlineCandidateProcessor {
       return null;
     }
     // Check the api level is allowed to be inlined.
-    if (isApiSafeForInlining(method, singleTarget, appView.options()).isPossiblyFalse()) {
+    if (!isApiSafeForInlining(method, singleTarget, appView.options())) {
       return null;
     }
     // Check that the entire constructor chain can be inlined into the current context.
@@ -910,7 +910,7 @@ final class InlineCandidateProcessor {
         return null;
       }
       // Check the api level is allowed to be inlined.
-      if (isApiSafeForInlining(method, encodedParent, appView.options()).isPossiblyFalse()) {
+      if (!isApiSafeForInlining(method, encodedParent, appView.options())) {
         return null;
       }
       parent =

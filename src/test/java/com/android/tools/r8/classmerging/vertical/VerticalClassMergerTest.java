@@ -4,6 +4,7 @@
 package com.android.tools.r8.classmerging.vertical;
 
 import static com.android.tools.r8.smali.SmaliBuilder.buildCode;
+import static com.android.tools.r8.utils.AndroidApiLevel.K;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -315,10 +316,13 @@ public class VerticalClassMergerTest extends TestBase {
           CF_DIR.resolve("FieldCollisionTest$A.class"),
           CF_DIR.resolve("FieldCollisionTest$B.class")
         };
-    Set<String> preservedClassNames =
-        ImmutableSet.of(
-            "classmerging.FieldCollisionTest",
-            "classmerging.FieldCollisionTest$B");
+    ImmutableSet.Builder<String> preservedNamesBuilder = ImmutableSet.builder();
+    preservedNamesBuilder.add("classmerging.FieldCollisionTest");
+    preservedNamesBuilder.add("classmerging.FieldCollisionTest$B");
+    if (parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(K)) {
+      preservedNamesBuilder.add("classmerging.FieldCollisionTest$A");
+    }
+    Set<String> preservedClassNames = preservedNamesBuilder.build();
     runTest(
         testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))

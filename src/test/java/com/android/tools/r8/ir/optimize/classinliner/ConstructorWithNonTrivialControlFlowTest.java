@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -56,9 +57,9 @@ public class ConstructorWithNonTrivialControlFlowTest extends TestBase {
 
   private void verifyClassInliningRemovesCandidate(CodeInspector inspector) {
     ClassSubject candidateClassSubject = inspector.clazz(Candidate.class);
-    if (enableClassInlining) {
-      // TODO(b/188388130): String.empty was added in AndroidApiLevel.G, so if this fails after
-      //  enabling api modeling then check for api level.
+    if (enableClassInlining
+        && (parameters.isDexRuntime()
+            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.G))) {
       assertThat(candidateClassSubject, not(isPresent()));
     } else {
       assertThat(candidateClassSubject, isPresent());
