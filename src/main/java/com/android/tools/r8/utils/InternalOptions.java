@@ -1671,6 +1671,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Set<String> allowedUnusedDontWarnPatterns = new HashSet<>();
     public boolean enableTestAssertions =
         System.getProperty("com.android.tools.r8.enableTestAssertions") != null;
+    public boolean disableMarkingMethodsFinal =
+        System.getProperty("com.android.tools.r8.disableMarkingMethodsFinal") != null;
+    public boolean disableMarkingClassesFinal =
+        System.getProperty("com.android.tools.r8.disableMarkingClassesFinal") != null;
     public boolean testEnableTestAssertions = false;
     public boolean keepMetadataInR8IfNotRewritten = true;
 

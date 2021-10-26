@@ -208,7 +208,8 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
   }
 
   private void promoteToFinalIfPossible(DexProgramClass clazz) {
-    if (!clazz.isAbstract()
+    if (!appView.testing().disableMarkingClassesFinal
+        && !clazz.isAbstract()
         && !clazz.isInterface()
         && appView.getKeepInfo(clazz).isOptimizationAllowed(appView.options())) {
       clazz.getAccessFlags().promoteToFinal();
@@ -216,7 +217,8 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
   }
 
   private void promoteToFinalIfPossible(ProgramMethod method, VirtualRootMethod virtualRootMethod) {
-    if (!method.getHolder().isInterface()
+    if (!appView.testing().disableMarkingMethodsFinal
+        && !method.getHolder().isInterface()
         && !method.getAccessFlags().isAbstract()
         && !virtualRootMethod.hasOverrides()
         && appView.getKeepInfo(method).isOptimizationAllowed(appView.options())) {
