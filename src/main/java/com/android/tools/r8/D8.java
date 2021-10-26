@@ -181,6 +181,15 @@ public final class D8 {
 
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
       throws IOException {
+    if (options.printMemory) {
+      // Run GC twice to remove objects with finalizers.
+      System.gc();
+      System.gc();
+      Runtime runtime = Runtime.getRuntime();
+      System.out.println("D8 is running with total memory:" + runtime.totalMemory());
+      System.out.println("D8 is running with free memory:" + runtime.freeMemory());
+      System.out.println("D8 is running with max memory:" + runtime.maxMemory());
+    }
     Timing timing = Timing.create("D8", options);
     try {
       // Disable global optimizations.

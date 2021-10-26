@@ -283,6 +283,15 @@ public class R8 {
     }
     // Synthetic assertion to check that testing assertions works and can be enabled.
     assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
+    if (options.printMemory) {
+      // Run GC twice to remove objects with finalizers.
+      System.gc();
+      System.gc();
+      Runtime runtime = Runtime.getRuntime();
+      System.out.println("R8 is running with total memory:" + runtime.totalMemory());
+      System.out.println("R8 is running with free memory:" + runtime.freeMemory());
+      System.out.println("R8 is running with max memory:" + runtime.maxMemory());
+    }
     try {
       AppView<AppInfoWithClassHierarchy> appView;
       {
