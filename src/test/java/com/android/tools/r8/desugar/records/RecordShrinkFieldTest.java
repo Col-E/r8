@@ -29,8 +29,6 @@ public class RecordShrinkFieldTest extends TestBase {
   private static final String EXPECTED_RESULT_D8 =
       String.format(EXPECTED_RESULT, "Person", "Person");
   private static final String EXPECTED_RESULT_R8 = StringUtils.lines("a[a=Jane Doe]", "a[a=Bob]");
-  private static final String EXPECTED_RESULT_R8_WITH_FIELD_NAMES =
-      StringUtils.lines("a[name=Jane Doe]", "a[name=Bob]");
 
   private final TestParameters parameters;
 
@@ -66,22 +64,6 @@ public class RecordShrinkFieldTest extends TestBase {
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
-  }
-
-  @Test
-  public void testR8Compat() throws Exception {
-    testForR8Compat(parameters.getBackend())
-        .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(MAIN_TYPE)
-        .addKeepRules(
-            "-keepclassmembers,allowshrinking,allowoptimization class"
-                + " records.RecordShrinkField$Person { <fields>; }")
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .compile()
-        .inspect(this::assertSingleField)
-        .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8_WITH_FIELD_NAMES);
   }
 
   @Test
