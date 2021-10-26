@@ -25,7 +25,8 @@ import org.junit.runners.Parameterized.Parameters;
 public class ArrayLengthRewriteTest extends TestBase {
   @Parameters(name = "{0}, debug = {1}")
   public static Iterable<?> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   private final TestParameters parameters;
