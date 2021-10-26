@@ -75,4 +75,5 @@ public interface Opcodes {
   int USHR = 66;
   int XOR = 67;
   int UNINITIALIZED_THIS_LOCAL_READ = 68;
+  int RECORD_FIELD_VALUES = 69;
 }

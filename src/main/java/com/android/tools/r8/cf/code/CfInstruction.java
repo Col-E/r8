@@ -110,6 +110,14 @@ public abstract class CfInstruction implements CfOrDexInstruction {
     return true;
   }
 
+  public CfRecordFieldValues asRecordFieldValues() {
+    return null;
+  }
+
+  public boolean isRecordFieldValues() {
+    return false;
+  }
+
   public CfConstString asConstString() {
     return null;
   }

@@ -51,6 +51,10 @@ public abstract class UseRegistry<T extends Definition> {
     return continuation;
   }
 
+  public void registerRecordFieldValues(DexField[] fields) {
+    registerTypeReference(appView.dexItemFactory().objectArrayType);
+  }
+
   public abstract void registerInitClass(DexType type);
 
   public abstract void registerInvokeVirtual(DexMethod method);

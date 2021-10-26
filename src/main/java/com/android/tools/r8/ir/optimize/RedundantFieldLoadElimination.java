@@ -308,6 +308,7 @@ public class RedundantFieldLoadElimination {
                     || instruction.isSwitch()
                     || instruction.isThrow()
                     || instruction.isUnop()
+                    || instruction.isRecordFieldValues()
                 : "Unexpected instruction of type " + instruction.getClass().getTypeName();
           }
         }

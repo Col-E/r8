@@ -42,6 +42,7 @@ import com.android.tools.r8.cf.code.CfNewUnboxedEnum;
 import com.android.tools.r8.cf.code.CfNop;
 import com.android.tools.r8.cf.code.CfNumberConversion;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.cf.code.CfRecordFieldValues;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
@@ -252,6 +253,14 @@ public class CfPrinter {
   private void print(String name) {
     indent();
     builder.append(name);
+  }
+
+  public void print(CfRecordFieldValues recordFieldValues) {
+    String recordType =
+        recordFieldValues.getFields().length == 0
+            ? "empty"
+            : recordFieldValues.getFields()[0].holder.toString();
+    print("record_field_values(" + recordType + ")");
   }
 
   public void print(CfNop nop) {

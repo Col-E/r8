@@ -406,6 +406,12 @@ public class Enqueuer {
   private final Map<DexType, Visibility> initClassReferences = new IdentityHashMap<>();
 
   /**
+   * A map from seen init-class references to the minimum required visibility of the corresponding
+   * static field.
+   */
+  private final Set<DexMethod> recordFieldValuesReferences = Sets.newIdentityHashSet();
+
+  /**
    * A map from annotation classes to annotations that need to be processed should the classes ever
    * become live.
    */
@@ -1118,6 +1124,14 @@ public class Enqueuer {
         markClassAsInstantiatedWithCompatRule(
             baseClass, () -> graphReporter.reportCompatInstantiated(baseClass, currentMethod));
       }
+    }
+  }
+
+  void traceRecordFieldValues(DexField[] fields, ProgramMethod currentMethod) {
+    // TODO(b/203377129): Consider adding an enqueuer extension instead of growing the
+    //  number of fields in appInfoWithLiveness.
+    if (mode.isFinalTreeShaking()) {
+      recordFieldValuesReferences.add(currentMethod.getReference());
     }
   }
 
@@ -3745,7 +3759,8 @@ public class Enqueuer {
             emptySet(),
             Collections.emptyMap(),
             lockCandidates,
-            initClassReferences);
+            initClassReferences,
+            recordFieldValuesReferences);
     appInfo.markObsolete();
     if (options.testing.enqueuerInspector != null) {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);

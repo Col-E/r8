@@ -700,6 +700,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return this;
   }
 
+  public boolean isRecordFieldValues() {
+    return false;
+  }
+
+  public RecordFieldValues asRecordFieldValues() {
+    return null;
+  }
+
   public boolean isArrayAccess() {
     return false;
   }
@@ -1400,7 +1408,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return isNewArrayEmpty()
         || isNewArrayFilledData()
         || isInvokeNewArray()
-        || isInvokeMultiNewArray();
+        || isInvokeMultiNewArray()
+        || isRecordFieldValues();
   }
 
   public boolean isCreatingInstanceOrArray() {

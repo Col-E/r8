@@ -29,11 +29,7 @@ public class RecordShrinkFieldTest extends TestBase {
   private static final String EXPECTED_RESULT_D8 =
       String.format(EXPECTED_RESULT, "Person", "Person");
   private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "a");
-  // TODO(b/201277582): These results are temporary while we transition into pruned minified record
-  //  fields.
-  private static final String EXPECTED_INVALID_RESULT_R8_ADVANCED_DEX =
-      StringUtils.lines("a[a=-1]", "a[a=-1]");
-  private static final String EXPECTED_RESULT_R8_ADVANCED_CF =
+  private static final String EXPECTED_RESULT_R8_RECORD_MODELING =
       StringUtils.lines("a[a=Jane Doe]", "a[a=Bob]");
 
   private final TestParameters parameters;
@@ -99,7 +95,7 @@ public class RecordShrinkFieldTest extends TestBase {
         .compile()
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_INVALID_RESULT_R8_ADVANCED_DEX);
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8_RECORD_MODELING);
   }
 
   @Test
@@ -123,7 +119,7 @@ public class RecordShrinkFieldTest extends TestBase {
         .compile()
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8_ADVANCED_CF);
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8_RECORD_MODELING);
   }
 
   @Test

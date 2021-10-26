@@ -9,6 +9,7 @@ public class DexCompareHelper {
   // virtual instructions represented in our internal encoding.
   static final int INIT_CLASS_COMPARE_ID;
   static final int DEX_ITEM_CONST_STRING_COMPARE_ID;
+  static final int DEX_RECORD_FIELD_VALUES_COMPARE_ID;
 
   private static int HIGHEST_DEX_OPCODE = 0xFF;
 
@@ -16,6 +17,7 @@ public class DexCompareHelper {
     int lastId = HIGHEST_DEX_OPCODE;
     INIT_CLASS_COMPARE_ID = ++lastId;
     DEX_ITEM_CONST_STRING_COMPARE_ID = ++lastId;
+    DEX_RECORD_FIELD_VALUES_COMPARE_ID = ++lastId;
   }
 
   // Helper to signal that the concrete instruction is uniquely determined by its ID/opcode.

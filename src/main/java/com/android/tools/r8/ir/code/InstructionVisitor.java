@@ -118,6 +118,8 @@ public interface InstructionVisitor<T> {
 
   T visit(Pop instruction);
 
+  T visit(RecordFieldValues instruction);
+
   T visit(Rem instruction);
 
   T visit(Return instruction);

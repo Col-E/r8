@@ -104,6 +104,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Phi.StackMapPhi;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.RecordFieldValues;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.SafeCheckCast;
@@ -1555,6 +1556,20 @@ public class IRBuilder {
     Value valueValue = readRegister(value, ValueTypeConstraint.fromDexType(field.type));
     InstancePut instruction = new InstancePut(field, objectValue, valueValue);
     add(instruction);
+  }
+
+  public void addRecordFieldValues(DexField[] fields, IntList registers, int outValue) {
+    List<Value> arguments = new ArrayList<>();
+    for (int register : registers) {
+      arguments.add(readRegister(register, ValueTypeConstraint.OBJECT));
+    }
+    Value out =
+        writeRegister(
+            outValue,
+            TypeElement.fromDexType(
+                appView.dexItemFactory().objectArrayType, definitelyNotNull(), appView),
+            ThrowingInfo.CAN_THROW);
+    add(new RecordFieldValues(fields, out, arguments));
   }
 
   public void addInvoke(

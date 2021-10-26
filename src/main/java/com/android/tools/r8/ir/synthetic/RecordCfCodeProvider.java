@@ -16,6 +16,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNewArray;
+import com.android.tools.r8.cf.code.CfRecordFieldValues;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.AppView;
@@ -75,6 +76,13 @@ public abstract class RecordCfCodeProvider {
       // 0 : receiver (the record instance)
       // 1 : the array to return
       // 2+: spills
+      return appView.enableWholeProgramOptimizations()
+              && appView.options().testing.enableRecordModeling
+          ? generateCfCodeWithRecordModeling()
+          : generateCfCodeWithArray();
+    }
+
+    private CfCode generateCfCodeWithArray() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
       // Object[] fields = new Object[*length*];
@@ -86,29 +94,46 @@ public abstract class RecordCfCodeProvider {
         DexField field = fields[i];
         instructions.add(new CfLoad(ValueType.OBJECT, 1));
         instructions.add(new CfConstNumber(i, ValueType.INT));
-        instructions.add(new CfLoad(ValueType.OBJECT, 0));
-        instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, field, field));
-        if (field.type.isPrimitiveType()) {
-          factory.primitiveToBoxed.forEach(
-              (primitiveType, boxedType) -> {
-                if (primitiveType == field.type) {
-                  instructions.add(
-                      new CfInvoke(
-                          Opcodes.INVOKESTATIC,
-                          factory.createMethod(
-                              boxedType,
-                              factory.createProto(boxedType, primitiveType),
-                              factory.valueOfMethodName),
-                          false));
-                }
-              });
-        }
+        loadFieldAsObject(instructions, field);
         instructions.add(new CfArrayStore(MemberType.OBJECT));
       }
       // return fields;
       instructions.add(new CfLoad(ValueType.OBJECT, 1));
       instructions.add(new CfReturn(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);
+    }
+
+    private CfCode generateCfCodeWithRecordModeling() {
+      List<CfInstruction> instructions = new ArrayList<>();
+      // fields[*i*] = this.*field* || *PrimitiveWrapper*.valueOf(this.*field*);
+      for (DexField field : fields) {
+        loadFieldAsObject(instructions, field);
+      }
+      // return recordFieldValues(fields);
+      instructions.add(new CfRecordFieldValues(fields));
+      instructions.add(new CfReturn(ValueType.OBJECT));
+      return standardCfCodeFromInstructions(instructions);
+    }
+
+    private void loadFieldAsObject(List<CfInstruction> instructions, DexField field) {
+      DexItemFactory factory = appView.dexItemFactory();
+      instructions.add(new CfLoad(ValueType.OBJECT, 0));
+      instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, field, field));
+      if (field.type.isPrimitiveType()) {
+        factory.primitiveToBoxed.forEach(
+            (primitiveType, boxedType) -> {
+              if (primitiveType == field.type) {
+                instructions.add(
+                    new CfInvoke(
+                        Opcodes.INVOKESTATIC,
+                        factory.createMethod(
+                            boxedType,
+                            factory.createProto(boxedType, primitiveType),
+                            factory.valueOfMethodName),
+                        false));
+              }
+            });
+      }
     }
   }
 

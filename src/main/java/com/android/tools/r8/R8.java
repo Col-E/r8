@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterLibraryTypeSynthesizer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
+import com.android.tools.r8.ir.desugar.records.RecordFieldValuesRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.NestReducer;
@@ -687,6 +688,12 @@ public class R8 {
       }
 
       performFinalMainDexTracing(appView, executorService);
+
+      RecordFieldValuesRewriter recordFieldArrayRemover =
+          RecordFieldValuesRewriter.create(appView.withLiveness());
+      if (recordFieldArrayRemover != null) {
+        recordFieldArrayRemover.rewriteRecordFieldValues();
+      }
 
       // Remove unneeded visibility bridges that have been inserted for member rebinding.
       // This can only be done if we have AppInfoWithLiveness.

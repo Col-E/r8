@@ -57,6 +57,12 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
   }
 
   @Override
+  public void registerRecordFieldValues(DexField[] fields) {
+    super.registerRecordFieldValues(fields);
+    enqueuer.traceRecordFieldValues(fields, getContext());
+  }
+
+  @Override
   public void registerInvokeVirtual(DexMethod invokedMethod) {
     setMaxApiReferenceLevel(invokedMethod);
     enqueuer.traceInvokeVirtual(invokedMethod, getContext());

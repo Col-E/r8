@@ -183,6 +183,10 @@ public abstract class Instruction implements CfOrDexInstruction, StructuralItem<
     return false;
   }
 
+  public boolean isRecordFieldValues() {
+    return false;
+  }
+
   public DexItemBasedConstString asDexItemBasedConstString() {
     return null;
   }

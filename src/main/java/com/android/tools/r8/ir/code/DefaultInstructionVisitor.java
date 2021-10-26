@@ -290,6 +290,11 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
+  public T visit(RecordFieldValues instruction) {
+    return null;
+  }
+
+  @Override
   public T visit(Rem instruction) {
     return null;
   }

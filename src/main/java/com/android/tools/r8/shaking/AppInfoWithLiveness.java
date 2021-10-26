@@ -181,6 +181,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   public final Map<DexType, Visibility> initClassReferences;
   /**
+   * Set of all methods including a RecordFieldValues instruction. Set only in final tree shaking.
+   */
+  public final Set<DexMethod> recordFieldValuesReferences;
+  /**
    * All methods and fields whose value *must* never be propagated due to a configuration directive.
    * (testing only).
    */
@@ -240,7 +244,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Set<DexType> lockCandidates,
-      Map<DexType, Visibility> initClassReferences) {
+      Map<DexType, Visibility> initClassReferences,
+      Set<DexMethod> recordFieldValuesReferences) {
     super(syntheticItems, classToFeatureSplitMap, mainDexInfo, missingClasses);
     this.deadProtoTypes = deadProtoTypes;
     this.liveTypes = liveTypes;
@@ -278,6 +283,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.switchMaps = switchMaps;
     this.lockCandidates = lockCandidates;
     this.initClassReferences = initClassReferences;
+    this.recordFieldValuesReferences = recordFieldValuesReferences;
     assert verify();
   }
 
@@ -322,7 +328,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.prunedTypes,
         previous.switchMaps,
         previous.lockCandidates,
-        previous.initClassReferences);
+        previous.initClassReferences,
+        previous.recordFieldValuesReferences);
   }
 
   private AppInfoWithLiveness(
@@ -374,7 +381,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             : previous.prunedTypes,
         previous.switchMaps,
         pruneClasses(previous.lockCandidates, prunedItems, executorService, futures),
-        pruneMapFromClasses(previous.initClassReferences, prunedItems, executorService, futures));
+        pruneMapFromClasses(previous.initClassReferences, prunedItems, executorService, futures),
+        previous.recordFieldValuesReferences);
   }
 
   private static Set<DexType> pruneClasses(
@@ -578,7 +586,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         prunedTypes,
         switchMaps,
         lockCandidates,
-        initClassReferences);
+        initClassReferences,
+        recordFieldValuesReferences);
   }
 
   private static KeepInfoCollection extendPinnedItems(
@@ -661,6 +670,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.switchMaps = switchMaps;
     this.lockCandidates = previous.lockCandidates;
     this.initClassReferences = previous.initClassReferences;
+    this.recordFieldValuesReferences = previous.recordFieldValuesReferences;
     previous.markObsolete();
     assert verify();
   }
@@ -1284,7 +1294,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         prunedTypes,
         lens.rewriteFieldKeys(switchMaps),
         lens.rewriteReferences(lockCandidates),
-        rewriteInitClassReferences(lens));
+        rewriteInitClassReferences(lens),
+        lens.rewriteReferences(recordFieldValuesReferences));
   }
 
   public Map<DexType, Visibility> rewriteInitClassReferences(GraphLens lens) {

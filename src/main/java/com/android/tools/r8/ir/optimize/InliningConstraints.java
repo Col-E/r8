@@ -287,6 +287,10 @@ public class InliningConstraints {
     return ConstraintWithTarget.classIsVisible(context, type, appView);
   }
 
+  public ConstraintWithTarget forRecordFieldValues() {
+    return ConstraintWithTarget.ALWAYS;
+  }
+
   public ConstraintWithTarget forNewArrayFilledData() {
     return ConstraintWithTarget.ALWAYS;
   }

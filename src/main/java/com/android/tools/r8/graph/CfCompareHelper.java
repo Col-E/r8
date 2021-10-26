@@ -30,6 +30,7 @@ public class CfCompareHelper {
   public static final int INIT_CLASS_COMPARE_ID;
   public static final int LABEL_COMPARE_ID;
   public static final int POSITION_COMPARE_ID;
+  public static final int RECORD_FIELD_VALUES_COMPARE_ID;
 
   static {
     int lastId = Opcodes.IFNONNULL;
@@ -44,6 +45,7 @@ public class CfCompareHelper {
     INIT_CLASS_COMPARE_ID = ++lastId;
     LABEL_COMPARE_ID = ++lastId;
     POSITION_COMPARE_ID = ++lastId;
+    RECORD_FIELD_VALUES_COMPARE_ID = ++lastId;
   }
 
   // Helper to signal that the concrete instruction is uniquely determined by its ID/opcode.
