@@ -84,8 +84,12 @@ In order to contribute to D8/R8 you have to sign the
 If your contribution is owned by your employer you need the
 [Corporate Contributor License Agreement](https://cla.developers.google.com/about/google-corporate).
 
-Once the license agreement is in place, you can upload your patches
-using 'git cl' which is available in depot_tools. Once you have a
+Once the license agreement is in place, please send an email to
+[r8-dev@googlegroups.com](mailto:r8-dev@googlegroups.com) to be added as a
+contributor.
+
+After being added as a contributer you can upload your patches
+using `git cl` which is available in `depot_tools`. Once you have a
 change that you are happy with you should make sure that it passes
 all tests and then upload the change to our code review tool using:
 
@@ -101,7 +105,8 @@ point the code review tool will send emails to reviewers.
 
 ## Getting help
 
-For questions, reach out to us at r8-dev@googlegroups.com.
+For questions, reach out to us at
+[r8-dev@googlegroups.com](mailto:r8-dev@googlegroups.com).
 
 For D8, find known issues in the
 [D8 issue tracker](https://issuetracker.google.com/issues?q=componentid:317603)
