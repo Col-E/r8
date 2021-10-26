@@ -1676,7 +1676,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     // If set, pruned record fields are not used in hashCode/equals/toString and toString prints
     // minified field names instead of original field names.
-    public boolean enableRecordModeling = false;
+    public boolean enableRecordModeling = true;
 
     public boolean allowConflictingSyntheticTypes = false;
 

@@ -63,14 +63,13 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
   }
 
   @Test
-  public void testR8AdvancedShrinking() throws Exception {
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .addProgramClassFileData(EXTRA_DATA)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
-        .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -78,7 +77,7 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
   }
 
   @Test
-  public void testR8CfThenDexAdvancedShrinking() throws Exception {
+  public void testR8CfThenDex() throws Exception {
     Path desugared =
         testForR8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
@@ -87,7 +86,6 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
             .addKeepMainRule(MAIN_TYPE)
             .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();

@@ -34,10 +34,11 @@ public class RecordInvokeCustomTest extends TestBase {
           "true",
           "false",
           "false",
-          "%s[name=Jane Doe, age=42]");
+          "%s[%s=Jane Doe, %s=42]");
   private static final String EXPECTED_RESULT_D8 =
-      String.format(EXPECTED_RESULT, "Empty", "Person");
-  private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "b");
+      String.format(EXPECTED_RESULT, "Empty", "Person", "name", "age");
+  private static final String EXPECTED_RESULT_R8 =
+      String.format(EXPECTED_RESULT, "a", "b", "a", "b");
 
   private final TestParameters parameters;
 

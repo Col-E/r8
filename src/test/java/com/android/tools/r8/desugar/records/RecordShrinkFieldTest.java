@@ -28,9 +28,9 @@ public class RecordShrinkFieldTest extends TestBase {
       StringUtils.lines("%s[unused=-1, name=Jane Doe, age=42]", "%s[unused=-1, name=Bob, age=42]");
   private static final String EXPECTED_RESULT_D8 =
       String.format(EXPECTED_RESULT, "Person", "Person");
-  private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "a");
-  private static final String EXPECTED_RESULT_R8_RECORD_MODELING =
-      StringUtils.lines("a[a=Jane Doe]", "a[a=Bob]");
+  private static final String EXPECTED_RESULT_R8 = StringUtils.lines("a[a=Jane Doe]", "a[a=Bob]");
+  private static final String EXPECTED_RESULT_R8_WITH_FIELD_NAMES =
+      StringUtils.lines("a[name=Jane Doe]", "a[name=Bob]");
 
   private final TestParameters parameters;
 
@@ -81,45 +81,7 @@ public class RecordShrinkFieldTest extends TestBase {
         .compile()
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8);
-  }
-
-  @Test
-  public void testR8AdvancedShrinking() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(PROGRAM_DATA)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .compile()
-        .inspect(this::assertSingleField)
-        .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8_RECORD_MODELING);
-  }
-
-  @Test
-  public void testR8CfThenDexAdvancedShrinking() throws Exception {
-    Path desugared =
-        testForR8(Backend.CF)
-            .addProgramClassFileData(PROGRAM_DATA)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE)
-            .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .compile()
-            .inspect(this::assertSingleField)
-            .writeToZip();
-    testForR8(parameters.getBackend())
-        .addProgramFiles(desugared)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-        .compile()
-        .inspect(this::assertSingleField)
-        .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8_RECORD_MODELING);
+        .assertSuccessWithOutput(EXPECTED_RESULT_R8_WITH_FIELD_NAMES);
   }
 
   @Test
