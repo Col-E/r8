@@ -42,6 +42,8 @@ public interface FieldAccessInfo {
 
   boolean isReadFromAnnotation();
 
+  boolean isReadFromRecordInvokeDynamic();
+
   boolean isReadFromMethodHandle();
 
   boolean isWritten();

@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.isInvokeDynamicOnRecord;
+
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -95,6 +98,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
     enqueuer.traceInstanceFieldReadFromMethodHandle(field, getContext());
   }
 
+  private void registerInstanceFieldReadFromRecordMethodHandle(DexField field) {
+    setMaxApiReferenceLevel(field);
+    enqueuer.traceInstanceFieldReadFromRecordMethodHandle(field, getContext());
+  }
+
   @Override
   public void registerInstanceFieldWrite(DexField field) {
     setMaxApiReferenceLevel(field);
@@ -178,8 +186,31 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerCallSite(DexCallSite callSite) {
-    super.registerCallSite(callSite);
+    super.registerCallSiteExceptBootstrapArgs(callSite);
+    if (isInvokeDynamicOnRecord(callSite, appView, getContext())
+        && appView.options().testing.enableRecordModeling) {
+      registerRecordCallSiteBootstrapArgs(callSite);
+    } else {
+      super.registerCallSiteBootstrapArgs(callSite, 0, callSite.bootstrapArgs.size());
+    }
     enqueuer.traceCallSite(callSite, getContext());
+  }
+
+  private void registerRecordCallSiteBootstrapArgs(DexCallSite callSite) {
+    // The Instance Get method handle in invokeDynamicOnRecord are considered:
+    // - a record use if not a constant value,
+    // - unused if a constant value.
+    registerCallSiteBootstrapArgs(callSite, 0, 2);
+    for (int i = 2; i < callSite.getBootstrapArgs().size(); i++) {
+      DexField field = callSite.getBootstrapArgs().get(i).asDexValueMethodHandle().value.asField();
+      DexEncodedField encodedField =
+          appView.appInfo().resolveField(field, getContext()).getResolvedField();
+      // Member value propagation does not rewrite method handles, special handling for this
+      // method handle access is done after the final tree shaking.
+      if (!encodedField.getOptimizationInfo().isDead()) {
+        registerInstanceFieldReadFromRecordMethodHandle(field);
+      }
+    }
   }
 
   private void setMaxApiReferenceLevel(DexReference reference) {

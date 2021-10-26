@@ -81,6 +81,7 @@ public class LibraryMethodSideEffectModelCollection {
         .add(dexItemFactory.longMembers.toString)
         .add(dexItemFactory.npeMethods.init)
         .add(dexItemFactory.npeMethods.initWithMessage)
+        .add(dexItemFactory.recordMembers.constructor)
         .add(dexItemFactory.objectMembers.constructor)
         .add(dexItemFactory.objectMembers.getClass)
         .add(dexItemFactory.shortMembers.toString)

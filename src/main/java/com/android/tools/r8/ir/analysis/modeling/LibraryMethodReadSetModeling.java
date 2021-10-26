@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.analysis.modeling;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
@@ -32,12 +31,6 @@ public class LibraryMethodReadSetModeling {
     // Already handled above.
     assert !appView.dexItemFactory().classMethods.isReflectiveNameLookup(invokedMethod);
 
-    // Modeling of other library methods.
-    DexType holder = invokedMethod.holder;
-    if (holder == appView.dexItemFactory().objectType
-        && invokedMethod == appView.dexItemFactory().objectMembers.constructor) {
-      return EmptyFieldSet.getInstance();
-    }
     return UnknownFieldSet.getInstance();
   }
 }

@@ -6,9 +6,9 @@ package records;
 
 public class RecordShrinkField {
 
-  record Person(String name, int age, int unused) {
+  record Person(int unused, String name, int age) {
     Person(String name, int age) {
-      this(name, age, -1);
+      this(-1, name, age);
     }
   }
 

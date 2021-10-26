@@ -301,8 +301,7 @@ public class RecordDesugaring
       RecordInstructionDesugaringEventConsumer eventConsumer,
       MethodProcessingContext methodProcessingContext) {
     localStackAllocator.allocateLocalStack(1);
-    DexMethod getFieldsAsObjects =
-        getFieldsAsObjectsMethod(recordInvokeDynamic.getRecordClass().type);
+    DexMethod getFieldsAsObjects = getFieldsAsObjectsMethod(recordInvokeDynamic.getRecordType());
     assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(getFieldsAsObjects) != null;
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfStackInstruction(Dup));
@@ -320,7 +319,7 @@ public class RecordDesugaring
   }
 
   private List<CfInstruction> desugarInvokeRecordEquals(RecordInvokeDynamic recordInvokeDynamic) {
-    DexMethod equalsRecord = equalsRecordMethod(recordInvokeDynamic.getRecordClass().type);
+    DexMethod equalsRecord = equalsRecordMethod(recordInvokeDynamic.getRecordType());
     assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(equalsRecord) != null;
     return Collections.singletonList(new CfInvoke(Opcodes.INVOKESPECIAL, equalsRecord, false));
   }
@@ -331,17 +330,17 @@ public class RecordDesugaring
       RecordInstructionDesugaringEventConsumer eventConsumer,
       MethodProcessingContext methodProcessingContext) {
     localStackAllocator.allocateLocalStack(2);
-    DexMethod getFieldsAsObjects =
-        getFieldsAsObjectsMethod(recordInvokeDynamic.getRecordClass().type);
-    assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(getFieldsAsObjects) != null;
+    DexMethod getFieldsAsObjects = getFieldsAsObjectsMethod(recordInvokeDynamic.getRecordType());
+    assert recordInvokeDynamic.getRecordClass().lookupProgramMethod(getFieldsAsObjects)
+        != null;
     ArrayList<CfInstruction> instructions = new ArrayList<>();
     instructions.add(new CfInvoke(Opcodes.INVOKESPECIAL, getFieldsAsObjects, false));
-    instructions.add(new CfConstClass(recordInvokeDynamic.getRecordClass().type, true));
+    instructions.add(new CfConstClass(recordInvokeDynamic.getRecordType(), true));
     if (appView.options().testing.enableRecordModeling
         && appView.enableWholeProgramOptimizations()) {
       instructions.add(
           new CfDexItemBasedConstString(
-              recordInvokeDynamic.getRecordClass().type,
+              recordInvokeDynamic.getRecordType(),
               recordInvokeDynamic.computeRecordFieldNamesComputationInfo()));
     } else {
       instructions.add(new CfConstString(recordInvokeDynamic.getFieldNames()));
@@ -465,7 +464,7 @@ public class RecordDesugaring
             Constants.ACC_SYNTHETIC | Constants.ACC_PROTECTED, true);
     DexEncodedMethod init =
         DexEncodedMethod.syntheticBuilder()
-            .setMethod(factory.recordMembers.init)
+            .setMethod(factory.recordMembers.constructor)
             .setAccessFlags(methodAccessFlags)
             .setCode(null)
             // Will be traced by the enqueuer.

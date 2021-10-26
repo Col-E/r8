@@ -258,6 +258,7 @@ public class TrivialFieldAccessReprocessor {
 
     if (fieldAccessInfo.hasReflectiveAccess()
         || fieldAccessInfo.isAccessedFromMethodHandle()
+        || fieldAccessInfo.isReadFromRecordInvokeDynamic()
         || fieldAccessInfo.isReadFromAnnotation()) {
       return false;
     }

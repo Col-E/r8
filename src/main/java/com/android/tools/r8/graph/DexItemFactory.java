@@ -1329,7 +1329,7 @@ public class DexItemFactory {
   }
 
   public class RecordMembers {
-    public final DexMethod init = createMethod(recordType, createProto(voidType), "<init>");
+    public final DexMethod constructor = createMethod(recordType, createProto(voidType), "<init>");
     public final DexMethod equals =
         createMethod(recordType, createProto(booleanType, objectType), "equals");
     public final DexMethod hashCode = createMethod(recordType, createProto(intType), "hashCode");

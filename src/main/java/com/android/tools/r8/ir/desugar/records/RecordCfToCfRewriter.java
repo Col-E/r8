@@ -55,10 +55,7 @@ public class RecordCfToCfRewriter {
         recordInvokeDynamic
             .computeRecordFieldNamesComputationInfo()
             .internalComputeNameFor(
-                recordInvokeDynamic.getRecordClass().type,
-                appView,
-                appView.graphLens(),
-                namingLens);
+                recordInvokeDynamic.getRecordType(), appView, appView.graphLens(), namingLens);
     DexField[] newFields = computePresentFields(appView.graphLens(), recordInvokeDynamic);
     return writeRecordInvokeDynamic(
         recordInvokeDynamic.withFieldNamesAndFields(newFieldNames, newFields));
@@ -89,7 +86,7 @@ public class RecordCfToCfRewriter {
         new DexMethodHandle(
             MethodHandleType.INVOKE_STATIC, factory.objectMethodsMembers.bootstrap, false, null);
     ArrayList<DexValue> bootstrapArgs = new ArrayList<>();
-    bootstrapArgs.add(new DexValueType(recordInvokeDynamic.getRecordClass().type));
+    bootstrapArgs.add(new DexValueType(recordInvokeDynamic.getRecordType()));
     bootstrapArgs.add(new DexValueString(recordInvokeDynamic.getFieldNames()));
     for (DexField field : recordInvokeDynamic.getFields()) {
       bootstrapArgs.add(

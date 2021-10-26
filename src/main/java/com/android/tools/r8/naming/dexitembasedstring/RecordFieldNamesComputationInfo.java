@@ -128,10 +128,6 @@ public abstract class RecordFieldNamesComputationInfo extends NameComputationInf
           recordClass.lookupInstanceField(graphLens.getRenamedFieldSignature(fields[i]));
       if (recordField != null) {
         names.add(nameSupplier.apply(i));
-      } else {
-        // TODO(b/201277582): Temporarily work-around as long as the field values are not also
-        //  shrunk in dex.
-        names.add("<pruned>");
       }
     }
     return dexStringFromFieldNames(names, definitions.dexItemFactory());

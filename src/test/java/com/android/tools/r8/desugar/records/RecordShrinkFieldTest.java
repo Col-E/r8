@@ -25,17 +25,16 @@ public class RecordShrinkFieldTest extends TestBase {
   private static final byte[][] PROGRAM_DATA = RecordTestUtils.getProgramData(RECORD_NAME);
   private static final String MAIN_TYPE = RecordTestUtils.getMainType(RECORD_NAME);
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("%s[name=Jane Doe, age=42, unused=-1]", "%s[name=Bob, age=42, unused=-1]");
+      StringUtils.lines("%s[unused=-1, name=Jane Doe, age=42]", "%s[unused=-1, name=Bob, age=42]");
   private static final String EXPECTED_RESULT_D8 =
       String.format(EXPECTED_RESULT, "Person", "Person");
   private static final String EXPECTED_RESULT_R8 = String.format(EXPECTED_RESULT, "a", "a");
   // TODO(b/201277582): These results are temporary while we transition into pruned minified record
   //  fields.
-  private static final String EXPECTED_RESULT_R8_ADVANCED_DEX =
-      StringUtils.lines(
-          "a[a=Jane Doe, <pruned>=42, <pruned>=-1]", "a[a=Bob, <pruned>=42, <pruned>=-1]");
+  private static final String EXPECTED_INVALID_RESULT_R8_ADVANCED_DEX =
+      StringUtils.lines("a[a=-1]", "a[a=-1]");
   private static final String EXPECTED_RESULT_R8_ADVANCED_CF =
-      StringUtils.lines("a[a=Jane Doe, b=42, c=-1]", "a[a=Bob, b=42, c=-1]");
+      StringUtils.lines("a[a=Jane Doe]", "a[a=Bob]");
 
   private final TestParameters parameters;
 
@@ -100,7 +99,7 @@ public class RecordShrinkFieldTest extends TestBase {
         .compile()
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
-        .assertSuccessWithOutput(EXPECTED_RESULT_R8_ADVANCED_DEX);
+        .assertSuccessWithOutput(EXPECTED_INVALID_RESULT_R8_ADVANCED_DEX);
   }
 
   @Test
@@ -114,6 +113,7 @@ public class RecordShrinkFieldTest extends TestBase {
             .addOptionsModification(opt -> opt.testing.enableRecordModeling = true)
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
+            .inspect(this::assertSingleField)
             .writeToZip();
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)

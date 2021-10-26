@@ -28,6 +28,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   public static int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 1;
   public static int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 2;
   public static int FLAG_HAS_REFLECTIVE_ACCESS = 1 << 3;
+  public static int FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC = 1 << 4;
 
   // A direct reference to the definition of the field.
   private DexField field;
@@ -189,7 +190,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   /** Returns true if this field is read by the program. */
   @Override
   public boolean isRead() {
-    return !readsWithContexts.isEmpty() || isReadFromAnnotation() || isReadFromMethodHandle();
+    return !readsWithContexts.isEmpty()
+        || isReadFromAnnotation()
+        || isReadFromMethodHandle()
+        || isReadFromRecordInvokeDynamic();
   }
 
   @Override
@@ -206,8 +210,21 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return (flags & FLAG_IS_READ_FROM_METHOD_HANDLE) != 0;
   }
 
+  @Override
+  public boolean isReadFromRecordInvokeDynamic() {
+    return (flags & FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC) != 0;
+  }
+
   public void setReadFromMethodHandle() {
     flags |= FLAG_IS_READ_FROM_METHOD_HANDLE;
+  }
+
+  public void setReadFromRecordInvokeDynamic() {
+    flags |= FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC;
+  }
+
+  public void clearReadFromRecordInvokeDynamic() {
+    flags &= ~FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC;
   }
 
   /** Returns true if this field is written by the program. */
@@ -279,7 +296,11 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   public void clearReads() {
+    assert !hasReflectiveAccess();
+    assert !isReadFromAnnotation();
+    assert !isReadFromMethodHandle();
     readsWithContexts = AbstractAccessContexts.empty();
+    clearReadFromRecordInvokeDynamic();
   }
 
   public void clearWrites() {

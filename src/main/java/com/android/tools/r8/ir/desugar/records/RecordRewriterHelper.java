@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
@@ -24,8 +25,12 @@ public class RecordRewriterHelper {
 
   public static boolean isInvokeDynamicOnRecord(
       CfInvokeDynamic invokeDynamic, AppView<?> appView, ProgramMethod context) {
+    return isInvokeDynamicOnRecord(invokeDynamic.getCallSite(), appView, context);
+  }
+
+  public static boolean isInvokeDynamicOnRecord(
+      DexCallSite callSite, AppView<?> appView, ProgramMethod context) {
     DexItemFactory factory = appView.dexItemFactory();
-    DexCallSite callSite = invokeDynamic.getCallSite();
     // 1. Validates this is an invoke-static to ObjectMethods#bootstrap.
     DexMethodHandle bootstrapMethod = callSite.bootstrapMethod;
     if (!bootstrapMethod.type.isInvokeStatic()) {
@@ -68,7 +73,7 @@ public class RecordRewriterHelper {
     DexString fieldNames = valueString.getValue();
     assert fieldNames.toString().isEmpty()
         || (fieldNames.toString().split(";").length == callSite.bootstrapArgs.size() - 2);
-    assert recordClass.instanceFields().size() == callSite.bootstrapArgs.size() - 2;
+    assert recordClass.instanceFields().size() <= callSite.bootstrapArgs.size() - 2;
     for (int i = 2; i < callSite.bootstrapArgs.size(); i++) {
       DexValueMethodHandle handle = callSite.bootstrapArgs.get(i).asDexValueMethodHandle();
       if (handle == null
@@ -141,6 +146,10 @@ public class RecordRewriterHelper {
 
     DexField[] getFields() {
       return fields;
+    }
+
+    DexType getRecordType() {
+      return recordClass.getType();
     }
 
     DexProgramClass getRecordClass() {

@@ -178,7 +178,7 @@ public abstract class UseRegistry<T extends Definition> {
     }
   }
 
-  public void registerCallSite(DexCallSite callSite) {
+  protected void registerCallSiteExceptBootstrapArgs(DexCallSite callSite) {
     boolean isLambdaMetaFactory =
         dexItemFactory().isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
 
@@ -190,10 +190,17 @@ public abstract class UseRegistry<T extends Definition> {
     // Lambda metafactory will use this type as the main SAM
     // interface for the dynamically created lambda class.
     registerTypeReference(callSite.methodProto.returnType);
+  }
 
+  protected void registerCallSiteBootstrapArgs(DexCallSite callSite, int start, int end) {
+    boolean isLambdaMetaFactory =
+        appView.dexItemFactory().isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
     // Register bootstrap method arguments.
     // Only Type, MethodHandle, and MethodType need to be registered.
-    for (DexValue arg : callSite.bootstrapArgs) {
+    assert start >= 0;
+    assert end <= callSite.bootstrapArgs.size();
+    for (int i = start; i < end; i++) {
+      DexValue arg = callSite.bootstrapArgs.get(i);
       switch (arg.getValueKind()) {
         case METHOD_HANDLE:
           DexMethodHandle handle = arg.asDexValueMethodHandle().value;
@@ -217,6 +224,11 @@ public abstract class UseRegistry<T extends Definition> {
               || arg.isDexValueString();
       }
     }
+  }
+
+  public void registerCallSite(DexCallSite callSite) {
+    registerCallSiteExceptBootstrapArgs(callSite);
+    registerCallSiteBootstrapArgs(callSite, 0, callSite.bootstrapArgs.size());
   }
 
   public void registerProto(DexProto proto) {
