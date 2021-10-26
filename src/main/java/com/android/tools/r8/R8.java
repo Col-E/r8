@@ -689,10 +689,12 @@ public class R8 {
 
       performFinalMainDexTracing(appView, executorService);
 
-      RecordFieldValuesRewriter recordFieldArrayRemover =
-          RecordFieldValuesRewriter.create(appView.withLiveness());
-      if (recordFieldArrayRemover != null) {
-        recordFieldArrayRemover.rewriteRecordFieldValues();
+      if (appView.appInfo().hasLiveness()) {
+        RecordFieldValuesRewriter recordFieldArrayRemover =
+            RecordFieldValuesRewriter.create(appView.withLiveness());
+        if (recordFieldArrayRemover != null) {
+          recordFieldArrayRemover.rewriteRecordFieldValues();
+        }
       }
 
       // Remove unneeded visibility bridges that have been inserted for member rebinding.
