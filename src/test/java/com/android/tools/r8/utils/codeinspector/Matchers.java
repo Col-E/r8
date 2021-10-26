@@ -505,6 +505,22 @@ public class Matchers {
     };
   }
 
+  public static Matcher<ClassSubject> isExtending(ClassSubject superSubject) {
+    assertThat(superSubject, isPresent());
+    assertThat(superSubject, not(isInterface()));
+    return new TypeSafeMatcher<ClassSubject>() {
+      @Override
+      public boolean matchesSafely(ClassSubject subject) {
+        return subject.isPresent() && subject.isExtending(superSubject);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("extends ").appendText(superSubject.getOriginalName());
+      }
+    };
+  }
+
   public static Matcher<FieldSubject> isFieldOfType(DexType type) {
     return new TypeSafeMatcher<FieldSubject>() {
       @Override

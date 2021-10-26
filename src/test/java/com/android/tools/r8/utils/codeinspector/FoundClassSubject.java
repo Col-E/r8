@@ -294,6 +294,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isExtending(ClassSubject subject) {
+    return getSuperClass().getDexProgramClass().getType() == subject.getDexProgramClass().getType();
+  }
+
+  @Override
   public boolean isInterface() {
     return dexClass.isInterface();
   }

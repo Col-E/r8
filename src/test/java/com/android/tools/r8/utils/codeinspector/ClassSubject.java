@@ -180,6 +180,8 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public abstract boolean isAnnotation();
 
+  public abstract boolean isExtending(ClassSubject subject);
+
   public abstract boolean isImplementing(ClassSubject subject);
 
   public abstract boolean isImplementing(Class<?> clazz);

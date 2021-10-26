@@ -90,6 +90,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public boolean isExtending(ClassSubject subject) {
+    throw new Unreachable("Cannot determine if an absent class is extending a given class");
+  }
+
+  @Override
   public boolean isImplementing(ClassSubject subject) {
     throw new Unreachable("Cannot determine if an absent class is implementing a given interface");
   }
