@@ -146,7 +146,8 @@ public abstract class R8RunExamplesCommon {
                   .setMode(mode)
                   .setDisableTreeShaking(true)
                   .setDisableMinification(true)
-                  .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
+                  .addProguardConfiguration(
+                      ImmutableList.of("-keepattributes *", "-dontoptimize"), Origin.unknown())
                   .build();
           ToolHelper.runR8(command, this::configure);
         break;

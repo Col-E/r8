@@ -49,8 +49,7 @@ public class SourceFileRewriter {
     if (renaming != null) {
       return rewriteTo(renaming);
     }
-    if (appView.options().isMinifying()) {
-      // TODO(b/202367773): This should also apply if optimizing.
+    if (appView.options().isMinifying() || appView.options().isOptimizing()) {
       return rewriteToDefaultSourceFile();
     }
     return null;

@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class DebugInfoWhenInliningTest extends DebugTestBase {
 
   private static final String CLASS_NAME = "Inlining1";
-  private static final String SOURCE_FILE = "Inlining1.java";
+  private static final String SOURCE_FILE = "SourceFile";
 
   private DebugTestConfig makeConfig(
       LineNumberOptimization lineNumberOptimization, boolean writeProguardMap) throws Exception {
