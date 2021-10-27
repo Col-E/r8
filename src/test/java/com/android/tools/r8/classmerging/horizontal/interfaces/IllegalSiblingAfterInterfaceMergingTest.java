@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.classmerging.horizontal.interfaces;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtending;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isImplementing;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPackagePrivate;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -21,6 +21,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,8 +45,7 @@ public class IllegalSiblingAfterInterfaceMergingTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector.assertIsCompleteMergeGroup(I.class, J.class).assertNoOtherClassesMerged())
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -57,7 +57,7 @@ public class IllegalSiblingAfterInterfaceMergingTest extends TestBase {
             inspector -> {
               ClassSubject iClassSubject = inspector.clazz(I.class);
               assertThat(iClassSubject, isPresent());
-              assertThat(iClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isPublic()));
+              assertThat(iClassSubject.uniqueMethodWithName("m"), isAbsent());
 
               ClassSubject a0ClassSubject = inspector.clazz(A0.class);
               assertThat(a0ClassSubject, isPresent());
@@ -70,17 +70,7 @@ public class IllegalSiblingAfterInterfaceMergingTest extends TestBase {
               assertThat(aClassSubject, isImplementing(iClassSubject));
             })
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/203446070): Should always succeed.
-        .applyIf(
-            parameters.isCfRuntime(),
-            runResult -> runResult.assertSuccessWithOutputLines("A.m()", "B.m()"),
-            runResult ->
-                runResult.applyIf(
-                    parameters.getDexRuntimeVersion().isDalvik(),
-                    ignore ->
-                        runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-                    ignore ->
-                        runResult.assertFailureWithErrorThatThrows(IllegalAccessError.class)));
+        .assertSuccessWithOutputLines("A.m()", "B.m()");
   }
 
   static class Main {

@@ -63,6 +63,17 @@ public class ImmediateProgramSubtypingInfo {
         });
   }
 
+  public void forEachImmediateSuperClassMatching(
+      DexClass clazz, Predicate<? super DexClass> predicate, Consumer<? super DexClass> consumer) {
+    clazz.forEachImmediateSupertype(
+        supertype -> {
+          DexClass superclass = appView.definitionFor(supertype);
+          if (superclass != null && predicate.test(superclass)) {
+            consumer.accept(superclass);
+          }
+        });
+  }
+
   public void forEachImmediateProgramSuperClass(
       DexProgramClass clazz, Consumer<? super DexProgramClass> consumer) {
     forEachImmediateProgramSuperClassMatching(clazz, alwaysTrue(), consumer);

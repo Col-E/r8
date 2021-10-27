@@ -6,6 +6,7 @@ package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.policies.AllInstantiatedOrUninstantiated;
 import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses;
@@ -38,6 +39,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoNativeMethods;
 import com.android.tools.r8.horizontalclassmerging.policies.NoServiceLoaders;
 import com.android.tools.r8.horizontalclassmerging.policies.NoVerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoVirtualMethodMerging;
+import com.android.tools.r8.horizontalclassmerging.policies.NoWeakerAccessPrivileges;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.OnlyDirectlyConnectedOrUnrelatedInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
@@ -194,6 +196,8 @@ public class PolicyScheduler {
       Mode mode,
       RuntimeTypeCheckInfo runtimeTypeCheckInfo,
       ImmutableList.Builder<Policy> builder) {
+    ImmediateProgramSubtypingInfo immediateSubtypingInfo =
+        ImmediateProgramSubtypingInfo.create(appView);
     builder.add(
         new CheckAbstractClasses(appView),
         new NoClassAnnotationCollisions(),
@@ -206,7 +210,8 @@ public class PolicyScheduler {
         new RespectPackageBoundaries(appView),
         new NoDifferentApiReferenceLevel(appView),
         new NoIndirectRuntimeTypeChecks(appView, runtimeTypeCheckInfo),
-        new PreventClassMethodAndDefaultMethodCollisions(appView));
+        new NoWeakerAccessPrivileges(appView, immediateSubtypingInfo),
+        new PreventClassMethodAndDefaultMethodCollisions(appView, immediateSubtypingInfo));
   }
 
   private static void addMultiClassPoliciesForMergingNonSyntheticClasses(

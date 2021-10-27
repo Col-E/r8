@@ -29,14 +29,14 @@ public abstract class BidirectedGraph<T> {
           if (seen.contains(node)) {
             return;
           }
-          Set<T> stronglyConnectedComponent = internalComputeStronglyConnectedProgramClasses(node);
+          Set<T> stronglyConnectedComponent = computeStronglyConnectedComponent(node);
           stronglyConnectedComponents.add(stronglyConnectedComponent);
           seen.addAll(stronglyConnectedComponent);
         });
     return stronglyConnectedComponents;
   }
 
-  private Set<T> internalComputeStronglyConnectedProgramClasses(T node) {
+  public Set<T> computeStronglyConnectedComponent(T node) {
     WorkList<T> worklist = WorkList.newEqualityWorkList(node);
     while (worklist.hasNext()) {
       T current = worklist.next();

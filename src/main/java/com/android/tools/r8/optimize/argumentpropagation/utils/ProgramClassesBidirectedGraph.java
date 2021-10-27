@@ -4,19 +4,20 @@
 
 package com.android.tools.r8.optimize.argumentpropagation.utils;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.Consumer;
 
 public class ProgramClassesBidirectedGraph extends BidirectedGraph<DexProgramClass> {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
 
   public ProgramClassesBidirectedGraph(
-      AppView<AppInfoWithLiveness> appView, ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
   }

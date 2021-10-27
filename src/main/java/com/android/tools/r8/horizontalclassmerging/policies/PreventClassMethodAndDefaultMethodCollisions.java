@@ -12,10 +12,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
-import com.android.tools.r8.horizontalclassmerging.SubtypingForrestForClasses;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -52,7 +52,7 @@ import java.util.Map;
 public class PreventClassMethodAndDefaultMethodCollisions extends MultiClassPolicy {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final SubtypingForrestForClasses subtypingForrestForClasses;
+  private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
 
   private final InterfaceDefaultSignaturesCache interfaceDefaultMethodsCache =
       new InterfaceDefaultSignaturesCache();
@@ -119,16 +119,16 @@ public class PreventClassMethodAndDefaultMethodCollisions extends MultiClassPoli
     void process(DexProgramClass clazz, DexMethodSignatureSet signatures) {
       signatures.addAll(
           clazz.getInterfaces(), interfaceDefaultMethodsCache::getOrComputeSignatures);
-      signatures.addAll(
-          subtypingForrestForClasses.getSubtypesFor(clazz), this::getOrComputeSignatures);
+      signatures.addAll(immediateSubtypingInfo.getSubclasses(clazz), this::getOrComputeSignatures);
       signatures.removeAllMethods(clazz.methods());
     }
   }
 
   public PreventClassMethodAndDefaultMethodCollisions(
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ImmediateProgramSubtypingInfo immediateSubtypingInfo) {
     this.appView = appView;
-    this.subtypingForrestForClasses = new SubtypingForrestForClasses(appView);
+    this.immediateSubtypingInfo = immediateSubtypingInfo;
   }
 
   enum MethodCategory {
