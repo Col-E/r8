@@ -25,6 +25,13 @@ public final class StringBackportJava11Main {
     assertEquals("heyhey", "hey".repeat(2));
     assertEquals("heyheyhey", "hey".repeat(3));
     assertEquals("heyheyheyhey", "hey".repeat(4));
+
+    try {
+      "\u03B1\u03B2".repeat(Integer.MAX_VALUE);
+      throw new AssertionError("Expected to throw NegativeArraySizeException");
+    } catch (NegativeArraySizeException e) {
+      // TODO(b/204183618): Should throw OOM.
+    }
   }
 
   /** Per {@link Character#isWhitespace(int)} */
