@@ -125,8 +125,8 @@ public class OutlineMappingInformationTest extends TestBase {
 
     @NeverInline
     static void greet() {
-      Greeter.throwExceptionFirst();
-      Greeter.throwExceptionSecond();
+      // Keep on same line
+      Greeter.throwExceptionFirst(); Greeter.throwExceptionSecond();
     }
   }
 
