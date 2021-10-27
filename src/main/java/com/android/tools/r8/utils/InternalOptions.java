@@ -245,6 +245,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableInitializedClassesAnalysis = false;
     callSiteOptimizationOptions.disableOptimization();
     horizontalClassMergerOptions.setRestrictToSynthetics();
+    apiModelTestingOptions.disableApiCallerIdentification();
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -1526,6 +1527,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
                   }
                 });
           });
+    }
+
+    public void disableApiCallerIdentification() {
+      enableApiCallerIdentification = false;
     }
   }
 
