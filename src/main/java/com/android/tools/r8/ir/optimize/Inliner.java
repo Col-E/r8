@@ -98,6 +98,8 @@ public class Inliner {
   // pruned when the wave ends.
   private final Map<DexProgramClass, ProgramMethodSet> singleCallerInlinedMethodsInWave =
       new ConcurrentHashMap<>();
+  private final Set<DexMethod> singleCallerInlinedPrunedMethodsForTesting =
+      Sets.newIdentityHashSet();
 
   private final AvailableApiExceptions availableApiExceptions;
 
@@ -1268,10 +1270,13 @@ public class Inliner {
         (clazz, singleCallerInlinedMethodsForClass) -> {
           // Convert and remove virtual single caller inlined methods to abstract or throw null.
           singleCallerInlinedMethodsForClass.removeIf(
-              singleCallerInlinedMethod -> {
-                if (singleCallerInlinedMethod.getDefinition().belongsToVirtualPool() || true) {
-                  singleCallerInlinedMethod.convertToAbstractOrThrowNullMethod(appView);
-                  converter.onMethodCodePruned(singleCallerInlinedMethod);
+              method -> {
+                // TODO(b/203188583): Enable pruning of methods with generic signatures. For this to
+                //  work we need to pass in a seed to GenericSignatureContextBuilder.create in R8.
+                if (method.getDefinition().belongsToVirtualPool()
+                    || method.getDefinition().getGenericSignature().hasSignature()) {
+                  method.convertToAbstractOrThrowNullMethod(appView);
+                  converter.onMethodCodePruned(method);
                   return true;
                 }
                 return false;
@@ -1284,7 +1289,10 @@ public class Inliner {
                 .removeMethods(
                     singleCallerInlinedMethodsForClass.toDefinitionSet(
                         SetUtils::newIdentityHashSet));
-            singleCallerInlinedMethodsForClass.forEach(converter::onMethodPruned);
+            for (ProgramMethod method : singleCallerInlinedMethodsForClass) {
+              converter.onMethodPruned(method);
+              singleCallerInlinedPrunedMethodsForTesting.add(method.getReference());
+            }
           }
         });
     singleCallerInlinedMethodsInWave.clear();
@@ -1300,6 +1308,11 @@ public class Inliner {
                 || !method.canBeConvertedToAbstractMethod(appView);
           });
     }
+    return true;
+  }
+
+  public boolean verifyIsPrunedDueToSingleCallerInlining(DexMethod method) {
+    assert singleCallerInlinedPrunedMethodsForTesting.contains(method);
     return true;
   }
 }

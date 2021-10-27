@@ -284,6 +284,10 @@ public abstract class GraphLens {
 
   public abstract DexField getOriginalFieldSignature(DexField field);
 
+  public final DexMember<?, ?> getOriginalMemberSignature(DexMember<?, ?> member) {
+    return member.apply(this::getOriginalFieldSignature, this::getOriginalMethodSignature);
+  }
+
   public final DexMethod getOriginalMethodSignature(DexMethod method) {
     return getOriginalMethodSignature(method, null);
   }
@@ -572,7 +576,7 @@ public abstract class GraphLens {
   }
 
   public <R extends DexReference, T> Map<R, T> rewriteReferenceKeys(
-      Map<R, T> map, Function<List<T>, T> merge) {
+      Map<R, T> map, BiFunction<R, List<T>, T> merge) {
     Map<R, T> result = new IdentityHashMap<>();
     Map<R, List<T>> needsMerge = new IdentityHashMap<>();
     map.forEach(
@@ -593,7 +597,7 @@ public abstract class GraphLens {
         });
     needsMerge.forEach(
         (rewrittenReference, unmergedValues) -> {
-          T mergedValue = merge.apply(unmergedValues);
+          T mergedValue = merge.apply(rewrittenReference, unmergedValues);
           if (mergedValue != null) {
             result.put(rewrittenReference, mergedValue);
           }

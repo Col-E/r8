@@ -237,9 +237,6 @@ final class StaticizingProcessor {
         referencedFrom =
             referencedFromBuilder
                 .rewrittenWithLens(appView)
-                .removeIf(
-                    appView,
-                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite())
                 .build(appView);
         materializedReferencedFromCollections.put(info, referencedFrom);
       } else {

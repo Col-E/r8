@@ -55,6 +55,10 @@ public class PrunedItems {
     return removedMethods.contains(method) || removedClasses.contains(method.getHolderType());
   }
 
+  public boolean isRemoved(DexReference reference) {
+    return reference.apply(this::isRemoved, this::isRemoved, this::isRemoved);
+  }
+
   public boolean isRemoved(DexType type) {
     return removedClasses.contains(type);
   }
@@ -107,7 +111,7 @@ public class PrunedItems {
     private final Set<DexType> noLongerSyntheticItems = Sets.newIdentityHashSet();
     private Set<DexType> removedClasses = Sets.newIdentityHashSet();
     private final Set<DexField> removedFields = Sets.newIdentityHashSet();
-    private final Set<DexMethod> removedMethods = Sets.newIdentityHashSet();
+    private Set<DexMethod> removedMethods = Sets.newIdentityHashSet();
 
     public Builder setPrunedApp(DexApplication prunedApp) {
       this.prunedApp = prunedApp;
@@ -143,6 +147,11 @@ public class PrunedItems {
 
     public Builder setRemovedClasses(Set<DexType> removedClasses) {
       this.removedClasses = removedClasses;
+      return this;
+    }
+
+    public Builder setRemovedMethods(Set<DexMethod> removedMethods) {
+      this.removedMethods = removedMethods;
       return this;
     }
 

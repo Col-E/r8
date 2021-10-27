@@ -64,8 +64,8 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   @BeforeClass
   public static void beforeAll() throws Exception {
     if (data().stream().count() > 0) {
-      r8R8Debug = compileR8(CompilationMode.DEBUG);
       r8R8Release = compileR8(CompilationMode.RELEASE);
+      r8R8Debug = compileR8(CompilationMode.DEBUG);
     }
   }
 

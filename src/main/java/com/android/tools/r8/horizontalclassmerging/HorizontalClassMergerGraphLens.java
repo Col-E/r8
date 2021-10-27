@@ -250,13 +250,7 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
             MutableBidirectionalManyToOneRepresentativeMap<R, R> newMemberSignatures,
             MutableBidirectionalManyToOneRepresentativeMap<R, R> pendingNewMemberSignatureUpdates) {
       newMemberSignatures.removeAll(pendingNewMemberSignatureUpdates.keySet());
-      pendingNewMemberSignatureUpdates.forEachManyToOneMapping(
-          (keys, value, representative) -> {
-            newMemberSignatures.put(keys, value);
-            if (keys.size() > 1) {
-              newMemberSignatures.setRepresentative(value, representative);
-            }
-          });
+      newMemberSignatures.putAll(pendingNewMemberSignatureUpdates);
       pendingNewMemberSignatureUpdates.clear();
     }
 
