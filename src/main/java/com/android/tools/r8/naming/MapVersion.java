@@ -8,7 +8,8 @@ import com.android.tools.r8.utils.structural.Ordered;
 public enum MapVersion implements Ordered<MapVersion> {
   MAP_VERSION_NONE("none"),
   MAP_VERSION_1_0("1.0"),
-  MAP_VERSION_EXPERIMENTAL("experimental");
+  MAP_VERSION_EXPERIMENTAL("experimental"),
+  MAP_VERSION_UNKNOWN("unknown");
 
   public static final MapVersion STABLE = MAP_VERSION_1_0;
 
@@ -29,5 +30,9 @@ public enum MapVersion implements Ordered<MapVersion> {
       }
     }
     return null;
+  }
+
+  public boolean isUnknown() {
+    return this == MAP_VERSION_UNKNOWN;
   }
 }

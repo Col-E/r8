@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
@@ -17,6 +18,7 @@ import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
 import java.io.BufferedReader;
 import java.util.OptionalInt;
+import java.util.Set;
 
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
 public class RetracerImpl implements Retracer {
@@ -95,5 +97,9 @@ public class RetracerImpl implements Retracer {
   public RetraceThrownExceptionResultImpl retraceThrownException(
       ClassReference exception, RetraceStackTraceContext context) {
     return retraceClass(exception).lookupThrownException(context);
+  }
+
+  public Set<MapVersionMappingInformation> getMapVersions() {
+    return classNameMapper.getMapVersions();
   }
 }

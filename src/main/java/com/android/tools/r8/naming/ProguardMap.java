@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.position.Position;
 
 public interface ProguardMap {
@@ -11,6 +12,8 @@ public interface ProguardMap {
   abstract class Builder {
     abstract ClassNaming.Builder classNamingBuilder(
         String renamedName, String originalName, Position position);
+
+    abstract Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion);
 
     abstract ProguardMap build();
   }

@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableMap;
@@ -37,6 +38,7 @@ import java.util.Set;
 public class SeedMapper implements ProguardMap {
 
   static class Builder extends ProguardMap.Builder {
+
     final Map<String, ClassNamingForMapApplier.Builder> map = new HashMap<>();
     final Set<String> mappedToDescriptorNames = new HashSet<>();
     private final Reporter reporter;
@@ -58,6 +60,12 @@ public class SeedMapper implements ProguardMap {
         reporter.error(ProguardMapError.duplicateSourceClass(originalName, position));
       }
       return classNamingBuilder;
+    }
+
+    @Override
+    ProguardMap.Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion) {
+      // Do nothing
+      return this;
     }
 
     @Override

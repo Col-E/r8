@@ -9,8 +9,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
@@ -40,9 +42,11 @@ import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineSourceFileContextStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
+import com.android.tools.r8.retrace.stacktraces.MapVersionWarningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MemberFieldOverlapStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleDotsInFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleLinesNoLineNumberStackTrace;
+import com.android.tools.r8.retrace.stacktraces.MultipleMapVersionsWarningStackTrace;
 import com.android.tools.r8.retrace.stacktraces.MultipleOriginalLinesNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NamedModuleStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NoObfuscatedLineNumberWithOverrideTest;
@@ -362,6 +366,31 @@ public class RetraceTests extends TestBase {
   @Test
   public void testIdentityMappingStackTrace() throws Exception {
     runRetraceTest(new IdentityMappingStackTrace());
+  }
+
+  @Test
+  public void testMapVersionWarningStackTrace() throws Exception {
+    // TODO(b/204289928): Internalize the diagnostics checking.
+    assumeFalse(external);
+    runRetraceTest(new MapVersionWarningStackTrace())
+        .assertOnlyWarnings()
+        .assertWarningsCount(1)
+        .assertAllWarningsMatch(
+            DiagnosticsMatcher.diagnosticType(RetraceUnknownMapVersionDiagnostic.class));
+  }
+
+  @Test
+  public void testMultipleMapVersionWarningStackTrace() throws Exception {
+    // TODO(b/204289928): Internalize the diagnostics checking.
+    assumeFalse(external);
+    runRetraceTest(new MultipleMapVersionsWarningStackTrace())
+        .assertOnlyWarnings()
+        .assertAllWarningsMatch(
+            DiagnosticsMatcher.diagnosticType(RetraceUnknownMapVersionDiagnostic.class))
+        .assertWarningsCount(2)
+        .assertWarningsMatch(
+            DiagnosticsMatcher.diagnosticMessage(containsString("98.0")),
+            DiagnosticsMatcher.diagnosticMessage(containsString("99.0")));
   }
 
   private void inspectRetraceTest(

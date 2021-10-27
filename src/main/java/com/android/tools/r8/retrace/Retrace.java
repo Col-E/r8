@@ -314,11 +314,20 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       // The setup of a retracer should likely also follow a builder pattern instead of having
       // static create methods. That would avoid the need to method overload the construction here
       // and the default create would become the default build of a retracer.
-      Retracer retracer =
+      RetracerImpl retracer =
           RetracerImpl.create(
               options.getProguardMapProducer(),
               options.getDiagnosticsHandler(),
               allowExperimentalMapping);
+      retracer
+          .getMapVersions()
+          .forEach(
+              mapVersionInfo -> {
+                if (mapVersionInfo.getMapVersion().isUnknown()) {
+                  diagnosticsHandler.warning(
+                      RetraceUnknownMapVersionDiagnostic.create(mapVersionInfo.getValue()));
+                }
+              });
       timing.end();
       timing.begin("Report result");
       StringRetrace stringRetrace =

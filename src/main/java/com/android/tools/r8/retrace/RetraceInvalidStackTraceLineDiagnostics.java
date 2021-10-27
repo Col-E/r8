@@ -14,8 +14,6 @@ import com.android.tools.r8.position.TextPosition;
 public class RetraceInvalidStackTraceLineDiagnostics implements Diagnostic {
 
   private static final String NULL_STACK_TRACE_LINE_MESSAGE = "The stack trace line is <null>";
-  private static final String PARSE_STACK_TRACE_LINE_MESSAGE =
-      "Could not parse the stack trace line '%s'";
 
   private final int lineNumber;
   private final String message;

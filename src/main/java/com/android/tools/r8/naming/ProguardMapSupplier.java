@@ -122,7 +122,7 @@ public class ProguardMapSupplier {
     if (mapVersion.isGreaterThan(MapVersion.MAP_VERSION_NONE)) {
       builder
           .append("# ")
-          .append(new MapVersionMappingInformation(mapVersion).serialize())
+          .append(new MapVersionMappingInformation(mapVersion, mapVersion.getName()).serialize())
           .append("\n");
     }
     builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + id.getId() + "\n");

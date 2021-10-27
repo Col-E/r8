@@ -12,6 +12,7 @@ import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformati
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics;
 import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.gson.JsonObject;
@@ -232,6 +233,9 @@ public class ProguardMapReader implements AutoCloseable {
             info -> {
               assert info.isMapVersionMappingInformation()
                   || info.isUnknownJsonMappingInformation();
+              if (info.isMapVersionMappingInformation()) {
+                mapBuilder.setCurrentMapVersion(info.asMapVersionMappingInformation());
+              }
             });
         // Skip reading the rest of the line.
         lineOffset = line.length();
@@ -298,8 +302,12 @@ public class ProguardMapReader implements AutoCloseable {
       if (isCommentLineWithJsonBrace()) {
         final MemberNaming currentMember = activeMemberNaming;
         final MappedRange currentRange = activeMappedRange;
+        // Reading global info should cause member mapping to return since we are now reading
+        // headers pertaining to what could be a concatinated file.
+        BooleanBox readGlobalInfo = new BooleanBox(false);
         parseMappingInformation(
             info -> {
+              readGlobalInfo.set(info.isGlobalMappingInformation());
               if (currentMember == null) {
                 classNamingBuilder.addMappingInformation(
                     info,
@@ -316,6 +324,9 @@ public class ProguardMapReader implements AutoCloseable {
                                 info, conflictingInfo, lineNo)));
               }
             });
+        if (readGlobalInfo.isTrue()) {
+          break;
+        }
         // Skip reading the rest of the line.
         lineOffset = line.length();
         continue;

@@ -70,6 +70,10 @@ public abstract class MappingInformation {
     return null;
   }
 
+  public boolean isGlobalMappingInformation() {
+    return false;
+  }
+
   public abstract boolean allowOther(MappingInformation information);
 
   public static void fromJsonObject(
@@ -112,8 +116,7 @@ public abstract class MappingInformation {
       Consumer<MappingInformation> onMappingInfo) {
     switch (id) {
       case MapVersionMappingInformation.ID:
-        MapVersionMappingInformation.deserialize(
-            version, object, diagnosticsHandler, lineNumber, onMappingInfo);
+        MapVersionMappingInformation.deserialize(object, lineNumber, onMappingInfo);
         return;
       case FileNameInformation.ID:
         FileNameInformation.deserialize(

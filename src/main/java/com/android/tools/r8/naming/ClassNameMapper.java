@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.ChainableStringConsumer;
@@ -30,8 +31,10 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -41,7 +44,9 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static class Builder extends ProguardMap.Builder {
+
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
+    private LinkedHashSet<MapVersionMappingInformation> mapVersions = new LinkedHashSet<>();
 
     private Builder() {
 
@@ -58,7 +63,7 @@ public class ClassNameMapper implements ProguardMap {
 
     @Override
     public ClassNameMapper build() {
-      return new ClassNameMapper(buildClassNameMappings());
+      return new ClassNameMapper(buildClassNameMappings(), mapVersions);
     }
 
     private ImmutableMap<String, ClassNamingForNameMapper> buildClassNameMappings() {
@@ -67,6 +72,12 @@ public class ClassNameMapper implements ProguardMap {
       mapping.forEach(
           (renamedName, valueBuilder) -> builder.put(renamedName, valueBuilder.build()));
       return builder.build();
+    }
+
+    @Override
+    ProguardMap.Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion) {
+      mapVersions.add(mapVersion);
+      return this;
     }
   }
 
@@ -138,9 +149,13 @@ public class ClassNameMapper implements ProguardMap {
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
   private BiMapContainer<String, String> nameMapping;
   private final Map<Signature, Signature> signatureMap = new HashMap<>();
+  private final Set<MapVersionMappingInformation> mapVersions;
 
-  private ClassNameMapper(ImmutableMap<String, ClassNamingForNameMapper> classNameMappings) {
+  private ClassNameMapper(
+      ImmutableMap<String, ClassNamingForNameMapper> classNameMappings,
+      Set<MapVersionMappingInformation> mapVersions) {
     this.classNameMappings = classNameMappings;
+    this.mapVersions = mapVersions;
   }
 
   public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
@@ -216,7 +231,7 @@ public class ClassNameMapper implements ProguardMap {
     ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
     builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
     classNameMappings.forEach(builder::put);
-    return new ClassNameMapper(builder.build());
+    return new ClassNameMapper(builder.build(), mapVersions);
   }
 
   public boolean verifyIsSorted() {
@@ -327,5 +342,9 @@ public class ClassNameMapper implements ProguardMap {
 
   public String originalNameOf(DexType clazz) {
     return deobfuscateType(clazz.descriptor.toString());
+  }
+
+  public Set<MapVersionMappingInformation> getMapVersions() {
+    return mapVersions;
   }
 }

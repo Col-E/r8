@@ -19,24 +19,14 @@ public class RetraceCommand {
   private final RetraceOptions options;
 
   private RetraceCommand(
-      String regularExpression,
-      DiagnosticsHandler diagnosticsHandler,
-      ProguardMapProducer proguardMapProducer,
       List<String> stackTrace,
       Consumer<List<String>> retracedStackTraceConsumer,
-      boolean isVerbose,
-      boolean verifyMappingFileHash) {
+      RetraceOptions options) {
     this.stackTrace = stackTrace;
     this.retracedStackTraceConsumer = retracedStackTraceConsumer;
-    this.options =
-        RetraceOptions.builder(diagnosticsHandler)
-            .setRegularExpression(regularExpression)
-            .setProguardMapProducer(proguardMapProducer)
-            .setVerbose(isVerbose)
-            .setVerifyMappingFileHash(verifyMappingFileHash)
-            .build();
+    this.options = options;
 
-    assert this.stackTrace != null || verifyMappingFileHash;
+    assert this.stackTrace != null || options.isVerifyMappingFileHash();
     assert this.retracedStackTraceConsumer != null;
   }
 
@@ -157,14 +147,15 @@ public class RetraceCommand {
       if (this.retracedStackTraceConsumer == null) {
         throw new RuntimeException("RetracedStackConsumer not specified");
       }
-      return new RetraceCommand(
-          regularExpression,
-          diagnosticsHandler,
-          proguardMapProducer,
-          stackTrace,
-          retracedStackTraceConsumer,
-          isVerbose,
-          verifyMappingFileHash);
+      RetraceOptions retraceOptions =
+          RetraceOptions.builder(diagnosticsHandler)
+              .setRegularExpression(regularExpression)
+              .setProguardMapProducer(proguardMapProducer)
+              .setVerbose(isVerbose)
+              .setVerifyMappingFileHash(verifyMappingFileHash)
+              .build();
+      return new RetraceCommand(stackTrace, retracedStackTraceConsumer, retraceOptions);
     }
+
   }
 }

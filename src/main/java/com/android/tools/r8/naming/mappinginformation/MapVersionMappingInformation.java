@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.mappinginformation;
 
 import static com.android.tools.r8.naming.mappinginformation.MappingInformationDiagnostics.noKeyForObjectWithId;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -18,9 +17,11 @@ public class MapVersionMappingInformation extends MappingInformation {
   public static final String MAP_VERSION_KEY = "version";
 
   private final MapVersion mapVersion;
+  private final String value;
 
-  public MapVersionMappingInformation(MapVersion mapVersion) {
+  public MapVersionMappingInformation(MapVersion mapVersion, String value) {
     this.mapVersion = mapVersion;
+    this.value = value;
   }
 
   @Override
@@ -47,6 +48,15 @@ public class MapVersionMappingInformation extends MappingInformation {
     return mapVersion;
   }
 
+  public String getValue() {
+    return value;
+  }
+
+  @Override
+  public boolean isGlobalMappingInformation() {
+    return true;
+  }
+
   @Override
   public String serialize() {
     JsonObject result = new JsonObject();
@@ -56,11 +66,7 @@ public class MapVersionMappingInformation extends MappingInformation {
   }
 
   public static void deserialize(
-      MapVersion ignoredCurrentMapVersion,
-      JsonObject object,
-      DiagnosticsHandler diagnosticsHandler,
-      int lineNumber,
-      Consumer<MappingInformation> onMappingInfo) {
+      JsonObject object, int lineNumber, Consumer<MappingInformation> onMappingInfo) {
     // Parsing the generator information must support parsing at all map versions as it itself is
     // what establishes the version.
     String mapVersionString = object.get(MAP_VERSION_KEY).getAsString();
@@ -70,8 +76,8 @@ public class MapVersionMappingInformation extends MappingInformation {
     }
     MapVersion mapVersion = MapVersion.fromName(mapVersionString);
     if (mapVersion == null) {
-      return;
+      mapVersion = MapVersion.MAP_VERSION_UNKNOWN;
     }
-    onMappingInfo.accept(new MapVersionMappingInformation(mapVersion));
+    onMappingInfo.accept(new MapVersionMappingInformation(mapVersion, mapVersionString));
   }
 }
