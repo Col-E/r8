@@ -47,6 +47,16 @@ public final class StringMethods {
     if (count == 1) {
       return receiver;
     }
+    // Condition `count * receiver.length() <= Integer.MAX_VALUE` must hold for the String to be
+    // allocated.
+    if (receiver.length() > Integer.MAX_VALUE / count) {
+      throw new OutOfMemoryError(
+          "Repeating "
+              + receiver.length()
+              + " bytes String "
+              + count
+              + " times will produce a String exceeding maximum size.");
+    }
     StringBuilder builder = new StringBuilder(length * count);
     for (int i = 0; i < count; i++) {
       builder.append(receiver);

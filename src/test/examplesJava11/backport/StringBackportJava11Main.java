@@ -28,9 +28,9 @@ public final class StringBackportJava11Main {
 
     try {
       "\u03B1\u03B2".repeat(Integer.MAX_VALUE);
-      throw new AssertionError("Expected to throw NegativeArraySizeException");
-    } catch (NegativeArraySizeException e) {
-      // TODO(b/204183618): Should throw OOM.
+      throw new AssertionError("Expected to throw OutOfMemoryError");
+    } catch (OutOfMemoryError e) {
+      // Expected.
     }
   }
 

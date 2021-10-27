@@ -71,6 +71,7 @@ public final class BackportedMethods {
     factory.createSynthesizedType("Ljava/lang/NoSuchMethodException;");
     factory.createSynthesizedType("Ljava/lang/NullPointerException;");
     factory.createSynthesizedType("Ljava/lang/NumberFormatException;");
+    factory.createSynthesizedType("Ljava/lang/OutOfMemoryError;");
     factory.createSynthesizedType("Ljava/lang/Runnable;");
     factory.createSynthesizedType("Ljava/lang/SecurityException;");
     factory.createSynthesizedType("Ljava/lang/reflect/InvocationTargetException;");
@@ -8354,6 +8355,8 @@ public final class BackportedMethods {
     CfLabel label11 = new CfLabel();
     CfLabel label12 = new CfLabel();
     CfLabel label13 = new CfLabel();
+    CfLabel label14 = new CfLabel();
+    CfLabel label15 = new CfLabel();
     return new CfCode(
         method.holder,
         4,
@@ -8469,6 +8472,110 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.intType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringType,
+                    options.itemFactory.createProto(options.itemFactory.intType),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfConstNumber(2147483647, ValueType.INT),
+            new CfLoad(ValueType.INT, 1),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Div, NumericType.INT),
+            new CfIfCmp(If.Type.LE, ValueType.INT, label9),
+            label8,
+            new CfNew(options.itemFactory.createType("Ljava/lang/OutOfMemoryError;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(options.itemFactory.stringBuilderType),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(options.itemFactory.voidType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfConstString(options.itemFactory.createString("Repeating ")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringType,
+                    options.itemFactory.createProto(options.itemFactory.intType),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfConstString(options.itemFactory.createString(" bytes String ")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.stringBuilderType, options.itemFactory.intType),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfConstString(
+                options.itemFactory.createString(
+                    " times will produce a String exceeding maximum size.")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.stringBuilderType, options.itemFactory.stringType),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.stringBuilderType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/OutOfMemoryError;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.voidType, options.itemFactory.stringType),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label9,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.stringType),
+                      FrameType.initialized(options.itemFactory.intType),
+                      FrameType.initialized(options.itemFactory.intType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
             new CfNew(options.itemFactory.stringBuilderType),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfLoad(ValueType.INT, 2),
@@ -8483,10 +8590,10 @@ public final class BackportedMethods {
                     options.itemFactory.createString("<init>")),
                 false),
             new CfStore(ValueType.OBJECT, 3),
-            label8,
+            label10,
             new CfConstNumber(0, ValueType.INT),
             new CfStore(ValueType.INT, 4),
-            label9,
+            label11,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2, 3, 4},
@@ -8500,8 +8607,8 @@ public final class BackportedMethods {
                 new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.INT, 4),
             new CfLoad(ValueType.INT, 1),
-            new CfIfCmp(If.Type.GE, ValueType.INT, label12),
-            label10,
+            new CfIfCmp(If.Type.GE, ValueType.INT, label14),
+            label12,
             new CfLoad(ValueType.OBJECT, 3),
             new CfLoad(ValueType.OBJECT, 0),
             new CfInvoke(
@@ -8513,10 +8620,10 @@ public final class BackportedMethods {
                     options.itemFactory.createString("append")),
                 false),
             new CfStackInstruction(CfStackInstruction.Opcode.Pop),
-            label11,
+            label13,
             new CfIinc(4, 1),
-            new CfGoto(label9),
-            label12,
+            new CfGoto(label11),
+            label14,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2, 3},
@@ -8536,7 +8643,7 @@ public final class BackportedMethods {
                     options.itemFactory.createString("toString")),
                 false),
             new CfReturn(ValueType.OBJECT),
-            label13),
+            label15),
         ImmutableList.of(),
         ImmutableList.of());
   }
