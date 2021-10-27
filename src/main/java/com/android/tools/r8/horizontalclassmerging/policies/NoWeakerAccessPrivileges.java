@@ -14,7 +14,6 @@ import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -44,11 +43,6 @@ public class NoWeakerAccessPrivileges extends MultiClassPolicy {
 
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
-    // This policy is specific to issues that may arise from merging interfaces.
-    if (group.isClassGroup()) {
-      return ImmutableList.of(group);
-    }
-
     List<MergeGroup> newMergeGroups = new LinkedList<>();
     Map<MergeGroup, DexMethodSignatureSet> inheritedInterfaceMethodsPerGroup =
         new IdentityHashMap<>();
@@ -122,8 +116,10 @@ public class NoWeakerAccessPrivileges extends MultiClassPolicy {
         DexClass::isInterface,
         superclass ->
             inheritedInterfaceMethods.addAll(getOrComputeInheritedInterfaceMethods(superclass)));
-    clazz.forEachClassMethodMatching(
-        DexEncodedMethod::belongsToVirtualPool, inheritedInterfaceMethods::add);
+    if (clazz.isInterface()) {
+      clazz.forEachClassMethodMatching(
+          DexEncodedMethod::belongsToVirtualPool, inheritedInterfaceMethods::add);
+    }
     inheritedInterfaceMethodsCache.put(clazz, inheritedInterfaceMethods);
     return inheritedInterfaceMethods;
   }

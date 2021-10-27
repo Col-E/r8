@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPackagePrivate
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -19,6 +20,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,8 +44,7 @@ public class NonPublicOverrideOfPublicMethodAfterAbstractClassMergingTest extend
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
-            inspector ->
-                inspector.assertIsCompleteMergeGroup(A.class, X.class).assertNoOtherClassesMerged())
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -58,21 +59,12 @@ public class NonPublicOverrideOfPublicMethodAfterAbstractClassMergingTest extend
 
               ClassSubject aClassSubject = inspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-              assertThat(aClassSubject, isImplementing(iClassSubject));
+              assertThat(aClassSubject, not(isImplementing(iClassSubject)));
               assertThat(
                   aClassSubject.uniqueMethodWithName("m"), allOf(isPresent(), isPackagePrivate()));
             })
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime(),
-            runResult -> runResult.assertSuccessWithOutputLines("A.m()", "Y.m()"),
-            runResult ->
-                runResult.applyIf(
-                    parameters.getDexRuntimeVersion().isDalvik(),
-                    ignore ->
-                        runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-                    ignore ->
-                        runResult.assertFailureWithErrorThatThrows(IllegalAccessError.class)));
+        .assertSuccessWithOutputLines("A.m()", "Y.m()");
   }
 
   static class Main {
