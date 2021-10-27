@@ -275,14 +275,25 @@ public class InstanceInitializerDescription {
     }
 
     public void addInstancePut(DexField field, InstanceFieldInitializationInfo value) {
+      if (parentConstructor == null) {
+        instanceFieldAssignmentsPre.put(field, value);
+        return;
+      }
+
       // If the parent constructor is java.lang.Object.<init>() then group all the field assignments
       // before the parent constructor call to allow more sharing.
-      if (parentConstructor == null
-          || parentConstructor == dexItemFactory.objectMembers.constructor) {
-        instanceFieldAssignmentsPre.put(field, value);
-      } else {
-        instanceFieldAssignmentsPost.put(field, value);
+      //
+      // Note that field assignments that store the receiver cannot be hoisted to before the
+      // Object.<init>() call, since this would lead to an illegal use of the uninitialized 'this'.
+      if (parentConstructor == dexItemFactory.objectMembers.constructor) {
+        if (!value.isArgumentInitializationInfo()
+            || value.asArgumentInitializationInfo().getArgumentIndex() != 0) {
+          instanceFieldAssignmentsPre.put(field, value);
+          return;
+        }
       }
+
+      instanceFieldAssignmentsPost.put(field, value);
     }
 
     public boolean addInvokeConstructor(
