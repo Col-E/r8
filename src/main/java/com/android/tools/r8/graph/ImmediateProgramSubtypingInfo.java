@@ -45,6 +45,13 @@ public class ImmediateProgramSubtypingInfo {
     return new ImmediateProgramSubtypingInfo(appView, immediateSubtypes);
   }
 
+  public void forEachImmediateSuperClass(DexClass clazz, Consumer<? super DexClass> consumer) {
+    forEachImmediateSuperClassMatching(
+        clazz,
+        (supertype, superclass) -> superclass != null,
+        (supertype, superclass) -> consumer.accept(superclass));
+  }
+
   public void forEachImmediateSuperClass(
       DexClass clazz, BiConsumer<? super DexType, ? super DexClass> consumer) {
     forEachImmediateSuperClassMatching(clazz, (supertype, superclass) -> true, consumer);

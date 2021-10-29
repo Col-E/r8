@@ -31,6 +31,8 @@ public class NoWeakerAccessPrivileges extends MultiClassPolicy {
       new IdentityHashMap<>();
   private final Map<Set<DexProgramClass>, DexMethodSignatureSet>
       nonPublicVirtualMethodSignaturesCache = new IdentityHashMap<>();
+  private final Map<DexClass, DexMethodSignatureSet> nonPublicVirtualLibraryMethodSignaturesCache =
+      new IdentityHashMap<>();
   private final Map<DexProgramClass, Set<DexProgramClass>> stronglyConnectedComponentsCache =
       new IdentityHashMap<>();
 
@@ -152,10 +154,35 @@ public class NoWeakerAccessPrivileges extends MultiClassPolicy {
       clazz.forEachProgramVirtualMethodMatching(
           method -> method.getAccessFlags().isPackagePrivateOrProtected(),
           nonPublicVirtualMethodSignatures::add);
+      immediateSubtypingInfo.forEachImmediateSuperClassMatching(
+          clazz,
+          superclass -> !superclass.isProgramClass(),
+          superclass ->
+              nonPublicVirtualMethodSignatures.addAll(
+                  getOrComputeNonPublicVirtualLibraryMethodSignatures(superclass)));
     }
     nonPublicVirtualMethodSignaturesCache.put(
         stronglyConnectedComponent, nonPublicVirtualMethodSignatures);
     return nonPublicVirtualMethodSignatures;
+  }
+
+  private DexMethodSignatureSet getOrComputeNonPublicVirtualLibraryMethodSignatures(
+      DexClass clazz) {
+    if (nonPublicVirtualLibraryMethodSignaturesCache.containsKey(clazz)) {
+      return nonPublicVirtualLibraryMethodSignaturesCache.get(clazz);
+    }
+    DexMethodSignatureSet nonPublicVirtualLibraryMethodSignatures = DexMethodSignatureSet.create();
+    clazz.forEachClassMethodMatching(
+        method -> method.getAccessFlags().isPackagePrivateOrProtected(),
+        nonPublicVirtualLibraryMethodSignatures::add);
+    immediateSubtypingInfo.forEachImmediateSuperClass(
+        clazz,
+        superclass ->
+            nonPublicVirtualLibraryMethodSignatures.addAll(
+                getOrComputeNonPublicVirtualLibraryMethodSignatures(superclass)));
+    nonPublicVirtualLibraryMethodSignaturesCache.put(
+        clazz, nonPublicVirtualLibraryMethodSignatures);
+    return nonPublicVirtualLibraryMethodSignatures;
   }
 
   @Override
