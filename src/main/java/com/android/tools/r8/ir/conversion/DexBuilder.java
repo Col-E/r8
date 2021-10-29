@@ -1242,7 +1242,9 @@ public class DexBuilder {
       int maxOffset = getMaxOffset();
       int maxTargetOffset = targetInfo.getMaxOffset();
       if (maxTargetOffset < maxOffset) {
-        return getOffset() - targetInfo.getOffset() < Short.MIN_VALUE;
+        int relativeJumpOffset = targetInfo.getOffset() - getOffset();
+        assert relativeJumpOffset < 0;
+        return relativeJumpOffset < Short.MIN_VALUE;
       }
       // Forward branch: over estimate the distance, but take into account the sizes
       // of instructions generated so far. That way the over estimation is only for the
