@@ -3263,10 +3263,10 @@ public class Enqueuer {
     EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
     KeepFieldInfo.Joiner minimumKeepInfoForField =
         dependentMinimumKeepInfo.remove(preconditionEvent, field.getReference());
-      if (minimumKeepInfoForField != null) {
-        keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
-        enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfoForField);
-      }
+    if (minimumKeepInfoForField != null) {
+      keepInfo.joinField(field, info -> info.merge(minimumKeepInfoForField));
+      enqueueFieldIfShrinkingIsDisallowed(field, preconditionEvent, minimumKeepInfoForField);
+    }
   }
 
   private void applyMinimumKeepInfoWhenLive(
@@ -3308,10 +3308,10 @@ public class Enqueuer {
     EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
     KeepMethodInfo.Joiner minimumKeepInfoForMethod =
         dependentMinimumKeepInfo.remove(preconditionEvent, method.getReference());
-      if (minimumKeepInfoForMethod != null) {
-        keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
-        enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfoForMethod);
-      }
+    if (minimumKeepInfoForMethod != null) {
+      keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfoForMethod));
+      enqueueMethodIfShrinkingIsDisallowed(method, preconditionEvent, minimumKeepInfoForMethod);
+    }
   }
 
   private void applyMinimumKeepInfoWhenLiveOrTargeted(
@@ -4611,6 +4611,7 @@ public class Enqueuer {
       return;
     }
 
+    WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList();
     for (Instruction user : interfacesValue.uniqueUsers()) {
       if (!user.isArrayPut()) {
         continue;
@@ -4622,23 +4623,41 @@ public class Enqueuer {
         continue;
       }
 
-      DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(type, method);
-      if (clazz != null && clazz.isInterface()) {
-        // Add this interface to the set of pinned items to ensure that we do not merge the
-        // interface into its unique subtype, if any.
-        // TODO(b/145344105): This should be superseded by the unknown interface hierarchy.
-        keepInfo.joinClass(clazz, joiner -> joiner.disallowOptimization().disallowShrinking());
-        KeepReason reason = KeepReason.reflectiveUseIn(method);
-        markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
+      DexProgramClass clazz = asProgramClassOrNull(definitionFor(type, method));
+      if (clazz != null) {
+        worklist.addIfNotSeen(clazz);
+      }
+    }
 
-        // Also pin all of its virtual methods to ensure that the devirtualizer does not perform
-        // illegal rewritings of invoke-interface instructions into invoke-virtual instructions.
-        clazz.forEachProgramVirtualMethod(
-            virtualMethod -> {
-              keepInfo.joinMethod(
-                  virtualMethod, joiner -> joiner.disallowOptimization().disallowShrinking());
-              markVirtualMethodAsReachable(virtualMethod.getReference(), true, method, reason);
-            });
+    while (worklist.hasNext()) {
+      DexProgramClass clazz = worklist.next();
+      if (!clazz.isInterface()) {
+        continue;
+      }
+
+      // Add this interface to the set of pinned items to ensure that we do not merge the
+      // interface into its unique subtype, if any.
+      // TODO(b/145344105): This should be superseded by the unknown interface hierarchy.
+      keepInfo.joinClass(clazz, joiner -> joiner.disallowOptimization().disallowShrinking());
+      KeepReason reason = KeepReason.reflectiveUseIn(method);
+      markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
+
+      // Also pin all of its virtual methods to ensure that the devirtualizer does not perform
+      // illegal rewritings of invoke-interface instructions into invoke-virtual instructions.
+      clazz.forEachProgramVirtualMethod(
+          virtualMethod -> {
+            keepInfo.joinMethod(
+                virtualMethod, joiner -> joiner.disallowOptimization().disallowShrinking());
+            markVirtualMethodAsReachable(virtualMethod.getReference(), true, method, reason);
+          });
+
+      // Repeat for all super interfaces.
+      for (DexType implementedType : clazz.getInterfaces()) {
+        DexProgramClass implementedClass =
+            asProgramClassOrNull(definitionFor(implementedType, clazz));
+        if (implementedClass != null) {
+          worklist.addIfNotSeen(implementedClass);
+        }
       }
     }
   }
