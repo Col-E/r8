@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -83,8 +82,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
    * Computes an over-approximation of each parameter's value and type and stores the result in
    * {@link com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo}.
    */
-  void populateOptimizationInfo(
-      IRConverter converter, ExecutorService executorService, Timing timing)
+  void populateOptimizationInfo(ExecutorService executorService, Timing timing)
       throws ExecutionException {
     // TODO(b/190154391): Propagate argument information to handle virtual dispatch.
     // TODO(b/190154391): To deal with arguments that are themselves passed as arguments to invoke
@@ -100,7 +98,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
 
     // Solve the parameter flow constraints.
     timing.begin("Solve flow constraints");
-    new InParameterFlowPropagator(appView, converter, methodStates).run(executorService);
+    new InParameterFlowPropagator(appView, methodStates).run(executorService);
     timing.end();
 
     // The information stored on each method is now sound, and can be used as optimization info.

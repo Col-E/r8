@@ -35,7 +35,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -1066,17 +1065,15 @@ public class VerticalClassMergerTest extends TestBase {
         };
     // SimpleInterface cannot be merged into SimpleInterfaceImpl because SimpleInterfaceImpl
     // is in a different package and is not public.
-    Set<String> preservedClassNames =
-        SetUtils.newHashSet(
+    ImmutableSet<String> preservedClassNames =
+        ImmutableSet.of(
             "classmerging.SimpleInterfaceAccessTest",
+            "classmerging.SimpleInterfaceAccessTest$1",
             "classmerging.SimpleInterfaceAccessTest$SimpleInterface",
             "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterface",
             "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
-    if (parameters.isCfRuntime()) {
-      preservedClassNames.add("classmerging.SimpleInterfaceAccessTest$1");
-    }
     runTest(
         testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))

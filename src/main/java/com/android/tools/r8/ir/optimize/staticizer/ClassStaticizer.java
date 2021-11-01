@@ -105,8 +105,6 @@ public final class ClassStaticizer {
   final Map<CandidateInfo, LongLivedProgramMethodSetBuilder<?>> referencedFrom =
       new ConcurrentHashMap<>();
 
-  private final Set<DexMethod> prunedMethods = Sets.newIdentityHashSet();
-
   // The map storing all the potential candidates for staticizing.
   final ConcurrentHashMap<DexType, CandidateInfo> candidates = new ConcurrentHashMap<>();
 
@@ -114,14 +112,6 @@ public final class ClassStaticizer {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.converter = converter;
-  }
-
-  public void onMethodPruned(ProgramMethod method) {
-    onMethodCodePruned(method);
-  }
-
-  public void onMethodCodePruned(ProgramMethod method) {
-    prunedMethods.add(method.getReference());
   }
 
   public void prepareForPrimaryOptimizationPass(GraphLens graphLensForPrimaryOptimizationPass) {
@@ -139,11 +129,8 @@ public final class ClassStaticizer {
         .values()
         .forEach(
             referencedFromBuilder ->
-                referencedFromBuilder
-                    .removeAll(prunedMethods)
-                    .rewrittenWithLens(graphLensForSecondaryOptimizationPass));
+                referencedFromBuilder.rewrittenWithLens(graphLensForSecondaryOptimizationPass));
     this.graphLensForOptimizationPass = graphLensForSecondaryOptimizationPass;
-    prunedMethods.clear();
   }
 
   // Before doing any usage-based analysis we collect a set of classes that can be

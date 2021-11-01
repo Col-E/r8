@@ -355,7 +355,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
         previous.fieldAccessInfoCollection,
         previous.methodAccessInfoCollection,
-        previous.objectAllocationInfoCollection.withoutPrunedItems(prunedItems),
+        previous.objectAllocationInfoCollection,
         previous.callSites,
         extendPinnedItems(previous, prunedItems.getAdditionalPinnedItems()),
         previous.mayHaveSideEffects,
@@ -439,7 +439,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private static <T> Set<T> pruneItems(
       Set<T> items, Set<T> removedItems, ExecutorService executorService, List<Future<?>> futures) {
     if (!removedItems.isEmpty()) {
-
       futures.add(
           ThreadUtils.processAsynchronously(
               () -> {
@@ -1272,14 +1271,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteCallSites(callSites, definitionSupplier),
         keepInfo.rewrite(definitionSupplier, lens, application.options),
         // Take any rule in case of collisions.
-        lens.rewriteReferenceKeys(mayHaveSideEffects, (reference, rules) -> ListUtils.first(rules)),
-        // Take the assume rule from the representative in case of collisions.
-        lens.rewriteReferenceKeys(
-            noSideEffects,
-            (reference, rules) -> noSideEffects.get(lens.getOriginalMemberSignature(reference))),
-        lens.rewriteReferenceKeys(
-            assumedValues,
-            (reference, rules) -> assumedValues.get(lens.getOriginalMemberSignature(reference))),
+        lens.rewriteReferenceKeys(mayHaveSideEffects, ListUtils::first),
+        // Drop assume rules in case of collisions.
+        lens.rewriteReferenceKeys(noSideEffects, rules -> null),
+        lens.rewriteReferenceKeys(assumedValues, rules -> null),
         lens.rewriteReferences(alwaysInline),
         lens.rewriteReferences(neverInline),
         lens.rewriteReferences(neverInlineDueToSingleCaller),

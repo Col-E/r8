@@ -129,6 +129,7 @@ import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.synthesis.SyntheticItems.SynthesizingContextOracle;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -3725,11 +3726,11 @@ public class Enqueuer {
                 : missingClassesBuilder.assertNoMissingClasses(appView),
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toDescriptorSet(targetedMethods.getItems()),
-            failedMethodResolutionTargets,
-            failedFieldResolutionTargets,
-            bootstrapMethods,
-            methodsTargetedByInvokeDynamic,
-            virtualMethodsTargetedByInvokeDirect,
+            Collections.unmodifiableSet(failedMethodResolutionTargets),
+            Collections.unmodifiableSet(failedFieldResolutionTargets),
+            Collections.unmodifiableSet(bootstrapMethods),
+            Collections.unmodifiableSet(methodsTargetedByInvokeDynamic),
+            Collections.unmodifiableSet(virtualMethodsTargetedByInvokeDirect),
             toDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
@@ -3771,15 +3772,16 @@ public class Enqueuer {
     if (methods.isEmpty() || interfaceProcessor == null) {
       return methods;
     }
-    Set<DexMethod> companionMethods = Sets.newIdentityHashSet();
+    BooleanBox changed = new BooleanBox(false);
+    ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
     interfaceProcessor.forEachMethodToMove(
         (method, companion) -> {
           if (methods.contains(method)) {
-            companionMethods.add(companion);
+            changed.set(true);
+            builder.add(companion);
           }
         });
-    methods.addAll(companionMethods);
-    return methods;
+    return changed.isTrue() ? builder.addAll(methods).build() : methods;
   }
 
   private boolean verifyReferences(DexApplication app) {
@@ -3848,11 +3850,11 @@ public class Enqueuer {
 
   private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
       Set<R> toDescriptorSet(Set<D> set) {
-    Set<R> result = Sets.newIdentityHashSet();
+    ImmutableSet.Builder<R> builder = new ImmutableSet.Builder<>();
     for (D item : set) {
-      result.add(item.getReference());
+      builder.add(item.getReference());
     }
-    return result;
+    return builder.build();
   }
 
   private static Object2BooleanMap<DexMember<?, ?>> joinIdentifierNameStrings(

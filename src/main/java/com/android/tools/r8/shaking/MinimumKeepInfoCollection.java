@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.MapUtils;
 import java.util.Collections;
@@ -130,10 +129,6 @@ public class MinimumKeepInfoCollection {
                           asProgramClassOrNull(definitions.definitionFor(method.getHolderType()))));
           return definition == null || !enqueuer.isReachable(definition);
         });
-  }
-
-  public void pruneItems(PrunedItems prunedItems) {
-    minimumKeepInfo.keySet().removeIf(prunedItems::isRemoved);
   }
 
   public KeepClassInfo.Joiner remove(DexType clazz) {

@@ -1012,13 +1012,8 @@ public class VerticalClassMerger {
         DexEncodedMethod shadowedBy = findMethodInTarget(virtualMethod);
         if (shadowedBy != null) {
           if (virtualMethod.isAbstract()) {
-            // Remove abstract/interface methods that are shadowed. The identity mapping below is
-            // needed to ensure we correctly fixup the mapping in case the signature refers to
-            // merged classes.
-            deferredRenamings
-                .map(virtualMethod.getReference(), shadowedBy.getReference())
-                .map(shadowedBy.getReference(), shadowedBy.getReference())
-                .recordMerge(virtualMethod.getReference(), shadowedBy.getReference());
+            // Remove abstract/interface methods that are shadowed.
+            deferredRenamings.map(virtualMethod.getReference(), shadowedBy.getReference());
 
             // The override now corresponds to the method in the parent, so unset its synthetic flag
             // if the method in the parent is not synthetic.

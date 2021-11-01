@@ -28,7 +28,7 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters().withAllRuntimes().build();
   }
 
   private final TestParameters parameters;
@@ -51,7 +51,7 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
             "  void info(...);",
             "}")
         .noMinification()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(this::inspect);
