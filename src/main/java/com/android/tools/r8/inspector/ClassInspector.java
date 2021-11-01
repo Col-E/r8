@@ -14,6 +14,9 @@ public interface ClassInspector {
   /** Get the class reference for the class of this inspector. */
   ClassReference getClassReference();
 
+  /** Get the source file attribute content if present, otherwise null. */
+  String getSourceFile();
+
   /** Iterate all fields declared in the class/interface (unspecified order). */
   void forEachField(Consumer<FieldInspector> inspection);
 

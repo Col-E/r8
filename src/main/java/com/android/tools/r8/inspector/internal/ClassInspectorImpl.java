@@ -4,6 +4,7 @@
 package com.android.tools.r8.inspector.internal;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.inspector.ClassInspector;
 import com.android.tools.r8.inspector.FieldInspector;
 import com.android.tools.r8.inspector.MethodInspector;
@@ -26,6 +27,12 @@ public class ClassInspectorImpl implements ClassInspector {
       reference = Reference.classFromDescriptor(clazz.type.toDescriptorString());
     }
     return reference;
+  }
+
+  @Override
+  public String getSourceFile() {
+    DexString sourceFile = clazz.getSourceFile();
+    return sourceFile == null ? null : sourceFile.toString();
   }
 
   @Override
