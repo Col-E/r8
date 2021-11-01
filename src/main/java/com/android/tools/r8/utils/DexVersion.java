@@ -41,6 +41,7 @@ public enum DexVersion {
         // UNKNOWN is an unknown higher api version we therefore choose the highest known
         // version.
       case UNKNOWN:
+      case Sv2:
       case S:
       case R:
       case Q:
