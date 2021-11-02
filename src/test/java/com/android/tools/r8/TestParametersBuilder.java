@@ -78,8 +78,8 @@ public class TestParametersBuilder {
   /**
    * Test using the default DEX VM.
    *
-   * <p>Generally tests should rather use withAllDexRuntimes(), but if a test really only needs to
-   * be tested on a single DEX runtime this can be used instead. The test should not have any
+   * <p>Generally tests should rather use withDexRuntimes(), but if a test really only needs to be
+   * tested on a single DEX runtime this can be used instead. The test should not have any
    * requirements as to which VM it is as the default will change and may not track latest.
    */
   public TestParametersBuilder withDefaultDexRuntime() {
@@ -89,7 +89,7 @@ public class TestParametersBuilder {
   /**
    * Test using the default CF VM.
    *
-   * <p>Generally tests should rather use withAllCfRuntimes(), but if a test really only needs to be
+   * <p>Generally tests should rather use withCfRuntimes(), but if a test really only needs to be
    * tested on a single CF runtime this can be used instead. The test should not have any
    * requirements as to which VM it is as the default will change and may not track latest.
    */

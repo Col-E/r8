@@ -13,7 +13,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -42,7 +41,7 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
     return buildParameters(
         BooleanUtils.values(),
         BooleanUtils.values(),
-        getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build());
+        getTestParameters().withDefaultDexRuntime().withAllApiLevels().build());
   }
 
   public Proto3ShrinkingTest(

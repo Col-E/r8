@@ -26,7 +26,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -54,10 +53,7 @@ public class YouTubeV1612Test extends YouTubeCompilationTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntime(Version.DEFAULT)
-        .withApiLevel(AndroidApiLevel.L)
-        .build();
+    return getTestParameters().withDefaultDexRuntime().withApiLevel(AndroidApiLevel.L).build();
   }
 
   public YouTubeV1612Test(TestParameters parameters) {

@@ -13,7 +13,6 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -35,7 +34,7 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build();
+    return getTestParameters().withDefaultDexRuntime().withAllApiLevels().build();
   }
 
   public Proto2BuilderOnlyReferencedFromDynamicMethodTest(TestParameters parameters) {

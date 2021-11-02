@@ -17,7 +17,6 @@ import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -42,10 +41,7 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntime(Version.DEFAULT)
-        .withApiLevel(AndroidApiLevel.L)
-        .build();
+    return getTestParameters().withDefaultDexRuntime().withApiLevel(AndroidApiLevel.L).build();
   }
 
   public GMSCoreV10Test(TestParameters parameters) {

@@ -252,9 +252,9 @@ public class ToolHelper {
     ART_6_0_1_HOST(Version.V6_0_1, Kind.HOST),
     ART_7_0_0_TARGET(Version.V7_0_0, Kind.TARGET),
     ART_7_0_0_HOST(Version.V7_0_0, Kind.HOST),
+    ART_DEFAULT(Version.DEFAULT, Kind.HOST),
     ART_8_1_0_TARGET(Version.V8_1_0, Kind.TARGET),
     ART_8_1_0_HOST(Version.V8_1_0, Kind.HOST),
-    ART_DEFAULT(Version.DEFAULT, Kind.HOST),
     ART_9_0_0_TARGET(Version.V9_0_0, Kind.TARGET),
     ART_9_0_0_HOST(Version.V9_0_0, Kind.HOST),
     ART_10_0_0_TARGET(Version.V10_0_0, Kind.TARGET),
@@ -292,7 +292,7 @@ public class ToolHelper {
       }
 
       public boolean isDefault() {
-        return this == DEFAULT;
+        return this == NEW_DEFAULT;
       }
 
       public boolean isLatest() {
@@ -1000,8 +1000,6 @@ public class ToolHelper {
 
   public static AndroidApiLevel getMinApiLevelForDexVm(DexVm dexVm) {
     switch (dexVm.version) {
-      case DEFAULT:
-        return AndroidApiLevel.O;
       case V12_0_0:
         return AndroidApiLevel.S;
       case V10_0_0:
@@ -1010,6 +1008,8 @@ public class ToolHelper {
         return AndroidApiLevel.P;
       case V8_1_0:
         return AndroidApiLevel.O_MR1;
+      case DEFAULT:
+        return AndroidApiLevel.O;
       case V7_0_0:
         return AndroidApiLevel.N;
       case V6_0_1:

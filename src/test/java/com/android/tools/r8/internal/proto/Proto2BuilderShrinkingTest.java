@@ -13,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
@@ -58,7 +57,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
                 "proto2.BuilderWithProtoSetterTestClass",
                 "proto2.BuilderWithReusedSettersTestClass",
                 "proto2.HasFlaggedOffExtensionBuilderTestClass")),
-        getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build());
+        getTestParameters().withDefaultDexRuntime().withAllApiLevels().build());
   }
 
   public Proto2BuilderShrinkingTest(List<String> mains, TestParameters parameters) {

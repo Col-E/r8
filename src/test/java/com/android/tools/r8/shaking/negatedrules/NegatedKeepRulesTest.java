@@ -14,9 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestShrinkerBuilder;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.Subject;
 import org.hamcrest.Matcher;
@@ -32,7 +30,7 @@ public class NegatedKeepRulesTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntime(CfVm.JDK9).withDexRuntime(Version.DEFAULT).build();
+    return getTestParameters().withDefaultCfRuntime().withDefaultDexRuntime().build();
   }
 
   public NegatedKeepRulesTest(TestParameters parameters) {

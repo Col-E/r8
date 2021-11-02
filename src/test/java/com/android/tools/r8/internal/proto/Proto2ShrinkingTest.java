@@ -16,7 +16,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -65,7 +64,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     return buildParameters(
         BooleanUtils.values(),
         BooleanUtils.values(),
-        getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build());
+        getTestParameters().withDefaultDexRuntime().withAllApiLevels().build());
   }
 
   public Proto2ShrinkingTest(
