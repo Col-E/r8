@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -14,19 +16,23 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
-import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BiForEachable;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.TriConsumer;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -40,52 +46,120 @@ import java.util.function.Function;
 
 public class MemberRebindingAnalysis {
 
+  private final AndroidApiLevelCompute androidApiLevelCompute;
   private final AppView<AppInfoWithLiveness> appView;
-  private final GraphLens lens;
   private final InternalOptions options;
 
   private final MemberRebindingLens.Builder lensBuilder;
 
   public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
     assert appView.graphLens().isContextFreeForMethods();
+    this.androidApiLevelCompute = AndroidApiLevelCompute.create(appView);
     this.appView = appView;
-    this.lens = appView.graphLens();
     this.options = appView.options();
     this.lensBuilder = MemberRebindingLens.builder(appView);
   }
 
-  private DexMethod validTargetFor(DexMethod target, DexMethod original) {
-    DexClass clazz = appView.definitionFor(target.getHolderType());
-    assert clazz != null;
-    if (clazz.isProgramClass()) {
-      return target;
+  private DexMethod validMemberRebindingTargetForNonProgramMethod(
+      DexClassAndMethod resolvedMethod,
+      SingleResolutionResult resolutionResult,
+      ProgramMethodSet contexts,
+      Type invokeType,
+      DexMethod original) {
+    assert !resolvedMethod.isProgramMethod();
+
+    if (invokeType.isDirect()) {
+      return original;
     }
-    DexType newHolder;
-    if (clazz.isInterface()) {
-      newHolder =
-          firstLibraryClassForInterfaceTarget(
-              appView, target, original.holder, DexClass::lookupMethod);
-    } else {
-      newHolder = firstLibraryClass(appView, target.getHolderType(), original.getHolderType());
+
+    LibraryMethod eligibleLibraryMethod = null;
+    SingleResolutionResult currentResolutionResult = resolutionResult;
+    while (currentResolutionResult != null) {
+      DexClassAndMethod currentResolvedMethod = currentResolutionResult.getResolutionPair();
+      if (canRebindDirectlyToLibraryMethod(
+          currentResolvedMethod, currentResolutionResult, contexts, invokeType)) {
+        eligibleLibraryMethod = currentResolvedMethod.asLibraryMethod();
+      }
+      if (appView.appInfo().isAssumeMethod(currentResolvedMethod)) {
+        break;
+      }
+      DexClass currentResolvedHolder = currentResolvedMethod.getHolder();
+      if (resolvedMethod.getDefinition().belongsToVirtualPool()
+          && !currentResolvedHolder.isInterface()
+          && currentResolvedHolder.getSuperType() != null) {
+        currentResolutionResult =
+            appView
+                .appInfo()
+                .resolveMethodOnClass(original, currentResolvedHolder.getSuperType())
+                .asSingleResolution();
+      } else {
+        break;
+      }
     }
-    return newHolder == null
-        ? original
-        : appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
+    if (eligibleLibraryMethod != null) {
+      return eligibleLibraryMethod.getReference();
+    }
+
+    DexType newHolder =
+        resolvedMethod.getHolder().isInterface()
+            ? firstLibraryClassForInterfaceTarget(
+                appView,
+                resolvedMethod.getReference(),
+                original.getHolderType(),
+                DexClass::lookupMethod)
+            : firstLibraryClass(appView, original.getHolderType());
+    return newHolder != null ? original.withHolder(newHolder, appView.dexItemFactory()) : original;
+  }
+
+  private boolean canRebindDirectlyToLibraryMethod(
+      DexClassAndMethod resolvedMethod,
+      SingleResolutionResult resolutionResult,
+      ProgramMethodSet contexts,
+      Type invokeType) {
+    // TODO(b/194422791): It could potentially be that `original.holder` is not a subtype of
+    //  `original.holder` on all API levels, in which case it is not OK to rebind to the resolved
+    //  method.
+    return resolvedMethod.isLibraryMethod()
+        && isAccessibleInAllContexts(resolvedMethod, resolutionResult, contexts)
+        && !isInvokeSuperToInterfaceMethod(resolvedMethod, invokeType)
+        && isPresentSinceMinApi(resolvedMethod.asLibraryMethod());
+  }
+
+  private boolean isAccessibleInAllContexts(
+      DexClassAndMethod resolvedMethod,
+      SingleResolutionResult resolutionResult,
+      ProgramMethodSet contexts) {
+    if (resolvedMethod.getHolder().isPublic() && resolvedMethod.getDefinition().isPublic()) {
+      return true;
+    }
+    return Iterables.all(
+        contexts,
+        context -> resolutionResult.isAccessibleFrom(context, appView.appInfo()).isTrue());
+  }
+
+  private boolean isInvokeSuperToInterfaceMethod(DexClassAndMethod method, Type invokeType) {
+    return method.getHolder().isInterface() && invokeType.isSuper();
+  }
+
+  private boolean isPresentSinceMinApi(LibraryMethod method) {
+    AndroidApiLevel apiLevel =
+        androidApiLevelCompute.computeApiLevelForLibraryReference(method.getReference());
+    return apiLevel.isLessThanOrEqualTo(options.minApiLevel);
   }
 
   public static DexField validMemberRebindingTargetFor(
       DexDefinitionSupplier definitions, DexClassAndField field, DexField original) {
-    DexClass clazz = field.getHolder();
     if (field.isProgramField()) {
       return field.getReference();
     }
+    DexClass fieldHolder = field.getHolder();
     DexType newHolder =
-        clazz.isInterface()
+        fieldHolder.isInterface()
             ? firstLibraryClassForInterfaceTarget(
                 definitions, field.getReference(), original.getHolderType(), DexClass::lookupField)
-            : firstLibraryClass(definitions, field.getHolderType(), original.getHolderType());
+            : firstLibraryClass(definitions, original.getHolderType());
     return newHolder != null
-        ? field.getReference().withHolder(newHolder, definitions.dexItemFactory())
+        ? original.withHolder(newHolder, definitions.dexItemFactory())
         : original;
   }
 
@@ -111,7 +185,7 @@ public class MemberRebindingAnalysis {
         return clazz.isNotProgramClass() ? current : matchingSuper;
       }
     }
-    for (DexType iface : clazz.interfaces.values) {
+    for (DexType iface : clazz.getInterfaces()) {
       DexType matchingIface =
           firstLibraryClassForInterfaceTarget(definitions, target, iface, lookup);
       if (matchingIface != null) {
@@ -122,9 +196,7 @@ public class MemberRebindingAnalysis {
     return null;
   }
 
-  private static DexType firstLibraryClass(
-      DexDefinitionSupplier definitions, DexType top, DexType bottom) {
-    assert definitions.definitionFor(top).isNotProgramClass();
+  private static DexType firstLibraryClass(DexDefinitionSupplier definitions, DexType bottom) {
     DexClass searchClass = definitions.definitionFor(bottom);
     while (searchClass.isProgramClass()) {
       searchClass = definitions.definitionFor(searchClass.superType);
@@ -132,43 +204,46 @@ public class MemberRebindingAnalysis {
     return searchClass.type;
   }
 
-  private DexEncodedMethod classLookup(DexMethod method) {
-    return appView.appInfo().resolveMethodOnClass(method, method.holder).getSingleTarget();
+  private MethodResolutionResult resolveMethodOnClass(DexMethod method) {
+    return appView.appInfo().resolveMethodOnClass(method, method.holder);
   }
 
-  private DexEncodedMethod interfaceLookup(DexMethod method) {
-    return appView.appInfo().resolveMethodOnInterface(method.holder, method).getSingleTarget();
+  private MethodResolutionResult resolveMethodOnInterface(DexMethod method) {
+    return appView.appInfo().resolveMethodOnInterface(method.holder, method);
   }
 
-  private DexEncodedMethod anyLookup(DexMethod method) {
-    return appView.appInfo().unsafeResolveMethodDueToDexFormat(method).getSingleTarget();
+  private MethodResolutionResult resolveMethod(DexMethod method) {
+    return appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
   }
 
   private void computeMethodRebinding(MethodAccessInfoCollection methodAccessInfoCollection) {
     // Virtual invokes are on classes, so use class resolution.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachVirtualInvoke, this::classLookup, Type.VIRTUAL);
+        methodAccessInfoCollection::forEachVirtualInvoke, this::resolveMethodOnClass, Type.VIRTUAL);
     // Interface invokes are always on interfaces, so use interface resolution.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachInterfaceInvoke, this::interfaceLookup, Type.INTERFACE);
+        methodAccessInfoCollection::forEachInterfaceInvoke,
+        this::resolveMethodOnInterface,
+        Type.INTERFACE);
     // Super invokes can be on both kinds, decide using the holder class.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachSuperInvoke, this::anyLookup, Type.SUPER);
+        methodAccessInfoCollection::forEachSuperInvoke, this::resolveMethod, Type.SUPER);
     // Direct invokes (private/constructor) can also be on both kinds.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachDirectInvoke, this::anyLookup, Type.DIRECT);
+        methodAccessInfoCollection::forEachDirectInvoke, this::resolveMethod, Type.DIRECT);
     // Likewise static invokes.
     computeMethodRebinding(
-        methodAccessInfoCollection::forEachStaticInvoke, this::anyLookup, Type.STATIC);
+        methodAccessInfoCollection::forEachStaticInvoke, this::resolveMethod, Type.STATIC);
   }
 
   private void computeMethodRebinding(
       BiForEachable<DexMethod, ProgramMethodSet> methodsWithContexts,
-      Function<DexMethod, DexEncodedMethod> lookupTarget,
+      Function<DexMethod, MethodResolutionResult> resolver,
       Type invokeType) {
 
-    Map<DexProgramClass, List<Pair<DexMethod, DexEncodedMethod>>> bridges = new IdentityHashMap<>();
-    TriConsumer<DexProgramClass, DexMethod, DexEncodedMethod> addBridge =
+    Map<DexProgramClass, List<Pair<DexMethod, DexClassAndMethod>>> bridges =
+        new IdentityHashMap<>();
+    TriConsumer<DexProgramClass, DexMethod, DexClassAndMethod> addBridge =
         (bridgeHolder, method, target) ->
             bridges
                 .computeIfAbsent(bridgeHolder, k -> new ArrayList<>())
@@ -176,48 +251,58 @@ public class MemberRebindingAnalysis {
 
     methodsWithContexts.forEach(
         (method, contexts) -> {
-          // We can safely ignore array types, as the corresponding methods are defined in a
-          // library.
-          if (!method.holder.isClassType()) {
+          MethodResolutionResult resolutionResult = resolver.apply(method);
+          if (!resolutionResult.isSingleResolution()) {
             return;
           }
-          DexClass originalClass = appView.definitionFor(method.holder);
-          if (originalClass == null || originalClass.isNotProgramClass()) {
-            return;
-          }
-          DexEncodedMethod target = lookupTarget.apply(method);
+
           // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
           //  searching in library for methods, but this should be done on classpath instead.
-          if (target == null || target.getReference() == method) {
+          DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
+          if (resolvedMethod.getReference() == method) {
             return;
           }
-          DexClass targetClass = appView.definitionFor(target.getHolderType());
-          DexMethod targetMethod = target.getReference();
-          if (originalClass.isProgramClass()) {
+
+          DexClass initialResolutionHolder = resolutionResult.getInitialResolutionHolder();
+          DexMethod bridgeMethod = null;
+          if (initialResolutionHolder.isProgramClass()) {
             // In Java bytecode, it is only possible to target interface methods that are in one of
             // the immediate super-interfaces via a super-invocation (see
             // IndirectSuperInterfaceTest).
             // To avoid introducing an IncompatibleClassChangeError at runtime we therefore insert a
             // bridge method when we are about to rebind to an interface method that is not the
             // original target.
-            if (needsBridgeForInterfaceMethod(originalClass, targetClass, invokeType)) {
-              targetMethod =
+            if (needsBridgeForInterfaceMethod(
+                initialResolutionHolder, resolvedMethod, invokeType)) {
+              bridgeMethod =
                   insertBridgeForInterfaceMethod(
-                      method, target, originalClass.asProgramClass(), targetClass, addBridge);
-            }
-
-            // If the target class is not public but the targeted method is, we might run into
-            // visibility problems when rebinding.
-            final DexEncodedMethod finalTarget = target;
-            if (contexts.stream()
-                .anyMatch(context -> mayNeedBridgeForVisibility(context, finalTarget))) {
-              targetMethod =
-                  insertBridgeForVisibilityIfNeeded(
-                      method, target, originalClass, targetClass, addBridge);
+                      method, resolvedMethod, initialResolutionHolder.asProgramClass(), addBridge);
+            } else {
+              // If the target class is not public but the targeted method is, we might run into
+              // visibility problems when rebinding.
+              if (contexts.stream()
+                  .anyMatch(context -> mayNeedBridgeForVisibility(context, resolvedMethod))) {
+                bridgeMethod =
+                    insertBridgeForVisibilityIfNeeded(
+                        method, resolvedMethod, initialResolutionHolder, addBridge);
+              }
             }
           }
-          lensBuilder.map(
-              method, lens.lookupMethod(validTargetFor(targetMethod, method)), invokeType);
+          if (bridgeMethod != null) {
+            lensBuilder.map(method, bridgeMethod, invokeType);
+          } else if (resolvedMethod.isProgramMethod()) {
+            lensBuilder.map(method, resolvedMethod.getReference(), invokeType);
+          } else {
+            lensBuilder.map(
+                method,
+                validMemberRebindingTargetForNonProgramMethod(
+                    resolvedMethod,
+                    resolutionResult.asSingleResolution(),
+                    contexts,
+                    invokeType,
+                    method),
+                invokeType);
+          }
         });
 
     bridges.forEach(
@@ -225,35 +310,34 @@ public class MemberRebindingAnalysis {
           // Sorting the list of bridges within a class maintains a deterministic order of entries
           // in the method collection.
           targets.sort((p1, p2) -> p1.getFirst().compareTo(p2.getFirst()));
-          for (Pair<DexMethod, DexEncodedMethod> pair : targets) {
+          for (Pair<DexMethod, DexClassAndMethod> pair : targets) {
             DexMethod method = pair.getFirst();
-            DexEncodedMethod target = pair.getSecond();
+            DexClassAndMethod target = pair.getSecond();
             DexMethod bridgeMethod =
                 method.withHolder(bridgeHolder.getType(), appView.dexItemFactory());
             if (bridgeHolder.getMethodCollection().getMethod(bridgeMethod) == null) {
               DexEncodedMethod bridgeMethodDefinition =
-                  target.toForwardingMethod(bridgeHolder, appView);
+                  target.getDefinition().toForwardingMethod(bridgeHolder, appView);
               bridgeHolder.addMethod(bridgeMethodDefinition);
             }
-            assert lookupTarget.apply(method).getReference() == bridgeMethod;
+            assert resolver.apply(method).getResolvedMethod().getReference() == bridgeMethod;
           }
         });
   }
 
   private boolean needsBridgeForInterfaceMethod(
-      DexClass originalClass, DexClass targetClass, Type invokeType) {
+      DexClass originalClass, DexClassAndMethod method, Type invokeType) {
     return options.isGeneratingClassFiles()
         && invokeType == Type.SUPER
-        && targetClass != originalClass
-        && targetClass.accessFlags.isInterface();
+        && method.getHolder() != originalClass
+        && method.getHolder().isInterface();
   }
 
   private DexMethod insertBridgeForInterfaceMethod(
       DexMethod method,
-      DexEncodedMethod target,
+      DexClassAndMethod target,
       DexProgramClass originalClass,
-      DexClass targetClass,
-      TriConsumer<DexProgramClass, DexMethod, DexEncodedMethod> bridges) {
+      TriConsumer<DexProgramClass, DexMethod, DexClassAndMethod> bridges) {
     // If `targetClass` is a class, then insert the bridge method on the upper-most super class that
     // implements the interface. Otherwise, if it is an interface, then insert the bridge method
     // directly on the interface (because that interface must be the immediate super type, assuming
@@ -263,9 +347,9 @@ public class MemberRebindingAnalysis {
     // invoke-super instructions that hit indirect interface methods such that they always target
     // a method in an immediate super-interface, since this works on Art but not on the JVM.
     DexProgramClass bridgeHolder =
-        findHolderForInterfaceMethodBridge(originalClass, targetClass.type);
+        findHolderForInterfaceMethodBridge(originalClass, target.getHolderType());
     assert bridgeHolder != null;
-    assert bridgeHolder != targetClass;
+    assert bridgeHolder != target.getHolder();
     bridges.accept(bridgeHolder, method, target);
     return target.getReference().withHolder(bridgeHolder.getType(), appView.dexItemFactory());
   }
@@ -283,16 +367,18 @@ public class MemberRebindingAnalysis {
     return findHolderForInterfaceMethodBridge(superClass.asProgramClass(), iface);
   }
 
-  private boolean mayNeedBridgeForVisibility(ProgramMethod context, DexEncodedMethod method) {
+  private boolean mayNeedBridgeForVisibility(ProgramMethod context, DexClassAndMethod method) {
     DexType holderType = method.getHolderType();
     DexClass holder = appView.definitionFor(holderType);
     if (holder == null) {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(
+            context, holderType, holder.getAccessFlags(), appView);
     ConstraintWithTarget methodVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, method.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(
+            context, holderType, method.getAccessFlags(), appView);
     // We may need bridge for visibility if the target class is not visible while the target method
     // is visible from the calling context.
     return classVisibility == ConstraintWithTarget.NEVER
@@ -301,19 +387,18 @@ public class MemberRebindingAnalysis {
 
   private DexMethod insertBridgeForVisibilityIfNeeded(
       DexMethod method,
-      DexEncodedMethod target,
+      DexClassAndMethod target,
       DexClass originalClass,
-      DexClass targetClass,
-      TriConsumer<DexProgramClass, DexMethod, DexEncodedMethod> bridges) {
+      TriConsumer<DexProgramClass, DexMethod, DexClassAndMethod> bridges) {
     // If the original class is public and this method is public, it might have been called
     // from anywhere, so we need a bridge. Likewise, if the original is in a different
     // package, we might need a bridge, too.
     String packageDescriptor =
         originalClass.accessFlags.isPublic() ? null : method.holder.getPackageDescriptor();
     if (packageDescriptor == null
-        || !packageDescriptor.equals(targetClass.type.getPackageDescriptor())) {
+        || !packageDescriptor.equals(target.getHolderType().getPackageDescriptor())) {
       DexProgramClass bridgeHolder =
-          findHolderForVisibilityBridge(originalClass, targetClass, packageDescriptor);
+          findHolderForVisibilityBridge(originalClass, target.getHolder(), packageDescriptor);
       assert bridgeHolder != null;
       bridges.accept(bridgeHolder, method, target);
       return target.getReference().withHolder(bridgeHolder.getType(), appView.dexItemFactory());

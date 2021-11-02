@@ -19,6 +19,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingSupplier;
 import com.android.tools.r8.utils.codeinspector.CheckCastInstructionSubject;
@@ -98,15 +99,19 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     String expectedInstanceOfTypes;
     if (parameters.getApiLevel().getLevel() >= 26) {
       expectedInvokeHolders =
-          ImmutableSet.of(
-              "java.time.Clock", "java.time.LocalDate", "java.time.ZoneOffset", "java.time.ZoneId");
+          SetUtils.newHashSet("java.time.Clock", "java.time.LocalDate", "java.time.ZoneId");
+      if (!isR8) {
+        expectedInvokeHolders.add("java.time.ZoneOffset");
+      }
       expectedCatchGuards = ImmutableSet.of("java.time.format.DateTimeParseException");
       expectedCheckCastType = ImmutableSet.of("java.time.ZoneId");
       expectedInstanceOfTypes = "java.time.ZoneOffset";
     } else {
       expectedInvokeHolders =
-          ImmutableSet.of(
-              "j$.time.Clock", "j$.time.LocalDate", "j$.time.ZoneOffset", "j$.time.ZoneId");
+          SetUtils.newHashSet("j$.time.Clock", "j$.time.LocalDate", "j$.time.ZoneId");
+      if (!isR8) {
+        expectedInvokeHolders.add("j$.time.ZoneOffset");
+      }
       expectedCatchGuards = ImmutableSet.of("j$.time.format.DateTimeParseException");
       expectedCheckCastType = ImmutableSet.of("j$.time.ZoneId");
       expectedInstanceOfTypes = "j$.time.ZoneOffset";

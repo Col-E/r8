@@ -4,9 +4,17 @@
 
 package com.android.tools.r8.memberrebinding;
 
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static java.util.Collections.emptyList;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -68,15 +76,54 @@ public class LibraryMemberRebindingInterfaceTest extends TestBase {
 
   private void test(Path compileTimeLibrary, Path runtimeLibrary) throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class)
-        .addKeepClassAndMembersRules(TestClass.class)
+        .addProgramClasses(Main.class)
+        .addKeepClassAndMembersRules(Main.class)
         .addLibraryFiles(compileTimeLibrary)
         .addDefaultRuntimeLibrary(parameters)
+        .apply(setMockApiLevelForMethod(LibraryI.class.getDeclaredMethod("m"), AndroidApiLevel.B))
+        .apply(setMockApiLevelForMethod(LibraryC.class.getDeclaredMethod("m"), AndroidApiLevel.B))
+        .apply(setMockApiLevelForMethod(LibraryA.class.getDeclaredMethod("m"), AndroidApiLevel.N))
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .inspect(
+            inspector -> {
+              MethodSubject testMethodSubject =
+                  inspector.clazz(Main.class).uniqueMethodWithName("test");
+              assertThat(testMethodSubject, isPresent());
+              assertThat(
+                  testMethodSubject,
+                  invokesMethod(
+                      "int",
+                      getExpectedMemberRebindingTarget(compileTimeLibrary).getTypeName(),
+                      "m",
+                      emptyList()));
+            })
         .addRunClasspathFiles(buildOnDexRuntime(parameters, runtimeLibrary))
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("42");
+        .run(parameters.getRuntime(), Main.class)
+        .applyIf(
+            // Compiling to an API level above the API where LibraryA.m() was defined with a new
+            // android.jar, and running this on an older runtime (correctly) results in a NSME.
+            parameters.isDexRuntime()
+                && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
+                && compileTimeLibrary == newRuntimeJar
+                && runtimeLibrary == oldRuntimeJar,
+            runResult -> runResult.assertFailureWithErrorThatThrows(NoSuchMethodError.class),
+            runResult -> runResult.assertSuccessWithOutputLines("42"));
+  }
+
+  private Class<?> getExpectedMemberRebindingTarget(Path compileTimeLibrary) {
+    if (compileTimeLibrary == newRuntimeJar) {
+      // If we are compiling to a new runtime with a new android.jar, we should rebind to LibraryA.
+      if (parameters.isDexRuntime()
+          && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
+        return LibraryA.class;
+      }
+      // If we are compiling to an old runtime with a new android.jar, we should rebind to LibraryB.
+      return LibraryB.class;
+    }
+    // Otherwise, we are compiling to an old android.jar, in which case we should rebind to
+    // LibraryI.
+    return LibraryI.class;
   }
 
   private static Path createJar(Collection<Class<?>> programClasses, byte[]... programClassFileData)
@@ -97,33 +144,33 @@ public class LibraryMemberRebindingInterfaceTest extends TestBase {
         .transform();
   }
 
-  static class TestClass {
+  public static class Main {
 
     public static void main(String[] args) {
       test(new LibraryC());
     }
 
-    static void test(LibraryB b) {
+    private static void test(LibraryB b) {
       System.out.println(b.m());
     }
   }
 
-  interface LibraryI {
+  public interface LibraryI {
 
     int m();
   }
 
-  static class LibraryA {
+  public static class LibraryA {
 
-    // Added in API level X, so we can't rebind to this in APIs < X.
+    // Added in API N, so we can't rebind to this in APIs < N.
     public int m() {
       return 42;
     }
   }
 
-  abstract static class LibraryB extends LibraryA implements LibraryI {}
+  public abstract static class LibraryB extends LibraryA implements LibraryI {}
 
-  static class LibraryC extends LibraryB {
+  public static class LibraryC extends LibraryB {
 
     @Override
     public int m() {

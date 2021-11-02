@@ -34,14 +34,22 @@ public class SetUtils {
     return result;
   }
 
+  @SafeVarargs
+  public static <T> HashSet<T> newHashSet(T... elements) {
+    HashSet<T> result = new HashSet<>(elements.length);
+    Collections.addAll(result, elements);
+    return result;
+  }
+
   public static <T> Set<T> newIdentityHashSet(T element) {
     Set<T> result = Sets.newIdentityHashSet();
     result.add(element);
     return result;
   }
 
-  public static <T> Set<T> newIdentityHashSet(T[] elements) {
-    Set<T> result = Sets.newIdentityHashSet();
+  @SafeVarargs
+  public static <T> Set<T> newIdentityHashSet(T... elements) {
+    Set<T> result = newIdentityHashSet(elements.length);
     Collections.addAll(result, elements);
     return result;
   }

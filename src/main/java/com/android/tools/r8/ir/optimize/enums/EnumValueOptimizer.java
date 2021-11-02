@@ -72,15 +72,22 @@ public class EnumValueOptimizer {
 
       if (current.isInvokeMethodWithReceiver()) {
         InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
+        Value receiver = methodWithReceiver.getReceiver().getAliasedValue();
+        if (!receiver.getType().isClassType()
+            || !appView
+                .appInfo()
+                .isSubtype(receiver.getType().asClassType().getClassType(), factory.enumType)) {
+          continue;
+        }
+
         DexMethod invokedMethod = methodWithReceiver.getInvokedMethod();
-        boolean isOrdinalInvoke = invokedMethod == factory.enumMembers.ordinalMethod;
-        boolean isNameInvoke = invokedMethod == factory.enumMembers.nameMethod;
-        boolean isToStringInvoke = invokedMethod == factory.enumMembers.toString;
+        boolean isOrdinalInvoke = invokedMethod.match(factory.enumMembers.ordinalMethod);
+        boolean isNameInvoke = invokedMethod.match(factory.enumMembers.nameMethod);
+        boolean isToStringInvoke = invokedMethod.match(factory.enumMembers.toString);
         if (!isOrdinalInvoke && !isNameInvoke && !isToStringInvoke) {
           continue;
         }
 
-        Value receiver = methodWithReceiver.getReceiver().getAliasedValue();
         if (receiver.isPhi()) {
           continue;
         }

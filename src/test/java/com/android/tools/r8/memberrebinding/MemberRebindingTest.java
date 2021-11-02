@@ -160,9 +160,9 @@ public class MemberRebindingTest {
     assertTrue(iterator.next().holder().is("memberrebinding.ClassExtendsLibraryClass"));
     assertTrue(iterator.next().holder().is("memberrebinding.ClassExtendsLibraryClass"));
     // For the next three - test that we re-bind to library methods (holder is java.util.ArrayList).
-    assertTrue(iterator.next().holder().is("java.util.ArrayList"));
-    assertTrue(iterator.next().holder().is("java.util.ArrayList"));
-    assertTrue(iterator.next().holder().is("java.util.ArrayList"));
+    assertTrue(iterator.next().holder().is("java.util.AbstractList"));
+    assertTrue(iterator.next().holder().is("java.util.AbstractList"));
+    assertTrue(iterator.next().holder().is("java.util.AbstractList"));
     assertTrue(iterator.next().holder().is("memberrebinding.subpackage.PublicClassInTheMiddle"));
     assertTrue(iterator.next().holder().is("memberrebinding.subpackage.PublicClassInTheMiddle"));
     // For the next three - test that we re-bind to the lowest library class.

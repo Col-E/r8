@@ -796,12 +796,24 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return neverInlineDueToSingleCaller.contains(method.getReference());
   }
 
+  public boolean isAssumeMethod(DexClassAndMethod method) {
+    return isAssumeNoSideEffectsMethod(method) || isAssumeValuesMethod(method);
+  }
+
   public boolean isAssumeNoSideEffectsMethod(DexMethod method) {
     return noSideEffects.containsKey(method);
   }
 
   public boolean isAssumeNoSideEffectsMethod(DexClassAndMethod method) {
     return isAssumeNoSideEffectsMethod(method.getReference());
+  }
+
+  public boolean isAssumeValuesMethod(DexMethod method) {
+    return assumedValues.containsKey(method);
+  }
+
+  public boolean isAssumeValuesMethod(DexClassAndMethod method) {
+    return isAssumeValuesMethod(method.getReference());
   }
 
   public boolean isWhyAreYouNotInliningMethod(DexMethod method) {

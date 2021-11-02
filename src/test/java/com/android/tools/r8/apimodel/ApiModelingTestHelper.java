@@ -26,7 +26,7 @@ import java.util.function.BiConsumer;
 
 public abstract class ApiModelingTestHelper {
 
-  static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
+  public static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> setMockApiLevelForMethod(Method method, AndroidApiLevel apiLevel) {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
