@@ -23,6 +23,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 // Represents the lambda descriptor inferred from calls site.
@@ -180,6 +181,13 @@ public final class LambdaDescriptor {
   /** If the lambda delegates to lambda$ method. */
   public boolean delegatesToLambdaImplMethod(DexItemFactory factory) {
     return implHandle.asMethod().getName().startsWith(factory.javacLambdaMethodPrefix);
+  }
+
+  public void forEachErasedAndEnforcedTypes(BiConsumer<DexType, DexType> consumer) {
+    consumer.accept(erasedProto.returnType, enforcedProto.returnType);
+    for (int i = 0; i < enforcedProto.getArity(); i++) {
+      consumer.accept(erasedProto.getParameter(i), enforcedProto.getParameter(i));
+    }
   }
 
   public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {

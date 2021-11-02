@@ -74,6 +74,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldMappingData;
@@ -265,7 +266,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
             break;
           case INVOKE_CUSTOM:
-            analyzeInvokeCustom(instruction.asInvokeCustom(), eligibleEnums);
+            analyzeInvokeCustom(instruction.asInvokeCustom(), eligibleEnums, code.context());
             break;
           case INVOKE_STATIC:
             analyzeInvokeStatic(instruction.asInvokeStatic(), eligibleEnums, code.context());
@@ -303,15 +304,45 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     }
   }
 
-  private void analyzeInvokeCustom(InvokeCustom invoke, Set<DexType> eligibleEnums) {
-    Consumer<DexType> typeReferenceConsumer =
-        type -> {
-          DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(type);
-          if (enumClass != null) {
-            eligibleEnums.add(enumClass.getType());
+  private void markEnumEligible(DexType type, Set<DexType> eligibleEnums) {
+    DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(type);
+    if (enumClass != null) {
+      eligibleEnums.add(enumClass.getType());
+    }
+  }
+
+  private void invalidateEnum(DexType type) {
+    DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(type);
+    if (enumClass != null) {
+      markEnumAsUnboxable(Reason.INVALID_INVOKE_CUSTOM, enumClass);
+    }
+  }
+
+  private void analyzeInvokeCustom(
+      InvokeCustom invoke, Set<DexType> eligibleEnums, ProgramMethod context) {
+    invoke.getCallSite().getMethodProto().forEachType(t -> markEnumEligible(t, eligibleEnums));
+    LambdaDescriptor lambdaDescriptor =
+        LambdaDescriptor.tryInfer(invoke.getCallSite(), appView.appInfo(), context);
+    if (lambdaDescriptor == null) {
+      // Based on lambda we can see that enums cannot be unboxed if used in call site bootstrap
+      // arguments, since there might be expectations on overrides. Enums used directly in the
+      // method proto should be fine.
+      analyzeInvokeCustomParameters(invoke, this::invalidateEnum);
+      return;
+    }
+
+    analyzeInvokeCustomParameters(invoke, t -> markEnumEligible(t, eligibleEnums));
+
+    lambdaDescriptor.forEachErasedAndEnforcedTypes(
+        (erasedType, enforcedType) -> {
+          if (erasedType != enforcedType) {
+            invalidateEnum(erasedType);
+            invalidateEnum(enforcedType);
           }
-        };
-    invoke.getCallSite().getMethodProto().forEachType(typeReferenceConsumer);
+        });
+  }
+
+  private void analyzeInvokeCustomParameters(InvokeCustom invoke, Consumer<DexType> nonHolder) {
     invoke
         .getCallSite()
         .getBootstrapArgs()
@@ -322,26 +353,17 @@ public class EnumUnboxerImpl extends EnumUnboxer {
                     bootstrapArgument.asDexValueMethodHandle().getValue();
                 if (methodHandle.isMethodHandle()) {
                   DexMethod method = methodHandle.asMethod();
-                  DexProgramClass enumClass =
-                      getEnumUnboxingCandidateOrNull(method.getHolderType());
-                  if (enumClass != null) {
-                    markEnumAsUnboxable(Reason.INVALID_INVOKE_CUSTOM, enumClass);
-                  } else {
-                    method.getProto().forEachType(typeReferenceConsumer);
-                  }
+                  invalidateEnum(method.getHolderType());
+                  method.getProto().forEachType(nonHolder);
                 } else {
                   assert methodHandle.isFieldHandle();
                   DexField field = methodHandle.asField();
-                  DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(field.getHolderType());
-                  if (enumClass != null) {
-                    markEnumAsUnboxable(Reason.INVALID_INVOKE_CUSTOM, enumClass);
-                  } else {
-                    typeReferenceConsumer.accept(field.getType());
-                  }
+                  invalidateEnum(field.getHolderType());
+                  nonHolder.accept(field.type);
                 }
               } else if (bootstrapArgument.isDexValueMethodType()) {
                 DexProto proto = bootstrapArgument.asDexValueMethodType().getValue();
-                proto.forEachType(typeReferenceConsumer);
+                proto.forEachType(nonHolder);
               }
             });
   }
