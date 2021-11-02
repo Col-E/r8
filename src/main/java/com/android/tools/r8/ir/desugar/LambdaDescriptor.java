@@ -259,6 +259,15 @@ public final class LambdaDescriptor {
     return descriptor == MATCH_FAILED ? null : descriptor;
   }
 
+  public static DexMethod getMainFunctionalInterfaceMethodReference(
+      DexCallSite callSite, DexItemFactory factory) {
+    DexProto proto = callSite.getBootstrapArgs().get(0).asDexValueMethodType().value;
+    DexProto lambdaFactoryProto = callSite.methodProto;
+    DexType mainInterface = lambdaFactoryProto.returnType;
+    DexString funcMethodName = callSite.methodName;
+    return factory.createMethod(mainInterface, proto, funcMethodName);
+  }
+
   public static boolean isLambdaMetafactoryMethod(
       DexCallSite callSite, DexDefinitionSupplier definitions) {
     return callSite.bootstrapMethod.type.isInvokeStatic()

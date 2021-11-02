@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
@@ -26,6 +27,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
+import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -78,13 +81,32 @@ public class LensCodeRewriterUtils {
         isLambdaMetaFactory ? ARGUMENT_TO_LAMBDA_METAFACTORY : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
     List<DexValue> newArgs =
         rewriteBootstrapArguments(callSite.bootstrapArgs, methodHandleUse, context);
+    DexString newMethodName = computeNewMethodName(callSite, context, isLambdaMetaFactory);
     if (!newMethodProto.equals(callSite.methodProto)
+        || newMethodName != callSite.methodName
         || newBootstrapMethod != callSite.bootstrapMethod
         || !newArgs.equals(callSite.bootstrapArgs)) {
       return dexItemFactory.createCallSite(
-          callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
+          newMethodName, newMethodProto, newBootstrapMethod, newArgs);
     }
     return callSite;
+  }
+
+  private DexString computeNewMethodName(
+      DexCallSite callSite, ProgramMethod context, boolean isLambdaMetaFactory) {
+    if (!isLambdaMetaFactory) {
+      return callSite.methodName;
+    }
+    assert callSite.getBootstrapArgs().size() > 0;
+    assert callSite.getBootstrapArgs().get(0).isDexValueMethodType();
+    // The targeted method may have been renamed, we need to update the name if that is the case.
+    DexMethod method =
+        LambdaDescriptor.getMainFunctionalInterfaceMethodReference(
+            callSite, definitions.dexItemFactory());
+    return graphLens
+        .lookupMethod(method, context.getReference(), Invoke.Type.INTERFACE)
+        .getReference()
+        .getName();
   }
 
   public DexMethodHandle rewriteDexMethodHandle(
