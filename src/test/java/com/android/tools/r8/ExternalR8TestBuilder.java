@@ -181,7 +181,10 @@ public class ExternalR8TestBuilder
 
       ProcessBuilder processBuilder = new ProcessBuilder(command);
       ProcessResult processResult = ToolHelper.runProcess(processBuilder, getStdoutForTesting());
-      assertEquals(processResult.stderr, 0, processResult.exitCode);
+      assertEquals(
+          "STDOUT\n:" + processResult.stdout + "\nSTDERR:\n" + processResult.stderr,
+          0,
+          processResult.exitCode);
       String proguardMap =
           proguardMapFile.toFile().exists()
               ? FileUtils.readTextFile(proguardMapFile, Charsets.UTF_8)
