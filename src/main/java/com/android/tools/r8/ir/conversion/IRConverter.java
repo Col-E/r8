@@ -119,7 +119,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -884,30 +883,6 @@ public class IRConverter {
                     .forEach(m -> m.getMutableOptimizationInfo().setReachabilitySensitive(true));
               }
             });
-  }
-
-  private void forEachSelectedOutliningMethod(
-      ProgramMethodSet methodsSelectedForOutlining,
-      Consumer<IRCode> consumer,
-      ExecutorService executorService)
-      throws ExecutionException {
-    assert !options.skipIR;
-    ThreadUtils.processItems(
-        methodsSelectedForOutlining,
-        method -> {
-          IRCode code = method.buildIR(appView);
-          assert code != null;
-          assert !method.getDefinition().getCode().isOutlineCode();
-          // Instead of repeating all the optimizations of rewriteCode(), only run the
-          // optimizations needed for outlining: rewriteMoveResult() to remove out-values on
-          // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
-          // unused out-values.
-          codeRewriter.rewriteMoveResult(code);
-          deadCodeRemover.run(code, Timing.empty());
-          CodeRewriter.removeAssumeInstructions(appView, code);
-          consumer.accept(code);
-        },
-        executorService);
   }
 
   private void processSynthesizedServiceLoaderMethods(
