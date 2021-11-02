@@ -7,12 +7,17 @@ package com.android.tools.r8.compatproguard;
 import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.MapIdTemplateProvider;
+import com.android.tools.r8.utils.SourceFileTemplateProvider;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.List;
@@ -39,6 +44,8 @@ public class CompatProguard {
     public final boolean includeDataResources;
     public final boolean multiDex;
     public final String mainDexList;
+    public final MapIdProvider mapIdProvider;
+    public final SourceFileProvider sourceFileProvider;
     public final List<String> proguardConfig;
     public boolean printHelpAndExit;
 
@@ -54,6 +61,8 @@ public class CompatProguard {
         boolean forceProguardCompatibility,
         boolean includeDataResources,
         String mainDexList,
+        MapIdProvider mapIdProvider,
+        SourceFileProvider sourceFileProvider,
         boolean printHelpAndExit,
         boolean disableVerticalClassMerging) {
       this.output = output;
@@ -64,11 +73,14 @@ public class CompatProguard {
       this.multiDex = multiDex;
       this.mainDexList = mainDexList;
       this.proguardConfig = proguardConfig;
+      this.mapIdProvider = mapIdProvider;
+      this.sourceFileProvider = sourceFileProvider;
       this.printHelpAndExit = printHelpAndExit;
       this.disableVerticalClassMerging = disableVerticalClassMerging;
     }
 
     public static CompatProguardOptions parse(String[] args) {
+      DiagnosticsHandler handler = new DiagnosticsHandler() {};
       String output = null;
       CompilationMode mode = null;
       int minApi = 1;
@@ -77,6 +89,8 @@ public class CompatProguard {
       boolean multiDex = false;
       String mainDexList = null;
       boolean printHelpAndExit = false;
+      MapIdProvider mapIdProvider = null;
+      SourceFileProvider sourceFileProvider = null;
       // Flags to disable experimental features.
       boolean disableVerticalClassMerging = false;
       // These flags are currently ignored.
@@ -116,6 +130,10 @@ public class CompatProguard {
               mainDexList = args[++i];
             } else if (arg.startsWith("--main-dex-list=")) {
               mainDexList = arg.substring("--main-dex-list=".length());
+            } else if (arg.equals("--map-id-template")) {
+              mapIdProvider = MapIdTemplateProvider.create(args[++i], handler);
+            } else if (arg.equals("--source-file-template")) {
+              sourceFileProvider = SourceFileTemplateProvider.create(args[++i], handler);
             } else if (arg.equals("--no-vertical-class-merging")) {
               disableVerticalClassMerging = true;
             } else if (arg.equals("--minimal-main-dex")) {
@@ -153,6 +171,8 @@ public class CompatProguard {
           forceProguardCompatibility,
           includeDataResources,
           mainDexList,
+          mapIdProvider,
+          sourceFileProvider,
           printHelpAndExit,
           disableVerticalClassMerging);
     }
@@ -199,7 +219,9 @@ public class CompatProguard {
     builder
         .setOutput(Paths.get(options.output), OutputMode.DexIndexed, options.includeDataResources)
         .addProguardConfiguration(options.proguardConfig, CommandLineOrigin.INSTANCE)
-        .setMinApiLevel(options.minApi);
+        .setMinApiLevel(options.minApi)
+        .setMapIdProvider(options.mapIdProvider)
+        .setSourceFileProvider(options.sourceFileProvider);
     if (options.mode != null) {
       builder.setMode(options.mode);
     }
