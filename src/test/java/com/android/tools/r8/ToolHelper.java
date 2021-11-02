@@ -1382,21 +1382,24 @@ public class ToolHelper {
     return pb;
   }
 
+  @Deprecated
   public static ProcessResult runJava(Class clazz) throws Exception {
     String main = clazz.getTypeName();
     Path path = getClassPathForTests();
     return runJava(path, main);
   }
 
+  @Deprecated
   public static ProcessResult runJava(Path classpath, String... args) throws IOException {
     return runJava(ImmutableList.of(classpath), args);
   }
 
+  @Deprecated
   public static ProcessResult runJava(List<Path> classpath, String... args) throws IOException {
     return runJava(ImmutableList.of(), classpath, args);
   }
 
-  public static ProcessResult runJava(List<String> vmArgs, List<Path> classpath, String... args)
+  private static ProcessResult runJava(List<String> vmArgs, List<Path> classpath, String... args)
       throws IOException {
     return runJava(TestRuntime.getSystemRuntime().asCf(), vmArgs, classpath, args);
   }
