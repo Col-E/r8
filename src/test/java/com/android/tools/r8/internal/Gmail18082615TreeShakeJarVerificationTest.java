@@ -24,16 +24,14 @@ import org.junit.runners.Parameterized.Parameters;
 public class Gmail18082615TreeShakeJarVerificationTest extends GmailCompilationBase {
   private static final int MAX_SIZE = 20000000;
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public Gmail18082615TreeShakeJarVerificationTest(TestParameters parameters) {
     super(180826, 15);
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   @Test
@@ -41,7 +39,7 @@ public class Gmail18082615TreeShakeJarVerificationTest extends GmailCompilationB
     assumeTrue(isLocalDevelopment());
 
     R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
+        testForR8(Backend.DEX)
             .addKeepRuleFiles(
                 Paths.get(base).resolve(BASE_PG_CONF),
                 Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS, PG_CONF))

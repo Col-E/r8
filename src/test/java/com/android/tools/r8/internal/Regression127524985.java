@@ -26,7 +26,7 @@ public class Regression127524985 extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -52,7 +52,7 @@ public class Regression127524985 extends TestBase {
                 .addKeepAllAttributes()
                 .addKeepRules("-dontwarn"))
         .addProgramFiles(JAR)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED);

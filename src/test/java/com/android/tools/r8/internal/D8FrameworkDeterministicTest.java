@@ -9,7 +9,6 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import java.io.IOException;
 import java.nio.file.Paths;
 import org.junit.Test;
 
@@ -17,8 +16,7 @@ public class D8FrameworkDeterministicTest extends CompilationTestBase {
   private static final int MIN_SDK = 24;
   private static final String JAR = "third_party/framework/framework_160115954.jar";
 
-  private AndroidApp doRun(D8Command.Builder builder)
-      throws IOException, CompilationFailedException {
+  private AndroidApp doRun(D8Command.Builder builder) throws CompilationFailedException {
     builder.setProgramConsumer(null);
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
     D8.run(builder.build());
