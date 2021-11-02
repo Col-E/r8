@@ -47,7 +47,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
       Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_api_level.ser");
   private static final Path API_DATABASE_AMBIGUOUS =
       Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_ambiguous.txt");
-  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.R;
+  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.S;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -107,9 +107,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
               }));
         });
     // These numbers will change when updating api-versions.xml
-    assertEquals(4742, parsedApiClasses.size());
-    assertEquals(25144, numberOfFields.get());
-    assertEquals(38661, numberOfMethods.get());
+    assertEquals(5037, parsedApiClasses.size());
+    assertEquals(26362, numberOfFields.get());
+    assertEquals(40416, numberOfMethods.get());
   }
 
   @Test

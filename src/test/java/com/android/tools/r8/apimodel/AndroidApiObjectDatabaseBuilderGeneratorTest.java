@@ -55,7 +55,7 @@ public class AndroidApiObjectDatabaseBuilderGeneratorTest extends TestBase {
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar", "api-versions", "api-versions.xml");
   private static final Path API_DATABASE_JAR =
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar", "api-database", "api-database.jar");
-  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.R;
+  private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.S;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -108,9 +108,9 @@ public class AndroidApiObjectDatabaseBuilderGeneratorTest extends TestBase {
               }));
         });
     // These numbers will change when updating api-versions.xml
-    assertEquals(4742, parsedApiClasses.size());
-    assertEquals(25144, numberOfFields.get());
-    assertEquals(38661, numberOfMethods.get());
+    assertEquals(5037, parsedApiClasses.size());
+    assertEquals(26362, numberOfFields.get());
+    assertEquals(40416, numberOfMethods.get());
   }
 
   @Test
