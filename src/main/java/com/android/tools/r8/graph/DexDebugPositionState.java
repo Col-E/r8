@@ -12,9 +12,12 @@ import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetOutlineCallerFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetOutlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 
 /**
  * State machine to process and accumulate position-related DexDebugEvents. Clients should retrieve
@@ -27,6 +30,9 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
   private DexString currentFile = null;
   private DexMethod currentMethod;
   private Position currentCallerPosition = null;
+  private boolean isOutline;
+  private DexMethod outlineCallee;
+  private Int2StructuralItemArrayMap<Position> outlineCallerPositions;
 
   public DexDebugPositionState(int startLine, DexMethod method) {
     currentLine = startLine;
@@ -48,6 +54,17 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
   public void visit(SetInlineFrame setInlineFrame) {
     currentMethod = setInlineFrame.callee;
     currentCallerPosition = setInlineFrame.caller;
+  }
+
+  @Override
+  public void visit(SetOutlineFrame setOutlineFrame) {
+    isOutline = true;
+  }
+
+  @Override
+  public void visit(SetOutlineCallerFrame setOutlineCallerFrame) {
+    outlineCallee = setOutlineCallerFrame.getOutlineCallee();
+    outlineCallerPositions = setOutlineCallerFrame.getOutlinePositions();
   }
 
   @Override
@@ -105,5 +122,23 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
 
   public Position getCurrentCallerPosition() {
     return currentCallerPosition;
+  }
+
+  public boolean isOutline() {
+    return isOutline;
+  }
+
+  public DexMethod getOutlineCallee() {
+    return outlineCallee;
+  }
+
+  public Int2StructuralItemArrayMap<Position> getOutlineCallerPositions() {
+    return outlineCallerPositions;
+  }
+
+  public void resetOutlineInformation() {
+    isOutline = false;
+    outlineCallee = null;
+    outlineCallerPositions = null;
   }
 }

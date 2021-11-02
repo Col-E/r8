@@ -39,6 +39,10 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
+import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCallerPositionBuilder;
+import com.android.tools.r8.ir.code.Position.OutlinePosition;
+import com.android.tools.r8.ir.code.Position.PositionBuilder;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
@@ -46,6 +50,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.ClassNaming.Builder;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
+import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -54,6 +59,8 @@ import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
 import com.android.tools.r8.naming.mappinginformation.MappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineCallsiteMappingInformation;
+import com.android.tools.r8.naming.mappinginformation.OutlineMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.RemoveInnerFramesAction;
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.ThrowsCondition;
@@ -62,6 +69,10 @@ import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -85,6 +96,8 @@ public class LineNumberOptimizer {
 
     @Override
     public Pair<Position, Position> createRemappedPosition(Position position) {
+      // If we create outline calls we have to map them.
+      assert position.getOutlineCallee() == null;
       return new Pair<>(position, position);
     }
   }
@@ -280,17 +293,34 @@ public class LineNumberOptimizer {
 
   // We will be remapping positional debug events and collect them as MappedPositions.
   private static class MappedPosition {
+
     private final DexMethod method;
     private final int originalLine;
     private final Position caller;
     private final int obfuscatedLine;
+    private final boolean isOutline;
+    private final DexMethod outlineCallee;
+    private final Int2StructuralItemArrayMap<Position> outlinePositions;
 
     private MappedPosition(
-        DexMethod method, int originalLine, Position caller, int obfuscatedLine) {
+        DexMethod method,
+        int originalLine,
+        Position caller,
+        int obfuscatedLine,
+        boolean isOutline,
+        DexMethod outlineCallee,
+        Int2StructuralItemArrayMap<Position> outlinePositions) {
       this.method = method;
       this.originalLine = originalLine;
       this.caller = caller;
       this.obfuscatedLine = obfuscatedLine;
+      this.isOutline = isOutline;
+      this.outlineCallee = outlineCallee;
+      this.outlinePositions = outlinePositions;
+    }
+
+    public boolean isOutlineCaller() {
+      return outlineCallee != null;
     }
   }
 
@@ -300,6 +330,9 @@ public class LineNumberOptimizer {
     // We create it here to ensure it is only reading class files once.
     CfLineToMethodMapper cfLineToMethodMapper = new CfLineToMethodMapper(inputApp);
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
+
+    Map<DexMethod, OutlineFixupBuilder> outlinesToFix = new IdentityHashMap<>();
+
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
       boolean isSyntheticClass = appView.getSyntheticItems().isSyntheticClass(clazz);
@@ -330,9 +363,9 @@ public class LineNumberOptimizer {
         }
       }
 
-      if (isSyntheticClass
-          && CompilerSynthesizedMappingInformation.isSupported(
-              appView.options().getMapFileVersion())) {
+      MapVersion mapFileVersion = appView.options().getMapFileVersion();
+
+      if (isSyntheticClass && CompilerSynthesizedMappingInformation.isSupported(mapFileVersion)) {
         onDemandClassNamingBuilder
             .get()
             .addMappingInformation(
@@ -382,9 +415,11 @@ public class LineNumberOptimizer {
           kotlinRemapper.currentMethod = method;
           List<MappedPosition> mappedPositions;
           Code code = method.getCode();
+          boolean canUseDexPc =
+              appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1;
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
-              if (appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1) {
+              if (canUseDexPc) {
                 mappedPositions = optimizeDexCodePositionsForPc(method, appView, kotlinRemapper);
               } else {
                 mappedPositions =
@@ -412,8 +447,7 @@ public class LineNumberOptimizer {
 
           List<MappingInformation> methodMappingInfo = new ArrayList<>();
           if (method.isD8R8Synthesized()
-              && CompilerSynthesizedMappingInformation.isSupported(
-                  appView.options().getMapFileVersion())) {
+              && CompilerSynthesizedMappingInformation.isSupported(mapFileVersion)) {
             methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
           }
 
@@ -446,6 +480,18 @@ public class LineNumberOptimizer {
                   signatures.computeIfAbsent(
                       m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
 
+          // Check if mapped position is an outline
+          if (mappedPositions.get(0).isOutline
+              && OutlineMappingInformation.isSupported(mapFileVersion)) {
+            outlinesToFix
+                .computeIfAbsent(
+                    mappedPositions.get(0).method, ignored -> new OutlineFixupBuilder())
+                .setMappedPositionsOutline(mappedPositions);
+            methodMappingInfo.add(OutlineMappingInformation.builder().build());
+          }
+
+          int outlineCallersCounter = 0;
+
           // Update memberNaming with the collected positions, merging multiple positions into a
           // single region whenever possible.
           for (int i = 0; i < mappedPositions.size(); /* updated in body */ ) {
@@ -454,34 +500,38 @@ public class LineNumberOptimizer {
             MappedPosition lastPosition = firstPosition;
             for (; j < mappedPositions.size(); j++) {
               // Break if this position cannot be merged with lastPosition.
-              MappedPosition mp = mappedPositions.get(j);
+              MappedPosition currentPosition = mappedPositions.get(j);
               // We allow for ranges being mapped to the same line but not to other ranges:
               //   1:10:void foo():42:42 -> a
               // is OK since retrace(a(:7)) = 42, however, the following is not OK:
               //   1:10:void foo():42:43 -> a
               // since retrace(a(:7)) = 49, which is not correct.
-              boolean isSingleLine = mp.originalLine == firstPosition.originalLine;
+              boolean isSingleLine = currentPosition.originalLine == firstPosition.originalLine;
               boolean differentDelta =
-                  mp.originalLine - lastPosition.originalLine
-                      != mp.obfuscatedLine - lastPosition.obfuscatedLine;
+                  currentPosition.originalLine - lastPosition.originalLine
+                      != currentPosition.obfuscatedLine - lastPosition.obfuscatedLine;
               boolean isMappingRangeToSingleLine =
                   firstPosition.obfuscatedLine != lastPosition.obfuscatedLine
                       && firstPosition.originalLine == lastPosition.originalLine;
-              // Note that mp.caller and lastPosition.class must be deep-compared since multiple
-              // inlining passes lose the canonical property of the positions.
-              if (mp.method != lastPosition.method
+              // Note that currentPosition.caller and lastPosition.class must be deep-compared since
+              // multiple inlining passes lose the canonical property of the positions.
+              if (currentPosition.method != lastPosition.method
                   || (!isSingleLine && differentDelta)
                   || (!isSingleLine && isMappingRangeToSingleLine)
-                  || !Objects.equals(mp.caller, lastPosition.caller)) {
+                  || !Objects.equals(currentPosition.caller, lastPosition.caller)
+                  // Break when we see a mapped outline
+                  || currentPosition.outlineCallee != null
+                  // Ensure that we break when we start iterating with an outline caller again.
+                  || firstPosition.outlineCallee != null) {
                 break;
               }
               // The mapped positions are not guaranteed to be in order, so maintain first and last
               // position.
-              if (firstPosition.obfuscatedLine > mp.obfuscatedLine) {
-                firstPosition = mp;
+              if (firstPosition.obfuscatedLine > currentPosition.obfuscatedLine) {
+                firstPosition = currentPosition;
               }
-              if (lastPosition.obfuscatedLine < mp.obfuscatedLine) {
-                lastPosition = mp;
+              if (lastPosition.obfuscatedLine < currentPosition.obfuscatedLine) {
+                lastPosition = currentPosition;
               }
             }
             Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
@@ -528,6 +578,34 @@ public class LineNumberOptimizer {
             for (MappingInformation info : methodMappingInfo) {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
+            // firstPosition will contain a potential outline caller.
+            if (firstPosition.outlineCallee != null
+                && OutlineCallsiteMappingInformation.isSupported(mapFileVersion)) {
+              Int2IntMap positionMap = new Int2IntArrayMap();
+              int maxPc = ListUtils.last(mappedPositions).obfuscatedLine;
+              firstPosition.outlinePositions.forEach(
+                  (line, position) -> {
+                    int placeHolderLineToBeFixed;
+                    if (canUseDexPc) {
+                      placeHolderLineToBeFixed = maxPc + line + 1;
+                    } else {
+                      placeHolderLineToBeFixed =
+                          positionRemapper.createRemappedPosition(position).getSecond().getLine();
+                    }
+                    positionMap.put((int) line, placeHolderLineToBeFixed);
+                    // TODO(b/204643407): Iterate over caller positions recursively.
+                    classNamingBuilder.addMappedRange(
+                        new Range(placeHolderLineToBeFixed, placeHolderLineToBeFixed),
+                        getOriginalMethodSignature.apply(position.getMethod()),
+                        new Range(position.getLine(), position.getLine()),
+                        obfuscatedName);
+                  });
+              outlinesToFix
+                  .computeIfAbsent(
+                      firstPosition.outlineCallee, ignored -> new OutlineFixupBuilder())
+                  .addMappedRangeForOutlineCallee(lastMappedRange, positionMap);
+              outlineCallersCounter += 1;
+            }
             i = j;
           }
           if (method.getCode().isDexCode()
@@ -538,6 +616,10 @@ public class LineNumberOptimizer {
         } // for each method of the group
       } // for each method group, grouped by name
     } // for each class
+
+    // Fixup all outline positions
+    outlinesToFix.values().forEach(OutlineFixupBuilder::fixup);
+
     return classNameMapperBuilder.build();
   }
 
@@ -747,19 +829,14 @@ public class LineNumberOptimizer {
           public void visit(Default defaultEvent) {
             super.visit(defaultEvent);
             assert getCurrentLine() >= 0;
-            Position position =
-                SourcePosition.builder()
-                    .setLine(getCurrentLine())
-                    .setFile(getCurrentFile())
-                    .setMethod(getCurrentMethod())
-                    .setCallerPosition(getCurrentCallerPosition())
-                    .build();
+            Position position = getPositionFromPositionState(this);
             Position currentPosition = remapAndAdd(position, positionRemapper, mappedPositions);
             positionEventEmitter.emitPositionEvents(getCurrentPc(), currentPosition);
             if (currentPosition != position) {
               inlinedOriginalPosition.set(true);
             }
             emittedPc = getCurrentPc();
+            resetOutlineInformation();
           }
 
           // Non-materializing events use super, ie, AdvancePC, AdvanceLine and SetInlineFrame.
@@ -810,7 +887,8 @@ public class LineNumberOptimizer {
     if (mappedPositions.size() <= 1
         && !hasOverloads
         && !appView.options().debug
-        && appView.options().lineNumberOptimization != LineNumberOptimization.OFF) {
+        && appView.options().lineNumberOptimization != LineNumberOptimization.OFF
+        && (mappedPositions.isEmpty() || !mappedPositions.get(0).isOutlineCaller())) {
       dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
       return mappedPositions;
     }
@@ -827,6 +905,27 @@ public class LineNumberOptimizer {
 
     dexCode.setDebugInfo(optimizedDebugInfo);
     return mappedPositions;
+  }
+
+  private static Position getPositionFromPositionState(DexDebugPositionState state) {
+    PositionBuilder<?, ?> positionBuilder;
+    if (state.getOutlineCallee() != null) {
+      OutlineCallerPositionBuilder outlineCallerPositionBuilder =
+          OutlineCallerPosition.builder()
+              .setOutlineCallee(state.getOutlineCallee())
+              .setIsOutline(state.isOutline());
+      state.getOutlineCallerPositions().forEach(outlineCallerPositionBuilder::addOutlinePosition);
+      positionBuilder = outlineCallerPositionBuilder;
+    } else if (state.isOutline()) {
+      positionBuilder = OutlinePosition.builder();
+    } else {
+      positionBuilder = SourcePosition.builder();
+    }
+    return positionBuilder
+        .setLine(state.getCurrentLine())
+        .setMethod(state.getCurrentMethod())
+        .setCallerPosition(state.getCurrentCallerPosition())
+        .build();
   }
 
   private static List<MappedPosition> optimizeDexCodePositionsForPc(
@@ -855,13 +954,8 @@ public class LineNumberOptimizer {
                   mappedPositions);
             }
             lastPosition.setFirst(getCurrentPc());
-            lastPosition.setSecond(
-                SourcePosition.builder()
-                    .setLine(getCurrentLine())
-                    .setFile(getCurrentFile())
-                    .setMethod(getCurrentMethod())
-                    .setCallerPosition(getCurrentCallerPosition())
-                    .build());
+            lastPosition.setSecond(getPositionFromPositionState(this));
+            resetOutlineInformation();
           }
         };
 
@@ -935,7 +1029,10 @@ public class LineNumberOptimizer {
             oldPosition.getMethod(),
             oldPosition.getLine(),
             oldPosition.getCallerPosition(),
-            newPosition.getLine()));
+            newPosition.getLine(),
+            oldPosition.isOutline(),
+            oldPosition.getOutlineCallee(),
+            oldPosition.getOutlinePositions()));
     return newPosition;
   }
 
@@ -948,12 +1045,66 @@ public class LineNumberOptimizer {
     Pair<Position, Position> remappedPosition = remapper.createRemappedPosition(position);
     Position oldPosition = remappedPosition.getFirst();
     for (int currentPc = startPc; currentPc < endPc; currentPc++) {
+      boolean firstEntry = currentPc == startPc;
       mappedPositions.add(
           new MappedPosition(
               oldPosition.getMethod(),
               oldPosition.getLine(),
               oldPosition.getCallerPosition(),
-              currentPc));
+              currentPc,
+              // Outline info is placed exactly on the positions that relate to it so we should
+              // only emit it for the first entry.
+              firstEntry && oldPosition.isOutline(),
+              firstEntry ? oldPosition.getOutlineCallee() : null,
+              firstEntry ? oldPosition.getOutlinePositions() : null));
+    }
+  }
+
+  private static class OutlineFixupBuilder {
+
+    private static int MINIFIED_POSITION_REMOVED = -1;
+
+    private List<MappedPosition> mappedOutlinePositions = null;
+    private final List<Pair<MappedRange, Int2IntMap>> mappedOutlineCalleePositions =
+        new ArrayList<>();
+
+    public void setMappedPositionsOutline(List<MappedPosition> mappedPositionsOutline) {
+      this.mappedOutlinePositions = mappedPositionsOutline;
+    }
+
+    public void addMappedRangeForOutlineCallee(
+        MappedRange mappedRangeForOutline, Int2IntMap calleePositions) {
+      mappedOutlineCalleePositions.add(Pair.create(mappedRangeForOutline, calleePositions));
+    }
+
+    public void fixup() {
+      assert mappedOutlinePositions != null;
+      assert !mappedOutlineCalleePositions.isEmpty();
+      for (Pair<MappedRange, Int2IntMap> mappingInfo : mappedOutlineCalleePositions) {
+        MappedRange mappedRange = mappingInfo.getFirst();
+        Int2IntMap positions = mappingInfo.getSecond();
+        Int2IntSortedMap map = new Int2IntLinkedOpenHashMap();
+        positions.forEach(
+            (outlinePosition, calleePosition) -> {
+              int minifiedLinePosition =
+                  getMinifiedLinePosition(outlinePosition, mappedOutlinePositions);
+              if (minifiedLinePosition != MINIFIED_POSITION_REMOVED) {
+                map.put(minifiedLinePosition, (int) calleePosition);
+              }
+            });
+        mappedRange.addMappingInformation(
+            OutlineCallsiteMappingInformation.create(map), Unreachable::raise);
+      }
+    }
+
+    private int getMinifiedLinePosition(
+        int originalPosition, List<MappedPosition> mappedPositions) {
+      for (MappedPosition mappedPosition : mappedPositions) {
+        if (mappedPosition.originalLine == originalPosition) {
+          return mappedPosition.obfuscatedLine;
+        }
+      }
+      return MINIFIED_POSITION_REMOVED;
     }
   }
 }

@@ -253,6 +253,14 @@ public class DexDebugEventBuilder {
       events.add(
           factory.createSetInlineFrame(nextPosition.getMethod(), nextPosition.getCallerPosition()));
     }
+    if (nextPosition.isOutline()) {
+      events.add(factory.createSetOutlineFrame());
+    }
+    if (nextPosition.getOutlineCallee() != null) {
+      events.add(
+          factory.createSetOutlineCallerFrame(
+              nextPosition.getOutlineCallee(), nextPosition.getOutlinePositions()));
+    }
     if (lineDelta < Constants.DBG_LINE_BASE
         || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {
       events.add(factory.createAdvanceLine(lineDelta));

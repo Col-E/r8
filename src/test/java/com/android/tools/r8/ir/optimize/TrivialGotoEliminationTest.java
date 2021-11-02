@@ -64,7 +64,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     // block2:
     //   return
     final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
-    Position position = SyntheticPosition.builder().setLine(0).build();
+    Position position = SyntheticPosition.builder().setLine(0).disableMethodCheck().build();
     BasicBlock block2 = new BasicBlock();
     BasicBlock block0 =
         BasicBlock.createGotoBlock(basicBlockNumberGenerator.next(), position, metadata, block2);
@@ -128,7 +128,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     // block3:
     //   goto block3
     final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
-    Position position = SyntheticPosition.builder().setLine(0).build();
+    Position position = SyntheticPosition.builder().setLine(0).disableMethodCheck().build();
     BasicBlock block0 = new BasicBlock();
     block0.setNumber(basicBlockNumberGenerator.next());
     BasicBlock block2 = new BasicBlock();

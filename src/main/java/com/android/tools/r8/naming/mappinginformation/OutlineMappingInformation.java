@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.naming.mappinginformation;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.MapVersion;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import java.util.function.Consumer;
 
 public class OutlineMappingInformation extends MappingInformation {
@@ -20,7 +21,9 @@ public class OutlineMappingInformation extends MappingInformation {
 
   @Override
   public String serialize() {
-    throw new CompilationError("Should not yet serialize this");
+    JsonObject object = new JsonObject();
+    object.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
+    return object.toString();
   }
 
   @Override

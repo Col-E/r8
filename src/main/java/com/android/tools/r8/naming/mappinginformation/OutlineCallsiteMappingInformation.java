@@ -7,6 +7,7 @@ package com.android.tools.r8.naming.mappinginformation;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.MapVersion;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.util.function.Consumer;
@@ -31,7 +32,15 @@ public class OutlineCallsiteMappingInformation extends MappingInformation {
 
   @Override
   public String serialize() {
-    throw new CompilationError("Should not yet serialize this");
+    JsonObject result = new JsonObject();
+    result.add(MAPPING_ID_KEY, new JsonPrimitive(ID));
+    JsonObject mappedPositions = new JsonObject();
+    positions.forEach(
+        (obfuscatedPosition, originalPosition) -> {
+          mappedPositions.add(obfuscatedPosition + "", new JsonPrimitive(originalPosition));
+        });
+    result.add(POSITIONS_KEY, mappedPositions);
+    return result.toString();
   }
 
   @Override

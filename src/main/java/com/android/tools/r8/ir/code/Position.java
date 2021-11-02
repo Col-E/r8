@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashCodeVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -18,6 +19,8 @@ public abstract class Position implements StructuralItem<Position> {
   // Compare ID(s) for positions.
   private static final int SOURCE_POSITION_COMPARE_ID = 1;
   private static final int SYNTHETIC_POSITION_COMPARE_ID = 2;
+  private static final int OUTLINE_POSITION_COMPARE_ID = 3;
+  private static final int OUTLINE_CALLER_POSITION_COMPARE_ID = 4;
 
   protected final int line;
   protected final DexMethod method;
@@ -48,6 +51,18 @@ public abstract class Position implements StructuralItem<Position> {
 
   public boolean isRemoveInnerFramesIfThrowingNpe() {
     return removeInnerFramesIfThrowingNpe;
+  }
+
+  public boolean isOutline() {
+    return false;
+  }
+
+  public DexMethod getOutlineCallee() {
+    return null;
+  }
+
+  public Int2StructuralItemArrayMap<Position> getOutlinePositions() {
+    return null;
   }
 
   public boolean hasCallerPosition() {
@@ -201,6 +216,10 @@ public abstract class Position implements StructuralItem<Position> {
       return self();
     }
 
+    public boolean hasLine() {
+      return line > -1;
+    }
+
     public B setMethod(DexMethod method) {
       this.method = method;
       return self();
@@ -319,10 +338,6 @@ public abstract class Position implements StructuralItem<Position> {
     private static final Position NO_POSITION_SYNTHETIC =
         new SyntheticPosition(-1, null, null, false);
 
-    private static void specify(StructuralSpecification<Position, ?> spec) {
-      spec.withSpec(Position::specifyBasePosition);
-    }
-
     private SyntheticPosition(
         int line,
         DexMethod method,
@@ -348,7 +363,7 @@ public abstract class Position implements StructuralItem<Position> {
 
     @Override
     public StructuralMapping<Position> getStructuralMapping() {
-      return SyntheticPosition::specify;
+      return Position::specifyBasePosition;
     }
 
     public static SyntheticPositionBuilder builder() {
@@ -370,6 +385,177 @@ public abstract class Position implements StructuralItem<Position> {
         assert noCheckOfPosition || line >= 0;
         assert noCheckOfMethod || method != null;
         return new SyntheticPosition(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+      }
+    }
+  }
+
+  public static class OutlinePosition extends Position {
+
+    private OutlinePosition(
+        int line,
+        DexMethod method,
+        Position callerPosition,
+        boolean removeInnerFramesIfThrowingNpe) {
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+    }
+
+    @Override
+    public boolean isOutline() {
+      return true;
+    }
+
+    @Override
+    public int getCompareToId() {
+      return OUTLINE_POSITION_COMPARE_ID;
+    }
+
+    @Override
+    public PositionBuilder<?, ?> builderWithCopy() {
+      return builder().setLine(line).setMethod(method).setCallerPosition(callerPosition);
+    }
+
+    @Override
+    public StructuralMapping<Position> getStructuralMapping() {
+      return Position::specifyBasePosition;
+    }
+
+    public static OutlinePositionBuilder builder() {
+      return new OutlinePositionBuilder();
+    }
+
+    public static class OutlinePositionBuilder
+        extends PositionBuilder<OutlinePosition, OutlinePositionBuilder> {
+
+      private OutlinePositionBuilder() {}
+
+      @Override
+      OutlinePositionBuilder self() {
+        return this;
+      }
+
+      @Override
+      public OutlinePosition build() {
+        return new OutlinePosition(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+      }
+    }
+  }
+
+  public static class OutlineCallerPosition extends Position {
+
+    private final Int2StructuralItemArrayMap<Position> outlinePositions;
+    private final DexMethod outlineCallee;
+    private final boolean isOutline;
+
+    public static void specify(StructuralSpecification<Position, ?> spec) {
+      spec.withSpec(Position::specifyBasePosition)
+          .withBool(Position::isOutline)
+          .withItem(Position::getOutlineCallee)
+          .withItem(Position::getOutlinePositions);
+    }
+
+    private OutlineCallerPosition(
+        int line,
+        DexMethod method,
+        Position callerPosition,
+        boolean removeInnerFramesIfThrowingNpe,
+        Int2StructuralItemArrayMap<Position> outlinePositions,
+        DexMethod outlineCallee,
+        boolean isOutline) {
+      super(line, method, callerPosition, removeInnerFramesIfThrowingNpe);
+      this.outlinePositions = outlinePositions;
+      this.outlineCallee = outlineCallee;
+      this.isOutline = isOutline;
+    }
+
+    @Override
+    public boolean isNone() {
+      return false;
+    }
+
+    @Override
+    public int getCompareToId() {
+      return OUTLINE_CALLER_POSITION_COMPARE_ID;
+    }
+
+    @Override
+    public PositionBuilder<?, ?> builderWithCopy() {
+      OutlineCallerPositionBuilder outlineCallerPositionBuilder =
+          builder()
+              .setLine(line)
+              .setMethod(method)
+              .setCallerPosition(callerPosition)
+              .setOutlineCallee(outlineCallee)
+              .setIsOutline(isOutline);
+      outlinePositions.forEach(outlineCallerPositionBuilder::addOutlinePosition);
+      return outlineCallerPositionBuilder;
+    }
+
+    @Override
+    public boolean isOutline() {
+      return isOutline;
+    }
+
+    @Override
+    public DexMethod getOutlineCallee() {
+      return outlineCallee;
+    }
+
+    @Override
+    public Int2StructuralItemArrayMap<Position> getOutlinePositions() {
+      return outlinePositions;
+    }
+
+    @Override
+    public StructuralMapping<Position> getStructuralMapping() {
+      return OutlineCallerPosition::specify;
+    }
+
+    public static OutlineCallerPositionBuilder builder() {
+      return new OutlineCallerPositionBuilder();
+    }
+
+    public static class OutlineCallerPositionBuilder
+        extends PositionBuilder<OutlineCallerPosition, OutlineCallerPositionBuilder> {
+
+      private final Int2StructuralItemArrayMap.Builder<Position> outlinePositionsBuilder =
+          Int2StructuralItemArrayMap.builder();
+      private DexMethod outlineCallee;
+      private boolean isOutline;
+
+      private OutlineCallerPositionBuilder() {}
+
+      @Override
+      OutlineCallerPositionBuilder self() {
+        return this;
+      }
+
+      public OutlineCallerPositionBuilder setOutlineCallee(DexMethod outlineCallee) {
+        this.outlineCallee = outlineCallee;
+        return this;
+      }
+
+      public OutlineCallerPositionBuilder addOutlinePosition(int line, Position callerPosition) {
+        outlinePositionsBuilder.put(line, callerPosition);
+        return this;
+      }
+
+      public OutlineCallerPositionBuilder setIsOutline(boolean isOutline) {
+        this.isOutline = isOutline;
+        return this;
+      }
+
+      @Override
+      public OutlineCallerPosition build() {
+        assert noCheckOfPosition || line >= 0;
+        assert noCheckOfMethod || method != null;
+        return new OutlineCallerPosition(
+            line,
+            method,
+            callerPosition,
+            removeInnerFramesIfThrowingNpe,
+            outlinePositionsBuilder.build(),
+            outlineCallee,
+            isOutline);
       }
     }
   }

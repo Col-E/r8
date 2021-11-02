@@ -47,7 +47,9 @@ import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Position.SyntheticPosition;
+import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
+import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCallerPositionBuilder;
+import com.android.tools.r8.ir.code.Position.OutlinePosition;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
@@ -1236,28 +1238,36 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     protected void handle(int start, int end, Outline outline) {
-      DexMethod m = generatedOutlines.get(outline);
-      if (m != null) {
+      DexMethod outlineMethod = generatedOutlines.get(outline);
+      if (outlineMethod != null) {
         assert removeMethodFromOutlineList(outline);
         List<Value> in = new ArrayList<>();
         Value returnValue = null;
         argumentsMapIndex = 0;
-        Position position = Position.none();
+        OutlineCallerPositionBuilder positionBuilder =
+            OutlineCallerPosition.builder()
+                .setMethod(appView.graphLens().getOriginalMethodSignature(method.getReference()))
+                .setOutlineCallee(outlineMethod)
+                // We set the line number to 0 here and rely on the LineNumberOptimizer to
+                // set a new disjoint line.
+                .setLine(0);
+
         { // Scope for 'instructions'.
           List<Instruction> instructions = getInstructionArray();
+          int outlinePositionIndex = 0;
           for (int i = start; i < end; i++) {
             Instruction current = instructions.get(i);
             if (current.isConstInstruction()) {
               // Leave any const instructions.
               continue;
             }
-            if (position.isNone()) {
-              position = current.getPosition();
+            if (current.getPosition() != null) {
+              positionBuilder.addOutlinePosition(outlinePositionIndex++, current.getPosition());
             }
+
             // Prepare to remove the instruction.
             List<Value> inValues = orderedInValues(current, returnValue);
-            for (int j = 0; j < inValues.size(); j++) {
-              Value value = inValues.get(j);
+            for (Value value : inValues) {
               value.removeUser(current);
               int argumentIndex = outline.argumentMap.get(argumentsMapIndex++);
               if (argumentIndex >= in.size()) {
@@ -1275,18 +1285,14 @@ public class OutlinerImpl extends Outliner {
             }
           }
         }
-        assert m.proto.shorty.toString().length() - 1 == in.size();
+        assert outlineMethod.proto.shorty.toString().length() - 1 == in.size();
         if (returnValue != null && !returnValue.isUsed()) {
           returnValue = null;
         }
-        Invoke outlineInvoke = new InvokeStatic(m, returnValue, in);
+        Position newPosition = positionBuilder.build();
+        Invoke outlineInvoke = new InvokeStatic(outlineMethod, returnValue, in);
         outlineInvoke.setBlock(block);
-        outlineInvoke.setPosition(position);
-        if (position.isNone() && code.doAllThrowingInstructionsHavePositions()) {
-          // We have introduced a static invoke, but non of the outlines instructions could throw
-          // and none had a position. The code no longer has the previous property.
-          code.setAllThrowingInstructionsHavePositions(false);
-        }
+        outlineInvoke.setPosition(newPosition);
         InstructionListIterator endIterator = block.listIterator(code, end - 1);
         Instruction instructionBeforeEnd = endIterator.next();
         invalidateInstructionArray(); // Because we're about to modify the original linked list.
@@ -1532,13 +1538,14 @@ public class OutlinerImpl extends Outliner {
 
   private class OutlineSourceCode implements SourceCode {
 
-    final private Outline outline;
-    private final Position position;
+    private final Outline outline;
+    private final DexMethod method;
+    private int position;
     private int argumentMapIndex = 0;
 
     OutlineSourceCode(Outline outline, DexMethod method) {
       this.outline = outline;
-      this.position = SyntheticPosition.builder().setLine(0).setMethod(method).build();
+      this.method = method;
     }
 
     @Override
@@ -1624,6 +1631,7 @@ public class OutlinerImpl extends Outliner {
         }
         return;
       }
+      position = instructionIndex;
       // Build IR from the template.
       argumentMapIndex =
           outline
@@ -1661,7 +1669,7 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public Position getCurrentPosition() {
-      return position;
+      return OutlinePosition.builder().setLine(position).setMethod(method).build();
     }
 
     @Override

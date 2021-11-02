@@ -18,6 +18,8 @@ import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetOutlineCallerFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetOutlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -34,6 +36,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.android.tools.r8.utils.ListUtils;
@@ -92,6 +95,7 @@ public class DexItemFactory {
   private final SetEpilogueBegin setEpilogueBegin = new SetEpilogueBegin();
   private final SetPrologueEnd setPrologueEnd = new SetPrologueEnd();
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
+  private final SetOutlineFrame setOutlineFrame = new SetOutlineFrame();
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
   // ReferenceTypeElement canonicalization.
@@ -2766,6 +2770,15 @@ public class DexItemFactory {
     synchronized (setInlineFrames) {
       return setInlineFrames.computeIfAbsent(new SetInlineFrame(callee, caller), p -> p);
     }
+  }
+
+  public SetOutlineFrame createSetOutlineFrame() {
+    return setOutlineFrame;
+  }
+
+  public SetOutlineCallerFrame createSetOutlineCallerFrame(
+      DexMethod outlineCallee, Int2StructuralItemArrayMap<Position> outlinePositions) {
+    return new SetOutlineCallerFrame(outlineCallee, outlinePositions);
   }
 
   public boolean isConstructor(DexMethod method) {
