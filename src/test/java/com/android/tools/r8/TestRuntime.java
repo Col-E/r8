@@ -32,6 +32,9 @@ public abstract class TestRuntime {
     JDK17("jdk17", 61),
     ;
 
+    /** This should generally be the latest checked in CF runtime we fully support. */
+    private static final CfVm DEFAULT = JDK9;
+
     private final String name;
     private final int classfileVersion;
 
@@ -150,6 +153,14 @@ public abstract class TestRuntime {
   @Deprecated
   public static TestRuntime getDefaultJavaRuntime() {
     return getCheckedInJdk9();
+  }
+
+  public static CfRuntime getDefaultCfRuntime() {
+    return TestRuntime.getCheckedInJdk(CfVm.DEFAULT);
+  }
+
+  public static DexRuntime getDefaultDexRuntime() {
+    return new DexRuntime(DexVm.Version.NEW_DEFAULT);
   }
 
   public static List<TestRuntime> getCheckedInRuntimes() {

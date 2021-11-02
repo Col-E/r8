@@ -273,10 +273,15 @@ public class ToolHelper {
       V6_0_1("6.0.1"),
       V7_0_0("7.0.0"),
       V8_1_0("8.1.0"),
+      // TODO(b//204855476): Remove DEFAULT.
       DEFAULT("default"),
       V9_0_0("9.0.0"),
       V10_0_0("10.0.0"),
       V12_0_0("12.0.0");
+
+      /** This should generally be the latest DEX VM fully supported. */
+      // TODO(b/204855476): Rename to DEFAULT alias once the checked in VM is removed.
+      public static final Version NEW_DEFAULT = DEFAULT;
 
       Version(String shortName) {
         this.shortName = shortName;

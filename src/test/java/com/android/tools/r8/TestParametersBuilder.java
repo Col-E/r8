@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -62,8 +64,37 @@ public class TestParametersBuilder {
     return withCfRuntimeFilter(vm -> vm == runtime);
   }
 
+  /**
+   * Test using the same runtime as the test is executing under.
+   *
+   * <p>This should only be used when there is an explicit dependency in the test that requires the
+   * host and test to be the same. For example, it could be to fork a subprocess using the same
+   * runtime.
+   */
   public TestParametersBuilder withSystemRuntime() {
     return withCfRuntimeFilter(TestParametersBuilder::isSystemJdk);
+  }
+
+  /**
+   * Test using the default DEX VM.
+   *
+   * <p>Generally tests should rather use withAllDexRuntimes(), but if a test really only needs to
+   * be tested on a single DEX runtime this can be used instead. The test should not have any
+   * requirements as to which VM it is as the default will change and may not track latest.
+   */
+  public TestParametersBuilder withDefaultDexRuntime() {
+    return withDexRuntime(DexRuntime.getDefaultDexRuntime().getVersion());
+  }
+
+  /**
+   * Test using the default CF VM.
+   *
+   * <p>Generally tests should rather use withAllCfRuntimes(), but if a test really only needs to be
+   * tested on a single CF runtime this can be used instead. The test should not have any
+   * requirements as to which VM it is as the default will change and may not track latest.
+   */
+  public TestParametersBuilder withDefaultCfRuntime() {
+    return withCfRuntime(CfRuntime.getDefaultCfRuntime().getVm());
   }
 
   /** Add all available CF runtimes. */
