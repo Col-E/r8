@@ -65,7 +65,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     return buildParameters(
         BooleanUtils.values(),
         BooleanUtils.values(),
-        getTestParameters().withDexRuntime(Version.V9_0_0).withAllApiLevels().build());
+        getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build());
   }
 
   public Proto2ShrinkingTest(

@@ -55,7 +55,7 @@ public class YouTubeV1612Test extends YouTubeCompilationTestBase {
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
-        .withDexRuntime(Version.V9_0_0)
+        .withDexRuntime(Version.DEFAULT)
         .withApiLevel(AndroidApiLevel.L)
         .build();
   }

@@ -58,7 +58,7 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
                 "proto2.BuilderWithProtoSetterTestClass",
                 "proto2.BuilderWithReusedSettersTestClass",
                 "proto2.HasFlaggedOffExtensionBuilderTestClass")),
-        getTestParameters().withDexRuntime(Version.V9_0_0).withAllApiLevels().build());
+        getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build());
   }
 
   public Proto2BuilderShrinkingTest(List<String> mains, TestParameters parameters) {

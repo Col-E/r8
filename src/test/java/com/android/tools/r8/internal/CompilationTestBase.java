@@ -75,17 +75,6 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
     reporter = new Reporter(handler);
   }
 
-  public AndroidApp runAndCheckVerification(
-      CompilerUnderTest compiler,
-      CompilationMode mode,
-      String referenceApk,
-      List<String> pgConfs,
-      String input)
-      throws ExecutionException, IOException, CompilationFailedException {
-    return runAndCheckVerification(
-        compiler, mode, referenceApk, pgConfs, null, Collections.singletonList(input));
-  }
-
   public AndroidApp runAndCheckVerification(D8Command.Builder builder, String referenceApk)
       throws IOException, ExecutionException, CompilationFailedException {
     AndroidAppConsumers appSink = new AndroidAppConsumers(builder);
@@ -93,22 +82,6 @@ public abstract class CompilationTestBase extends DesugaredLibraryTestBase {
     AndroidApp result = appSink.build();
     checkVerification(result, referenceApk);
     return result;
-  }
-
-  public void assertIdenticalZipFiles(File file1, File file2) throws IOException {
-    try (ZipFile zipFile1 = new ZipFile(file1); ZipFile zipFile2 = new ZipFile(file2)) {
-      final Enumeration<? extends ZipEntry> entries1 = zipFile1.entries();
-      final Enumeration<? extends ZipEntry> entries2 = zipFile2.entries();
-
-      while (entries1.hasMoreElements()) {
-        Assert.assertTrue(entries2.hasMoreElements());
-        ZipEntry entry1 = entries1.nextElement();
-        ZipEntry entry2 = entries2.nextElement();
-        Assert.assertEquals(entry1.getName(), entry2.getName());
-        Assert.assertEquals(entry1.getCrc(), entry2.getCrc());
-        Assert.assertEquals(entry1.getSize(), entry2.getSize());
-      }
-    }
   }
 
   public AndroidApp runAndCheckVerification(

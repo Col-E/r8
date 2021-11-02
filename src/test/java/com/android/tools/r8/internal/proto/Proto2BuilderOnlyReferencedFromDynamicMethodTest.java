@@ -35,7 +35,7 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntime(Version.V9_0_0).withAllApiLevels().build();
+    return getTestParameters().withDexRuntime(Version.DEFAULT).withAllApiLevels().build();
   }
 
   public Proto2BuilderOnlyReferencedFromDynamicMethodTest(TestParameters parameters) {

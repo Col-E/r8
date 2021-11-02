@@ -6,6 +6,7 @@ package com.android.tools.r8.internal;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,7 +27,11 @@ public class Regression127524985 extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    return getTestParameters()
+        .withCfRuntimes()
+        .withDexRuntime(Version.DEFAULT)
+        .withAllApiLevels()
+        .build();
   }
 
   private final TestParameters parameters;
