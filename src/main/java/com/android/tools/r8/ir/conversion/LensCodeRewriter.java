@@ -112,14 +112,22 @@ public class LensCodeRewriter {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final EnumUnboxer enumUnboxer;
-  private final LensCodeRewriterUtils helper;
+  private LensCodeRewriterUtils helper = null;
   private final InternalOptions options;
 
   LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
     this.enumUnboxer = enumUnboxer;
-    this.helper = new LensCodeRewriterUtils(appView);
     this.options = appView.options();
+  }
+
+  private LensCodeRewriterUtils getHelper() {
+    // The LensCodeRewriterUtils uses internal caches that are not valid if the graphLens changes.
+    if (helper != null && helper.hasGraphLens(appView.graphLens())) {
+      return helper;
+    }
+    helper = new LensCodeRewriterUtils(appView);
+    return helper;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -170,7 +178,7 @@ public class LensCodeRewriter {
             {
               InvokeCustom invokeCustom = current.asInvokeCustom();
               DexCallSite callSite = invokeCustom.getCallSite();
-              DexCallSite newCallSite = helper.rewriteCallSite(callSite, method);
+              DexCallSite newCallSite = getHelper().rewriteCallSite(callSite, method);
               if (newCallSite != callSite) {
                 Value newOutValue = makeOutValue(invokeCustom, code);
                 InvokeCustom newInvokeCustom =
@@ -187,7 +195,8 @@ public class LensCodeRewriter {
             {
               DexMethodHandle handle = current.asConstMethodHandle().getValue();
               DexMethodHandle newHandle =
-                  helper.rewriteDexMethodHandle(handle, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, method);
+                  getHelper()
+                      .rewriteDexMethodHandle(handle, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, method);
               if (newHandle != handle) {
                 Value newOutValue = makeOutValue(current, code);
                 iterator.replaceCurrentInstruction(new ConstMethodHandle(newOutValue, newHandle));
