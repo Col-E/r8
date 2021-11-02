@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessorWithWave;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -85,7 +86,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     OptimizationFeedbackMock feedback = new OptimizationFeedbackMock();
     FieldBitAccessAnalysis fieldBitAccessAnalysis = new FieldBitAccessAnalysis();
     FieldAccessAnalysis fieldAccessAnalysis =
-        new FieldAccessAnalysis(appView, null, fieldBitAccessAnalysis);
+        new FieldAccessAnalysis(appView, null, fieldBitAccessAnalysis, null);
 
     DexProgramClass clazz = appView.appInfo().classes().iterator().next();
     assertEquals(TestClass.class.getTypeName(), clazz.type.toSourceString());
@@ -93,7 +94,8 @@ public class FieldBitAccessInfoTest extends TestBase {
     clazz.forEachProgramMethod(
         method -> {
           IRCode code = method.buildIR(appView);
-          fieldAccessAnalysis.recordFieldAccesses(code, feedback, new PrimaryMethodProcessorMock());
+          fieldAccessAnalysis.recordFieldAccesses(
+              code, BytecodeMetadataProvider.builder(), feedback, new PrimaryMethodProcessorMock());
         });
 
     int bitsReadInBitField = feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "bitField"));

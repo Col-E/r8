@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -414,6 +415,7 @@ final class StaticizingProcessor {
             feedback,
             methodProcessor,
             new MutableMethodConversionOptions(methodProcessor),
+            BytecodeMetadataProvider.builder(),
             Timing.empty());
   }
 

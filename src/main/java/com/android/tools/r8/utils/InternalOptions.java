@@ -267,7 +267,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean libraryInterfacesMayHaveStaticInitialization = false;
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
-  public boolean enableFieldAssignmentTracker = true;
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
   public boolean enableVerticalClassMerging = true;

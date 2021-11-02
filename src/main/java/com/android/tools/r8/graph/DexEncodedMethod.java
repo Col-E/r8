@@ -50,6 +50,7 @@ import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumericType;
@@ -727,9 +728,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     code = newCode;
   }
 
-  public void setCode(IRCode ir, RegisterAllocator registerAllocator, AppView<?> appView) {
+  public void setCode(
+      IRCode ir,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
+      RegisterAllocator registerAllocator,
+      AppView<?> appView) {
     checkIfObsolete();
-    DexBuilder builder = new DexBuilder(ir, registerAllocator);
+    DexBuilder builder = new DexBuilder(ir, bytecodeMetadataProvider, registerAllocator);
     setCode(builder.build(), appView);
   }
 

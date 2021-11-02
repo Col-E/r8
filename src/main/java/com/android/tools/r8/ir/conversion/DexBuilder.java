@@ -42,6 +42,8 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -84,6 +86,9 @@ public class DexBuilder {
   // The IR representation of the code to build.
   private final IRCode ir;
 
+  // Extra information that should be attached to the bytecode instructions.
+  private final BytecodeMetadata.Builder<Instruction> bytecodeMetadataBuilder;
+
   // The register allocator providing register assignments for the code to build.
   private final RegisterAllocator registerAllocator;
 
@@ -120,13 +125,21 @@ public class DexBuilder {
 
   BasicBlock nextBlock;
 
-  public DexBuilder(IRCode ir, RegisterAllocator registerAllocator) {
-    this(ir, registerAllocator, registerAllocator.options());
+  public DexBuilder(
+      IRCode ir,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
+      RegisterAllocator registerAllocator) {
+    this(ir, bytecodeMetadataProvider, registerAllocator, registerAllocator.options());
     assert ir != null;
   }
 
-  private DexBuilder(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {
+  private DexBuilder(
+      IRCode ir,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
+      RegisterAllocator registerAllocator,
+      InternalOptions options) {
     this.ir = ir;
+    this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
     this.registerAllocator = registerAllocator;
     this.options = options;
     if (isBuildingForComparison()) {
@@ -138,7 +151,8 @@ public class DexBuilder {
       com.android.tools.r8.ir.code.Instruction a,
       com.android.tools.r8.ir.code.Instruction b,
       RegisterAllocator allocator) {
-    DexBuilder builder = new DexBuilder(null, allocator, allocator.options());
+    DexBuilder builder =
+        new DexBuilder(null, BytecodeMetadataProvider.empty(), allocator, allocator.options());
     Info infoA = buildInfoForComparison(a, builder);
     Info infoB = buildInfoForComparison(b, builder);
     return infoA.identicalInstructions(infoB, builder);
@@ -314,7 +328,8 @@ public class DexBuilder {
             dexInstructions.toArray(Instruction.EMPTY_ARRAY),
             tryInfo.tries,
             tryInfo.handlers,
-            debugEventBuilder.build());
+            debugEventBuilder.build(),
+            bytecodeMetadataBuilder.build());
 
     return code;
   }
@@ -606,6 +621,7 @@ public class DexBuilder {
   public void add(com.android.tools.r8.ir.code.Instruction instr, Instruction dex) {
     assert !instr.isGoto();
     add(instr, new FixedSizeInfo(instr, dex));
+    bytecodeMetadataBuilder.setMetadata(instr, dex);
   }
 
   public void add(com.android.tools.r8.ir.code.Instruction ir, Instruction... dex) {

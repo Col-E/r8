@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -20,33 +21,34 @@ import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.Cla
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.annotations.VisibleForTesting;
 
 public class FieldAccessAnalysis {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final FieldAssignmentTracker fieldAssignmentTracker;
   private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
+  private final FieldReadForWriteAnalysis fieldReadForWriteAnalysis;
 
   public FieldAccessAnalysis(AppView<AppInfoWithLiveness> appView) {
     InternalOptions options = appView.options();
     this.appView = appView;
     this.fieldBitAccessAnalysis =
         options.enableFieldBitAccessAnalysis ? new FieldBitAccessAnalysis() : null;
-    this.fieldAssignmentTracker =
-        options.enableFieldAssignmentTracker ? new FieldAssignmentTracker(appView) : null;
+    this.fieldAssignmentTracker = new FieldAssignmentTracker(appView);
+    this.fieldReadForWriteAnalysis = new FieldReadForWriteAnalysis(appView);
   }
 
+  @VisibleForTesting
   public FieldAccessAnalysis(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       FieldAssignmentTracker fieldAssignmentTracker,
-      FieldBitAccessAnalysis fieldBitAccessAnalysis) {
+      FieldBitAccessAnalysis fieldBitAccessAnalysis,
+      FieldReadForWriteAnalysis fieldReadForWriteAnalysis) {
     this.appView = appView;
     this.fieldAssignmentTracker = fieldAssignmentTracker;
     this.fieldBitAccessAnalysis = fieldBitAccessAnalysis;
-  }
-
-  public static boolean enable(InternalOptions options) {
-    return options.enableFieldBitAccessAnalysis || options.enableFieldAssignmentTracker;
+    this.fieldReadForWriteAnalysis = fieldReadForWriteAnalysis;
   }
 
   public FieldAssignmentTracker fieldAssignmentTracker() {
@@ -61,7 +63,10 @@ public class FieldAccessAnalysis {
   }
 
   public void recordFieldAccesses(
-      IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
+      IRCode code,
+      BytecodeMetadataProvider.Builder bytecodeMetadataProviderBuilder,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor) {
     if (!methodProcessor.isPrimaryMethodProcessor()) {
       return;
     }
@@ -86,6 +91,10 @@ public class FieldAccessAnalysis {
             if (fieldBitAccessAnalysis != null) {
               fieldBitAccessAnalysis.recordFieldAccess(
                   fieldInstruction, field.getDefinition(), feedback);
+            }
+            if (fieldReadForWriteAnalysis != null) {
+              fieldReadForWriteAnalysis.recordFieldAccess(
+                  fieldInstruction, field, bytecodeMetadataProviderBuilder);
             }
           }
         }

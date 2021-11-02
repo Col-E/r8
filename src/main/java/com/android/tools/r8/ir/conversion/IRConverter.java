@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -263,8 +264,7 @@ public class IRConverter {
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.dynamicTypeOptimization = new DynamicTypeOptimization(appViewWithLiveness);
-      this.fieldAccessAnalysis =
-          FieldAccessAnalysis.enable(options) ? new FieldAccessAnalysis(appViewWithLiveness) : null;
+      this.fieldAccessAnalysis = new FieldAccessAnalysis(appViewWithLiveness);
       this.libraryMethodOverrideAnalysis =
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
@@ -846,9 +846,7 @@ public class IRConverter {
   private void waveDone(ProgramMethodSet wave) {
     delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
-    if (options.enableFieldAssignmentTracker) {
-      fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
-    }
+    fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
     appView.withArgumentPropagator(ArgumentPropagator::publishDelayedReprocessingCriteria);
     if (appView.options().protoShrinking().enableRemoveProtoEnumSwitchMap()) {
       appView.protoShrinker().protoEnumSwitchMapRemover.updateVisibleStaticFieldValues();
@@ -927,7 +925,7 @@ public class IRConverter {
     RegisterAllocator registerAllocator =
         performRegisterAllocation(
             code, method, DefaultMethodConversionOptions.getInstance(), timing);
-    method.setCode(code, registerAllocator, appView);
+    method.setCode(code, BytecodeMetadataProvider.empty(), registerAllocator, appView);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
@@ -1179,6 +1177,7 @@ public class IRConverter {
           feedback,
           methodProcessor,
           conversionOptions,
+          BytecodeMetadataProvider.builder(),
           timing);
       timing.end();
       return timing;
@@ -1470,6 +1469,8 @@ public class IRConverter {
 
     deadCodeRemover.run(code, timing);
 
+    BytecodeMetadataProvider.Builder bytecodeMetadataProviderBuilder =
+        BytecodeMetadataProvider.builder();
     if (appView.enableWholeProgramOptimizations()) {
       timing.begin("Collect optimization info");
       collectOptimizationInfo(
@@ -1479,6 +1480,7 @@ public class IRConverter {
           feedback,
           methodProcessor,
           conversionOptions,
+          bytecodeMetadataProviderBuilder,
           timing);
       timing.end();
     }
@@ -1506,7 +1508,7 @@ public class IRConverter {
 
     printMethod(code, "Optimized IR (SSA)", previous);
     timing.begin("Finalize IR");
-    finalizeIR(code, feedback, conversionOptions, timing);
+    finalizeIR(code, feedback, conversionOptions, bytecodeMetadataProviderBuilder.build(), timing);
     timing.end();
     return timing;
   }
@@ -1520,6 +1522,7 @@ public class IRConverter {
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       MutableMethodConversionOptions conversionOptions,
+      BytecodeMetadataProvider.Builder bytecodeMetadataProviderBuilder,
       Timing timing) {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor, timing));
@@ -1536,7 +1539,8 @@ public class IRConverter {
 
     if (fieldAccessAnalysis != null) {
       timing.begin("Analyze field accesses");
-      fieldAccessAnalysis.recordFieldAccesses(code, feedback, methodProcessor);
+      fieldAccessAnalysis.recordFieldAccesses(
+          code, bytecodeMetadataProviderBuilder, feedback, methodProcessor);
       if (classInitializerDefaultsResult != null) {
         fieldAccessAnalysis.acceptClassInitializerDefaultsResult(classInitializerDefaultsResult);
       }
@@ -1592,20 +1596,26 @@ public class IRConverter {
       stringSwitchRemover.run(code);
     }
     deadCodeRemover.run(code, timing);
-    finalizeIR(code, feedback, DefaultMethodConversionOptions.getInstance(), timing);
+    finalizeIR(
+        code,
+        feedback,
+        DefaultMethodConversionOptions.getInstance(),
+        BytecodeMetadataProvider.empty(),
+        timing);
   }
 
   public void finalizeIR(
       IRCode code,
       OptimizationFeedback feedback,
       MethodConversionOptions conversionOptions,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     code.traceBlocks();
     if (options.isGeneratingClassFiles()) {
       finalizeToCf(code, feedback, conversionOptions);
     } else {
       assert options.isGeneratingDex();
-      finalizeToDex(code, feedback, conversionOptions, timing);
+      finalizeToDex(code, feedback, conversionOptions, bytecodeMetadataProvider, timing);
     }
   }
 
@@ -1623,6 +1633,7 @@ public class IRConverter {
       IRCode code,
       OptimizationFeedback feedback,
       MethodConversionOptions conversionOptions,
+      BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
     DexEncodedMethod method = code.method();
     // Workaround massive dex2oat memory use for self-recursive methods.
@@ -1633,7 +1644,7 @@ public class IRConverter {
     RegisterAllocator registerAllocator =
         performRegisterAllocation(code, method, conversionOptions, timing);
     timing.begin("Build DEX code");
-    method.setCode(code, registerAllocator, appView);
+    method.setCode(code, bytecodeMetadataProvider, registerAllocator, appView);
     timing.end();
     updateHighestSortingStrings(method);
     if (Log.ENABLED) {

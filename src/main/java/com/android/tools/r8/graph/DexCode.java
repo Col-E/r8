@@ -12,6 +12,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
@@ -54,6 +56,8 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   private DexDebugInfo debugInfo;
   private DexDebugInfoForWriting debugInfoForWriting;
 
+  private final BytecodeMetadata<Instruction> metadata;
+
   private static void specify(StructuralSpecification<DexCode, ?> spec) {
     spec.withInt(c -> c.registerSize)
         .withInt(c -> c.incomingRegisterSize)
@@ -72,6 +76,26 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
       Try[] tries,
       TryHandler[] handlers,
       DexDebugInfo debugInfo) {
+    this(
+        registerSize,
+        insSize,
+        outsSize,
+        instructions,
+        tries,
+        handlers,
+        debugInfo,
+        BytecodeMetadata.empty());
+  }
+
+  public DexCode(
+      int registerSize,
+      int insSize,
+      int outsSize,
+      Instruction[] instructions,
+      Try[] tries,
+      TryHandler[] handlers,
+      DexDebugInfo debugInfo,
+      BytecodeMetadata<Instruction> metadata) {
     this.incomingRegisterSize = insSize;
     this.registerSize = registerSize;
     this.outgoingRegisterSize = outsSize;
@@ -79,6 +103,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
     this.tries = tries;
     this.handlers = handlers;
     this.debugInfo = debugInfo;
+    this.metadata = metadata;
     assert tries != null;
     assert handlers != null;
     assert instructions != null;
@@ -88,6 +113,10 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   @Override
   public DexCode self() {
     return this;
+  }
+
+  public BytecodeInstructionMetadata getMetadata(Instruction instruction) {
+    return metadata.getMetadata(instruction);
   }
 
   @Override
