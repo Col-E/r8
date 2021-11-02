@@ -125,9 +125,7 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
                 containsString("Proguard configuration rule does not match anything")))
         .assertAllWarningMessagesMatch(
             anyOf(
-                containsString(
-                    "Expected stack map table for method with non-linear control flow. "
-                        + "In later version of R8, the method may be assumed not reachable."),
+                containsString("Expected stack map table for method with non-linear control flow."),
                 containsString("Ignoring option: -outjars")));
   }
 }
