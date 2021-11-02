@@ -17,12 +17,12 @@ import urllib
 import utils
 
 LUCI_SCHEDULE = os.path.join(utils.REPO_ROOT, 'infra', 'config', 'global',
-                             'luci-scheduler.cfg')
+                             'generated', 'luci-scheduler.cfg')
 # Trigger lines have the format:
 #   triggers: "BUILDER_NAME"
 TRIGGERS_RE = r'^  triggers: "(\w.*)"'
 
-DESUGAR_BOT = 'archive_lib_desugar'
+DESUGAR_BOT = 'lib_desugar-archive'
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -49,20 +49,20 @@ def get_builders():
     for line in lines:
       if 'branch-gitiles-trigger' in line:
         is_release = True
+      if 'main-gitiles-trigger' in line:
+        is_release = False
       match = re.match(TRIGGERS_RE, line)
       if match:
         builder = match.group(1)
         if is_release:
-          assert 'release' in builder
+          assert 'release' in builder, builder
           release_builders.append(builder)
         else:
-          assert 'release' not in builder
+          assert 'release' not in builder, builder
           main_builders.append(builder)
-  assert DESUGAR_BOT in main_builders
-  print 'Desugar builder:\n  ' + DESUGAR_BOT
-  main_builders.remove(DESUGAR_BOT)
-  print 'Main builders:\n  ' + '\n  '.join(main_builders)
-  print 'Release builders:\n  ' + '\n  '.join(release_builders)
+  print('Desugar builder:\n  ' + DESUGAR_BOT)
+  print('Main builders:\n  ' + '\n  '.join(main_builders))
+  print('Release builders:\n  ' + '\n  '.join(release_builders))
   return (main_builders, release_builders)
 
 def sanity_check_url(url):
