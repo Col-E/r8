@@ -63,8 +63,8 @@ public class DexDebugEntry {
       builder.append(":").append(method.name);
       Position caller = callerPosition;
       while (caller != null) {
-        builder.append(";").append(caller.line).append(":").append(caller.method.name);
-        caller = caller.callerPosition;
+        builder.append(";").append(caller.getLine()).append(":").append(caller.getMethod().name);
+        caller = caller.getCallerPosition();
       }
     }
     if (prologueEnd) {

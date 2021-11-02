@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
@@ -180,7 +181,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   }
 
   private DexDebugInfo debugInfoAsInlining(DexMethod caller, DexMethod callee) {
-    Position callerPosition = Position.synthetic(0, caller, null);
+    Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     if (debugInfo == null) {
       // If the method has no debug info we generate a preamble position to denote the inlining.
       // This is consistent with the building IR for inlining which will always ensure the method

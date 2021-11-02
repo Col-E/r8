@@ -39,6 +39,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -103,12 +104,12 @@ public class LineNumberOptimizer {
 
     @Override
     public Pair<Position, Position> createRemappedPosition(Position position) {
-      assert position.method != null;
-      if (previousMethod == position.method) {
+      assert position.getMethod() != null;
+      if (previousMethod == position.getMethod()) {
         assert previousSourceLine >= 0;
-        if (position.line > previousSourceLine
-            && position.line - previousSourceLine <= maxLineDelta) {
-          nextOptimizedLineNumber += (position.line - previousSourceLine) - 1;
+        if (position.getLine() > previousSourceLine
+            && position.getLine() - previousSourceLine <= maxLineDelta) {
+          nextOptimizedLineNumber += (position.getLine() - previousSourceLine) - 1;
         }
       }
 
@@ -118,8 +119,8 @@ public class LineNumberOptimizer {
               .setLine(nextOptimizedLineNumber++)
               .setCallerPosition(null)
               .build();
-      previousSourceLine = position.line;
-      previousMethod = position.method;
+      previousSourceLine = position.getLine();
+      previousMethod = position.getMethod();
       return new Pair<>(position, newPosition);
     }
   }
@@ -149,8 +150,8 @@ public class LineNumberOptimizer {
     @Override
     public Pair<Position, Position> createRemappedPosition(Position position) {
       assert currentMethod != null;
-      int line = position.line;
-      Result parsedData = getAndParseSourceDebugExtension(position.method.holder);
+      int line = position.getLine();
+      Result parsedData = getAndParseSourceDebugExtension(position.getMethod().holder);
       if (parsedData == null) {
         return baseRemapper.createRemappedPosition(position);
       }
@@ -183,7 +184,7 @@ public class LineNumberOptimizer {
                 factory.createString(methodName),
                 factory.createString(returnTypeDescriptor),
                 argumentDexStringDescriptors);
-        if (!inlinee.equals(position.method)) {
+        if (!inlinee.equals(position.getMethod())) {
           // We have an inline from a different method than the current position.
           Entry<Integer, KotlinSourceDebugExtensionParser.Position> calleePosition =
               parsedData.lookupCalleePosition(line);
@@ -196,7 +197,7 @@ public class LineNumberOptimizer {
                     .build();
           }
           return baseRemapper.createRemappedPosition(
-              Position.builder()
+              SourcePosition.builder()
                   .setLine(originalInlineeLine)
                   .setMethod(inlinee)
                   .setCallerPosition(position)
@@ -256,9 +257,8 @@ public class LineNumberOptimizer {
 
     private void emitPositionEvents(int currentPc, Position currentPosition) {
       if (previousPosition == null) {
-        startLine = currentPosition.line;
-        previousPosition =
-            Position.builder().setLine(startLine).setFile(null).setMethod(method).build();
+        startLine = currentPosition.getLine();
+        previousPosition = SourcePosition.builder().setLine(startLine).setMethod(method).build();
       }
       DexDebugEventBuilder.emitAdvancementEvents(
           previousPc,
@@ -509,10 +509,10 @@ public class LineNumberOptimizer {
               lastMappedRange =
                   classNamingBuilder.addMappedRange(
                       obfuscatedRange,
-                      getOriginalMethodSignature.apply(caller.method),
-                      new Range(Math.max(caller.line, 0)), // Prevent against "no-position".
+                      getOriginalMethodSignature.apply(caller.getMethod()),
+                      new Range(Math.max(caller.getLine(), 0)), // Prevent against "no-position".
                       obfuscatedName);
-              if (caller.removeInnerFrameIfThrowingNpe) {
+              if (caller.isRemoveInnerFramesIfThrowingNpe()) {
                 lastMappedRange.addMappingInformation(
                     RewriteFrameMappingInformation.builder()
                         .addCondition(
@@ -523,7 +523,7 @@ public class LineNumberOptimizer {
                         .build(),
                     Unreachable::raise);
               }
-              caller = caller.callerPosition;
+              caller = caller.getCallerPosition();
             }
             for (MappingInformation info : methodMappingInfo) {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
@@ -597,7 +597,7 @@ public class LineNumberOptimizer {
         if (!(instruction instanceof CfPosition)) {
           continue;
         }
-        return ((CfPosition) instruction).getPosition().line;
+        return ((CfPosition) instruction).getPosition().getLine();
       }
     }
     return 0;
@@ -748,7 +748,7 @@ public class LineNumberOptimizer {
             super.visit(defaultEvent);
             assert getCurrentLine() >= 0;
             Position position =
-                Position.builder()
+                SourcePosition.builder()
                     .setLine(getCurrentLine())
                     .setFile(getCurrentFile())
                     .setMethod(getCurrentMethod())
@@ -856,7 +856,7 @@ public class LineNumberOptimizer {
             }
             lastPosition.setFirst(getCurrentPc());
             lastPosition.setSecond(
-                Position.builder()
+                SourcePosition.builder()
                     .setLine(getCurrentLine())
                     .setFile(getCurrentFile())
                     .setMethod(getCurrentMethod())
@@ -932,7 +932,10 @@ public class LineNumberOptimizer {
     Position newPosition = remappedPosition.getSecond();
     mappedPositions.add(
         new MappedPosition(
-            oldPosition.method, oldPosition.line, oldPosition.callerPosition, newPosition.line));
+            oldPosition.getMethod(),
+            oldPosition.getLine(),
+            oldPosition.getCallerPosition(),
+            newPosition.getLine()));
     return newPosition;
   }
 
@@ -947,7 +950,10 @@ public class LineNumberOptimizer {
     for (int currentPc = startPc; currentPc < endPc; currentPc++) {
       mappedPositions.add(
           new MappedPosition(
-              oldPosition.method, oldPosition.line, oldPosition.callerPosition, currentPc));
+              oldPosition.getMethod(),
+              oldPosition.getLine(),
+              oldPosition.getCallerPosition(),
+              currentPc));
     }
   }
 }

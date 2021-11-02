@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Rem;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Value;
@@ -1537,7 +1538,7 @@ public class OutlinerImpl extends Outliner {
 
     OutlineSourceCode(Outline outline, DexMethod method) {
       this.outline = outline;
-      this.position = Position.synthetic(0, method, null);
+      this.position = SyntheticPosition.builder().setLine(0).setMethod(method).build();
     }
 
     @Override

@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.SingleConstValue;
 import com.android.tools.r8.ir.analysis.value.SingleDexItemBasedStringValue;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.utils.IntBox;
@@ -110,8 +111,14 @@ public class InstanceInitializerDescription {
     ImmutableList.Builder<CfInstruction> instructionBuilder = ImmutableList.builder();
 
     // Set position.
-    Position callerPosition = Position.synthetic(0, syntheticMethodReference, null);
-    Position calleePosition = Position.synthetic(0, originalMethodReference, callerPosition);
+    Position callerPosition =
+        SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
+    Position calleePosition =
+        SyntheticPosition.builder()
+            .setLine(0)
+            .setMethod(originalMethodReference)
+            .setCallerPosition(callerPosition)
+            .build();
     CfPosition position = new CfPosition(new CfLabel(), calleePosition);
     instructionBuilder.add(position);
     instructionBuilder.add(position.getLabel());

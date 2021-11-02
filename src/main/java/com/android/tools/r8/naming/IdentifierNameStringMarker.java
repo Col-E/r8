@@ -375,9 +375,9 @@ public class IdentifierNameStringMarker {
             + " Thus, not all identifier strings flowing to that " + kind
             + " are renamed, which can cause resolution failures at runtime.";
     StringDiagnostic diagnostic =
-        instruction.getPosition().line >= 1
+        instruction.getPosition().getLine() >= 1
             ? new StringDiagnostic(
-                message, origin, new TextPosition(0L, instruction.getPosition().line, 1))
+                message, origin, new TextPosition(0L, instruction.getPosition().getLine(), 1))
             : new StringDiagnostic(message, origin);
     appView.options().reporter.warning(diagnostic);
   }

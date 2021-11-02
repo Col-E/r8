@@ -79,6 +79,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
@@ -3673,7 +3674,8 @@ public class CodeRewriter {
     InstructionListIterator iterator = block.listIterator(code);
 
     // Attach some synthetic position to all inserted code.
-    Position position = Position.synthetic(1, method.getReference(), null);
+    Position position =
+        SyntheticPosition.builder().setLine(1).setMethod(method.getReference()).build();
     iterator.setInsertionPosition(position);
 
     // Split arguments into their own block.

@@ -579,7 +579,7 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
     public boolean hasOuterPosition(DexMethod method) {
       return (caller == null && callee == method)
-          || (caller != null && caller.getOutermostCaller().method == method);
+          || (caller != null && caller.getOutermostCaller().getMethod() == method);
     }
   }
 

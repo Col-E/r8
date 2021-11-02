@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
@@ -763,7 +764,7 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
 
   @Override
   public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
-    Position callerPosition = Position.synthetic(0, caller, null);
+    Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     List<CfInstruction> newInstructions = new ArrayList<>(instructions.size() + 2);
     CfLabel firstLabel;
     if (instructions.get(0).isLabel()) {

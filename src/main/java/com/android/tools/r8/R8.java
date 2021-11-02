@@ -994,7 +994,7 @@ public class R8 {
         continue;
       }
       CfPosition position = instruction.asPosition();
-      assert position.getPosition().getOutermostCaller().method == originalMethod;
+      assert position.getPosition().getOutermostCaller().getMethod() == originalMethod;
     }
     return true;
   }

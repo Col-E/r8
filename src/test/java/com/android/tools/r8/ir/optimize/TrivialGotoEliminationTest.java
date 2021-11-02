@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
@@ -63,7 +64,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     // block2:
     //   return
     final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
-    Position position = Position.testingPosition();
+    Position position = SyntheticPosition.builder().setLine(0).build();
     BasicBlock block2 = new BasicBlock();
     BasicBlock block0 =
         BasicBlock.createGotoBlock(basicBlockNumberGenerator.next(), position, metadata, block2);
@@ -127,7 +128,7 @@ public class TrivialGotoEliminationTest extends TestBase {
     // block3:
     //   goto block3
     final NumberGenerator basicBlockNumberGenerator = new NumberGenerator();
-    Position position = Position.testingPosition();
+    Position position = SyntheticPosition.builder().setLine(0).build();
     BasicBlock block0 = new BasicBlock();
     block0.setNumber(basicBlockNumberGenerator.next());
     BasicBlock block2 = new BasicBlock();

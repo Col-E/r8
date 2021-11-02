@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -64,7 +65,12 @@ public abstract class SyntheticSourceCode implements SourceCode {
       this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
 
-    position = Position.synthetic(0, originalMethod, callerPosition);
+    position =
+        SyntheticPosition.builder()
+            .setLine(0)
+            .setMethod(originalMethod)
+            .setCallerPosition(callerPosition)
+            .build();
   }
 
   protected final void add(Consumer<IRBuilder> constructor) {

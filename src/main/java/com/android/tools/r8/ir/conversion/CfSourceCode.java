@@ -904,7 +904,7 @@ public class CfSourceCode implements SourceCode {
         position
             .builderWithCopy()
             .setCallerPosition(
-                canonicalPositions.canonicalizeCallerPosition(position.callerPosition))
+                canonicalPositions.canonicalizeCallerPosition(position.getCallerPosition()))
             .build());
   }
 }

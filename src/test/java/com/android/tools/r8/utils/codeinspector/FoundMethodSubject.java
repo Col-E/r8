@@ -258,7 +258,7 @@ public class FoundMethodSubject extends MethodSubject {
         new Object2IntOpenHashMap<>(code.getInstructions().size());
     for (CfInstruction insn : code.getInstructions()) {
       if (insn instanceof CfPosition) {
-        currentLine = ((CfPosition) insn).getPosition().line;
+        currentLine = ((CfPosition) insn).getPosition().getLine();
       }
       if (currentLine != -1) {
         lineNumberTable.put(new CfInstructionSubject(insn, this), currentLine);

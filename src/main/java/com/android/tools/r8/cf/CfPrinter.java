@@ -555,8 +555,8 @@ public class CfPrinter {
   public void print(CfPosition instruction) {
     Position position = instruction.getPosition();
     indent();
-    builder.append(".line ").append(position.line);
-    if (position.file != null || position.callerPosition != null) {
+    builder.append(".line ").append(position.getLine());
+    if (position.hasCallerPosition() || position.hasFile()) {
       appendComment(position.toString());
     }
   }

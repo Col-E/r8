@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
-import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -133,9 +133,9 @@ public class DexDebugEventsTest {
     List<DexDebugEvent> events = new ArrayList<>();
     DexDebugEventBuilder.emitAdvancementEvents(
         pc,
-        Position.builder().setLine(line).setMethod(method).build(),
+        SourcePosition.builder().setLine(line).setMethod(method).build(),
         nextPc,
-        Position.builder().setLine(nextLine).setMethod(method).build(),
+        SourcePosition.builder().setLine(nextLine).setMethod(method).build(),
         events,
         factory,
         false);

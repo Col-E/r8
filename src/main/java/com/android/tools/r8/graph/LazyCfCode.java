@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -1007,7 +1008,7 @@ public class LazyCfCode extends Code {
       if (debugParsingOptions.lineInfo) {
         instructions.add(
             new CfPosition(
-                getLabel(start), Position.builder().setLine(line).setMethod(method).build()));
+                getLabel(start), SourcePosition.builder().setLine(line).setMethod(method).build()));
       }
     }
 

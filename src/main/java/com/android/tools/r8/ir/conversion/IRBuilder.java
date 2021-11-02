@@ -829,7 +829,9 @@ public class IRBuilder {
           } else {
             current = position;
           }
-        } else if (position.isSome() && !position.synthetic && !position.equals(current)) {
+        } else if (position.isSome()
+            && !position.isSyntheticPosition()
+            && !position.equals(current)) {
           DebugPosition positionChange = new DebugPosition();
           positionChange.setPosition(position);
           it.previous();

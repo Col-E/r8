@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -75,7 +76,7 @@ public class ConstantRemovalTest {
     block.setNumber(basicBlockNumberGenerator.next());
 
     IRMetadata metadata = IRMetadata.unknown();
-    Position position = Position.testingPosition();
+    Position position = SyntheticPosition.builder().setLine(0).build();
 
     Value v3 = new Value(3, TypeElement.getLong(), null);
     v3.setNeedsRegister(true);

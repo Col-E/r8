@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -132,7 +133,8 @@ public class ClassInitializerMerger {
     public CfCode build(DexMethod syntheticMethodReference) {
       // Building the instructions will adjust maxStack and maxLocals. Build it here before invoking
       // the CfCode constructor to ensure that the value passed in is the updated values.
-      Position callerPosition = Position.synthetic(0, syntheticMethodReference, null);
+      Position callerPosition =
+          SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
       List<CfInstruction> instructions = buildInstructions(callerPosition);
       return new CfCode(
           syntheticMethodReference.getHolderType(),
@@ -201,7 +203,8 @@ public class ClassInitializerMerger {
     public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
       assert !classInitializers.isEmpty();
 
-      Position callerPosition = Position.synthetic(0, syntheticMethodReference, null);
+      Position callerPosition =
+          SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
       IRMetadata metadata = new IRMetadata();
       NumberGenerator blockNumberGenerator = new NumberGenerator();
       NumberGenerator valueNumberGenerator = new NumberGenerator();

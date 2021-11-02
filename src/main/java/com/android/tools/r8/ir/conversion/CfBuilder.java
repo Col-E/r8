@@ -519,7 +519,9 @@ public class CfBuilder {
             && position != currentPosition
             // Ignore synthetic positions prior to any actual position, except when inlined
             // (that is, callerPosition != null).
-            && !(currentPosition.isNone() && position.synthetic && position.callerPosition == null)
+            && !(currentPosition.isNone()
+                && position.isSyntheticPosition()
+                && !position.hasCallerPosition())
             && (appView.options().debug || instruction.instructionTypeCanThrow());
     if (!didLocalsChange && !didPositionChange) {
       return;

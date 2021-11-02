@@ -5,6 +5,8 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
+import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -36,7 +38,7 @@ public class CanonicalPositions {
           methodIsSynthesized
               ? callerPosition
               : getCanonical(
-                  Position.builder()
+                  SourcePosition.builder()
                       .setLine(0)
                       .setMethod(method)
                       .setCallerPosition(callerPosition)
@@ -44,7 +46,8 @@ public class CanonicalPositions {
     } else {
       this.callerPosition = null;
       isCompilerSynthesizedInlinee = false;
-      preamblePosition = getCanonical(Position.synthetic(0, method, null));
+      preamblePosition =
+          getCanonical(SyntheticPosition.builder().setLine(0).setMethod(method).build());
     }
   }
 
@@ -81,7 +84,11 @@ public class CanonicalPositions {
     Position callerOfCaller = canonicalizeCallerPosition(caller.callerPosition);
     return getCanonical(
         caller.isNone()
-            ? Position.noneWithMethod(caller.method, callerOfCaller)
+            ? SourcePosition.builder()
+                .setMethod(caller.method)
+                .setCallerPosition(callerOfCaller)
+                .disableLineCheck()
+                .build()
             : caller.builderWithCopy().setCallerPosition(callerOfCaller).build());
   }
 
@@ -106,7 +113,11 @@ public class CanonicalPositions {
         syntheticPosition =
             (min == Integer.MAX_VALUE)
                 ? getPreamblePosition()
-                : Position.synthetic(min < max ? min - 1 : min, originalMethod, callerPosition);
+                : SyntheticPosition.builder()
+                    .setLine(min < max ? min - 1 : min)
+                    .setMethod(originalMethod)
+                    .setCallerPosition(callerPosition)
+                    .build();
       } else {
         // If in release mode we explicitly associate a synthetic none position with monitor exit.
         // This is safe as the runtime must never throw at this position because the monitor cannot

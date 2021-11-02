@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
@@ -183,17 +184,17 @@ public class DexDebugEventBuilder {
     assert !position.equals(emittedPosition);
     if (startLine == NO_LINE_INFO) {
       assert emittedPosition.isNone();
-      if (position.synthetic && position.callerPosition == null) {
+      if (position.isSyntheticPosition() && !position.hasCallerPosition()) {
         // Ignore synthetic positions prior to any actual position.
         // We do need to preserve synthetic position establishing the stack frame for inlined
         // methods.
         return;
       }
-      startLine = position.line;
+      startLine = position.getLine();
       emittedPosition =
-          Position.builder()
-              .setLine(position.line)
-              .setMethod(position.getOutermostCaller().method)
+          SourcePosition.builder()
+              .setLine(position.getLine())
+              .setMethod(position.getOutermostCaller().getMethod())
               .build();
     }
     assert emittedPc != pc;
@@ -235,21 +236,22 @@ public class DexDebugEventBuilder {
     assert previousPc >= 0;
     int pcDelta = nextPc - previousPc;
     assert !previousPosition.isNone() || nextPosition.isNone();
-    assert nextPosition.isNone() || nextPosition.line >= 0;
-    int lineDelta = nextPosition.isNone() ? 0 : nextPosition.line - previousPosition.line;
+    assert nextPosition.isNone() || nextPosition.getLine() >= 0;
+    int lineDelta = nextPosition.isNone() ? 0 : nextPosition.getLine() - previousPosition.getLine();
     assert pcDelta >= 0;
-    if (nextPosition.file != previousPosition.file) {
-      events.add(factory.createSetFile(nextPosition.file));
+    if (nextPosition.getFile() != previousPosition.getFile()) {
+      events.add(factory.createSetFile(nextPosition.getFile()));
     }
     // The LineNumberOptimizer maps new positions based on the outer most caller with
     // callerPosition == null.
-    assert null != nextPosition.callerPosition
-        || null != previousPosition.callerPosition
-        || nextPosition.method == previousPosition.method
+    assert nextPosition.hasCallerPosition()
+        || previousPosition.hasCallerPosition()
+        || nextPosition.getMethod() == previousPosition.getMethod()
         || optimizingLineNumbers;
-    if (nextPosition.callerPosition != previousPosition.callerPosition
-        || nextPosition.method != previousPosition.method) {
-      events.add(factory.createSetInlineFrame(nextPosition.method, nextPosition.callerPosition));
+    if (nextPosition.getCallerPosition() != previousPosition.getCallerPosition()
+        || nextPosition.getMethod() != previousPosition.getMethod()) {
+      events.add(
+          factory.createSetInlineFrame(nextPosition.getMethod(), nextPosition.getCallerPosition()));
     }
     if (lineDelta < Constants.DBG_LINE_BASE
         || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {
