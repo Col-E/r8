@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.ir.code.Mul;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NumericType;
@@ -76,7 +77,9 @@ import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -86,6 +89,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -764,9 +768,8 @@ public class OutlinerImpl extends Outliner {
   abstract private class OutlineSpotter {
 
     final ProgramMethod method;
-    final BasicBlock block;
-    // instructionArrayCache is block.getInstructions() copied to an ArrayList.
-    private List<Instruction> instructionArrayCache = null;
+    final IRCode irCode;
+    final List<Instruction> currentCandidateInstructions;
 
     int start;
     int index;
@@ -780,32 +783,17 @@ public class OutlinerImpl extends Outliner {
     int returnValueUniqueUsersLeft;
     int pendingNewInstanceIndex = -1;
 
-    OutlineSpotter(ProgramMethod method, BasicBlock block) {
+    OutlineSpotter(
+        ProgramMethod method, IRCode irCode, List<Instruction> currentCandidateInstructions) {
       this.method = method;
-      this.block = block;
+      this.irCode = irCode;
+      this.currentCandidateInstructions = currentCandidateInstructions;
       reset(0);
     }
 
-    protected List<Instruction> getInstructionArray() {
-      if (instructionArrayCache == null) {
-        instructionArrayCache = new ArrayList<>(block.getInstructions());
-      }
-      return instructionArrayCache;
-    }
-
-    // Call this before modifying block.getInstructions().
-    protected void invalidateInstructionArray() {
-      instructionArrayCache = null;
-    }
-
     protected void process() {
-      List<Instruction> instructions;
-      for (;;) {
-        instructions = getInstructionArray(); // ProcessInstruction may have invalidated it.
-        if (index >= instructions.size()) {
-          break;
-        }
-        processInstruction(instructions.get(index));
+      while (index < currentCandidateInstructions.size()) {
+        processInstruction(currentCandidateInstructions.get(index));
       }
     }
 
@@ -944,10 +932,9 @@ public class OutlinerImpl extends Outliner {
         assert index > 0;
         int offset = 0;
         Instruction previous;
-        List<Instruction> instructions = getInstructionArray();
         do {
           offset++;
-          previous = instructions.get(index - offset);
+          previous = currentCandidateInstructions.get(index - offset);
         } while (previous.isConstInstruction());
         if (!previous.isNewInstance()
             || invoke != previous.asNewInstance().getUniqueConstructorInvoke(dexItemFactory)) {
@@ -1137,8 +1124,7 @@ public class OutlinerImpl extends Outliner {
     protected abstract void handle(int start, int end, Outline outline);
 
     private void candidate(int start, int index) {
-      List<Instruction> instructions = getInstructionArray();
-      assert !instructions.get(start).isConstInstruction();
+      assert !currentCandidateInstructions.get(start).isConstInstruction();
 
       if (pendingNewInstanceIndex != -1) {
         if (pendingNewInstanceIndex == start) {
@@ -1151,7 +1137,7 @@ public class OutlinerImpl extends Outliner {
 
       // Back out of any const instructions ending this candidate.
       int end = index;
-      while (instructions.get(end - 1).isConstInstruction()) {
+      while (currentCandidateInstructions.get(end - 1).isConstInstruction()) {
         end--;
       }
 
@@ -1162,7 +1148,8 @@ public class OutlinerImpl extends Outliner {
       }
 
       Outline outline =
-          new Outline(instructions, argumentTypes, argumentsMap, returnType, start, end);
+          new Outline(
+              currentCandidateInstructions, argumentTypes, argumentsMap, returnType, start, end);
       handle(start, end, outline);
 
       // Start a new candidate search from the next instruction after this outline.
@@ -1192,8 +1179,11 @@ public class OutlinerImpl extends Outliner {
     private final List<Outline> outlinesForMethod;
 
     OutlineMethodIdentifier(
-        ProgramMethod method, BasicBlock block, List<Outline> outlinesForMethod) {
-      super(method, block);
+        ProgramMethod method,
+        IRCode irCode,
+        List<Instruction> currentCandidateInstructions,
+        List<Outline> outlinesForMethod) {
+      super(method, irCode, currentCandidateInstructions);
       this.outlinesForMethod = outlinesForMethod;
     }
 
@@ -1205,8 +1195,9 @@ public class OutlinerImpl extends Outliner {
 
   private class OutlineSiteIdentifier extends OutlineSpotter {
 
-    OutlineSiteIdentifier(ProgramMethod method, BasicBlock block) {
-      super(method, block);
+    OutlineSiteIdentifier(
+        ProgramMethod method, IRCode irCode, List<Instruction> currentCandidateInstructions) {
+      super(method, irCode, currentCandidateInstructions);
     }
 
     @Override
@@ -1221,19 +1212,19 @@ public class OutlinerImpl extends Outliner {
   private class OutlineRewriter extends OutlineSpotter {
 
     private final IRCode code;
-    private final ListIterator<BasicBlock> blocksIterator;
-    private final List<Integer> toRemove;
+    private final Set<Instruction> toRemove;
+    private final Set<Instruction> invokesToOutlineMethods;
     int argumentsMapIndex;
 
     OutlineRewriter(
         IRCode code,
-        ListIterator<BasicBlock> blocksIterator,
-        BasicBlock block,
-        List<Integer> toRemove) {
-      super(code.context(), block);
+        List<Instruction> currentCandidateInstructions,
+        Set<Instruction> toRemove,
+        Set<Instruction> invokesToOutlineMethods) {
+      super(code.context(), code, currentCandidateInstructions);
       this.code = code;
-      this.blocksIterator = blocksIterator;
       this.toRemove = toRemove;
+      this.invokesToOutlineMethods = invokesToOutlineMethods;
     }
 
     @Override
@@ -1251,12 +1242,12 @@ public class OutlinerImpl extends Outliner {
                 // We set the line number to 0 here and rely on the LineNumberOptimizer to
                 // set a new disjoint line.
                 .setLine(0);
-
+        Instruction lastInstruction = null;
+        Position position = Position.none();
         { // Scope for 'instructions'.
-          List<Instruction> instructions = getInstructionArray();
           int outlinePositionIndex = 0;
           for (int i = start; i < end; i++) {
-            Instruction current = instructions.get(i);
+            Instruction current = currentCandidateInstructions.get(i);
             if (current.isConstInstruction()) {
               // Leave any const instructions.
               continue;
@@ -1281,28 +1272,25 @@ public class OutlinerImpl extends Outliner {
             // The invoke of the outline method will be placed at the last instruction index,
             // so don't mark that for removal.
             if (i < end - 1) {
-              toRemove.add(i);
+              toRemove.add(current);
             }
+            lastInstruction = current;
           }
         }
+        assert lastInstruction != null;
         assert outlineMethod.proto.shorty.toString().length() - 1 == in.size();
         if (returnValue != null && !returnValue.isUsed()) {
           returnValue = null;
         }
-        Position newPosition = positionBuilder.build();
         Invoke outlineInvoke = new InvokeStatic(outlineMethod, returnValue, in);
-        outlineInvoke.setBlock(block);
-        outlineInvoke.setPosition(newPosition);
-        InstructionListIterator endIterator = block.listIterator(code, end - 1);
-        Instruction instructionBeforeEnd = endIterator.next();
-        invalidateInstructionArray(); // Because we're about to modify the original linked list.
-        instructionBeforeEnd.clearBlock();
+        outlineInvoke.setBlock(lastInstruction.getBlock());
+        outlineInvoke.setPosition(positionBuilder.build());
+        InstructionListIterator endIterator =
+            lastInstruction.getBlock().listIterator(code, lastInstruction);
+        Instruction instructionBeforeEnd = endIterator.previous();
+        assert instructionBeforeEnd == lastInstruction;
         endIterator.set(outlineInvoke); // Replaces instructionBeforeEnd.
-        if (block.hasCatchHandlers()) {
-          // If the inserted invoke is inserted in a block with handlers, split the block after
-          // the inserted invoke.
-          endIterator.split(code, blocksIterator);
-        }
+        invokesToOutlineMethods.add(outlineInvoke);
       }
     }
 
@@ -1426,20 +1414,71 @@ public class OutlinerImpl extends Outliner {
 
     timing.begin("Collect outlines");
     List<Outline> outlinesForMethod = new ArrayList<>();
-    for (BasicBlock block : code.blocks) {
-      new OutlineMethodIdentifier(context, block, outlinesForMethod).process();
-    }
+    getInstructions(
+        appView,
+        code,
+        instructions ->
+            new OutlineMethodIdentifier(context, code, instructions, outlinesForMethod).process());
     outlineCollection.set(appView, context, outlinesForMethod);
     timing.end();
+  }
+
+  public static void getInstructions(
+      AppView<?> appView, IRCode code, Consumer<List<Instruction>> consumer) {
+    int maxNumberOfInstructionsToBeConsidered =
+        appView.options().outline.maxNumberOfInstructionsToBeConsidered;
+    int minSize = appView.options().outline.minSize;
+    Set<BasicBlock> seenBlocks = Sets.newIdentityHashSet();
+    for (BasicBlock block : code.blocks) {
+      if (seenBlocks.add(block)) {
+        ImmutableList.Builder<Instruction> builder = ImmutableList.builder();
+        LinearFlowInstructionListIterator instructionIterator =
+            new LinearFlowInstructionListIterator(code, block);
+        // Maintaining the last seen block ensure that we always consider all instructions in a
+        // block before adding it to the seen set.
+        BasicBlock lastSeenBlock = block;
+        int counter = 0;
+        boolean sawLinearFlowWithCatchHandlers = false;
+        while (instructionIterator.hasNext()) {
+          Instruction instruction = instructionIterator.next();
+          // Disregard linear flow when there are catch handlers
+          if (instruction.getBlock() != block
+              && (block.hasCatchHandlers() || instruction.getBlock().hasCatchHandlers())) {
+            lastSeenBlock = instruction.getBlock();
+            sawLinearFlowWithCatchHandlers = true;
+            break;
+          }
+          builder.add(instruction);
+          counter++;
+          if (counter > maxNumberOfInstructionsToBeConsidered
+              && instruction.getBlock() != lastSeenBlock) {
+            // Ensure we only break on whole blocks.
+            break;
+          }
+          lastSeenBlock = instruction.getBlock();
+        }
+        seenBlocks.addAll(instructionIterator.getSeenBlocks());
+        if (sawLinearFlowWithCatchHandlers) {
+          assert lastSeenBlock != block;
+          // Remove the last seen block since we just visited the first instruction in that block
+          // and terminated without adding it.
+          seenBlocks.remove(lastSeenBlock);
+        }
+        if (counter >= minSize) {
+          consumer.accept(builder.build());
+        }
+      }
+    }
   }
 
   public void identifyOutlineSites(IRCode code) {
     ProgramMethod context = code.context();
     assert !context.getDefinition().getCode().isOutlineCode();
     assert !ClassToFeatureSplitMap.isInFeature(context.getHolder(), appView);
-    for (BasicBlock block : code.blocks) {
-      new OutlineSiteIdentifier(context, block).process();
-    }
+    getInstructions(
+        appView,
+        code,
+        instructions -> new OutlineSiteIdentifier(context, code, instructions).process());
   }
 
   public ProgramMethodSet selectMethodsForOutlining() {
@@ -1519,13 +1558,33 @@ public class OutlinerImpl extends Outliner {
   }
 
   public void applyOutliningCandidate(IRCode code) {
-    assert !code.method().getCode().isOutlineCode();
-    ListIterator<BasicBlock> blocksIterator = code.listIterator();
-    while (blocksIterator.hasNext()) {
-      BasicBlock block = blocksIterator.next();
-      List<Integer> toRemove = new ArrayList<>();
-      new OutlineRewriter(code, blocksIterator, block, toRemove).process();
-      block.removeInstructions(toRemove);
+    assert !code.context().getDefinition().getCode().isOutlineCode();
+    Set<Instruction> toRemove = Sets.newIdentityHashSet();
+    Set<Instruction> invokesToOutlineMethods = Sets.newIdentityHashSet();
+    getInstructions(
+        appView,
+        code,
+        instructions ->
+            new OutlineRewriter(code, instructions, toRemove, invokesToOutlineMethods).process());
+    if (!toRemove.isEmpty()) {
+      assert !invokesToOutlineMethods.isEmpty();
+      // Scan over the entire code to remove outline instructions.
+      ListIterator<BasicBlock> blocksIterator = code.listIterator();
+      while (blocksIterator.hasNext()) {
+        BasicBlock block = blocksIterator.next();
+        InstructionListIterator instructionListIterator = block.listIterator(code);
+        instructionListIterator.forEachRemaining(
+            instruction -> {
+              if (toRemove.contains(instruction)) {
+                instructionListIterator.removeInstructionIgnoreOutValue();
+              } else if (invokesToOutlineMethods.contains(instruction)
+                  && block.hasCatchHandlers()) {
+                // If the inserted invoke is inserted in a block with handlers, split the block
+                // after the inserted invoke.
+                instructionListIterator.split(code, blocksIterator);
+              }
+            });
+      }
     }
   }
 

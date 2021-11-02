@@ -1206,6 +1206,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public int minSize = 3;
     public int maxSize = 99;
     public int threshold = 20;
+    public int maxNumberOfInstructionsToBeConsidered = 100;
   }
 
   public static class KotlinOptimizationOptions {

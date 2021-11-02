@@ -48,6 +48,10 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
     return seenBlocks.contains(basicBlock);
   }
 
+  public Set<BasicBlock> getSeenBlocks() {
+    return seenBlocks;
+  }
+
   @Override
   public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
     currentBlockIterator.replaceCurrentInstruction(newInstruction, affectedValues);
@@ -199,6 +203,7 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
       if (!isLinearEdge(target, candidate)) {
         break;
       }
+      seenBlocks.add(target);
       target = candidate;
     }
     currentBlock = target;

@@ -1412,7 +1412,7 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
 
-    // TODO(b/140766440): an ideal solution would be puttting CodeOptimization for this into
+    // TODO(b/140766440): an ideal solution would be putting CodeOptimization for this into
     //  the list for primary processing only.
     outliner.collectOutlineSites(code, timing);
 
