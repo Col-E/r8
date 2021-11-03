@@ -3451,7 +3451,7 @@ public class CodeRewriter {
       }
 
       AbstractValue abstractValue = array.getAbstractValue(appView, code.context());
-      if (!abstractValue.hasKnownArrayLength() && !array.isNeverNull()) {
+      if (!abstractValue.isKnownLengthArrayValue() && !array.isNeverNull()) {
         continue;
       }
       Instruction arrayDefinition = array.getDefinition();
@@ -3468,13 +3468,15 @@ public class CodeRewriter {
           continue;
         }
         iterator.replaceCurrentInstructionWithConstInt(code, (int) size);
-      } else if (abstractValue.hasKnownArrayLength()) {
-        iterator.replaceCurrentInstructionWithConstInt(code, abstractValue.getKnownArrayLength());
+      } else if (abstractValue.isKnownLengthArrayValue()) {
+        iterator.replaceCurrentInstructionWithConstInt(
+            code, abstractValue.asKnownLengthArrayValue().getLength());
       } else {
         continue;
       }
 
       phiUsers.forEach(Phi::removeTrivialPhi);
+      // TODO(139489070): static-get of constant array
     }
     assert code.isConsistentSSA();
   }

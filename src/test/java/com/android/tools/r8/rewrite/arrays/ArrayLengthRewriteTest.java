@@ -68,7 +68,7 @@ public class ArrayLengthRewriteTest extends TestBase {
         .addProgramClasses(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(expectedOutput)
-        .inspect(i -> inspect(i, true));
+        .inspect(this::inspect);
   }
 
   @Test public void r8() throws Exception {
@@ -80,10 +80,10 @@ public class ArrayLengthRewriteTest extends TestBase {
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(expectedOutput)
-        .inspect(i -> inspect(i, false));
+        .inspect(this::inspect);
   }
 
-  private void inspect(CodeInspector inspector, boolean d8) {
+  private void inspect(CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz(Main.class);
     assertTrue(mainClass.isPresent());
 
@@ -104,10 +104,10 @@ public class ArrayLengthRewriteTest extends TestBase {
 
     // TODO(139489070): these should be rewritten and result in 0 array-length bytecodes
     MethodSubject staticConstants = mainClass.uniqueMethodWithName("staticConstants");
-    assertArrayLengthCallCount(staticConstants, (d8 || debugMode) ? 3 : 0);
+    assertArrayLengthCallCount(staticConstants, 3);
 
     MethodSubject staticNonConstants = mainClass.uniqueMethodWithName("staticNonConstants");
-    assertArrayLengthCallCount(staticNonConstants, (d8 || debugMode) ? 2 : 0);
+    assertArrayLengthCallCount(staticNonConstants, 2);
   }
 
   private static void assertArrayLengthCallCount(MethodSubject subject, int expected) {
@@ -200,7 +200,7 @@ public class ArrayLengthRewriteTest extends TestBase {
     }
 
     private static String[] mutable = { "one" };
-    private static final String[] runtimeInit = {"two"};
+    private static final String[] runtimeInit = { System.lineSeparator() };
 
     @NeverInline
     private static void staticNonConstants() {

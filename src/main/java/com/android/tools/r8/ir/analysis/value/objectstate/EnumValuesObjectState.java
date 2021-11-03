@@ -45,16 +45,6 @@ public class EnumValuesObjectState extends ObjectState {
   }
 
   @Override
-  public boolean hasKnownArrayLength() {
-    return true;
-  }
-
-  @Override
-  public int getKnownArrayLength() {
-    return state.length;
-  }
-
-  @Override
   public boolean isEnumValuesObjectState() {
     return true;
   }

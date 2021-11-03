@@ -11,6 +11,7 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
@@ -24,7 +25,6 @@ import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.EnumValuesObjectState;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
-import com.android.tools.r8.ir.analysis.value.objectstate.ObjectStateAnalysis;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -35,6 +35,8 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldArgumentInitializationInfo;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import java.util.IdentityHashMap;
@@ -238,7 +240,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       // This implicitely answers null if the value could not get computed.
       if (valuesValue.isSingleFieldValue()) {
         SingleFieldValue fieldValue = valuesValue.asSingleFieldValue();
-        if (fieldValue.getObjectState().isEnumValuesObjectState()) {
+        if (fieldValue.getState().isEnumValuesObjectState()) {
           return fieldValue;
         }
       }
@@ -437,12 +439,62 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private ObjectState computeObjectState(Value value) {
-    // TODO(b/204159267): Move this logic into Instruction#getAbstractValue in NewInstance.
-    return ObjectStateAnalysis.computeObjectState(value, appView, context);
+    assert !value.hasAliasedValue();
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+      return ObjectState.empty();
+    }
+
+    NewInstance newInstance = value.definition.asNewInstance();
+    InvokeDirect uniqueConstructorInvoke =
+        newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
+    if (uniqueConstructorInvoke == null) {
+      return ObjectState.empty();
+    }
+
+    DexClassAndMethod singleTarget = uniqueConstructorInvoke.lookupSingleTarget(appView, context);
+    if (singleTarget == null) {
+      return ObjectState.empty();
+    }
+
+    InstanceFieldInitializationInfoCollection initializationInfos =
+        singleTarget
+            .getDefinition()
+            .getOptimizationInfo()
+            .getInstanceInitializerInfo(uniqueConstructorInvoke)
+            .fieldInitializationInfos();
+    if (initializationInfos.isEmpty()) {
+      return ObjectState.empty();
+    }
+
+    ObjectState.Builder builder = ObjectState.builder();
+    initializationInfos.forEach(
+        appView,
+        (field, initializationInfo) -> {
+          // If the instance field is not written only in the instance initializer, then we can't
+          // conclude that this field will have a constant value.
+          //
+          // We have special handling for library fields that satisfy the property that they are
+          // only written in their corresponding instance initializers. This is needed since we
+          // don't analyze these instance initializers in the Enqueuer, as they are in the library.
+          if (!appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)
+              && !appView.dexItemFactory().enumMembers.isNameOrOrdinalField(field.getReference())) {
+            return;
+          }
+          if (initializationInfo.isArgumentInitializationInfo()) {
+            InstanceFieldArgumentInitializationInfo argumentInitializationInfo =
+                initializationInfo.asArgumentInitializationInfo();
+            Value argument =
+                uniqueConstructorInvoke.getArgument(argumentInitializationInfo.getArgumentIndex());
+            builder.recordFieldHasValue(field, argument.getAbstractValue(appView, context));
+          } else if (initializationInfo.isSingleValue()) {
+            builder.recordFieldHasValue(field, initializationInfo.asSingleValue());
+          }
+        });
+    return builder.build();
   }
 
   private boolean isEnumValuesArray(Value value) {
     SingleFieldValue singleFieldValue = computeSingleEnumFieldValueForValuesArray(value);
-    return singleFieldValue != null && singleFieldValue.getObjectState().isEnumValuesObjectState();
+    return singleFieldValue != null && singleFieldValue.getState().isEnumValuesObjectState();
   }
 }

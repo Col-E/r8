@@ -191,7 +191,7 @@ final class InlineCandidateProcessor {
     AbstractValue abstractValue = optimizationInfo.getAbstractValue();
     objectState =
         abstractValue.isSingleFieldValue()
-            ? abstractValue.asSingleFieldValue().getObjectState()
+            ? abstractValue.asSingleFieldValue().getState()
             : ObjectState.empty();
     return EligibilityStatus.ELIGIBLE;
   }

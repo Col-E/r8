@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.value.objectstate.KnownLengthArrayState;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,15 +19,15 @@ public class AbstractValueFactory {
   private ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues = new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexString, SingleStringValue> singleStringValues =
       new ConcurrentHashMap<>();
-  private ConcurrentHashMap<Integer, KnownLengthArrayState> knownArrayLengthStates =
+  private ConcurrentHashMap<Integer, KnownLengthArrayValue> knownArrayLengthValues =
       new ConcurrentHashMap<>();
 
   public SingleConstClassValue createSingleConstClassValue(DexType type) {
     return singleConstClassValues.computeIfAbsent(type, SingleConstClassValue::new);
   }
 
-  public KnownLengthArrayState createKnownLengthArrayState(int length) {
-    return knownArrayLengthStates.computeIfAbsent(length, KnownLengthArrayState::new);
+  public AbstractValue createKnownLengthArrayValue(int length) {
+    return knownArrayLengthValues.computeIfAbsent(length, KnownLengthArrayValue::new);
   }
 
   public SingleFieldValue createSingleFieldValue(DexField field, ObjectState state) {

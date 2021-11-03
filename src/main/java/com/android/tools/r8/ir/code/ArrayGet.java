@@ -276,10 +276,10 @@ public class ArrayGet extends ArrayAccess {
       return true;
     }
     AbstractValue abstractValue = array().getAliasedValue().getAbstractValue(appView, context);
-    if (!abstractValue.hasKnownArrayLength()) {
+    if (!abstractValue.isKnownLengthArrayValue()) {
       return true;
     }
-    int newArraySize = abstractValue.getKnownArrayLength();
+    int newArraySize = abstractValue.asKnownLengthArrayValue().getLength();
     int index = index().getConstInstruction().asConstNumber().getIntValue();
     return newArraySize <= 0 || index < 0 || newArraySize <= index;
   }

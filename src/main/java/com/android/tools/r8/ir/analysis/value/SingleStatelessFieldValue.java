@@ -15,13 +15,8 @@ public class SingleStatelessFieldValue extends SingleFieldValue {
   }
 
   @Override
-  public ObjectState getObjectState() {
+  public ObjectState getState() {
     return ObjectState.empty();
-  }
-
-  @Override
-  public boolean hasObjectState() {
-    return false;
   }
 
   @Override

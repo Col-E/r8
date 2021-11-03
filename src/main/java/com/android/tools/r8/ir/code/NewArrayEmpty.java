@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.ir.analysis.value.StatefulObjectValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -91,10 +90,9 @@ public class NewArrayEmpty extends Instruction {
       AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context) && size().getType().isInt()) {
       assert !instructionInstanceCanThrow();
-      return StatefulObjectValue.create(
-          appView
-              .abstractValueFactory()
-              .createKnownLengthArrayState(size().definition.asConstNumber().getIntValue()));
+      return appView
+          .abstractValueFactory()
+          .createKnownLengthArrayValue(size().definition.asConstNumber().getIntValue());
     }
     return UnknownValue.getInstance();
   }
