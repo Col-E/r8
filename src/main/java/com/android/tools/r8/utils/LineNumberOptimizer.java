@@ -534,7 +534,6 @@ public class LineNumberOptimizer {
                 lastPosition = currentPosition;
               }
             }
-            Range originalRange = new Range(firstPosition.originalLine, lastPosition.originalLine);
             Range obfuscatedRange;
             if (method.getCode().isDexCode()
                 && method.getCode().asDexCode().getDebugInfo()
@@ -547,34 +546,15 @@ public class LineNumberOptimizer {
             }
             ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
             MappedRange lastMappedRange =
-                classNamingBuilder.addMappedRange(
+                getMappedRangesForPosition(
+                    appView.options().dexItemFactory(),
+                    getOriginalMethodSignature,
+                    classNamingBuilder,
+                    firstPosition.method,
+                    obfuscatedName,
                     obfuscatedRange,
-                    getOriginalMethodSignature.apply(firstPosition.method),
-                    originalRange,
-                    obfuscatedName);
-            Position caller = firstPosition.caller;
-            int inlineFramesCount = 0;
-            while (caller != null) {
-              inlineFramesCount += 1;
-              lastMappedRange =
-                  classNamingBuilder.addMappedRange(
-                      obfuscatedRange,
-                      getOriginalMethodSignature.apply(caller.getMethod()),
-                      new Range(Math.max(caller.getLine(), 0)), // Prevent against "no-position".
-                      obfuscatedName);
-              if (caller.isRemoveInnerFramesIfThrowingNpe()) {
-                lastMappedRange.addMappingInformation(
-                    RewriteFrameMappingInformation.builder()
-                        .addCondition(
-                            ThrowsCondition.create(
-                                Reference.classFromDescriptor(
-                                    appView.options().dexItemFactory().npeDescriptor.toString())))
-                        .addRewriteAction(RemoveInnerFramesAction.create(inlineFramesCount))
-                        .build(),
-                    Unreachable::raise);
-              }
-              caller = caller.getCallerPosition();
-            }
+                    new Range(firstPosition.originalLine, lastPosition.originalLine),
+                    firstPosition.caller);
             for (MappingInformation info : methodMappingInfo) {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
@@ -593,12 +573,15 @@ public class LineNumberOptimizer {
                           positionRemapper.createRemappedPosition(position).getSecond().getLine();
                     }
                     positionMap.put((int) line, placeHolderLineToBeFixed);
-                    // TODO(b/204643407): Iterate over caller positions recursively.
-                    classNamingBuilder.addMappedRange(
+                    getMappedRangesForPosition(
+                        appView.options().dexItemFactory(),
+                        getOriginalMethodSignature,
+                        classNamingBuilder,
+                        position.getMethod(),
+                        obfuscatedName,
                         new Range(placeHolderLineToBeFixed, placeHolderLineToBeFixed),
-                        getOriginalMethodSignature.apply(position.getMethod()),
                         new Range(position.getLine(), position.getLine()),
-                        obfuscatedName);
+                        position.getCallerPosition());
                   });
               outlinesToFix
                   .computeIfAbsent(
@@ -621,6 +604,45 @@ public class LineNumberOptimizer {
     outlinesToFix.values().forEach(OutlineFixupBuilder::fixup);
 
     return classNameMapperBuilder.build();
+  }
+
+  private static MappedRange getMappedRangesForPosition(
+      DexItemFactory factory,
+      Function<DexMethod, MethodSignature> getOriginalMethodSignature,
+      Builder classNamingBuilder,
+      DexMethod method,
+      String obfuscatedName,
+      Range obfuscatedRange,
+      Range originalLine,
+      Position caller) {
+    MappedRange lastMappedRange =
+        classNamingBuilder.addMappedRange(
+            obfuscatedRange,
+            getOriginalMethodSignature.apply(method),
+            originalLine,
+            obfuscatedName);
+    int inlineFramesCount = 0;
+    while (caller != null) {
+      inlineFramesCount += 1;
+      lastMappedRange =
+          classNamingBuilder.addMappedRange(
+              obfuscatedRange,
+              getOriginalMethodSignature.apply(caller.getMethod()),
+              new Range(Math.max(caller.getLine(), 0)), // Prevent against "no-position".
+              obfuscatedName);
+      if (caller.isRemoveInnerFramesIfThrowingNpe()) {
+        lastMappedRange.addMappingInformation(
+            RewriteFrameMappingInformation.builder()
+                .addCondition(
+                    ThrowsCondition.create(
+                        Reference.classFromDescriptor(factory.npeDescriptor.toString())))
+                .addRewriteAction(RemoveInnerFramesAction.create(inlineFramesCount))
+                .build(),
+            Unreachable::raise);
+      }
+      caller = caller.getCallerPosition();
+    }
+    return lastMappedRange;
   }
 
   private static boolean verifyMethodsAreKeptDirectlyOrIndirectly(

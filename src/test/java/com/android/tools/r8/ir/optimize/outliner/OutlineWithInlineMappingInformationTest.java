@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.optimize.outliner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -90,12 +89,7 @@ public class OutlineWithInlineMappingInformationTest extends TestBase {
               // and one for
               //   new ArrayStoreException("Foo")
               assertEquals(5, inspector.allClasses().size());
-              if (throwInFirstOutline ^ throwOnFirstCall) {
-                // TODO(b/204643407): Should always be equal.
-                assertNotEquals(expectedStackTrace, stackTrace);
-              } else {
-                assertEquals(expectedStackTrace, stackTrace);
-              }
+              assertEquals(expectedStackTrace, stackTrace);
             });
   }
 
