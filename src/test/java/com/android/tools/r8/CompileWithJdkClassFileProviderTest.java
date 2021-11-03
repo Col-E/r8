@@ -161,13 +161,10 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
    * import java.util.concurrent.Flow.Subscriber;
    * import java.util.concurrent.Flow.Subscription;
    * import java.util.concurrent.SubmissionPublisher;
-   * import java.util.concurrent.locks.Condition;
-   * import java.util.concurrent.locks.Lock;
-   * import java.util.concurrent.locks.ReentrantLock;
+   * import java.util.concurrent.CountDownLatch;
    *
    * public class MySubscriber<T> implements Subscriber<T> {
-   *   final static Lock lock = new ReentrantLock();
-   *   final static Condition done  = lock.newCondition();
+   *   final static CountDownLatch done = new CountDownLatch(1);
    *
    *   private Subscription subscription;
    *
@@ -190,25 +187,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
    *   @Override
    *   public void onComplete() {
    *     System.out.println("Done");
-   *     signalCondition(done);
-   *   }
-   *
-   *   public static void awaitCondition(Condition condition) throws Exception {
-   *     lock.lock();
-   *     try {
-   *       condition.await();
-   *     } finally {
-   *       lock.unlock();
-   *     }
-   *   }
-   *
-   *   public static void signalCondition(Condition condition) {
-   *     lock.lock();
-   *     try {
-   *       condition.signal();
-   *     } finally {
-   *       lock.unlock();
-   *     }
+   *     done.countDown();
    *   }
    *
    *   public static void main(String[] args) throws Exception {
@@ -220,7 +199,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
    *     items.forEach(publisher::submit);
    *     publisher.close();
    *
-   *     awaitCondition(done);
+   *     done.await();
    *   }
    * }
    *
@@ -262,13 +241,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
     {
       fieldVisitor =
           classWriter.visitField(
-              ACC_FINAL | ACC_STATIC, "lock", "Ljava/util/concurrent/locks/Lock;", null, null);
-      fieldVisitor.visitEnd();
-    }
-    {
-      fieldVisitor =
-          classWriter.visitField(
-              ACC_FINAL | ACC_STATIC, "done", "Ljava/util/concurrent/locks/Condition;", null, null);
+              ACC_FINAL | ACC_STATIC, "done", "Ljava/util/concurrent/CountDownLatch;", null, null);
       fieldVisitor.visitEnd();
     }
     {
@@ -282,7 +255,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(10, label0);
+      methodVisitor.visitLineNumber(8, label0);
       methodVisitor.visitVarInsn(ALOAD, 0);
       methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
       methodVisitor.visitInsn(RETURN);
@@ -296,21 +269,21 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(18, label0);
+      methodVisitor.visitLineNumber(15, label0);
       methodVisitor.visitVarInsn(ALOAD, 0);
       methodVisitor.visitVarInsn(ALOAD, 1);
       methodVisitor.visitFieldInsn(
           PUTFIELD, "MySubscriber", "subscription", "Ljava/util/concurrent/Flow$Subscription;");
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(19, label1);
+      methodVisitor.visitLineNumber(16, label1);
       methodVisitor.visitVarInsn(ALOAD, 1);
       methodVisitor.visitInsn(LCONST_1);
       methodVisitor.visitMethodInsn(
           INVOKEINTERFACE, "java/util/concurrent/Flow$Subscription", "request", "(J)V", true);
       Label label2 = new Label();
       methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(20, label2);
+      methodVisitor.visitLineNumber(17, label2);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(3, 2);
       methodVisitor.visitEnd();
@@ -321,7 +294,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(24, label0);
+      methodVisitor.visitLineNumber(21, label0);
       methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
       methodVisitor.visitTypeInsn(NEW, "java/lang/StringBuilder");
       methodVisitor.visitInsn(DUP);
@@ -347,7 +320,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
           INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(25, label1);
+      methodVisitor.visitLineNumber(22, label1);
       methodVisitor.visitVarInsn(ALOAD, 0);
       methodVisitor.visitFieldInsn(
           GETFIELD, "MySubscriber", "subscription", "Ljava/util/concurrent/Flow$Subscription;");
@@ -356,7 +329,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
           INVOKEINTERFACE, "java/util/concurrent/Flow$Subscription", "request", "(J)V", true);
       Label label2 = new Label();
       methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(26, label2);
+      methodVisitor.visitLineNumber(23, label2);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(3, 2);
       methodVisitor.visitEnd();
@@ -367,13 +340,13 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(29, label0);
+      methodVisitor.visitLineNumber(26, label0);
       methodVisitor.visitVarInsn(ALOAD, 1);
       methodVisitor.visitMethodInsn(
           INVOKEVIRTUAL, "java/lang/Throwable", "printStackTrace", "()V", false);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(30, label1);
+      methodVisitor.visitLineNumber(27, label1);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(1, 2);
       methodVisitor.visitEnd();
@@ -383,133 +356,23 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(34, label0);
+      methodVisitor.visitLineNumber(31, label0);
       methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
       methodVisitor.visitLdcInsn("Done");
       methodVisitor.visitMethodInsn(
           INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(35, label1);
+      methodVisitor.visitLineNumber(32, label1);
       methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "done", "Ljava/util/concurrent/locks/Condition;");
+          GETSTATIC, "MySubscriber", "done", "Ljava/util/concurrent/CountDownLatch;");
       methodVisitor.visitMethodInsn(
-          INVOKESTATIC,
-          "MySubscriber",
-          "signalCondition",
-          "(Ljava/util/concurrent/locks/Condition;)V",
-          false);
+          INVOKEVIRTUAL, "java/util/concurrent/CountDownLatch", "countDown", "()V", false);
       Label label2 = new Label();
       methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(36, label2);
+      methodVisitor.visitLineNumber(33, label2);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(2, 1);
-      methodVisitor.visitEnd();
-    }
-    {
-      methodVisitor =
-          classWriter.visitMethod(
-              ACC_PUBLIC | ACC_STATIC,
-              "awaitCondition",
-              "(Ljava/util/concurrent/locks/Condition;)V",
-              null,
-              new String[] {"java/lang/Exception"});
-      methodVisitor.visitCode();
-      Label label0 = new Label();
-      Label label1 = new Label();
-      Label label2 = new Label();
-      methodVisitor.visitTryCatchBlock(label0, label1, label2, null);
-      Label label3 = new Label();
-      methodVisitor.visitLabel(label3);
-      methodVisitor.visitLineNumber(39, label3);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Lock", "lock", "()V", true);
-      methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(41, label0);
-      methodVisitor.visitVarInsn(ALOAD, 0);
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Condition", "await", "()V", true);
-      methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(43, label1);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Lock", "unlock", "()V", true);
-      Label label4 = new Label();
-      methodVisitor.visitLabel(label4);
-      methodVisitor.visitLineNumber(44, label4);
-      Label label5 = new Label();
-      methodVisitor.visitJumpInsn(GOTO, label5);
-      methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(43, label2);
-      methodVisitor.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
-      methodVisitor.visitVarInsn(ASTORE, 1);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Lock", "unlock", "()V", true);
-      methodVisitor.visitVarInsn(ALOAD, 1);
-      methodVisitor.visitInsn(ATHROW);
-      methodVisitor.visitLabel(label5);
-      methodVisitor.visitLineNumber(45, label5);
-      methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-      methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(1, 2);
-      methodVisitor.visitEnd();
-    }
-    {
-      methodVisitor =
-          classWriter.visitMethod(
-              ACC_PUBLIC | ACC_STATIC,
-              "signalCondition",
-              "(Ljava/util/concurrent/locks/Condition;)V",
-              null,
-              null);
-      methodVisitor.visitCode();
-      Label label0 = new Label();
-      Label label1 = new Label();
-      Label label2 = new Label();
-      methodVisitor.visitTryCatchBlock(label0, label1, label2, null);
-      Label label3 = new Label();
-      methodVisitor.visitLabel(label3);
-      methodVisitor.visitLineNumber(48, label3);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Lock", "lock", "()V", true);
-      methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(50, label0);
-      methodVisitor.visitVarInsn(ALOAD, 0);
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Condition", "signal", "()V", true);
-      methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(52, label1);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Lock", "unlock", "()V", true);
-      Label label4 = new Label();
-      methodVisitor.visitLabel(label4);
-      methodVisitor.visitLineNumber(53, label4);
-      Label label5 = new Label();
-      methodVisitor.visitJumpInsn(GOTO, label5);
-      methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(52, label2);
-      methodVisitor.visitFrame(Opcodes.F_SAME1, 0, null, 1, new Object[] {"java/lang/Throwable"});
-      methodVisitor.visitVarInsn(ASTORE, 1);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE, "java/util/concurrent/locks/Lock", "unlock", "()V", true);
-      methodVisitor.visitVarInsn(ALOAD, 1);
-      methodVisitor.visitInsn(ATHROW);
-      methodVisitor.visitLabel(label5);
-      methodVisitor.visitLineNumber(54, label5);
-      methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-      methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(1, 2);
       methodVisitor.visitEnd();
     }
     {
@@ -523,7 +386,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(57, label0);
+      methodVisitor.visitLineNumber(36, label0);
       methodVisitor.visitTypeInsn(NEW, "java/util/concurrent/SubmissionPublisher");
       methodVisitor.visitInsn(DUP);
       methodVisitor.visitMethodInsn(
@@ -531,14 +394,14 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitVarInsn(ASTORE, 1);
       Label label1 = new Label();
       methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(58, label1);
+      methodVisitor.visitLineNumber(37, label1);
       methodVisitor.visitTypeInsn(NEW, "MySubscriber");
       methodVisitor.visitInsn(DUP);
       methodVisitor.visitMethodInsn(INVOKESPECIAL, "MySubscriber", "<init>", "()V", false);
       methodVisitor.visitVarInsn(ASTORE, 2);
       Label label2 = new Label();
       methodVisitor.visitLabel(label2);
-      methodVisitor.visitLineNumber(59, label2);
+      methodVisitor.visitLineNumber(38, label2);
       methodVisitor.visitVarInsn(ALOAD, 1);
       methodVisitor.visitVarInsn(ALOAD, 2);
       methodVisitor.visitMethodInsn(
@@ -549,7 +412,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
           false);
       Label label3 = new Label();
       methodVisitor.visitLabel(label3);
-      methodVisitor.visitLineNumber(60, label3);
+      methodVisitor.visitLineNumber(39, label3);
       methodVisitor.visitLdcInsn("1");
       methodVisitor.visitLdcInsn("2");
       methodVisitor.visitLdcInsn("3");
@@ -562,7 +425,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitVarInsn(ASTORE, 3);
       Label label4 = new Label();
       methodVisitor.visitLabel(label4);
-      methodVisitor.visitLineNumber(62, label4);
+      methodVisitor.visitLineNumber(41, label4);
       methodVisitor.visitVarInsn(ALOAD, 3);
       methodVisitor.visitVarInsn(ALOAD, 1);
       methodVisitor.visitInsn(DUP);
@@ -596,24 +459,20 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
           INVOKEINTERFACE, "java/util/List", "forEach", "(Ljava/util/function/Consumer;)V", true);
       Label label5 = new Label();
       methodVisitor.visitLabel(label5);
-      methodVisitor.visitLineNumber(63, label5);
+      methodVisitor.visitLineNumber(42, label5);
       methodVisitor.visitVarInsn(ALOAD, 1);
       methodVisitor.visitMethodInsn(
           INVOKEVIRTUAL, "java/util/concurrent/SubmissionPublisher", "close", "()V", false);
       Label label6 = new Label();
       methodVisitor.visitLabel(label6);
-      methodVisitor.visitLineNumber(65, label6);
+      methodVisitor.visitLineNumber(44, label6);
       methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "done", "Ljava/util/concurrent/locks/Condition;");
+          GETSTATIC, "MySubscriber", "done", "Ljava/util/concurrent/CountDownLatch;");
       methodVisitor.visitMethodInsn(
-          INVOKESTATIC,
-          "MySubscriber",
-          "awaitCondition",
-          "(Ljava/util/concurrent/locks/Condition;)V",
-          false);
+          INVOKEVIRTUAL, "java/util/concurrent/CountDownLatch", "await", "()V", false);
       Label label7 = new Label();
       methodVisitor.visitLabel(label7);
-      methodVisitor.visitLineNumber(66, label7);
+      methodVisitor.visitLineNumber(45, label7);
       methodVisitor.visitInsn(RETURN);
       methodVisitor.visitMaxs(3, 4);
       methodVisitor.visitEnd();
@@ -623,28 +482,16 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
       methodVisitor.visitCode();
       Label label0 = new Label();
       methodVisitor.visitLabel(label0);
-      methodVisitor.visitLineNumber(11, label0);
-      methodVisitor.visitTypeInsn(NEW, "java/util/concurrent/locks/ReentrantLock");
+      methodVisitor.visitLineNumber(9, label0);
+      methodVisitor.visitTypeInsn(NEW, "java/util/concurrent/CountDownLatch");
       methodVisitor.visitInsn(DUP);
+      methodVisitor.visitInsn(ICONST_1);
       methodVisitor.visitMethodInsn(
-          INVOKESPECIAL, "java/util/concurrent/locks/ReentrantLock", "<init>", "()V", false);
+          INVOKESPECIAL, "java/util/concurrent/CountDownLatch", "<init>", "(I)V", false);
       methodVisitor.visitFieldInsn(
-          PUTSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      Label label1 = new Label();
-      methodVisitor.visitLabel(label1);
-      methodVisitor.visitLineNumber(12, label1);
-      methodVisitor.visitFieldInsn(
-          GETSTATIC, "MySubscriber", "lock", "Ljava/util/concurrent/locks/Lock;");
-      methodVisitor.visitMethodInsn(
-          INVOKEINTERFACE,
-          "java/util/concurrent/locks/Lock",
-          "newCondition",
-          "()Ljava/util/concurrent/locks/Condition;",
-          true);
-      methodVisitor.visitFieldInsn(
-          PUTSTATIC, "MySubscriber", "done", "Ljava/util/concurrent/locks/Condition;");
+          PUTSTATIC, "MySubscriber", "done", "Ljava/util/concurrent/CountDownLatch;");
       methodVisitor.visitInsn(RETURN);
-      methodVisitor.visitMaxs(2, 0);
+      methodVisitor.visitMaxs(3, 0);
       methodVisitor.visitEnd();
     }
     classWriter.visitEnd();
