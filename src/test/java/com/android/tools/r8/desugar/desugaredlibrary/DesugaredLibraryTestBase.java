@@ -10,6 +10,7 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.L8TestBuilder;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
@@ -22,6 +23,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.tracereferences.TraceReferences;
@@ -318,6 +320,21 @@ public class DesugaredLibraryTestBase extends TestBase {
   public interface KeepRuleConsumer extends StringConsumer {
 
     String get();
+
+    static KeepRuleConsumer emptyConsumer() {
+      return new KeepRuleConsumer() {
+
+        @Override
+        public String get() {
+          throw new Unreachable();
+        }
+
+        @Override
+        public void accept(String string, DiagnosticsHandler handler) {
+          // Intentionally empty.
+        }
+      };
+    }
   }
 
   protected static class ClassFileInfo {

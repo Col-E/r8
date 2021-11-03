@@ -20,7 +20,6 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration.PresentKeepRuleCo
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.ResourceException;
-import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -81,7 +80,7 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
   public void testProtoRewriting() throws Exception {
     assumeTrue(shouldRunSlowTests());
 
-    StringConsumer keepRuleConsumer = StringConsumer.emptyConsumer();
+    KeepRuleConsumer keepRuleConsumer = KeepRuleConsumer.emptyConsumer();
     R8TestCompileResult r8CompileResult =
         compileApplicationWithR8(
             keepRuleConsumer,
@@ -101,13 +100,13 @@ public class YouTubeV1620Test extends YouTubeCompilationTestBase {
     reporter.failIfPendingErrors();
   }
 
-  private R8TestCompileResult compileApplicationWithR8(StringConsumer keepRuleConsumer)
+  private R8TestCompileResult compileApplicationWithR8(KeepRuleConsumer keepRuleConsumer)
       throws IOException, CompilationFailedException {
     return compileApplicationWithR8(keepRuleConsumer, ThrowableConsumer.empty());
   }
 
   private R8TestCompileResult compileApplicationWithR8(
-      StringConsumer keepRuleConsumer, ThrowableConsumer<R8FullTestBuilder> configuration)
+      KeepRuleConsumer keepRuleConsumer, ThrowableConsumer<R8FullTestBuilder> configuration)
       throws IOException, CompilationFailedException {
     return testForR8(parameters.getBackend())
         .addProgramFiles(getProgramFiles())

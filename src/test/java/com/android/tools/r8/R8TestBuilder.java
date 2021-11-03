@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigur
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.errors.Unreachable;
@@ -651,7 +652,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   @Override
   public T enableCoreLibraryDesugaring(
       AndroidApiLevel minApiLevel,
-      StringConsumer keepRuleConsumer,
+      KeepRuleConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
     if (minApiLevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       super.enableCoreLibraryDesugaring(

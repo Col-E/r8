@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
@@ -457,7 +458,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T enableCoreLibraryDesugaring(
-      AndroidApiLevel minApiLevel, StringConsumer keepRuleConsumer) {
+      AndroidApiLevel minApiLevel, KeepRuleConsumer keepRuleConsumer) {
     return enableCoreLibraryDesugaring(
         minApiLevel,
         keepRuleConsumer,
@@ -471,7 +472,7 @@ public abstract class TestCompilerBuilder<
 
   public T enableCoreLibraryDesugaring(
       AndroidApiLevel minApiLevel,
-      StringConsumer keepRuleConsumer,
+      KeepRuleConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
     assert minApiLevel.getLevel() < AndroidApiLevel.O.getLevel();
     return enableLibraryDesugaring(

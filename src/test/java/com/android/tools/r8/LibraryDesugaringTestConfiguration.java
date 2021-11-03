@@ -137,13 +137,12 @@ public class LibraryDesugaringTestConfiguration {
       return this;
     }
 
-    public Builder setKeepRuleConsumer(StringConsumer keepRuleConsumer) {
+    public Builder setKeepRuleConsumer(KeepRuleConsumer keepRuleConsumer) {
       withKeepRuleConsumer = false;
       if (keepRuleConsumer == null) {
         this.keepRuleConsumer = null;
       } else {
-        assert keepRuleConsumer instanceof KeepRuleConsumer;
-        this.keepRuleConsumer = (KeepRuleConsumer) keepRuleConsumer;
+        this.keepRuleConsumer = keepRuleConsumer;
       }
       return this;
     }
