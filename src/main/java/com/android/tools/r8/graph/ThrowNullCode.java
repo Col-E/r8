@@ -10,21 +10,18 @@ import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
-import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.ir.conversion.SourceCode;
+import com.android.tools.r8.ir.conversion.SyntheticStraightLineSourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.google.common.collect.ImmutableList;
 import java.nio.ShortBuffer;
@@ -261,143 +258,24 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     return "ThrowNullCode";
   }
 
-  static class ThrowNullSourceCode implements SourceCode {
-
-    private static final List<Consumer<IRBuilder>> instructionBuilders =
-        ImmutableList.of(builder -> builder.addNullConst(0), builder -> builder.addThrow(0));
-
-    private final ProgramMethod method;
-    private final Position position;
+  static class ThrowNullSourceCode extends SyntheticStraightLineSourceCode {
 
     ThrowNullSourceCode(ProgramMethod method) {
       this(method, null);
     }
 
     ThrowNullSourceCode(ProgramMethod method, Position callerPosition) {
-      this.method = method;
-      this.position =
+      super(
+          getInstructionBuilders(),
           SyntheticPosition.builder()
               .setLine(0)
               .setMethod(method.getReference())
               .setCallerPosition(callerPosition)
-              .build();
+              .build());
     }
 
-    @Override
-    public int instructionCount() {
-      return instructionBuilders.size();
-    }
-
-    @Override
-    public int instructionIndex(int instructionOffset) {
-      return instructionOffset;
-    }
-
-    @Override
-    public int instructionOffset(int instructionIndex) {
-      return instructionIndex;
-    }
-
-    @Override
-    public void buildPrelude(IRBuilder builder) {
-      int firstArgumentRegister = 0;
-      builder.buildArgumentsWithRewrittenPrototypeChanges(
-          firstArgumentRegister, method.getDefinition(), ConsumerUtils.emptyBiConsumer());
-    }
-
-    @Override
-    public void buildInstruction(
-        IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
-      instructionBuilders.get(instructionIndex).accept(builder);
-    }
-
-    @Override
-    public void buildPostlude(IRBuilder builder) {
-      // Intentionally empty.
-    }
-
-    @Override
-    public void clear() {
-      // Intentionally empty.
-    }
-
-    @Override
-    public Position getCanonicalDebugPositionAtOffset(int offset) {
-      return null;
-    }
-
-    @Override
-    public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
-      return null;
-    }
-
-    @Override
-    public Position getCurrentPosition() {
-      return position;
-    }
-
-    @Override
-    public DebugLocalInfo getIncomingLocal(int register) {
-      return null;
-    }
-
-    @Override
-    public DebugLocalInfo getIncomingLocalAtBlock(int register, int blockOffset) {
-      return null;
-    }
-
-    @Override
-    public DebugLocalInfo getOutgoingLocal(int register) {
-      return null;
-    }
-
-    @Override
-    public void setUp() {
-      // Intentionally empty.
-    }
-
-    @Override
-    public int traceInstruction(int instructionIndex, IRBuilder builder) {
-      // This instruction does not close the block.
-      return -1;
-    }
-
-    @Override
-    public boolean verifyCurrentInstructionCanThrow() {
-      return true;
-    }
-
-    @Override
-    public boolean verifyRegister(int register) {
-      return true;
-    }
-
-    @Override
-    public void buildBlockTransfer(
-        IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public int getMoveExceptionRegister(int instructionIndex) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public void resolveAndBuildNewArrayFilledData(
-        int arrayRef, int payloadOffset, IRBuilder builder) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public void resolveAndBuildSwitch(
-        int value, int fallthroughOffset, int payloadOffset, IRBuilder builder) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public boolean verifyLocalInScope(DebugLocalInfo local) {
-      throw new Unreachable();
+    private static List<Consumer<IRBuilder>> getInstructionBuilders() {
+      return ImmutableList.of(builder -> builder.addNullConst(0), builder -> builder.addThrow(0));
     }
   }
 }
