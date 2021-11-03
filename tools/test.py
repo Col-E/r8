@@ -460,7 +460,10 @@ def archive_and_return(return_code, options):
 def print_jstacks():
   processes = subprocess.check_output(['ps', 'aux'])
   for l in processes.splitlines():
+    if 'art' in l or 'dalvik' in l:
+      print('Running art of dalvik process: \n%s' % l)
     if 'java' in l and 'openjdk' in l:
+      print('Running jstack on process: \n%s' % l)
       # Example line:
       # ricow    184313  2.6  0.0 36839068 31808 ?      Sl   09:53   0:00 /us..
       columns = l.split()
