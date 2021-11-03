@@ -76,7 +76,7 @@ public class ConstantRemovalTest {
     block.setNumber(basicBlockNumberGenerator.next());
 
     IRMetadata metadata = IRMetadata.unknown();
-    Position position = SyntheticPosition.builder().setLine(0).build();
+    Position position = SyntheticPosition.builder().disableMethodCheck().setLine(0).build();
 
     Value v3 = new Value(3, TypeElement.getLong(), null);
     v3.setNeedsRegister(true);
