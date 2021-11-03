@@ -62,14 +62,13 @@ public class Regress69825683Test extends TestBase {
 
     List<FoundClassSubject> classes = inspector.allClasses();
 
-    // Check that the synthetic class is still present.
-    assertEquals(3, classes.size());
+    // Check that the synthetic class is still present when generating class files.
+    assertEquals(parameters.isCfRuntime() ? 3 : 2, classes.size());
     assertEquals(
-        1,
+        parameters.isCfRuntime(),
         classes.stream()
             .map(FoundClassSubject::getOriginalName)
-            .filter(name -> name.endsWith("$1"))
-            .count());
+            .anyMatch(name -> name.endsWith("$1")));
   }
 
   @Test
@@ -94,13 +93,12 @@ public class Regress69825683Test extends TestBase {
 
     List<FoundClassSubject> classes = inspector.allClasses();
 
-    // Check that the synthetic class is still present.
-    assertEquals(3, classes.size());
+    // The synthetic class is still present when generating class files.
+    assertEquals(parameters.isCfRuntime() ? 3 : 2, classes.size());
     assertEquals(
-        1,
+        parameters.isCfRuntime(),
         classes.stream()
             .map(FoundClassSubject::getOriginalName)
-            .filter(name -> name.endsWith("$1"))
-            .count());
+            .anyMatch(name -> name.endsWith("$1")));
   }
 }

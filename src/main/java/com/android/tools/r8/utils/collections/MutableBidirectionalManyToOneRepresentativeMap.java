@@ -8,6 +8,8 @@ package com.android.tools.r8.utils.collections;
 public interface MutableBidirectionalManyToOneRepresentativeMap<K, V>
     extends MutableBidirectionalManyToOneMap<K, V>, BidirectionalManyToOneRepresentativeMap<K, V> {
 
+  void putAll(BidirectionalManyToOneRepresentativeMap<K, V> map);
+
   K removeRepresentativeFor(V value);
 
   void setRepresentative(V value, K representative);

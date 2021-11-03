@@ -130,6 +130,7 @@ public class ArgumentPropagator {
   }
 
   public void tearDownCodeScanner(
+      IRConverter converter,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
       ExecutorService executorService,
       Timing timing)
@@ -152,6 +153,7 @@ public class ArgumentPropagator {
     Map<Set<DexProgramClass>, DexMethodSignatureSet> interfaceDispatchOutsideProgram =
         new IdentityHashMap<>();
     populateParameterOptimizationInfo(
+        converter,
         immediateSubtypingInfo,
         stronglyConnectedProgramComponents,
         (stronglyConnectedProgramComponent, signature) -> {
@@ -189,6 +191,7 @@ public class ArgumentPropagator {
    * optimization info.
    */
   private void populateParameterOptimizationInfo(
+      IRConverter converter,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram,
@@ -209,7 +212,7 @@ public class ArgumentPropagator {
             reprocessingCriteriaCollection,
             stronglyConnectedProgramComponents,
             interfaceDispatchOutsideProgram)
-        .populateOptimizationInfo(executorService, timing);
+        .populateOptimizationInfo(converter, executorService, timing);
     reprocessingCriteriaCollection = null;
     timing.end();
   }

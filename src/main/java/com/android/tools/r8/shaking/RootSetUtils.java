@@ -1740,6 +1740,17 @@ public class RootSetUtils {
           });
     }
 
+    public void pruneItems(PrunedItems prunedItems) {
+      MinimumKeepInfoCollection unconditionalMinimumKeepInfo =
+          getDependentMinimumKeepInfo().getUnconditionalMinimumKeepInfoOrDefault(null);
+      if (unconditionalMinimumKeepInfo != null) {
+        unconditionalMinimumKeepInfo.pruneItems(prunedItems);
+        if (unconditionalMinimumKeepInfo.isEmpty()) {
+          getDependentMinimumKeepInfo().remove(UnconditionalKeepInfoEvent.get());
+        }
+      }
+    }
+
     void shouldNotBeMinified(ProgramDefinition definition) {
       getDependentMinimumKeepInfo()
           .getOrCreateUnconditionalMinimumKeepInfoFor(definition.getReference())
