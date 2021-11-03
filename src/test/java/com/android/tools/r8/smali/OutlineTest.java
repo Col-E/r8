@@ -1649,6 +1649,7 @@ public class OutlineTest extends SmaliTestBase {
   @Test
   public void b113145696_superClassUseFirst() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+    builder.addDefaultConstructor();
 
     // Code where the outline argument is first used as java.lang.Object and afterwards
     // java.util.ArrayList.
@@ -1727,6 +1728,7 @@ public class OutlineTest extends SmaliTestBase {
   @Test
   public void b113145696_superInterfaceUseFirst() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+    builder.addDefaultConstructor();
 
     List<String> codeToOutline = ImmutableList.of(
         "    invoke-interface      { v1 }, Ljava/lang/Iterable;->iterator()Ljava/util/Iterator;",
@@ -1801,6 +1803,7 @@ public class OutlineTest extends SmaliTestBase {
   @Test
   public void b113145696_interfaceUseFirst() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+    builder.addDefaultConstructor();
 
     // Code where the outline argument is first used as java.lang.Iterable and afterwards
     // java.util.ArrayList.
@@ -1877,6 +1880,7 @@ public class OutlineTest extends SmaliTestBase {
   @Test
   public void b113145696_classUseFirst() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
+    builder.addDefaultConstructor();
 
     // Code where the outline argument is first used as java.lang.Iterable and afterwards
     // java.util.ArrayList.

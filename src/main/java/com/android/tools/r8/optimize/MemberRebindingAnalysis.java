@@ -228,9 +228,6 @@ public class MemberRebindingAnalysis {
     // Super invokes can be on both kinds, decide using the holder class.
     computeMethodRebinding(
         methodAccessInfoCollection::forEachSuperInvoke, this::resolveMethod, Type.SUPER);
-    // Direct invokes (private/constructor) can also be on both kinds.
-    computeMethodRebinding(
-        methodAccessInfoCollection::forEachDirectInvoke, this::resolveMethod, Type.DIRECT);
     // Likewise static invokes.
     computeMethodRebinding(
         methodAccessInfoCollection::forEachStaticInvoke, this::resolveMethod, Type.STATIC);
@@ -240,7 +237,6 @@ public class MemberRebindingAnalysis {
       BiForEachable<DexMethod, ProgramMethodSet> methodsWithContexts,
       Function<DexMethod, MethodResolutionResult> resolver,
       Type invokeType) {
-
     Map<DexProgramClass, List<Pair<DexMethod, DexClassAndMethod>>> bridges =
         new IdentityHashMap<>();
     TriConsumer<DexProgramClass, DexMethod, DexClassAndMethod> addBridge =
