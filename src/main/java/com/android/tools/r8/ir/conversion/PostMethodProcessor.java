@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Timing.TimingMerger;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -34,7 +33,7 @@ import java.util.concurrent.ExecutorService;
 public class PostMethodProcessor extends MethodProcessorWithWave {
 
   private final ProcessorContext processorContext;
-  private final Deque<SortedProgramMethodSet> waves;
+  private final Deque<ProgramMethodSet> waves;
   private final ProgramMethodSet processed = ProgramMethodSet.create();
 
   private PostMethodProcessor(
@@ -116,11 +115,11 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
     }
   }
 
-  private Deque<SortedProgramMethodSet> createWaves(CallGraph callGraph) {
-    Deque<SortedProgramMethodSet> waves = new ArrayDeque<>();
+  private Deque<ProgramMethodSet> createWaves(CallGraph callGraph) {
+    Deque<ProgramMethodSet> waves = new ArrayDeque<>();
     int waveCount = 1;
     while (!callGraph.isEmpty()) {
-      SortedProgramMethodSet wave = callGraph.extractLeaves();
+      ProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);
       if (Log.ENABLED && Log.isLoggingEnabledFor(PostMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());

@@ -18,7 +18,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class FieldWriteBeforeFieldReadTest extends TestBase {
             options -> {
               options.testing.waveModifier =
                   (waves) -> {
-                    Function<String, Predicate<SortedProgramMethodSet>> wavePredicate =
+                    Function<String, Predicate<ProgramMethodSet>> wavePredicate =
                         methodName ->
                             wave ->
                                 wave.stream()

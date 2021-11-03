@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Timing.TimingMerger;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -43,7 +42,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
 
   private final AppView<?> appView;
   private final CallSiteInformation callSiteInformation;
-  private final Deque<SortedProgramMethodSet> waves;
+  private final Deque<ProgramMethodSet> waves;
 
   private ProcessorContext processorContext;
 
@@ -85,13 +84,13 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
     return callSiteInformation;
   }
 
-  private Deque<SortedProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
+  private Deque<ProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
     InternalOptions options = appView.options();
-    Deque<SortedProgramMethodSet> waves = new ArrayDeque<>();
+    Deque<ProgramMethodSet> waves = new ArrayDeque<>();
     Set<Node> nodes = callGraph.nodes;
     int waveCount = 1;
     while (!nodes.isEmpty()) {
-      SortedProgramMethodSet wave = callGraph.extractLeaves();
+      ProgramMethodSet wave = callGraph.extractLeaves();
       waves.addLast(wave);
       if (Log.ENABLED && Log.isLoggingEnabledFor(PrimaryMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());

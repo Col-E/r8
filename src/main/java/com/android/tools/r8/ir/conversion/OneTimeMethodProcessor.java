@@ -8,7 +8,7 @@ import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -20,7 +20,7 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
 
   private final ProcessorContext processorContext;
 
-  private OneTimeMethodProcessor(ProcessorContext processorContext, SortedProgramMethodSet wave) {
+  private OneTimeMethodProcessor(ProcessorContext processorContext, ProgramMethodSet wave) {
     this.processorContext = processorContext;
     this.wave = wave;
   }
@@ -30,21 +30,21 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
   }
 
   public static OneTimeMethodProcessor create(ProgramMethod methodToProcess, AppView<?> appView) {
-    return create(SortedProgramMethodSet.create(methodToProcess), appView);
+    return create(ProgramMethodSet.create(methodToProcess), appView);
   }
 
   public static OneTimeMethodProcessor create(
       ProgramMethod methodToProcess, ProcessorContext processorContext) {
-    return create(SortedProgramMethodSet.create(methodToProcess), processorContext);
+    return create(ProgramMethodSet.create(methodToProcess), processorContext);
   }
 
   public static OneTimeMethodProcessor create(
-      SortedProgramMethodSet methodsToProcess, AppView<?> appView) {
+      ProgramMethodSet methodsToProcess, AppView<?> appView) {
     return create(methodsToProcess, appView.createProcessorContext());
   }
 
   public static OneTimeMethodProcessor create(
-      SortedProgramMethodSet methodsToProcess, ProcessorContext processorContext) {
+      ProgramMethodSet methodsToProcess, ProcessorContext processorContext) {
     return new OneTimeMethodProcessor(processorContext, methodsToProcess);
   }
 
@@ -85,7 +85,7 @@ public class OneTimeMethodProcessor extends MethodProcessorWithWave {
 
   public static class Builder {
 
-    private final SortedProgramMethodSet methodsToProcess = SortedProgramMethodSet.create();
+    private final ProgramMethodSet methodsToProcess = ProgramMethodSet.create();
     private final ProcessorContext processorContext;
 
     Builder(ProcessorContext processorContext) {

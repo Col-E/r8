@@ -4,12 +4,12 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 
 public abstract class MethodProcessorWithWave extends MethodProcessor {
 
-  protected SortedProgramMethodSet wave;
-  protected SortedProgramMethodSet waveExtension = SortedProgramMethodSet.createConcurrent();
+  protected ProgramMethodSet wave;
+  protected ProgramMethodSet waveExtension = ProgramMethodSet.createConcurrent();
 
   @Override
   public CallSiteInformation getCallSiteInformation() {
@@ -28,10 +28,10 @@ public abstract class MethodProcessorWithWave extends MethodProcessor {
 
   protected void prepareForWaveExtensionProcessing() {
     if (waveExtension.isEmpty()) {
-      wave = SortedProgramMethodSet.empty();
+      wave = ProgramMethodSet.empty();
     } else {
       wave = waveExtension;
-      waveExtension = SortedProgramMethodSet.createConcurrent();
+      waveExtension = ProgramMethodSet.createConcurrent();
     }
   }
 }

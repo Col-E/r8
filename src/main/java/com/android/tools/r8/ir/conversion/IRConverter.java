@@ -112,7 +112,6 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -957,7 +956,7 @@ public class IRConverter {
       List<ProgramMethod> programMethods, ExecutorService executorService)
       throws ExecutionException {
     // Process the generated class, but don't apply any outlining.
-    SortedProgramMethodSet methods = SortedProgramMethodSet.create(programMethods::forEach);
+    ProgramMethodSet methods = ProgramMethodSet.create(programMethods::forEach);
     processMethodsConcurrently(methods, executorService);
   }
 
@@ -973,8 +972,8 @@ public class IRConverter {
     }
   }
 
-  public void processMethodsConcurrently(
-      SortedProgramMethodSet wave, ExecutorService executorService) throws ExecutionException {
+  public void processMethodsConcurrently(ProgramMethodSet wave, ExecutorService executorService)
+      throws ExecutionException {
     if (!wave.isEmpty()) {
       OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
       methodProcessor.forEachWaveWithExtension(

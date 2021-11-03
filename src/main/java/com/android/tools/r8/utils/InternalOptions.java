@@ -70,7 +70,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
@@ -1606,7 +1606,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public BiConsumer<DexItemFactory, VerticallyMergedClasses> verticallyMergedClassesConsumer =
         ConsumerUtils.emptyBiConsumer();
 
-    public Consumer<Deque<SortedProgramMethodSet>> waveModifier = waves -> {};
+    public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

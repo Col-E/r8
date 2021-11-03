@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Set;
@@ -276,16 +276,16 @@ public class CallGraph {
     return nodes.isEmpty();
   }
 
-  public SortedProgramMethodSet extractLeaves() {
+  public ProgramMethodSet extractLeaves() {
     return extractNodes(Node::isLeaf, Node::cleanCallersAndReadersForRemoval);
   }
 
-  public SortedProgramMethodSet extractRoots() {
+  public ProgramMethodSet extractRoots() {
     return extractNodes(Node::isRoot, Node::cleanCalleesAndWritersForRemoval);
   }
 
-  private SortedProgramMethodSet extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
-    SortedProgramMethodSet result = SortedProgramMethodSet.create();
+  private ProgramMethodSet extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
+    ProgramMethodSet result = ProgramMethodSet.create();
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.iterator();
     while (nodeIterator.hasNext()) {

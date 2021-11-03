@@ -34,7 +34,7 @@ import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -114,7 +114,7 @@ public class GeneratedMessageLiteShrinker {
       IRConverter converter, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.begin("[Proto] Post optimize dynamic methods");
-    SortedProgramMethodSet wave = SortedProgramMethodSet.create(this::forEachDynamicMethod);
+    ProgramMethodSet wave = ProgramMethodSet.create(this::forEachDynamicMethod);
     OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
     methodProcessor.forEachWaveWithExtension(
         (method, methodProcessingContext) ->

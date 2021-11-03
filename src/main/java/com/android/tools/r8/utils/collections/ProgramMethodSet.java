@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.ForEachable;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -42,6 +43,12 @@ public class ProgramMethodSet extends DexClassAndMethodSetBase<ProgramMethod> {
   public static ProgramMethodSet create(ProgramMethod element) {
     ProgramMethodSet result = create();
     result.add(element);
+    return result;
+  }
+
+  public static ProgramMethodSet create(ForEachable<ProgramMethod> methods) {
+    ProgramMethodSet result = create();
+    methods.forEach(result::add);
     return result;
   }
 
