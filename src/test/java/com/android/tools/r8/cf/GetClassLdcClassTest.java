@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -80,19 +81,20 @@ public class GetClassLdcClassTest extends TestBase {
 
   @Test
   public void testWithVersionUpgrade() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(getDowngradedClass(Runner.class))
-        // Here the main class is not downgraded, thus the output may upgrade to that version.
-        .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(TestClass.class)
-        // We cannot keep class Runner, as that prohibits getClass optimization.
-        // Instead disable minification and inlining of the Runner class and method.
-        .noMinification()
-        .enableInliningAnnotations()
-        .enableNeverClassInliningAnnotations()
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED)
+    R8TestRunResult run =
+        testForR8(parameters.getBackend())
+            .addProgramClassFileData(getDowngradedClass(Runner.class))
+            // Here the main class is not downgraded, thus the output may upgrade to that version.
+            .addProgramClasses(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(TestClass.class)
+            // We cannot keep class Runner, as that prohibits getClass optimization.
+            // Instead disable minification and inlining of the Runner class and method.
+            .noMinification()
+            .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
+            .run(parameters.getRuntime(), TestClass.class);
+    run.assertSuccessWithOutput(EXPECTED)
         .inspect(
             inspector -> {
               if (parameters.isCfRuntime()) {
@@ -101,7 +103,11 @@ public class GetClassLdcClassTest extends TestBase {
                 assertTrue(CfVersion.V1_4.isLessThan(cfVersionForRuntime));
                 // Check that the downgraded class has been bumped to at least SE 1.5 (version 49).
                 CfVersion cfVersionAfterUpgrade = getVersion(inspector, Runner.class);
-                assertTrue(CfVersion.V1_4.isLessThan(cfVersionAfterUpgrade));
+                boolean lessThan = CfVersion.V1_4.isLessThan(cfVersionAfterUpgrade);
+                if (!lessThan) {
+                  run.disassemble();
+                }
+                assertTrue("Got version: " + cfVersionAfterUpgrade, lessThan);
               }
               // Check that the method uses a const class instruction.
               assertTrue(
