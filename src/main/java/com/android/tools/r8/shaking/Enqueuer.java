@@ -4625,7 +4625,7 @@ public class Enqueuer {
         continue;
       }
 
-      DexProgramClass clazz = asProgramClassOrNull(definitionFor(type, method));
+      DexProgramClass clazz = getProgramClassOrNullFromReflectiveAccess(type, method);
       if (clazz != null && clazz.isInterface()) {
         KeepReason reason = KeepReason.reflectiveUseIn(method);
         markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
