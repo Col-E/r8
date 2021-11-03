@@ -182,6 +182,11 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
+  public CfWritableCodeKind getCfWritableCodeKind() {
+    return CfWritableCodeKind.DEFAULT;
+  }
+
+  @Override
   public StructuralMapping<CfCode> getStructuralMapping() {
     throw new Unreachable();
   }

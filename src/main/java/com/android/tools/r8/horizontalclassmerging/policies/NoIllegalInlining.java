@@ -34,19 +34,20 @@ public class NoIllegalInlining extends SingleClassPolicy {
     }
 
     // For non-jar/cf code we currently cannot guarantee that markForceInline() will succeed.
-    if (code == null || !code.isCfCode()) {
+    if (code == null) {
       return true;
     }
 
-    CfCode cfCode = code.asCfCode();
-
-    ConstraintWithTarget constraint =
-        cfCode.computeInliningConstraint(method, appView, appView.graphLens(), method);
-    if (constraint == ConstraintWithTarget.NEVER) {
+    if (code.isCfCode()) {
+      CfCode cfCode = code.asCfCode();
+      ConstraintWithTarget constraint =
+          cfCode.computeInliningConstraint(method, appView, appView.graphLens(), method);
+      return constraint == ConstraintWithTarget.NEVER;
+    } else if (code.isDefaultInstanceInitializerCode()) {
+      return false;
+    } else {
       return true;
     }
-
-    return false;
   }
 
   @Override

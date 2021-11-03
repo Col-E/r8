@@ -304,21 +304,22 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   private static int compareCodeObject(Code code1, Code code2, CompareToVisitor visitor) {
-    if (code1.isCfCode() && code2.isCfCode()) {
-      return code1.asCfCode().acceptCompareTo(code2.asCfCode(), visitor);
+    if (code1.isCfWritableCode() && code2.isCfWritableCode()) {
+      return code1.asCfWritableCode().acceptCompareTo(code2.asCfWritableCode(), visitor);
     }
-    if (code1.isDexCode() && code2.isDexCode()) {
-      return code1.asDexCode().acceptCompareTo(code2.asDexCode(), visitor);
+    if (code1.isDexWritableCode() && code2.isDexWritableCode()) {
+      return code1.asDexWritableCode().acceptCompareTo(code2.asDexWritableCode(), visitor);
     }
     throw new Unreachable(
         "Unexpected attempt to compare incompatible synthetic objects: " + code1 + " and " + code2);
   }
 
   private static void hashCodeObject(Code code, HashingVisitor visitor) {
-    if (code.isCfCode()) {
-      code.asCfCode().acceptHashing(visitor);
+    if (code.isCfWritableCode()) {
+      code.asCfWritableCode().acceptHashing(visitor);
     } else {
-      code.asDexCode().acceptHashing(visitor);
+      assert code.isDexWritableCode();
+      code.asDexWritableCode().acceptHashing(visitor);
     }
   }
 
@@ -392,6 +393,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return DexClassAndMethod.create(clazz, this);
     }
     return null;
+  }
+
+  public ProgramMethod asProgramMethod(DexProgramClass holder) {
+    assert getHolderType() == holder.getType();
+    return new ProgramMethod(holder, this);
   }
 
   public ProgramMethod asProgramMethod(DexDefinitionSupplier definitions) {

@@ -62,6 +62,14 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  public boolean isDefaultInstanceInitializerCode() {
+    return false;
+  }
+
+  public DefaultInstanceInitializerCode asDefaultInstanceInitializerCode() {
+    return null;
+  }
+
   public boolean isDexCode() {
     return false;
   }

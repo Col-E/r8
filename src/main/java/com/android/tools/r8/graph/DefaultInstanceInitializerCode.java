@@ -5,8 +5,12 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.code.Const4;
-import com.android.tools.r8.code.Throw;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.code.InvokeDirect;
+import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.dex.CodeToKeep;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
@@ -18,6 +22,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.conversion.SourceCode;
@@ -25,22 +30,99 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ConsumerUtils;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.google.common.collect.ImmutableList;
 import java.nio.ShortBuffer;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCode {
+/**
+ * A piece of code on the form:
+ *
+ * <pre>
+ *   aload_0
+ *   invoke-special LSuperClass;-><init>()V
+ *   return
+ * </pre>
+ *
+ * <p>Note that (i) {@code SuperClass} may be different from {@link java.lang.Object} and (ii) the
+ * method holding this code object may have a non-empty proto.
+ */
+public class DefaultInstanceInitializerCode extends Code
+    implements CfWritableCode, DexWritableCode {
 
-  private static final ThrowNullCode INSTANCE = new ThrowNullCode();
+  private static final DefaultInstanceInitializerCode INSTANCE =
+      new DefaultInstanceInitializerCode();
 
-  private ThrowNullCode() {}
+  private DefaultInstanceInitializerCode() {}
 
-  public static ThrowNullCode get() {
+  public static DefaultInstanceInitializerCode get() {
     return INSTANCE;
+  }
+
+  public static boolean canonicalizeCodeIfPossible(AppView<?> appView, ProgramMethod method) {
+    if (hasDefaultInstanceInitializerCode(method, appView)) {
+      method.getDefinition().setCode(get(), appView);
+      return true;
+    }
+    return false;
+  }
+
+  public static void uncanonicalizeCode(AppView<?> appView, ProgramMethod method) {
+    uncanonicalizeCode(appView, method, method.getHolder().getSuperType());
+  }
+
+  public static void uncanonicalizeCode(
+      AppView<?> appView, ProgramMethod method, DexType superType) {
+    DexEncodedMethod definition = method.getDefinition();
+    assert definition.getCode().isDefaultInstanceInitializerCode();
+    definition.setCode(get().toCfCode(method, appView.dexItemFactory(), superType), appView);
+  }
+
+  private static boolean hasDefaultInstanceInitializerCode(
+      ProgramMethod method, AppView<?> appView) {
+    if (!method.getDefinition().isInstanceInitializer()) {
+      return false;
+    }
+    Code code = method.getDefinition().getCode();
+    if (!code.isCfCode()) {
+      return false;
+    }
+    CfCode cfCode = code.asCfCode();
+    if (!method.getDefinition().isInstanceInitializer()
+        || !cfCode.getLocalVariables().isEmpty()
+        || !cfCode.getTryCatchRanges().isEmpty()) {
+      return false;
+    }
+    if (cfCode.getInstructions().size() > 6) {
+      // Default instance initializers typically have the following instruction sequence:
+      // [CfLabel, CfPosition, CfLoad, CfInvoke, CfReturnVoid, CfLabel].
+      return false;
+    }
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    Iterator<CfInstruction> instructionIterator = cfCode.getInstructions().iterator();
+    // Allow skipping CfPosition instructions in instance initializers that only call Object.<init>.
+    Predicate<CfInstruction> instructionOfInterest =
+        method.getHolder().getSuperType() == dexItemFactory.objectType
+            ? instruction -> !instruction.isLabel() && !instruction.isPosition()
+            : instruction -> !instruction.isLabel();
+    CfLoad load = IteratorUtils.nextUntil(instructionIterator, instructionOfInterest).asLoad();
+    if (load == null || load.getLocalIndex() != 0) {
+      return false;
+    }
+    CfInvoke invoke = instructionIterator.next().asInvoke();
+    if (invoke == null
+        || !invoke.isInvokeConstructor(dexItemFactory)
+        || invoke.getMethod() != getParentConstructor(method, dexItemFactory)) {
+      return false;
+    }
+    return instructionIterator.next().isReturnVoid();
   }
 
   @Override
@@ -50,7 +132,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    ThrowNullSourceCode source = new ThrowNullSourceCode(method);
+    DefaultInstanceInitializerSourceCode source = new DefaultInstanceInitializerSourceCode(method);
     return IRBuilder.create(method, appView, source, origin).build(method);
   }
 
@@ -64,7 +146,8 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
       Position callerPosition,
       Origin origin,
       RewrittenPrototypeDescription protoChanges) {
-    ThrowNullSourceCode source = new ThrowNullSourceCode(method, callerPosition);
+    DefaultInstanceInitializerSourceCode source =
+        new DefaultInstanceInitializerSourceCode(method, callerPosition);
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
         .build(context);
@@ -72,7 +155,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public int codeSizeInBytes() {
-    return Const4.SIZE + Throw.SIZE;
+    return InvokeDirect.SIZE + ReturnVoid.SIZE;
   }
 
   @Override
@@ -81,7 +164,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
       ProgramMethod context,
       GraphLens graphLens,
       LensCodeRewriterUtils rewriter) {
-    // Intentionally empty.
+    getParentConstructor(context, rewriter.dexItemFactory()).collectIndexedItems(indexedItems);
   }
 
   @Override
@@ -106,12 +189,12 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public CfWritableCodeKind getCfWritableCodeKind() {
-    return CfWritableCodeKind.THROW_NULL;
+    return CfWritableCodeKind.DEFAULT_INSTANCE_INITIALIZER;
   }
 
   @Override
   public DexWritableCodeKind getDexWritableCodeKind() {
-    return DexWritableCodeKind.THROW_NULL;
+    return DexWritableCodeKind.DEFAULT_INSTANCE_INITIALIZER;
   }
 
   @Override
@@ -134,6 +217,10 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     return getMaxLocals(method);
   }
 
+  static DexMethod getParentConstructor(DexClassAndMethod method, DexItemFactory dexItemFactory) {
+    return dexItemFactory.createInstanceInitializer(method.getHolder().getSuperType());
+  }
+
   private int getMaxLocals(ProgramMethod method) {
     int maxLocals = method.getAccessFlags().isStatic() ? 0 : 1;
     for (DexType parameter : method.getParameters()) {
@@ -142,14 +229,18 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     return maxLocals;
   }
 
+  private int getMaxStack() {
+    return 1;
+  }
+
   @Override
   public int getOutgoingRegisterSize() {
-    return 0;
+    return 1;
   }
 
   @Override
   public int getRegisterSize(ProgramMethod method) {
-    return Math.max(getIncomingRegisterSize(method), 1);
+    return getIncomingRegisterSize(method);
   }
 
   @Override
@@ -183,28 +274,32 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
   }
 
   @Override
+  public boolean isDefaultInstanceInitializerCode() {
+    return true;
+  }
+
+  @Override
+  public DefaultInstanceInitializerCode asDefaultInstanceInitializerCode() {
+    return this;
+  }
+
+  @Override
   public boolean isSharedCodeObject() {
     return true;
   }
 
   @Override
-  public boolean isThrowNullCode() {
-    return true;
-  }
-
-  @Override
-  public ThrowNullCode asThrowNullCode() {
-    return this;
-  }
-
-  @Override
   public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
-    // Intentionally empty.
+    internalRegisterCodeReferences(method, registry);
   }
 
   @Override
   public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
-    // Intentionally empty.
+    internalRegisterCodeReferences(method, registry);
+  }
+
+  private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry<?> registry) {
+    registry.registerInvokeDirect(getParentConstructor(method, registry.dexItemFactory()));
   }
 
   @Override
@@ -219,6 +314,20 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     // Intentionally empty. This piece of code does not have any call sites.
   }
 
+  public CfCode toCfCode(ProgramMethod method, DexItemFactory dexItemFactory) {
+    return toCfCode(method, dexItemFactory, method.getHolder().getSuperType());
+  }
+
+  public CfCode toCfCode(ProgramMethod method, DexItemFactory dexItemFactory, DexType supertype) {
+    List<CfInstruction> instructions =
+        Arrays.asList(
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                Opcodes.INVOKESPECIAL, dexItemFactory.createInstanceInitializer(supertype), false),
+            new CfReturnVoid());
+    return new CfCode(method.getHolderType(), getMaxStack(), getMaxLocals(method), instructions);
+  }
+
   @Override
   public void writeCf(
       ProgramMethod method,
@@ -227,11 +336,16 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    int maxStack = 1;
-    visitor.visitInsn(Opcodes.ACONST_NULL);
-    visitor.visitInsn(Opcodes.ATHROW);
+    visitor.visitVarInsn(Opcodes.ALOAD, 0);
+    visitor.visitMethodInsn(
+        Opcodes.INVOKESPECIAL,
+        namingLens.lookupInternalName(method.getHolder().getSuperType()),
+        "<init>",
+        "()V",
+        false);
+    visitor.visitInsn(Opcodes.RETURN);
     visitor.visitEnd();
-    visitor.visitMaxs(maxStack, getMaxLocals(method));
+    visitor.visitMaxs(getMaxStack(), getMaxLocals(method));
   }
 
   @Override
@@ -241,9 +355,9 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
       GraphLens graphLens,
       LensCodeRewriterUtils lensCodeRewriter,
       ObjectToOffsetMapping mapping) {
-    int register = 0;
-    new Const4(register, 0).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
-    new Throw(register).write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new InvokeDirect(1, getParentConstructor(context, mapping.dexItemFactory()), 0, 0, 0, 0, 0)
+        .write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    new ReturnVoid().write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
   }
 
   @Override
@@ -253,28 +367,35 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
 
   @Override
   public String toString() {
-    return "ThrowNullCode";
+    return "DefaultInstanceInitializerCode";
   }
 
   @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return "ThrowNullCode";
+    return toString();
   }
 
-  static class ThrowNullSourceCode implements SourceCode {
+  static class DefaultInstanceInitializerSourceCode implements SourceCode {
 
     private static final List<Consumer<IRBuilder>> instructionBuilders =
-        ImmutableList.of(builder -> builder.addNullConst(0), builder -> builder.addThrow(0));
+        ImmutableList.of(
+            builder ->
+                builder.add(
+                    com.android.tools.r8.ir.code.InvokeDirect.builder()
+                        .setMethod(
+                            getParentConstructor(
+                                builder.getProgramMethod(), builder.dexItemFactory()))
+                        .setSingleArgument(builder.getReceiverValue())
+                        .build()),
+            IRBuilder::addReturn);
 
-    private final ProgramMethod method;
     private final Position position;
 
-    ThrowNullSourceCode(ProgramMethod method) {
+    DefaultInstanceInitializerSourceCode(ProgramMethod method) {
       this(method, null);
     }
 
-    ThrowNullSourceCode(ProgramMethod method, Position callerPosition) {
-      this.method = method;
+    DefaultInstanceInitializerSourceCode(ProgramMethod method, Position callerPosition) {
       this.position =
           SyntheticPosition.builder()
               .setLine(0)
@@ -302,7 +423,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     public void buildPrelude(IRBuilder builder) {
       int firstArgumentRegister = 0;
       builder.buildArgumentsWithRewrittenPrototypeChanges(
-          firstArgumentRegister, method.getDefinition(), ConsumerUtils.emptyBiConsumer());
+          firstArgumentRegister, builder.getMethod(), ConsumerUtils.emptyBiConsumer());
     }
 
     @Override

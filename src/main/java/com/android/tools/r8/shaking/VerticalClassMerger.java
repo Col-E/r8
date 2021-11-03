@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -1119,6 +1120,12 @@ public class VerticalClassMerger {
       // Rewrite generic signatures before we merge fields.
       rewriteGenericSignatures(target, source, directMethods.values(), virtualMethods.values());
 
+      // Convert out of DefaultInstanceInitializerCode, since this piece of code will require lens
+      // code rewriting.
+      target.forEachProgramInstanceInitializerMatching(
+          method -> method.getCode().isDefaultInstanceInitializerCode(),
+          method -> DefaultInstanceInitializerCode.uncanonicalizeCode(appView, method));
+
       // Step 2: Merge fields
       Set<DexString> existingFieldNames = new HashSet<>();
       for (DexEncodedField field : target.fields()) {
@@ -1890,6 +1897,8 @@ public class VerticalClassMerger {
             appView, context, method, appView.getSyntheticItems())) {
           return AbortReason.MAIN_DEX_ROOT_OUTSIDE_REFERENCE;
         }
+        return null;
+      } else if (code.isDefaultInstanceInitializerCode()) {
         return null;
       }
       // For non-jar/cf code we currently cannot guarantee that markForceInline() will succeed.

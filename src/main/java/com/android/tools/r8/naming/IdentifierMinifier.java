@@ -176,7 +176,7 @@ class IdentifierMinifier {
               instructions);
       code.asCfCode().setInstructions(newInstructions);
     } else {
-      assert code.isThrowNullCode();
+      assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
     }
   }
 }

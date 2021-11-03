@@ -30,7 +30,7 @@ public class B135918413 extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public B135918413(TestParameters parameters) {
@@ -43,7 +43,7 @@ public class B135918413 extends TestBase {
         .addInnerClasses(B135918413.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)

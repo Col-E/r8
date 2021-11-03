@@ -64,11 +64,7 @@ public final class ProgramMethod extends DexClassAndMethod
     getReference().collectIndexedItems(indexedItems);
     if (definition.hasCode()) {
       Code code = definition.getCode();
-      if (code.isDexCode()) {
-        code.asDexCode().collectIndexedItems(indexedItems, this, graphLens, rewriter);
-      } else {
-        assert code.isThrowNullCode();
-      }
+      code.asDexWritableCode().collectIndexedItems(indexedItems, this, graphLens, rewriter);
     }
     definition.annotations().collectIndexedItems(indexedItems);
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);

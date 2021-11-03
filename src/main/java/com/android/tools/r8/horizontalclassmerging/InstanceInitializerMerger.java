@@ -375,8 +375,8 @@ public class InstanceInitializerMerger {
         syntheticInitializerConverterBuilder.add(
             new ProgramMethod(group.getTarget(), newInstanceInitializer));
       } else {
-        assert !appView.options().isGeneratingClassFiles()
-            || newInstanceInitializer.getCode().isCfCode();
+        assert appView.options().isGeneratingDex()
+            || newInstanceInitializer.getCode().isCfWritableCode();
       }
     }
   }

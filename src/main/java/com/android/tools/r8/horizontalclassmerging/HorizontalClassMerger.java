@@ -117,7 +117,7 @@ public class HorizontalClassMerger {
     appView.setHorizontallyMergedClasses(mergedClasses, mode);
 
     HorizontalClassMergerGraphLens horizontalClassMergerGraphLens =
-        createLens(mergedClasses, lensBuilder, syntheticArgumentClass);
+        createLens(mergedClasses, lensBuilder, mode, syntheticArgumentClass);
 
     assert verifyNoCyclesInInterfaceHierarchies(groups);
 
@@ -235,8 +235,9 @@ public class HorizontalClassMerger {
   private HorizontalClassMergerGraphLens createLens(
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
+      Mode mode,
       SyntheticArgumentClass syntheticArgumentClass) {
-    return new TreeFixer(appView, mergedClasses, lensBuilder, syntheticArgumentClass)
+    return new TreeFixer(appView, mergedClasses, lensBuilder, mode, syntheticArgumentClass)
         .fixupTypeReferences();
   }
 

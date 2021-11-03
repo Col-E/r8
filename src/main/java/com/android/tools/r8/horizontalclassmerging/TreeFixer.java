@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.TreeFixerBase;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AnnotationFixer;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -28,8 +30,10 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -42,9 +46,12 @@ class TreeFixer extends TreeFixerBase {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final HorizontallyMergedClasses mergedClasses;
+  private final Mode mode;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
   private final DexItemFactory dexItemFactory;
   private final SyntheticArgumentClass syntheticArgumentClass;
+
+  private final Map<DexProgramClass, DexType> originalSuperTypes = new IdentityHashMap<>();
   private final BiMap<DexMethodSignature, DexMethodSignature> reservedInterfaceSignatures =
       HashBiMap.create();
 
@@ -52,10 +59,12 @@ class TreeFixer extends TreeFixerBase {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
+      Mode mode,
       SyntheticArgumentClass syntheticArgumentClass) {
     super(appView);
     this.appView = appView;
     this.mergedClasses = mergedClasses;
+    this.mode = mode;
     this.lensBuilder = lensBuilder;
     this.syntheticArgumentClass = syntheticArgumentClass;
     this.dexItemFactory = appView.dexItemFactory();
@@ -145,7 +154,11 @@ class TreeFixer extends TreeFixerBase {
   }
 
   private void fixupProgramClassSuperTypes(DexProgramClass clazz) {
-    clazz.superType = fixupType(clazz.superType);
+    DexType rewrittenSuperType = fixupType(clazz.getSuperType());
+    if (rewrittenSuperType != clazz.getSuperType()) {
+      originalSuperTypes.put(clazz, clazz.getSuperType());
+      clazz.superType = rewrittenSuperType;
+    }
     clazz.setInterfaces(fixupInterfaces(clazz, clazz.getInterfaces()));
   }
 
@@ -166,7 +179,7 @@ class TreeFixer extends TreeFixerBase {
             method -> fixupVirtualMethod(remappedClassVirtualMethods, newMethodReferences, method));
     clazz
         .getMethodCollection()
-        .replaceAllDirectMethods(method -> fixupDirectMethod(newMethodReferences, method));
+        .replaceAllDirectMethods(method -> fixupDirectMethod(newMethodReferences, clazz, method));
 
     Set<DexField> newFieldReferences = Sets.newIdentityHashSet();
     DexEncodedField[] instanceFields = clazz.clearInstanceFields();
@@ -220,7 +233,7 @@ class TreeFixer extends TreeFixerBase {
     Set<DexMethodSignature> newDirectMethods = new LinkedHashSet<>();
     iface
         .getMethodCollection()
-        .replaceDirectMethods(method -> fixupDirectMethod(newDirectMethods, method));
+        .replaceDirectMethods(method -> fixupDirectMethod(newDirectMethods, iface, method));
     iface.getMethodCollection().replaceVirtualMethods(this::fixupVirtualInterfaceMethod);
 
     assert !iface.hasInstanceFields();
@@ -263,7 +276,7 @@ class TreeFixer extends TreeFixerBase {
   }
 
   private DexEncodedMethod fixupDirectMethod(
-      Set<DexMethodSignature> newMethods, DexEncodedMethod method) {
+      Set<DexMethodSignature> newMethods, DexProgramClass clazz, DexEncodedMethod method) {
     DexMethod originalMethodReference = method.getReference();
 
     // Fix all type references in the method prototype.
@@ -298,6 +311,17 @@ class TreeFixer extends TreeFixerBase {
 
     boolean changed = newMethods.add(newMethodReference.getSignature());
     assert changed;
+
+    // Convert out of DefaultInstanceInitializerCode, since this piece of code will require lens
+    // code rewriting.
+    if (mode.isInitial()
+        && method.hasCode()
+        && method.getCode().isDefaultInstanceInitializerCode()
+        && mergedClasses.hasBeenMergedOrIsMergeTarget(clazz.getSuperType())) {
+      DexType originalSuperType = originalSuperTypes.getOrDefault(clazz, clazz.getSuperType());
+      DefaultInstanceInitializerCode.uncanonicalizeCode(
+          appView, method.asProgramMethod(clazz), originalSuperType);
+    }
 
     return fixupProgramMethod(newMethodReference, method);
   }

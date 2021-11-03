@@ -982,7 +982,7 @@ public class R8 {
                         } else if (code.isDexCode()) {
                           assert verifyOriginalMethodInDebugInfo(code.asDexCode(), originalMethod);
                         } else {
-                          assert code.isThrowNullCode();
+                          assert code.isDefaultInstanceInitializerCode() || code.isThrowNullCode();
                         }
                       }
                     }));

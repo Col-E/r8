@@ -29,6 +29,7 @@ public class ObjectToOffsetMapping {
   private final static int NOT_FOUND = -1;
   private final static int NOT_SET = -2;
 
+  private final AppView<?> appView;
   private final GraphLens graphLens;
   private final NamingLens namingLens;
   private final InitClassLens initClassLens;
@@ -74,6 +75,7 @@ public class ObjectToOffsetMapping {
     assert callSites != null;
     assert methodHandles != null;
     assert initClassLens != null;
+    this.appView = appView;
     this.graphLens = graphLens;
     this.namingLens = namingLens;
     this.initClassLens = initClassLens;
@@ -226,6 +228,10 @@ public class ObjectToOffsetMapping {
   private static <T> Collection<T> keysOrEmpty(Reference2IntLinkedOpenHashMap<T> map) {
     // The key-set is deterministic (linked) and inserted in sorted order.
     return map == null ? Collections.emptyList() : map.keySet();
+  }
+
+  public DexItemFactory dexItemFactory() {
+    return appView.dexItemFactory();
   }
 
   public GraphLens getGraphLens() {

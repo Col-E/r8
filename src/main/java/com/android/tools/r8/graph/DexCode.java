@@ -30,6 +30,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashCodeVisitor;
+import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
@@ -127,6 +128,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   public BytecodeInstructionMetadata getMetadata(Instruction instruction) {
     return metadata.getMetadata(instruction);
+  }
+
+  @Override
+  public DexWritableCodeKind getDexWritableCodeKind() {
+    return DexWritableCodeKind.DEFAULT;
   }
 
   @Override
@@ -316,6 +322,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     DexString[] newParameters = new DexString[parameters.length - 1];
     System.arraycopy(parameters, 1, newParameters, 0, parameters.length - 1);
     return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
+  }
+
+  @Override
+  public void acceptHashing(HashingVisitor visitor) {
+    visitor.visit(this, getStructuralMapping());
   }
 
   @Override
@@ -531,6 +542,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     return builder.toString();
   }
 
+  @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems,
       ProgramMethod context,

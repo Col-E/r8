@@ -1169,7 +1169,7 @@ public class IRConverter {
     assert code.verifyTypes(appView);
     assert code.isConsistentSSA();
 
-    if (appView.isCfByteCodePassThrough(method)) {
+    if (shouldPassThrough(context)) {
       // If the code is pass trough, do not finalize by overwriting the existing code.
       assert appView.enableWholeProgramOptimizations();
       timing.begin("Collect optimization info");
@@ -1183,6 +1183,7 @@ public class IRConverter {
           BytecodeMetadataProvider.builder(),
           timing);
       timing.end();
+      markProcessed(code, feedback);
       return timing;
     }
 
@@ -1514,6 +1515,15 @@ public class IRConverter {
     finalizeIR(code, feedback, conversionOptions, bytecodeMetadataProviderBuilder.build(), timing);
     timing.end();
     return timing;
+  }
+
+  private boolean shouldPassThrough(ProgramMethod method) {
+    if (appView.isCfByteCodePassThrough(method.getDefinition())) {
+      return true;
+    }
+    Code code = method.getDefinition().getCode();
+    assert !code.isThrowNullCode();
+    return code.isDefaultInstanceInitializerCode();
   }
 
   // Compute optimization info summary for the current method unless it is pinned

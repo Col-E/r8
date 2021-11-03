@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
@@ -296,15 +297,16 @@ public class TreePruner {
         firstUnreachableIndex(methods, method -> appInfo.isLiveMethod(method.getReference()));
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
+      for (DexEncodedMethod method : methods) {
+        canonicalizeCode(method.asProgramMethod(clazz));
+      }
       return null;
     }
     ArrayList<DexEncodedMethod> reachableMethods = new ArrayList<>(methods.size());
-    for (int i = 0; i < firstUnreachable; i++) {
-      reachableMethods.add(methods.get(i));
-    }
-    for (int i = firstUnreachable; i < methods.size(); i++) {
+    for (int i = 0; i < methods.size(); i++) {
       DexEncodedMethod method = methods.get(i);
       if (appInfo.isLiveMethod(method.getReference())) {
+        canonicalizeCode(method.asProgramMethod(clazz));
         reachableMethods.add(method);
       } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.
@@ -337,6 +339,12 @@ public class TreePruner {
     return reachableMethods.isEmpty()
         ? DexEncodedMethod.EMPTY_ARRAY
         : reachableMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+  }
+
+  private void canonicalizeCode(ProgramMethod method) {
+    if (method.getDefinition().hasCode()) {
+      DefaultInstanceInitializerCode.canonicalizeCodeIfPossible(appView, method);
+    }
   }
 
   private DexEncodedField[] reachableFields(List<DexEncodedField> fields) {

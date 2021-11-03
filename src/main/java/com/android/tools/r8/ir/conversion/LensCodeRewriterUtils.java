@@ -61,6 +61,10 @@ public class LensCodeRewriterUtils {
     this.rewrittenCallSiteCache = null;
   }
 
+  public DexItemFactory dexItemFactory() {
+    return definitions.dexItemFactory();
+  }
+
   public DexCallSite rewriteCallSite(DexCallSite callSite, ProgramMethod context) {
     if (rewrittenCallSiteCache == null) {
       return rewriteCallSiteInternal(callSite, context);

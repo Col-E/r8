@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,6 +54,7 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
         .addDontWarn(MissingSuperType.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .compile()
         .inspect(
             inspector -> {
@@ -77,6 +79,7 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class ClassWithSuperCall extends MissingSuperType {
 
     @Override
@@ -88,6 +91,7 @@ public class RepackageMissingSuperTypeTest extends RepackageTestBase {
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class ClassWithoutSuperCall extends MissingSuperType {
 
     @Override
