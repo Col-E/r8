@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -108,6 +109,11 @@ public abstract class CfInstruction implements CfOrDexInstruction {
   @Override
   public boolean isCfInstruction() {
     return true;
+  }
+
+  @Override
+  public Instruction asDexInstruction() {
+    return null;
   }
 
   public CfRecordFieldValues asRecordFieldValues() {

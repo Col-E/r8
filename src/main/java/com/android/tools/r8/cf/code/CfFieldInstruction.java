@@ -10,14 +10,12 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
@@ -28,11 +26,10 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
-import java.util.ListIterator;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CfFieldInstruction extends CfInstruction {
+public abstract class CfFieldInstruction extends CfInstruction {
 
   private final int opcode;
   private final DexField field;
@@ -51,6 +48,21 @@ public class CfFieldInstruction extends CfInstruction {
     this.field = field;
     this.declaringField = declaringField;
     assert field.type == declaringField.type;
+  }
+
+  public static CfFieldInstruction create(int opcode, DexField field, DexField declaringField) {
+    switch (opcode) {
+      case Opcodes.GETSTATIC:
+        return new CfStaticFieldRead(field, declaringField);
+      case Opcodes.PUTSTATIC:
+        return new CfStaticFieldWrite(field, declaringField);
+      case Opcodes.GETFIELD:
+        return new CfInstanceFieldRead(field, declaringField);
+      case Opcodes.PUTFIELD:
+        return new CfInstanceFieldWrite(field, declaringField);
+      default:
+        throw new Unreachable("Unexpected opcode " + opcode);
+    }
   }
 
   public DexField getField() {
@@ -107,27 +119,6 @@ public class CfFieldInstruction extends CfInstruction {
   @Override
   public void print(CfPrinter printer) {
     printer.print(this);
-  }
-
-  @Override
-  void internalRegisterUse(
-      UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
-    switch (opcode) {
-      case Opcodes.GETFIELD:
-        registry.registerInstanceFieldRead(field);
-        break;
-      case Opcodes.PUTFIELD:
-        registry.registerInstanceFieldWrite(field);
-        break;
-      case Opcodes.GETSTATIC:
-        registry.registerStaticFieldRead(field);
-        break;
-      case Opcodes.PUTSTATIC:
-        registry.registerStaticFieldWrite(field);
-        break;
-      default:
-        throw new Unreachable("Unexpected opcode " + opcode);
-    }
   }
 
   @Override

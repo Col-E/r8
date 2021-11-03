@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class SgetBoolean extends SgetOrSput {
+public class SgetBoolean extends SgetOrSput implements CfOrDexStaticFieldRead {
 
   public static final int OPCODE = 0x63;
   public static final String NAME = "SgetBoolean";
@@ -39,7 +39,7 @@ public class SgetBoolean extends SgetOrSput {
 
   @Override
   public void registerUse(UseRegistry<?> registry) {
-    registry.registerStaticFieldRead(getField());
+    registry.registerStaticFieldReadInstruction(this);
   }
 
   @Override

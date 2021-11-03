@@ -25,6 +25,8 @@ import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfIinc;
 import com.android.tools.r8.cf.code.CfInitClass;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -46,6 +48,8 @@ import com.android.tools.r8.cf.code.CfRecordFieldValues;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
@@ -470,6 +474,22 @@ public class CfPrinter {
     indent();
     builder.append("checkcast ");
     appendClass(insn.getType());
+  }
+
+  public void print(CfInstanceFieldRead insn) {
+    print(insn.asFieldInstruction());
+  }
+
+  public void print(CfInstanceFieldWrite insn) {
+    print(insn.asFieldInstruction());
+  }
+
+  public void print(CfStaticFieldRead insn) {
+    print(insn.asFieldInstruction());
+  }
+
+  public void print(CfStaticFieldWrite insn) {
+    print(insn.asFieldInstruction());
   }
 
   public void print(CfFieldInstruction insn) {

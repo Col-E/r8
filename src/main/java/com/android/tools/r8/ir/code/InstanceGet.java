@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
 import com.android.tools.r8.code.Iget;
 import com.android.tools.r8.code.IgetBoolean;
 import com.android.tools.r8.code.IgetByte;
@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
-public class InstanceGet extends FieldInstruction implements InstanceFieldInstruction {
+public class InstanceGet extends FieldInstruction implements FieldGet, InstanceFieldInstruction {
 
   public InstanceGet(Value dest, Value object, DexField field) {
     super(field, dest, object);
@@ -148,6 +148,16 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
+  public boolean isFieldGet() {
+    return true;
+  }
+
+  @Override
+  public FieldGet asFieldGet() {
+    return this;
+  }
+
+  @Override
   public boolean isInstanceFieldInstruction() {
     return true;
   }
@@ -190,9 +200,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(
-        new CfFieldInstruction(
-            org.objectweb.asm.Opcodes.GETFIELD, getField(), builder.resolveField(getField())));
+    builder.add(new CfInstanceFieldRead(getField(), builder.resolveField(getField())));
   }
 
   @Override

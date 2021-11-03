@@ -67,7 +67,7 @@ public class BytecodeMetadataProvider {
       }
       Map<Instruction, BytecodeInstructionMetadata> backing =
           new IdentityHashMap<>(builders.size());
-      builders.forEach(((instruction, builder) -> backing.put(instruction, builder.build())));
+      builders.forEach((instruction, builder) -> backing.put(instruction, builder.build()));
       return new BytecodeMetadataProvider(backing);
     }
   }

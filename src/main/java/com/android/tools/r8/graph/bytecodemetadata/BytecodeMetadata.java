@@ -8,6 +8,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A collection of information that pertains to the instructions in a piece of {@link
@@ -20,6 +21,7 @@ public class BytecodeMetadata<I> {
   private final Map<I, BytecodeInstructionMetadata> backing;
 
   BytecodeMetadata(Map<I, BytecodeInstructionMetadata> backing) {
+    assert backing.values().stream().noneMatch(Objects::isNull);
     this.backing = backing;
   }
 

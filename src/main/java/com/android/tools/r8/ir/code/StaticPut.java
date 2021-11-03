@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.code.Sput;
 import com.android.tools.r8.code.SputBoolean;
 import com.android.tools.r8.code.SputByte;
@@ -185,6 +185,16 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   }
 
   @Override
+  public boolean isFieldPut() {
+    return true;
+  }
+
+  @Override
+  public FieldPut asFieldPut() {
+    return this;
+  }
+
+  @Override
   public boolean isStaticFieldInstruction() {
     return true;
   }
@@ -206,9 +216,7 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(
-        new CfFieldInstruction(
-            org.objectweb.asm.Opcodes.PUTSTATIC, getField(), builder.resolveField(getField())));
+    builder.add(new CfStaticFieldWrite(getField(), builder.resolveField(getField())));
   }
 
   @Override

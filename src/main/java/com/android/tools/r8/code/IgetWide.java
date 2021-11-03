@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.OffsetToObjectMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 
-public class IgetWide extends IgetOrIput {
+public class IgetWide extends IgetOrIput implements CfOrDexInstanceFieldRead {
 
   public static final int OPCODE = 0x53;
   public static final String NAME = "IgetWide";
@@ -39,7 +39,7 @@ public class IgetWide extends IgetOrIput {
 
   @Override
   public void registerUse(UseRegistry<?> registry) {
-    registry.registerInstanceFieldRead(getField());
+    registry.registerInstanceFieldReadInstruction(this);
   }
 
   @Override

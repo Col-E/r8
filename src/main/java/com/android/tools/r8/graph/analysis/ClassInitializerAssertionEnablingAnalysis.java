@@ -13,6 +13,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -109,9 +110,9 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
           CfConstNumber.class,
           CfGoto.class,
           CfConstNumber.class,
-          CfFieldInstruction.class);
+          CfStaticFieldWrite.class);
   private static List<Class<?>> r8InstructionSequence =
-      ImmutableList.of(CfConstNumber.class, CfLogicalBinop.class, CfFieldInstruction.class);
+      ImmutableList.of(CfConstNumber.class, CfLogicalBinop.class, CfStaticFieldWrite.class);
   private static List<Class<?>> jacocoInstructionSequence =
       ImmutableList.of(CfLoad.class, CfConstNumber.class, CfConstNumber.class, CfArrayStore.class);
 

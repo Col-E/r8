@@ -11,4 +11,6 @@ public interface CfOrDexInstruction {
   CfInstruction asCfInstruction();
 
   boolean isCfInstruction();
+
+  Instruction asDexInstruction();
 }

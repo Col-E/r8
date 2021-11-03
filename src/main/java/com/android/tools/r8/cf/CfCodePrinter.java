@@ -26,6 +26,8 @@ import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfIinc;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -44,11 +46,14 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -75,7 +80,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.objectweb.asm.Opcodes;
 
 /** Rudimentary printer to print the source representation for creating CfCode object. */
 public class CfCodePrinter extends CfPrinter {
@@ -531,24 +535,28 @@ public class CfCodePrinter extends CfPrinter {
   }
 
   @Override
-  public void print(CfFieldInstruction insn) {
-    printNewInstruction(
-        "CfFieldInstruction", fieldInstructionOpcode(insn), dexField(insn.getField()));
+  public void print(CfInstanceFieldRead insn) {
+    printNewInstruction("CfInstanceFieldRead", dexField(insn.getField()));
   }
 
-  private String fieldInstructionOpcode(CfFieldInstruction insn) {
-    switch (insn.getOpcode()) {
-      case Opcodes.GETSTATIC:
-        return asmOpcodesType() + ".GETSTATIC";
-      case Opcodes.PUTSTATIC:
-        return asmOpcodesType() + ".PUTSTATIC";
-      case Opcodes.GETFIELD:
-        return asmOpcodesType() + ".GETFIELD";
-      case Opcodes.PUTFIELD:
-        return asmOpcodesType() + ".PUTFIELD";
-      default:
-        throw new Unimplemented();
-    }
+  @Override
+  public void print(CfInstanceFieldWrite insn) {
+    printNewInstruction("CfInstanceFieldWrite", dexField(insn.getField()));
+  }
+
+  @Override
+  public void print(CfStaticFieldRead insn) {
+    printNewInstruction("CfStaticFieldRead", dexField(insn.getField()));
+  }
+
+  @Override
+  public void print(CfStaticFieldWrite insn) {
+    printNewInstruction("CfStaticFieldWrite", dexField(insn.getField()));
+  }
+
+  @Override
+  public void print(CfFieldInstruction insn) {
+    throw new Unreachable();
   }
 
   @Override

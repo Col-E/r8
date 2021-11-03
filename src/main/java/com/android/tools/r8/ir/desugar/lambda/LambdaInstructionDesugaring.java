@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.lambda;
 
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
@@ -12,6 +11,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
@@ -123,8 +123,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
 
     if (lambdaClass.isStateless()) {
       return ImmutableList.of(
-          new CfFieldInstruction(
-              Opcodes.GETSTATIC, lambdaClass.lambdaField, lambdaClass.lambdaField));
+          new CfStaticFieldRead(lambdaClass.lambdaField, lambdaClass.lambdaField));
     }
 
     DexTypeList captureTypes = lambdaClass.descriptor.captures;

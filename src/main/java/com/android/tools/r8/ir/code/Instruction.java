@@ -956,12 +956,20 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
-  public final boolean isFieldGet() {
-    return isInstanceGet() || isStaticGet();
+  public boolean isFieldGet() {
+    return false;
   }
 
-  public final boolean isFieldPut() {
-    return isInstancePut() || isStaticPut();
+  public FieldGet asFieldGet() {
+    return null;
+  }
+
+  public boolean isFieldPut() {
+    return false;
+  }
+
+  public FieldPut asFieldPut() {
+    return null;
   }
 
   public boolean isInstancePut() {

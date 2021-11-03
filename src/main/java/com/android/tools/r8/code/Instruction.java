@@ -151,6 +151,11 @@ public abstract class Instruction implements CfOrDexInstruction, StructuralItem<
     return false;
   }
 
+  @Override
+  public Instruction asDexInstruction() {
+    return this;
+  }
+
   public CheckCast asCheckCast() {
     return null;
   }

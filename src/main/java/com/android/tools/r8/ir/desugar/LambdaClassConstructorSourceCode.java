@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.graph.CfCode;
 import com.google.common.collect.ImmutableList;
 import org.objectweb.asm.Opcodes;
@@ -29,7 +29,7 @@ final class LambdaClassConstructorSourceCode {
             new CfNew(lambda.type),
             new CfStackInstruction(Opcode.Dup),
             new CfInvoke(Opcodes.INVOKESPECIAL, lambda.constructor, false),
-            new CfFieldInstruction(Opcodes.PUTSTATIC, lambda.lambdaField, lambda.lambdaField),
+            new CfStaticFieldWrite(lambda.lambdaField, lambda.lambdaField),
             new CfReturnVoid()),
         ImmutableList.of(),
         ImmutableList.of());

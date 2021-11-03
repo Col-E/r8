@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
 import com.android.tools.r8.code.CfOrDexInstruction;
+import com.android.tools.r8.code.CfOrDexStaticFieldRead;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ListIterator;
@@ -84,6 +86,10 @@ public abstract class UseRegistry<T extends Definition> {
 
   public abstract void registerInstanceFieldRead(DexField field);
 
+  public void registerInstanceFieldReadInstruction(CfOrDexInstanceFieldRead instruction) {
+    registerInstanceFieldRead(instruction.getField());
+  }
+
   public void registerInstanceFieldReadFromMethodHandle(DexField field) {
     registerInstanceFieldRead(field);
   }
@@ -107,6 +113,10 @@ public abstract class UseRegistry<T extends Definition> {
   }
 
   public abstract void registerStaticFieldRead(DexField field);
+
+  public void registerStaticFieldReadInstruction(CfOrDexStaticFieldRead instruction) {
+    registerStaticFieldRead(instruction.getField());
+  }
 
   public void registerStaticFieldReadFromMethodHandle(DexField field) {
     registerStaticFieldRead(field);

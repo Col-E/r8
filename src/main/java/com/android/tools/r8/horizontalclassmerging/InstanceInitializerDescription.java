@@ -9,7 +9,7 @@ import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfDexItemBasedConstString;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -129,7 +129,7 @@ public class InstanceInitializerDescription {
       int classIdLocalIndex = maxLocals - 1;
       instructionBuilder.add(new CfLoad(ValueType.OBJECT, 0));
       instructionBuilder.add(new CfLoad(ValueType.INT, classIdLocalIndex));
-      instructionBuilder.add(new CfFieldInstruction(Opcodes.PUTFIELD, group.getClassIdField()));
+      instructionBuilder.add(new CfInstanceFieldWrite(group.getClassIdField()));
       maxStack.set(2);
     } else {
       assert !hasClassId;
@@ -187,7 +187,7 @@ public class InstanceInitializerDescription {
           int stackSizeForInitializationInfo =
               addCfInstructionsForInitializationInfo(
                   instructionBuilder, initializationInfo, argumentToLocalIndex, field.getType());
-          instructionBuilder.add(new CfFieldInstruction(Opcodes.PUTFIELD, field));
+          instructionBuilder.add(new CfInstanceFieldWrite(field));
           maxStack.setMax(stackSizeForInitializationInfo + 1);
         });
   }

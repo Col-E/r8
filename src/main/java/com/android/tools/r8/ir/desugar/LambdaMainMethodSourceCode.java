@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.cf.code.CfCheckCast;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
@@ -233,7 +233,7 @@ final class LambdaMainMethodSourceCode {
       DexField field = lambda.getCaptureField(i);
       ValueType valueType = ValueType.fromDexType(field.type);
       instructions.add(new CfLoad(ValueType.OBJECT, 0));
-      instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, field, field));
+      instructions.add(new CfInstanceFieldRead(field));
       maxStack += valueType.requiredRegisters();
     }
 

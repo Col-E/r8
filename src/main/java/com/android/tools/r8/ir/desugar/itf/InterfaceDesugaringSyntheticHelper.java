@@ -6,11 +6,11 @@ package com.android.tools.r8.ir.desugar.itf;
 
 
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInitClass;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -44,7 +44,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.objectweb.asm.Opcodes;
 
 public class InterfaceDesugaringSyntheticHelper {
 
@@ -493,10 +492,7 @@ public class InterfaceDesugaringSyntheticHelper {
                   isWide ? 2 : 1,
                   0,
                   ImmutableList.of(
-                      new CfFieldInstruction(
-                          Opcodes.GETSTATIC,
-                          clinitField.getReference(),
-                          clinitField.getReference()),
+                      new CfStaticFieldRead(clinitField.getReference(), clinitField.getReference()),
                       isWide
                           ? new CfStackInstruction(Opcode.Pop2)
                           : new CfStackInstruction(Opcode.Pop),

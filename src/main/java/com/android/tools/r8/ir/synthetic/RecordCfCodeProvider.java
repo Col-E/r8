@@ -7,10 +7,10 @@ package com.android.tools.r8.ir.synthetic;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNumber;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfIfCmp;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
@@ -118,7 +118,7 @@ public abstract class RecordCfCodeProvider {
     private void loadFieldAsObject(List<CfInstruction> instructions, DexField field) {
       DexItemFactory factory = appView.dexItemFactory();
       instructions.add(new CfLoad(ValueType.OBJECT, 0));
-      instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, field, field));
+      instructions.add(new CfInstanceFieldRead(field));
       if (field.type.isPrimitiveType()) {
         factory.primitiveToBoxed.forEach(
             (primitiveType, boxedType) -> {

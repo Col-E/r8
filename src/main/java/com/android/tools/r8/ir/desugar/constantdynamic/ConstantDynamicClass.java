@@ -7,9 +7,7 @@ import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicCla
 import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.THROW_ICCE;
 import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.THROW_NSME;
 import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
-import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
-import static org.objectweb.asm.Opcodes.PUTSTATIC;
 
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstClass;
@@ -17,7 +15,6 @@ import com.android.tools.r8.cf.code.CfConstDynamic;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfGoto;
@@ -30,6 +27,8 @@ import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -242,7 +241,7 @@ public class ConstantDynamicClass {
     CfLabel tryCatchTarget = new CfLabel();
     CfLabel tryCatchEndFinally = new CfLabel();
 
-    instructions.add(new CfFieldInstruction(GETSTATIC, initializedValueField));
+    instructions.add(new CfStaticFieldRead(initializedValueField));
     instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrue));
 
     instructions.add(new CfConstClass(builder.getType()));
@@ -251,13 +250,13 @@ public class ConstantDynamicClass {
     instructions.add(new CfMonitor(Monitor.Type.ENTER));
     instructions.add(tryCatchStart);
 
-    instructions.add(new CfFieldInstruction(GETSTATIC, initializedValueField));
+    instructions.add(new CfStaticFieldRead(initializedValueField));
     instructions.add(new CfIf(If.Type.NE, ValueType.INT, initializedTrueSecond));
 
     invokeBootstrapMethod(instructions);
-    instructions.add(new CfFieldInstruction(PUTSTATIC, constantValueField));
+    instructions.add(new CfStaticFieldWrite(constantValueField));
     instructions.add(new CfConstNumber(1, ValueType.INT));
-    instructions.add(new CfFieldInstruction(PUTSTATIC, initializedValueField));
+    instructions.add(new CfStaticFieldWrite(initializedValueField));
 
     instructions.add(initializedTrueSecond);
     instructions.add(
@@ -287,7 +286,7 @@ public class ConstantDynamicClass {
 
     instructions.add(initializedTrue);
     instructions.add(new CfFrame(ImmutableInt2ReferenceSortedMap.empty(), ImmutableDeque.of()));
-    instructions.add(new CfFieldInstruction(GETSTATIC, constantValueField));
+    instructions.add(new CfStaticFieldRead(constantValueField));
     instructions.add(new CfReturn(ValueType.OBJECT));
 
     List<CfTryCatch> tryCatchRanges =

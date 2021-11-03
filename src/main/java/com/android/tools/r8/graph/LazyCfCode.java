@@ -782,7 +782,7 @@ public class LazyCfCode extends Code {
           factory.createField(createTypeFromInternalType(owner), factory.createType(desc), name);
       // TODO(mathiasr): Don't require CfFieldInstruction::declaringField. It is needed for proper
       // renaming in the backend, but it is not available here in the frontend.
-      instructions.add(new CfFieldInstruction(opcode, field, field));
+      instructions.add(CfFieldInstruction.create(opcode, field, field));
     }
 
     @Override

@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.synthetic;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfIf;
@@ -20,6 +19,8 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -241,17 +242,17 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       //    return VALUES$com$x$MyEnum;
       List<CfInstruction> instructions = new ArrayList<>();
       CfLabel nullDest = new CfLabel();
-      instructions.add(new CfFieldInstruction(Opcodes.GETSTATIC, utilityField, utilityField));
+      instructions.add(new CfStaticFieldRead(utilityField, utilityField));
       instructions.add(new CfIf(If.Type.NE, ValueType.OBJECT, nullDest));
       instructions.add((new CfConstNumber(numEnumInstances, ValueType.INT)));
       assert initializationMethod.getArity() == 1;
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, initializationMethod, false));
-      instructions.add(new CfFieldInstruction(Opcodes.PUTSTATIC, utilityField, utilityField));
+      instructions.add(new CfStaticFieldWrite(utilityField, utilityField));
       instructions.add(nullDest);
       instructions.add(
           new CfFrame(
               ImmutableInt2ReferenceSortedMap.<FrameType>builder().build(), ImmutableDeque.of()));
-      instructions.add(new CfFieldInstruction(Opcodes.GETSTATIC, utilityField, utilityField));
+      instructions.add(new CfStaticFieldRead(utilityField, utilityField));
       instructions.add(new CfReturn(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);
     }

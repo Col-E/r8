@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.code.Iput;
 import com.android.tools.r8.code.IputBoolean;
 import com.android.tools.r8.code.IputByte;
@@ -195,6 +195,16 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
   }
 
   @Override
+  public boolean isFieldPut() {
+    return true;
+  }
+
+  @Override
+  public FieldPut asFieldPut() {
+    return this;
+  }
+
+  @Override
   public boolean isInstanceFieldInstruction() {
     return true;
   }
@@ -226,9 +236,7 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(
-        new CfFieldInstruction(
-            org.objectweb.asm.Opcodes.PUTFIELD, getField(), builder.resolveField(getField())));
+    builder.add(new CfInstanceFieldWrite(getField(), builder.resolveField(getField())));
   }
 
   @Override

@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
+import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
+
+import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
+import com.android.tools.r8.code.CfOrDexStaticFieldRead;
 import com.android.tools.r8.graph.AbstractAccessContexts;
 import com.android.tools.r8.graph.AbstractAccessContexts.ConcreteAccessContexts;
 import com.android.tools.r8.graph.AppView;
@@ -19,6 +23,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -26,7 +31,6 @@ import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -95,7 +99,14 @@ public class TrivialFieldAccessReprocessor {
 
     constantFields.forEach(this::markFieldAsDead);
     readFields.keySet().forEach(this::markFieldAsDead);
-    writtenFields.keySet().forEach(this::markFieldAsDead);
+    writtenFields.keySet().forEach(this::markWriteOnlyFieldAsDead);
+  }
+
+  private void markWriteOnlyFieldAsDead(DexEncodedField field) {
+    markFieldAsDead(field);
+    getSimpleFeedback()
+        .recordFieldHasAbstractValue(
+            field, appView, appView.abstractValueFactory().createNullValue());
   }
 
   private void markFieldAsDead(DexEncodedField field) {
@@ -104,7 +115,7 @@ public class TrivialFieldAccessReprocessor {
     if (appView.appInfo().isPinned(field)) {
       assert field.getType().isAlwaysNull(appView);
     } else {
-      OptimizationFeedbackSimple.getInstance().markFieldAsDead(field);
+      getSimpleFeedback().markFieldAsDead(field);
     }
   }
 
@@ -294,7 +305,11 @@ public class TrivialFieldAccessReprocessor {
       super(appView, method);
     }
 
-    private void registerFieldAccess(DexField reference, boolean isStatic, boolean isWrite) {
+    private void registerFieldAccess(
+        DexField reference,
+        boolean isStatic,
+        boolean isWrite,
+        BytecodeInstructionMetadata metadata) {
       SuccessfulFieldResolutionResult resolutionResult =
           appView.appInfo().resolveField(reference).asSuccessfulResolution();
       if (resolutionResult == null) {
@@ -308,6 +323,13 @@ public class TrivialFieldAccessReprocessor {
           || appView.isCfByteCodePassThrough(getContext().getDefinition())
           || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()) {
         recordAccessThatCannotBeOptimized(field, definition);
+        return;
+      }
+
+      if (metadata != null && metadata.isReadForWrite()) {
+        // Ignore this read. If the field ends up only being written, then we will still reprocess
+        // the method with the read-for-write instruction, since the method contains a write that
+        // requires reprocessing.
         return;
       }
 
@@ -372,22 +394,36 @@ public class TrivialFieldAccessReprocessor {
 
     @Override
     public void registerInstanceFieldRead(DexField field) {
-      registerFieldAccess(field, false, false);
+      registerFieldAccess(field, false, false, BytecodeInstructionMetadata.none());
+    }
+
+    @Override
+    public void registerInstanceFieldReadInstruction(CfOrDexInstanceFieldRead instruction) {
+      BytecodeInstructionMetadata metadata =
+          getContext().getDefinition().getCode().getMetadata(instruction);
+      registerFieldAccess(instruction.getField(), false, false, metadata);
     }
 
     @Override
     public void registerInstanceFieldWrite(DexField field) {
-      registerFieldAccess(field, false, true);
+      registerFieldAccess(field, false, true, null);
     }
 
     @Override
     public void registerStaticFieldRead(DexField field) {
-      registerFieldAccess(field, true, false);
+      registerFieldAccess(field, true, false, BytecodeInstructionMetadata.none());
+    }
+
+    @Override
+    public void registerStaticFieldReadInstruction(CfOrDexStaticFieldRead instruction) {
+      BytecodeInstructionMetadata metadata =
+          getContext().getDefinition().getCode().getMetadata(instruction);
+      registerFieldAccess(instruction.getField(), true, false, metadata);
     }
 
     @Override
     public void registerStaticFieldWrite(DexField field) {
-      registerFieldAccess(field, true, true);
+      registerFieldAccess(field, true, true, null);
     }
 
     @Override

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SwitchPayload;
@@ -113,6 +114,11 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   @Override
   public DexCode self() {
     return this;
+  }
+
+  @Override
+  public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {
+    return getMetadata(instruction.asDexInstruction());
   }
 
   public BytecodeInstructionMetadata getMetadata(Instruction instruction) {

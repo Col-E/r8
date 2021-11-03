@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
@@ -42,7 +42,7 @@ final class LambdaConstructorSourceCode {
       ValueType type = ValueType.fromDexType(field.type);
       instructions.add(new CfLoad(ValueType.OBJECT, 0));
       instructions.add(new CfLoad(type, maxLocals));
-      instructions.add(new CfFieldInstruction(Opcodes.PUTFIELD, field, field));
+      instructions.add(new CfInstanceFieldWrite(field));
       maxLocals += type.requiredRegisters();
       maxStack += type.requiredRegisters();
     }

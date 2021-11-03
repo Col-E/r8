@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrU
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfConstNumber;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
@@ -18,6 +17,8 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -267,7 +268,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         instructions.add(new CfConstNumber(i + 1, ValueType.INT));
         instructions.add(new CfArrayStore(MemberType.INT));
       }
-      instructions.add(new CfFieldInstruction(Opcodes.PUTSTATIC, valuesField.getReference()));
+      instructions.add(new CfStaticFieldWrite(valuesField.getReference()));
       instructions.add(new CfReturnVoid());
 
       int maxStack = 4;
@@ -317,7 +318,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               new CfNewArray(dexItemFactory.intArrayType),
               new CfStore(ValueType.OBJECT, resultLocalSlot),
               // System.arraycopy(SharedUtilityClass.$VALUES, 0, result, 0, size);
-              new CfFieldInstruction(Opcodes.GETSTATIC, valuesField.getReference()),
+              new CfStaticFieldRead(valuesField.getReference()),
               new CfConstNumber(0, ValueType.INT),
               new CfLoad(ValueType.OBJECT, resultLocalSlot),
               new CfConstNumber(0, ValueType.INT),

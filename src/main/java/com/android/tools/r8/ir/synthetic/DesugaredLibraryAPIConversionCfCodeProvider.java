@@ -7,10 +7,11 @@ package com.android.tools.r8.ir.synthetic;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.cf.code.CfIf;
+import com.android.tools.r8.cf.code.CfInstanceFieldRead;
+import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -80,7 +81,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       // use vivifiedTypes.
 
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
-      instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, wrapperField, wrapperField));
+      instructions.add(new CfInstanceFieldRead(wrapperField));
       int index = 1;
       int stackIndex = 1;
       DexType[] newParameters = forwardMethod.proto.parameters.values.clone();
@@ -250,7 +251,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     @Override
     void generatePushReceiver(List<CfInstruction> instructions) {
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
-      instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, wrapperField, wrapperField));
+      instructions.add(new CfInstanceFieldRead(wrapperField));
     }
 
     @Override
@@ -299,8 +300,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       instructions.add(new CfIf(If.Type.EQ, ValueType.INT, unwrapDest));
       instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
       instructions.add(new CfCheckCast(reverseWrapperField.holder));
-      instructions.add(
-          new CfFieldInstruction(Opcodes.GETFIELD, reverseWrapperField, reverseWrapperField));
+      instructions.add(new CfInstanceFieldRead(reverseWrapperField));
       instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
       instructions.add(unwrapDest);
       instructions.add(new CfFrame(locals, ImmutableDeque.of()));
@@ -410,7 +410,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
               false));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));
-      instructions.add(new CfFieldInstruction(Opcodes.PUTFIELD, wrapperField, wrapperField));
+      instructions.add(new CfInstanceFieldWrite(wrapperField));
       instructions.add(new CfReturnVoid());
       return standardCfCodeFromInstructions(instructions);
     }

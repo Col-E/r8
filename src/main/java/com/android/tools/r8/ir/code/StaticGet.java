@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
-import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.code.Sget;
 import com.android.tools.r8.code.SgetBoolean;
 import com.android.tools.r8.code.SgetByte;
@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
-public class StaticGet extends FieldInstruction implements StaticFieldInstruction {
+public class StaticGet extends FieldInstruction implements FieldGet, StaticFieldInstruction {
 
   public StaticGet(Value dest, DexField field) {
     super(field, dest, (Value) null);
@@ -183,6 +183,16 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
   }
 
   @Override
+  public boolean isFieldGet() {
+    return true;
+  }
+
+  @Override
+  public FieldGet asFieldGet() {
+    return this;
+  }
+
+  @Override
   public boolean isStaticFieldInstruction() {
     return true;
   }
@@ -204,9 +214,7 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(
-        new CfFieldInstruction(
-            org.objectweb.asm.Opcodes.GETSTATIC, getField(), builder.resolveField(getField())));
+    builder.add(new CfStaticFieldRead(getField(), builder.resolveField(getField())));
   }
 
   @Override
