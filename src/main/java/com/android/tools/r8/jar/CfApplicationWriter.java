@@ -15,7 +15,7 @@ import com.android.tools.r8.errors.CodeSizeOverflowDiagnostic;
 import com.android.tools.r8.errors.ConstantPoolOverflowDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -591,8 +591,10 @@ public class CfApplicationWriter {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
-    CfCode code = method.getDefinition().getCode().asCfCode();
-    code.write(method, classFileVersion, appView, namingLens, rewriter, visitor);
+    Code code = method.getDefinition().getCode();
+    assert code.isCfWritableCode();
+    code.asCfWritableCode()
+        .writeCf(method, classFileVersion, appView, namingLens, rewriter, visitor);
   }
 
   public static String printCf(byte[] result) {

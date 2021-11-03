@@ -4,11 +4,8 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.ByteBufferProvider;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.EncodedValueUtils;
@@ -95,37 +92,17 @@ public class DexOutputBuffer {
   }
 
   public void putInstructions(
-      DexCode code,
+      DexWritableCode code,
       ProgramMethod context,
       ObjectToOffsetMapping mapping,
       CodeToKeep desugaredLibraryCodeToKeep) {
-    int size = 0;
-    Instruction[] instructions = code.instructions;
-    for (Instruction instruction : instructions) {
-      size += instruction.getSize();
-    }
+    int size = code.codeSizeInBytes();
     ensureSpaceFor(size * Short.BYTES);
     assert byteBuffer.position() % 2 == 0;
     ShortBuffer shortBuffer = byteBuffer.asShortBuffer();
-    for (int i = 0; i < instructions.length; i++) {
-      Instruction insn = instructions[i];
-      DexMethod method = insn.getMethod();
-      DexField field = insn.getField();
-      if (field != null) {
-        assert method == null;
-        desugaredLibraryCodeToKeep.recordField(field);
-      } else if (method != null) {
-        desugaredLibraryCodeToKeep.recordMethod(method);
-      } else if (insn.isConstClass()) {
-        desugaredLibraryCodeToKeep.recordClass(insn.asConstClass().getType());
-      } else if (insn.isInstanceOf()) {
-        desugaredLibraryCodeToKeep.recordClass(insn.asInstanceOf().getType());
-      } else if (insn.isCheckCast()) {
-        desugaredLibraryCodeToKeep.recordClass(insn.asCheckCast().getType());
-      }
-      insn.write(
-          shortBuffer, context, mapping.getGraphLens(), mapping, mapping.getLensCodeRewriter());
-    }
+    code.writeDex(
+        shortBuffer, context, mapping.getGraphLens(), mapping.getLensCodeRewriter(), mapping);
+    code.writeKeepRulesForDesugaredLibrary(desugaredLibraryCodeToKeep);
     byteBuffer.position(byteBuffer.position() + shortBuffer.position() * Short.BYTES);
   }
 

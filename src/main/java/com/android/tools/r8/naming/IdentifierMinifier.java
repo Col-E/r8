@@ -156,8 +156,7 @@ class IdentifierMinifier {
           instructions[i] = constString;
         }
       }
-    } else {
-      assert code.isCfCode();
+    } else if (code.isCfCode()) {
       List<CfInstruction> instructions = code.asCfCode().getInstructions();
       List<CfInstruction> newInstructions =
           ListUtils.mapOrElse(
@@ -176,6 +175,8 @@ class IdentifierMinifier {
               },
               instructions);
       code.asCfCode().setInstructions(newInstructions);
+    } else {
+      assert code.isThrowNullCode();
     }
   }
 }

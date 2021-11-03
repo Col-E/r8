@@ -979,9 +979,10 @@ public class R8 {
                         }
                         if (code.isCfCode()) {
                           assert verifyOriginalMethodInPosition(code.asCfCode(), originalMethod);
-                        } else {
-                          assert code.isDexCode();
+                        } else if (code.isDexCode()) {
                           assert verifyOriginalMethodInDebugInfo(code.asDexCode(), originalMethod);
+                        } else {
+                          assert code.isThrowNullCode();
                         }
                       }
                     }));

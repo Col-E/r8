@@ -121,6 +121,11 @@ public class LazyCfCode extends Code {
   }
 
   @Override
+  public boolean isCfWritableCode() {
+    return true;
+  }
+
+  @Override
   public LazyCfCode asLazyCfCode() {
     return this;
   }
@@ -132,6 +137,11 @@ public class LazyCfCode extends Code {
     }
     assert code != null;
     return code;
+  }
+
+  @Override
+  public CfWritableCode asCfWritableCode() {
+    return asCfCode();
   }
 
   private void internalParseCode() {

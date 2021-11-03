@@ -33,11 +33,11 @@ public abstract class CodeToKeep {
     return new DesugaredLibraryCodeToKeep(namingLens, options);
   }
 
-  abstract void recordMethod(DexMethod method);
+  public abstract void recordMethod(DexMethod method);
 
-  abstract void recordField(DexField field);
+  public abstract void recordField(DexField field);
 
-  abstract void recordClass(DexType type);
+  public abstract void recordClass(DexType type);
 
   abstract void recordClassAllAccesses(DexType type);
 
@@ -82,7 +82,7 @@ public abstract class CodeToKeep {
     }
 
     @Override
-    void recordMethod(DexMethod method) {
+    public void recordMethod(DexMethod method) {
       DexType baseType = method.holder.toBaseType(options.dexItemFactory());
       if (shouldKeep(baseType)) {
         keepClass(baseType);
@@ -101,7 +101,7 @@ public abstract class CodeToKeep {
     }
 
     @Override
-    void recordField(DexField field) {
+    public void recordField(DexField field) {
       DexType baseType = field.holder.toBaseType(options.dexItemFactory());
       if (shouldKeep(baseType)) {
         keepClass(baseType);
@@ -115,7 +115,7 @@ public abstract class CodeToKeep {
     }
 
     @Override
-    void recordClass(DexType type) {
+    public void recordClass(DexType type) {
       if (shouldKeep(type)) {
         keepClass(type);
       }
@@ -218,13 +218,13 @@ public abstract class CodeToKeep {
   public static class NopCodeToKeep extends CodeToKeep {
 
     @Override
-    void recordMethod(DexMethod method) {}
+    public void recordMethod(DexMethod method) {}
 
     @Override
-    void recordField(DexField field) {}
+    public void recordField(DexField field) {}
 
     @Override
-    void recordClass(DexType type) {}
+    public void recordClass(DexType type) {}
 
     @Override
     void recordClassAllAccesses(DexType type) {}

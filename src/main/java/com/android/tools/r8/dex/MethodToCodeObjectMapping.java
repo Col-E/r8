@@ -4,24 +4,27 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexWritableCode;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class MethodToCodeObjectMapping {
 
-  public abstract DexCode getCode(DexEncodedMethod method);
+  public abstract DexWritableCode getCode(DexEncodedMethod method);
 
   public abstract void clearCode(DexEncodedMethod method);
 
-  public abstract boolean verifyCodeObjects(Collection<DexCode> codes);
+  public abstract boolean verifyCodeObjects(Collection<DexEncodedMethod> codes);
 
   public static MethodToCodeObjectMapping fromMethodBacking() {
     return MethodBacking.INSTANCE;
   }
 
-  public static MethodToCodeObjectMapping fromMapBacking(Map<DexEncodedMethod, DexCode> map) {
+  public static MethodToCodeObjectMapping fromMapBacking(
+      Map<DexEncodedMethod, DexWritableCode> map) {
     return new MapBacking(map);
   }
 
@@ -30,33 +33,33 @@ public abstract class MethodToCodeObjectMapping {
     private static final MethodBacking INSTANCE = new MethodBacking();
 
     @Override
-    public DexCode getCode(DexEncodedMethod method) {
+    public DexWritableCode getCode(DexEncodedMethod method) {
       Code code = method.getCode();
-      assert code == null || code.isDexCode();
-      return code == null ? null : code.asDexCode();
+      assert code == null || code.isDexWritableCode();
+      return code == null ? null : code.asDexWritableCode();
     }
 
     @Override
     public void clearCode(DexEncodedMethod method) {
-      method.removeCode();
+      method.unsetCode();
     }
 
     @Override
-    public boolean verifyCodeObjects(Collection<DexCode> codes) {
+    public boolean verifyCodeObjects(Collection<DexEncodedMethod> codes) {
       return true;
     }
   }
 
   private static class MapBacking extends MethodToCodeObjectMapping {
 
-    private final Map<DexEncodedMethod, DexCode> codes;
+    private final Map<DexEncodedMethod, DexWritableCode> codes;
 
-    public MapBacking(Map<DexEncodedMethod, DexCode> codes) {
+    public MapBacking(Map<DexEncodedMethod, DexWritableCode> codes) {
       this.codes = codes;
     }
 
     @Override
-    public DexCode getCode(DexEncodedMethod method) {
+    public DexWritableCode getCode(DexEncodedMethod method) {
       return codes.get(method);
     }
 
@@ -67,7 +70,10 @@ public abstract class MethodToCodeObjectMapping {
     }
 
     @Override
-    public boolean verifyCodeObjects(Collection<DexCode> codes) {
+    public boolean verifyCodeObjects(Collection<DexEncodedMethod> methods) {
+      // TODO(b/204056443): Convert to a Set<DexWritableCode> when DexCode#hashCode() works.
+      List<DexWritableCode> codes =
+          methods.stream().map(this::getCode).collect(Collectors.toList());
       assert this.codes.values().containsAll(codes);
       return true;
     }

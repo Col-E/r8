@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.optimize.OutlinerImpl.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -59,7 +58,15 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  public boolean isCfWritableCode() {
+    return false;
+  }
+
   public boolean isDexCode() {
+    return false;
+  }
+
+  public boolean isDexWritableCode() {
     return false;
   }
 
@@ -71,6 +78,17 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  public boolean isSharedCodeObject() {
+    return false;
+  }
+
+  public boolean isThrowNullCode() {
+    return false;
+  }
+
+  public ThrowNullCode asThrowNullCode() {
+    return null;
+  }
 
   /** Estimate the number of IR instructions emitted by buildIR(). */
   public int estimatedSizeForInlining() {
@@ -88,6 +106,10 @@ public abstract class Code extends CachedHashValueDexItem {
     throw new Unreachable(getClass().getCanonicalName() + ".asCfCode()");
   }
 
+  public CfWritableCode asCfWritableCode() {
+    throw new Unreachable(getClass().getCanonicalName() + ".asCfWritableCode()");
+  }
+
   public LazyCfCode asLazyCfCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asLazyCfCode()");
   }
@@ -96,8 +118,8 @@ public abstract class Code extends CachedHashValueDexItem {
     throw new Unreachable(getClass().getCanonicalName() + ".asDexCode()");
   }
 
-  public OutlineCode asOutlineCode() {
-    throw new Unreachable(getClass().getCanonicalName() + ".asOutlineCode()");
+  public DexWritableCode asDexWritableCode() {
+    throw new Unreachable(getClass().getCanonicalName() + ".asDexWritableCode()");
   }
 
   @Override

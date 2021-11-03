@@ -15,7 +15,6 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.SourceFileEnvironment;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
@@ -25,8 +24,6 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -36,6 +33,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
@@ -127,7 +125,7 @@ public class ApplicationWriter {
     }
 
     @Override
-    public boolean add(DexCode dexCode) {
+    public boolean add(DexEncodedMethod method, DexWritableCode dexCode) {
       return true;
     }
 
@@ -642,18 +640,9 @@ public class ApplicationWriter {
   }
 
   private void setCallSiteContexts(DexProgramClass clazz) {
-    for (DexEncodedMethod method : clazz.methods()) {
-      if (method.hasCode()) {
-        DexCode code = method.getCode().asDexCode();
-        assert code != null;
-        for (Instruction instruction : code.instructions) {
-          DexCallSite callSite = instruction.getCallSite();
-          if (callSite != null) {
-            callSite.setContext(method.getReference(), instruction.getOffset());
-          }
-        }
-      }
-    }
+    clazz.forEachProgramMethodMatching(
+        DexEncodedMethod::hasCode,
+        method -> method.getDefinition().getCode().asDexWritableCode().setCallSiteContexts(method));
   }
 
   /**
@@ -683,20 +672,23 @@ public class ApplicationWriter {
     // for all code objects and write the processed results into that map.
     // TODO(b/181636450): Reconsider the code mapping setup now that synthetics are never duplicated
     //  in outputs.
-    Map<DexEncodedMethod, DexCode> codeMapping = new IdentityHashMap<>();
+    Map<DexEncodedMethod, DexWritableCode> codeMapping = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      clazz.forEachMethod(
+      clazz.forEachProgramMethodMatching(
+          DexEncodedMethod::hasCode,
           method -> {
-            DexCode code =
-                method.rewriteCodeWithJumboStrings(
+            DexWritableCode code = method.getDefinition().getCode().asDexWritableCode();
+            DexWritableCode rewrittenCode =
+                code.rewriteCodeWithJumboStrings(
+                    method,
                     mapping,
                     application.dexItemFactory,
                     options.testing.forceJumboStringProcessing);
-            codeMapping.put(method, code);
+            codeMapping.put(method.getDefinition(), rewrittenCode);
             // The mapping now has ownership of the methods code object. This ensures freeing of
             // code resources once the map entry is cleared and also ensures that we don't end up
             // using the incorrect code pointer again later!
-            method.removeCode();
+            method.getDefinition().unsetCode();
           });
     }
     return MethodToCodeObjectMapping.fromMapBacking(codeMapping);

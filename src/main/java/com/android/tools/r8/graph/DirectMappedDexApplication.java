@@ -168,6 +168,8 @@ public class DirectMappedDexApplication extends DexApplication {
         // If code is (lazy) CF code, then use the CF code object rather than the lazy wrapper.
         if (code.isCfCode()) {
           code = code.asCfCode();
+        } else if (code.isSharedCodeObject()) {
+          continue;
         }
         DexEncodedMethod otherMethod = codeOwners.put(code, method);
         assert otherMethod == null;

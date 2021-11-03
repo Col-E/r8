@@ -6,7 +6,6 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.utils.LebUtils.sizeAsUleb128;
 
 import com.android.tools.r8.ByteBufferProvider;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DefaultInterfaceMethodDiagnostic;
 import com.android.tools.r8.errors.InvokeCustomDiagnostic;
@@ -20,7 +19,6 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
@@ -43,6 +41,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
@@ -341,7 +340,7 @@ public class FileWriter {
     for (DexProgramClass clazz : mapping.getClasses()) {
       clazz.forEachProgramMethod(
           method -> {
-            DexCode code = codeMapping.getCode(method.getDefinition());
+            DexWritableCode code = codeMapping.getCode(method.getDefinition());
             assert code != null || method.getDefinition().shouldNotHaveCode();
             if (code != null) {
               ProgramDexCode programCode = new ProgramDexCode(code, method);
@@ -409,18 +408,15 @@ public class FileWriter {
     return size;
   }
 
-  private int sizeOfCodeItem(DexCode code) {
+  private int sizeOfCodeItem(DexWritableCode code) {
     int result = 16;
-    int insnSize = 0;
-    for (Instruction insn : code.instructions) {
-      insnSize += insn.getSize();
-    }
+    int insnSize = code.codeSizeInBytes();
     result += insnSize * 2;
-    result += code.tries.length * 8;
-    if (code.handlers.length > 0) {
+    result += code.getTries().length * 8;
+    if (code.getHandlers().length > 0) {
       result = alignSize(4, result);
-      result += LebUtils.sizeAsUleb128(code.handlers.length);
-      for (TryHandler handler : code.handlers) {
+      result += LebUtils.sizeAsUleb128(code.getHandlers().length);
+      for (TryHandler handler : code.getHandlers()) {
         boolean hasCatchAll = handler.catchAllAddr != TryHandler.NO_HANDLER;
         result += LebUtils
             .sizeAsSleb128(hasCatchAll ? -handler.pairs.length : handler.pairs.length);
@@ -501,13 +497,13 @@ public class FileWriter {
     writeCodeItem(code.getCode(), code.getMethod());
   }
 
-  private void writeCodeItem(DexCode code, ProgramMethod method) {
-    mixedSectionOffsets.setOffsetFor(code, dest.align(4));
+  private void writeCodeItem(DexWritableCode code, ProgramMethod method) {
+    mixedSectionOffsets.setOffsetFor(method.getDefinition(), code, dest.align(4));
     // Fixed size header information.
-    dest.putShort((short) code.registerSize);
-    dest.putShort((short) code.incomingRegisterSize);
-    dest.putShort((short) code.outgoingRegisterSize);
-    dest.putShort((short) code.tries.length);
+    dest.putShort((short) code.getRegisterSize(method));
+    dest.putShort((short) code.getIncomingRegisterSize(method));
+    dest.putShort((short) code.getOutgoingRegisterSize());
+    dest.putShort((short) code.getTries().length);
     dest.putInt(mixedSectionOffsets.getOffsetFor(code.getDebugInfoForWriting()));
     // Jump over the size.
     int insnSizeOffset = dest.position();
@@ -519,16 +515,16 @@ public class FileWriter {
     dest.rewind(insnSize + 4);
     dest.putInt(insnSize / 2);
     dest.forward(insnSize);
-    if (code.tries.length > 0) {
+    if (code.getTries().length > 0) {
       // The tries need to be 4 byte aligned.
       int beginOfTriesOffset = dest.align(4);
       // First write the handlers, so that we know their mixedSectionOffsets.
-      dest.forward(code.tries.length * 8);
+      dest.forward(code.getTries().length * 8);
       int beginOfHandlersOffset = dest.position();
-      dest.putUleb128(code.handlers.length);
-      short[] offsets = new short[code.handlers.length];
+      dest.putUleb128(code.getHandlers().length);
+      short[] offsets = new short[code.getHandlers().length];
       int i = 0;
-      for (TryHandler handler : code.handlers) {
+      for (TryHandler handler : code.getHandlers()) {
         offsets[i++] = (short) (dest.position() - beginOfHandlersOffset);
         boolean hasCatchAll = handler.catchAllAddr != TryHandler.NO_HANDLER;
         dest.putSleb128(hasCatchAll ? -handler.pairs.length : handler.pairs.length);
@@ -544,7 +540,7 @@ public class FileWriter {
       int endOfCodeOffset = dest.position();
       // Now write the tries.
       dest.moveTo(beginOfTriesOffset);
-      for (Try aTry : code.tries) {
+      for (Try aTry : code.getTries()) {
         dest.putInt(aTry.startAddress);
         dest.putShort((short) aTry.instructionCount);
         dest.putShort(offsets[aTry.handlerIndex]);
@@ -665,13 +661,13 @@ public class FileWriter {
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
-      DexCode code = codeMapping.getCode(method);
+      DexWritableCode code = codeMapping.getCode(method);
       desugaredLibraryCodeToKeep.recordMethod(method.getReference());
       if (code == null) {
         assert method.shouldNotHaveCode();
         dest.putUleb128(0);
       } else {
-        dest.putUleb128(mixedSectionOffsets.getOffsetFor(code));
+        dest.putUleb128(mixedSectionOffsets.getOffsetFor(method, code));
         // Writing the methods starts to take up memory so we are going to flush the
         // code objects since they are no longer necessary after this.
         codeMapping.clearCode(method);
@@ -867,7 +863,7 @@ public class FileWriter {
     dest.putInt((int) adler.getValue());
   }
 
-  private int alignSize(int bytes, int value) {
+  private static int alignSize(int bytes, int value) {
     int mask = bytes - 1;
     return (value + mask) & ~mask;
   }
@@ -1083,7 +1079,7 @@ public class FileWriter {
 
     private final MethodToCodeObjectMapping codeMapping;
 
-    private final Reference2IntMap<DexCode> codes = createReference2IntMap();
+    private final Reference2IntMap<DexEncodedMethod> codes = createReference2IntMap();
     private final Object2IntMap<DexDebugInfo> debugInfos = createObject2IntMap();
     private final Object2IntMap<DexTypeList> typeLists = createObject2IntMap();
     private final Reference2IntMap<DexString> stringData = createReference2IntMap();
@@ -1159,8 +1155,8 @@ public class FileWriter {
     }
 
     @Override
-    public boolean add(DexCode code) {
-      return add(codes, code);
+    public boolean add(DexEncodedMethod method, DexWritableCode code) {
+      return add(codes, method);
     }
 
     @Override
@@ -1201,7 +1197,7 @@ public class FileWriter {
       return add(stringData, string);
     }
 
-    public Collection<DexCode> getCodes() {
+    public Collection<DexEncodedMethod> getCodes() {
       return codes.keySet();
     }
 
@@ -1312,8 +1308,8 @@ public class FileWriter {
       return lookup(annotationSetRefList, annotationSetRefLists);
     }
 
-    public int getOffsetFor(DexCode code) {
-      return lookup(code, codes);
+    public int getOffsetFor(DexEncodedMethod method, DexWritableCode code) {
+      return lookup(method, codes);
     }
 
     private <T> void setOffsetFor(T item, int offset, Object2IntMap<T> map) {
@@ -1330,8 +1326,8 @@ public class FileWriter {
       setOffsetFor(debugInfo, offset, debugInfos);
     }
 
-    void setOffsetFor(DexCode code, int offset) {
-      setOffsetFor(code, offset, codes);
+    void setOffsetFor(DexEncodedMethod method, DexWritableCode code, int offset) {
+      setOffsetFor(method, offset, codes);
     }
 
     void setOffsetFor(DexTypeList typeList, int offset) {

@@ -267,7 +267,7 @@ public final class InterfaceProcessor {
                       assert InvalidCode.isInvalidCode(defaultMethod.getCode());
                       assert !InvalidCode.isInvalidCode(companionMethod.getCode());
                       defaultMethod.accessFlags.setAbstract();
-                      defaultMethod.removeCode();
+                      defaultMethod.unsetCode();
                       graphLensBuilder.recordCodeMovedToCompanionClass(
                           defaultMethod.getReference(), companionMethod.getReference());
                     });

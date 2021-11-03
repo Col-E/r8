@@ -61,11 +61,14 @@ public final class ProgramMethod extends DexClassAndMethod
       IndexedItemCollection indexedItems, GraphLens graphLens, LensCodeRewriterUtils rewriter) {
     DexEncodedMethod definition = getDefinition();
     assert !definition.isObsolete();
-    assert !definition.hasCode() || definition.getCode().isDexCode();
     getReference().collectIndexedItems(indexedItems);
-    Code code = definition.getCode();
-    if (code != null && code.isDexCode()) {
-      code.asDexCode().collectIndexedItems(indexedItems, this, graphLens, rewriter);
+    if (definition.hasCode()) {
+      Code code = definition.getCode();
+      if (code.isDexCode()) {
+        code.asDexCode().collectIndexedItems(indexedItems, this, graphLens, rewriter);
+      } else {
+        assert code.isThrowNullCode();
+      }
     }
     definition.annotations().collectIndexedItems(indexedItems);
     definition.parameterAnnotationsList.collectIndexedItems(indexedItems);
@@ -106,9 +109,8 @@ public final class ProgramMethod extends DexClassAndMethod
   public void convertToThrowNullMethod(AppView<?> appView) {
     MethodAccessFlags accessFlags = getAccessFlags();
     accessFlags.demoteFromAbstract();
-    Code emptyThrowingCode = getDefinition().buildEmptyThrowingCode(appView.options());
     getDefinition().setApiLevelForCode(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView));
-    getDefinition().setCode(emptyThrowingCode, appView);
+    getDefinition().setCode(ThrowNullCode.get(), appView);
     getSimpleFeedback().markProcessed(getDefinition(), ConstraintWithTarget.ALWAYS);
     getSimpleFeedback().unsetOptimizationInfoForThrowNullMethod(this);
   }

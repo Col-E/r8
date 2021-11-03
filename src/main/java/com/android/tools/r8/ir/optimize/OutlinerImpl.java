@@ -1773,11 +1773,6 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public OutlineCode asOutlineCode() {
-      return this;
-    }
-
-    @Override
     public boolean isEmptyVoidMethod() {
       return false;
     }

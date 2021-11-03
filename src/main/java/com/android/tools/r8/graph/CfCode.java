@@ -62,7 +62,7 @@ import java.util.function.BiPredicate;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfCode extends Code implements StructuralItem<CfCode> {
+public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCode> {
 
   public enum StackMapStatus {
     NOT_VERIFIED,
@@ -261,7 +261,17 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
   }
 
   @Override
+  public boolean isCfWritableCode() {
+    return true;
+  }
+
+  @Override
   public CfCode asCfCode() {
+    return this;
+  }
+
+  @Override
+  public CfWritableCode asCfWritableCode() {
     return this;
   }
 
@@ -316,7 +326,8 @@ public class CfCode extends Code implements StructuralItem<CfCode> {
     return true;
   }
 
-  public void write(
+  @Override
+  public void writeCf(
       ProgramMethod method,
       CfVersion classFileVersion,
       AppView<?> appView,

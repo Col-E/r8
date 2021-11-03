@@ -561,7 +561,10 @@ public class IRConverter {
     }
   }
 
-  private boolean needsIRConversion() {
+  private boolean needsIRConversion(ProgramMethod method) {
+    if (method.getDefinition().getCode().isThrowNullCode()) {
+      return false;
+    }
     if (appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -1062,7 +1065,7 @@ public class IRConverter {
       options.testing.hookInIrConversion.run();
     }
 
-    if (!needsIRConversion() || options.skipIR) {
+    if (!needsIRConversion(method) || options.skipIR) {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
     }
@@ -1683,7 +1686,9 @@ public class IRConverter {
   }
 
   private synchronized void updateHighestSortingStrings(DexEncodedMethod method) {
-    DexString highestSortingReferencedString = method.getCode().asDexCode().highestSortingString;
+    Code code = method.getCode();
+    assert code.isDexWritableCode();
+    DexString highestSortingReferencedString = code.asDexWritableCode().getHighestSortingString();
     if (highestSortingReferencedString != null) {
       if (highestSortingString == null
           || highestSortingReferencedString.compareTo(highestSortingString) > 0) {

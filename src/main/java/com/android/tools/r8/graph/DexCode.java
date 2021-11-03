@@ -7,7 +7,10 @@ import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SwitchPayload;
+import com.android.tools.r8.dex.CodeToKeep;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
@@ -32,6 +35,7 @@ import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import java.nio.ShortBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 // DexCode corresponds to code item in dalvik/dex-format.html
-public class DexCode extends Code implements StructuralItem<DexCode> {
+public class DexCode extends Code implements DexWritableCode, StructuralItem<DexCode> {
 
   public static final String FAKE_THIS_PREFIX = "_";
   public static final String FAKE_THIS_SUFFIX = "this";
@@ -130,6 +134,36 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
     return DexCode::specify;
   }
 
+  @Override
+  public DexWritableCode rewriteCodeWithJumboStrings(
+      ProgramMethod method, ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force) {
+    DexString firstJumboString = null;
+    if (force) {
+      firstJumboString = mapping.getFirstString();
+    } else {
+      assert highestSortingString != null
+          || Arrays.stream(instructions).noneMatch(Instruction::isConstString);
+      assert Arrays.stream(instructions).noneMatch(Instruction::isDexItemBasedConstString);
+      if (highestSortingString != null
+          && mapping.getOffsetFor(highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
+        firstJumboString = mapping.getFirstJumboString();
+      }
+    }
+    return firstJumboString != null
+        ? new JumboStringRewriter(method.getDefinition(), firstJumboString, factory).rewrite()
+        : this;
+  }
+
+  @Override
+  public void setCallSiteContexts(ProgramMethod method) {
+    for (Instruction instruction : instructions) {
+      DexCallSite callSite = instruction.getCallSite();
+      if (callSite != null) {
+        callSite.setContext(method.getReference(), instruction.getOffset());
+      }
+    }
+  }
+
   public DexCode withoutThisParameter() {
     // Note that we assume the original code has a register associated with 'this'
     // argument of the (former) instance method. We also assume (but do not check)
@@ -150,6 +184,16 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   @Override
   public boolean isDexCode() {
     return true;
+  }
+
+  @Override
+  public boolean isDexWritableCode() {
+    return true;
+  }
+
+  @Override
+  public DexWritableCode asDexWritableCode() {
+    return this;
   }
 
   @Override
@@ -510,6 +554,7 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
       }
   }
 
+  @Override
   public DexDebugInfoForWriting getDebugInfoForWriting() {
     if (debugInfo == null) {
       return null;
@@ -519,6 +564,36 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
     }
 
     return debugInfoForWriting;
+  }
+
+  @Override
+  public TryHandler[] getHandlers() {
+    return handlers;
+  }
+
+  @Override
+  public DexString getHighestSortingString() {
+    return highestSortingString;
+  }
+
+  @Override
+  public Try[] getTries() {
+    return tries;
+  }
+
+  @Override
+  public int getRegisterSize(ProgramMethod method) {
+    return registerSize;
+  }
+
+  @Override
+  public int getIncomingRegisterSize(ProgramMethod method) {
+    return incomingRegisterSize;
+  }
+
+  @Override
+  public int getOutgoingRegisterSize() {
+    return outgoingRegisterSize;
   }
 
   private void updateHighestSortingString(DexString candidate) {
@@ -533,17 +608,59 @@ public class DexCode extends Code implements StructuralItem<DexCode> {
   }
 
   @Override
-  void collectMixedSectionItems(MixedSectionCollection mixedItems) {
-    if (mixedItems.add(this)) {
-      if (debugInfo != null) {
-        getDebugInfoForWriting().collectMixedSectionItems(mixedItems);
+  public void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+    if (debugInfo != null) {
+      getDebugInfoForWriting().collectMixedSectionItems(mixedItems);
+    }
+  }
+
+  @Override
+  public int codeSizeInBytes() {
+    Instruction last = instructions[instructions.length - 1];
+    assert last.hasOffset();
+    int result = last.getOffset() + last.getSize();
+    assert result == computeCodeSizeInBytes();
+    return result;
+  }
+
+  private int computeCodeSizeInBytes() {
+    int size = 0;
+    for (Instruction insn : instructions) {
+      size += insn.getSize();
+    }
+    return size;
+  }
+
+  @Override
+  public void writeKeepRulesForDesugaredLibrary(CodeToKeep desugaredLibraryCodeToKeep) {
+    for (Instruction instruction : instructions) {
+      DexMethod method = instruction.getMethod();
+      DexField field = instruction.getField();
+      if (field != null) {
+        assert method == null;
+        desugaredLibraryCodeToKeep.recordField(field);
+      } else if (method != null) {
+        desugaredLibraryCodeToKeep.recordMethod(method);
+      } else if (instruction.isConstClass()) {
+        desugaredLibraryCodeToKeep.recordClass(instruction.asConstClass().getType());
+      } else if (instruction.isInstanceOf()) {
+        desugaredLibraryCodeToKeep.recordClass(instruction.asInstanceOf().getType());
+      } else if (instruction.isCheckCast()) {
+        desugaredLibraryCodeToKeep.recordClass(instruction.asCheckCast().getType());
       }
     }
   }
 
-  public int codeSizeInBytes() {
-    Instruction last = instructions[instructions.length - 1];
-    return last.getOffset() + last.getSize();
+  @Override
+  public void writeDex(
+      ShortBuffer shortBuffer,
+      ProgramMethod context,
+      GraphLens graphLens,
+      LensCodeRewriterUtils lensCodeRewriter,
+      ObjectToOffsetMapping mapping) {
+    for (Instruction instruction : instructions) {
+      instruction.write(shortBuffer, context, graphLens, mapping, lensCodeRewriter);
+    }
   }
 
   public static class Try extends DexItem implements StructuralItem<Try> {

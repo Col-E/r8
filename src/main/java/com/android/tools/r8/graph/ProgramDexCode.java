@@ -6,15 +6,15 @@ package com.android.tools.r8.graph;
 
 public class ProgramDexCode {
 
-  private final DexCode code;
+  private final DexWritableCode code;
   private final ProgramMethod method;
 
-  public ProgramDexCode(DexCode code, ProgramMethod method) {
+  public ProgramDexCode(DexWritableCode code, ProgramMethod method) {
     this.code = code;
     this.method = method;
   }
 
-  public DexCode getCode() {
+  public DexWritableCode getCode() {
     return code;
   }
 

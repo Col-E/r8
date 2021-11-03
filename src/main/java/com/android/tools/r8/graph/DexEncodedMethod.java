@@ -40,8 +40,6 @@ import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.code.XorIntLit8;
-import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
@@ -776,8 +774,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public void collectMixedSectionItemsWithCodeMapping(
       MixedSectionCollection mixedItems, MethodToCodeObjectMapping mapping) {
-    DexCode code = mapping.getCode(this);
-    if (code != null) {
+    DexWritableCode code = mapping.getCode(this);
+    if (code != null && mixedItems.add(this, code)) {
       code.collectMixedSectionItems(mixedItems);
     }
     annotations().collectMixedSectionItems(mixedItems);
@@ -795,11 +793,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public Code getCode() {
     checkIfObsolete();
     return code;
-  }
-
-  public void removeCode() {
-    checkIfObsolete();
-    code = null;
   }
 
   public CfVersion getClassFileVersion() {
@@ -1296,34 +1289,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     method.copyMetadata(this);
     setObsolete();
     return method;
-  }
-
-  /** Rewrites the code in this method to have JumboString bytecode if required by mapping. */
-  public DexCode rewriteCodeWithJumboStrings(
-      ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force) {
-    checkIfObsolete();
-    assert code == null || code.isDexCode();
-    if (code == null) {
-      return null;
-    }
-    DexCode code = this.code.asDexCode();
-    DexString firstJumboString = null;
-    if (force) {
-      firstJumboString = mapping.getFirstString();
-    } else {
-      assert code.highestSortingString != null
-          || Arrays.stream(code.instructions).noneMatch(Instruction::isConstString);
-      assert Arrays.stream(code.instructions).noneMatch(Instruction::isDexItemBasedConstString);
-      if (code.highestSortingString != null
-          && mapping.getOffsetFor(code.highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
-        firstJumboString = mapping.getFirstJumboString();
-      }
-    }
-    if (firstJumboString != null) {
-      JumboStringRewriter rewriter = new JumboStringRewriter(this, firstJumboString, factory);
-      return rewriter.rewrite();
-    }
-    return code;
   }
 
   public String codeToString() {
