@@ -8,6 +8,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,13 +22,39 @@ public class NewArrayTestRunner extends TestBase {
   private final TestParameters parameters;
   private final CompilationMode mode;
 
-  private static final String EXPECTED =
-      "0\n0\n1\n0\n1\n2\n0\n1\n2\n3\n0\n1\n2\n3\n4\n0\n1\n2\n3\n4\n5\n0\n1\n2\n3\n4\n5\n6\n0\n1\n"
-          + "2\n3\n4\n5\n6\n7\n0\n1\n0\n3\n4\n0\n6\n7\n0\n0\n1\n0\n1\n2\n0\n1\n2\n3\n0\n1\n2\n3\n"
-          + "4\n0\n1\n2\n3\n4\n5\n0\n1\n2\n3\n4\n5\n0\n1\n0\n4\n0\n0\n0\n1\n0\n1\n2\n0\n1\n2\n3\n"
-          + "0\n1\n2\n3\n4\n0\n1\n2\n3\n4\n5\n0\n1\n2\n3\n4\n5\n6\n0\n1\n2\n0\n3\n4\n5\n6\n6\n6\n"
-          + "6\n6\n6\n1\n1\n1\n1\n1\n1\n8\n8\n8\n8\n2\n4\n6\n8\n10\n12\n14\n16\nfalse\n0\n\0\n0\n"
-          + "0\n0.0\n0.0\nnull\n";
+  private static final List<String> EXPECTED =
+      ImmutableList.of(
+          "[]",
+          "[0]",
+          "[0,1]",
+          "[0,1,2]",
+          "[0,1,2,3]",
+          "[0,1,2,3,4]",
+          "[0,1,2,3,4,5]",
+          "[0,1,2,3,4,5,6]",
+          "[0,1,2,3,4,5,6,7]",
+          "[0,1,2,3,4,5,6,7]",
+          "[]",
+          "[0]",
+          "[0,1]",
+          "[0,1,2]",
+          "[0,1,2,3]",
+          "[0,1,2,3,4]",
+          "[0,1,2,3,4,5]",
+          "[0,1,2,3,4,5,6,7,8,9,10]",
+          "[]",
+          "[0]",
+          "[0,1]",
+          "[0,1,2]",
+          "[0,1,2,3]",
+          "[0,1,2,3,4]",
+          "[0,1,2,3,4,5]",
+          "[0,1,2,3,4,5,6]",
+          "[0,1,2,3,4,5,6,7]",
+          "6,6,6,6,6",
+          "1,1,1,1,1,1",
+          "8,8,8,8",
+          "2,4,6,8,10,12,14,16,false,0,0,0,0,0.0,0.0,null");
 
   @Parameterized.Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
@@ -46,7 +73,7 @@ public class NewArrayTestRunner extends TestBase {
     testForJvm(getStaticTemp())
         .addProgramClassesAndInnerClasses(CLASS)
         .run(parameters.getRuntime(), CLASS)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -57,7 +84,7 @@ public class NewArrayTestRunner extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -68,6 +95,6 @@ public class NewArrayTestRunner extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 }

@@ -16,7 +16,40 @@ class NewArray {
   }
 
   public static void printArray(int[] array) {
-    for (int i : array) System.out.println(i);
+    System.out.print("[");
+    if (array.length > 0) {
+      System.out.print(array[0]);
+      for (int i = 1; i < array.length; i++) {
+        System.out.print(",");
+        System.out.print(i);
+      }
+    }
+    System.out.println("]");
+  }
+
+  static void printIntermediate(boolean b) {
+    System.out.print(b);
+    System.out.print(",");
+  }
+
+  static void printIntermediate(double d) {
+    System.out.print(d);
+    System.out.print(",");
+  }
+
+  static void printIntermediate(float f) {
+    System.out.print(f);
+    System.out.print(",");
+  }
+
+  static void printIntermediate(int i) {
+    System.out.print(i);
+    System.out.print(",");
+  }
+
+  static void printIntermediate(long l) {
+    System.out.print(l);
+    System.out.print(",");
   }
 
   public static void test() {
@@ -88,24 +121,24 @@ class NewArray {
     int[][][][] i4 = new int[n][n][n][n];
     int[][][][][] i5 = new int[n][n][n][n][n];
     int[][][][][][] i6 = new int[n][n][n][n][n][n];
-    System.out.println(i2.length);
-    System.out.println(i3.length);
-    System.out.println(i4.length);
-    System.out.println(i5.length);
+    printIntermediate(i2.length);
+    printIntermediate(i3.length);
+    printIntermediate(i4.length);
+    printIntermediate(i5.length);
     System.out.println(i6.length);
   }
 
   public static void newMultiDimensionalArrays2(int n1, int n2, int n3, int n4, int n5, int n6) {
     int[][] i2 = new int[n1][n2];
-    System.out.println(i2.length);
+    printIntermediate(i2.length);
     int[][][] i3 = new int[n1][n2][n3];
-    System.out.println(i3.length);
+    printIntermediate(i3.length);
     int[][][][] i4 = new int[n1][n2][n3][n4];
-    System.out.println(i4.length);
+    printIntermediate(i4.length);
     int[][][][][] i5 = new int[n1][n2][n3][n4][n5];
-    System.out.println(i5.length);
+    printIntermediate(i5.length);
     int[][][][][][] i6 = new int[n1][n2][n3][n4][n5][n6];
-    System.out.println(i6.length);
+    printIntermediate(i6.length);
     int[][][][][][] i7 = new int[n1][n2][n1][n4][n5][n1];
     System.out.println(i7.length);
   }
@@ -115,9 +148,9 @@ class NewArray {
     int[][][][] i4 = new int[n][n][][];
     int[][][][][][][] i7 = new int[n][n][n][n][n][n][];
     int[][][][][][][][] i8 = new int[n][n][n][n][n][n][][];
-    System.out.println(i3.length);
-    System.out.println(i4.length);
-    System.out.println(i7.length);
+    printIntermediate(i3.length);
+    printIntermediate(i4.length);
+    printIntermediate(i7.length);
     System.out.println(i8.length);
   }
 
@@ -130,21 +163,21 @@ class NewArray {
     float[][] a6 = new float[11][12];
     double[][] a7 = new double[13][14];
     A[][] a8 = new A[15][16];
-    System.out.println(a1[0].length);
-    System.out.println(a2[0].length);
-    System.out.println(a3[0].length);
-    System.out.println(a4[0].length);
-    System.out.println(a5[0].length);
-    System.out.println(a6[0].length);
-    System.out.println(a7[0].length);
-    System.out.println(a8[0].length);
-    System.out.println(a1[0][0]);
-    System.out.println(a2[0][0]);
-    System.out.println(a3[0][0]);
-    System.out.println(a4[0][0]);
-    System.out.println(a5[0][0]);
-    System.out.println(a6[0][0]);
-    System.out.println(a7[0][0]);
+    printIntermediate(a1[0].length);
+    printIntermediate(a2[0].length);
+    printIntermediate(a3[0].length);
+    printIntermediate(a4[0].length);
+    printIntermediate(a5[0].length);
+    printIntermediate(a6[0].length);
+    printIntermediate(a7[0].length);
+    printIntermediate(a8[0].length);
+    printIntermediate(a1[0][0]);
+    printIntermediate(a2[0][0]);
+    printIntermediate(a3[0][0]);
+    printIntermediate(a4[0][0]);
+    printIntermediate(a5[0][0]);
+    printIntermediate(a6[0][0]);
+    printIntermediate(a7[0][0]);
     System.out.println(a8[0][0]);
   }
 
