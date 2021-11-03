@@ -59,17 +59,18 @@ public abstract class StaticFieldValues {
           DexEncodedField staticField, AbstractValue value, DexItemFactory factory) {
         if (factory.enumMembers.isValuesFieldCandidate(staticField, staticField.getHolderType())) {
           if (value.isSingleFieldValue()
-              && value.asSingleFieldValue().getState().isEnumValuesObjectState()) {
+              && value.asSingleFieldValue().getObjectState().isEnumValuesObjectState()) {
             assert valuesCandidateAbstractValue == null
                 || valuesCandidateAbstractValue.equals(value);
             valuesCandidateAbstractValue = value;
             enumObjectStateBuilder.put(
-                staticField.getReference(), value.asSingleFieldValue().getState());
+                staticField.getReference(), value.asSingleFieldValue().getObjectState());
           }
         } else if (factory.enumMembers.isEnumField(staticField, staticField.getHolderType())) {
-          if (value.isSingleFieldValue() && !value.asSingleFieldValue().getState().isEmpty()) {
+          if (value.isSingleFieldValue()
+              && !value.asSingleFieldValue().getObjectState().isEmpty()) {
             enumObjectStateBuilder.put(
-                staticField.getReference(), value.asSingleFieldValue().getState());
+                staticField.getReference(), value.asSingleFieldValue().getObjectState());
           }
         }
       }

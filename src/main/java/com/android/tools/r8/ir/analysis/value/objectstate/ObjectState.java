@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.value.objectstate;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -57,6 +58,15 @@ public abstract class ObjectState {
 
   @Override
   public abstract int hashCode();
+
+  public boolean hasKnownArrayLength() {
+    return false;
+  }
+
+  public int getKnownArrayLength() {
+    // Override this method if hasKnownArrayLength answers true.
+    throw new Unreachable();
+  }
 
   public boolean isEnumValuesObjectState() {
     return false;

@@ -48,7 +48,11 @@ public abstract class SingleFieldValue extends SingleValue {
     return field.lookupOnClass(holder);
   }
 
-  public abstract ObjectState getState();
+  @Override
+  public abstract ObjectState getObjectState();
+
+  @Override
+  public abstract boolean hasObjectState();
 
   public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(AppView<AppInfoWithLiveness> appView) {
     DexType fieldType = field.type;
@@ -140,6 +144,6 @@ public abstract class SingleFieldValue extends SingleValue {
       }
     }
     return factory.createSingleFieldValue(
-        lens.lookupField(field), getState().rewrittenWithLens(appView, lens));
+        lens.lookupField(field), getObjectState().rewrittenWithLens(appView, lens));
   }
 }

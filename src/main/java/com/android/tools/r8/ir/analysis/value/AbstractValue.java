@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class AbstractValue {
@@ -57,12 +58,30 @@ public abstract class AbstractValue {
     return null;
   }
 
-  public boolean isKnownLengthArrayValue() {
+  public boolean hasObjectState() {
     return false;
   }
 
-  public KnownLengthArrayValue asKnownLengthArrayValue() {
+  public ObjectState getObjectState() {
+    throw new UnsupportedOperationException(
+        "Abstract value " + this + " does not have any object state.");
+  }
+
+  public boolean isStatefulObjectValue() {
+    return false;
+  }
+
+  public StatefulObjectValue asStatefulObjectValue() {
     return null;
+  }
+
+  public boolean hasKnownArrayLength() {
+    return false;
+  }
+
+  public int getKnownArrayLength() {
+    throw new UnsupportedOperationException(
+        "Abstract value " + this + " does not have a known array length.");
   }
 
   public boolean isSingleConstValue() {

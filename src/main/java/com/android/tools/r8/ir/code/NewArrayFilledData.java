@@ -11,6 +11,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.StatefulObjectValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -127,7 +128,8 @@ public class NewArrayFilledData extends Instruction {
       AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context) && size <= Integer.MAX_VALUE) {
       assert !instructionInstanceCanThrow();
-      return appView.abstractValueFactory().createKnownLengthArrayValue((int) size);
+      return StatefulObjectValue.create(
+          appView.abstractValueFactory().createKnownLengthArrayState((int) size));
     }
     return UnknownValue.getInstance();
   }

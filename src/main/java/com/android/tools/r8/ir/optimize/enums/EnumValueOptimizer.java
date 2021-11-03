@@ -356,7 +356,7 @@ public class EnumValueOptimizer {
     if (encodedField == null) {
       return null;
     }
-    return abstractValue.asSingleFieldValue().getState().getAbstractFieldValue(encodedField);
+    return abstractValue.asSingleFieldValue().getObjectState().getAbstractFieldValue(encodedField);
   }
 
   private static final class EnumSwitchInfo {
