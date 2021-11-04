@@ -305,7 +305,7 @@ public class ArgumentPropagatorCodeScanner {
     // If we already don't know anything about the parameters for the given type bounds, then don't
     // compute a method state.
     if (existingMethodStateForBounds.isUnknown()) {
-      return MethodState.unknown();
+      return MethodState.bottom();
     }
 
     ConcreteMonomorphicMethodStateOrUnknown methodStateForBounds =
