@@ -13,18 +13,18 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -32,43 +32,27 @@ public class InvokeInterfacePositiveTest extends TestBase {
 
   private static final Class<?> MAIN = Main.class;
 
-  @Parameters(name = "{1}, experimental: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final boolean enableExperimentalArgumentPropagation;
-  private final TestParameters parameters;
-
-  public InvokeInterfacePositiveTest(
-      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
-    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeInterfacePositiveTest.class)
         .addKeepMainRule(MAIN)
-        .addOptionsModification(
-            o -> {
-              // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single
-              // target.
-              o.enableDevirtualization = false;
-              if (!enableExperimentalArgumentPropagation) {
-                o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-              }
-              o.callSiteOptimizationOptions()
-                  .setEnableLegacyConstantPropagation()
-                  .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
-            })
+        // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single
+        // target.
+        .addOptionsModification(o -> o.enableDevirtualization = false)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
-        .minification(!enableExperimentalArgumentPropagation)
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
@@ -90,31 +74,24 @@ public class InvokeInterfacePositiveTest extends TestBase {
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
 
-    if (enableExperimentalArgumentPropagation) {
-      // Verify that the "nul" argument has been propagated to the m() methods.
-      MethodSubject mainMethodSubject = main.mainMethod();
-      assertThat(mainMethodSubject, isPresent());
-      assertTrue(
-          mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isConstString));
-    }
+    // Verify that the "nul" argument has been propagated to the m() methods.
+    MethodSubject mainMethodSubject = main.mainMethod();
+    assertThat(mainMethodSubject, isPresent());
+    assertTrue(mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isConstString));
 
     ClassSubject i = inspector.clazz(I.class);
     assertThat(i, isPresent());
 
     MethodSubject i_m = i.uniqueMethodWithName("m");
     assertThat(i_m, isPresent());
-    assertEquals(
-        1 - BooleanUtils.intValue(enableExperimentalArgumentPropagation),
-        i_m.getProgramMethod().getReference().getArity());
+    assertEquals(0, i_m.getProgramMethod().getReference().getArity());
 
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    assertEquals(
-        1 - BooleanUtils.intValue(enableExperimentalArgumentPropagation),
-        a_m.getProgramMethod().getReference().getArity());
+    assertEquals(0, a_m.getProgramMethod().getReference().getArity());
     // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
     assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
 
@@ -123,9 +100,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
 
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
-    assertEquals(
-        1 - BooleanUtils.intValue(enableExperimentalArgumentPropagation),
-        b_m.getProgramMethod().getReference().getArity());
+    assertEquals(0, b_m.getProgramMethod().getReference().getArity());
     // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
     assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
   }

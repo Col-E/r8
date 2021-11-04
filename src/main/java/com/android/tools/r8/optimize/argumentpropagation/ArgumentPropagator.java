@@ -54,10 +54,6 @@ public class ArgumentPropagator {
     assert appView.enableWholeProgramOptimizations();
     assert appView.options().isOptimizing();
     assert appView.options().callSiteOptimizationOptions().isEnabled();
-    assert appView
-        .options()
-        .callSiteOptimizationOptions()
-        .isExperimentalArgumentPropagationEnabled();
     this.appView = appView;
   }
 

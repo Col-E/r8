@@ -12,7 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
@@ -33,24 +34,16 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
 
   private static final String EXPECTED = StringUtils.lines("Hello world!");
 
-  private final boolean enableExperimentalArgumentPropagation;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "{1}, experimental: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters()
-            .withAllRuntimes()
-            // Only works when invoke-custom/dynamic are supported and ConstantCallSite defined.
-            .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
-            .build());
-  }
-
-  public CallSiteOptimizationWithInvokeCustomTargetTest(
-      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
-    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
-    this.parameters = parameters;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withAllRuntimes()
+        // Only works when invoke-custom/dynamic are supported and ConstantCallSite defined.
+        .withApiLevelsStartingAtIncluding(apiLevelWithInvokeCustomSupport())
+        .build();
   }
 
   @Test
@@ -67,12 +60,6 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
         .addProgramClassFileData(getProgramClassFileData())
         .addKeepMainRule(TestClass.class)
         .addKeepMethodRules(methodFromMethod(TestClass.class.getDeclaredMethod("bar", int.class)))
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(
-                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)

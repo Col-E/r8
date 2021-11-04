@@ -39,11 +39,6 @@ public class CollisionWithLibraryMethodAfterConstantParameterRemovalTest extends
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

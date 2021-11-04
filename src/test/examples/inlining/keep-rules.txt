@@ -11,7 +11,9 @@
 -alwaysinline class * {
   @inlining.AlwaysInline <methods>;
 }
-
 -neverinline class * {
   @inlining.NeverInline <methods>;
+}
+-keepconstantarguments class * {
+  @inlining.KeepConstantArguments <methods>;
 }

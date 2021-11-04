@@ -1233,24 +1233,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public class CallSiteOptimizationOptions {
 
+    private boolean enabled = true;
+
     // Each time we see an invoke with more dispatch targets than the threshold, we stop call site
     // propagation for all these dispatch targets. The motivation for this is that it is expensive
     // and that we are somewhat unlikely to have precise knowledge about the value of arguments when
     // there are many (possibly spurious) call graph edges.
     private final int maxNumberOfDispatchTargetsBeforeAbandoning = 10;
 
-    // TODO(b/69963623): enable if everything is ready, including signature rewriting at call sites.
-    private boolean enableLegacyConstantPropagation = false;
-    private boolean enableExperimentalArgumentPropagation = true;
-    private boolean enableDynamicTypePropagation = true;
-
     public void disableOptimization() {
-      enableLegacyConstantPropagation = false;
-      enableDynamicTypePropagation = false;
-    }
-
-    public void disableDynamicTypePropagationForTesting() {
-      enableDynamicTypePropagation = false;
+      enabled = false;
     }
 
     public int getMaxNumberOfDispatchTargetsBeforeAbandoning() {
@@ -1265,19 +1257,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (!isOptimizing() || !isShrinking()) {
         return false;
       }
-      return enableLegacyConstantPropagation || enableDynamicTypePropagation;
-    }
-
-    public boolean isExperimentalArgumentPropagationEnabled() {
-      return enableExperimentalArgumentPropagation;
-    }
-
-    public boolean isConstantPropagationEnabled() {
-      return enableLegacyConstantPropagation || isExperimentalArgumentPropagationEnabled();
-    }
-
-    public boolean isDynamicTypePropagationEnabled() {
-      return enableDynamicTypePropagation;
+      return enabled;
     }
 
     public CallSiteOptimizationOptions setEnabled(boolean enabled) {
@@ -1286,18 +1266,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       } else {
         disableOptimization();
       }
-      return this;
-    }
-
-    public CallSiteOptimizationOptions setEnableLegacyConstantPropagation() {
-      assert !enableLegacyConstantPropagation;
-      enableLegacyConstantPropagation = true;
-      return this;
-    }
-
-    public CallSiteOptimizationOptions setEnableExperimentalArgumentPropagation(
-        boolean enableExperimentalArgumentPropagation) {
-      this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
       return this;
     }
   }

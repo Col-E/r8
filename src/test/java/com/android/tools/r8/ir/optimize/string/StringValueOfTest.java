@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.SingleTestRunResult;
@@ -55,10 +56,6 @@ public class StringValueOfTest extends TestBase {
   }
 
   private void configure(InternalOptions options) {
-    // Disable the propagation of call site information to test String#valueOf optimization with
-    // nullable argument. Otherwise, e.g., we know that only `null` is used for `hideNPE`, and then
-    // simplify everything in that method.
-    options.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
     options.testing.forceNameReflectionOptimization = true;
   }
 
@@ -86,12 +83,12 @@ public class StringValueOfTest extends TestBase {
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    int expectedCount = isR8 ? 4 : (isRelease ? 5 : 7);
+    int expectedCount = isR8 ? 3 : (isRelease ? 5 : 7);
     assertEquals(expectedCount, countCall(mainMethod, "String", "valueOf"));
     // Due to the different behavior regarding constant canonicalization.
-    expectedCount = isR8 ? (parameters.isCfRuntime() ? 4 : 1) : 1;
+    expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : 1;
     assertEquals(expectedCount, countConstNullNumber(mainMethod));
-    expectedCount = isR8 ? 1 : (isRelease ? 1 : 0);
+    expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : (isRelease ? 1 : 0);
     assertEquals(expectedCount, countNullStringNumber(mainMethod));
 
     MethodSubject hideNPE = mainClass.uniqueMethodWithName("hideNPE");
@@ -111,6 +108,7 @@ public class StringValueOfTest extends TestBase {
     SingleTestRunResult<?> result =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
+            .enableConstantArgumentAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
@@ -155,6 +153,7 @@ public class StringValueOfTest extends TestBase {
       return String.valueOf(arg);
     }
 
+    @KeepConstantArguments
     @NeverInline
     static String hideNPE(String s) {
       return String.valueOf(s);

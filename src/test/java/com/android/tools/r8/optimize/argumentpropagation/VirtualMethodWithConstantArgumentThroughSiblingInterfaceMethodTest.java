@@ -37,11 +37,6 @@ public class VirtualMethodWithConstantArgumentThroughSiblingInterfaceMethodTest 
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

@@ -52,11 +52,6 @@ public class MonomorphicVirtualMethodWithInterfaceMethodSiblingTest extends Test
                     .apply(ignore -> inspected.set()))
         .addHorizontallyMergedClassesInspector(
             HorizontallyMergedClassesInspector::assertNoClassesMerged)
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .addVerticallyMergedClassesInspector(
             VerticallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()

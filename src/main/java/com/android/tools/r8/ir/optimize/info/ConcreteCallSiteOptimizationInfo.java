@@ -27,7 +27,6 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterSt
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import java.util.List;
 
 // Accumulated optimization info from call sites.
@@ -39,13 +38,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   private final Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes;
   private final Int2ReferenceMap<AbstractValue> constants;
 
-  private ConcreteCallSiteOptimizationInfo(int size, boolean allowConstantPropagation) {
-    this(
-        size,
-        new Int2ReferenceArrayMap<>(size),
-        allowConstantPropagation
-            ? new Int2ReferenceArrayMap<>(size)
-            : Int2ReferenceMaps.emptyMap());
+  private ConcreteCallSiteOptimizationInfo(int size) {
+    this(size, new Int2ReferenceArrayMap<>(size), new Int2ReferenceArrayMap<>(size));
   }
 
   private ConcreteCallSiteOptimizationInfo(
@@ -128,21 +122,16 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       ConcreteCallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod method) {
     assert size == other.size;
     assert size == method.getNumberOfArguments();
-    boolean allowConstantPropagation =
-        appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
-    ConcreteCallSiteOptimizationInfo result =
-        new ConcreteCallSiteOptimizationInfo(size, allowConstantPropagation);
+    ConcreteCallSiteOptimizationInfo result = new ConcreteCallSiteOptimizationInfo(size);
     for (int i = 0; i < result.size; i++) {
-      if (allowConstantPropagation) {
-        AbstractValue abstractValue =
-            getAbstractArgumentValue(i)
-                .join(
-                    other.getAbstractArgumentValue(i),
-                    appView.abstractValueFactory(),
-                    method.getArgumentType(i));
-        if (abstractValue.isNonTrivial()) {
-          result.constants.put(i, abstractValue);
-        }
+      AbstractValue abstractValue =
+          getAbstractArgumentValue(i)
+              .join(
+                  other.getAbstractArgumentValue(i),
+                  appView.abstractValueFactory(),
+                  method.getArgumentType(i));
+      if (abstractValue.isNonTrivial()) {
+        result.constants.put(i, abstractValue);
       }
 
       TypeElement thisUpperBoundType = getDynamicUpperBoundType(i);
@@ -186,7 +175,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     for (int i = 0; i < size; i++) {
       AbstractValue abstractValue = getAbstractArgumentValue(i);
       if (abstractValue.isNonTrivial()) {
-        assert appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
         return true;
       }
 
@@ -197,7 +185,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (dynamicUpperBoundType == null) {
         continue;
       }
-      assert appView.options().callSiteOptimizationOptions().isDynamicTypePropagationEnabled();
       // To avoid the full join of type lattices below, separately check if the nullability of
       // arguments is improved, and if so, we can eagerly conclude that we've collected useful
       // call site information for this method.
@@ -232,17 +219,14 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       DexMethod invokedMethod,
       List<Value> arguments,
       ProgramMethod context) {
-    boolean allowConstantPropagation =
-        appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
     ConcreteCallSiteOptimizationInfo newCallSiteInfo =
-        new ConcreteCallSiteOptimizationInfo(arguments.size(), allowConstantPropagation);
+        new ConcreteCallSiteOptimizationInfo(arguments.size());
     boolean hasReceiver = arguments.size() > invokedMethod.getArity();
     boolean isTop = true;
     for (int i = 0; i < newCallSiteInfo.size; i++) {
       Value arg = arguments.get(i);
 
       // Constant propagation.
-      if (allowConstantPropagation) {
         Value aliasedValue = arg.getAliasedValue();
         if (!aliasedValue.isPhi()) {
           AbstractValue abstractValue = aliasedValue.definition.getAbstractValue(appView, context);
@@ -250,7 +234,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
             newCallSiteInfo.constants.put(i, abstractValue);
             isTop = false;
           }
-        }
       }
 
       // Type propagation.
@@ -276,10 +259,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod method,
       ConcreteMonomorphicMethodState methodState) {
-    boolean allowConstantPropagation =
-        appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
     ConcreteCallSiteOptimizationInfo newCallSiteInfo =
-        new ConcreteCallSiteOptimizationInfo(methodState.size(), allowConstantPropagation);
+        new ConcreteCallSiteOptimizationInfo(methodState.size());
     boolean isTop = true;
     for (int argumentIndex = 0; argumentIndex < methodState.size(); argumentIndex++) {
       ParameterState parameterState = methodState.getParameterState(argumentIndex);
@@ -290,13 +271,11 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       ConcreteParameterState concreteParameterState = parameterState.asConcrete();
 
       // Constant propagation.
-      if (allowConstantPropagation) {
         AbstractValue abstractValue = concreteParameterState.getAbstractValue(appView);
         if (abstractValue.isNonTrivial()) {
           newCallSiteInfo.constants.put(argumentIndex, abstractValue);
           isTop = false;
         }
-      }
 
       // Type propagation.
       DexType staticType = method.getDefinition().getArgumentType(argumentIndex);
@@ -305,13 +284,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         if (staticType.isArrayType()) {
           Nullability nullability = concreteParameterState.asArrayParameter().getNullability();
           if (nullability.isDefinitelyNull()) {
-            if (allowConstantPropagation) {
               newCallSiteInfo.constants.put(
                   argumentIndex, appView.abstractValueFactory().createNullValue());
-            } else {
-              newCallSiteInfo.dynamicUpperBoundTypes.put(
-                  argumentIndex, staticTypeElement.asArrayType().asDefinitelyNull());
-            }
             isTop = false;
           } else if (nullability.isDefinitelyNotNull()) {
             newCallSiteInfo.dynamicUpperBoundTypes.put(
@@ -364,6 +338,6 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   @Override
   public String toString() {
     return dynamicUpperBoundTypes.toString()
-        + (constants == null ? "" : (System.lineSeparator() + constants.toString()));
+        + (constants == null ? "" : (System.lineSeparator() + constants));
   }
 }

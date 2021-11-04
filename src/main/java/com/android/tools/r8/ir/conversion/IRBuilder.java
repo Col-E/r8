@@ -760,16 +760,10 @@ public class IRBuilder {
       //  !appView.hasLiveness() (which currently may happen due to the reflective behavior
       //  handling in the final round of tree shaking).
       if (appView.hasLiveness()) {
-        if (appView
-                .options()
-                .callSiteOptimizationOptions()
-                .isExperimentalArgumentPropagationEnabled()
-            || appView.callSiteOptimizationInfoPropagator().getMode().isRevisit()) {
-          ArgumentPropagatorIROptimizer.optimize(
-              appView.withLiveness(),
-              ir,
-              callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
-        }
+        ArgumentPropagatorIROptimizer.optimize(
+            appView.withLiveness(),
+            ir,
+            callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
       }
     }
 

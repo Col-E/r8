@@ -116,16 +116,11 @@ public class R8InliningTest extends TestBase {
         .addOptionsModification(
             o -> {
               // Disable class inlining to prevent that the instantiation of Nullability is removed,
-              // and
-              // that the class is therefore made abstract.
+              // and that the class is therefore made abstract.
               o.enableClassInlining = false;
               o.inlinerOptions().enableInlining = inlining;
               o.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
               o.inlinerOptions().simpleInliningInstructionLimit = 6;
-              // Tests depend on nullability of receiver and argument in general. Learning very
-              // accurate
-              // nullability from actual usage in tests bothers what we want to test.
-              o.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
               o.testing.horizontallyMergedClassesConsumer = this::fixInliningNullabilityClass;
               o.testing.horizontalClassMergingTarget =
                   (appView, candidates, target) -> {

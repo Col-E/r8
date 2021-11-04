@@ -11,38 +11,31 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class InvokeStaticPositiveTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
-  @Parameters(name = "{1}, experimental: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  private final boolean enableExperimentalArgumentPropagation;
-  private final TestParameters parameters;
-
-  public InvokeStaticPositiveTest(
-      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
-    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
@@ -52,11 +45,8 @@ public class InvokeStaticPositiveTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(
-            o -> {
-              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-              o.callSiteOptimizationOptions()
-                  .setEnableExperimentalArgumentPropagation(enableExperimentalArgumentPropagation);
-            })
+            o ->
+                o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Sub1")

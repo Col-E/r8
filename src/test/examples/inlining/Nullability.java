@@ -32,6 +32,7 @@ class Nullability {
     return a != null ? this.f : -1;
   }
 
+  @KeepConstantArguments
   int notInlinableDueToSideEffect(A a) {
     // NPE is not preserved when the receiver is null and a is not null.
     return a != null ? a.a() : this.f;

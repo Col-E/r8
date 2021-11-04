@@ -146,13 +146,6 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     this.mode = mode;
   }
 
-  private void configure(InternalOptions options) {
-    // In `getMainClass`, a call with `null`, which will throw NPE, is replaced with null throwing
-    // code. Then, remaining call with non-null argument made getClass() replaceable.
-    // Disable the propagation of call site information to separate the tests.
-    options.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
-  }
-
   @Test
   public void testJVM() throws Exception {
     assumeTrue(
@@ -223,7 +216,6 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .addKeepMainRule(MAIN)
         .noMinification()
-        .addOptionsModification(this::configure)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT)

@@ -39,11 +39,6 @@ public class StaticMethodWithConstantArgumentThroughCallChainTest extends TestBa
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .enableInliningAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument removal.
         .noMinification()

@@ -42,11 +42,6 @@ public class MonomorphicVirtualMethodTest extends TestBase {
                     .assertHasMonomorphicMethodState(
                         Reference.methodFromMethod(A.class.getDeclaredMethod("m", int.class)))
                     .apply(ignore -> inspected.set()))
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

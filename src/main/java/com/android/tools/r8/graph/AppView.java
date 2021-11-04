@@ -23,7 +23,6 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
-import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
@@ -93,7 +92,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   // Optimizations.
   private final ArgumentPropagator argumentPropagator;
-  private final CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator;
   private final LibraryMemberOptimizer libraryMemberOptimizer;
   private final ProtoShrinker protoShrinker;
 
@@ -131,17 +129,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.rewritePrefix = mapper;
 
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
-      if (options().callSiteOptimizationOptions().isExperimentalArgumentPropagationEnabled()) {
-        this.argumentPropagator = new ArgumentPropagator(withLiveness());
-        this.callSiteOptimizationInfoPropagator = null;
-      } else {
-        this.argumentPropagator = null;
-        this.callSiteOptimizationInfoPropagator =
-            new CallSiteOptimizationInfoPropagator(withLiveness());
-      }
+      this.argumentPropagator = new ArgumentPropagator(withLiveness());
     } else {
       this.argumentPropagator = null;
-      this.callSiteOptimizationInfoPropagator = null;
     }
 
     this.libraryMethodSideEffectModelCollection = new LibraryMethodSideEffectModelCollection(this);
@@ -344,21 +334,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return appInfo.getSyntheticItems();
   }
 
-  public CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator() {
-    return callSiteOptimizationInfoPropagator;
-  }
-
   public <E extends Throwable> void withArgumentPropagator(
       ThrowingConsumer<ArgumentPropagator, E> consumer) throws E {
     if (argumentPropagator != null) {
       consumer.accept(argumentPropagator);
-    }
-  }
-
-  public <E extends Throwable> void withCallSiteOptimizationInfoPropagator(
-      ThrowingConsumer<CallSiteOptimizationInfoPropagator, E> consumer) throws E {
-    if (callSiteOptimizationInfoPropagator != null) {
-      consumer.accept(callSiteOptimizationInfoPropagator);
     }
   }
 

@@ -8,29 +8,22 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
-import java.util.List;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class CallSiteOptimizationWithLambdaTargetTest extends TestBase {
 
-  private final boolean enableExperimentalArgumentPropagation;
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "{1}, experimental: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
-  }
-
-  public CallSiteOptimizationWithLambdaTargetTest(
-      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
-    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
-    this.parameters = parameters;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -38,12 +31,6 @@ public class CallSiteOptimizationWithLambdaTargetTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(CallSiteOptimizationWithLambdaTargetTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(
-                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

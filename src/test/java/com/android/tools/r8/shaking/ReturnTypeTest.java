@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -26,6 +27,7 @@ interface B112517039I {
 }
 
 class B112517039Caller {
+  @KeepConstantArguments
   public void call(B112517039I i) {
     System.out.println("Ewwo!");
     i.flaf(i.m());
@@ -77,17 +79,9 @@ public class ReturnTypeTest extends TestBase {
         .addProgramClasses(
             B112517039ReturnType.class, B112517039I.class, B112517039Caller.class, MAIN)
         .addKeepMainRule(MAIN)
+        .enableConstantArgumentAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            o -> {
-              // No actual implementation of B112517039I, rather invoked with `null`.
-              // Call site optimization propagation will conclude that the input of B...Caller#call
-              // is
-              // always null, and replace the last call with null-throwing instruction.
-              // However, we want to test return type and parameter type are kept in this scenario.
-              o.callSiteOptimizationOptions().disableDynamicTypePropagationForTesting();
-              o.inlinerOptions().enableInlining = false;
-            })
+        .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT)
         .inspect(

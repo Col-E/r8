@@ -41,11 +41,6 @@ public class ParameterWithUnknownArgumentInformationWidenedToUnknownTest extends
                     .assertHasUnknownMethodState(
                         Reference.methodFromMethod(Main.class.getDeclaredMethod("test", A.class)))
                     .apply(ignore -> inspected.set()))
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

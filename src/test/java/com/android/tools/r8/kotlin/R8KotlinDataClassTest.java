@@ -40,7 +40,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
   private static final MethodSignature COPY_DEFAULT_METHOD =
       TEST_DATA_CLASS.getCopyDefaultSignature();
 
-  private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
+  private static final Consumer<InternalOptions> disableClassInliner =
+      o -> o.enableClassInlining = false;
 
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")
   public static Collection<Object[]> data() {
@@ -79,9 +80,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
                 // Getters should be removed after inlining, which is possible only if access is
                 // relaxed.
-                boolean areGetterPresent = !allowAccessModification;
-                checkMethodIsKeptOrRemoved(dataClass, NAME_GETTER_METHOD, areGetterPresent);
-                checkMethodIsKeptOrRemoved(dataClass, AGE_GETTER_METHOD, areGetterPresent);
+                checkMethodIsKept(dataClass, NAME_GETTER_METHOD);
+                checkMethodIsKept(dataClass, AGE_GETTER_METHOD);
 
                 // No use of componentN functions.
                 checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);
@@ -90,15 +90,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                 // No use of copy functions.
                 checkMethodIsRemoved(dataClass, COPY_METHOD);
                 checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
-
-              ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
-              MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
-              if (allowAccessModification) {
-                // Both getters should be inlined
-                checkMethodIsNeverInvoked(testMethod, NAME_GETTER_METHOD, AGE_GETTER_METHOD);
-              } else {
-                checkMethodIsInvokedAtLeastOnce(testMethod, NAME_GETTER_METHOD, AGE_GETTER_METHOD);
               }
             });
   }
@@ -125,11 +116,8 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
                 // ComponentN functions should be removed after inlining, which is possible only if
                 // access is relaxed.
-                boolean areComponentMethodsPresent = !allowAccessModification;
-                checkMethodIsKeptOrRemoved(
-                    dataClass, COMPONENT1_METHOD, areComponentMethodsPresent);
-                checkMethodIsKeptOrRemoved(
-                    dataClass, COMPONENT2_METHOD, areComponentMethodsPresent);
+                checkMethodIsKept(dataClass, COMPONENT1_METHOD);
+                checkMethodIsKept(dataClass, COMPONENT2_METHOD);
 
                 // No use of getter.
                 checkMethodIsRemoved(dataClass, NAME_GETTER_METHOD);
@@ -138,14 +126,6 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                 // No use of copy functions.
                 checkMethodIsRemoved(dataClass, COPY_METHOD);
                 checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
-              }
-
-              ClassSubject classSubject = checkClassIsKept(inspector, mainClassName);
-              MethodSubject testMethod = checkMethodIsKept(classSubject, testMethodSignature);
-              if (allowAccessModification) {
-                checkMethodIsNeverInvoked(testMethod, COMPONENT1_METHOD, COMPONENT2_METHOD);
-              } else {
-                checkMethodIsInvokedAtLeastOnce(testMethod, COMPONENT1_METHOD, COMPONENT2_METHOD);
               }
             });
   }
@@ -169,9 +149,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
               } else {
                 ClassSubject dataClass =
                     checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-
-                boolean component2IsPresent = !allowAccessModification;
-                checkMethodIsKeptOrRemoved(dataClass, COMPONENT2_METHOD, component2IsPresent);
+                checkMethodIsKept(dataClass, COMPONENT2_METHOD);
 
                 // Function component1 is not used.
                 checkMethodIsRemoved(dataClass, COMPONENT1_METHOD);

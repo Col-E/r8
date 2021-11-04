@@ -58,7 +58,6 @@ public class ArgumentPropagatorIROptimizer {
       //  value.
       AbstractValue abstractValue = optimizationInfo.getAbstractArgumentValue(argument.getIndex());
       if (abstractValue.isSingleValue()) {
-        assert appView.options().callSiteOptimizationOptions().isConstantPropagationEnabled();
         SingleValue singleValue = abstractValue.asSingleValue();
         if (singleValue.isMaterializableInContext(appView, code.context())) {
           Instruction replacement =

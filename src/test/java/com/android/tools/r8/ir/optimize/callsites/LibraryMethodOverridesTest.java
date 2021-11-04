@@ -11,42 +11,34 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.List;
 import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class LibraryMethodOverridesTest extends TestBase {
   private static final Class<?> MAIN = TestClass.class;
 
-  @Parameterized.Parameters(name = "{1}, experimental: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(),
-        getTestParameters()
-            .withCfRuntimes()
-            // java.util.function.Predicate is not available prior to API level 24 (V7.0).
-            .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
-            .build());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimes()
+        // java.util.function.Predicate is not available prior to API level 24 (V7.0).
+        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+        .build();
   }
 
-  private final boolean enableExperimentalArgumentPropagation;
-  private final TestParameters parameters;
-
-  public LibraryMethodOverridesTest(
-      boolean enableExperimentalArgumentPropagation, TestParameters parameters) {
-    this.enableExperimentalArgumentPropagation = enableExperimentalArgumentPropagation;
-    this.parameters = parameters;
-  }
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Test
   public void testR8() throws Exception {
@@ -63,12 +55,6 @@ public class LibraryMethodOverridesTest extends TestBase {
         .addOptionsModification(
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(
-                        enableExperimentalArgumentPropagation))
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

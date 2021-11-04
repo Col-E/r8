@@ -44,11 +44,6 @@ public class ImpreciseReceiverWithUnknownArgumentInformationWidenedToUnknownTest
                     .assertHasBottomMethodState(
                         Reference.methodFromMethod(B.class.getDeclaredMethod("test")))
                     .apply(ignore -> inspected.set()))
-        .addOptionsModification(
-            options ->
-                options
-                    .callSiteOptimizationOptions()
-                    .setEnableExperimentalArgumentPropagation(true))
         .addVerticallyMergedClassesInspector(
             VerticallyMergedClassesInspector::assertNoClassesMerged)
         .enableNoVerticalClassMergingAnnotations()
