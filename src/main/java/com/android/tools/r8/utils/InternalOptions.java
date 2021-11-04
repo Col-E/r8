@@ -239,7 +239,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableEnumUnboxing = false;
     outline.enabled = false;
     enableEnumValueOptimization = false;
-    enableValuePropagation = false;
     enableSideEffectAnalysis = false;
     enableTreeShakingOfLibraryMethodOverrides = false;
     enableInitializedClassesAnalysis = false;
@@ -316,7 +315,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;
   public boolean enableRedundantFieldLoadElimination = true;
-  public boolean enableValuePropagation = true;
   // Currently disabled, see b/146957343.
   public boolean enableUninstantiatedTypeOptimizationForInterfaces = false;
   // TODO(b/138917494): Disable until we have numbers on potential performance penalties.

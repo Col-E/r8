@@ -5,6 +5,7 @@
 package nesthostexample;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 
 public class NestPvtMethodCallInlined {
 
@@ -15,6 +16,7 @@ public class NestPvtMethodCallInlined {
     }
 
     @NeverInline
+    @NeverPropagateValue
     private String notInlinedPvtCall() {
       return "notInlinedPvtCallInner";
     }
@@ -31,6 +33,7 @@ public class NestPvtMethodCallInlined {
     }
 
     @NeverInline
+    @NeverPropagateValue
     private String notInlinedPvtCall() {
       return "notInlinedPvtCallInnerInterface";
     }
@@ -44,6 +47,7 @@ public class NestPvtMethodCallInlined {
     }
 
     @NeverInline
+    @NeverPropagateValue
     default String dispatchInlining(InnerSub iSub) {
       return iSub.dispatch(this);
     }
@@ -54,6 +58,7 @@ public class NestPvtMethodCallInlined {
   public static class InnerSub extends Inner {
 
     @NeverInline
+    @NeverPropagateValue
     public String dispatchInlining(InnerInterface impl) {
       return impl.dispatch(this);
     }
@@ -63,6 +68,7 @@ public class NestPvtMethodCallInlined {
     }
 
     @NeverInline
+    @NeverPropagateValue
     private String notInlinedPvtCall() {
       return "notInlinedPvtCallInnerSub";
     }

@@ -242,6 +242,7 @@ public class VerticalClassMergerTest extends TestBase {
     String main = "classmerging.ConflictInGeneratedNameTest";
     Path[] programFiles =
         new Path[] {
+          CF_DIR.resolve("NeverPropagateValue.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest$A.class"),
           CF_DIR.resolve("ConflictInGeneratedNameTest$B.class")
@@ -255,7 +256,6 @@ public class VerticalClassMergerTest extends TestBase {
                 testForR8(parameters.getBackend())
                     .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
                     .addOptionsModification(this::configure)
-                    .addOptionsModification(options -> options.enableValuePropagation = false)
                     .addOptionsModification(
                         options ->
                             options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))

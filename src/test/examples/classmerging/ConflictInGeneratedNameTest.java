@@ -11,7 +11,7 @@ public class ConflictInGeneratedNameTest {
   }
 
   public static class A {
-    private String name = "A";
+    @NeverPropagateValue private String name = "A";
 
     public A() {
       print("In A.<init>()");
@@ -56,8 +56,8 @@ public class ConflictInGeneratedNameTest {
   }
 
   public static class B extends A {
-    private String name = "B";
-    private String name$classmerging$ConflictInGeneratedNameTest$A = "C";
+    @NeverPropagateValue private String name = "B";
+    @NeverPropagateValue private String name$classmerging$ConflictInGeneratedNameTest$A = "C";
 
     public B() {
       print("In B.<init>()");

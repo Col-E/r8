@@ -58,11 +58,11 @@ public class NestMethodInlinedTest extends TestBase {
         .noMinification()
         .addOptionsModification(
             options -> {
-              options.enableValuePropagation = false;
               options.enableClassInlining = false;
               options.enableVerticalClassMerging = false;
             })
         .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
         .addProgramFiles(toCompile)
         .compile()
         .inspect(this::assertMethodsInlined)

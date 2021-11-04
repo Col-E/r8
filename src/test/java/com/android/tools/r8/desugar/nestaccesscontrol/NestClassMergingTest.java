@@ -93,7 +93,6 @@ public class NestClassMergingTest extends TestBase {
                 options -> {
                   // Disable optimizations else additional classes are removed since they become
                   // unused.
-                  options.enableValuePropagation = false;
                   options.enableClassInlining = false;
                   options.enableNestReduction = false;
                 })

@@ -1204,10 +1204,8 @@ public class Inliner {
     Set<BasicBlock> inlineeBlocks = SetUtils.newIdentityHashSet(inlinee.blocks);
 
     // Run member value propagation on the inlinee blocks.
-    if (appView.options().enableValuePropagation) {
-      rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
-      applyMemberValuePropagationToInlinee(code, blockIterator, block, inlineeBlocks);
-    }
+    rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
+    applyMemberValuePropagationToInlinee(code, blockIterator, block, inlineeBlocks);
 
     // Add non-null IRs only to the inlinee blocks.
     insertAssumeInstructions(code, blockIterator, block, inlineeBlocks, timing);

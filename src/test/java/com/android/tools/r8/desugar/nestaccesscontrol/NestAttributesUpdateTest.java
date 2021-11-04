@@ -136,7 +136,6 @@ public class NestAttributesUpdateTest extends TestBase {
         .addOptionsModification(
             options -> {
               // Disable optimizations else additional classes are removed since they become unused.
-              options.enableValuePropagation = false;
               options.enableClassInlining = false;
             })
         .addProgramFiles(classesMatching(outerNestName))

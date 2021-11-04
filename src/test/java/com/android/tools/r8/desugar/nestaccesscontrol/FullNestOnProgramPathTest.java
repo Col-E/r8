@@ -154,6 +154,7 @@ public class FullNestOnProgramPathTest extends TestBase {
         .addOptionsModification(options -> options.enableNestReduction = false)
         .addProgramFiles(JAR)
         .addInliningAnnotations()
+        .addMemberValuePropagationAnnotations()
         .setMinApi(minApi)
         .compile();
   }

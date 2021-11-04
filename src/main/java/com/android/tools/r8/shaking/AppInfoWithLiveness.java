@@ -1102,7 +1102,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean mayPropagateValueFor(DexField field) {
     assert checkIfObsolete();
-    if (!options().enableValuePropagation || neverPropagateValue.contains(field)) {
+    if (neverPropagateValue.contains(field)) {
       return false;
     }
     if (isPinned(field) && !field.getType().isAlwaysNull(this)) {
@@ -1113,7 +1113,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean mayPropagateValueFor(DexMethod method) {
     assert checkIfObsolete();
-    if (!options().enableValuePropagation || neverPropagateValue.contains(method)) {
+    if (neverPropagateValue.contains(method)) {
       return false;
     }
     if (!method.getReturnType().isAlwaysNull(this)

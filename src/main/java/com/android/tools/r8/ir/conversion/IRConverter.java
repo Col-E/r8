@@ -276,8 +276,7 @@ public class IRConverter {
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
       this.inliner = new Inliner(appViewWithLiveness, this, lensCodeRewriter);
       this.outliner = Outliner.create(appViewWithLiveness);
-      this.memberValuePropagation =
-          options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
+      this.memberValuePropagation = new MemberValuePropagation(appViewWithLiveness);
       this.methodOptimizationInfoCollector =
           new MethodOptimizationInfoCollector(appViewWithLiveness, this);
       if (options.isMinifying()) {

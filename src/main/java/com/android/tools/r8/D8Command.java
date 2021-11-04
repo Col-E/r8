@@ -486,7 +486,6 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableClassStaticizer;
     assert !internal.enableEnumValueOptimization;
     assert !internal.outline.enabled;
-    assert !internal.enableValuePropagation;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
     // TODO(b/187675788): Enable class merging for synthetics in D8.

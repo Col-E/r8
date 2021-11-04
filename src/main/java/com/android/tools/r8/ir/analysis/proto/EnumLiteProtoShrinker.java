@@ -64,7 +64,7 @@ public class EnumLiteProtoShrinker {
     }
     // The optimization relies on shrinking and member value propagation to actually clear
     // the anonymous subclasses of EnumLiteMap.
-    if (!appView.options().isShrinking() || !appView.options().enableValuePropagation) {
+    if (!appView.options().isShrinking()) {
       return;
     }
     internalClearDeadEnumLiteMaps();
