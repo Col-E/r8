@@ -340,7 +340,7 @@ def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
 def execute(cmd, archive, env=None):
   if cmd == []:
     return
-  
+
   assert(cmd[0].endswith('.py'))
   cmd = [sys.executable] + cmd
 
