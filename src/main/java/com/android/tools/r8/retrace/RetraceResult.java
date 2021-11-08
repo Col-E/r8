@@ -5,6 +5,7 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -30,6 +31,11 @@ public interface RetraceResult<E extends RetraceElement<?>> {
   /** Short-hand for iterating the elements. */
   default void forEach(Consumer<E> action) {
     stream().forEach(action);
+  }
+
+  /** Short-hand for flat-mapping the elements to some other result type. */
+  default <T> Stream<T> flatMap(Function<? super E, Stream<T>> fn) {
+    return stream().flatMap(fn);
   }
 
   boolean isEmpty();
