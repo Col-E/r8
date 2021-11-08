@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
@@ -31,7 +32,8 @@ public class RetraceUnknownMapVersionDiagnostic implements Diagnostic {
   @Override
   public String getDiagnosticMessage() {
     return String.format(
-        "Map version '%s' is unknown or introduced later than this retrace version.", versionName);
+        "Map version '%s' is unknown or introduced later than retrace version '%s'.",
+        versionName, Version.getVersionString());
   }
 
   public static RetraceUnknownMapVersionDiagnostic create(String versionName) {

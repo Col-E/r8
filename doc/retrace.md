@@ -39,6 +39,8 @@ normal comment.
 Retracing tools supporting this versioning scheme should issue a warning when
 given mapping files with versions higher than the version supported by the tool.
 
+- Version 1.0 was introduced by R8 in version 3.1.21
+
 ### Source File
 
 The source file information states what source file a class originated from.
