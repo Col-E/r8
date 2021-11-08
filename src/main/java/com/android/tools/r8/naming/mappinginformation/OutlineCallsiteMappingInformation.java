@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 
 public class OutlineCallsiteMappingInformation extends MappingInformation {
 
-  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_EXPERIMENTAL;
+  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_0;
   public static final String ID = "com.android.tools.r8.outlineCallsite";
 
   private static final String POSITIONS_KEY = "positions";

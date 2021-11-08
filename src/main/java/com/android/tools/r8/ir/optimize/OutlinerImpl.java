@@ -1243,7 +1243,6 @@ public class OutlinerImpl extends Outliner {
                 // set a new disjoint line.
                 .setLine(0);
         Instruction lastInstruction = null;
-        Position position = Position.none();
         { // Scope for 'instructions'.
           int outlinePositionIndex = 0;
           for (int i = start; i < end; i++) {
@@ -1252,8 +1251,9 @@ public class OutlinerImpl extends Outliner {
               // Leave any const instructions.
               continue;
             }
-            if (current.getPosition() != null) {
-              positionBuilder.addOutlinePosition(outlinePositionIndex++, current.getPosition());
+            int currentPositionIndex = outlinePositionIndex++;
+            if (current.getPosition() != null && current.instructionInstanceCanThrow()) {
+              positionBuilder.addOutlinePosition(currentPositionIndex, current.getPosition());
             }
 
             // Prepare to remove the instruction.
@@ -1284,7 +1284,10 @@ public class OutlinerImpl extends Outliner {
         }
         Invoke outlineInvoke = new InvokeStatic(outlineMethod, returnValue, in);
         outlineInvoke.setBlock(lastInstruction.getBlock());
-        outlineInvoke.setPosition(positionBuilder.build());
+        outlineInvoke.setPosition(
+            positionBuilder.hasOutlinePositions()
+                ? positionBuilder.build()
+                : Position.syntheticNone());
         InstructionListIterator endIterator =
             lastInstruction.getBlock().listIterator(code, lastInstruction);
         Instruction instructionBeforeEnd = endIterator.previous();
@@ -1336,6 +1339,7 @@ public class OutlinerImpl extends Outliner {
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
+    assert feedback.noUpdatesLeft();
     converter.printPhase("Outlining");
     timing.begin("IR conversion phase 3");
     ProgramMethodSet methodsSelectedForOutlining = selectMethodsForOutlining();
@@ -1350,12 +1354,15 @@ public class OutlinerImpl extends Outliner {
           executorService);
       List<ProgramMethod> outlineMethods = buildOutlineMethods();
       converter.optimizeSynthesizedMethods(outlineMethods, executorService);
+      feedback.updateVisibleOptimizationInfo();
       forEachSelectedOutliningMethod(
           converter,
           methodsSelectedForOutlining,
           code -> {
             applyOutliningCandidate(code);
             converter.printMethod(code, "IR after outlining (SSA)", null);
+            converter.memberValuePropagation.run(code);
+            converter.codeRewriter.rewriteMoveResult(code);
             converter.removeDeadCodeAndFinalizeIR(
                 code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
           },
@@ -1728,6 +1735,8 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public Position getCurrentPosition() {
+      // Always build positions for outlinee - each callsite will only build a position map for
+      // instructions that are actually throwing.
       return OutlinePosition.builder().setLine(position).setMethod(method).build();
     }
 

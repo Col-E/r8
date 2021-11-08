@@ -256,7 +256,7 @@ public class DexDebugEventBuilder {
     if (nextPosition.isOutline()) {
       events.add(factory.createSetOutlineFrame());
     }
-    if (nextPosition.getOutlineCallee() != null) {
+    if (nextPosition.getOutlineCallee() != null && !nextPosition.getOutlinePositions().isEmpty()) {
       events.add(
           factory.createSetOutlineCallerFrame(
               nextPosition.getOutlineCallee(), nextPosition.getOutlinePositions()));

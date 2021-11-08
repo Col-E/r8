@@ -145,7 +145,7 @@ public class IRConverter {
   private final CfgPrinter printer;
   public final CodeRewriter codeRewriter;
   private final ConstantCanonicalizer constantCanonicalizer;
-  private final MemberValuePropagation memberValuePropagation;
+  public final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
   private final Inliner inliner;
   private final IdentifierNameStringMarker identifierNameStringMarker;

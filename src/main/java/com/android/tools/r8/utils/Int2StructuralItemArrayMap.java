@@ -90,6 +90,10 @@ public class Int2StructuralItemArrayMap<T extends StructuralItem<T>>
       return this;
     }
 
+    public boolean isEmpty() {
+      return keys.isEmpty();
+    }
+
     public Int2StructuralItemArrayMap<T> build() {
       return new Int2StructuralItemArrayMap<T>(Ints.toArray(keys), values.build());
     }

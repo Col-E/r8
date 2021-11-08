@@ -19,7 +19,7 @@ public class NpeInlineRetraceStackTrace implements StackTraceForTest {
   @Override
   public String mapping() {
     return StringUtils.lines(
-        "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }",
+        "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
         "some.Class -> a:",
         "  4:4:void other.Class():23:23 -> a",
         "  4:4:void caller(other.Class):7 -> a",

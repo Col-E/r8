@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 
 public class RewriteFrameMappingInformation extends MappingInformation {
 
-  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_EXPERIMENTAL;
+  public static final MapVersion SUPPORTED_VERSION = MapVersion.MAP_VERSION_2_0;
   public static final String ID = "com.android.tools.r8.rewriteFrame";
   private static final String CONDITIONS_KEY = "conditions";
   private static final String ACTIONS_KEY = "actions";

@@ -133,3 +133,144 @@ In the above, the mapping information suggests that the inline frame
 since that method was not part of the input program it should not be in the
 output mapping information at all.
 
+### RewriteFrame (Introduced at version 2.0)
+
+The RewriteFrame information informs the retrace tool that when retracing a
+frame it should rewrite it. The mapping information has the form:
+
+```
+  # { id: 'com.android.tools.r8.rewriteFrame', "
+      conditions: ['throws(<exceptionDescriptor>)'],
+      actions: ['removeInnerFrames(<count>)'] }
+```
+
+The format is to specify conditions for when the rule should be applied and then
+describe the actions to take. The following conditions exist:
+
+- `throws(<exceptionDescriptor>)`: Will be true if the thrown exception above is
+`<exceptionDescriptor>`
+
+Conditions can be combined by adding more items to the list. The semantics of
+having more elements in the list is that the conditions are AND'ed together. To
+achieve OR one should duplicate the information.
+
+Actions describe what should happen to the retraced frames if the condition
+holds. Multiple specified actions will be applied from left to right. The
+following actions exist:
+
+- `removeInnerFrames(<count>)`: Will remove the number of frames starting with
+inner most frame. It is an error to specify a count higher than all frames.
+
+An example could be to remove an inlined frame if a null-pointer-exception is
+thrown:
+
+```
+some.Class -> a:
+  4:4:void other.Class.inlinee():23:23 -> a
+  4:4:void caller(other.Class):7 -> a\n"
+  # { id: 'com.android.tools.r8.rewriteFrame', "
+      conditions: ['throws(Ljava/lang/NullPointerException;)'],
+      actions: ['removeInnerFrames(1)'] }
+```
+
+When retracing:
+```
+Exception in thread "main" java.lang.NullPointerException: ...
+  at a.a(:4)
+```
+
+It will normally retrace to:
+```
+Exception in thread "main" java.lang.NullPointerException: ...
+  at other.Class.inlinee(Class.java:23)
+  at some.Class.caller(Class.java:7)
+```
+
+Amending the last mapping with the above inline information instructs the
+retracer to discard frames above, resulting in the retrace result:
+```
+Exception in thread "main" java.lang.NullPointerException: ...
+  at some.Class.caller(Class.java:7)
+```
+
+The `rewriteFrame` information will only be applied if the line that is being
+retraced is directly under the exception line.
+
+### Outline (Introduced at version 2.0)
+
+The outline information can be used by compilers to specify that a method is an
+outline. It has the following format:
+
+```
+# { 'id':'com.android.tools.r8.outline' }
+```
+
+When a retracer retraces a frame that has the outline mapping information it
+should carry the reported position to the next frame and use the
+`outlineCallsite` to obtain the correct position.
+
+### Outline Call Site (Introduced at version 2.0)
+
+A position in an outline can correspond to multiple different positions
+depending on the context. The information can be stored in the mapping file with
+the following format:
+
+```
+# { 'id':'com.android.tools.r8.outlineCallsite',
+    'positions': {
+        'outline_pos_1': callsite_pos_1,
+        'outline_pos_2': callsite_pos_2,
+         ...
+     }
+  }
+```
+
+The retracer should when seeing the `outline` information carry the line number
+to the next frame. The position should be rewritten by using the positions map
+before using the resulting position for further retracing. Here is an example:
+
+```
+# { id: 'com.android.tools.r8.mapping', version: '2.0' }
+outline.Class -> a:
+  1:2:int outline() -> a
+# { 'id':'com.android.tools.r8.outline' }
+some.Class -> b:
+  1:1:void foo.bar.Baz.qux():42:42 -> s
+  4:4:int outlineCaller(int):98:98 -> s
+  5:5:int outlineCaller(int):100:100 -> s
+  27:27:int outlineCaller(int):0:0 -> s
+# { 'id':'com.android.tools.r8.outlineCallsite',
+    'positions': { '1': 4, '2': 5 } }
+```
+
+Retracing the following stack trace lines:
+
+```
+  at a.a(:1)
+  at b.s(:27)
+```
+
+Should first retrace the first line and see it is an `outline` and then use
+the `outlineCallsite` for `b.s` at position `27` to map the read position `1` to
+position `4` and then use that to find the actual mapping, resulting in the
+retraced stack:
+
+```
+  at some.Class.outlineCaller(Class.java:98)
+```
+
+It should be such that for all stack traces, if a retracer ever see an outline
+the next obfuscated line should contain `outlineCallSite` information.
+
+### Catch all range for methods with a single unique position
+
+If only a single position is needed for retracing a method correctly one can
+skip emitting the position and rely on retrace to retrace correctly. To ensure
+compatibility R8 emits a catch-all range `0:65535` as such:
+
+```
+0:65535:void foo():33:33 -> a
+```
+
+It does not matter if the mapping is an inline frame. Catch all ranges should
+never be used for overloads.

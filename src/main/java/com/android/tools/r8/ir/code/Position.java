@@ -544,6 +544,10 @@ public abstract class Position implements StructuralItem<Position> {
         return this;
       }
 
+      public boolean hasOutlinePositions() {
+        return !outlinePositionsBuilder.isEmpty();
+      }
+
       @Override
       public OutlineCallerPosition build() {
         assert noCheckOfPosition || line >= 0;
