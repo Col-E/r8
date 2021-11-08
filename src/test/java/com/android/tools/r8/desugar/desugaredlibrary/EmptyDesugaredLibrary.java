@@ -63,6 +63,13 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
     }
   }
 
+  private int firstEmptyLevel() {
+    return isJDK11DesugaredLibrary()
+        // Some desugarings are required on all API levels including UNKNOWN.
+        ? AndroidApiLevel.NOT_SET.getLevel()
+        : AndroidApiLevel.O.getLevel();
+  }
+
   @Test
   public void testEmptyDesugaredLibrary() throws Exception {
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
@@ -72,8 +79,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
       }
       CountingProgramConsumer programConsumer = new CountingProgramConsumer();
       ToolHelper.runL8(prepareL8Builder(apiLevel).setProgramConsumer(programConsumer).build());
-      assertEquals(
-          apiLevel.getLevel() >= AndroidApiLevel.O.getLevel() ? 0 : 1, programConsumer.count);
+      assertEquals(apiLevel.getLevel() >= firstEmptyLevel() ? 0 : 1, programConsumer.count);
     }
   }
 
@@ -89,7 +95,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
           prepareL8Builder(apiLevel).setOutput(desugaredLibraryZip, OutputMode.DexIndexed).build());
       assertTrue(Files.exists(desugaredLibraryZip));
       assertEquals(
-          apiLevel.getLevel() >= AndroidApiLevel.O.getLevel() ? 0 : 1,
+          apiLevel.getLevel() >= firstEmptyLevel() ? 0 : 1,
           new ZipFile(desugaredLibraryZip.toFile(), StandardCharsets.UTF_8).size());
     }
   }
@@ -107,7 +113,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
               .setOutput(desugaredLibraryDirectory, OutputMode.DexIndexed)
               .build());
       assertEquals(
-          apiLevel.getLevel() >= AndroidApiLevel.O.getLevel() ? 0 : 1,
+          apiLevel.getLevel() >= firstEmptyLevel() ? 0 : 1,
           Files.walk(desugaredLibraryDirectory)
               .filter(path -> path.toString().endsWith(".dex"))
               .count());
