@@ -18,7 +18,7 @@ public class InlineInOutlineStackTrace implements StackTraceForTest {
   @Override
   public String mapping() {
     return StringUtils.lines(
-        "# { id: 'com.android.tools.r8.mapping', version: '2.0' }",
+        "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }",
         "outline.Class -> a:",
         "  1:2:int some.inlinee():75:76 -> a",
         "  1:2:int outline():0 -> a",

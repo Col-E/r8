@@ -44,7 +44,7 @@ public class RetraceApiOutlineInOutlineStackTrace extends RetraceApiTestBase {
     private final ClassReference callsiteRenamed = Reference.classFromTypeName("c");
 
     private final String mapping =
-        "# { id: 'com.android.tools.r8.mapping', version: '2.0' }\n"
+        "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }\n"
             + "outline1.Class -> "
             + outline1Renamed.getTypeName()
             + ":\n"
