@@ -44,7 +44,7 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
     private final String npeDescriptor = "Ljava/lang/NullPointerException;";
 
     private final String mapping =
-        "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }\n"
+        "# { id: 'com.android.tools.r8.mapping', version: '2.0' }\n"
             + "some.Class -> a:\n"
             + "  4:4:void other.Class.inlinee():23:23 -> a\n"
             + "  4:4:void caller(other.Class):7 -> a\n"

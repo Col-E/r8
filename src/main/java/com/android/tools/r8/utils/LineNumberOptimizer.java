@@ -50,7 +50,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.ClassNaming.Builder;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
-import com.android.tools.r8.naming.MapVersion;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -363,9 +362,7 @@ public class LineNumberOptimizer {
         }
       }
 
-      MapVersion mapFileVersion = appView.options().getMapFileVersion();
-
-      if (isSyntheticClass && CompilerSynthesizedMappingInformation.isSupported(mapFileVersion)) {
+      if (isSyntheticClass) {
         onDemandClassNamingBuilder
             .get()
             .addMappingInformation(
@@ -446,8 +443,7 @@ public class LineNumberOptimizer {
           String obfuscatedName = obfuscatedNameDexString.toString();
 
           List<MappingInformation> methodMappingInfo = new ArrayList<>();
-          if (method.isD8R8Synthesized()
-              && CompilerSynthesizedMappingInformation.isSupported(mapFileVersion)) {
+          if (method.isD8R8Synthesized()) {
             methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
           }
 
@@ -481,8 +477,7 @@ public class LineNumberOptimizer {
                       m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
 
           // Check if mapped position is an outline
-          if (mappedPositions.get(0).isOutline
-              && OutlineMappingInformation.isSupported(mapFileVersion)) {
+          if (mappedPositions.get(0).isOutline) {
             outlinesToFix
                 .computeIfAbsent(
                     mappedPositions.get(0).method, ignored -> new OutlineFixupBuilder())
@@ -559,8 +554,7 @@ public class LineNumberOptimizer {
               lastMappedRange.addMappingInformation(info, Unreachable::raise);
             }
             // firstPosition will contain a potential outline caller.
-            if (firstPosition.outlineCallee != null
-                && OutlineCallsiteMappingInformation.isSupported(mapFileVersion)) {
+            if (firstPosition.outlineCallee != null) {
               Int2IntMap positionMap = new Int2IntArrayMap();
               int maxPc = ListUtils.last(mappedPositions).obfuscatedLine;
               firstPosition.outlinePositions.forEach(

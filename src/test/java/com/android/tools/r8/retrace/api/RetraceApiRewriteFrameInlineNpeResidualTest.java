@@ -51,7 +51,7 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
     private final ClassReference renamedSomeOtherClass = Reference.classFromTypeName("b");
 
     private final String mapping =
-        "# { id: 'com.android.tools.r8.mapping', version: 'experimental' }\n"
+        "# { id: 'com.android.tools.r8.mapping', version: '2.0' }\n"
             + originalException.getTypeName()
             + " -> "
             + renamedException.getTypeName()

@@ -44,7 +44,7 @@ public class SyntheticLambdaMethodStackTrace implements StackTraceForTest {
   @Override
   public String mapping() {
     return StringUtils.lines(
-        "# {'id':'com.android.tools.r8.mapping','version':'experimental'}",
+        "# {'id':'com.android.tools.r8.mapping','version':'1.0'}",
         "example.Main -> example.Main:",
         "  1:1:void main(java.lang.String[]):123 -> main",
         "example.Foo -> a.a:",
