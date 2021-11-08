@@ -15,6 +15,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,7 +58,8 @@ public class RetraceApiAmbiguousOriginalRangeTest extends RetraceApiTestBase {
 
       // Check that retracing with position one is ambiguous between line 42, 43 and 44.
       RetraceFrameResult retraceFrameResult =
-          retracer.retraceFrame(methodReference, OptionalInt.of(1));
+          retracer.retraceFrame(
+              RetraceStackTraceContext.empty(), OptionalInt.of(1), methodReference);
       assertTrue(retraceFrameResult.isAmbiguous());
       List<Integer> originalPositions =
           retraceFrameResult.stream()
@@ -66,7 +68,9 @@ public class RetraceApiAmbiguousOriginalRangeTest extends RetraceApiTestBase {
       assertEquals(Arrays.asList(42, 43, 44), originalPositions);
 
       // Check that retracing with position 3 is ambiguous between 45 and 46.
-      retraceFrameResult = retracer.retraceFrame(methodReference, OptionalInt.of(3));
+      retraceFrameResult =
+          retracer.retraceFrame(
+              RetraceStackTraceContext.empty(), OptionalInt.of(3), methodReference);
       assertTrue(retraceFrameResult.isAmbiguous());
       originalPositions =
           retraceFrameResult.stream()
@@ -75,7 +79,9 @@ public class RetraceApiAmbiguousOriginalRangeTest extends RetraceApiTestBase {
       assertEquals(Arrays.asList(45, 46), originalPositions);
 
       // Check that retracing with position 5 is not ambiguous.
-      retraceFrameResult = retracer.retraceFrame(methodReference, OptionalInt.of(5));
+      retraceFrameResult =
+          retracer.retraceFrame(
+              RetraceStackTraceContext.empty(), OptionalInt.of(5), methodReference);
       assertFalse(retraceFrameResult.isAmbiguous());
       originalPositions =
           retraceFrameResult.stream()

@@ -21,17 +21,54 @@ public interface Retracer {
 
   RetraceMethodResult retraceMethod(MethodReference methodReference);
 
-  RetraceFrameResult retraceFrame(MethodReference methodReference, OptionalInt position);
-
+  /**
+   * Retrace a stack trace frame without knowing the full method signature.
+   *
+   * <p>This method retraces a frame of the format:
+   *
+   * <pre>
+   *   [callee-frame-or-exception-line]
+   *   com.example.Type.method(SourceFile:line)
+   * </pre>
+   *
+   * where the context parameter described below is obtained from retracing the preceeding line
+   * `callee-frame-or-exception-line`
+   *
+   * @param context The context of this frame as defined by the frame preceding it, i.e., the
+   *     context obtained by retracing the callee frame (or exception line), with the rest of the
+   *     arguments being those that represent the caller frame.
+   * @param position The optional line/pc information of the frame.
+   * @param classReference The class/holder information of the frame.
+   * @param methodName The method name information of the frame. If the full method signature is
+   *     known, the alternative retraceFrame method should be used instead.
+   * @return The possibly ambiguous result of retracing the frame.
+   */
   RetraceFrameResult retraceFrame(
-      MethodReference methodReference, OptionalInt position, RetraceStackTraceContext context);
+      RetraceStackTraceContext context,
+      OptionalInt position,
+      ClassReference classReference,
+      String methodName);
+
+  /**
+   * Retrace a stack frame with full method signature information.
+   *
+   * <p>Apart from having the full method signature this is the same as retracing without it.
+   *
+   * @param context The context of this frame as defined by the frame preceding it, i.e., the
+   *     context obtained by retracing the callee frame (or exception line), with the rest of the
+   *     arguments being those that represent the caller frame.
+   * @param position The optional line/pc information of the frame.
+   * @param methodReference The qualified method reference information of the frame.
+   * @return The possibly ambiguous result of retracing the frame.
+   */
+  RetraceFrameResult retraceFrame(
+      RetraceStackTraceContext context, OptionalInt position, MethodReference methodReference);
 
   RetraceFieldResult retraceField(FieldReference fieldReference);
 
   RetraceTypeResult retraceType(TypeReference typeReference);
 
-  RetraceThrownExceptionResult retraceThrownException(
-      ClassReference exception, RetraceStackTraceContext context);
+  RetraceThrownExceptionResult retraceThrownException(ClassReference exception);
 
   static Retracer createDefault(
       ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {

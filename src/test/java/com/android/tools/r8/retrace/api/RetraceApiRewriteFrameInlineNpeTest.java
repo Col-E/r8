@@ -63,10 +63,7 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
               ProguardMapProducer.fromString(mapping), testDiagnosticsHandler);
 
       List<RetraceThrownExceptionElement> npeRetraced =
-          retracer
-              .retraceThrownException(
-                  Reference.classFromDescriptor(npeDescriptor), RetraceStackTraceContext.empty())
-              .stream()
+          retracer.retraceThrownException(Reference.classFromDescriptor(npeDescriptor)).stream()
               .collect(Collectors.toList());
       assertEquals(1, npeRetraced.size());
 

@@ -266,7 +266,7 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public RetraceFrameResult getRetraceResultContext() {
+    public RetraceFrameResult getParentResult() {
       return retraceFrameResult;
     }
 
@@ -288,13 +288,13 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     @Override
     public void forEach(Consumer<RetracedSingleFrame> consumer) {
       if (mappedRanges == null || mappedRanges.isEmpty()) {
-        consumer.accept(RetracedSingleFrameImpl.create(getTopFrame(), 0));
+        consumer.accept(RetracedSingleFrameImpl.create(this, getTopFrame(), 0));
         return;
       }
       int counter = 0;
-      consumer.accept(RetracedSingleFrameImpl.create(getTopFrame(), counter++));
+      consumer.accept(RetracedSingleFrameImpl.create(this, getTopFrame(), counter++));
       for (RetracedMethodReferenceImpl outerFrame : getOuterFrames()) {
-        consumer.accept(RetracedSingleFrameImpl.create(outerFrame, counter++));
+        consumer.accept(RetracedSingleFrameImpl.create(this, outerFrame, counter++));
       }
     }
 
@@ -306,11 +306,10 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
     }
 
     @Override
-    public void forEachRewritten(
-        RetraceStackTraceContext context, Consumer<RetracedSingleFrame> consumer) {
-      RetraceStackTraceContextImpl contextImpl = (RetraceStackTraceContextImpl) context;
+    public void forEachRewritten(Consumer<RetracedSingleFrame> consumer) {
+      RetraceStackTraceContextImpl contextImpl = retraceFrameResult.context;
       RetraceStackTraceCurrentEvaluationInformation currentFrameInformation =
-          context == null
+          contextImpl == null
               ? RetraceStackTraceCurrentEvaluationInformation.empty()
               : contextImpl.computeRewriteFrameInformation(
                   ListUtils.map(mappedRanges, MappedRangeForFrame::getMappedRange));
@@ -329,21 +328,21 @@ class RetraceFrameResultImpl implements RetraceFrameResult {
       List<RetracedMethodReferenceImpl> outerFrames = getOuterFrames();
       for (RetracedMethodReferenceImpl next : outerFrames) {
         if (numberOfFramesToRemove-- <= 0) {
-          consumer.accept(RetracedSingleFrameImpl.create(prev, index++));
+          consumer.accept(RetracedSingleFrameImpl.create(this, prev, index++));
         }
         prev = next;
       }
       // We expect only the last frame, i.e., the outer-most caller to potentially be synthesized.
       // If not include it too.
       if (numberOfFramesToRemove <= 0 && !isOuterMostFrameCompilerSynthesized()) {
-        consumer.accept(RetracedSingleFrameImpl.create(prev, index));
+        consumer.accept(RetracedSingleFrameImpl.create(this, prev, index));
       }
     }
 
     @Override
     public Stream<RetracedSingleFrame> streamRewritten(RetraceStackTraceContext context) {
       Stream.Builder<RetracedSingleFrame> builder = Stream.builder();
-      forEachRewritten(context, builder::add);
+      forEachRewritten(builder::add);
       return builder.build();
     }
 

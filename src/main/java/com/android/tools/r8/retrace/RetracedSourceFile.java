@@ -12,4 +12,6 @@ public interface RetracedSourceFile {
   boolean hasRetraceResult();
 
   String getSourceFile();
+
+  String getOrInferSourceFile();
 }

@@ -65,16 +65,24 @@ public class RetracerImpl implements Retracer {
   }
 
   @Override
-  public RetraceFrameResult retraceFrame(MethodReference methodReference, OptionalInt position) {
-    return retraceFrame(methodReference, position, RetraceStackTraceContext.empty());
+  public RetraceFrameResult retraceFrame(
+      RetraceStackTraceContext context,
+      OptionalInt position,
+      ClassReference classReference,
+      String methodName) {
+    return retraceClass(classReference).lookupFrame(context, position, methodName);
   }
 
   @Override
   public RetraceFrameResult retraceFrame(
-      MethodReference methodReference, OptionalInt position, RetraceStackTraceContext context) {
+      RetraceStackTraceContext context, OptionalInt position, MethodReference methodReference) {
     return retraceClass(methodReference.getHolderClass())
-        .lookupMethod(methodReference.getMethodName())
-        .narrowByPosition(context, position);
+        .lookupFrame(
+            context,
+            position,
+            methodReference.getMethodName(),
+            methodReference.getFormalTypes(),
+            methodReference.getReturnType());
   }
 
   @Override
@@ -94,9 +102,8 @@ public class RetracerImpl implements Retracer {
   }
 
   @Override
-  public RetraceThrownExceptionResultImpl retraceThrownException(
-      ClassReference exception, RetraceStackTraceContext context) {
-    return retraceClass(exception).lookupThrownException(context);
+  public RetraceThrownExceptionResultImpl retraceThrownException(ClassReference exception) {
+    return retraceClass(exception).lookupThrownException(RetraceStackTraceContext.empty());
   }
 
   public Set<MapVersionMappingInformation> getMapVersions() {

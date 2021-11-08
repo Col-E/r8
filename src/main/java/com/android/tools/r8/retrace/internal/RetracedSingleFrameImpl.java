@@ -6,13 +6,18 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.retrace.RetracedMethodReference;
 import com.android.tools.r8.retrace.RetracedSingleFrame;
+import com.android.tools.r8.retrace.RetracedSourceFile;
+import com.android.tools.r8.retrace.internal.RetraceFrameResultImpl.ElementImpl;
 
 public class RetracedSingleFrameImpl implements RetracedSingleFrame {
 
+  private final ElementImpl frameElement;
   private final RetracedMethodReference methodReference;
   private final int index;
 
-  private RetracedSingleFrameImpl(RetracedMethodReference methodReference, int index) {
+  private RetracedSingleFrameImpl(
+      ElementImpl frameElement, RetracedMethodReference methodReference, int index) {
+    this.frameElement = frameElement;
     this.methodReference = methodReference;
     this.index = index;
   }
@@ -27,7 +32,13 @@ public class RetracedSingleFrameImpl implements RetracedSingleFrame {
     return index;
   }
 
-  static RetracedSingleFrameImpl create(RetracedMethodReference methodReference, int index) {
-    return new RetracedSingleFrameImpl(methodReference, index);
+  @Override
+  public RetracedSourceFile getSourceFile() {
+    return frameElement.getSourceFile(getMethodReference());
+  }
+
+  static RetracedSingleFrameImpl create(
+      ElementImpl frameElement, RetracedMethodReference methodReference, int index) {
+    return new RetracedSingleFrameImpl(frameElement, methodReference, index);
   }
 }

@@ -12,4 +12,6 @@ public interface RetracedSingleFrame {
   RetracedMethodReference getMethodReference();
 
   int getIndex();
+
+  RetracedSourceFile getSourceFile();
 }

@@ -13,7 +13,7 @@ import com.android.tools.r8.KeepForSubclassing;
 @KeepForSubclassing
 public interface RetraceElement<R extends RetraceResult<?>> {
 
-  R getRetraceResultContext();
+  R getParentResult();
 
   boolean isCompilerSynthesized();
 }

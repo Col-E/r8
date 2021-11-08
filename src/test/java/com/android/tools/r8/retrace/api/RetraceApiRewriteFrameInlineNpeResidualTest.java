@@ -83,10 +83,7 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
           Retracer.createExperimental(
               ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
       List<RetraceThrownExceptionElement> npeRetraced =
-          retracer
-              .retraceThrownException(renamedException, RetraceStackTraceContext.empty())
-              .stream()
-              .collect(Collectors.toList());
+          retracer.retraceThrownException(renamedException).stream().collect(Collectors.toList());
       assertEquals(1, npeRetraced.size());
       assertEquals(originalException, npeRetraced.get(0).getRetracedClass().getClassReference());
 
@@ -118,7 +115,6 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
       // Check that rewriting the frames will remove the top 1 frames if the condition is active.
       Map<Integer, RetracedMethodReference> results = new LinkedHashMap<>();
       retraceFrameElement.forEachRewritten(
-          throwingContext,
           frame -> {
             RetracedMethodReference existingValue =
                 results.put(frame.getIndex(), frame.getMethodReference());

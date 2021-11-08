@@ -21,7 +21,7 @@ public interface RetraceFrameElement extends RetraceElement<RetraceFrameResult> 
 
   Stream<RetracedSingleFrame> stream();
 
-  void forEachRewritten(RetraceStackTraceContext context, Consumer<RetracedSingleFrame> consumer);
+  void forEachRewritten(Consumer<RetracedSingleFrame> consumer);
 
   Stream<RetracedSingleFrame> streamRewritten(RetraceStackTraceContext context);
 

@@ -68,7 +68,9 @@ public class RetraceApiInlineInOutlineTest extends RetraceApiTestBase {
       List<RetraceFrameElement> outlineRetraced =
           retracer
               .retraceFrame(
-                  Reference.methodFromDescriptor(outlineRenamed, "a", "()I"), OptionalInt.of(2))
+                  RetraceStackTraceContext.empty(),
+                  OptionalInt.of(2),
+                  Reference.methodFromDescriptor(outlineRenamed, "a", "()I"))
               .stream()
               .collect(Collectors.toList());
       // The retrace result should not be ambiguous or empty.
@@ -98,9 +100,9 @@ public class RetraceApiInlineInOutlineTest extends RetraceApiTestBase {
       List<RetraceFrameElement> retraceOutlineCallee =
           retracer
               .retraceFrame(
-                  Reference.methodFromDescriptor(callsiteRenamed, "s", "(I)V"),
+                  context,
                   OptionalInt.of(27),
-                  context)
+                  Reference.methodFromDescriptor(callsiteRenamed, "s", "(I)V"))
               .stream()
               .collect(Collectors.toList());
       assertEquals(1, retraceOutlineCallee.size());
