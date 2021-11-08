@@ -9,26 +9,20 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
 import java.util.Set;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class UnusedArgumentsIntTest extends UnusedArgumentsTestBase {
   private static final Set<String> methodsThatWontBeOptimized = ImmutableSet.of("main", "iinc");
 
-  public UnusedArgumentsIntTest(boolean minification) {
-    super(minification);
-  }
-
-  @Parameters(name = "minification:{0}")
-  public static Collection<Object[]> data() {
-    return UnusedArgumentsTestBase.data();
+  public UnusedArgumentsIntTest(TestParameters parameters, boolean minification) {
+    super(parameters, minification);
   }
 
   static class TestClass {

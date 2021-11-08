@@ -114,7 +114,7 @@ public class ProguardTestBuilder
       }
       String proguardMap =
           Files.exists(mapFile) ? FileUtils.readTextFile(mapFile, Charsets.UTF_8) : "";
-      return new ProguardTestCompileResult(getState(), outJar, minApiLevel, proguardMap);
+      return new ProguardTestCompileResult(getState(), outJar, getMinApiLevel(), proguardMap);
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }

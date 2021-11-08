@@ -7,8 +7,12 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.resolution.b123730538.runner.PublicClassExtender;
 import com.android.tools.r8.resolution.b123730538.runner.Runner;
@@ -32,15 +36,15 @@ public class B123730538 extends TestBase {
   private static List<Path> CLASSES;
   private static final String EXPECTED_OUTPUT = StringUtils.lines("pkg.AbstractClass::foo");
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Object[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
   }
 
-  public B123730538(Backend backend) {
-    this.backend = backend;
+  public B123730538(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @BeforeClass
@@ -53,24 +57,26 @@ public class B123730538 extends TestBase {
 
   @Test
   public void testProguard() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
     Path inJar = temp.newFile("input.jar").toPath().toAbsolutePath();
     writeClassFilesToJar(inJar, CLASSES);
     testForProguard()
         .addProgramFiles(inJar)
         .addKeepMainRule(MAIN)
         .addKeepRules("-dontoptimize")
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
   }
 
   @Test
   public void testR8() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramFiles(CLASSES)
         .addKeepMainRule(MAIN)
         .addKeepRules("-dontoptimize")
-        .run(MAIN)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
   }

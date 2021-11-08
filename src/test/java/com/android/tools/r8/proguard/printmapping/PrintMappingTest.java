@@ -7,10 +7,26 @@ package com.android.tools.r8.proguard.printmapping;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class PrintMappingTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public PrintMappingTest(TestParameters parameters) {
+    parameters.assertNoneRuntime();
+  }
 
   @Test
   public void testWithExistingDirectory() throws Exception {
@@ -29,6 +45,7 @@ public class PrintMappingTest extends TestBase {
         .addInnerClasses(PrintMappingTest.class)
         .addKeepRules("-keep,allowobfuscation class " + TestClass.class.getTypeName())
         .addKeepRules("-printmapping " + mapping)
+        .setMinApi(AndroidApiLevel.B)
         .compile();
     assertTrue(mapping.toFile().exists());
   }

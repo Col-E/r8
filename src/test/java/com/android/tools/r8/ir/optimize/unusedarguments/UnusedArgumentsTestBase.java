@@ -6,27 +6,38 @@ package com.android.tools.r8.ir.optimize.unusedarguments;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public abstract class UnusedArgumentsTestBase extends TestBase {
 
+  private final TestParameters parameters;
   private final boolean minification;
 
-  public UnusedArgumentsTestBase(boolean minification) {
+  public UnusedArgumentsTestBase(TestParameters parameters, boolean minification) {
+    this.parameters = parameters;
     this.minification = minification;
   }
 
-  @Parameters(name = "minification:{0}")
+  @Parameters(name = "{0}, minification:{1}")
   public static Collection<Object[]> data() {
-    return ImmutableList.of(new Object[] {true}, new Object[] {false});
+    return buildParameters(
+        TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build(),
+        BooleanUtils.values());
   }
 
   public void configure(R8FullTestBuilder builder) {
@@ -50,21 +61,26 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
   }
 
   @Test
-  public void test() throws Throwable {
-    testForJvm()
-        .addTestClasspath()
-        .run(getTestClass())
+  public void testReference() throws Exception {
+    assumeFalse(minification);
+    testForRuntime(parameters)
+        .addProgramClasses(getTestClass())
+        .addProgramClasses(getAdditionalClasses())
+        .run(parameters.getRuntime(), getTestClass())
         .assertSuccessWithOutput(getExpectedResult());
+  }
 
-    testForR8(Backend.DEX)
+  @Test
+  public void testR8() throws Throwable {
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
         .addProgramClasses(getTestClass())
         .addProgramClasses(getAdditionalClasses())
         .addKeepMainRule(getTestClass())
         .minification(minification)
         .addOptionsModification(options -> options.enableSideEffectAnalysis = false)
         .apply(this::configure)
-        .compile()
-        .run(getTestClass())
+        .run(parameters.getRuntime(), getTestClass())
         .inspect(this::inspect)
         .assertSuccessWithOutput(getExpectedResult());
   }

@@ -71,7 +71,7 @@ public class D8TestBuilder
     return new D8TestCompileResult(
         getState(),
         app.get(),
-        minApiLevel,
+        getMinApiLevel(),
         getOutputMode(),
         libraryDesugaringTestConfiguration,
         getMapContent());

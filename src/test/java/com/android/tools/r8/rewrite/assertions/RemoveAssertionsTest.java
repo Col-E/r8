@@ -166,6 +166,7 @@ class CompilationResults {
 @RunWith(Parameterized.class)
 public class RemoveAssertionsTest extends TestBase {
 
+  private static final AndroidApiLevel minApi = AndroidApiLevel.B;
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
@@ -190,6 +191,7 @@ public class RemoveAssertionsTest extends TestBase {
         .addOptionsModification(o -> o.inlinerOptions().enableInlining = false)
         .allowAccessModification()
         .noMinification()
+        .setMinApi(minApi)
         .compile();
   }
 
@@ -225,6 +227,7 @@ public class RemoveAssertionsTest extends TestBase {
         .debug()
         .noTreeShaking()
         .noMinification()
+        .setMinApi(minApi)
         .compile();
   }
 
@@ -337,7 +340,7 @@ public class RemoveAssertionsTest extends TestBase {
     return testForD8()
         .addProgramClasses(ClassWithAssertions.class)
         .debug()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(minApi)
         .addAssertionsConfiguration(
             builder -> builder.setTransformation(transformation).setScopeAll().build())
         .compile();
@@ -349,7 +352,7 @@ public class RemoveAssertionsTest extends TestBase {
         testForR8(Backend.CF)
             .addProgramClasses(ClassWithAssertions.class)
             .debug()
-            .setMinApi(AndroidApiLevel.B)
+            .setMinApi(minApi)
             .noTreeShaking()
             .noMinification()
             .compile()
@@ -358,7 +361,7 @@ public class RemoveAssertionsTest extends TestBase {
     return testForD8()
         .addProgramFiles(program)
         .debug()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(minApi)
         .addAssertionsConfiguration(
             builder -> builder.setTransformation(transformation).setScopeAll().build())
         .compile();
@@ -379,7 +382,7 @@ public class RemoveAssertionsTest extends TestBase {
             rewriter.apply(ToolHelper.getClassAsBytes(ClassWithAssertions.class)),
             rewriter.apply(ToolHelper.getClassAsBytes(ChromuimAssertionHookMock.class)))
         .debug()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(minApi)
         .compile();
   }
 

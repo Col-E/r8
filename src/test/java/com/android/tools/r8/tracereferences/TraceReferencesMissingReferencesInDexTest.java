@@ -31,6 +31,8 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
+  private static final AndroidApiLevel minApi = AndroidApiLevel.B;
+
   public TraceReferencesMissingReferencesInDexTest(TestParameters parameters) {
     parameters.assertNoneRuntime();
   }
@@ -91,7 +93,11 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
   @Test
   public void missingClassReferencedInDexArchive() throws Throwable {
     missingClassReferenced(
-        testForD8(Backend.DEX).addProgramClasses(Source.class).compile().writeToZip());
+        testForD8(Backend.DEX)
+            .addProgramClasses(Source.class)
+            .setMinApi(minApi)
+            .compile()
+            .writeToZip());
   }
 
   @Test
@@ -99,6 +105,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
     missingClassReferenced(
         testForD8(Backend.DEX)
             .addProgramClasses(Source.class)
+            .setMinApi(minApi)
             .compile()
             .writeToDirectory()
             .resolve("classes.dex"));
@@ -131,6 +138,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
         testForD8(Backend.DEX)
             .addProgramClasses(Source.class)
             .addProgramClassFileData(getClassWithTargetRemoved())
+            .setMinApi(minApi)
             .compile()
             .writeToZip());
   }
@@ -141,6 +149,7 @@ public class TraceReferencesMissingReferencesInDexTest extends TestBase {
         testForD8(Backend.DEX)
             .addProgramClasses(Source.class)
             .addProgramClassFileData(getClassWithTargetRemoved())
+            .setMinApi(minApi)
             .compile()
             .writeToDirectory()
             .resolve("classes.dex"));

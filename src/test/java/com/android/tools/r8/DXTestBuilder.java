@@ -52,7 +52,7 @@ public class DXTestBuilder
       Path outJar = dxOutputFolder.resolve("output.jar");
 
       List<String> args = new ArrayList<>();
-      args.add("--min-sdk-version=" + minApiLevel);
+      args.add("--min-sdk-version=" + getMinApiLevel());
       args.add("--output=" + outJar.toString());
       args.addAll(injars.stream().map(Path::toString).collect(Collectors.toList()));
       ProcessResult result =
@@ -63,7 +63,7 @@ public class DXTestBuilder
         throw new CompilationFailedException(result.toString());
       }
       return new DXTestCompileResult(
-          getState(), AndroidApp.builder().addProgramFile(outJar).build(), minApiLevel);
+          getState(), AndroidApp.builder().addProgramFile(outJar).build(), getMinApiLevel());
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }

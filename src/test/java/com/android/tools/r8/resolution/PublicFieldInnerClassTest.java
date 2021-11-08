@@ -5,7 +5,9 @@ package com.android.tools.r8.resolution;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,24 +71,25 @@ public class PublicFieldInnerClassTest extends TestBase {
   private static final Class CLASS = PublicFieldInnerClassTestMain.class;
   private static final String EXPECTED_OUTPUT = StringUtils.lines("0", "0", "0", "0");
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Object[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
   }
 
-  public PublicFieldInnerClassTest(Backend backend) {
-    this.backend = backend;
+  public PublicFieldInnerClassTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepMainRule(CLASS)
-        .run(CLASS)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 }

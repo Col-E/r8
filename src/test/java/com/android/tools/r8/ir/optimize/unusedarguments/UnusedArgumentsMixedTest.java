@@ -9,23 +9,17 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import java.util.Collection;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class UnusedArgumentsMixedTest extends UnusedArgumentsTestBase {
 
-  public UnusedArgumentsMixedTest(boolean minification) {
-    super(minification);
-  }
-
-  @Parameters(name = "minification:{0}")
-  public static Collection<Object[]> data() {
-    return UnusedArgumentsTestBase.data();
+  public UnusedArgumentsMixedTest(TestParameters parameters, boolean minification) {
+    super(parameters, minification);
   }
 
   static class TestClass {

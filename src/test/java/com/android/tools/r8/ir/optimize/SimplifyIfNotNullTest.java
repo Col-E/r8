@@ -7,6 +7,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
@@ -20,8 +22,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class SimplifyIfNotNullTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  @Parameter public TestParameters parameters;
 
   private void verifyAbsenceOfIf(
       CodeInspector codeInspector, Class<?> testClass, List<MethodSignature> signatures) {
@@ -43,11 +57,14 @@ public class SimplifyIfNotNullTest extends TestBase {
       ThrowableConsumer<R8FullTestBuilder> configuration)
       throws Exception {
     CodeInspector codeInspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
+            .setMinApi(parameters.getApiLevel())
             .addProgramClasses(testClass)
             .addKeepRules("-keep class " + testClass.getCanonicalName() + " { *; }")
             .apply(configuration)
             .compile()
+            .run(parameters.getRuntime(), testClass)
+            .assertSuccessWithOutput("")
             .inspector();
     verifyAbsenceOfIf(codeInspector, testClass, signatures);
   }

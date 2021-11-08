@@ -127,7 +127,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             box.syntheticProguardRules,
             createDefaultProguardMapConsumer ? proguardMapBuilder.toString() : null,
             graphConsumer,
-            minApiLevel,
+            getMinApiLevel(),
             features);
     switch (allowedDiagnosticMessages) {
       case ALL:

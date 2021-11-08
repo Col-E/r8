@@ -5,6 +5,7 @@ package com.android.tools.r8.debug;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
 import org.apache.harmony.jpda.tests.framework.jdwp.Value;
@@ -20,6 +21,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
   static final String NAME = CLASS.getCanonicalName();
   static final String DESC = DescriptorUtils.javaTypeToDescriptor(NAME);
   static final String FILE = CLASS.getSimpleName() + ".java";
+  static final AndroidApiLevel minApi = AndroidApiLevel.B;
 
   private final String name;
   private final DebugTestConfig config;
@@ -29,7 +31,9 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
     DebugTestParameters parameters =
         parameters()
             .add("CF", temp -> testForJvm(temp).addTestClasspath().debugConfig())
-            .add("D8", temp -> testForD8(temp).addProgramClasses(CLASS).debugConfig());
+            .add(
+                "D8",
+                temp -> testForD8(temp).setMinApi(minApi).addProgramClasses(CLASS).debugConfig());
     for (Backend backend : ToolHelper.getBackends()) {
       parameters.add(
           "R8/" + backend,
@@ -39,6 +43,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
                   .noMinification()
                   .addKeepRules("-keepattributes SourceFile,LineNumberTable")
                   .addProgramClasses(CLASS)
+                  .setMinApi(minApi)
                   .debug()
                   .debugConfig());
     }

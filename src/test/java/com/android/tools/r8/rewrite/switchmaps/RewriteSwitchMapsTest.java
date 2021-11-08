@@ -10,6 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
 import java.util.List;
@@ -45,6 +46,7 @@ public class RewriteSwitchMapsTest extends TestBase {
     testForR8(backend)
         .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR).resolve(JAR_FILE))
         .addKeepRules(PG_CONFIG)
+        .setMinApi(AndroidApiLevel.B)
         .compile()
         .inspect(
             inspector -> {

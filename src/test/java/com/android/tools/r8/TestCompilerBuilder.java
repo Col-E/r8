@@ -68,7 +68,7 @@ public abstract class TestCompilerBuilder<
   private ProgramConsumer programConsumer;
   private MainDexClassesCollector mainDexClassesCollector;
   private StringConsumer mainDexListConsumer;
-  protected int minApiLevel = ToolHelper.getMinApiLevelForDexVm().getLevel();
+  private int minApiLevel = -1;
   private boolean optimizeMultidexForLinearAlloc = false;
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private ByteArrayOutputStream stdout = null;
@@ -101,6 +101,11 @@ public abstract class TestCompilerBuilder<
       assert backend == Backend.CF;
       setOutputMode(OutputMode.ClassFile);
     }
+  }
+
+  protected int getMinApiLevel() {
+    // TODO(b/186010707): Enable assert minApiLevel != -1;
+    return minApiLevel;
   }
 
   abstract CR internalCompile(
@@ -190,7 +195,12 @@ public abstract class TestCompilerBuilder<
     if (backend.isDex() || !isTestShrinkerBuilder()) {
       assert !builder.isMinApiLevelSet()
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
-      builder.setMinApiLevel(minApiLevel);
+      // TODO(b/186010707): This will always be set when fixed.
+      int minApi =
+          getMinApiLevel() == -1
+              ? ToolHelper.getMinApiLevelForDexVm().getLevel()
+              : getMinApiLevel();
+      builder.setMinApiLevel(minApi);
     }
     builder.setOptimizeMultidexForLinearAlloc(optimizeMultidexForLinearAlloc);
     if (useDefaultRuntimeLibrary) {
@@ -203,7 +213,6 @@ public abstract class TestCompilerBuilder<
         builder.addLibraryFiles(TestBase.runtimeJar(backend));
       }
     }
-    List<String> mainDexClasses = null;
     assertNull(oldStdout);
     oldStdout = System.out;
     assertNull(oldStderr);
@@ -321,6 +330,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T setMinApi(int minApiLevel) {
+    assert minApiLevel != -1;
     this.minApiLevel = minApiLevel;
     return self();
   }
