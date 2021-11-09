@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -134,6 +135,26 @@ public class BasicBlockBehavioralSubsumption {
       }
     }
 
+    if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
+      InvokeDirect invoke = instruction.asInvokeDirect();
+      if (otherInstruction.isInvokeConstructor(appView.dexItemFactory())) {
+        InvokeDirect otherInvoke = otherInstruction.asInvokeDirect();
+        // If neither has side effects, then continue.
+        DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
+        if (singleTarget == null
+            || singleTarget.getDefinition().getOptimizationInfo().mayHaveSideEffects()) {
+          return false;
+        }
+        DexClassAndMethod otherSingleTarget = otherInvoke.lookupSingleTarget(appView, context);
+        if (otherSingleTarget == null
+            || otherSingleTarget.getDefinition().getOptimizationInfo().mayHaveSideEffects()) {
+          return false;
+        }
+        return isSubsumedBy(iterator, otherIterator, visited);
+      }
+      return false;
+    }
+
     if (instruction.isReturn()) {
       Return returnInstruction = instruction.asReturn();
       if (otherInstruction.isReturn()) {
@@ -152,20 +173,7 @@ public class BasicBlockBehavioralSubsumption {
   }
 
   private boolean isBlockLocalInstructionWithoutSideEffects(Instruction instruction) {
-    if (!definesBlockLocalValue(instruction)) {
-      return false;
-    }
-    if (instruction.instructionMayHaveSideEffects(appView, context)) {
-      return false;
-    }
-    // For constructor calls include field initialization side effects.
-    if (instruction.isInvokeConstructor(appView.dexItemFactory())) {
-      DexClassAndMethod singleTarget =
-          instruction.asInvokeDirect().lookupSingleTarget(appView, context);
-      return singleTarget != null
-          && !singleTarget.getDefinition().getOptimizationInfo().mayHaveSideEffects();
-    }
-    return true;
+    return definesBlockLocalValue(instruction) && !instructionMayHaveSideEffects(instruction);
   }
 
   private boolean definesBlockLocalValue(Instruction instruction) {
@@ -188,7 +196,8 @@ public class BasicBlockBehavioralSubsumption {
   }
 
   private boolean instructionMayHaveSideEffects(Instruction instruction) {
-    return instruction.instructionMayHaveSideEffects(appView, context);
+    return instruction.isInvokeConstructor(appView.dexItemFactory())
+        || instruction.instructionMayHaveSideEffects(appView, context);
   }
 
   private boolean valuesAreIdentical(Value value, Value other) {
