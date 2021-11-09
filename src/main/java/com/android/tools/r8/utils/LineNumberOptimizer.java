@@ -477,10 +477,10 @@ public class LineNumberOptimizer {
                       m, key -> MethodSignature.fromDexMethod(m, m.holder != clazz.getType()));
 
           // Check if mapped position is an outline
-          if (mappedPositions.get(0).isOutline) {
+          DexMethod outlineMethod = getOutlineMethod(mappedPositions.get(0));
+          if (outlineMethod != null) {
             outlinesToFix
-                .computeIfAbsent(
-                    mappedPositions.get(0).method, ignored -> new OutlineFixupBuilder())
+                .computeIfAbsent(outlineMethod, ignored -> new OutlineFixupBuilder())
                 .setMappedPositionsOutline(mappedPositions);
             methodMappingInfo.add(OutlineMappingInformation.builder().build());
           }
@@ -595,6 +595,17 @@ public class LineNumberOptimizer {
     outlinesToFix.values().forEach(OutlineFixupBuilder::fixup);
 
     return classNameMapperBuilder.build();
+  }
+
+  private static DexMethod getOutlineMethod(MappedPosition mappedPosition) {
+    if (mappedPosition.isOutline) {
+      return mappedPosition.method;
+    }
+    if (mappedPosition.caller == null) {
+      return null;
+    }
+    Position outermostCaller = mappedPosition.caller.getOutermostCaller();
+    return outermostCaller.isOutline() ? outermostCaller.getMethod() : null;
   }
 
   private static MappedRange getMappedRangesForPosition(
