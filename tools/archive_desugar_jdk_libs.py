@@ -98,7 +98,8 @@ def BuildDesugaredLibrary(checkout_dir, variant):
         bazel,
         '--bazelrc=/dev/null',
         'build',
-        'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
+        'maven_release' + ('_jdk11' if variant == 'jdk11' else ''),
+         '--java_language_version=' + ('11' if variant == 'jdk11' else '8')]
     if variant == 'jdk11':
         cmd.append('--java_runtime_version=remotejdk_11')
     utils.PrintCmd(cmd)
