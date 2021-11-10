@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ThrowNullCode;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
@@ -223,7 +224,7 @@ public class InterfaceDesugaringSyntheticHelper {
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
+                    .setCode(ignore -> ThrowNullCode.get()));
   }
 
   DexClassAndMethod ensureDefaultAsMethodOfCompanionClassStub(DexClassAndMethod method) {
@@ -357,7 +358,7 @@ public class InterfaceDesugaringSyntheticHelper {
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setCode(DexEncodedMethod::buildEmptyThrowingCfCode));
+                    .setCode(ignore -> ThrowNullCode.get()));
   }
 
   ProgramMethod ensureStaticAsMethodOfProgramCompanionClassStub(

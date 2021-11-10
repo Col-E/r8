@@ -6,7 +6,6 @@ package com.android.tools.r8.optimize.argumentpropagation;
 
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -162,14 +161,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     }
 
     if (methodState.isBottom()) {
-      if (!appView.options().canUseDefaultAndStaticInterfaceMethods()
-          && method.getHolder().isInterface()) {
-        // TODO(b/190154391): The method has not been moved to the companion class yet, so we can't
-        //  remove its code object.
-        return;
-      }
-      DexEncodedMethod definition = method.getDefinition();
-      definition.setCode(definition.buildEmptyThrowingCode(appView.options()), appView);
+      method.convertToAbstractOrThrowNullMethod(appView);
       return;
     }
 

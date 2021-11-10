@@ -16,7 +16,6 @@ import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import static java.util.Objects.requireNonNull;
 
 import com.android.tools.r8.cf.CfVersion;
-import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfInstanceOf;
@@ -30,7 +29,6 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
-import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.InstanceOf;
 import com.android.tools.r8.code.Instruction;
@@ -939,64 +937,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         new DexCode.Try[0],
         new DexCode.TryHandler[0],
         null);
-  }
-
-  public DexEncodedMethod toEmptyThrowingMethod(InternalOptions options) {
-    return options.isGeneratingClassFiles()
-        ? toEmptyThrowingMethodCf()
-        : toEmptyThrowingMethodDex(true);
-  }
-
-  public DexEncodedMethod toEmptyThrowingMethodDex(boolean setIsLibraryOverride) {
-    checkIfObsolete();
-    assert !shouldNotHaveCode();
-    Builder builder = builder(this);
-    builder.setCode(buildEmptyThrowingDexCode());
-    if (setIsLibraryOverride && isNonPrivateVirtualMethod()) {
-      builder.setIsLibraryMethodOverride(isLibraryMethodOverride());
-    }
-    DexEncodedMethod result = builder.build();
-    setObsolete();
-    return result;
-  }
-
-  private DexEncodedMethod toEmptyThrowingMethodCf() {
-    checkIfObsolete();
-    assert !shouldNotHaveCode();
-    Builder builder = builder(this);
-    builder.setCode(buildEmptyThrowingCfCode());
-    if (isNonPrivateVirtualMethod()) {
-      builder.setIsLibraryMethodOverride(isLibraryMethodOverride());
-    }
-    DexEncodedMethod result = builder.build();
-    setObsolete();
-    return result;
-  }
-
-  public Code buildEmptyThrowingCode(InternalOptions options) {
-    return options.isGeneratingClassFiles()
-        ? buildEmptyThrowingCfCode()
-        : buildEmptyThrowingDexCode();
-  }
-
-  public CfCode buildEmptyThrowingCfCode() {
-    return buildEmptyThrowingCfCode(getReference());
-  }
-
-  public static CfCode buildEmptyThrowingCfCode(DexMethod method) {
-    CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
-    return new CfCode(
-        method.holder,
-        1,
-        method.proto.parameters.size() + 1,
-        Arrays.asList(insn),
-        Collections.emptyList(),
-        Collections.emptyList());
-  }
-
-  public DexCode buildEmptyThrowingDexCode() {
-    Instruction[] insn = {new Const4(0, 0), new Throw(0)};
-    return generateCodeFromTemplate(1, 0, insn);
   }
 
   public Code buildInstanceOfCode(DexType type, boolean negate, InternalOptions options) {
