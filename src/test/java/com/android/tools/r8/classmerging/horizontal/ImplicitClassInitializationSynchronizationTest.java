@@ -91,12 +91,13 @@ public class ImplicitClassInitializationSynchronizationTest extends TestBase {
       synchronized (lock) {
         lock.wait();
       }
-      System.out.println("Main: notified");
 
       // Wait for the worker thread to be waiting on the main thread.
       while (workerThread.getState() != State.WAITING) {
         Thread.sleep(100);
       }
+
+      System.out.println("Main: notified");
 
       // In one second, let the worker thread continue.
       doAfter(
