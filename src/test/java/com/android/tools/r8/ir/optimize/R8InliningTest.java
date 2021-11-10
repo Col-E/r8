@@ -8,10 +8,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -147,6 +149,8 @@ public class R8InliningTest extends TestBase {
 
   @Before
   public void generateR8Version() throws Exception {
+    // Triggers ART failure. See also b/205481246.
+    assumeFalse(parameters.isDexRuntimeVersion(Version.V6_0_1));
     outputDir = temp.newFolder().toPath();
     Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
     generateR8Version(outputDir, mapFile, true);
