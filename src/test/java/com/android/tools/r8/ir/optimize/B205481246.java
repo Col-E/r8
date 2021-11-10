@@ -40,7 +40,7 @@ public class B205481246 extends TestBase {
                 && parameters.getApiLevel().isEqualTo(AndroidApiLevel.B),
             runResult ->
                 runResult.assertFailureWithErrorThatMatches(
-                    containsString("corrupted double-linked list")),
+                    containsString("Check failed: receiver != nullptr virtual")),
             runResult ->
                 runResult
                     .assertFailureWithErrorThatThrows(NullPointerException.class)
