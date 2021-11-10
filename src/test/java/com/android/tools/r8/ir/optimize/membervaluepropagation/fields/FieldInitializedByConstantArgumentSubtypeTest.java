@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.membervaluepropagation.fields;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -50,8 +51,7 @@ public class FieldInitializedByConstantArgumentSubtypeTest extends TestBase {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    // TODO(b/147652121): Should be absent.
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), isAbsent());
   }
 
   static class TestClass {

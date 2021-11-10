@@ -421,7 +421,7 @@ public class RedundantFieldLoadElimination {
       SingleFieldValue singleFieldValue =
           field.getDefinition().getOptimizationInfo().getAbstractValue().asSingleFieldValue();
       if (singleFieldValue != null) {
-        applyObjectState(staticGet.outValue(), singleFieldValue.getState());
+        applyObjectState(staticGet.outValue(), singleFieldValue.getObjectState());
       }
     }
   }

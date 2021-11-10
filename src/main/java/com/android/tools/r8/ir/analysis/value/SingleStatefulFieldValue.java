@@ -20,7 +20,22 @@ public class SingleStatefulFieldValue extends SingleFieldValue {
   }
 
   @Override
-  public ObjectState getState() {
+  public boolean hasKnownArrayLength() {
+    return getObjectState().hasKnownArrayLength();
+  }
+
+  @Override
+  public int getKnownArrayLength() {
+    return getObjectState().getKnownArrayLength();
+  }
+
+  @Override
+  public boolean hasObjectState() {
+    return true;
+  }
+
+  @Override
+  public ObjectState getObjectState() {
     return state;
   }
 

@@ -401,12 +401,8 @@ public class MemberValuePropagation {
       if (abstractValue.isUnknown() && !definition.isStatic()) {
         AbstractValue abstractReceiverValue =
             current.asInstanceGet().object().getAbstractValue(appView, code.context());
-        if (abstractReceiverValue.isSingleFieldValue()) {
-          abstractValue =
-              abstractReceiverValue
-                  .asSingleFieldValue()
-                  .getState()
-                  .getAbstractFieldValue(definition);
+        if (abstractReceiverValue.hasObjectState()) {
+          abstractValue = abstractReceiverValue.getObjectState().getAbstractFieldValue(definition);
         }
       }
     } else if (definition.isStatic()) {

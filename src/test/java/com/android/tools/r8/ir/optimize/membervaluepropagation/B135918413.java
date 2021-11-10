@@ -90,7 +90,7 @@ public class B135918413 extends TestBase {
       } else {
         dead();
       }
-      if (Config.alwaysEmpty.length == 0) {
+      if (Config.alwaysEmpty.clone().length == 0) {
         System.out.print(" world");
       }
       for (String str : Config.alwaysNonEmpty) {

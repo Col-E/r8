@@ -65,6 +65,9 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.StatefulObjectValue;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
+import com.android.tools.r8.ir.analysis.value.objectstate.ObjectStateAnalysis;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
@@ -209,6 +212,13 @@ public class MethodOptimizationInfoCollector {
             checkCastAndInstanceOfMethodSpecialization.addCandidateForOptimization(
                 context, abstractReturnValue, methodProcessor);
           }
+        } else if (returnValue.getType().isReferenceType()) {
+          // TODO(b/204159267): Move this logic into Instruction#getAbstractValue in NewInstance.
+          ObjectState objectState =
+              ObjectStateAnalysis.computeObjectState(aliasedValue, appView, context);
+          // TODO(b/204272377): Avoid wrapping and unwrapping the object state.
+          feedback.methodReturnsAbstractValue(
+              method, appView, StatefulObjectValue.create(objectState));
         }
       }
     }

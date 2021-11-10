@@ -15,6 +15,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.StatefulObjectValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -137,6 +140,17 @@ public class InvokeNewArray extends Invoke {
 
   private static Unreachable cfUnsupported() {
     throw new Unreachable("InvokeNewArray (non-empty) not supported when compiling to classfiles.");
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+    if (!instructionMayHaveSideEffects(appView, context)) {
+      int size = inValues.size();
+      return StatefulObjectValue.create(
+          appView.abstractValueFactory().createKnownLengthArrayState(size));
+    }
+    return UnknownValue.getInstance();
   }
 
   @Override
