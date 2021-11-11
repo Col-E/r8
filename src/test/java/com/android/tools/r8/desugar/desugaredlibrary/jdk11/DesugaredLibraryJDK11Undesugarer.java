@@ -2,9 +2,10 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary;
+package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.StreamUtils;

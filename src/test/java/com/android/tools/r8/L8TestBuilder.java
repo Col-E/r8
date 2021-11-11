@@ -8,7 +8,7 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryJDK11Undesugarer;
+import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidAppConsumers;
