@@ -1222,6 +1222,9 @@ public class IRConverter {
 
     if (assumeInserter != null) {
       assumeInserter.insertAssumeInstructions(code, timing);
+      timing.begin("Rewrite always throwing instructions");
+      codeRewriter.optimizeAlwaysThrowingInstructions(code);
+      timing.end();
     }
 
     previous = printMethod(code, "IR after inserting assume instructions (SSA)", previous);
@@ -1418,14 +1421,6 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
 
-    // TODO(b/140766440): an ideal solution would be putting CodeOptimization for this into
-    //  the list for primary processing only.
-    outliner.collectOutlineSites(code, timing);
-
-    assert code.verifyTypes(appView);
-
-    previous = printMethod(code, "IR after outline handler (SSA)", previous);
-
     if (stringSwitchRemover != null) {
       // Remove string switches prior to canonicalization to ensure that the constants that are
       // being introduced will be canonicalized if possible.
@@ -1541,6 +1536,8 @@ public class IRConverter {
       Timing timing) {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.scan(method, code, methodProcessor, timing));
+
+    outliner.collectOutlineSites(code, timing);
 
     if (methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, conversionOptions);
