@@ -77,7 +77,11 @@ public class MemberRebindingAnalysis {
     while (currentResolutionResult != null) {
       DexClassAndMethod currentResolvedMethod = currentResolutionResult.getResolutionPair();
       if (canRebindDirectlyToLibraryMethod(
-          currentResolvedMethod, currentResolutionResult, contexts, invokeType)) {
+          currentResolvedMethod,
+          currentResolutionResult.withInitialResolutionHolder(
+              currentResolutionResult.getResolvedHolder()),
+          contexts,
+          invokeType)) {
         eligibleLibraryMethod = currentResolvedMethod.asLibraryMethod();
       }
       if (appView.appInfo().isAssumeMethod(currentResolvedMethod)) {

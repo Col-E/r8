@@ -182,6 +182,12 @@ public abstract class MethodResolutionResult
           || initialResolutionHolder.type == resolvedMethod.getHolderType();
     }
 
+    public SingleResolutionResult withInitialResolutionHolder(DexClass newInitialResolutionHolder) {
+      return newInitialResolutionHolder != initialResolutionHolder
+          ? new SingleResolutionResult(newInitialResolutionHolder, resolvedHolder, resolvedMethod)
+          : this;
+    }
+
     @Override
     public DexClass getInitialResolutionHolder() {
       return initialResolutionHolder;
