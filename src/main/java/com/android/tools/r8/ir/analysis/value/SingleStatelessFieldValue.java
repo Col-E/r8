@@ -31,7 +31,7 @@ public class SingleStatelessFieldValue extends SingleFieldValue {
 
   @Override
   public boolean equals(Object o) {
-    if (getClass() != o.getClass()) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     SingleStatelessFieldValue singleFieldValue = (SingleStatelessFieldValue) o;
