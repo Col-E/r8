@@ -126,6 +126,9 @@ final class StaticizingProcessor {
     enqueueMethodsWithCodeOptimizations(
         methodsToBeStaticized, optimizations -> optimizations.add(this::removeReferencesToThis));
 
+    // Rewrite outliner with lens.
+    converter.outliner.rewriteWithLens();
+
     // Process queued methods with associated optimizations
     processMethodsConcurrently(feedback, executorService);
 
@@ -145,6 +148,9 @@ final class StaticizingProcessor {
                 .add(this::rewriteReferences)
                 .add(this::insertAssumeInstructions)
                 .add(collectOptimizationInfo(feedback)));
+
+    // Rewrite outliner with lens.
+    converter.outliner.rewriteWithLens();
 
     // Process queued methods with associated optimizations
     processMethodsConcurrently(feedback, executorService);

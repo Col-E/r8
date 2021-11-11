@@ -131,7 +131,7 @@ public class IRConverter {
   public final AppView<?> appView;
 
   private final Timing timing;
-  private final Outliner outliner;
+  public final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final CfInstructionDesugaringCollection instructionDesugaring;
   private final FieldAccessAnalysis fieldAccessAnalysis;
