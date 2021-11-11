@@ -113,7 +113,11 @@ public class Inliner {
     this.extraNeverInlineMethods =
         appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations
             ? ImmutableSet.of()
-            : ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
+            : ImmutableSet.of(
+                intrinsics.throwNpe,
+                intrinsics.throwParameterIsNullException,
+                intrinsics.throwParameterIsNullNPE,
+                intrinsics.throwParameterIsNullIAE);
     this.lensCodeRewriter = lensCodeRewriter;
     this.mainDexInfo = appView.appInfo().getMainDexInfo();
     this.singleInlineCallers =

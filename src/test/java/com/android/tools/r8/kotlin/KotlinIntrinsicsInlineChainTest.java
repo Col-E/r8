@@ -81,8 +81,7 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
                 assertEquals(allowAccessModification ? 0 : 1, checkParameterIsNotNull);
                 assertEquals(0, checkNotNullParameter);
               } else {
-                // TODO(b/139276374): Update such that this is call is inlined.
-                assertEquals(1, checkNotNullParameter);
+                assertEquals(allowAccessModification ? 0 : 1, checkNotNullParameter);
                 assertEquals(0, checkParameterIsNotNull);
               }
             });

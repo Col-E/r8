@@ -101,6 +101,7 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.typechecks.CheckCastAndInstanceOfMethodSpecialization;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.kotlin.Kotlin.Intrinsics;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -744,11 +745,13 @@ public class MethodOptimizationInfoCollector {
     }
     // We need to ignore the holder, since Kotlin adds different versions of null-check machinery,
     // e.g., kotlin.collections.ArraysKt___ArraysKt... or kotlin.jvm.internal.ArrayIteratorKt...
-    DexMethod checkParameterIsNotNullMethod =
-        appView.dexItemFactory().kotlin.intrinsics.checkParameterIsNotNull;
+    Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     DexMethod originalInvokedMethod =
         appView.graphLens().getOriginalMethodSignature(invoke.getInvokedMethod());
-    return originalInvokedMethod.match(checkParameterIsNotNullMethod)
+    boolean isCheckNotNullMethod =
+        originalInvokedMethod.match(intrinsics.checkParameterIsNotNull)
+            || originalInvokedMethod.match(intrinsics.checkNotNullParameter);
+    return isCheckNotNullMethod
         && invoke.getFirstArgument() == value
         && originalInvokedMethod.getHolderType().getPackageDescriptor().startsWith(Kotlin.NAME);
   }
@@ -763,11 +766,11 @@ public class MethodOptimizationInfoCollector {
     }
     // We need to ignore the holder, since Kotlin adds different versions of null-check machinery,
     // e.g., kotlin.collections.ArraysKt___ArraysKt... or kotlin.jvm.internal.ArrayIteratorKt...
-    DexMethod throwParameterIsNullExceptionMethod =
-        appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException;
+    Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     DexMethod originalInvokedMethod =
         appView.graphLens().getOriginalMethodSignature(invoke.getInvokedMethod());
-    return originalInvokedMethod.match(throwParameterIsNullExceptionMethod)
+    return (originalInvokedMethod.match(intrinsics.throwParameterIsNullException)
+            || originalInvokedMethod.match(intrinsics.throwParameterIsNullNPE))
         && originalInvokedMethod.getHolderType().getPackageDescriptor().startsWith(Kotlin.NAME);
   }
 

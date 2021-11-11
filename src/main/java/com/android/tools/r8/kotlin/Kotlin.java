@@ -164,9 +164,24 @@ public final class Kotlin {
     public final DexType type = factory.createType(PACKAGE_PREFIX + "jvm/internal/Intrinsics;");
     public final DexMethod throwParameterIsNullException = factory.createMethod(type,
         factory.createProto(factory.voidType, factory.stringType), "throwParameterIsNullException");
+    public final DexMethod throwParameterIsNullNPE =
+        factory.createMethod(
+            type,
+            factory.createProto(factory.voidType, factory.stringType),
+            "throwParameterIsNullNPE");
+    public final DexMethod throwParameterIsNullIAE =
+        factory.createMethod(
+            type,
+            factory.createProto(factory.voidType, factory.stringType),
+            "throwParameterIsNullIAE");
     public final DexMethod checkParameterIsNotNull = factory.createMethod(type,
         factory.createProto(factory.voidType, factory.objectType, factory.stringType),
         "checkParameterIsNotNull");
+    public final DexMethod checkNotNullParameter =
+        factory.createMethod(
+            type,
+            factory.createProto(factory.voidType, factory.objectType, factory.stringType),
+            "checkNotNullParameter");
     public final DexMethod throwNpe = factory.createMethod(
         type, factory.createProto(factory.voidType), "throwNpe");
   }
