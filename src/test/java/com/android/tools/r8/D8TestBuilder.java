@@ -91,10 +91,7 @@ public class D8TestBuilder
       AndroidApiLevel minApiLevel,
       KeepRuleConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
-    if (minApiLevel.getLevel() < AndroidApiLevel.O.getLevel()) {
-      super.enableCoreLibraryDesugaring(
-          minApiLevel, keepRuleConsumer, desugaredLibraryConfiguration);
-    }
+    super.enableCoreLibraryDesugaring(minApiLevel, keepRuleConsumer, desugaredLibraryConfiguration);
     return self();
   }
 

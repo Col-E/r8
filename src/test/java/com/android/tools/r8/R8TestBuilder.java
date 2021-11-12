@@ -654,10 +654,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       AndroidApiLevel minApiLevel,
       KeepRuleConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
-    if (minApiLevel.getLevel() < AndroidApiLevel.O.getLevel()) {
-      super.enableCoreLibraryDesugaring(
-          minApiLevel, keepRuleConsumer, desugaredLibraryConfiguration);
-    }
+    super.enableCoreLibraryDesugaring(minApiLevel, keepRuleConsumer, desugaredLibraryConfiguration);
     return self();
   }
 

@@ -260,14 +260,7 @@ public class LibraryDesugaringTestConfiguration {
   }
 
   private static KeepRuleConsumer createKeepRuleConsumer(AndroidApiLevel apiLevel) {
-    if (requiresAnyCoreLibDesugaring(apiLevel)) {
       return new PresentKeepRuleConsumer();
-    }
-    return new AbsentKeepRuleConsumer();
-  }
-
-  private static boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel) {
-    return apiLevel.isLessThan(AndroidApiLevel.O);
   }
 
   public static class PresentKeepRuleConsumer implements KeepRuleConsumer {

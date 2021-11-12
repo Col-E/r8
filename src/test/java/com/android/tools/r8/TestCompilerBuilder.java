@@ -484,7 +484,6 @@ public abstract class TestCompilerBuilder<
       AndroidApiLevel minApiLevel,
       KeepRuleConsumer keepRuleConsumer,
       StringResource desugaredLibraryConfiguration) {
-    assert minApiLevel.getLevel() < AndroidApiLevel.O.getLevel();
     return enableLibraryDesugaring(
         LibraryDesugaringTestConfiguration.builder()
             .setMinApi(minApiLevel)
