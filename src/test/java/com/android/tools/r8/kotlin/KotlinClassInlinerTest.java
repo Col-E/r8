@@ -256,12 +256,12 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
                       clazz,
                       "main",
                       String[].class.getCanonicalName()));
+              String kotlinIntrinsics = "void kotlin.jvm.internal.Intrinsics";
               assertEquals(
                   Lists.newArrayList(
                       kotlinc.is(KOTLINC_1_3_72)
-                          ? "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"
-                          : "void kotlin.jvm.internal.Intrinsics.checkNotNullParameter(java.lang.Object,"
-                                + " java.lang.String)"),
+                          ? kotlinIntrinsics + ".throwParameterIsNullException(java.lang.String)"
+                          : kotlinIntrinsics + ".throwParameterIsNullNPE(java.lang.String)"),
                   collectStaticCalls(clazz, "main", String[].class.getCanonicalName()));
             });
   }
