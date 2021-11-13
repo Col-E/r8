@@ -351,6 +351,10 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return definitionSupplier.definitionFor(this).isInterface();
   }
 
+  public DexProgramClass asProgramClass(DexDefinitionSupplier definitions) {
+    return asProgramClassOrNull(definitions.definitionFor(this));
+  }
+
   public boolean isProgramType(DexDefinitionSupplier definitions) {
     DexClass clazz = definitions.definitionFor(this);
     return clazz != null && clazz.isProgramClass();

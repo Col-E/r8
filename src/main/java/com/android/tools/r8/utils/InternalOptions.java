@@ -1357,6 +1357,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enable =
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
+    // TODO(b/205611444): Enable by default.
+    private boolean enableClassInitializerDeadlockDetection = false;
     private boolean enableInterfaceMerging =
         System.getProperty("com.android.tools.r8.disableHorizontalInterfaceMerging") == null;
     private boolean enableInterfaceMergingInInitial = false;
@@ -1388,6 +1390,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isConstructorMergingEnabled() {
       return true;
+    }
+
+    public boolean isClassInitializerDeadlockDetectionEnabled() {
+      return enableClassInitializerDeadlockDetection;
     }
 
     public boolean isEnabled(HorizontalClassMerger.Mode mode) {
@@ -1422,6 +1428,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean isRestrictedToSynthetics() {
       return restrictToSynthetics || !isOptimizing() || !isShrinking();
+    }
+
+    public void setEnableClassInitializerDeadlockDetection() {
+      enableClassInitializerDeadlockDetection = true;
     }
 
     public void setEnableInterfaceMergingInInitial() {

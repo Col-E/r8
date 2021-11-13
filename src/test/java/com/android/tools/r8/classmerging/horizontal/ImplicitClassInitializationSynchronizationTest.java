@@ -4,14 +4,14 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.lang.Thread.State;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,25 +34,15 @@ public class ImplicitClassInitializationSynchronizationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        // TODO(b/205611444): Should not be merged.
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertIsCompleteMergeGroup(B.class, C.class))
+            inspector -> inspector.assertClassesNotMerged(B.class, C.class))
+        .addOptionsModification(
+            options ->
+                options.horizontalClassMergerOptions().setEnableClassInitializerDeadlockDetection())
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/205611444): Should succeed.
-        .assertFailure()
-        .assertStdoutMatches(
-            equalTo(
-                StringUtils.lines(
-                    "Main: fork",
-                    "Main: wait",
-                    "Worker: notify",
-                    "Worker: wait",
-                    "Main: notified",
-                    "Main: lock C",
-                    "Worker: notified",
-                    "Worker: lock B")));
+        .assertSuccessWithOutputLines(getExpectedOutput());
   }
 
   @Test
@@ -61,19 +51,23 @@ public class ImplicitClassInitializationSynchronizationTest extends TestBase {
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(
-            "Main: fork",
-            "Main: wait",
-            "Worker: notify",
-            "Worker: wait",
-            "Main: notified",
-            "Main: lock C",
-            "Worker: notified",
-            "Worker: lock B",
-            "B",
-            "Worker: unlock B",
-            "C",
-            "Main: unlock C");
+        .assertSuccessWithOutputLines(getExpectedOutput());
+  }
+
+  private static List<String> getExpectedOutput() {
+    return ImmutableList.of(
+        "Main: fork",
+        "Main: wait",
+        "Worker: notify",
+        "Worker: wait",
+        "Main: notified",
+        "Main: lock C",
+        "Worker: notified",
+        "Worker: lock B",
+        "B",
+        "Worker: unlock B",
+        "C",
+        "Main: unlock C");
   }
 
   static class Main {

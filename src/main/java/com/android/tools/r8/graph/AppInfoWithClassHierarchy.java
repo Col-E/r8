@@ -23,6 +23,7 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.SetUtils;
@@ -169,6 +170,22 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     getSyntheticItems().addLegacySyntheticClass(clazz, context, featureSplit);
   }
 
+  /** Primitive traversal over all (non-interface) superclasses of a given type. */
+  public TraversalContinuation traverseSuperClasses(
+      DexClass clazz, TriFunction<DexType, DexClass, DexClass, TraversalContinuation> fn) {
+    DexClass currentClass = clazz;
+    while (currentClass != null && currentClass.getSuperType() != null) {
+      DexClass superclass = definitionFor(currentClass.getSuperType());
+      TraversalContinuation stepResult =
+          fn.apply(currentClass.getSuperType(), superclass, currentClass);
+      if (stepResult.shouldBreak()) {
+        return stepResult;
+      }
+      currentClass = superclass;
+    }
+    return CONTINUE;
+  }
+
   /**
    * Primitive traversal over all supertypes of a given type.
    *
@@ -289,6 +306,56 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return traverseSuperTypes(
             clazz, (superType, subclass, isInterface) -> superType == supertype ? BREAK : CONTINUE)
         .shouldBreak();
+  }
+
+  public boolean isSubtype(DexClass subclass, DexClass superclass) {
+    return superclass.isInterface()
+        ? isSubtype(subclass.getType(), superclass.getType())
+        : isSubtypeOfClass(subclass, superclass);
+  }
+
+  public boolean isSubtypeOfClass(DexClass subclass, DexClass superclass) {
+    assert subclass != null;
+    assert superclass != null;
+    assert !superclass.isInterface();
+    if (subclass.isInterface()) {
+      return superclass.getType() == dexItemFactory().objectType;
+    }
+    return subclass == superclass || isStrictSubtypeOfClass(subclass, superclass);
+  }
+
+  public boolean isStrictSubtypeOfClass(DexClass subclass, DexClass superclass) {
+    assert subclass != null;
+    assert superclass != null;
+    assert !subclass.isInterface();
+    assert !superclass.isInterface();
+    if (subclass == superclass) {
+      return false;
+    }
+    // Treat object special: it is always the superclass even for broken hierarchies.
+    if (subclass.getType() == dexItemFactory().objectType) {
+      return false;
+    }
+    if (superclass.getType() == dexItemFactory().objectType) {
+      return true;
+    }
+    BooleanBox result = new BooleanBox();
+    traverseSuperClasses(
+        subclass,
+        (currentType, currentClass, immediateSubclass) -> {
+          if (currentType == superclass.getType()) {
+            result.set();
+            return BREAK;
+          }
+          if (currentClass == null) {
+            return BREAK;
+          }
+          if (superclass.isProgramClass() && !currentClass.isProgramClass()) {
+            return BREAK;
+          }
+          return CONTINUE;
+        });
+    return result.isTrue();
   }
 
   public boolean inSameHierarchy(DexType type, DexType other) {
