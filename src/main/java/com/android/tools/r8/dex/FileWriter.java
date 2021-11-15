@@ -317,7 +317,7 @@ public class FileWriter {
       return true;
     }
 
-    AndroidApiLevel apiLevel = options.minApiLevel;
+    AndroidApiLevel apiLevel = options.getMinApiLevel();
     for (DexField field : mapping.getFields()) {
       assert field.name.isValidSimpleName(apiLevel);
     }
@@ -811,7 +811,7 @@ public class FileWriter {
     dest.putBytes(
         options.testing.forceDexVersionBytes != null
             ? options.testing.forceDexVersionBytes
-            : DexVersion.getDexVersion(options.minApiLevel).getBytes());
+            : DexVersion.getDexVersion(options.getMinApiLevel()).getBytes());
     dest.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     // Leave out checksum and signature for now.
     dest.moveTo(Constants.FILE_SIZE_OFFSET);
@@ -1109,7 +1109,7 @@ public class FileWriter {
     }
 
     private MixedSectionOffsets(InternalOptions options, MethodToCodeObjectMapping codeMapping) {
-      this.minApiLevel = options.minApiLevel;
+      this.minApiLevel = options.getMinApiLevel();
       this.codeMapping = codeMapping;
     }
 

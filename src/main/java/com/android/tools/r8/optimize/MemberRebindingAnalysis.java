@@ -148,7 +148,8 @@ public class MemberRebindingAnalysis {
   private boolean isPresentSinceMinApi(LibraryMethod method) {
     AndroidApiLevel apiLevel =
         androidApiLevelCompute.computeApiLevelForLibraryReference(method.getReference());
-    return apiLevel != AndroidApiLevel.UNKNOWN && apiLevel.isLessThanOrEqualTo(options.minApiLevel);
+    return apiLevel != AndroidApiLevel.UNKNOWN
+        && apiLevel.isLessThanOrEqualTo(options.getMinApiLevel());
   }
 
   public static DexField validMemberRebindingTargetFor(

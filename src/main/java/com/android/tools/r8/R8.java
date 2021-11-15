@@ -354,7 +354,7 @@ public class R8 {
               options.itemFactory, options.getProguardConfiguration().getRules())) {
             synthesizedProguardRules.add(
                 ProguardConfigurationUtils.buildAssumeNoSideEffectsRuleForApiLevel(
-                    options.itemFactory, options.minApiLevel));
+                    options.itemFactory, options.getMinApiLevel()));
           }
         }
         SubtypingInfo subtypingInfo = new SubtypingInfo(appView);

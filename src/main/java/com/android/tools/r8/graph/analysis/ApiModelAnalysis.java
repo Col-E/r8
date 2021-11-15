@@ -23,7 +23,7 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   public ApiModelAnalysis(AppView<?> appView, AndroidApiLevelCompute apiCompute) {
     this.appView = appView;
-    this.minApiLevel = appView.options().minApiLevel;
+    this.minApiLevel = appView.options().getMinApiLevel();
     this.apiCompute = apiCompute;
   }
 

@@ -302,7 +302,7 @@ public class DexParser<T extends DexClass> {
 
   private void checkName(DexString name) {
     if (!options.itemFactory.getSkipNameValidationForTesting()
-        && !name.isValidSimpleName(options.minApiLevel)) {
+        && !name.isValidSimpleName(options.getMinApiLevel())) {
       throw new CompilationError("Space characters in SimpleName '"
         + name.toASCIIString()
         + "' are not allowed prior to DEX version 040");

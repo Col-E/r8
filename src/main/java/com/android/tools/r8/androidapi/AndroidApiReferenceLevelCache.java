@@ -66,34 +66,34 @@ public class AndroidApiReferenceLevelCache {
     if (contextType.isArrayType()) {
       if (reference.isDexMethod()
           && reference.asDexMethod().match(appView.dexItemFactory().objectMembers.clone)) {
-        return appView.options().minApiLevel;
+        return appView.options().getMinApiLevel();
       }
       return lookup(contextType.toBaseType(appView.dexItemFactory()));
     }
     if (contextType.isPrimitiveType() || contextType.isVoidType()) {
-      return appView.options().minApiLevel;
+      return appView.options().getMinApiLevel();
     }
     DexClass clazz = appView.definitionFor(contextType);
     if (clazz == null) {
       return AndroidApiLevel.UNKNOWN;
     }
     if (!clazz.isLibraryClass()) {
-      return appView.options().minApiLevel;
+      return appView.options().getMinApiLevel();
     }
     if (isReferenceToJavaLangObject(reference)) {
-      return appView.options().minApiLevel;
+      return appView.options().getMinApiLevel();
     }
     if (desugaredLibraryConfiguration.isSupported(reference, appView)) {
       // If we end up desugaring the reference, the library classes is bridged by j$ which is part
       // of the program.
-      return appView.options().minApiLevel;
+      return appView.options().getMinApiLevel();
     }
     return reference
         .apply(
             androidApiLevelDatabase::getTypeApiLevel,
             androidApiLevelDatabase::getFieldApiLevel,
             androidApiLevelDatabase::getMethodApiLevel)
-        .max(appView.options().minApiLevel);
+        .max(appView.options().getMinApiLevel());
   }
 
   private boolean isReferenceToJavaLangObject(DexReference reference) {

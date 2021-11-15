@@ -92,7 +92,7 @@ public class TestAppViewBuilder {
   }
 
   public TestAppViewBuilder setMinApi(AndroidApiLevel minApi) {
-    optionModifications.add(options -> options.minApiLevel = minApi);
+    optionModifications.add(options -> options.setMinApiLevel(minApi));
     return this;
   }
 

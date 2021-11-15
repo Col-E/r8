@@ -29,7 +29,7 @@ public class AsmTestBase extends TestBase {
   protected void ensureSameOutput(String main, AndroidApiLevel apiLevel,
       List<String> args, byte[]... classes) throws Exception {
     AndroidApp app = buildAndroidApp(classes);
-    Consumer<InternalOptions> setMinApiLevel = o -> o.minApiLevel = apiLevel;
+    Consumer<InternalOptions> setMinApiLevel = o -> o.setMinApiLevel(apiLevel);
     ProcessResult javaResult = runOnJavaRaw(main, Arrays.asList(classes), args);
     Consumer<ArtCommandBuilder> cmdBuilder = builder -> {
       for (String arg : args) {

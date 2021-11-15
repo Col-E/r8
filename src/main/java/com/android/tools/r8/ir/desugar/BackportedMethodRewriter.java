@@ -169,19 +169,19 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
       DexItemFactory factory = options.itemFactory;
 
-      if (options.minApiLevel.isLessThan(AndroidApiLevel.K)) {
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.K)) {
         initializeAndroidKMethodProviders(factory);
       }
-      if (options.minApiLevel.isLessThan(AndroidApiLevel.N)) {
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.N)) {
         initializeAndroidNMethodProviders(factory);
       }
-      if (options.minApiLevel.isLessThan(AndroidApiLevel.O)) {
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.O)) {
         initializeAndroidOMethodProviders(factory);
       }
-      if (options.minApiLevel.isLessThan(AndroidApiLevel.R)) {
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.R)) {
         initializeAndroidRMethodProviders(factory);
       }
-      if (options.minApiLevel.isLessThan(AndroidApiLevel.S)) {
+      if (options.getMinApiLevel().isLessThan(AndroidApiLevel.S)) {
         initializeAndroidSMethodProviders(factory);
       }
 
@@ -190,13 +190,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       // libraries or natively. If Optional/Stream class is not present, we do not desugar to
       // avoid confusion in error messages.
       if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
-          || options.minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
+          || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeJava9OptionalMethodProviders(factory);
         initializeJava10OptionalMethodProviders(factory);
         initializeJava11OptionalMethodProviders(factory);
       }
       if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
-          || options.minApiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
+          || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeStreamMethodProviders(factory);
       }
 

@@ -24,7 +24,7 @@ public class Regress69906048Test extends TestBase {
                 .addProguardConfiguration(
                     ImmutableList.of("-keepattributes *Annotation*"), Origin.unknown())
                 .build(),
-            options -> options.minApiLevel = ToolHelper.getMinApiLevelForDexVm());
+            options -> options.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm()));
     String result = runOnArt(androidApp, ClassWithAnnotations.class);
     Assert.assertEquals("@" + AnAnnotation.class.getCanonicalName() + "()", result);
   }

@@ -40,7 +40,7 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
     this.appView = appView;
     this.enqueuer = enqueuer;
     this.computeApiLevel = computeApiLevel;
-    this.maxApiReferenceLevel = appView.options().minApiLevel;
+    this.maxApiReferenceLevel = appView.options().getMinApiLevel();
   }
 
   public DexProgramClass getContextHolder() {

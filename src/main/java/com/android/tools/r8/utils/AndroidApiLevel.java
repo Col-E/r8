@@ -82,7 +82,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   public static AndroidApiLevel minApiLevelIfEnabledOrUnknown(AppView<?> appView) {
     InternalOptions options = appView.options();
     return options.apiModelingOptions().enableApiCallerIdentification
-        ? options.minApiLevel
+        ? options.getMinApiLevel()
         : UNKNOWN;
   }
 

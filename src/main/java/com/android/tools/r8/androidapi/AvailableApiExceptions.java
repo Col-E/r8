@@ -26,8 +26,8 @@ public class AvailableApiExceptions {
   private final Set<DexType> exceptions;
 
   public AvailableApiExceptions(InternalOptions options) {
-    assert options.minApiLevel.isLessThan(AndroidApiLevel.L);
-    exceptions = build(options.itemFactory, options.minApiLevel);
+    assert options.getMinApiLevel().isLessThan(AndroidApiLevel.L);
+    exceptions = build(options.itemFactory, options.getMinApiLevel());
   }
 
   public boolean canCauseVerificationError(DexType type) {

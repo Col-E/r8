@@ -50,7 +50,7 @@ public interface AndroidApiLevelCompute {
 
     public DefaultAndroidApiLevelCompute(AppView<?> appView) {
       this.cache = AndroidApiReferenceLevelCache.create(appView);
-      this.minApiLevel = appView.options().minApiLevel;
+      this.minApiLevel = appView.options().getMinApiLevel();
     }
 
     @Override

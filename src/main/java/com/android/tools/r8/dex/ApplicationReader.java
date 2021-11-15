@@ -268,7 +268,7 @@ public class ApplicationReader {
       return true;
     }
     AndroidApiLevel nativeMultiDex = AndroidApiLevel.L;
-    if (options.minApiLevel.isLessThan(nativeMultiDex)) {
+    if (options.getMinApiLevel().isLessThan(nativeMultiDex)) {
       return true;
     }
     assert options.mainDexKeepRules.isEmpty();
@@ -280,11 +280,15 @@ public class ApplicationReader {
   private AndroidApiLevel validateOrComputeMinApiLevel(
       AndroidApiLevel computedMinApiLevel, DexReader dexReader) {
     DexVersion version = dexReader.getDexVersion();
-    if (options.minApiLevel == AndroidApiLevel.getDefault()) {
+    if (options.getMinApiLevel() == AndroidApiLevel.getDefault()) {
       computedMinApiLevel = computedMinApiLevel.max(AndroidApiLevel.getMinAndroidApiLevel(version));
-    } else if (!version.matchesApiLevel(options.minApiLevel)) {
-      throw new CompilationError("Dex file with version '" + version.getIntValue() +
-          "' cannot be used with min sdk level '" + options.minApiLevel + "'.");
+    } else if (!version.matchesApiLevel(options.getMinApiLevel())) {
+      throw new CompilationError(
+          "Dex file with version '"
+              + version.getIntValue()
+              + "' cannot be used with min sdk level '"
+              + options.getMinApiLevel()
+              + "'.");
     }
     return computedMinApiLevel;
   }
@@ -353,7 +357,7 @@ public class ApplicationReader {
       }
       hasReadProgramResourceFromDex = true;
       List<DexParser<DexProgramClass>> dexParsers = new ArrayList<>(dexSources.size());
-      AndroidApiLevel computedMinApiLevel = options.minApiLevel;
+      AndroidApiLevel computedMinApiLevel = options.getMinApiLevel();
       for (ProgramResource input : dexSources) {
         DexReader dexReader = new DexReader(input);
         if (options.passthroughDexCode) {
@@ -362,7 +366,7 @@ public class ApplicationReader {
         dexParsers.add(new DexParser<>(dexReader, PROGRAM, options));
       }
 
-      options.minApiLevel = computedMinApiLevel;
+      options.setMinApiLevel(computedMinApiLevel);
       for (DexParser<DexProgramClass> dexParser : dexParsers) {
         dexParser.populateIndexTables();
       }

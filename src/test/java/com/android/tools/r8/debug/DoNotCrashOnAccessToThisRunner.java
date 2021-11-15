@@ -38,7 +38,7 @@ public class DoNotCrashOnAccessToThisRunner extends DebugTestBase {
                       // Api level M so that the workarounds for Lollipop verifier doesn't
                       // block the receiver register. We want to check b/116683601 which
                       // happens on at least 7.0.0.
-                      options.minApiLevel = AndroidApiLevel.M;
+                      options.setMinApiLevel(AndroidApiLevel.M);
                     });
     return ImmutableList.of(new Object[]{"CF", cf}, new Object[]{"D8", d8});
   }

@@ -814,7 +814,7 @@ public class MainDexListTests extends TestBase {
     Timing timing = Timing.empty();
     InternalOptions options =
         new InternalOptions(new DexItemFactory(), new Reporter(diagnosticsHandler));
-    options.minApiLevel = AndroidApiLevel.getAndroidApiLevel(minApi);
+    options.setMinApiLevel(AndroidApiLevel.getAndroidApiLevel(minApi));
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
     AppView<?> appView = AppView.createForR8(DexApplication.builder(options, timing).build());

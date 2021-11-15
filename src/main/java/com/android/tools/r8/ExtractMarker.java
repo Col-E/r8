@@ -101,7 +101,7 @@ public class ExtractMarker {
   private static Collection<Marker> extractMarker(AndroidApp app) throws IOException {
     InternalOptions options = new InternalOptions();
     options.skipReadingDexCode = true;
-    options.minApiLevel = AndroidApiLevel.P;
+    options.setMinApiLevel(AndroidApiLevel.P);
     DexApplication dexApp = new ApplicationReader(app, options, new Timing("ExtractMarker")).read();
     return dexApp.dexItemFactory.extractMarkers();
   }

@@ -833,7 +833,7 @@ public final class R8Command extends BaseCompilerCommand {
     InternalOptions internal = new InternalOptions(getMode(), proguardConfiguration, getReporter());
     assert !internal.testing.allowOutlinerInterfaceArrayArguments;  // Only allow in tests.
     internal.programConsumer = getProgramConsumer();
-    internal.minApiLevel = AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
+    internal.setMinApiLevel(AndroidApiLevel.getAndroidApiLevel(getMinApiLevel()));
     internal.desugarState = getDesugarState();
     assert internal.isShrinking() == getEnableTreeShaking();
     assert internal.isMinifying() == getEnableMinification();

@@ -164,7 +164,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.debug = getMode() == CompilationMode.DEBUG;
     assert internal.mainDexListConsumer == null;
     assert !internal.minimalMainDex;
-    internal.minApiLevel = AndroidApiLevel.getAndroidApiLevel(getMinApiLevel());
+    internal.setMinApiLevel(AndroidApiLevel.getAndroidApiLevel(getMinApiLevel()));
     assert !internal.intermediate;
     assert internal.retainCompileTimeAnnotations;
     internal.programConsumer = getProgramConsumer();
