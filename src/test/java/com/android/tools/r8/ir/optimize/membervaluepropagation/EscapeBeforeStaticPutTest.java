@@ -19,7 +19,7 @@ public class EscapeBeforeStaticPutTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public EscapeBeforeStaticPutTest(TestParameters parameters) {
@@ -32,7 +32,7 @@ public class EscapeBeforeStaticPutTest extends TestBase {
         .addInnerClasses(EscapeBeforeStaticPutTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

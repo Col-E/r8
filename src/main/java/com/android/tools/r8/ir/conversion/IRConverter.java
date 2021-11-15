@@ -76,7 +76,7 @@ import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
-import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
+import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
@@ -1344,9 +1344,9 @@ public class IRConverter {
       codeRewriter.redundantConstNumberRemoval(code);
       timing.end();
     }
-    if (RedundantFieldLoadElimination.shouldRun(appView, code)) {
+    if (RedundantFieldLoadAndStoreElimination.shouldRun(appView, code)) {
       timing.begin("Remove field loads");
-      new RedundantFieldLoadElimination(appView, code).run();
+      new RedundantFieldLoadAndStoreElimination(appView, code).run();
       timing.end();
     }
 

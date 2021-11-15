@@ -124,7 +124,7 @@ public class MemberResolutionTest extends JasminTestBase {
 
     ClassBuilder superClass = builder.addClass("SuperClass");
     superClass.addDefaultConstructor();
-    superClass.addStaticFinalField("aField", "I", "42");
+    superClass.addStaticField("aField", "I", "42");
 
     ClassBuilder subClass = builder.addClass("SubClass", "SuperClass");
     subClass.addDefaultConstructor();

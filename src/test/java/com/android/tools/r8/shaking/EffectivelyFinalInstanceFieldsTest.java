@@ -74,8 +74,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
                   mainMethod
                       .streamInstructions()
                       .noneMatch(i -> i.isConstString("Dead code: 2", JumboStringMode.ALLOW)));
-              // TODO(b/138913138): not trivial; assigned only once in <init>
-              assertFalse(
+              assertTrue(
                   mainMethod
                       .streamInstructions()
                       .noneMatch(i -> i.isConstString("Dead code: 3", JumboStringMode.ALLOW)));
