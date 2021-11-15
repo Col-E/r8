@@ -126,7 +126,7 @@ public class LintFilesTest extends TestBase {
             .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel == AndroidApiLevel.UNKNOWN || apiLevel == AndroidApiLevel.NOT_SET) {
+      if (apiLevel.isGreaterThan(AndroidApiLevel.LATEST)) {
         continue;
       }
       Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
