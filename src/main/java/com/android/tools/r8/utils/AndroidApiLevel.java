@@ -52,8 +52,6 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   // TODO(b/204738868): Update API database for Sv2.
   public static final AndroidApiLevel LATEST = Sv2;
 
-  public static final int magicApiLevelUsedByAndroidPlatformBuild = 10000;
-
   private final int level;
 
   AndroidApiLevel(int level) {

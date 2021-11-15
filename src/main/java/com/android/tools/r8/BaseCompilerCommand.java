@@ -678,7 +678,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         reporter.error(builder.toString());
       }
       if (getMinApiLevel() > AndroidApiLevel.LATEST.getLevel()) {
-        if (getMinApiLevel() != AndroidApiLevel.magicApiLevelUsedByAndroidPlatformBuild) {
+        if (getMinApiLevel() != AndroidApiLevel.ANDROID_PLATFORM.getLevel()) {
           reporter.warning(
               "An API level of "
                   + getMinApiLevel()

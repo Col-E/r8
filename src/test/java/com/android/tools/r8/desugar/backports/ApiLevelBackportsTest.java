@@ -79,17 +79,14 @@ public class ApiLevelBackportsTest extends TestBase {
         .assertOnlyWarnings()
         .assertWarningMessageThatMatches(containsString("is not supported by this compiler"))
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "java.lang.NoSuchMethodError: No static method"
-                    + " parseInt(Ljava/lang/CharSequence;III)I"));
+        .assertSuccessWithOutputLines("4");
   }
 
   @Test
   public void noWarningForPlatformBuild() throws Exception {
     testForD8()
         .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
-        .setMinApi(AndroidApiLevel.magicApiLevelUsedByAndroidPlatformBuild)
+        .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .assertFailureWithErrorThatMatches(
             containsString(
