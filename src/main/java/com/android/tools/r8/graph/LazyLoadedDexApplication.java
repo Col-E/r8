@@ -15,10 +15,13 @@ import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class LazyLoadedDexApplication extends DexApplication {
 
@@ -130,13 +133,13 @@ public class LazyLoadedDexApplication extends DexApplication {
       // on the configured lookup order.
       Map<DexType, DexClass> prioritizedClasses = new IdentityHashMap<>(expectedMaxSize);
       if (options.lookupLibraryBeforeProgram) {
-        libraryClasses = fillPrioritizedClasses(allLibraryClasses, prioritizedClasses);
-        programClasses = fillPrioritizedClasses(allProgramClasses, prioritizedClasses);
-        classpathClasses = fillPrioritizedClasses(allClasspathClasses, prioritizedClasses);
+        libraryClasses = fillPrioritizedClasses(allLibraryClasses, prioritizedClasses, options);
+        programClasses = fillPrioritizedClasses(allProgramClasses, prioritizedClasses, options);
+        classpathClasses = fillPrioritizedClasses(allClasspathClasses, prioritizedClasses, options);
       } else {
-        programClasses = fillPrioritizedClasses(allProgramClasses, prioritizedClasses);
-        classpathClasses = fillPrioritizedClasses(allClasspathClasses, prioritizedClasses);
-        libraryClasses = fillPrioritizedClasses(allLibraryClasses, prioritizedClasses);
+        programClasses = fillPrioritizedClasses(allProgramClasses, prioritizedClasses, options);
+        classpathClasses = fillPrioritizedClasses(allClasspathClasses, prioritizedClasses, options);
+        libraryClasses = fillPrioritizedClasses(allLibraryClasses, prioritizedClasses, options);
       }
 
       allClasses = Collections.unmodifiableMap(prioritizedClasses);
@@ -163,20 +166,47 @@ public class LazyLoadedDexApplication extends DexApplication {
   }
 
   private static <T extends DexClass> ImmutableList<T> fillPrioritizedClasses(
-      Map<DexType, T> classCollection, Map<DexType, DexClass> prioritizedClasses) {
+      Map<DexType, T> classCollection,
+      Map<DexType, DexClass> prioritizedClasses,
+      InternalOptions options) {
     if (classCollection != null) {
+      Set<DexType> javaLibraryOverride = Sets.newIdentityHashSet();
       ImmutableList.Builder<T> builder = ImmutableList.builder();
       classCollection.forEach(
           (type, clazz) -> {
-            if (!prioritizedClasses.containsKey(type)) {
+            DexClass other = prioritizedClasses.get(type);
+            if (other == null) {
               prioritizedClasses.put(type, clazz);
               builder.add(clazz);
+            } else if (type.getPackageName().startsWith("java.")
+                && (clazz.isLibraryClass() || other.isLibraryClass())) {
+              javaLibraryOverride.add(type);
             }
           });
+      if (!javaLibraryOverride.isEmpty()) {
+        warnJavaLibraryOverride(options, javaLibraryOverride);
+      }
       return builder.build();
     } else {
       return ImmutableList.of();
     }
+  }
+
+  private static void warnJavaLibraryOverride(
+      InternalOptions options, Set<DexType> javaLibraryOverride) {
+    String joined =
+        javaLibraryOverride.stream()
+            .sorted()
+            .map(DexType::toString)
+            .collect(Collectors.joining(", "));
+    String message =
+        "The following library types, prefixed by java.,"
+            + " are present both as library and non library classes: "
+            + joined
+            + ". "
+            + (options.lookupLibraryBeforeProgram ? "Non library" : "Library")
+            + " classes will be ignored.";
+    options.reporter.warning(message);
   }
 
   /**
