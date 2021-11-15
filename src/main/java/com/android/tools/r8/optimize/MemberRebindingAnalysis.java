@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.isApiSafeForMemberRebinding;
+
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -25,7 +27,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BiForEachable;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
@@ -126,7 +127,8 @@ public class MemberRebindingAnalysis {
     return resolvedMethod.isLibraryMethod()
         && isAccessibleInAllContexts(resolvedMethod, resolutionResult, contexts)
         && !isInvokeSuperToInterfaceMethod(resolvedMethod, invokeType)
-        && isPresentSinceMinApi(resolvedMethod.asLibraryMethod());
+        && isApiSafeForMemberRebinding(
+            resolvedMethod.asLibraryMethod(), androidApiLevelCompute, options);
   }
 
   private boolean isAccessibleInAllContexts(
@@ -143,13 +145,6 @@ public class MemberRebindingAnalysis {
 
   private boolean isInvokeSuperToInterfaceMethod(DexClassAndMethod method, Type invokeType) {
     return method.getHolder().isInterface() && invokeType.isSuper();
-  }
-
-  private boolean isPresentSinceMinApi(LibraryMethod method) {
-    AndroidApiLevel apiLevel =
-        androidApiLevelCompute.computeApiLevelForLibraryReference(method.getReference());
-    return apiLevel != AndroidApiLevel.UNKNOWN
-        && apiLevel.isLessThanOrEqualTo(options.getMinApiLevel());
   }
 
   public static DexField validMemberRebindingTargetFor(

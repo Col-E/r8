@@ -422,6 +422,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     throw new UnsupportedOperationException("Cannot find internal output mode.");
   }
 
+  public boolean isAndroidPlatform() {
+    return minApiLevel == AndroidApiLevel.ANDROID_PLATFORM;
+  }
+
   public boolean isDesugaredLibraryCompilation() {
     return desugaredLibraryConfiguration.isLibraryCompilation();
   }
@@ -559,7 +563,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public void setMinApiLevel(AndroidApiLevel minApiLevel) {
     assert minApiLevel != null;
-    assert minApiLevel.isLessThan(AndroidApiLevel.NOT_SET);
+    assert minApiLevel.isLessThan(AndroidApiLevel.UNKNOWN);
     this.minApiLevel = minApiLevel;
   }
 

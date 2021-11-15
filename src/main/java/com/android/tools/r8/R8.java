@@ -883,20 +883,16 @@ public class R8 {
       return true;
     }
     // This will return false if we find anything in the library which is not modeled.
-    appView
-        .appInfo()
-        .classes()
-        .forEach(
-            clazz -> {
-              clazz.forEachProgramMember(
-                  member -> {
-                    assert member.getDefinition().getApiLevel() != AndroidApiLevel.NOT_SET
-                        : "Every member should have been analyzed";
-                    assert appView.options().apiModelingOptions().enableApiCallerIdentification
-                            || member.getDefinition().getApiLevel() == AndroidApiLevel.UNKNOWN
-                        : "Every member should have level UNKNOWN";
-                  });
-            });
+    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
+      clazz.forEachProgramMember(
+          member -> {
+            assert member.getDefinition().getApiLevel() != AndroidApiLevel.NOT_SET
+                : "Every member should have been analyzed";
+            assert appView.options().apiModelingOptions().enableApiCallerIdentification
+                    || member.getDefinition().getApiLevel() == AndroidApiLevel.UNKNOWN
+                : "Every member should have level UNKNOWN";
+          });
+    }
     return true;
   }
 

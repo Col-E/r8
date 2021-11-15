@@ -43,8 +43,9 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   R(30),
   S(31),
   Sv2(32),
-  UNKNOWN(10000),
-  NOT_SET(10001);
+  ANDROID_PLATFORM(10000),
+  UNKNOWN(10001),
+  NOT_SET(10002);
 
   // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
   // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
@@ -107,7 +108,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
 
   public static AndroidApiLevel getAndroidApiLevel(int apiLevel) {
     assert apiLevel > 0;
-    assert UNKNOWN.isGreaterThan(LATEST);
+    assert ANDROID_PLATFORM.isGreaterThan(LATEST);
     switch (apiLevel) {
       case 1:
         return B;
@@ -173,10 +174,12 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
         return S;
       case 32:
         return Sv2;
+      case 10000:
+        return ANDROID_PLATFORM;
       default:
         // This has to be updated when we add new api levels.
         assert Sv2 == LATEST;
-        return UNKNOWN;
+        return LATEST;
     }
   }
 }

@@ -40,7 +40,6 @@ public enum DexVersion {
     switch (androidApiLevel) {
         // UNKNOWN is an unknown higher api version we therefore choose the highest known
         // version.
-      case UNKNOWN:
       case Sv2:
       case S:
       case R:
@@ -77,7 +76,8 @@ public enum DexVersion {
       case L_MR1:
       case M:
         return DexVersion.V35;
-      default :
+      case UNKNOWN:
+      default:
         throw new Unreachable("Unsupported api level " + androidApiLevel);
     }
   }
