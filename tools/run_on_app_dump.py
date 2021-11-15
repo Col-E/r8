@@ -1107,7 +1107,7 @@ def main(argv):
           quiet=options.quiet)
     elif options.version == 'main':
       if not (options.no_build or options.golem):
-        gradle.RunGradle(['r8', '-Pno_internal'])
+        gradle.RunGradle(['R8Retrace', 'r8', '-Pno_internal'])
         build_r8lib = False
         for shrinker in options.shrinker:
           if is_minified_r8(shrinker):
