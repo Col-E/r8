@@ -46,7 +46,7 @@ public class SingleStatefulFieldValue extends SingleFieldValue {
 
   @Override
   public boolean equals(Object o) {
-    if (getClass() != o.getClass()) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     SingleStatefulFieldValue singleFieldValue = (SingleStatefulFieldValue) o;
