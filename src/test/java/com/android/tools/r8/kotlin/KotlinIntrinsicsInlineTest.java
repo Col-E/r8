@@ -90,9 +90,7 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
   @Test
   public void b139432507_isSupported() throws Exception {
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
-    testSingle(
-        "isSupported",
-        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72) && !allowAccessModification);
+    testSingle("isSupported", kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
   }
 
   @Test
