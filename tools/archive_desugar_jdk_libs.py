@@ -20,6 +20,7 @@
 
 import archive
 import git_utils
+import jdk
 import optparse
 import os
 import re
@@ -89,6 +90,13 @@ def CloneDesugaredLibrary(github_account, checkout_dir):
     'https://github.com/'
         + github_account + '/' + LIBRARY_NAME, checkout_dir)
 
+def GetJavaEnv():
+  java_env = dict(os.environ, JAVA_HOME = jdk.GetJdk11Home())
+  java_env['PATH'] = java_env['PATH'] + os.pathsep + os.path.join(jdk.GetJdk11Home(), 'bin')
+  java_env['GRADLE_OPTS'] = '-Xmx1g'
+  return java_env
+
+
 def BuildDesugaredLibrary(checkout_dir, variant):
   if (variant != 'jdk8' and variant != 'jdk11'):
     raise Exception('Variant ' + variant + 'is not supported')
@@ -98,15 +106,12 @@ def BuildDesugaredLibrary(checkout_dir, variant):
         bazel,
         '--bazelrc=/dev/null',
         'build',
-        'maven_release' + ('_jdk11' if variant == 'jdk11' else ''),
-         '--java_language_version=' + ('11' if variant == 'jdk11' else '8')]
-    if variant == 'jdk11':
-        cmd.append('--java_runtime_version=remotejdk_11')
+        'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd)
     cmd = [bazel, 'shutdown']
     utils.PrintCmd(cmd)
-    subprocess.check_call(cmd)
+    subprocess.check_call(cmd, env=GetJavaEnv())
 
     # Locate the library jar and the maven zip with the jar from the
     # bazel build.

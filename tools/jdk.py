@@ -20,6 +20,17 @@ def GetJdkHome():
   else:
     return os.environ['JAVA_HOME']
 
+def GetJdk11Home():
+  root = os.path.join(JDK_DIR, 'jdk-11')
+  if defines.IsLinux():
+    return os.path.join(root, 'linux')
+  elif defines.IsOsX():
+    return os.path.join(root, 'osx')
+  elif defines.IsWindows():
+    return os.path.join(root, 'windows')
+  else:
+    return os.environ['JAVA_HOME']
+
 def GetJdk8Home():
   root = os.path.join(JDK_DIR, 'jdk8')
   if defines.IsLinux():
