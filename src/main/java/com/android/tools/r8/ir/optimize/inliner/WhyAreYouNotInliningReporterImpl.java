@@ -48,11 +48,6 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public void reportExtraNeverInline() {
-    print("method is marked as an additional never inline method.");
-  }
-
-  @Override
   public void reportCallerNotSameClass() {
     print("inlinee can only be inlined into methods in the same class.");
   }

@@ -118,7 +118,7 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
     boolean metKotlinIntrinsicsNullChecks = false;
     while (it.hasNext()) {
       DexMethod invokedMethod = it.next().getMethod();
-      if (invokedMethod.holder.toSourceString().contains("java.net")) {
+      if (invokedMethod.holder.getTypeName().contains("java.net")) {
         continue;
       }
       ClassSubject invokedMethodHolderSubject =
@@ -165,7 +165,11 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
                     "-neverinline class **." + targetClassName + " { <methods>; }",
                     "-keepconstantarguments class kotlin.jvm.internal.Intrinsics {",
                     "  *** checkParameterIsNotNull(...);",
+                    "}",
+                    "-neversinglecallerinline class kotlin.jvm.internal.Intrinsics {",
+                    "  *** checkParameterIsNotNull(...);",
                     "}"))
+            .addNeverSingleCallerInlineAnnotations()
             .allowDiagnosticWarningMessages()
             .minification(minification)
             .compile()

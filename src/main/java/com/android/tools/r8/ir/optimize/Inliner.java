@@ -59,7 +59,6 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
-import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.InternalOptions;
@@ -71,7 +70,6 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -86,7 +84,6 @@ public class Inliner {
 
   protected final AppView<AppInfoWithLiveness> appView;
   private final IRConverter converter;
-  private final Set<DexMethod> extraNeverInlineMethods;
   private final LensCodeRewriter lensCodeRewriter;
   final MainDexInfo mainDexInfo;
 
@@ -107,17 +104,8 @@ public class Inliner {
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
       LensCodeRewriter lensCodeRewriter) {
-    Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
     this.converter = converter;
-    this.extraNeverInlineMethods =
-        appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations
-            ? ImmutableSet.of()
-            : ImmutableSet.of(
-                intrinsics.throwNpe,
-                intrinsics.throwParameterIsNullException,
-                intrinsics.throwParameterIsNullNPE,
-                intrinsics.throwParameterIsNullIAE);
     this.lensCodeRewriter = lensCodeRewriter;
     this.mainDexInfo = appView.appInfo().getMainDexInfo();
     this.singleInlineCallers =
@@ -137,12 +125,6 @@ public class Inliner {
     DexMethod singleTargetReference = singleTarget.getReference();
     if (!appView.getKeepInfo(singleTarget).isInliningAllowed(appView.options())) {
       whyAreYouNotInliningReporter.reportPinned();
-      return true;
-    }
-
-    if (extraNeverInlineMethods.contains(
-        appView.graphLens().getOriginalMethodSignature(singleTargetReference))) {
-      whyAreYouNotInliningReporter.reportExtraNeverInline();
       return true;
     }
 

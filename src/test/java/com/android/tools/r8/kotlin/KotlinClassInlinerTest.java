@@ -259,9 +259,11 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
               String kotlinIntrinsics = "void kotlin.jvm.internal.Intrinsics";
               assertEquals(
                   Lists.newArrayList(
-                      kotlinc.is(KOTLINC_1_3_72)
-                          ? kotlinIntrinsics + ".throwParameterIsNullException(java.lang.String)"
-                          : kotlinIntrinsics + ".throwParameterIsNullNPE(java.lang.String)"),
+                      kotlinIntrinsics
+                          + (kotlinc.is(KOTLINC_1_3_72)
+                              ? ".checkParameterIsNotNull"
+                              : ".checkNotNullParameter")
+                          + "(java.lang.Object, java.lang.String)"),
                   collectStaticCalls(clazz, "main", String[].class.getCanonicalName()));
             });
   }

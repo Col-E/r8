@@ -45,8 +45,6 @@ public abstract class WhyAreYouNotInliningReporter {
     }
   }
 
-  public abstract void reportExtraNeverInline();
-
   public abstract void reportCallerNotSameClass();
 
   public abstract void reportCallerNotSameNest();

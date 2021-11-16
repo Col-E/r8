@@ -62,15 +62,25 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
                               "throwParameterIsNullException",
                               "void",
                               Collections.singletonList("java.lang.String")),
-                          // throwParameterIsNullException is not added for test starting from 1.4
-                          kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72))
+                          false)
+                      .put(
+                          new MethodSignature(
+                              "throwParameterIsNullNPE",
+                              "void",
+                              Collections.singletonList("java.lang.String")),
+                          false)
                       .put(
                           new MethodSignature(
                               "checkParameterIsNotNull",
                               "void",
                               Lists.newArrayList("java.lang.Object", "java.lang.String")),
-                          kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72)
-                              && !allowAccessModification)
+                          kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72))
+                      .put(
+                          new MethodSignature(
+                              "checkNotNullParameter",
+                              "void",
+                              Lists.newArrayList("java.lang.Object", "java.lang.String")),
+                          !kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72))
                       .build());
             });
   }

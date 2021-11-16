@@ -78,10 +78,10 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
               long checkParameterIsNotNull = countCall(main, "checkParameterIsNotNull");
               long checkNotNullParameter = countCall(main, "checkNotNullParameter");
               if (kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
-                assertEquals(allowAccessModification ? 0 : 1, checkParameterIsNotNull);
+                assertEquals(1, checkParameterIsNotNull);
                 assertEquals(0, checkNotNullParameter);
               } else {
-                assertEquals(allowAccessModification ? 0 : 1, checkNotNullParameter);
+                assertEquals(1, checkNotNullParameter);
                 assertEquals(0, checkParameterIsNotNull);
               }
             });
