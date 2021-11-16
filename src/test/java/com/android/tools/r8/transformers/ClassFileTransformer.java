@@ -524,6 +524,10 @@ public class ClassFileTransformer {
   public interface MethodPredicate {
     boolean test(int access, String name, String descriptor, String signature, String[] exceptions);
 
+    static MethodPredicate all() {
+      return (access, name, descriptor, signature, exceptions) -> true;
+    }
+
     static MethodPredicate onName(String name) {
       return (access, otherName, descriptor, signature, exceptions) -> name.equals(otherName);
     }
@@ -542,6 +546,10 @@ public class ClassFileTransformer {
   @FunctionalInterface
   public interface FieldPredicate {
     boolean test(int access, String name, String descriptor, String signature, Object value);
+
+    static FieldPredicate all() {
+      return (access, name, descriptor, signature, value) -> true;
+    }
 
     static FieldPredicate onNameAndSignature(String name, String descriptor) {
       return (access, otherName, otherDescriptor, signature, value) ->

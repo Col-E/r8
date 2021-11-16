@@ -1924,6 +1924,8 @@ public class ToolHelper {
     command.add(getDex2OatPath(vm).toString());
     command.add("--android-root=" + getProductPath(vm) + "/system");
     command.add("--runtime-arg");
+    command.add("-verbose:verifier");
+    command.add("--runtime-arg");
     command.add("-Xnorelocate");
     command.add("--dex-file=" + file.toAbsolutePath());
     command.add("--oat-file=" + outFile.toAbsolutePath());

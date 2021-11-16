@@ -32,4 +32,14 @@ public class Dex2OatTestRunResult extends SingleTestRunResult<Dex2OatTestRunResu
         matcher);
     return self();
   }
+
+  public Dex2OatTestRunResult assertSoftVerificationErrors() {
+    assertSuccess();
+    Matcher<? super String> matcher = CoreMatchers.containsString("Soft verification failures");
+    assertThat(
+        errorMessage("Run dex2oat did not produce soft verification errors.", matcher.toString()),
+        getStdErr(),
+        matcher);
+    return self();
+  }
 }
