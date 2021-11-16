@@ -108,7 +108,7 @@ def BuildDesugaredLibrary(checkout_dir, variant):
         'build',
         'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
     utils.PrintCmd(cmd)
-    subprocess.check_call(cmd)
+    subprocess.check_call(cmd, env=GetJavaEnv())
     cmd = [bazel, 'shutdown']
     utils.PrintCmd(cmd)
     subprocess.check_call(cmd, env=GetJavaEnv())
