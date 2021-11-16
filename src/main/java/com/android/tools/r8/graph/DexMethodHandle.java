@@ -323,7 +323,7 @@ public class DexMethodHandle extends IndexedDexItem
         .withConditionalItem(DexMethodHandle::isFieldHandle, DexMethodHandle::asField)
         .withConditionalItem(DexMethodHandle::isMethodHandle, DexMethodHandle::asMethod)
         .withBool(m -> m.isInterface)
-        .withItem(m -> m.rewrittenTarget);
+        .withNullableItem(m -> m.rewrittenTarget);
   }
 
   public Handle toAsmHandle() {
