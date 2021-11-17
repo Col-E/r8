@@ -33,11 +33,10 @@ public class ClinitDeadlockAfterMergingMultipleGroupsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepClassAndMembersRules(Main.class)
-        // TODO(b/205611444): Should only allow merging three out of the four merge groups.
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
-                    .assertIsCompleteMergeGroup(A1.class, A2.class)
+                    .assertClassesNotMerged(A1.class, A2.class)
                     .assertIsCompleteMergeGroup(B1.class, B2.class)
                     .assertIsCompleteMergeGroup(C1.class, C2.class)
                     .assertIsCompleteMergeGroup(D1.class, D2.class)

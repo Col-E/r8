@@ -131,7 +131,23 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       }
       newGroups.addAll(newGroupsFromPartition);
     }
-    return removeTrivialGroups(newGroups);
+    removeTrivialGroups(newGroups);
+    commit(group, newGroups);
+    return newGroups;
+  }
+
+  private void commit(MergeGroup oldGroup, List<MergeGroup> newGroups) {
+    for (MergeGroup newGroup : newGroups) {
+      for (DexProgramClass member : newGroup) {
+        allGroups.put(member, newGroup);
+      }
+    }
+    for (DexProgramClass member : oldGroup) {
+      MergeGroup newGroup = allGroups.get(member);
+      if (newGroup == oldGroup) {
+        allGroups.remove(member);
+      }
+    }
   }
 
   private MergeGroup getOrCreateGroupFor(
@@ -273,7 +289,10 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
 
   private class Tracer {
 
-    final Set<DexProgramClass> group;
+    final MergeGroup group;
+
+    // The members of the existing merge group, for efficient membership querying.
+    final Set<DexProgramClass> groupMembers;
 
     private final Set<DexProgramClass> seenClassInitializers = Sets.newIdentityHashSet();
     private final ProgramMethodSet seenMethods = ProgramMethodSet.create();
@@ -289,7 +308,8 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
     private Collection<DexProgramClass> tracingRoots;
 
     Tracer(MergeGroup group) {
-      this.group = SetUtils.newIdentityHashSet(group);
+      this.group = group;
+      this.groupMembers = SetUtils.newIdentityHashSet(group);
     }
 
     void clearSeen() {
@@ -320,7 +340,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
     }
 
     void recordClassInitializerReachableFromTracingRoots(DexProgramClass clazz) {
-      assert group.contains(clazz);
+      assert groupMembers.contains(clazz);
       classInitializerReachableFromClasses
           .computeIfAbsent(clazz, ignoreKey(Sets::newIdentityHashSet))
           .addAll(tracingRoots);
@@ -421,15 +441,12 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         }
       }
 
-      // TODO(b/205611444): This needs to account for pending merging. If the given class is in a
-      //  merge group, then this should trigger the class initializers of all of the classes in the
-      //  merge group.
       private void triggerClassInitializer(DexProgramClass clazz) {
         if (!markClassInitializerAsSeen(clazz)) {
           return;
         }
 
-        if (group.contains(clazz)) {
+        if (groupMembers.contains(clazz)) {
           if (hasSingleTracingRoot(clazz)) {
             // We found an execution path from the class initializer of the given class back to its
             // own class initializer. Therefore this class is not eligible for merging.
@@ -450,6 +467,13 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         }
 
         triggerClassInitializer(clazz.getSuperType());
+
+        MergeGroup other = allGroups.get(clazz);
+        if (other != null && other != group) {
+          for (DexProgramClass member : other) {
+            triggerClassInitializer(member);
+          }
+        }
       }
 
       @Override
