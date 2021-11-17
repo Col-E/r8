@@ -84,7 +84,8 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   public void testBufferedReaderD8Cf() throws Exception {
     if (isJDK11DesugaredLibrary()) {
       Assume.assumeFalse(
-          "TODO(b/203382252): fix test", parameters.getApiLevel().isGreaterThan(AndroidApiLevel.O));
+          "TODO(b/203382252): fix test",
+          parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O));
     }
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     // Use D8 to desugar with Java classfile output.

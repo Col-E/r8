@@ -5,7 +5,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -13,12 +12,13 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class BackwardsCompatibleSpecificationTest extends TestBase {
+public class BackwardsCompatibleSpecificationTest extends DesugaredLibraryTestBase {
 
   private static final List<String> RELEASES = ImmutableList.of("2.0.74");
 
@@ -42,6 +42,9 @@ public class BackwardsCompatibleSpecificationTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    Assume.assumeFalse(
+        "When using JDK11 desugared library, we're not backward compatible to 2.0.74.",
+        isJDK11DesugaredLibrary());
     ProcessResult result =
         ToolHelper.runJava(
             getReleaseJar(),
