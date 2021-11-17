@@ -73,12 +73,6 @@ public class KotlinLambdaInfo implements EnqueuerMetadataTraceable {
         break;
       }
     }
-    if (backing == null) {
-      appView
-          .options()
-          .reporter
-          .info(KotlinMetadataDiagnostic.lambdaBackingNotFound(clazz.type, function.getName()));
-    }
     return function.rewrite(visitorProvider.get()::visitFunction, backing, appView, namingLens);
   }
 

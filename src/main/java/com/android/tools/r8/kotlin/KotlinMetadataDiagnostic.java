@@ -73,17 +73,4 @@ public class KotlinMetadataDiagnostic implements Diagnostic {
             + StringUtils.LINE_SEPARATOR
             + StringUtils.stacktraceAsString(t));
   }
-
-  static KotlinMetadataDiagnostic lambdaBackingNotFound(DexType type, String functionName) {
-    return new KotlinMetadataDiagnostic(
-        Origin.unknown(),
-        Position.UNKNOWN,
-        "The lambda function "
-            + functionName
-            + " could no longer be found in "
-            + type.toSourceString()
-            + " . The method is most likely pruned and would require a specific keep rule to keep"
-            + " alive. As a result, the metadata information regarding the lambda structure has"
-            + " been discarded.");
-  }
 }
