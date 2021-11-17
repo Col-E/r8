@@ -55,7 +55,7 @@ import org.junit.runners.Parameterized.Parameters;
  *
  * <p>To test in a setting with a studio project, modify ANDROID_STUDIO_LIB_PATH to point to an
  * android project. A reference android project can be found at:
- * /google/data/rw/teams/r8/deps/DexVerificationSample.tar.gz
+ * /google/data/ro/teams/r8/deps/DexVerificationSample.tar.gz
  */
 @RunWith(Parameterized.class)
 public class TestRunnerBuilder extends TestBase {
@@ -70,8 +70,7 @@ public class TestRunnerBuilder extends TestBase {
         .build();
   }
 
-  private static final Path ANDROID_STUDIO_LIB_PATH =
-      Paths.get("<path_to_project>/libs/library.jar");
+  private static final Path ANDROID_STUDIO_LIB_PATH = Paths.get("PATH_TO_PROJECT/libs/library.jar");
 
   private static final int COUNT = 1100;
 
