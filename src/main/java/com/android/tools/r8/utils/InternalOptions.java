@@ -1373,7 +1373,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.disableHorizontalClassMerging") == null;
     // TODO(b/205611444): Enable by default.
-    private boolean enableClassInitializerDeadlockDetection = false;
+    private boolean enableClassInitializerDeadlockDetection = true;
     private boolean enableInterfaceMerging =
         System.getProperty("com.android.tools.r8.disableHorizontalInterfaceMerging") == null;
     private boolean enableInterfaceMergingInInitial = false;
