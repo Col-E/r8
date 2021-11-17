@@ -46,6 +46,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
+import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
@@ -1592,6 +1593,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public BiConsumer<DexItemFactory, HorizontallyMergedClasses> horizontallyMergedClassesConsumer =
         ConsumerUtils.emptyBiConsumer();
+    public Function<List<Policy>, List<Policy>> horizontalClassMergingPolicyRewriter =
+        Function.identity();
     public TriFunction<AppView<?>, Iterable<DexProgramClass>, DexProgramClass, DexProgramClass>
         horizontalClassMergingTarget = (appView, candidates, target) -> target;
 
