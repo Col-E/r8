@@ -25,10 +25,17 @@ import org.objectweb.asm.Opcodes;
 
 public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
 
-  private static Map<String, String> ownerMap =
-      ImmutableMap.of(
-          "java/io/DesugarBufferedReader", "java/io/BufferedReader",
-          "java/io/DesugarInputStream", "java/io/InputStream");
+  private static final Map<String, String> ownerMap =
+      ImmutableMap.<String, String>builder()
+          .put("java/util/DesugarTimeZone", "java/util/TimeZone")
+          .put("java/lang/DesugarLong", "java/lang/Long")
+          .put("java/lang/DesugarInteger", "java/lang/Integer")
+          .put("java/lang/DesugarDouble", "java/lang/Double")
+          .put("java/util/DesugarArrays", "java/util/Arrays")
+          .put("java/lang/DesugarMath", "java/lang/Math")
+          .put("java/io/DesugarBufferedReader", "java/io/BufferedReader")
+          .put("java/io/DesugarInputStream", "java/io/InputStream")
+          .build();
 
   public static void main(String[] args) throws Exception {
     setUpDesugaredLibrary();
@@ -82,25 +89,29 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
       public void visitMethodInsn(
           int opcode, String owner, String name, String descriptor, boolean isInterface) {
         if (opcode == Opcodes.INVOKESTATIC) {
-          for (String ownerToRewrite : ownerMap.keySet()) {
-            if (ownerToRewrite.equals(owner)) {
-              super.visitMethodInsn(
-                  Opcodes.INVOKEVIRTUAL,
-                  ownerMap.get(owner),
-                  name,
-                  withoutFirstObjectArg(descriptor),
-                  isInterface);
-              return;
+          if (ownerMap.containsKey(owner)) {
+            String nonDesugaredType = ownerMap.get(owner);
+            int firstTypeEnd = descriptor.indexOf(";");
+            int firstTypeStart = descriptor.indexOf("L");
+            String firstArg =
+                firstTypeEnd == -1
+                    ? "NoFirstType"
+                    : descriptor.substring(firstTypeStart + 1, firstTypeEnd);
+            int newOpcode;
+            String newDescriptor;
+            if (firstArg.equals(nonDesugaredType)) {
+              newOpcode = Opcodes.INVOKEVIRTUAL;
+              newDescriptor = "(" + descriptor.substring(firstTypeEnd + 1);
+            } else {
+              newOpcode = Opcodes.INVOKESTATIC;
+              newDescriptor = descriptor;
             }
+            super.visitMethodInsn(newOpcode, nonDesugaredType, name, newDescriptor, isInterface);
+            return;
           }
         }
         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
       }
     };
-  }
-
-  private String withoutFirstObjectArg(String descriptor) {
-    int i = descriptor.indexOf(";");
-    return "(" + descriptor.substring(i + 1);
   }
 }

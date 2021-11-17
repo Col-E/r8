@@ -14,12 +14,13 @@ import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipFile;
 import org.junit.Test;
@@ -30,13 +31,29 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  private final AndroidApiLevel apiLevel;
+
+  @Parameters(name = "api: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        range(AndroidApiLevel.K, AndroidApiLevel.ANDROID_PLATFORM),
+        getTestParameters().withNoneRuntime().build());
   }
 
-  public EmptyDesugaredLibrary(TestParameters parameters) {
+  private static List<AndroidApiLevel> range(
+      AndroidApiLevel fromIncluding, AndroidApiLevel toExcluding) {
+    ArrayList<AndroidApiLevel> result = new ArrayList<>();
+    for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
+      if (apiLevel.isGreaterThanOrEqualTo(fromIncluding) && apiLevel.isLessThan(toExcluding)) {
+        result.add(apiLevel);
+      }
+    }
+    return result;
+  }
+
+  public EmptyDesugaredLibrary(AndroidApiLevel apiLevel, TestParameters parameters) {
     parameters.assertNoneRuntime();
+    this.apiLevel = apiLevel;
   }
 
   private L8Command.Builder prepareL8Builder(AndroidApiLevel minApiLevel) {
@@ -63,60 +80,42 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
     }
   }
 
-  private int firstEmptyLevel() {
-    return isJDK11DesugaredLibrary()
-        // Some desugarings are required on all API levels including UNKNOWN.
-        ? AndroidApiLevel.NOT_SET.getLevel()
-        : AndroidApiLevel.O.getLevel();
+  private boolean expectsEmptyDesugaredLibrary(AndroidApiLevel apiLevel) {
+    if (isJDK11DesugaredLibrary()) {
+      return false;
+    }
+    return apiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.O);
   }
 
   @Test
   public void testEmptyDesugaredLibrary() throws Exception {
-    for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.getLevel() < AndroidApiLevel.K.getLevel()) {
-        // No need to test all API levels.
-        continue;
-      }
-      CountingProgramConsumer programConsumer = new CountingProgramConsumer();
-      ToolHelper.runL8(prepareL8Builder(apiLevel).setProgramConsumer(programConsumer).build());
-      assertEquals(apiLevel.getLevel() >= firstEmptyLevel() ? 0 : 1, programConsumer.count);
-    }
+    CountingProgramConsumer programConsumer = new CountingProgramConsumer();
+    ToolHelper.runL8(prepareL8Builder(apiLevel).setProgramConsumer(programConsumer).build());
+    assertEquals(expectsEmptyDesugaredLibrary(apiLevel) ? 0 : 1, programConsumer.count);
   }
 
   @Test
   public void testEmptyDesugaredLibraryDexZip() throws Exception {
-    for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.getLevel() < AndroidApiLevel.K.getLevel()) {
-        // No need to test all API levels.
-        continue;
-      }
-      Path desugaredLibraryZip = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-      ToolHelper.runL8(
-          prepareL8Builder(apiLevel).setOutput(desugaredLibraryZip, OutputMode.DexIndexed).build());
-      assertTrue(Files.exists(desugaredLibraryZip));
-      assertEquals(
-          apiLevel.getLevel() >= firstEmptyLevel() ? 0 : 1,
-          new ZipFile(desugaredLibraryZip.toFile(), StandardCharsets.UTF_8).size());
-    }
+    Path desugaredLibraryZip = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
+    ToolHelper.runL8(
+        prepareL8Builder(apiLevel).setOutput(desugaredLibraryZip, OutputMode.DexIndexed).build());
+    assertTrue(Files.exists(desugaredLibraryZip));
+    assertEquals(
+        expectsEmptyDesugaredLibrary(apiLevel) ? 0 : 1,
+        new ZipFile(desugaredLibraryZip.toFile(), StandardCharsets.UTF_8).size());
   }
 
   @Test
   public void testEmptyDesugaredLibraryDexDirectory() throws Exception {
-    for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.getLevel() < AndroidApiLevel.K.getLevel()) {
-        // No need to test all API levels.
-        continue;
-      }
-      Path desugaredLibraryDirectory = temp.newFolder().toPath();
-      ToolHelper.runL8(
-          prepareL8Builder(apiLevel)
-              .setOutput(desugaredLibraryDirectory, OutputMode.DexIndexed)
-              .build());
-      assertEquals(
-          apiLevel.getLevel() >= firstEmptyLevel() ? 0 : 1,
-          Files.walk(desugaredLibraryDirectory)
-              .filter(path -> path.toString().endsWith(".dex"))
-              .count());
-    }
+    Path desugaredLibraryDirectory = temp.newFolder().toPath();
+    ToolHelper.runL8(
+        prepareL8Builder(apiLevel)
+            .setOutput(desugaredLibraryDirectory, OutputMode.DexIndexed)
+            .build());
+    assertEquals(
+        expectsEmptyDesugaredLibrary(apiLevel) ? 0 : 1,
+        Files.walk(desugaredLibraryDirectory)
+            .filter(path -> path.toString().endsWith(".dex"))
+            .count());
   }
 }
