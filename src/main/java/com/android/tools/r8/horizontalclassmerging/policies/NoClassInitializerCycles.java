@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
+import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.code.CfOrDexInstruction;
@@ -21,7 +22,6 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicyWithPreprocessing;
 import com.android.tools.r8.horizontalclassmerging.policies.deadlock.SingleCallerInformation;
-import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -571,9 +571,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
 
       @Override
       public void registerCallSite(DexCallSite callSite) {
-        LambdaDescriptor descriptor =
-            LambdaDescriptor.tryInfer(callSite, appView.appInfo(), getContext());
-        if (descriptor != null) {
+        if (isLambdaMetafactoryMethod(callSite, appView.appInfo())) {
           // Use of lambda metafactory does not trigger any class initialization.
         } else {
           fail();
