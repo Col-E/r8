@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.ProgramMember;
 import com.google.common.base.Equivalence.Wrapper;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -28,6 +29,10 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
     backing.clear();
   }
 
+  public V compute(K member, BiFunction<K, V, V> fn) {
+    return backing.compute(wrap(member), (key, value) -> fn.apply(member, value));
+  }
+
   public V computeIfAbsent(K member, Function<K, V> fn) {
     return backing.computeIfAbsent(wrap(member), key -> fn.apply(key.get()));
   }
@@ -42,6 +47,10 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
 
   public V get(K member) {
     return backing.get(wrap(member));
+  }
+
+  public V getOrDefault(K member, V defaultValue) {
+    return backing.getOrDefault(wrap(member), defaultValue);
   }
 
   public boolean isEmpty() {

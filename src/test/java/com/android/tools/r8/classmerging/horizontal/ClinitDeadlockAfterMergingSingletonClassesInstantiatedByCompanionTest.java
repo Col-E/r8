@@ -9,7 +9,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.ClinitDeadlockAfterMergingSingletonClassesInstantiatedByCompanionTest.Host.Companion.HostA;
 import com.android.tools.r8.classmerging.horizontal.ClinitDeadlockAfterMergingSingletonClassesInstantiatedByCompanionTest.Host.Companion.HostB;
-import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -43,9 +42,12 @@ public class ClinitDeadlockAfterMergingSingletonClassesInstantiatedByCompanionTe
             "  public static void thread0();",
             "  public static void thread" + thread + "();",
             "}")
-        // TODO(b/205611444): HostA and HostB should be merged when thread is 1.
         .addHorizontallyMergedClassesInspector(
-            HorizontallyMergedClassesInspector::assertNoClassesMerged)
+            inspector ->
+                inspector
+                    .applyIf(
+                        thread == 1, i -> i.assertIsCompleteMergeGroup(HostA.class, HostB.class))
+                    .assertNoOtherClassesMerged())
         .addOptionsModification(
             options ->
                 options.horizontalClassMergerOptions().setEnableClassInitializerDeadlockDetection())

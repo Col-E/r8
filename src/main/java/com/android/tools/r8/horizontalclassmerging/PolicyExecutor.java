@@ -9,6 +9,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /**
  * This is a simple policy executor that ensures regular sequential execution of policies. It should
@@ -50,9 +52,12 @@ public class PolicyExecutor {
   }
 
   private <T> LinkedList<MergeGroup> applyMultiClassPolicyWithPreprocessing(
-      MultiClassPolicyWithPreprocessing<T> policy, LinkedList<MergeGroup> groups) {
+      MultiClassPolicyWithPreprocessing<T> policy,
+      LinkedList<MergeGroup> groups,
+      ExecutorService executorService)
+      throws ExecutionException {
     // For each group apply the multi class policy and add all the new groups together.
-    T data = policy.preprocess(groups);
+    T data = policy.preprocess(groups, executorService);
     LinkedList<MergeGroup> newGroups = new LinkedList<>();
     groups.forEach(
         group -> {
@@ -73,7 +78,11 @@ public class PolicyExecutor {
    * class groups.
    */
   public Collection<MergeGroup> run(
-      Collection<MergeGroup> inputGroups, Collection<Policy> policies, Timing timing) {
+      Collection<MergeGroup> inputGroups,
+      Collection<Policy> policies,
+      ExecutorService executorService,
+      Timing timing)
+      throws ExecutionException {
     LinkedList<MergeGroup> linkedGroups;
 
     if (inputGroups instanceof LinkedList) {
@@ -96,7 +105,7 @@ public class PolicyExecutor {
         assert policy.isMultiClassPolicyWithPreprocessing();
         linkedGroups =
             applyMultiClassPolicyWithPreprocessing(
-                policy.asMultiClassPolicyWithPreprocessing(), linkedGroups);
+                policy.asMultiClassPolicyWithPreprocessing(), linkedGroups, executorService);
       }
       timing.end();
 

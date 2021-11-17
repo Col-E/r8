@@ -5,12 +5,12 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -20,10 +20,12 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicyWithPreprocessing;
+import com.android.tools.r8.horizontalclassmerging.policies.deadlock.SingleCallerInformation;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -32,11 +34,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Disallows merging of classes when the merging could introduce class initialization deadlocks.
@@ -93,23 +98,38 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
   // Mapping from each merge candidate to its merge group.
   final Map<DexProgramClass, MergeGroup> allGroups = new IdentityHashMap<>();
 
+  private SingleCallerInformation singleCallerInformation;
+
   public NoClassInitializerCycles(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
   @Override
   public Collection<MergeGroup> apply(MergeGroup group, Void nothing) {
-    Tracer tracer = new Tracer(group);
-    removeClassesWithPossibleClassInitializerDeadlock(group, tracer);
-
+    // Partition the merge group into smaller groups that may be merged. If the class initialization
+    // of a parent class may initialize a member of the merge group, then this member is not
+    // eligible for class merging, unless the only way to class initialize this member is from the
+    // class initialization of the parent class. In this case, the member may be merged with other
+    // group members that are also guaranteed to only be class initialized from the class
+    // initialization of the parent class.
+    List<MergeGroup> partitioning = partitionClassesWithPossibleClassInitializerDeadlock(group);
     List<MergeGroup> newGroups = new LinkedList<>();
-    for (DexProgramClass clazz : group) {
-      MergeGroup newGroup = getOrCreateGroupFor(clazz, newGroups, tracer);
-      if (newGroup != null) {
-        newGroup.add(clazz);
-      } else {
-        // Ineligible for merging.
+
+    // Revisit each partition. If the class initialization of a group member may initialize another
+    // class (not necessarily a group member), and vice versa, then class initialization could
+    // deadlock if the group member is merged with another class that is initialized concurrently.
+    for (MergeGroup partition : partitioning) {
+      List<MergeGroup> newGroupsFromPartition = new LinkedList<>();
+      Tracer tracer = new Tracer(partition);
+      for (DexProgramClass clazz : partition) {
+        MergeGroup newGroup = getOrCreateGroupFor(clazz, newGroupsFromPartition, tracer);
+        if (newGroup != null) {
+          newGroup.add(clazz);
+        } else {
+          // Ineligible for merging.
+        }
       }
+      newGroups.addAll(newGroupsFromPartition);
     }
     return removeTrivialGroups(newGroups);
   }
@@ -118,12 +138,12 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       DexProgramClass clazz, List<MergeGroup> groups, Tracer tracer) {
     assert !tracer.hasPossibleClassInitializerDeadlock(clazz);
 
-    ProgramMethod classInitializer = clazz.getProgramClassInitializer();
-    if (classInitializer != null) {
-      assert tracer.verifySeenSetIsEmpty();
-      assert tracer.verifyWorklistIsEmpty();
+    if (clazz.hasClassInitializer()) {
+      // Trace from the class initializer of this group member. If an execution path is found that
+      // leads back to the class initializer then this class may be involved in a deadlock, and we
+      // should not merge any other classes into it.
       tracer.setTracingRoot(clazz);
-      tracer.enqueueMethod(classInitializer);
+      tracer.enqueueTracingRoot(clazz.getProgramClassInitializer());
       tracer.trace();
       if (tracer.hasPossibleClassInitializerDeadlock(clazz)) {
         // Ineligible for merging.
@@ -163,11 +183,63 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
    * If the class initializer of one of the classes in the merge group is reached, then that class
    * is not eligible for merging.
    */
-  private void removeClassesWithPossibleClassInitializerDeadlock(MergeGroup group, Tracer tracer) {
+  private List<MergeGroup> partitionClassesWithPossibleClassInitializerDeadlock(MergeGroup group) {
+    Set<DexProgramClass> superclasses = Sets.newIdentityHashSet();
+    appView
+        .appInfo()
+        .traverseSuperClasses(
+            group.iterator().next(),
+            (supertype, superclass, immediateSubclass) -> {
+              if (superclass != null && superclass.isProgramClass()) {
+                superclasses.add(superclass.asProgramClass());
+                return TraversalContinuation.CONTINUE;
+              }
+              return TraversalContinuation.BREAK;
+            });
+
+    // Run the tracer from the class initializers of the superclasses.
+    Tracer tracer = new Tracer(group);
     tracer.setTracingRoots(group);
-    tracer.enqueueParentClassInitializers(group);
+    for (DexProgramClass superclass : superclasses) {
+      if (superclass.hasClassInitializer()) {
+        tracer.enqueueTracingRoot(superclass.getProgramClassInitializer());
+      }
+    }
     tracer.trace();
-    group.removeIf(tracer::hasPossibleClassInitializerDeadlock);
+
+    MergeGroup notInitializedByInitializationOfParent = new MergeGroup();
+    Map<DexProgramClass, MergeGroup> partitioning = new LinkedHashMap<>();
+    for (DexProgramClass member : group) {
+      if (tracer.hasPossibleClassInitializerDeadlock(member)) {
+        DexProgramClass nearestLock = getNearestLock(member, superclasses);
+        if (nearestLock != null) {
+          partitioning.computeIfAbsent(nearestLock, ignoreKey(MergeGroup::new)).add(member);
+        } else {
+          // Ineligible for merging.
+        }
+      } else {
+        notInitializedByInitializationOfParent.add(member);
+      }
+    }
+
+    return ImmutableList.<MergeGroup>builder()
+        .add(notInitializedByInitializationOfParent)
+        .addAll(partitioning.values())
+        .build();
+  }
+
+  private DexProgramClass getNearestLock(
+      DexProgramClass clazz, Set<DexProgramClass> candidateOwners) {
+    ProgramMethodSet seen = ProgramMethodSet.create();
+    ProgramMethod singleCaller = singleCallerInformation.getSingleClassInitializerCaller(clazz);
+    while (singleCaller != null && seen.add(singleCaller)) {
+      if (singleCaller.getDefinition().isClassInitializer()
+          && candidateOwners.contains(singleCaller.getHolder())) {
+        return singleCaller.getHolder();
+      }
+      singleCaller = singleCallerInformation.getSingleCaller(singleCaller);
+    }
+    return null;
   }
 
   @Override
@@ -181,12 +253,15 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
   }
 
   @Override
-  public Void preprocess(Collection<MergeGroup> groups) {
+  public Void preprocess(Collection<MergeGroup> groups, ExecutorService executorService)
+      throws ExecutionException {
     for (MergeGroup group : groups) {
       for (DexProgramClass clazz : group) {
         allGroups.put(clazz, group);
       }
     }
+    singleCallerInformation =
+        SingleCallerInformation.builder(appView).analyze(executorService).build();
     return null;
   }
 
@@ -222,34 +297,26 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       seenMethods.clear();
     }
 
+    void clearWorklist() {
+      worklist.clear();
+    }
+
     boolean markClassInitializerAsSeen(DexProgramClass clazz) {
       return seenClassInitializers.add(clazz);
     }
 
     boolean enqueueMethod(ProgramMethod method) {
       if (seenMethods.add(method)) {
-        worklist.add(method);
+        worklist.addLast(method);
         return true;
       }
       return false;
     }
 
-    void enqueueParentClassInitializers(MergeGroup group) {
-      DexProgramClass member = group.iterator().next();
-      enqueueParentClassInitializers(member);
-    }
-
-    void enqueueParentClassInitializers(DexProgramClass clazz) {
-      DexProgramClass superClass =
-          asProgramClassOrNull(appView.definitionFor(clazz.getSuperType()));
-      if (superClass == null) {
-        return;
-      }
-      ProgramMethod classInitializer = superClass.getProgramClassInitializer();
-      if (classInitializer != null) {
-        enqueueMethod(classInitializer);
-      }
-      enqueueParentClassInitializers(superClass);
+    void enqueueTracingRoot(ProgramMethod tracingRoot) {
+      boolean added = seenMethods.add(tracingRoot);
+      assert added;
+      worklist.add(tracingRoot);
     }
 
     void recordClassInitializerReachableFromTracingRoots(DexProgramClass clazz) {
@@ -284,20 +351,25 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
           .contains(classBeingInitialized);
     }
 
+    private void processWorklist() {
+      while (!worklist.isEmpty()) {
+        ProgramMethod method = worklist.removeLast();
+        method.registerCodeReferences(new TracerUseRegistry(method));
+      }
+    }
+
     void setTracingRoot(DexProgramClass tracingRoot) {
       setTracingRoots(ImmutableList.of(tracingRoot));
     }
 
     void setTracingRoots(Collection<DexProgramClass> tracingRoots) {
+      assert verifySeenSetIsEmpty();
+      assert verifyWorklistIsEmpty();
       this.tracingRoots = tracingRoots;
     }
 
     void trace() {
-      // TODO(b/205611444): Avoid redundant tracing of the same methods.
-      while (!worklist.isEmpty()) {
-        ProgramMethod method = worklist.removeLast();
-        method.registerCodeReferences(new TracerUseRegistry(method));
-      }
+      processWorklist();
       clearSeen();
     }
 
@@ -322,6 +394,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         // Ensures that hasPossibleClassInitializerDeadlock() returns true for each tracing root.
         recordTracingRootsIneligibleForClassMerging();
         doBreak();
+        clearWorklist();
       }
 
       private void triggerClassInitializerIfNotAlreadyTriggeredInContext(DexType type) {
@@ -338,8 +411,6 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       }
 
       private boolean isClassAlreadyInitializedInCurrentContext(DexProgramClass clazz) {
-        // TODO(b/205611444): There is only a risk of a deadlock if the execution path comes from
-        //  outside the merge group. We could address this by updating this check.
         return appView.appInfo().isSubtype(getContext().getHolder(), clazz);
       }
 
@@ -400,7 +471,13 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
 
       @Override
       public void registerInvokeInterface(DexMethod method) {
-        fail();
+        DexMethod rewrittenMethod =
+            appView.graphLens().lookupInvokeInterface(method, getContext()).getReference();
+        DexClassAndMethod resolvedMethod =
+            appView.appInfo().resolveMethodOnInterface(rewrittenMethod).getResolutionPair();
+        if (resolvedMethod != null) {
+          fail();
+        }
       }
 
       @Override
@@ -432,7 +509,17 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
 
       @Override
       public void registerInvokeVirtual(DexMethod method) {
-        fail();
+        DexMethod rewrittenMethod =
+            appView.graphLens().lookupInvokeVirtual(method, getContext()).getReference();
+        DexClassAndMethod resolvedMethod =
+            appView.appInfo().resolveMethodOnClass(rewrittenMethod).getResolutionPair();
+        if (resolvedMethod != null) {
+          if (!resolvedMethod.getHolder().isEffectivelyFinal(appView)) {
+            fail();
+          } else if (resolvedMethod.isProgramMethod()) {
+            enqueueMethod(resolvedMethod.asProgramMethod());
+          }
+        }
       }
 
       @Override

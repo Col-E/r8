@@ -83,7 +83,8 @@ public class HorizontalClassMerger {
     // Run the policies on all program classes to produce a final grouping.
     List<Policy> policies =
         PolicyScheduler.getPolicies(appView, codeProvider, mode, runtimeTypeCheckInfo);
-    Collection<MergeGroup> groups = new PolicyExecutor().run(getInitialGroups(), policies, timing);
+    Collection<MergeGroup> groups =
+        new PolicyExecutor().run(getInitialGroups(), policies, executorService, timing);
 
     // If there are no groups, then end horizontal class merging.
     if (groups.isEmpty()) {

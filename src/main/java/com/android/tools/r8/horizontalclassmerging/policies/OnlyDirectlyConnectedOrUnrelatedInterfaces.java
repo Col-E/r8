@@ -27,6 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 /**
@@ -160,7 +161,7 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
   }
 
   @Override
-  public SubtypingInfo preprocess(Collection<MergeGroup> groups) {
+  public SubtypingInfo preprocess(Collection<MergeGroup> groups, ExecutorService executorService) {
     return new SubtypingInfo(appView);
   }
 

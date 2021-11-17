@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
 /**
@@ -143,7 +144,8 @@ public class NoDefaultInterfaceMethodCollisions
   }
 
   @Override
-  public Map<DexType, InterfaceInfo> preprocess(Collection<MergeGroup> groups) {
+  public Map<DexType, InterfaceInfo> preprocess(
+      Collection<MergeGroup> groups, ExecutorService executorService) {
     SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
     Collection<DexProgramClass> classesOfInterest = computeClassesOfInterest(subtypingInfo);
     Map<DexType, DexMethodSignatureSet> inheritedClassMethodsPerClass =

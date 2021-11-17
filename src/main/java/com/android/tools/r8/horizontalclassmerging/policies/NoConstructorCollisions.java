@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 /**
  * In the final round, we're not allowed to resolve constructor collisions by appending null
@@ -66,7 +67,7 @@ public class NoConstructorCollisions extends MultiClassPolicyWithPreprocessing<S
    * lead to constructor collisions.
    */
   @Override
-  public Set<DexType> preprocess(Collection<MergeGroup> groups) {
+  public Set<DexType> preprocess(Collection<MergeGroup> groups, ExecutorService executorService) {
     // Build a mapping from types to groups.
     Map<DexType, MergeGroup> groupsByType = new IdentityHashMap<>();
     for (MergeGroup group : groups) {
