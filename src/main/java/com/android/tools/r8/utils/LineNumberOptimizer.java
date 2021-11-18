@@ -362,6 +362,10 @@ public class LineNumberOptimizer {
         }
       }
 
+      boolean canStripDebugInfo =
+          appView.options().sourceFileProvider != null
+              && appView.options().sourceFileProvider.allowDiscardingSourceFile();
+
       if (isSyntheticClass) {
         onDemandClassNamingBuilder
             .get()
@@ -413,7 +417,9 @@ public class LineNumberOptimizer {
           List<MappedPosition> mappedPositions;
           Code code = method.getCode();
           boolean canUseDexPc =
-              appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1;
+              canStripDebugInfo
+                  && appView.options().canUseDexPcAsDebugInformation()
+                  && methods.size() == 1;
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (canUseDexPc) {
@@ -582,7 +588,8 @@ public class LineNumberOptimizer {
             }
             i = j;
           }
-          if (method.getCode().isDexCode()
+          if (canStripDebugInfo
+              && method.getCode().isDexCode()
               && method.getCode().asDexCode().getDebugInfo()
                   == DexDebugInfoForSingleLineMethod.getInstance()) {
             method.getCode().asDexCode().setDebugInfo(null);

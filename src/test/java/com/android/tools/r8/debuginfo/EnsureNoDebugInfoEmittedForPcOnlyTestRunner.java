@@ -12,6 +12,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.SourceFileEnvironment;
+import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -77,7 +79,22 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .applyIf(
             apiLevelSupportsPcOutput(),
             builder ->
-                builder.addOptionsModification(options -> options.lineNumberOptimization = ON))
+                builder.addOptionsModification(
+                    options -> {
+                      options.sourceFileProvider =
+                          new SourceFileProvider() {
+                            @Override
+                            public String get(SourceFileEnvironment environment) {
+                              return null;
+                            }
+
+                            @Override
+                            public boolean allowDiscardingSourceFile() {
+                              return true;
+                            }
+                          };
+                      options.lineNumberOptimization = ON;
+                    }))
         .run(parameters.getRuntime(), MAIN)
         .inspectFailure(
             inspector -> {

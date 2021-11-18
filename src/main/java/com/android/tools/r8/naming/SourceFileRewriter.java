@@ -31,7 +31,7 @@ public class SourceFileRewriter {
     if (options.isMinifying()) {
       String renaming = getRenameSourceFileAttribute(options);
       if (renaming != null) {
-        return rewriteTo(renaming);
+        return rewriteTo(renaming, isDefault(renaming, options));
       }
     }
     return null;
@@ -40,7 +40,7 @@ public class SourceFileRewriter {
   private static SourceFileProvider computeNonCompatProvider(InternalOptions options) {
     String renaming = getRenameSourceFileAttribute(options);
     if (renaming != null) {
-      return rewriteTo(renaming);
+      return rewriteTo(renaming, isDefault(renaming, options));
     }
     if (options.isMinifying() || options.isOptimizing()) {
       return rewriteToDefaultSourceFile(options.dexItemFactory());
@@ -52,15 +52,24 @@ public class SourceFileRewriter {
     return options.getProguardConfiguration().getRenameSourceFileAttribute();
   }
 
-  private static SourceFileProvider rewriteToDefaultSourceFile(DexItemFactory factory) {
-    return rewriteTo(factory.defaultSourceFileAttributeString);
+  public static boolean isDefault(String sourceFile, InternalOptions options) {
+    return options.dexItemFactory().defaultSourceFileAttributeString.equals(sourceFile);
   }
 
-  private static SourceFileProvider rewriteTo(String renaming) {
+  private static SourceFileProvider rewriteToDefaultSourceFile(DexItemFactory factory) {
+    return rewriteTo(factory.defaultSourceFileAttributeString, true);
+  }
+
+  private static SourceFileProvider rewriteTo(String renaming, boolean allowDiscard) {
     return new SourceFileProvider() {
       @Override
       public String get(SourceFileEnvironment environment) {
         return renaming;
+      }
+
+      @Override
+      public boolean allowDiscardingSourceFile() {
+        return allowDiscard;
       }
     };
   }

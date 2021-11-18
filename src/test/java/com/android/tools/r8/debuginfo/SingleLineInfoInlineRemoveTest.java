@@ -52,7 +52,7 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
   }
 
   @Test
-  public void testR8() throws Exception {
+  public void testDefaultSourceFile() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
@@ -71,6 +71,55 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
               assertThat(
                   mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
                   notIf(hasLineNumberTable(), parameters.isDexRuntime()));
+            });
+  }
+
+  @Test
+  public void testManuallySetDefaultSourceFile() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
+        .addKeepRules("-renamesourcefileattribute SourceFile")
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class)
+        .inspectStackTrace(
+            (stackTrace, inspector) -> {
+              assertThat(stackTrace, isSame(expectedStackTrace));
+              ClassSubject mainSubject = inspector.clazz(Main.class);
+              assertThat(mainSubject, isPresent());
+              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(
+                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
+            });
+  }
+
+  @Test
+  public void testNonDefaultSourceFile() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
+        .addKeepRules("-renamesourcefileattribute SomeBuildTaggedSourceFile")
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class)
+        .inspectStackTrace(
+            (stackTrace, inspector) -> {
+              assertThat(stackTrace, isSame(expectedStackTrace));
+              ClassSubject mainSubject = inspector.clazz(Main.class);
+              assertThat(mainSubject, isPresent());
+              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(
+                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  // TODO(b/146565491): Update to allow dropping the table once supported by ART.
+                  hasLineNumberTable());
             });
   }
 

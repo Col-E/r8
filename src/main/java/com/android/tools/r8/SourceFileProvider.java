@@ -20,4 +20,17 @@ public interface SourceFileProvider {
    * @param environment An environment of values available for use when defining the source file.
    */
   String get(SourceFileEnvironment environment);
+
+  /**
+   * Allow producing outputs that might not always include the source file in stack traces.
+   *
+   * <p>Note that this does not affect the ability to retrace a stack trace. It is indented to
+   * ensure that the non-original/residual source file attribute will be printed in all stack traces
+   * on the supported VMs.
+   *
+   * @return True if the compiler may discard source file information (default false).
+   */
+  default boolean allowDiscardingSourceFile() {
+    return false;
+  }
 }

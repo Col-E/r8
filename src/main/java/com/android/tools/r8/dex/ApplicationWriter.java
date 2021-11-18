@@ -348,8 +348,8 @@ public class ApplicationWriter {
 
   private void rewriteSourceFile(DexProgramClass clazz, SourceFileEnvironment environment) {
     assert options.sourceFileProvider != null;
-    clazz.setSourceFile(
-        options.itemFactory.createString(options.sourceFileProvider.get(environment)));
+    String sourceFile = options.sourceFileProvider.get(environment);
+    clazz.setSourceFile(sourceFile == null ? null : options.itemFactory.createString(sourceFile));
   }
 
   private void writeVirtualFile(VirtualFile virtualFile, Timing timing) {
