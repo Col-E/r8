@@ -79,7 +79,8 @@ public class ProguardConfigurationParser {
       "convert_proto_enum_to_string");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS =
-      ImmutableList.of("isclassnamestring", "whyarenotsimple", "convertchecknotnull");
+      ImmutableList.of(
+          "isclassnamestring", "whyarenotsimple", "convertchecknotnull", "checkenumunboxed");
 
   private static final List<String> IGNORED_RETURN_VALUE_ATTRIBUTES = ImmutableList.of("_NONNULL_");
 
