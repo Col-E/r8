@@ -41,8 +41,6 @@ third_party/android_jar/lib-v[0-9][0-9].tar.gz
 third_party/android_jar/lib.tar.gz
 third_party/android_jar/api-versions.tar.gz
 third_party/android_jar/api-versions
-third_party/android_jar/api-database.tar.gz
-third_party/android_jar/api-database
 third_party/android_sdk
 third_party/android_sdk.tar.gz
 third_party/bazel

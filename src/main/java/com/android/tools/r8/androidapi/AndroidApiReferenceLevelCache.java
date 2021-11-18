@@ -26,15 +26,9 @@ public class AndroidApiReferenceLevelCache {
   private AndroidApiReferenceLevelCache(
       AppView<?> appView, List<AndroidApiForHashingClass> predefinedApiTypeLookupForHashing) {
     this.appView = appView;
-    // TODO(b/199934316): When the implementation has been decided on, remove the others.
-    if (appView.options().apiModelingOptions().useHashingDatabase) {
-      androidApiLevelDatabase =
-          new AndroidApiLevelHashingDatabaseImpl(
-              appView.dexItemFactory(), predefinedApiTypeLookupForHashing);
-    } else {
-      androidApiLevelDatabase =
-          new AndroidApiLevelObjectDatabaseImpl(predefinedApiTypeLookupForHashing);
-    }
+    androidApiLevelDatabase =
+        new AndroidApiLevelHashingDatabaseImpl(
+            appView.dexItemFactory(), predefinedApiTypeLookupForHashing);
     desugaredLibraryConfiguration = appView.options().desugaredLibraryConfiguration;
   }
 
