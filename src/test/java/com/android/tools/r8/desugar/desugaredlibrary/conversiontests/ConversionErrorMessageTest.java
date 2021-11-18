@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -77,7 +76,7 @@ public class ConversionErrorMessageTest extends DesugaredLibraryTestBase {
     //  NoSuchMethodError instead of NoClassDefFoundError on the wrapper.
     Assume.assumeTrue(hasRequiredAPI());
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClasses(Executor.class, MyIntUnaryOperator.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(

@@ -14,7 +14,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -110,7 +109,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
         .addProgramFiles(getPathsFiles())
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .compile()
         .withArt6Plus64BitsLib()
         .addDesugaredCoreLibraryRunClassPath(
@@ -163,7 +162,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
     String verbosity = "2";
     D8TestCompileResult d8TestCompileResult =
         testForD8()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(concurrentHashTestToCompile())
             .addProgramFiles(testNGSupportProgramFiles())
             .addProgramFiles(getPathsFiles())

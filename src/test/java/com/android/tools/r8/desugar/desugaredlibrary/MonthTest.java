@@ -8,8 +8,6 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.Month;
 import java.time.format.TextStyle;
@@ -60,7 +58,7 @@ public class MonthTest extends DesugaredLibraryTestBase {
       return;
     }
     testForD8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(MonthTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(
@@ -74,7 +72,7 @@ public class MonthTest extends DesugaredLibraryTestBase {
   public void testMonthR8() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(MonthTest.class)
         .addKeepMainRule(MonthTest.Main.class)
         .setMinApi(parameters.getApiLevel())

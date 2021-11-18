@@ -8,7 +8,6 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration.Configuration;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.Clock;
@@ -59,7 +58,7 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
   @Test
   public void testD8() throws Exception {
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(ReleasedVersionsSmokeTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(
@@ -77,7 +76,7 @@ public class ReleasedVersionsSmokeTest extends DesugaredLibraryTestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(ReleasedVersionsSmokeTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())

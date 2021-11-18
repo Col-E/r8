@@ -11,7 +11,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.testing.AndroidBuildVersion;
@@ -63,7 +62,7 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
     Path path1 = compileWithCoreLibraryDesugaring(MyArrays1.class);
     Path path2 = compileWithCoreLibraryDesugaring(MyArrays2.class);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClasses(TestClass.class)
         .addAndroidBuildVersion()
         .enableCoreLibraryDesugaring(
@@ -90,7 +89,7 @@ public class WrapperPlacementTest extends DesugaredLibraryTestBase {
 
   private Path compileWithCoreLibraryDesugaring(Class<?> clazz) throws Exception {
     return testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClassesAndInnerClasses(clazz)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(

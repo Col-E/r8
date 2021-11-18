@@ -58,7 +58,7 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
 
   private L8Command.Builder prepareL8Builder(AndroidApiLevel minApiLevel) {
     return L8Command.builder()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramFiles(ToolHelper.getDesugarJDKLibs())
         .addDesugaredLibraryConfiguration(
             StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))

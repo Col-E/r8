@@ -5,8 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -37,7 +35,7 @@ public class PriorityQueueSubclassTest extends DesugaredLibraryTestBase {
   public void testPriorityQueueD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(PriorityQueueSubclassTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -55,7 +53,7 @@ public class PriorityQueueSubclassTest extends DesugaredLibraryTestBase {
   public void testPriorityQueueR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(PriorityQueueSubclassTest.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepClassAndMembersRules(Executor.class)

@@ -236,7 +236,7 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
 
       KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
       testForR8(parameters.getBackend())
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .addLibraryFiles(getLibraryFile())
           .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
           .setMinApi(parameters.getApiLevel())
           .addFeatureSplit(

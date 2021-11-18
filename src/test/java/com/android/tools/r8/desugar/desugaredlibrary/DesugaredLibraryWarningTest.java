@@ -12,7 +12,6 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -53,7 +52,7 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
     Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
     L8Command.Builder l8Builder =
         L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)

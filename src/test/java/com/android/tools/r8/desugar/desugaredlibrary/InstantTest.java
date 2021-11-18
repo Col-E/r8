@@ -5,8 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -37,7 +35,7 @@ public class InstantTest extends DesugaredLibraryTestBase {
   public void testInstantD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(InstantTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -55,7 +53,7 @@ public class InstantTest extends DesugaredLibraryTestBase {
   public void testInstantR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(InstantTest.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepClassAndMembersRules(Executor.class)

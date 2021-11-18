@@ -59,7 +59,7 @@ public class ProgramInterfaceWithLibraryMethod extends DesugaredLibraryTestBase 
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addLibraryClasses(LibraryClass.class)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class, ProgramInterface.class, ProgramClass.class)
@@ -78,7 +78,7 @@ public class ProgramInterfaceWithLibraryMethod extends DesugaredLibraryTestBase 
   public void testD8CfToCf() throws Exception {
     Path jar =
         testForD8(Backend.CF)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addLibraryClasses(LibraryClass.class)
             .addProgramClasses(Executor.class, ProgramInterface.class, ProgramClass.class)
             .setMinApi(parameters.getApiLevel())
@@ -116,7 +116,7 @@ public class ProgramInterfaceWithLibraryMethod extends DesugaredLibraryTestBase 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addLibraryClasses(LibraryClass.class)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class, ProgramInterface.class, ProgramClass.class)

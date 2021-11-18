@@ -60,7 +60,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
       KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
       D8TestCompileResult compileResult =
           testForD8()
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addLibraryFiles(getLibraryFile())
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
               .setMinApi(parameters.getApiLevel())
               .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -119,7 +119,7 @@ public class ProgramRewritingTest extends DesugaredLibraryTestBase {
       KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
       R8TestRunResult runResult =
           testForR8(parameters.getBackend())
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addLibraryFiles(getLibraryFile())
               .minification(minifying)
               .addKeepMainRule(TEST_CLASS)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))

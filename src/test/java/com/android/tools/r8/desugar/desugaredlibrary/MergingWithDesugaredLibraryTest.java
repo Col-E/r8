@@ -26,7 +26,6 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11DesugaredLibraryTestBase;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -63,9 +62,8 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
     try {
       compileResult =
           testForD8()
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addLibraryFiles(getLibraryFile())
               .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .setMinApi(parameters.getApiLevel())
               .applyIf(
                   someLibraryDesugaringRequired(),
@@ -111,7 +109,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
     Path app =
         testForD8()
             .addProgramFiles(buildPart1DesugaredLibrary(), shrunkenLib)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setMinApi(parameters.getApiLevel())
             .applyIf(
                 someLibraryDesugaringRequired(),
@@ -222,7 +220,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
         testForD8()
             .addProgramFiles(buildPart1DesugaredLibrary())
             .addProgramClasses(Part2.class)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setMinApi(parameters.getApiLevel())
             .applyIf(
                 someLibraryDesugaringRequired(),
@@ -260,7 +258,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
 
   private Path buildPart1DesugaredLibrary() throws Exception {
     return testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClasses(Part1.class)
         .setMinApi(parameters.getApiLevel())
         .applyIf(

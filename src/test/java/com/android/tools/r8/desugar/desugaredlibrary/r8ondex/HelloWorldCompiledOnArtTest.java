@@ -129,7 +129,7 @@ public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
     }
     D8TestCompileResult compile =
         d8TestBuilder
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(
                 LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))

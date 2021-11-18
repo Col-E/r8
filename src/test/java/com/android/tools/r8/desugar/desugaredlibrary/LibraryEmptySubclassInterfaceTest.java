@@ -8,8 +8,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,7 +38,7 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
   public void testD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -67,7 +65,7 @@ public class LibraryEmptySubclassInterfaceTest extends DesugaredLibraryTestBase 
   public void testR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(LibraryEmptySubclassInterfaceTest.class)
         .addKeepMainRule(Executor.class)
         .noMinification()

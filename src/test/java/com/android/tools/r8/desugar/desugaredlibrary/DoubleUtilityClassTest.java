@@ -10,8 +10,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.zone.ZoneOffsetTransition;
@@ -39,7 +37,7 @@ public class DoubleUtilityClassTest extends DesugaredLibraryTestBase {
   public void testDoubleUtility() throws Exception {
     for (Class<?> executor : new Class<?>[] {ExecutorV1.class, ExecutorV2.class}) {
       testForD8()
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .addLibraryFiles(getLibraryFile())
           .addProgramClasses(executor)
           .enableCoreLibraryDesugaring(
               LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))

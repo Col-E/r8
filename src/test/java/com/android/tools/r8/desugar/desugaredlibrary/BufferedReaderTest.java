@@ -82,11 +82,6 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testBufferedReaderD8Cf() throws Exception {
-    if (isJDK11DesugaredLibrary()) {
-      Assume.assumeFalse(
-          "TODO(b/203382252): fix test",
-          parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O));
-    }
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     // Use D8 to desugar with Java classfile output.
     Path jar =
@@ -145,7 +140,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =
@@ -174,7 +169,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getRuntime().isDex());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addOptionsModification(
             options ->
                 options.desugaredLibraryConfiguration =

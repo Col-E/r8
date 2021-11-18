@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -41,7 +40,7 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
     testForL8(AndroidApiLevel.B, backend)
         .noDefaultDesugarJDKLibs()
         .addProgramClassFileData(dump())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         /*
          Add this library desugaring configuration:
          "library_flags": [

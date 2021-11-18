@@ -8,7 +8,6 @@ import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -21,7 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class DesugaredLibraryChecksumsTest extends TestBase {
+public class DesugaredLibraryChecksumsTest extends DesugaredLibraryTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -38,7 +37,7 @@ public class DesugaredLibraryChecksumsTest extends TestBase {
     L8.run(
         L8Command.builder()
             .setIncludeClassesChecksum(true)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMode(CompilationMode.DEBUG)

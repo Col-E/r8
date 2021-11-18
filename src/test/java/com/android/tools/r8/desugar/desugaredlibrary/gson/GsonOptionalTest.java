@@ -4,8 +4,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary.gson;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import org.junit.Assume;
@@ -34,7 +32,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClassesAndInnerClasses(OptionalTestClass.class)
         .addProgramFiles(GSON_2_8_1_JAR)
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
@@ -55,7 +53,7 @@ public class GsonOptionalTest extends GsonDesugaredLibraryTestBase {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClassesAndInnerClasses(OptionalTestClass.class)
         .addProgramFiles(GSON_2_8_1_JAR)
         .addKeepMainRule(OptionalTestClass.class)

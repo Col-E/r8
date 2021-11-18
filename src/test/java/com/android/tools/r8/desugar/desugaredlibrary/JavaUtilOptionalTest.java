@@ -13,7 +13,6 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -81,7 +80,7 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
             "42.42");
     testForD8()
         .addInnerClasses(JavaUtilOptionalTest.class)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(
             LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
@@ -94,7 +93,7 @@ public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
   @Test
   public void testJavaOptionalJava9() throws Exception {
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramFiles(
             Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION))
         .setMinApi(parameters.getApiLevel())

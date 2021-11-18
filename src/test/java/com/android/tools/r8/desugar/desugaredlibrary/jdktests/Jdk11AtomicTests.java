@@ -13,7 +13,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -76,7 +75,7 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramFiles(
             ATOMIC_COMPILED_TESTS_FOLDER.resolve(ATOMIC_REFERENCE_TEST + CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())
@@ -100,7 +99,7 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramFiles(
             getAllFilesWithSuffixInDirectory(ATOMIC_COMPILED_TESTS_FOLDER, CLASS_EXTENSION))
         .addProgramFiles(testNGSupportProgramFiles())

@@ -3,7 +3,7 @@
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs_alternative_3",
   "version": "2.0.0",
-  "required_compilation_api_level": 26,
+  "required_compilation_api_level": 31,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
   "common_flags": [
@@ -78,7 +78,8 @@
         "java.net.URLDecoder": "j$.net.URLDecoder",
         "java.net.URLEncoder": "j$.net.URLEncoder",
         "java.lang.Desugar": "j$.lang.Desugar",
-        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner"
+        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
+        "sun.security.action.": "j$.sun.security.action."
       }
     },
     {
@@ -95,7 +96,6 @@
         "java.io.DesugarFile" : "j$.io.DesugarFile",
         "java.util.Desugar": "j$.util.Desugar",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
-        "sun.security.action.": "j$.sun.security.action.",
         "jdk.internal.": "j$.jdk.internal.",
         "java.nio.Desugar": "j$.nio.Desugar",
         "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",

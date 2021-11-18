@@ -5,10 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.transformers.MethodTransformer;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -49,7 +47,7 @@ public class StandardCharsetTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClassFileData(getProgramClassFileData())
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -68,7 +66,7 @@ public class StandardCharsetTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClassFileData(getProgramClassFileData())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)

@@ -12,8 +12,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.reflect.Method;
 import java.util.Collection;
@@ -72,7 +70,7 @@ public class NoDefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBa
           .assertSuccessWithOutput(EXPECTED);
     } else {
       testForD8()
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .addLibraryFiles(getLibraryFile())
           .setMinApi(parameters.getApiLevel())
           .addInnerClasses(NoDefaultMethodOverrideInLibraryTest.class)
           .enableCoreLibraryDesugaring(

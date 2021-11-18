@@ -78,7 +78,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
     L8Command.Builder l8Builder =
         L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .addLibraryFiles(ToolHelper.getCoreLambdaStubs())

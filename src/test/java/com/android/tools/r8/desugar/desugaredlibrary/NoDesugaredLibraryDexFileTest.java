@@ -7,8 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.ArrayList;
@@ -46,7 +44,7 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(NoDesugaredLibraryDexFileTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -62,7 +60,7 @@ public class NoDesugaredLibraryDexFileTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(NoDesugaredLibraryDexFileTest.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepClassAndMembersRules(Executor.class)

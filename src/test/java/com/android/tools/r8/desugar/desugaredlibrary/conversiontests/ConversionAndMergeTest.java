@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -39,7 +38,7 @@ public class ConversionAndMergeTest extends DesugaredLibraryTestBase {
     Path extra = buildClass(ExtraClass.class);
     Path convClass = buildClass(APIConversionClass.class);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(extra, convClass)
         .enableCoreLibraryDesugaring(
@@ -51,7 +50,7 @@ public class ConversionAndMergeTest extends DesugaredLibraryTestBase {
 
   private Path buildClass(Class<?> cls) throws Exception {
     return testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(cls)
         .enableCoreLibraryDesugaring(

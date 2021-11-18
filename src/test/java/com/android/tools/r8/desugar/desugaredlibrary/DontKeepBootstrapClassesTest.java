@@ -9,7 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration.PresentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -35,7 +34,7 @@ public class DontKeepBootstrapClassesTest extends DesugaredLibraryTestBase {
   public void test() throws Exception {
     KeepRuleConsumer keepRuleConsumer = new PresentKeepRuleConsumer();
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClasses(TestClass.class)
         .setMinApi(minApiLevel)
         .addLibraryClasses(CustomLibClass.class)

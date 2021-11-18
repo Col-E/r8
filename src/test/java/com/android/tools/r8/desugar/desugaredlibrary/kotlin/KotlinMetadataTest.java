@@ -29,7 +29,6 @@ import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.kotlin.metadata.KotlinMetadataTestBase;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -99,7 +98,7 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
     final File output = temp.newFile("output.zip");
     final D8TestRunResult d8TestRunResult =
         testForD8()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
             .addProgramFiles(kotlinc.getKotlinStdlibJar())
             .addProgramFiles(kotlinc.getKotlinReflectJar())
@@ -129,7 +128,7 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
     boolean desugarLibrary = parameters.isDexRuntime() && requiresAnyCoreLibDesugaring(parameters);
     final R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(compiledJars.getForConfiguration(kotlinParameters))
             .addProgramFiles(kotlinc.getKotlinStdlibJar())
             .addProgramFiles(kotlinc.getKotlinReflectJar())

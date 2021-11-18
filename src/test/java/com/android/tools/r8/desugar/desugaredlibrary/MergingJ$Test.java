@@ -52,7 +52,7 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
         () ->
             testForD8()
                 .addProgramFiles(mergerInputPart1, mergerInputPart2)
-                .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+                .addLibraryFiles(getLibraryFile())
                 .compileWithExpectedDiagnostics(
                     diagnostics -> {
                       diagnostics
@@ -69,7 +69,7 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
     D8Command command =
         D8Command.builder()
             .addProgramFiles(mergerInputPart1, mergerInputPart2)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setOutput(merged, OutputMode.DexIndexed)
             .build();
     try {
@@ -103,7 +103,7 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-dex.zip");
     L8.run(
         L8Command.builder()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
@@ -117,7 +117,7 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-split-dex.zip");
     L8.run(
         L8Command.builder()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES)
             .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
             .addDesugaredLibraryConfiguration(

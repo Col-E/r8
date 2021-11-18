@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -57,7 +56,7 @@ public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForD8()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setMinApi(parameters.getApiLevel())
             .addProgramClasses(Executor.class, MyMap.class)
             .addLibraryClasses(CustomLibClass.class)
@@ -81,7 +80,7 @@ public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForR8(parameters.getBackend())
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(Executor.class)
             .addProgramClasses(Executor.class, MyMap.class)

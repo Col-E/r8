@@ -8,7 +8,6 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.InvalidLibrarySuperclassDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -67,7 +66,7 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
   public void testProgramSupertype() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(
             Executor.class, SuperLibraryClass.class, LocalClass.class, LocalClassOverride.class)
@@ -89,7 +88,7 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class, LocalClass.class, LocalClassOverride.class)
         .addClasspathClasses(SuperLibraryClass.class)
@@ -116,7 +115,7 @@ public class InvalidLibraryTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class, LocalClass.class, LocalClassOverride.class)
         .addLibraryClasses(CustomLibraryClass.class)

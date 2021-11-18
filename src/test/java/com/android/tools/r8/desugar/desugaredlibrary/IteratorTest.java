@@ -12,7 +12,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration.AbsentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -63,7 +62,7 @@ public class IteratorTest extends DesugaredLibraryTestBase {
     }
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(IteratorTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

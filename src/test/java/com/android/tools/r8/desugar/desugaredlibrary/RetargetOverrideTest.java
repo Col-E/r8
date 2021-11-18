@@ -5,8 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -45,10 +43,10 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     Path desugaredTwice =
         testForD8(Backend.CF)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(
                 testForD8(Backend.CF)
-                    .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+                    .addLibraryFiles(getLibraryFile())
                     .addInnerClasses(RetargetOverrideTest.class)
                     .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
                     .setMinApi(parameters.getApiLevel())
@@ -103,7 +101,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForD8()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addInnerClasses(RetargetOverrideTest.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .setMinApi(parameters.getApiLevel())
@@ -128,7 +126,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdout =
         testForR8(Backend.DEX)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addKeepMainRule(Executor.class)
             .addInnerClasses(RetargetOverrideTest.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

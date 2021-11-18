@@ -5,10 +5,8 @@
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
@@ -47,7 +45,7 @@ public class ConcurrentHashMapJDK11Test extends DesugaredLibraryTestBase {
         parameters.getDexRuntimeVersion().isEqualTo(Version.V4_0_4));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(ConcurrentHashMapJDK11Test.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -69,7 +67,7 @@ public class ConcurrentHashMapJDK11Test extends DesugaredLibraryTestBase {
         parameters.getDexRuntimeVersion().isEqualTo(Version.V4_0_4));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(ConcurrentHashMapJDK11Test.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)

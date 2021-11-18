@@ -8,9 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import dalvik.system.PathClassLoader;
 import java.sql.SQLDataException;
@@ -53,7 +51,7 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForD8()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addInnerClasses(GetGenericInterfaceTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -74,7 +72,7 @@ public class GetGenericInterfaceTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String stdOut =
         testForR8(Backend.DEX)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addInnerClasses(GetGenericInterfaceTest.class)
             .addKeepMainRule(Executor.class)
             .noMinification()

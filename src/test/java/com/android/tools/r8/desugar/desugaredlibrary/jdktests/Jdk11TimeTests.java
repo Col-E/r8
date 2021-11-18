@@ -201,7 +201,7 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(getPathsFiles())
             .addProgramFiles(JDK_11_TIME_TEST_COMPILED_FILES)
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))

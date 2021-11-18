@@ -12,9 +12,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.smali.SmaliBuilder;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import org.junit.Assume;
 import org.junit.Test;
@@ -69,18 +67,19 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
     try {
       testForD8()
           .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .addLibraryFiles(getLibraryFile())
           .setMinApi(parameters.getRuntime())
           .addProgramFiles(buildDesugaredLibrary(parameters.getApiLevel()))
-          .compileWithExpectedDiagnostics(diagnostics -> {
-            diagnostics.assertErrorsCount(1);
-            String message = diagnostics.getErrors().get(0).getDiagnosticMessage();
-            assertThat(
-                message,
-                containsString(
-                    "Merging dex file containing classes with prefix 'j$.' "
-                        + "with classes with any other prefixes is not allowed."));
-          });
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                diagnostics.assertErrorsCount(1);
+                String message = diagnostics.getErrors().get(0).getDiagnosticMessage();
+                assertThat(
+                    message,
+                    containsString(
+                        "Merging dex file containing classes with prefix 'j$.' "
+                            + "with classes with any other prefixes is not allowed."));
+              });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.
       return;
@@ -94,7 +93,7 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
     Assume.assumeTrue(parameters.getApiLevel().getLevel() < 24);
     testForD8()
         .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(
             LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))

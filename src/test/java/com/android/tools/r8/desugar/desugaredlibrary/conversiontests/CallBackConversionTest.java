@@ -9,7 +9,6 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.LibraryDesugaringTestConfiguration.AbsentKeepRuleConsumer;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -89,7 +88,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   public void testCallBack() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Impl.class)
         .addLibraryClasses(CustomLibClass.class)
@@ -111,7 +110,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
     // Use D8 to desugar with Java classfile output.
     Path firstJar =
         testForD8(Backend.CF)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .setMinApi(parameters.getApiLevel())
             .addProgramClasses(Impl.class)
             .addLibraryClasses(CustomLibClass.class)
@@ -131,7 +130,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
     // Use D8 to desugar with Java classfile output.
     Path secondJar =
         testForD8(Backend.CF)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addOptionsModification(
                 options -> options.desugarSpecificOptions().allowAllDesugaredInput = true)
             .setMinApi(parameters.getApiLevel())
@@ -152,7 +151,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
 
     // Convert to DEX without desugaring and run.
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramFiles(firstJar)
         .setMinApi(parameters.getApiLevel())
         .disableDesugaring()
@@ -173,7 +172,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   public void testCallBackR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addKeepMainRule(Impl.class)
         .noMinification()
         .setMinApi(parameters.getApiLevel())
@@ -192,7 +191,7 @@ public class CallBackConversionTest extends DesugaredLibraryTestBase {
   public void testCallBackR8Minifying() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addKeepMainRule(Impl.class)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Impl.class)

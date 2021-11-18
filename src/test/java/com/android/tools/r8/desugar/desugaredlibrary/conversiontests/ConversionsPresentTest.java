@@ -45,7 +45,7 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
     Path desugaredLib = temp.newFolder().toPath().resolve("conversion_dex.zip");
     L8Command.Builder l8Builder =
         L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addLibraryFiles(getLibraryFile())
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))

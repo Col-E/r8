@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
@@ -69,7 +68,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(false);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
@@ -90,7 +89,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(false);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Executor.class)
         .addProgramClasses(Executor.class)
