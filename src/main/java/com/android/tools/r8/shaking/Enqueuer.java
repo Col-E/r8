@@ -84,6 +84,7 @@ import com.android.tools.r8.graph.analysis.EnqueuerCheckCastAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerExceptionGuardAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInstanceOfAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerInvokeAnalysis;
+import com.android.tools.r8.graph.analysis.InvokeVirtualToInterfaceVerifyErrorWorkaround;
 import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -234,11 +235,11 @@ public class Enqueuer {
   private final boolean forceProguardCompatibility;
   private final Mode mode;
 
-  private Set<EnqueuerAnalysis> analyses = Sets.newIdentityHashSet();
-  private Set<EnqueuerInvokeAnalysis> invokeAnalyses = Sets.newIdentityHashSet();
-  private Set<EnqueuerInstanceOfAnalysis> instanceOfAnalyses = Sets.newIdentityHashSet();
-  private Set<EnqueuerExceptionGuardAnalysis> exceptionGuardAnalyses = Sets.newIdentityHashSet();
-  private Set<EnqueuerCheckCastAnalysis> checkCastAnalyses = Sets.newIdentityHashSet();
+  private Set<EnqueuerAnalysis> analyses = new LinkedHashSet<>();
+  private Set<EnqueuerInvokeAnalysis> invokeAnalyses = new LinkedHashSet<>();
+  private Set<EnqueuerInstanceOfAnalysis> instanceOfAnalyses = new LinkedHashSet<>();
+  private Set<EnqueuerExceptionGuardAnalysis> exceptionGuardAnalyses = new LinkedHashSet<>();
+  private Set<EnqueuerCheckCastAnalysis> checkCastAnalyses = new LinkedHashSet<>();
 
   // Don't hold a direct pointer to app info (use appView).
   private AppInfoWithClassHierarchy appInfo;
@@ -479,6 +480,7 @@ public class Enqueuer {
             : null;
 
     if (mode.isInitialOrFinalTreeShaking()) {
+      InvokeVirtualToInterfaceVerifyErrorWorkaround.register(appView, this);
       if (options.protoShrinking().enableGeneratedMessageLiteShrinking) {
         registerAnalysis(new ProtoEnqueuerExtension(appView));
       }
@@ -536,7 +538,7 @@ public class Enqueuer {
     return this;
   }
 
-  private Enqueuer registerInvokeAnalysis(EnqueuerInvokeAnalysis analysis) {
+  public Enqueuer registerInvokeAnalysis(EnqueuerInvokeAnalysis analysis) {
     invokeAnalyses.add(analysis);
     return this;
   }
@@ -679,6 +681,10 @@ public class Enqueuer {
               reportMissingClass(missingType, derivedContext.asProgramDerivedContext(context)));
     }
     return clazz;
+  }
+
+  public MutableKeepInfoCollection getKeepInfo() {
+    return keepInfo;
   }
 
   public KeepClassInfo getKeepInfo(DexProgramClass clazz) {
