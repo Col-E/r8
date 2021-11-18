@@ -151,6 +151,7 @@ public class ClassInstanceFieldsMerger {
     if (needsRelaxedType(targetField, sourceFields)) {
       newField =
           targetField.toTypeSubstitutedField(
+              appView,
               targetField
                   .getReference()
                   .withType(appView.dexItemFactory().objectType, appView.dexItemFactory()));

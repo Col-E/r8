@@ -15,6 +15,7 @@ import java.util.Map;
 
 public class ClassStaticFieldsMerger {
 
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final MergeGroup group;
   private final Builder lensBuilder;
@@ -23,6 +24,7 @@ public class ClassStaticFieldsMerger {
 
   public ClassStaticFieldsMerger(
       AppView<?> appView, HorizontalClassMergerGraphLens.Builder lensBuilder, MergeGroup group) {
+    this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.group = group;
     this.lensBuilder = lensBuilder;
@@ -50,7 +52,7 @@ public class ClassStaticFieldsMerger {
             field.getName().toString(),
             this::isFresh);
 
-    field = field.toTypeSubstitutedField(newFieldReference);
+    field = field.toTypeSubstitutedField(appView, newFieldReference);
     targetFields.put(newFieldReference, field);
 
     lensBuilder.recordNewFieldSignature(oldFieldReference, newFieldReference);

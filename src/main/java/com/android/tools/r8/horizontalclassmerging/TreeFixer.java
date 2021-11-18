@@ -430,7 +430,7 @@ class TreeFixer extends TreeFixerBase {
 
       if (newFieldReference != oldFieldReference) {
         lensBuilder.fixupField(oldFieldReference, newFieldReference);
-        newFields[i] = oldField.toTypeSubstitutedField(newFieldReference);
+        newFields[i] = oldField.toTypeSubstitutedField(appView, newFieldReference);
       } else {
         newFields[i] = oldField;
       }

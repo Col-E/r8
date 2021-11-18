@@ -299,15 +299,21 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return null;
   }
 
-  public DexEncodedField toTypeSubstitutedField(DexField field) {
-    return toTypeSubstitutedField(field, ConsumerUtils.emptyConsumer());
+  public DexEncodedField toTypeSubstitutedField(AppView<?> appView, DexField field) {
+    return toTypeSubstitutedField(appView, field, ConsumerUtils.emptyConsumer());
   }
 
-  public DexEncodedField toTypeSubstitutedField(DexField field, Consumer<Builder> consumer) {
+  public DexEncodedField toTypeSubstitutedField(
+      AppView<?> appView, DexField field, Consumer<Builder> consumer) {
     if (this.getReference() == field) {
       return this;
     }
-    return builder(this).setField(field).apply(consumer).build();
+    return builder(this)
+        .setField(field)
+        .disableAndroidApiLevelCheckIf(
+            !appView.options().apiModelingOptions().enableApiCallerIdentification)
+        .apply(consumer)
+        .build();
   }
 
   public boolean validateDexValue(DexItemFactory factory) {
@@ -359,7 +365,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private FieldAccessFlags accessFlags;
     private FieldTypeSignature genericSignature = FieldTypeSignature.noSignature();
     private DexValue staticValue = null;
-    private AndroidApiLevel apiLevel = AndroidApiLevel.UNKNOWN;
+    private AndroidApiLevel apiLevel = AndroidApiLevel.NOT_SET;
     private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
     private boolean deprecated;
     private final boolean d8R8Synthesized;
@@ -453,7 +459,13 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     }
 
     public Builder disableAndroidApiLevelCheck() {
-      checkAndroidApiLevel = false;
+      return disableAndroidApiLevelCheckIf(true);
+    }
+
+    public Builder disableAndroidApiLevelCheckIf(boolean shouldDisable) {
+      if (shouldDisable) {
+        checkAndroidApiLevel = false;
+      }
       return this;
     }
 

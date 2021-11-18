@@ -468,6 +468,7 @@ class EnumUnboxingTreeFixer {
     return field
         .getDefinition()
         .toTypeSubstitutedField(
+            appView,
             newFieldSignature,
             builder ->
                 builder
@@ -621,6 +622,7 @@ class EnumUnboxingTreeFixer {
         lensBuilder.move(field, newField);
         DexEncodedField newEncodedField =
             encodedField.toTypeSubstitutedField(
+                appView,
                 newField,
                 builder ->
                     builder.setAbstractValue(

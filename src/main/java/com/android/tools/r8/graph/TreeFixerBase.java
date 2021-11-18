@@ -179,7 +179,7 @@ public abstract class TreeFixerBase {
     DexField fieldReference = field.getReference();
     DexField newFieldReference = fixupFieldReference(fieldReference);
     if (newFieldReference != fieldReference) {
-      return recordFieldChange(field, field.toTypeSubstitutedField(newFieldReference));
+      return recordFieldChange(field, field.toTypeSubstitutedField(appView, newFieldReference));
     }
     return field;
   }

@@ -1673,7 +1673,7 @@ public class VerticalClassMerger {
         } while (!availableFieldSignatures.test(newSignature));
       }
 
-      return field.toTypeSubstitutedField(newSignature);
+      return field.toTypeSubstitutedField(appView, newSignature);
     }
 
     private void makeStatic(DexEncodedMethod method) {

@@ -832,7 +832,7 @@ final class StaticizingProcessor {
       DexEncodedField field = oldFields.get(i);
       DexField newField = mapCandidateField(field.getReference(), candidateClass.type, hostType);
       if (newField != field.getReference()) {
-        newFields[i] = field.toTypeSubstitutedField(newField);
+        newFields[i] = field.toTypeSubstitutedField(appView, newField);
         fieldMapping.put(field.getReference(), newField);
       } else {
         newFields[i] = field;
@@ -844,7 +844,7 @@ final class StaticizingProcessor {
         DexEncodedField field = extraFields.get(i);
         DexField newField = mapCandidateField(field.getReference(), candidateClass.type, hostType);
         if (newField != field.getReference()) {
-          newFields[numOfHostStaticFields + i] = field.toTypeSubstitutedField(newField);
+          newFields[numOfHostStaticFields + i] = field.toTypeSubstitutedField(appView, newField);
           fieldMapping.put(field.getReference(), newField);
         } else {
           newFields[numOfHostStaticFields + i] = field;
