@@ -15,8 +15,11 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Consumer;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,11 +43,16 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build(),
+        getKotlinTestParameters()
+            .withCompiler(KotlinCompilerVersion.KOTLINC_1_3_72)
+            .withAllTargetVersions()
+            .build(),
         BooleanUtils.values());
   }
 
   private final TestParameters parameters;
+
+  private static KotlinCompileMemoizer compiledJars;
 
   public KotlinDuplicateAnnotationTest(
       TestParameters parameters,
@@ -54,15 +62,17 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
     this.parameters = parameters;
   }
 
-  private static final KotlinCompileMemoizer compiledJars =
-      getCompileMemoizer(getKotlinFilesInResource(FOLDER), FOLDER)
-          .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+  @BeforeClass
+  public static void moveKotlinSourceFile() throws Exception {
+    Path sourceFile = getStaticTemp().newFolder().toPath().resolve("main.kt");
+    Files.copy(getKotlinResourcesFolder().resolve(FOLDER).resolve("main.txt"), sourceFile);
+    compiledJars =
+        getCompileMemoizer(sourceFile)
+            .configure(kotlinCompilerTool -> kotlinCompilerTool.includeRuntime().noReflect());
+  }
 
   @Test
   public void test_dex() {
-    assumeTrue(
-        "kotlinc > 1.3.72 will no longer compile kotlin files with duplicate annotations",
-        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     assumeTrue("test DEX", parameters.isDexRuntime());
     try {
       testForR8(parameters.getBackend())
@@ -81,9 +91,6 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_cf() throws Exception {
-    assumeTrue(
-        "kotlinc > 1.3.72 will no longer compile kotlin files with duplicate annotations",
-        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
     assumeTrue("test CF", parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(compiledJars.getForConfiguration(kotlinc, targetVersion))
