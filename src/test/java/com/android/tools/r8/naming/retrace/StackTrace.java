@@ -227,7 +227,7 @@ public class StackTrace {
         StackTraceLine o = (StackTraceLine) other;
         return className.equals(o.className)
             && methodName.equals(o.methodName)
-            && fileName.equals(o.fileName)
+            && Objects.equals(fileName, o.fileName)
             && lineNumber == o.lineNumber;
       }
       return false;
@@ -253,6 +253,10 @@ public class StackTrace {
 
   public int size() {
     return stackTraceLines.size() + 1;
+  }
+
+  public String getExceptionLine() {
+    return exceptionLine;
   }
 
   public StackTraceLine get(int index) {
@@ -317,9 +321,20 @@ public class StackTrace {
   }
 
   public static StackTrace extractFromJvm(String stderr) {
-    List<String> strings = StringUtils.splitLines(stderr);
+    List<String> lines = StringUtils.splitLines(stderr);
+    String exceptionLine = "";
+    int startLine = 0;
+    for (int i = 0; i < lines.size(); i++) {
+      if (lines.get(i).startsWith(TAB_AT_PREFIX)) {
+        if (i > 0) {
+          exceptionLine = lines.get(i - 1);
+        }
+        startLine = i;
+        break;
+      }
+    }
     return new StackTrace(
-        strings.isEmpty() ? "" : strings.get(0), internalExtractFromJvm(strings), stderr);
+        exceptionLine, internalExtractFromJvm(lines.subList(startLine, lines.size())), stderr);
   }
 
   public static StackTrace extractFromJvm(SingleTestRunResult result) {
