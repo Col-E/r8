@@ -44,7 +44,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
 
   public static Path undesugaredJar() {
     if (!isJDK11DesugaredLibrary()) {
-      return ToolHelper.getDesugarJDKLibs();
+      return ToolHelper.getDesugarJDKLibsBazelGeneratedFile();
     }
     Path desugaredLibJDK11Undesugared = Paths.get("build/libs/desugar_jdk_libs_11_undesugared.jar");
     if (Files.exists(desugaredLibJDK11Undesugared)) {
@@ -56,7 +56,8 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
         new ZipOutputStream(
             new BufferedOutputStream(
                 Files.newOutputStream(desugaredLibJDK11Undesugared, options)))) {
-      new DesugaredLibraryJDK11Undesugarer().undesugar(ToolHelper.getDesugarJDKLibs(), out);
+      new DesugaredLibraryJDK11Undesugarer()
+          .undesugar(ToolHelper.getDesugarJDKLibsBazelGeneratedFile(), out);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

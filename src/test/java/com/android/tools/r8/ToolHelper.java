@@ -14,6 +14,7 @@ import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
+import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -181,6 +182,10 @@ public class ToolHelper {
       Paths.get(LIBS_DIR, "library_desugar_conversions.zip");
 
   public static Path getDesugarJDKLibs() {
+    return DesugaredLibraryJDK11Undesugarer.undesugaredJar();
+  }
+
+  public static Path getDesugarJDKLibsBazelGeneratedFile() {
     return Paths.get(
         System.getProperty(
             "desugar_jdk_libs", "third_party/openjdk/desugar_jdk_libs/desugar_jdk_libs.jar"));
