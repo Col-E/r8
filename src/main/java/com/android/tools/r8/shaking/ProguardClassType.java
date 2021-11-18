@@ -28,7 +28,7 @@ public enum ProguardClassType {
   INTERFACE {
     @Override
     public boolean matches(DexClass clazz) {
-      return clazz.accessFlags.isInterface() && !clazz.accessFlags.isAnnotation();
+      return clazz.accessFlags.isInterface();
     }
   },
   UNSPECIFIED {

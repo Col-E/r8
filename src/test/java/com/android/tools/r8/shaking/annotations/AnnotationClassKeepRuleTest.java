@@ -52,30 +52,30 @@ public class AnnotationClassKeepRuleTest extends TestBase {
   @Test
   public void testR8Interface() throws Exception {
     assumeTrue(proguardVersion == ProguardVersion.getLatest());
-    runTest(testForR8(parameters.getBackend())).inspect(inspector -> inspect(inspector, false));
+    runTest(testForR8(parameters.getBackend())).inspect(this::inspect);
   }
 
   @Test
   public void testPGInterface() throws Exception {
     runTest(testForProguard(proguardVersion).addDontWarn(AnnotationClassKeepRuleTest.class))
-        .inspect(inspector -> inspect(inspector, true));
+        .inspect(this::inspect);
   }
 
   @Test
   public void testR8Annotation() throws Exception {
     assumeTrue(proguardVersion == ProguardVersion.getLatest());
-    runTest(testForR8(parameters.getBackend())).inspect(inspector -> inspect(inspector, false));
+    runTest(testForR8(parameters.getBackend())).inspect(this::inspect);
   }
 
   @Test
   public void testPGAnnotation() throws Exception {
     runTest(testForProguard(proguardVersion).addDontWarn(AnnotationClassKeepRuleTest.class))
-        .inspect(inspector -> inspect(inspector, true));
+        .inspect(this::inspect);
   }
 
-  private void inspect(CodeInspector inspector, boolean isProguard) {
+  private void inspect(CodeInspector inspector) {
     assertThat(inspector.clazz(Foo.class), not(isPresent()));
-    assertThat(inspector.clazz(Bar.class), notIf(isPresent(), !testAnnotation && !isProguard));
+    assertThat(inspector.clazz(Bar.class), isPresent());
     assertThat(inspector.clazz(Baz.class), notIf(isPresent(), testAnnotation));
   }
 
