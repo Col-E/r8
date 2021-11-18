@@ -69,7 +69,6 @@ import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
-import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
@@ -794,11 +793,6 @@ public class R8 {
       // information for the mapping file.
       ClassNameMapper classNameMapper =
           LineNumberOptimizer.run(appView, getDirectApp(appView), inputApp, namingLens);
-      timing.end();
-
-      // Overwrite SourceFile if specified. This step should be done after IR conversion.
-      timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appView).run();
       timing.end();
 
       // If a method filter is present don't produce output since the application is likely partial.

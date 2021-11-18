@@ -5,38 +5,31 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.SourceFileEnvironment;
 import com.android.tools.r8.SourceFileProvider;
-import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.utils.InternalOptions;
 
 /** Computes the source file provider based on the proguard configuration if none is set. */
 public class SourceFileRewriter {
 
-  private final AppView<?> appView;
-
-  public SourceFileRewriter(AppView<?> appView) {
-    this.appView = appView;
+  public static SourceFileProvider computeSourceFileProvider(
+      SourceFileProvider provider, ProguardConfiguration configuration, InternalOptions options) {
+    if (provider != null) {
+      return provider;
+    }
+    if (!configuration.getKeepAttributes().sourceFile) {
+      return rewriteToDefaultSourceFile(options.dexItemFactory());
+    }
+    if (options.forceProguardCompatibility) {
+      return computeCompatProvider(options);
+    }
+    return computeNonCompatProvider(options);
   }
 
-  public void run() {
-    if (appView.options().sourceFileProvider != null) {
-      return;
-    }
-    appView.options().sourceFileProvider = computeSourceFileProvider();
-  }
-
-  public SourceFileProvider computeSourceFileProvider() {
-    if (!appView.options().getProguardConfiguration().getKeepAttributes().sourceFile) {
-      return rewriteToDefaultSourceFile();
-    }
-    if (appView.options().forceProguardCompatibility) {
-      return computeCompatProvider();
-    }
-    return computeNonCompatProvider();
-  }
-
-  private SourceFileProvider computeCompatProvider() {
+  private static SourceFileProvider computeCompatProvider(InternalOptions options) {
     // Compatibility mode will only apply -renamesourcefileattribute when minifying names.
-    if (appView.options().isMinifying()) {
-      String renaming = getRenameSourceFileAttribute();
+    if (options.isMinifying()) {
+      String renaming = getRenameSourceFileAttribute(options);
       if (renaming != null) {
         return rewriteTo(renaming);
       }
@@ -44,26 +37,26 @@ public class SourceFileRewriter {
     return null;
   }
 
-  private SourceFileProvider computeNonCompatProvider() {
-    String renaming = getRenameSourceFileAttribute();
+  private static SourceFileProvider computeNonCompatProvider(InternalOptions options) {
+    String renaming = getRenameSourceFileAttribute(options);
     if (renaming != null) {
       return rewriteTo(renaming);
     }
-    if (appView.options().isMinifying() || appView.options().isOptimizing()) {
-      return rewriteToDefaultSourceFile();
+    if (options.isMinifying() || options.isOptimizing()) {
+      return rewriteToDefaultSourceFile(options.dexItemFactory());
     }
     return null;
   }
 
-  private String getRenameSourceFileAttribute() {
-    return appView.options().getProguardConfiguration().getRenameSourceFileAttribute();
+  private static String getRenameSourceFileAttribute(InternalOptions options) {
+    return options.getProguardConfiguration().getRenameSourceFileAttribute();
   }
 
-  private SourceFileProvider rewriteToDefaultSourceFile() {
-    return rewriteTo(appView.dexItemFactory().defaultSourceFileAttributeString);
+  private static SourceFileProvider rewriteToDefaultSourceFile(DexItemFactory factory) {
+    return rewriteTo(factory.defaultSourceFileAttributeString);
   }
 
-  private SourceFileProvider rewriteTo(String renaming) {
+  private static SourceFileProvider rewriteTo(String renaming) {
     return new SourceFileProvider() {
       @Override
       public String get(SourceFileEnvironment environment) {

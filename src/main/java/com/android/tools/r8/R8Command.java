@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -868,9 +869,6 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableVerticalClassMerging = false;
     }
 
-    internal.mapIdProvider = getMapIdProvider();
-    internal.sourceFileProvider = getSourceFileProvider();
-
     // Amend the proguard-map consumer with options from the proguard configuration.
     internal.proguardMapConsumer =
         wrapStringConsumer(
@@ -939,6 +937,13 @@ public final class R8Command extends BaseCompilerCommand {
     internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
+
+    // Set up the map and source file providers.
+    // Note that minify/optimize settings must be set on internal options before doing this.
+    internal.mapIdProvider = getMapIdProvider();
+    internal.sourceFileProvider =
+        SourceFileRewriter.computeSourceFileProvider(
+            getSourceFileProvider(), proguardConfiguration, internal);
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
