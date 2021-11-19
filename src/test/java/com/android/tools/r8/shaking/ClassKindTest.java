@@ -34,16 +34,17 @@ public class ClassKindTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> parameters() {
-    return ImmutableList.copyOf(new Object[][]{
-        {"-keep interface *", ImmutableList.of(Interface.class)},
-        {"-keep class *", CLASSES_TO_INCLUDE},
-        {"-keep enum *", ImmutableList.of(Enum.class)},
-        {"-keep @interface *", ImmutableList.of(Annotation.class)},
-        {"-keep !interface *", ImmutableList.of(Enum.class, Annotation.class, Class.class)},
-        {"-keep !enum *", ImmutableList.of(Interface.class, Annotation.class, Class.class)},
-        {"-keep !@interface *", ImmutableList.of(Interface.class, Enum.class, Class.class)},
-        {"-keep !class *", ImmutableList.of()}
-    });
+    return ImmutableList.copyOf(
+        new Object[][] {
+          {"-keep interface *", ImmutableList.of(Interface.class, Annotation.class)},
+          {"-keep class *", CLASSES_TO_INCLUDE},
+          {"-keep enum *", ImmutableList.of(Enum.class)},
+          {"-keep @interface *", ImmutableList.of(Annotation.class)},
+          {"-keep !interface *", ImmutableList.of(Enum.class, Class.class)},
+          {"-keep !enum *", ImmutableList.of(Interface.class, Annotation.class, Class.class)},
+          {"-keep !@interface *", ImmutableList.of(Interface.class, Enum.class, Class.class)},
+          {"-keep !class *", ImmutableList.of()}
+        });
   }
 
   public final String config;
