@@ -19,13 +19,15 @@ import com.android.tools.r8.transformers.ClassFileTransformer.FieldPredicate;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
+import java.util.Collection;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -74,16 +76,18 @@ public class TestRunnerBuilder extends TestBase {
 
   private static final int COUNT = 1100;
 
-  private static final Set<String> testClasses =
-      ImmutableSet.of(
-          binaryName(TestCheckCast.class),
-          binaryName(TestInstanceOf.class),
-          binaryName(TestTypeReference.class),
-          binaryName(TestNewInstance.class),
-          binaryName(TestStaticField.class),
-          binaryName(TestStaticMethod.class),
-          binaryName(TestInstanceField.class),
-          binaryName(TestInstanceMethod.class));
+  private static final List<Class<?>> testClasses =
+      ImmutableList.of(
+          TestCheckCast.class,
+          TestInstanceOf.class,
+          TestTypeReference.class,
+          TestNewInstance.class,
+          TestStaticField.class,
+          TestStaticMethod.class,
+          TestInstanceField.class,
+          TestInstanceMethod.class);
+  private static final Collection<String> testClassBinaryNames =
+      ImmutableSet.copyOf(ListUtils.map(testClasses, TestBase::binaryName));
 
   private static void buildJar(Path path) throws Exception {
     ZipBuilder builder = ZipBuilder.builder(path);
@@ -94,14 +98,9 @@ public class TestRunnerBuilder extends TestBase {
       String postFix = clazz.getSimpleName();
       int classCounter = 0;
       for (int i = 0; i < COUNT; i++) {
-        addClass(builder, TestCheckCast.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestInstanceOf.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestTypeReference.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestNewInstance.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestStaticField.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestStaticMethod.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestInstanceField.class, clazz, postFix, i, classCounter++);
-        addClass(builder, TestInstanceMethod.class, clazz, postFix, i, classCounter++);
+        for (Class<?> testClass : testClasses) {
+          addClass(builder, testClass, clazz, postFix, i, classCounter++);
+        }
       }
       if (clazz != MissingClass.class) {
         for (int i = 0; i < classCounter; i++) {
@@ -134,7 +133,7 @@ public class TestRunnerBuilder extends TestBase {
                         String name,
                         String descriptor,
                         boolean isInterface) {
-                      if (!testClasses.contains(owner)) {
+                      if (!testClassBinaryNames.contains(owner)) {
                         super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                         return;
                       }
