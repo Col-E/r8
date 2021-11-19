@@ -25,6 +25,8 @@ import org.objectweb.asm.Opcodes;
 
 public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
 
+  private static final boolean ALLOW_CACHE = false;
+
   private static final Map<String, String> ownerMap =
       ImmutableMap.<String, String>builder()
           .put("java/util/DesugarTimeZone", "java/util/TimeZone")
@@ -48,7 +50,15 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
     }
     Path desugaredLibJDK11Undesugared = Paths.get("build/libs/desugar_jdk_libs_11_undesugared.jar");
     if (Files.exists(desugaredLibJDK11Undesugared)) {
-      return desugaredLibJDK11Undesugared;
+      if (ALLOW_CACHE) {
+        return desugaredLibJDK11Undesugared;
+      } else {
+        try {
+          Files.delete(desugaredLibJDK11Undesugared);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
     }
     OpenOption[] options =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
