@@ -209,19 +209,7 @@ public class RedundantFieldLoadAndStoreElimination {
             }
 
             if (instruction.isInstanceGet()) {
-              InstanceGet instanceGet = instruction.asInstanceGet();
-              if (instanceGet.outValue().hasLocalInfo()) {
-                continue;
-              }
-              Value object = instanceGet.object().getAliasedValue();
-              FieldAndObject fieldAndObject = new FieldAndObject(reference, object);
-              FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
-              if (replacement != null) {
-                replacement.eliminateRedundantRead(it, instanceGet);
-              } else {
-                activeState.putNonFinalInstanceField(
-                    fieldAndObject, new ExistingValue(instanceGet.value()));
-              }
+              handleInstanceGet(it, instruction.asInstanceGet(), field);
             } else if (instruction.isInstancePut()) {
               handleInstancePut(instruction.asInstancePut(), field);
             } else if (instruction.isStaticGet()) {
@@ -394,6 +382,25 @@ public class RedundantFieldLoadAndStoreElimination {
     }
   }
 
+  private void handleInstanceGet(
+      InstructionListIterator it, InstanceGet instanceGet, DexClassAndField field) {
+    if (instanceGet.outValue().hasLocalInfo()) {
+      activeState.clearMostRecentInstanceFieldWrite(field.getReference());
+      return;
+    }
+
+    Value object = instanceGet.object().getAliasedValue();
+    FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
+    FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
+    if (replacement != null) {
+      replacement.eliminateRedundantRead(it, instanceGet);
+      return;
+    }
+
+    activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(instanceGet.value()));
+    activeState.clearMostRecentInstanceFieldWrite(field.getReference());
+  }
+
   private void handleInstancePut(InstancePut instancePut, DexClassAndField field) {
     // An instance-put instruction can potentially write the given field on all objects
     // because of aliases.
@@ -424,6 +431,8 @@ public class RedundantFieldLoadAndStoreElimination {
   private void handleStaticGet(
       InstructionListIterator instructionIterator, StaticGet staticGet, DexClassAndField field) {
     if (staticGet.outValue().hasLocalInfo()) {
+      killNonFinalActiveFields(staticGet);
+      activeState.clearMostRecentStaticFieldWrite(field.getReference());
       return;
     }
 
@@ -435,6 +444,7 @@ public class RedundantFieldLoadAndStoreElimination {
 
     // A field get on a different class can cause <clinit> to run and change static field values.
     killNonFinalActiveFields(staticGet);
+    activeState.clearMostRecentStaticFieldWrite(field.getReference());
 
     FieldValue value = new ExistingValue(staticGet.value());
     if (isFinal(field)) {
@@ -704,8 +714,20 @@ public class RedundantFieldLoadAndStoreElimination {
       clearMostRecentStaticFieldWrites();
     }
 
+    public void clearMostRecentInstanceFieldWrite(DexField field) {
+      if (mostRecentInstanceFieldWrites != null) {
+        mostRecentInstanceFieldWrites.keySet().removeIf(key -> key.field == field);
+      }
+    }
+
     public void clearMostRecentInstanceFieldWrites() {
       mostRecentInstanceFieldWrites = null;
+    }
+
+    public void clearMostRecentStaticFieldWrite(DexField field) {
+      if (mostRecentStaticFieldWrites != null) {
+        mostRecentStaticFieldWrites.remove(field);
+      }
     }
 
     public void clearMostRecentStaticFieldWrites() {
