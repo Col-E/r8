@@ -181,6 +181,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptEnumConversionClasspathClass(DexClasspathClass clazz) {
+      // Intentionally empty.
+    }
+
+    @Override
     public void acceptAPIConversion(ProgramMethod method) {
       methodProcessor.scheduleDesugaredMethodForProcessing(method);
     }
@@ -332,6 +337,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptWrapperClasspathClass(DexClasspathClass clazz) {
+      additions.addLiveClasspathClass(clazz);
+    }
+
+    @Override
+    public void acceptEnumConversionClasspathClass(DexClasspathClass clazz) {
       additions.addLiveClasspathClass(clazz);
     }
 

@@ -101,10 +101,12 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   private final DexItemFactory factory;
   private final ConcurrentHashMap<DexType, List<DexEncodedMethod>> allImplementedMethodsCache =
       new ConcurrentHashMap<>();
+  private final DesugaredLibraryEnumConversionSynthesizer enumConverter;
 
   public DesugaredLibraryWrapperSynthesizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
+    this.enumConverter = new DesugaredLibraryEnumConversionSynthesizer(appView);
   }
 
   public boolean isSyntheticWrapper(DexType type) {
@@ -117,6 +119,9 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   public boolean shouldConvert(DexType type, DexMethod method, ProgramMethod context) {
+    if (type.isArrayType()) {
+      return shouldConvert(type.toBaseType(appView.dexItemFactory()), method, context);
+    }
     if (!appView.rewritePrefix.hasRewrittenType(type, appView)) {
       return false;
     }
@@ -136,8 +141,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     if (customConversion != null) {
       return customConversion;
     }
-    assert canGenerateWrapper(type) : type;
     DexClass clazz = getValidClassToWrap(type);
+    if (clazz.isEnum()) {
+      return enumConverter.ensureEnumConversionMethod(clazz, srcType, destType, eventConsumer);
+    }
+    assert canGenerateWrapper(type) : type;
     WrapperConversions wrapperConversions = ensureWrappers(clazz, eventConsumer);
     DexMethod conversion =
         type == srcType
@@ -154,8 +162,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     if (customConversion != null) {
       return customConversion;
     }
-    WrapperConversions wrapperConversions =
-        getExistingProgramWrapperConversions(getValidClassToWrap(type));
+    DexClass clazz = getValidClassToWrap(type);
+    if (clazz.isEnum()) {
+      return enumConverter.getExistingProgramEnumConversionMethod(clazz, srcType, destType);
+    }
+    WrapperConversions wrapperConversions = getExistingProgramWrapperConversions(clazz);
     DexMethod conversion =
         type == srcType
             ? wrapperConversions.getConversion()
@@ -209,11 +220,14 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private DexClass getValidClassToWrap(DexType type) {
+    if (type.isArrayType()) {
+      return getValidClassToWrap(type.toBaseType(factory));
+    }
     DexClass dexClass = appView.definitionFor(type);
     // The dexClass should be a library class, so it cannot be null.
     assert dexClass != null;
     assert dexClass.isLibraryClass() || appView.options().isDesugaredLibraryCompilation();
-    assert !dexClass.accessFlags.isFinal();
+    assert !dexClass.accessFlags.isFinal() || dexClass.isEnum();
     return dexClass;
   }
 
@@ -660,8 +674,12 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       // In broken set-ups we can end up having a json files containing wrappers of non desugared
       // classes. Such wrappers are not required since the class won't be rewritten.
       if (validClassToWrap.isProgramClass()) {
-        validClassesToWrap.add(validClassToWrap.asProgramClass());
-        ensureProgramWrappersWithoutVirtualMethods(validClassToWrap, eventConsumer);
+        if (validClassToWrap.isEnum()) {
+          enumConverter.ensureProgramEnumConversionClass(validClassToWrap, eventConsumer);
+        } else {
+          validClassesToWrap.add(validClassToWrap.asProgramClass());
+          ensureProgramWrappersWithoutVirtualMethods(validClassToWrap, eventConsumer);
+        }
       }
     }
     for (DexProgramClass validClassToWrap : validClassesToWrap) {

@@ -31,6 +31,11 @@ public class CfClassSynthesizerDesugaringEventConsumer
   }
 
   @Override
+  public void acceptEnumConversionProgramClass(DexProgramClass clazz) {
+    synthesizedClasses.add(clazz);
+  }
+
+  @Override
   public void acceptDesugaredLibraryRetargeterDispatchProgramClass(DexProgramClass clazz) {
     synthesizedClasses.add(clazz);
   }

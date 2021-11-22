@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.AccessMode;
 import java.nio.file.Path;
 import java.util.List;
@@ -29,7 +30,8 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
   private final boolean shrinkDesugaredLibrary;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
-  private static final String EXPECTED_RESULT = StringUtils.lines("WRITE", "WRITE");
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines("READ", "WRITE", "READ", "WRITE", "EXECUTE");
 
   private static Path CUSTOM_LIB;
 
@@ -54,28 +56,38 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
             .writeToZip();
   }
 
-  private void configureDesugaredLibrary(InternalOptions options) {
-    options.desugaredLibraryConfiguration =
+  private void configureDesugaredLibrary(InternalOptions options, boolean l8Compilation) {
+    DesugaredLibraryConfiguration.Builder builder =
         DesugaredLibraryConfiguration.builder(
                 options.itemFactory, options.reporter, Origin.unknown())
+            .setDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:9.99.99")
             .putRewritePrefix("java.nio.file.AccessMode", "j$.nio.file.AccessMode")
-            .addWrapperConversion("java.nio.file.AccessMode")
-            .build();
+            .addWrapperConversion("java.nio.file.AccessMode");
+    if (l8Compilation) {
+      builder.setLibraryCompilation();
+    }
+    options.desugaredLibraryConfiguration = builder.build();
   }
 
   @Test
   public void testD8() throws Exception {
-    Assume.assumeTrue(false);
+    Assume.assumeTrue(isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .addOptionsModification(this::configureDesugaredLibrary)
+        .addOptionsModification(opt -> this.configureDesugaredLibrary(opt, false))
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
+            (apiLevel, keepRules, shrink) ->
+                this.buildDesugaredLibrary(
+                    apiLevel,
+                    keepRules,
+                    shrink,
+                    ImmutableList.of(),
+                    opt -> this.configureDesugaredLibrary(opt, true)),
             parameters.getApiLevel(),
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
@@ -86,7 +98,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testR8() throws Exception {
-    Assume.assumeTrue(false);
+    Assume.assumeTrue(isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
@@ -94,11 +106,16 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .addOptionsModification(this::configureDesugaredLibrary)
+        .addOptionsModification(opt -> this.configureDesugaredLibrary(opt, false))
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
+            (apiLevel, keepRules, shrink) ->
+                this.buildDesugaredLibrary(
+                    apiLevel,
+                    keepRules,
+                    shrink,
+                    ImmutableList.of(),
+                    opt -> this.configureDesugaredLibrary(opt, true)),
             parameters.getApiLevel(),
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
@@ -111,7 +128,16 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
 
     public static void main(String[] args) {
       System.out.println(CustomLibClass.get(AccessMode.READ));
-      System.out.println(CustomLibClass.get(new AccessMode[] {AccessMode.READ})[0]);
+      System.out.println(CustomLibClass.get(AccessMode.WRITE));
+      System.out.println(
+          CustomLibClass.get(
+              new AccessMode[] {AccessMode.READ, AccessMode.WRITE, AccessMode.EXECUTE})[0]);
+      System.out.println(
+          CustomLibClass.get(
+              new AccessMode[] {AccessMode.READ, AccessMode.WRITE, AccessMode.EXECUTE})[1]);
+      System.out.println(
+          CustomLibClass.get(
+              new AccessMode[] {AccessMode.READ, AccessMode.WRITE, AccessMode.EXECUTE})[2]);
     }
   }
 
@@ -121,11 +147,11 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
   static class CustomLibClass {
 
     public static AccessMode get(AccessMode mode) {
-      return AccessMode.WRITE;
+      return mode;
     }
 
     public static AccessMode[] get(AccessMode[] modes) {
-      return new AccessMode[] {AccessMode.WRITE};
+      return modes;
     }
   }
 }

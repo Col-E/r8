@@ -34,6 +34,7 @@ public class SyntheticNaming {
     RETARGET_INTERFACE("RetargetInterface", 21, false, true),
     WRAPPER("$Wrapper", 22, false, true),
     VIVIFIED_WRAPPER("$VivifiedWrapper", 23, false, true),
+    ENUM_CONVERSION("$EnumConversion", 31, false, true),
     LAMBDA("Lambda", 4, false),
     INIT_TYPE_ARGUMENT("-IA", 5, false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_1(SYNTHETIC_CLASS_SEPARATOR + "IA$1", 6, false, true),

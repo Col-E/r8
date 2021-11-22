@@ -4,12 +4,20 @@
 
 package com.android.tools.r8.ir.synthetic;
 
+import com.android.tools.r8.cf.code.CfArithmeticBinop;
+import com.android.tools.r8.cf.code.CfArithmeticBinop.Opcode;
+import com.android.tools.r8.cf.code.CfArrayLength;
+import com.android.tools.r8.cf.code.CfArrayLoad;
+import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
+import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfInstanceFieldRead;
 import com.android.tools.r8.cf.code.CfInstanceFieldWrite;
 import com.android.tools.r8.cf.code.CfInstanceOf;
@@ -18,12 +26,16 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -31,6 +43,8 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.MemberType;
+import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
@@ -39,6 +53,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
@@ -381,6 +396,159 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
         instructions.add(new CfReturnVoid());
       } else {
         instructions.add(new CfReturn(ValueType.fromDexType(invokedMethod.getReturnType())));
+      }
+      return standardCfCodeFromInstructions(instructions);
+    }
+  }
+
+  public static class EnumArrayConversionCfCodeProvider extends SyntheticCfCodeProvider {
+
+    private final DexType enumType;
+    private final DexType convertedType;
+
+    public EnumArrayConversionCfCodeProvider(
+        AppView<?> appView, DexType holder, DexType enumType, DexType convertedType) {
+      super(appView, holder);
+      this.enumType = enumType;
+      this.convertedType = convertedType;
+    }
+
+    @Override
+    public CfCode generateCfCode() {
+      DexItemFactory factory = appView.dexItemFactory();
+      List<CfInstruction> instructions = new ArrayList<>();
+      DexType enumTypeArray = factory.createArrayType(1, enumType);
+      DexType convertedTypeArray = factory.createArrayType(1, convertedType);
+
+      // if (arg == null) { return null; }
+      instructions.add(new CfLoad(ValueType.fromDexType(enumTypeArray), 0));
+      instructions.add(new CfConstNull());
+      CfLabel nonNull = new CfLabel();
+      instructions.add(new CfIfCmp(If.Type.NE, ValueType.OBJECT, nonNull));
+      instructions.add(new CfConstNull());
+      instructions.add(new CfReturn(ValueType.fromDexType(convertedTypeArray)));
+      instructions.add(nonNull);
+      instructions.add(
+          new CfFrame(
+              ImmutableInt2ReferenceSortedMap.<FrameType>builder()
+                  .put(0, FrameType.initialized(enumTypeArray))
+                  .build(),
+              ImmutableDeque.of()));
+
+      ImmutableInt2ReferenceSortedMap<FrameType> locals =
+          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
+              .put(0, FrameType.initialized(enumTypeArray))
+              .put(1, FrameType.initialized(factory.intType))
+              .put(2, FrameType.initialized(convertedTypeArray))
+              .put(3, FrameType.initialized(factory.intType))
+              .build();
+
+      // int t1 = arg.length;
+      instructions.add(new CfLoad(ValueType.fromDexType(enumTypeArray), 0));
+      instructions.add(new CfArrayLength());
+      instructions.add(new CfStore(ValueType.INT, 1));
+      // ConvertedType[] t2 = new ConvertedType[t1];
+      instructions.add(new CfLoad(ValueType.INT, 1));
+      instructions.add(new CfNewArray(convertedTypeArray));
+      instructions.add(new CfStore(ValueType.fromDexType(convertedTypeArray), 2));
+      // int t3 = 0;
+      instructions.add(new CfConstNumber(0, ValueType.INT));
+      instructions.add(new CfStore(ValueType.INT, 3));
+      // while (t3 < t1) {
+      CfLabel returnLabel = new CfLabel();
+      CfLabel loopLabel = new CfLabel();
+      instructions.add(loopLabel);
+      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(new CfLoad(ValueType.INT, 3));
+      instructions.add(new CfLoad(ValueType.INT, 1));
+      instructions.add(new CfIfCmp(If.Type.GE, ValueType.INT, returnLabel));
+      // t2[t3] = convert(arg[t3]);
+      instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
+      instructions.add(new CfLoad(ValueType.INT, 3));
+      instructions.add(new CfLoad(ValueType.fromDexType(enumTypeArray), 0));
+      instructions.add(new CfLoad(ValueType.INT, 3));
+      instructions.add(new CfArrayLoad(MemberType.OBJECT));
+      instructions.add(
+          new CfInvoke(
+              Opcodes.INVOKESTATIC,
+              factory.createMethod(
+                  getHolder(),
+                  factory.createProto(convertedType, enumType),
+                  factory.convertMethodName),
+              false));
+      instructions.add(new CfArrayStore(MemberType.OBJECT));
+      // t3 = t3 + 1; }
+      instructions.add(new CfLoad(ValueType.INT, 3));
+      instructions.add(new CfConstNumber(1, ValueType.INT));
+      instructions.add(new CfArithmeticBinop(Opcode.Add, NumericType.INT));
+      instructions.add(new CfStore(ValueType.INT, 3));
+      instructions.add(new CfGoto(loopLabel));
+      // return t2;
+      instructions.add(returnLabel);
+      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+      instructions.add(new CfLoad(ValueType.fromDexType(convertedTypeArray), 2));
+      instructions.add(new CfReturn(ValueType.fromDexType(convertedTypeArray)));
+      return standardCfCodeFromInstructions(instructions);
+    }
+  }
+
+  public static class EnumConversionCfCodeProvider extends SyntheticCfCodeProvider {
+
+    private final Iterable<DexEncodedField> enumFields;
+    private final DexType enumType;
+    private final DexType convertedType;
+
+    public EnumConversionCfCodeProvider(
+        AppView<?> appView,
+        DexType holder,
+        Iterable<DexEncodedField> enumFields,
+        DexType enumType,
+        DexType convertedType) {
+      super(appView, holder);
+      this.enumFields = enumFields;
+      this.enumType = enumType;
+      this.convertedType = convertedType;
+    }
+
+    @Override
+    public CfCode generateCfCode() {
+      DexItemFactory factory = appView.dexItemFactory();
+      List<CfInstruction> instructions = new ArrayList<>();
+
+      ImmutableInt2ReferenceSortedMap<FrameType> locals =
+          ImmutableInt2ReferenceSortedMap.<FrameType>builder()
+              .put(0, FrameType.initialized(enumType))
+              .build();
+
+      // if (arg == null) { return null; }
+      instructions.add(new CfLoad(ValueType.fromDexType(enumType), 0));
+      instructions.add(new CfConstNull());
+      CfLabel nonNull = new CfLabel();
+      instructions.add(new CfIfCmp(If.Type.NE, ValueType.OBJECT, nonNull));
+      instructions.add(new CfConstNull());
+      instructions.add(new CfReturn(ValueType.fromDexType(convertedType)));
+      instructions.add(nonNull);
+      instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+
+      // if (arg == enumType.enumField1) { return convertedType.enumField1; }
+      Iterator<DexEncodedField> iterator = enumFields.iterator();
+      while (iterator.hasNext()) {
+        DexEncodedField enumField = iterator.next();
+        CfLabel notEqual = new CfLabel();
+        if (iterator.hasNext()) {
+          instructions.add(new CfLoad(ValueType.fromDexType(enumType), 0));
+          instructions.add(
+              new CfStaticFieldRead(factory.createField(enumType, enumType, enumField.getName())));
+          instructions.add(new CfIfCmp(If.Type.NE, ValueType.OBJECT, notEqual));
+        }
+        instructions.add(
+            new CfStaticFieldRead(
+                factory.createField(convertedType, convertedType, enumField.getName())));
+        instructions.add(new CfReturn(ValueType.fromDexType(convertedType)));
+        if (iterator.hasNext()) {
+          instructions.add(notEqual);
+          instructions.add(new CfFrame(locals, ImmutableDeque.of()));
+        }
       }
       return standardCfCodeFromInstructions(instructions);
     }

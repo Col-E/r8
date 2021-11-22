@@ -13,11 +13,15 @@ public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
   interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer {
 
     void acceptWrapperProgramClass(DexProgramClass clazz);
+
+    void acceptEnumConversionProgramClass(DexProgramClass clazz);
   }
 
   interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
 
     void acceptWrapperClasspathClass(DexClasspathClass clazz);
+
+    void acceptEnumConversionClasspathClass(DexClasspathClass clazz);
   }
 
   interface DesugaredLibraryAPIConverterEventConsumer
