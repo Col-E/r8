@@ -75,8 +75,7 @@ public class ApiModelObjectInitTest extends TestBase {
                     Assert.assertEquals(AndroidApiLevel.L.max(currentLevel), apiLevel);
                   }
                   if (methodReference.equals(shouldBeN)) {
-                    // TODO(b/207327566): This should be N or minApi.
-                    Assert.assertEquals(AndroidApiLevel.L.max(currentLevel), apiLevel);
+                    Assert.assertEquals(AndroidApiLevel.N.max(currentLevel), apiLevel);
                   }
                 }))
         .addKeepMainRule(Main.class)

@@ -6,6 +6,7 @@ package com.android.tools.r8.androidapi;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
@@ -18,6 +19,7 @@ public class AndroidApiReferenceLevelCache {
   private final DesugaredLibraryConfiguration desugaredLibraryConfiguration;
   private final AndroidApiLevelDatabase androidApiLevelDatabase;
   private final AppView<?> appView;
+  private final DexItemFactory factory;
 
   private AndroidApiReferenceLevelCache(AppView<?> appView) {
     this(appView, ImmutableList.of());
@@ -26,9 +28,9 @@ public class AndroidApiReferenceLevelCache {
   private AndroidApiReferenceLevelCache(
       AppView<?> appView, List<AndroidApiForHashingClass> predefinedApiTypeLookupForHashing) {
     this.appView = appView;
+    factory = appView.dexItemFactory();
     androidApiLevelDatabase =
-        new AndroidApiLevelHashingDatabaseImpl(
-            appView.dexItemFactory(), predefinedApiTypeLookupForHashing);
+        new AndroidApiLevelHashingDatabaseImpl(factory, predefinedApiTypeLookupForHashing);
     desugaredLibraryConfiguration = appView.options().desugaredLibraryConfiguration;
   }
 
@@ -58,11 +60,10 @@ public class AndroidApiReferenceLevelCache {
   public AndroidApiLevel lookup(DexReference reference) {
     DexType contextType = reference.getContextType();
     if (contextType.isArrayType()) {
-      if (reference.isDexMethod()
-          && reference.asDexMethod().match(appView.dexItemFactory().objectMembers.clone)) {
+      if (reference.isDexMethod() && reference.asDexMethod().match(factory.objectMembers.clone)) {
         return appView.options().getMinApiLevel();
       }
-      return lookup(contextType.toBaseType(appView.dexItemFactory()));
+      return lookup(contextType.toBaseType(factory));
     }
     if (contextType.isPrimitiveType() || contextType.isVoidType()) {
       return appView.options().getMinApiLevel();
@@ -74,7 +75,7 @@ public class AndroidApiReferenceLevelCache {
     if (!clazz.isLibraryClass()) {
       return appView.options().getMinApiLevel();
     }
-    if (isReferenceToJavaLangObject(reference)) {
+    if (reference.getContextType() == factory.objectType) {
       return appView.options().getMinApiLevel();
     }
     if (desugaredLibraryConfiguration.isSupported(reference, appView)) {
@@ -82,19 +83,21 @@ public class AndroidApiReferenceLevelCache {
       // of the program.
       return appView.options().getMinApiLevel();
     }
+    if (reference.isDexMethod() && factory.objectMembers.isObjectMember(reference.asDexMethod())) {
+      // If we can lookup the method it was introduced/overwritten later. Take for example
+      // a default constructor that was not available before som api level. If unknown we default
+      // back to the static holder.
+      AndroidApiLevel methodApiLevel =
+          androidApiLevelDatabase.getMethodApiLevel(reference.asDexMethod());
+      return methodApiLevel == AndroidApiLevel.UNKNOWN
+          ? androidApiLevelDatabase.getTypeApiLevel(reference.getContextType())
+          : methodApiLevel;
+    }
     return reference
         .apply(
             androidApiLevelDatabase::getTypeApiLevel,
             androidApiLevelDatabase::getFieldApiLevel,
             androidApiLevelDatabase::getMethodApiLevel)
         .max(appView.options().getMinApiLevel());
-  }
-
-  private boolean isReferenceToJavaLangObject(DexReference reference) {
-    if (reference.getContextType() == appView.dexItemFactory().objectType) {
-      return true;
-    }
-    return reference.isDexMethod()
-        && appView.dexItemFactory().objectMembers.isObjectMember(reference.asDexMethod());
   }
 }
