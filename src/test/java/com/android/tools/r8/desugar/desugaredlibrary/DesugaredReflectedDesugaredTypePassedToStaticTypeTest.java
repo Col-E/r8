@@ -9,7 +9,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDate;
@@ -56,7 +55,7 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Main.class);
-    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
+    if (!requiresTimeDesugaring(parameters)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString("java.lang.ClassNotFoundException: j$.time.LocalDate"));
     } else {
@@ -81,7 +80,7 @@ public class DesugaredReflectedDesugaredTypePassedToStaticTypeTest
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Main.class);
-    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
+    if (!requiresTimeDesugaring(parameters)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString("java.lang.ClassNotFoundException: j$.time.LocalDate"));
     } else {

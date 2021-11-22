@@ -9,7 +9,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.LocalDate;
@@ -55,7 +54,7 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Main.class);
-    if (shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
+    if (shrinkDesugaredLibrary && requiresTimeDesugaring(parameters)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString("java.lang.NoSuchMethodException"));
     } else {
@@ -80,7 +79,7 @@ public class DesugaredLocalDateReflectedTypePassedToStaticType extends Desugared
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), Main.class);
-    if (shrinkDesugaredLibrary && parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
+    if (shrinkDesugaredLibrary && requiresTimeDesugaring(parameters)) {
       runResult.assertFailureWithErrorThatMatches(
           containsString("java.lang.NoSuchMethodException"));
     } else {

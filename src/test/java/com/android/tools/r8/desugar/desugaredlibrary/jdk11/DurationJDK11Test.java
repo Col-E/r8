@@ -44,10 +44,6 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
   @Test
   public void testD8() throws Exception {
     Assume.assumeTrue(isJDK11DesugaredLibrary());
-    Assume.assumeFalse(
-        "TODO(b/206068300)",
-        parameters.getApiLevel().getLevel() >= AndroidApiLevel.O.getLevel()
-            && parameters.getApiLevel().getLevel() < AndroidApiLevel.S.getLevel());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
@@ -67,10 +63,6 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
   @Test
   public void testR8() throws Exception {
     Assume.assumeTrue(isJDK11DesugaredLibrary());
-    Assume.assumeFalse(
-        "TODO(b/206068300)",
-        parameters.getApiLevel().getLevel() >= AndroidApiLevel.O.getLevel()
-            && parameters.getApiLevel().getLevel() < AndroidApiLevel.S.getLevel());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(Backend.DEX)
         .addLibraryFiles(getLibraryFile())

@@ -48,7 +48,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
     }
     Path desugaredLibJDK11Undesugared = Paths.get("build/libs/desugar_jdk_libs_11_undesugared.jar");
     if (Files.exists(desugaredLibJDK11Undesugared)) {
-        return desugaredLibJDK11Undesugared;
+      return desugaredLibJDK11Undesugared;
     }
     return generateUndesugaredJar(desugaredLibJDK11Undesugared);
   }

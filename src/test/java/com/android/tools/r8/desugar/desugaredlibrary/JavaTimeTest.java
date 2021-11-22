@@ -96,7 +96,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
     Set<String> expectedCatchGuards;
     Set<String> expectedCheckCastType;
     String expectedInstanceOfTypes;
-    if (parameters.getApiLevel().getLevel() >= 26) {
+    if (!requiresTimeDesugaring(parameters)) {
       expectedInvokeHolders =
           SetUtils.newHashSet("java.time.Clock", "java.time.LocalDate", "java.time.ZoneId");
       if (!isR8) {

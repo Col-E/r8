@@ -118,14 +118,14 @@ public class KotlinMetadataTest extends DesugaredLibraryTestBase {
                 false)
             .run(parameters.getRuntime(), PKG + ".MainKt")
             .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
-    if (requiresAnyCoreLibDesugaring(parameters)) {
+    if (requiresTimeDesugaring(parameters)) {
       d8TestRunResult.inspect(this::inspectRewrittenMetadata);
     }
   }
 
   @Test
   public void testTimeR8() throws Exception {
-    boolean desugarLibrary = parameters.isDexRuntime() && requiresAnyCoreLibDesugaring(parameters);
+    boolean desugarLibrary = parameters.isDexRuntime() && requiresTimeDesugaring(parameters);
     final R8FullTestBuilder testBuilder =
         testForR8(parameters.getBackend())
             .addLibraryFiles(getLibraryFile())

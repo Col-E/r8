@@ -97,8 +97,16 @@ public class DesugaredLibraryTestBase extends TestBase {
     return parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
+  protected boolean requiresTimeDesugaring(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel()
+        < (isJDK11DesugaredLibrary() ? AndroidApiLevel.S.getLevel() : AndroidApiLevel.O.getLevel());
+  }
+
   protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel();
+    return parameters.getApiLevel().getLevel()
+        <= (isJDK11DesugaredLibrary()
+            ? AndroidApiLevel.LATEST.getLevel()
+            : AndroidApiLevel.N.getLevel());
   }
 
   protected L8TestBuilder testForL8(AndroidApiLevel apiLevel) {

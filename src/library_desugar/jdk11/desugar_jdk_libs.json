@@ -83,6 +83,27 @@
       }
     },
     {
+      "api_level_below_or_equal": 30,
+      "rewrite_prefix": {
+        "j$.time.": "java.time.",
+        "java.time.": "j$.time.",
+        "java.util.Desugar": "j$.util.Desugar"
+      },
+      "retarget_lib_member": {
+        "java.util.Date#toInstant": "java.util.DesugarDate",
+        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
+        "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
+      },
+      "custom_conversion": {
+        "java.time.ZonedDateTime": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.Duration": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.MonthDay": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions"
+      }
+    },
+    {
       "api_level_below_or_equal": 29,
       "rewrite_prefix": {
         "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
@@ -91,10 +112,7 @@
     {
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
-        "j$.time.": "java.time.",
-        "java.time.": "j$.time.",
         "java.io.DesugarFile" : "j$.io.DesugarFile",
-        "java.util.Desugar": "j$.util.Desugar",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
         "jdk.internal.": "j$.jdk.internal.",
         "java.nio.Desugar": "j$.nio.Desugar",
@@ -117,18 +135,7 @@
         "java.lang.DesugarMath": "java.lang.Math"
       },
       "retarget_lib_member": {
-        "java.io.File#toPath": "java.io.DesugarFile",
-        "java.util.Date#toInstant": "java.util.DesugarDate",
-        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
-        "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
-      },
-      "custom_conversion": {
-        "java.time.ZonedDateTime": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
-        "java.time.Duration": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
-        "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions"
+        "java.io.File#toPath": "java.io.DesugarFile"
       }
     },
     {
@@ -211,7 +218,7 @@
       }
     },
     {
-      "api_level_below_or_equal": 25,
+      "api_level_below_or_equal": 30,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
         "java.util.Desugar": "j$.util.Desugar"

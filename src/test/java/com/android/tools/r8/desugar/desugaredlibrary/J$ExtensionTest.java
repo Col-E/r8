@@ -13,7 +13,6 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -138,7 +137,7 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
   public void testJ$ExtensionDesugaring() throws Exception {
     Assume.assumeFalse(parameters.isCfRuntime());
     // Above O no desugaring is required.
-    Assume.assumeTrue(parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel());
+    Assume.assumeTrue(requiresTimeDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
 
     try {

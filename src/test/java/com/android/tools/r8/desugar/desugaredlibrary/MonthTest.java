@@ -41,8 +41,7 @@ public class MonthTest extends DesugaredLibraryTestBase {
       return EXPECTED_JAVA_8_OUTPUT;
     }
     assert parameters.isDexRuntime();
-    // Assumes java.time is desugared only if any library desugaring is required, i.e., on 26.
-    if (requiresAnyCoreLibDesugaring(parameters)) {
+    if (requiresTimeDesugaring(parameters)) {
       return EXPECTED_JAVA_8_OUTPUT;
     }
     return EXPECTED_JAVA_9_OUTPUT;

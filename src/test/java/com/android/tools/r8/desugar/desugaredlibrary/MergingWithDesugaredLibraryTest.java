@@ -124,8 +124,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
         allOf(
             markerTool(Tool.D8),
             markerIsDesugared(),
-            markerHasDesugaredLibraryIdentifier(
-                parameters.getApiLevel().isLessThan(AndroidApiLevel.O)));
+            markerHasDesugaredLibraryIdentifier(requiresAnyCoreLibDesugaring(parameters)));
     assertMarkersMatch(
         ExtractMarker.extractMarkerFromDexFile(app), ImmutableList.of(libraryMatcher, d8Matcher));
   }

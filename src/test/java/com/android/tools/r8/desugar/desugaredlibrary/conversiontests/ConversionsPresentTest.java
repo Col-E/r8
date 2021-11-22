@@ -15,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.nio.file.Path;
@@ -60,14 +59,14 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
         inspector.allClasses().stream()
             .filter(c -> c.getOriginalName().contains("Conversions"))
             .collect(Collectors.toList());
-    if (parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
+    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       assertEquals(5, conversionsClasses.size());
       assertTrue(inspector.clazz("j$.util.OptionalConversions").isPresent());
       assertTrue(inspector.clazz("j$.time.TimeConversions").isPresent());
       assertTrue(inspector.clazz("j$.util.LongSummaryStatisticsConversions").isPresent());
       assertTrue(inspector.clazz("j$.util.IntSummaryStatisticsConversions").isPresent());
       assertTrue(inspector.clazz("j$.util.DoubleSummaryStatisticsConversions").isPresent());
-    } else if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O)) {
+    } else if (requiresTimeDesugaring(parameters)) {
       assertEquals(1, conversionsClasses.size());
       assertTrue(inspector.clazz("j$.time.TimeConversions").isPresent());
     } else {

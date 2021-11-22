@@ -234,7 +234,7 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
     for (String issue : formattingProblem) {
       D8TestRunResult result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, issue);
-      if (requiresAnyCoreLibDesugaring(parameters)) {
+      if (requiresTimeDesugaring(parameters)) {
         // Fails due to formatting differences in desugared library.
         assertTrue(result.getStdOut().contains("for style NARROW"));
       } else {

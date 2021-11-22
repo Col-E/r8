@@ -36,15 +36,16 @@ public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
   @Parameters(name = "api: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        range(AndroidApiLevel.K, AndroidApiLevel.ANDROID_PLATFORM),
+        range(AndroidApiLevel.K, AndroidApiLevel.LATEST),
         getTestParameters().withNoneRuntime().build());
   }
 
   private static List<AndroidApiLevel> range(
-      AndroidApiLevel fromIncluding, AndroidApiLevel toExcluding) {
+      AndroidApiLevel fromIncluding, AndroidApiLevel toIncluding) {
     ArrayList<AndroidApiLevel> result = new ArrayList<>();
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.isGreaterThanOrEqualTo(fromIncluding) && apiLevel.isLessThan(toExcluding)) {
+      if (apiLevel.isGreaterThanOrEqualTo(fromIncluding)
+          && apiLevel.isLessThanOrEqualTo(toIncluding)) {
         result.add(apiLevel);
       }
     }
