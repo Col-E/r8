@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.function.BiConsumer;
@@ -35,6 +36,20 @@ public abstract class ApiModelingTestHelper {
                 .apiModelingOptions()
                 .methodApiMapping
                 .put(Reference.methodFromMethod(method), apiLevel);
+          });
+    };
+  }
+
+  public static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
+      ThrowableConsumer<T> setMockApiLevelForMethod(
+          Constructor constructor, AndroidApiLevel apiLevel) {
+    return compilerBuilder -> {
+      compilerBuilder.addOptionsModification(
+          options -> {
+            options
+                .apiModelingOptions()
+                .methodApiMapping
+                .put(Reference.methodFromMethod(constructor), apiLevel);
           });
     };
   }
