@@ -119,7 +119,7 @@ public class ProtoFieldInfo {
    * </pre>
    */
   public boolean hasHazzerBitField(ProtoMessageInfo protoMessageInfo) {
-    return protoMessageInfo.isProto2() && type.isSingular();
+    return type.hasAuxData(protoMessageInfo.isProto2());
   }
 
   public ProgramField getHazzerBitField(
