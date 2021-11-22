@@ -10,6 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,11 +40,15 @@ public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
         .addKeepClassAndMembersRules(Utils.class)
         .addKeepRules(
             "-keep class " + Main.class.getTypeName() + " { void notUsedDuringLaunch(); }")
-        // TODO(b/206891715): Should not allow merging when compiling for Dalvik.
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
-                    .assertIsCompleteMergeGroup(UsedDuringLaunch.class, NotUsedDuringLaunch.class)
+                    .applyIf(
+                        parameters.isDexRuntime()
+                            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L),
+                        i ->
+                            i.assertIsCompleteMergeGroup(
+                                UsedDuringLaunch.class, NotUsedDuringLaunch.class))
                     .assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .addOptionsModification(o -> o.apiModelingOptions().disableApiCallerIdentification())
@@ -51,10 +56,7 @@ public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .applyIf(
-            parameters.isCfRuntime() || !parameters.getDexRuntimeVersion().isDalvik(),
-            runResult -> runResult.assertSuccessWithOutputLines("Hello world!"),
-            runResult -> runResult.assertFailureWithErrorThatThrows(VerifyError.class));
+        .assertSuccessWithOutputLines("Hello world!");
   }
 
   static class Main {
