@@ -8,7 +8,8 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
-import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -66,7 +67,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
@@ -222,7 +222,7 @@ public class VerticalClassMerger {
   private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
-  private final AndroidApiReferenceLevelCache apiReferenceLevelCache;
+  private final AndroidApiLevelCompute apiLevelCompute;
 
   private final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
@@ -261,7 +261,7 @@ public class VerticalClassMerger {
     this.executorService = executorService;
     this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.lensBuilder = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
-    this.apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
+    this.apiLevelCompute = AndroidApiLevelCompute.create(appView);
     this.timing = timing;
 
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
@@ -531,11 +531,9 @@ public class VerticalClassMerger {
     // Only merge if api reference level of source class is equal to target class. The check is
     // somewhat expensive.
     if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
-      AndroidApiLevel sourceApiLevel =
-          sourceClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
-      AndroidApiLevel targetApiLevel =
-          targetClass.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
-      if (sourceApiLevel != targetApiLevel) {
+      ComputedApiLevel sourceApiLevel = sourceClass.getApiReferenceLevel(appView, apiLevelCompute);
+      ComputedApiLevel targetApiLevel = targetClass.getApiReferenceLevel(appView, apiLevelCompute);
+      if (!sourceApiLevel.equals(targetApiLevel)) {
         if (Log.ENABLED) {
           AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
         }

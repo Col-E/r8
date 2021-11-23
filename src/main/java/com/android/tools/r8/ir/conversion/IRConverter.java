@@ -205,7 +205,6 @@ public class IRConverter {
             .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
             .map(options.itemFactory::createString)
             .collect(Collectors.toList());
-    AndroidApiLevelCompute apiLevelCompute = AndroidApiLevelCompute.create(appView);
     if (options.isDesugaredLibraryCompilation()) {
       // Specific L8 Settings, performs all desugaring including L8 specific desugaring.
       //
@@ -223,8 +222,7 @@ public class IRConverter {
       // - nest based access desugaring,
       // - invoke-special desugaring.
       assert options.desugarState.isOn();
-      this.instructionDesugaring =
-          CfInstructionDesugaringCollection.create(appView, apiLevelCompute);
+      this.instructionDesugaring = CfInstructionDesugaringCollection.create(appView);
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
@@ -249,7 +247,7 @@ public class IRConverter {
     this.instructionDesugaring =
         appView.enableWholeProgramOptimizations()
             ? CfInstructionDesugaringCollection.empty()
-            : CfInstructionDesugaringCollection.create(appView, apiLevelCompute);
+            : CfInstructionDesugaringCollection.create(appView);
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
@@ -288,7 +286,8 @@ public class IRConverter {
       this.typeChecker = new TypeChecker(appViewWithLiveness, VerifyTypesHelper.create(appView));
       this.serviceLoaderRewriter =
           options.enableServiceLoaderRewriting
-              ? new ServiceLoaderRewriter(appViewWithLiveness, apiLevelCompute)
+              ? new ServiceLoaderRewriter(
+                  appViewWithLiveness, AndroidApiLevelCompute.create(appView))
               : null;
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;

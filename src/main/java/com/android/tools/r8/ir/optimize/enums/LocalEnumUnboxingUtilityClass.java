@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.cf.CfVersion;
@@ -131,8 +130,8 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
-                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForDefinition(appView.computedMinApiLevel())
+                    .setApiLevelForCode(appView.computedMinApiLevel())
                     .setCode(codeGenerator)
                     .setClassFileVersion(CfVersion.V1_6));
   }

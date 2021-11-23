@@ -63,15 +63,22 @@ public class ApiModelVirtualDispatchLinkInterfaceTest extends TestBase {
   }
 
   public static class AccessibilityNodeInfo$AccessibilityAction {
+
+    private int i;
+
+    public AccessibilityNodeInfo$AccessibilityAction(int i, CharSequence sequence) {
+      this.i = i;
+    }
+
     int describeContents() {
-      return 42;
+      return i;
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      new AccessibilityNodeInfo$AccessibilityAction().describeContents();
+      new AccessibilityNodeInfo$AccessibilityAction(42, "foobar").describeContents();
     }
   }
 }

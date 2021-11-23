@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.dex.Constants;
@@ -68,7 +69,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -1527,8 +1527,8 @@ public class OutlinerImpl extends Outliner {
                         .setProto(outline.buildProto())
                         // It is OK to set the api level to UNKNOWN since we are not interested in
                         // inlining the outlines anyway.
-                        .setApiLevelForDefinition(AndroidApiLevel.UNKNOWN)
-                        .setApiLevelForCode(AndroidApiLevel.UNKNOWN)
+                        .setApiLevelForDefinition(ComputedApiLevel.unknown())
+                        .setApiLevelForCode(ComputedApiLevel.unknown())
                         .setCode(m -> new OutlineCode(outline));
                     if (appView.options().isGeneratingClassFiles()) {
                       builder.setClassFileVersion(

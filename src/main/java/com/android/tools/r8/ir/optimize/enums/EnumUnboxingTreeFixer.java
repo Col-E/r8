@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.enums;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
@@ -186,8 +185,8 @@ class EnumUnboxingTreeFixer {
                                   checkNotNullMethod
                                       .getDefinition()
                                       .getClassFileVersionOrElse(null))
-                              .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
-                              .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
+                              .setApiLevelForDefinition(appView.computedMinApiLevel())
+                              .setApiLevelForCode(appView.computedMinApiLevel())
                               .setCode(method -> new CheckNotZeroCode(checkNotNullMethod))
                               .setOptimizationInfo(
                                   checkNotNullMethod

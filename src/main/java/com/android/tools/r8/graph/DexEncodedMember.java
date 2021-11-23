@@ -3,11 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
-
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.ir.optimize.info.MemberOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinMemberLevelInfo;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -23,7 +21,7 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
   private final boolean d8R8Synthesized;
 
   /** apiLevelForDefinition describes the api level needed for knowing all types */
-  private AndroidApiLevel apiLevelForDefinition;
+  private ComputedApiLevel apiLevelForDefinition;
 
   private final R reference;
 
@@ -31,7 +29,7 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
       R reference,
       DexAnnotationSet annotations,
       boolean d8R8Synthesized,
-      AndroidApiLevel apiLevelForDefinition) {
+      ComputedApiLevel apiLevelForDefinition) {
     super(annotations);
     this.reference = reference;
     this.d8R8Synthesized = d8R8Synthesized;
@@ -95,18 +93,18 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
 
   public abstract MemberOptimizationInfo<?> getOptimizationInfo();
 
-  public abstract AndroidApiLevel getApiLevel();
+  public abstract ComputedApiLevel getApiLevel();
 
-  public AndroidApiLevel getApiLevelForDefinition() {
+  public ComputedApiLevel getApiLevelForDefinition() {
     return apiLevelForDefinition;
   }
 
-  public void setApiLevelForDefinition(AndroidApiLevel apiLevelForDefinition) {
+  public void setApiLevelForDefinition(ComputedApiLevel apiLevelForDefinition) {
     this.apiLevelForDefinition = apiLevelForDefinition;
   }
 
   public boolean hasComputedApiReferenceLevel() {
-    return getApiLevel() != NOT_SET;
+    return !getApiLevel().isNotSetApiLevel();
   }
 
   @Override

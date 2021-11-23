@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfStackInstruction;
@@ -802,8 +800,7 @@ final class ClassProcessor {
             .setAccessFlags(accessFlags)
             .setCode(
                 createExceptionThrowingCfCode(newMethod, accessFlags, errorType, dexItemFactory))
-            .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
-            .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
+            .disableAndroidApiLevelCheck()
             .build();
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
   }

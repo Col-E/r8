@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 
@@ -13,10 +14,6 @@ public class AndroidApiLevelUtils {
   public static boolean isApiSafeForInlining(
       ProgramMethod caller, ProgramMethod inlinee, InternalOptions options) {
     if (!options.apiModelingOptions().enableApiCallerIdentification) {
-      return true;
-    }
-    if (options.isAndroidPlatform()) {
-      // Don't disable inlining in the Android platform based on the Api database.
       return true;
     }
     if (caller.getHolderType() == inlinee.getHolderType()) {
@@ -32,12 +29,13 @@ public class AndroidApiLevelUtils {
       LibraryMethod method,
       AndroidApiLevelCompute androidApiLevelCompute,
       InternalOptions options) {
-    AndroidApiLevel apiLevel =
-        androidApiLevelCompute.computeApiLevelForLibraryReference(method.getReference());
-    if (apiLevel == AndroidApiLevel.UNKNOWN) {
+    ComputedApiLevel apiLevel =
+        androidApiLevelCompute.computeApiLevelForLibraryReference(
+            method.getReference(), ComputedApiLevel.unknown());
+    if (apiLevel.isUnknownApiLevel()) {
       return false;
     }
     assert options.apiModelingOptions().enableApiCallerIdentification;
-    return apiLevel.isLessThanOrEqualTo(options.getMinApiLevel());
+    return apiLevel.asKnownApiLevel().getApiLevel().isLessThanOrEqualTo(options.getMinApiLevel());
   }
 }

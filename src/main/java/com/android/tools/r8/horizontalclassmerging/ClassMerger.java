@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static com.google.common.base.Predicates.not;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -29,7 +29,6 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.analysis.value.NumberFromIntervalValue;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -125,7 +124,7 @@ public class ClassMerger {
         newMethodReference.withName("$r8$clinit$synthetic", dexItemFactory);
     lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
 
-    AndroidApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
+    ComputedApiLevel apiReferenceLevel = classInitializerMerger.getApiReferenceLevel(appView);
     DexEncodedMethod definition =
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)
@@ -215,7 +214,7 @@ public class ClassMerger {
         DexEncodedField.syntheticBuilder()
             .setField(group.getClassIdField())
             .setAccessFlags(FieldAccessFlags.createPublicFinalSynthetic())
-            .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+            .setApiLevel(appView.computedMinApiLevel())
             .build();
 
     // For the $r8$classId synthesized fields, we try to over-approximate the set of values it may

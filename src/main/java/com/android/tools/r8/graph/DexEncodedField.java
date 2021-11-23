@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -21,7 +22,6 @@ import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
@@ -59,7 +59,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       FieldTypeSignature genericSignature,
       DexAnnotationSet annotations,
       DexValue staticValue,
-      AndroidApiLevel apiLevel,
+      ComputedApiLevel apiLevel,
       boolean deprecated,
       boolean d8R8Synthesized) {
     super(field, annotations, d8R8Synthesized, apiLevel);
@@ -103,7 +103,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   @Override
-  public AndroidApiLevel getApiLevel() {
+  public ComputedApiLevel getApiLevel() {
     return getApiLevelForDefinition();
   }
 
@@ -365,7 +365,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     private FieldAccessFlags accessFlags;
     private FieldTypeSignature genericSignature = FieldTypeSignature.noSignature();
     private DexValue staticValue = null;
-    private AndroidApiLevel apiLevel = AndroidApiLevel.NOT_SET;
+    private ComputedApiLevel apiLevel = ComputedApiLevel.notSet();
     private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
     private boolean deprecated;
     private final boolean d8R8Synthesized;
@@ -438,7 +438,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       return this;
     }
 
-    public Builder setApiLevel(AndroidApiLevel apiLevel) {
+    public Builder setApiLevel(ComputedApiLevel apiLevel) {
       this.apiLevel = apiLevel;
       return this;
     }
@@ -474,7 +474,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
       assert accessFlags != null;
       assert genericSignature != null;
       assert annotations != null;
-      assert !checkAndroidApiLevel || apiLevel != AndroidApiLevel.NOT_SET;
+      assert !checkAndroidApiLevel || !apiLevel.isNotSetApiLevel();
       DexEncodedField dexEncodedField =
           new DexEncodedField(
               field,
