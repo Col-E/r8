@@ -1381,8 +1381,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean ignoreRuntimeTypeChecksForTesting = false;
     private boolean restrictToSynthetics = false;
 
-    public int maxGroupSize = 30;
-
     public void disable() {
       enable = false;
     }
@@ -1399,8 +1397,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       this.enable = enable;
     }
 
-    public int getMaxGroupSize() {
-      return maxGroupSize;
+    public int getMaxClassGroupSize() {
+      return 30;
+    }
+
+    public int getMaxInterfaceGroupSize() {
+      return 100;
     }
 
     public boolean isConstructorMergingEnabled() {

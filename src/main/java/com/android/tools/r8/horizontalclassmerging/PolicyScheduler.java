@@ -13,6 +13,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.CheckAbstractClasses
 import com.android.tools.r8.horizontalclassmerging.policies.CheckSyntheticClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.FinalizeMergeGroup;
 import com.android.tools.r8.horizontalclassmerging.policies.LimitClassGroups;
+import com.android.tools.r8.horizontalclassmerging.policies.LimitInterfaceGroups;
 import com.android.tools.r8.horizontalclassmerging.policies.MinimizeInstanceFieldCasts;
 import com.android.tools.r8.horizontalclassmerging.policies.NoAnnotationClasses;
 import com.android.tools.r8.horizontalclassmerging.policies.NoCheckDiscard;
@@ -229,6 +230,7 @@ public class PolicyScheduler {
     builder.add(
         new NoDefaultInterfaceMethodMerging(appView, mode),
         new NoDefaultInterfaceMethodCollisions(appView, mode),
+        new LimitInterfaceGroups(appView),
         new OnlyDirectlyConnectedOrUnrelatedInterfaces(appView, mode));
   }
 
