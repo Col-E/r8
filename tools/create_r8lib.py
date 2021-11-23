@@ -38,6 +38,10 @@ def parse_options():
       '--lib',
       action='append',
       help='Additional libraries (JDK 1.8 rt.jar already included)')
+  parser.add_argument(
+      '--classpath',
+      action='append',
+      help='Dependencies to add to classpath')
   return parser.parse_args()
 
 def get_r8_version(r8jar):
@@ -86,6 +90,9 @@ def main():
   if args.lib:
     for lib in args.lib:
       cmd.extend(['--lib', lib])
+  if args.classpath:
+    for cp in args.classpath:
+      cmd.extend(['--classpath', cp])
   print(' '.join(cmd))
   subprocess.check_call(cmd)
 
