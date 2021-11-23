@@ -237,6 +237,11 @@ public class RedundantFieldLoadAndStoreElimination {
             // field values to change. In that case, it must be handled above.
             assert !instruction.instructionMayTriggerMethodInvocation(appView, method);
 
+            // Clear the field writes.
+            if (instruction.instructionInstanceCanThrow(appView, method)) {
+              activeState.clearMostRecentFieldWrites();
+            }
+
             // If this assertion fails for a new instruction we need to determine if that
             // instruction has side-effects that can change the value of fields. If so, it must be
             // handled above. If not, it can be safely added to the assert.
@@ -375,7 +380,15 @@ public class RedundantFieldLoadAndStoreElimination {
 
   private void handleInitClass(InstructionListIterator instructionIterator, InitClass initClass) {
     assert !initClass.outValue().hasAnyUsers();
+
     killNonFinalActiveFields(initClass);
+
+    // If the instruction can throw, we can't use any previous field stores for store-after-store
+    // elimination.
+    if (initClass.instructionInstanceCanThrow(appView, method)) {
+      activeState.clearMostRecentFieldWrites();
+    }
+
     DexType clazz = initClass.getClassValue();
     if (!activeState.markClassAsInitialized(clazz)) {
       instructionIterator.removeOrReplaceByDebugLocalRead();
@@ -385,7 +398,7 @@ public class RedundantFieldLoadAndStoreElimination {
   private void handleInstanceGet(
       InstructionListIterator it, InstanceGet instanceGet, DexClassAndField field) {
     if (instanceGet.outValue().hasLocalInfo()) {
-      activeState.clearMostRecentInstanceFieldWrite(field.getReference());
+      clearMostRecentInstanceFieldWrite(instanceGet, field);
       return;
     }
 
@@ -398,14 +411,31 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(instanceGet.value()));
-    activeState.clearMostRecentInstanceFieldWrite(field.getReference());
+    clearMostRecentInstanceFieldWrite(instanceGet, field);
+  }
+
+  private void clearMostRecentInstanceFieldWrite(InstanceGet instanceGet, DexClassAndField field) {
+    // If the instruction can throw, we need to clear all most-recent-writes, since subsequent field
+    // writes (if any) are not guaranteed to be executed.
+    if (instanceGet.instructionInstanceCanThrow(appView, method)) {
+      activeState.clearMostRecentFieldWrites();
+    } else {
+      activeState.clearMostRecentInstanceFieldWrite(field.getReference());
+    }
   }
 
   private void handleInstancePut(InstancePut instancePut, DexClassAndField field) {
-    // An instance-put instruction can potentially write the given field on all objects
-    // because of aliases.
+    // An instance-put instruction can potentially write the given field on all objects because of
+    // aliases.
     activeState.removeNonFinalInstanceFields(field.getReference());
-    // ... but at least we know the field value for this particular object.
+
+    // If the instruction can throw, we can't use any previous field stores for store-after-store
+    // elimination.
+    if (instancePut.instructionInstanceCanThrow(appView, method)) {
+      activeState.clearMostRecentFieldWrites();
+    }
+
+    // Update the value of the field to allow redundant load elimination.
     Value object = instancePut.object().getAliasedValue();
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     ExistingValue value = new ExistingValue(instancePut.value());
@@ -417,6 +447,7 @@ public class RedundantFieldLoadAndStoreElimination {
     } else {
       activeState.putNonFinalInstanceField(fieldAndObject, value);
 
+      // Record that this field is now most recently written by the current instruction.
       InstancePut mostRecentInstanceFieldWrite =
           activeState.putMostRecentInstanceFieldWrite(fieldAndObject, instancePut);
       if (mostRecentInstanceFieldWrite != null) {
@@ -432,7 +463,7 @@ public class RedundantFieldLoadAndStoreElimination {
       InstructionListIterator instructionIterator, StaticGet staticGet, DexClassAndField field) {
     if (staticGet.outValue().hasLocalInfo()) {
       killNonFinalActiveFields(staticGet);
-      activeState.clearMostRecentStaticFieldWrite(field.getReference());
+      clearMostRecentStaticFieldWrite(staticGet, field);
       return;
     }
 
@@ -444,7 +475,7 @@ public class RedundantFieldLoadAndStoreElimination {
 
     // A field get on a different class can cause <clinit> to run and change static field values.
     killNonFinalActiveFields(staticGet);
-    activeState.clearMostRecentStaticFieldWrite(field.getReference());
+    clearMostRecentStaticFieldWrite(staticGet, field);
 
     FieldValue value = new ExistingValue(staticGet.value());
     if (isFinal(field)) {
@@ -462,9 +493,26 @@ public class RedundantFieldLoadAndStoreElimination {
     }
   }
 
+  private void clearMostRecentStaticFieldWrite(StaticGet staticGet, DexClassAndField field) {
+    // If the instruction can throw, we need to clear all most-recent-writes, since subsequent field
+    // writes (if any) are not guaranteed to be executed.
+    if (staticGet.instructionInstanceCanThrow(appView, method)) {
+      activeState.clearMostRecentFieldWrites();
+    } else {
+      activeState.clearMostRecentStaticFieldWrite(field.getReference());
+    }
+  }
+
   private void handleStaticPut(StaticPut staticPut, DexClassAndField field) {
     // A field put on a different class can cause <clinit> to run and change static field values.
     killNonFinalActiveFields(staticPut);
+
+    // If the instruction can throw, we can't use any previous field stores for store-after-store
+    // elimination.
+    if (staticPut.instructionInstanceCanThrow(appView, method)) {
+      activeState.clearMostRecentFieldWrites();
+    }
+
     ExistingValue value = new ExistingValue(staticPut.value());
     if (isFinal(field)) {
       assert appView.checkForTesting(
