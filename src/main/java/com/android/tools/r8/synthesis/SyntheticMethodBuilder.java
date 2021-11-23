@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
-import com.android.tools.r8.androidapi.ComputedApiLevel;
+import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
 public class SyntheticMethodBuilder {
 
@@ -37,8 +39,8 @@ public class SyntheticMethodBuilder {
   private MethodTypeSignature genericSignature = MethodTypeSignature.noSignature();
   private DexAnnotationSet annotations = DexAnnotationSet.empty();
   private ParameterAnnotationsList parameterAnnotationsList = ParameterAnnotationsList.empty();
-  private ComputedApiLevel apiLevelForDefinition = ComputedApiLevel.notSet();
-  private ComputedApiLevel apiLevelForCode = ComputedApiLevel.notSet();
+  private AndroidApiLevel apiLevelForDefinition = NOT_SET;
+  private AndroidApiLevel apiLevelForCode = NOT_SET;
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
 
   private boolean checkAndroidApiLevels = true;
@@ -107,12 +109,12 @@ public class SyntheticMethodBuilder {
     return this;
   }
 
-  public SyntheticMethodBuilder setApiLevelForDefinition(ComputedApiLevel apiLevelForDefinition) {
+  public SyntheticMethodBuilder setApiLevelForDefinition(AndroidApiLevel apiLevelForDefinition) {
     this.apiLevelForDefinition = apiLevelForDefinition;
     return this;
   }
 
-  public SyntheticMethodBuilder setApiLevelForCode(ComputedApiLevel apiLevelForCode) {
+  public SyntheticMethodBuilder setApiLevelForCode(AndroidApiLevel apiLevelForCode) {
     this.apiLevelForCode = apiLevelForCode;
     return this;
   }

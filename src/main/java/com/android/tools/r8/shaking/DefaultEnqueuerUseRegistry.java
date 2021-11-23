@@ -7,7 +7,6 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.ir.desugar.records.RecordRewriterHelper.isInvokeDynamicOnRecord;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
-import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -22,25 +21,26 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.ListIterator;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
 
   protected final AppView<? extends AppInfoWithClassHierarchy> appView;
   protected final Enqueuer enqueuer;
-  private final AndroidApiLevelCompute apiLevelCompute;
-  private ComputedApiLevel maxApiReferenceLevel;
+  private final AndroidApiLevelCompute computeApiLevel;
+  private AndroidApiLevel maxApiReferenceLevel;
 
   public DefaultEnqueuerUseRegistry(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       ProgramMethod context,
       Enqueuer enqueuer,
-      AndroidApiLevelCompute apiLevelCompute) {
+      AndroidApiLevelCompute computeApiLevel) {
     super(appView, context);
     this.appView = appView;
     this.enqueuer = enqueuer;
-    this.apiLevelCompute = apiLevelCompute;
-    maxApiReferenceLevel = appView.computedMinApiLevel();
+    this.computeApiLevel = computeApiLevel;
+    this.maxApiReferenceLevel = appView.options().getMinApiLevel();
   }
 
   public DexProgramClass getContextHolder() {
@@ -223,18 +223,14 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
     if (reference.isDexMember()) {
       maxApiReferenceLevel =
           maxApiReferenceLevel.max(
-              apiLevelCompute.computeApiLevelForDefinition(
-                  reference.asDexMember(),
-                  appView.dexItemFactory(),
-                  apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+              computeApiLevel.computeApiLevelForDefinition(
+                  reference.asDexMember(), appView.dexItemFactory()));
     }
     maxApiReferenceLevel =
-        maxApiReferenceLevel.max(
-            apiLevelCompute.computeApiLevelForLibraryReference(
-                reference, apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+        maxApiReferenceLevel.max(computeApiLevel.computeApiLevelForLibraryReference(reference));
   }
 
-  public ComputedApiLevel getMaxApiReferenceLevel() {
+  public AndroidApiLevel getMaxApiReferenceLevel() {
     return maxApiReferenceLevel;
   }
 }

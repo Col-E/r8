@@ -17,6 +17,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
 public final class ProgramMethod extends DexClassAndMethod
@@ -94,7 +95,7 @@ public final class ProgramMethod extends DexClassAndMethod
       accessFlags.demoteFromStrict();
       accessFlags.demoteFromSynchronized();
       accessFlags.promoteToAbstract();
-      getDefinition().clearApiLevelForCode();
+      getDefinition().clearApiLevelForCode(appView);
       getDefinition().unsetCode();
       getSimpleFeedback().unsetOptimizationInfoForAbstractMethod(this);
     }
@@ -104,7 +105,7 @@ public final class ProgramMethod extends DexClassAndMethod
   public void convertToThrowNullMethod(AppView<?> appView) {
     MethodAccessFlags accessFlags = getAccessFlags();
     accessFlags.demoteFromAbstract();
-    getDefinition().setApiLevelForCode(appView.computedMinApiLevel());
+    getDefinition().setApiLevelForCode(AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView));
     getDefinition().setCode(ThrowNullCode.get(), appView);
     getSimpleFeedback().markProcessed(getDefinition(), ConstraintWithTarget.ALWAYS);
     getSimpleFeedback().unsetOptimizationInfoForThrowNullMethod(this);

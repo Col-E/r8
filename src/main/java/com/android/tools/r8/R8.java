@@ -104,6 +104,7 @@ import com.android.tools.r8.shaking.VerticalClassMergerGraphLens;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.synthesis.SyntheticItems;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -879,10 +880,10 @@ public class R8 {
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
       clazz.forEachProgramMember(
           member -> {
-            assert !member.getDefinition().getApiLevel().isNotSetApiLevel()
+            assert member.getDefinition().getApiLevel() != AndroidApiLevel.NOT_SET
                 : "Every member should have been analyzed";
             assert appView.options().apiModelingOptions().enableApiCallerIdentification
-                    || member.getDefinition().getApiLevel().isUnknownApiLevel()
+                    || member.getDefinition().getApiLevel() == AndroidApiLevel.UNKNOWN
                 : "Every member should have level UNKNOWN";
           });
     }

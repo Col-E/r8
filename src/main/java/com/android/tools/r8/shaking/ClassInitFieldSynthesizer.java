@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -86,7 +87,7 @@ public class ClassInitFieldSynthesizer {
                       .dexItemFactory()
                       .createField(clazz.type, clinitField.type, clinitField.name))
               .setAccessFlags(accessFlags)
-              .setApiLevel(appView.computedMinApiLevel())
+              .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
               .build();
       clazz.appendStaticField(encodedClinitField);
     }

@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
@@ -43,8 +45,8 @@ public class UtilityMethodsForCodeOptimizations {
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
-                    .setApiLevelForDefinition(appView.computedMinApiLevel())
-                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(method -> getToStringIfNotNullCodeTemplate(method, options))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
@@ -72,8 +74,8 @@ public class UtilityMethodsForCodeOptimizations {
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
-                    .setApiLevelForDefinition(appView.computedMinApiLevel())
-                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(
                         method -> getThrowClassCastExceptionIfNotNullCodeTemplate(method, options))
                     .setProto(proto));
@@ -102,8 +104,8 @@ public class UtilityMethodsForCodeOptimizations {
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
-                    .setApiLevelForDefinition(appView.computedMinApiLevel())
-                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(method -> getThrowIllegalAccessErrorCodeTemplate(method, options))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);
@@ -130,8 +132,8 @@ public class UtilityMethodsForCodeOptimizations {
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
-                    .setApiLevelForDefinition(appView.computedMinApiLevel())
-                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(
                         method -> getThrowIncompatibleClassChangeErrorCodeTemplate(method, options))
                     .setProto(proto));
@@ -160,8 +162,8 @@ public class UtilityMethodsForCodeOptimizations {
                 builder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                     .setClassFileVersion(CfVersion.V1_8)
-                    .setApiLevelForDefinition(appView.computedMinApiLevel())
-                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(method -> getThrowNoSuchMethodErrorCodeTemplate(method, options))
                     .setProto(proto));
     return new UtilityMethodForCodeOptimizations(syntheticMethod);

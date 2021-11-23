@@ -867,6 +867,8 @@ public class ToolHelper {
       case J_MR2:
       case K_WATCH:
       case ANDROID_PLATFORM:
+      case UNKNOWN:
+      case NOT_SET:
         return false;
       default:
         return true;

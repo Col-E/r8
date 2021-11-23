@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.ANDROID_PLATFORM;
-
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
@@ -19,7 +17,6 @@ import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.androidapi.AndroidApiForHashingClass;
-import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Backend;
@@ -427,7 +424,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean isAndroidPlatform() {
-    return minApiLevel == ANDROID_PLATFORM;
+    return minApiLevel == AndroidApiLevel.ANDROID_PLATFORM;
   }
 
   public boolean isDesugaredLibraryCompilation() {
@@ -567,6 +564,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public void setMinApiLevel(AndroidApiLevel minApiLevel) {
     assert minApiLevel != null;
+    assert minApiLevel.isLessThan(AndroidApiLevel.UNKNOWN);
     this.minApiLevel = minApiLevel;
   }
 
@@ -1470,7 +1468,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
     public Map<FieldReference, AndroidApiLevel> fieldApiMapping = new HashMap<>();
     public Map<ClassReference, AndroidApiLevel> classApiMapping = new HashMap<>();
-    public BiConsumer<MethodReference, ComputedApiLevel> tracedMethodApiLevelCallback = null;
+    public BiConsumer<MethodReference, AndroidApiLevel> tracedMethodApiLevelCallback = null;
 
     public boolean enableApiCallerIdentification = true;
     public boolean checkAllApiReferencesAreSet = true;
@@ -1498,7 +1496,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
                   @Override
                   public AndroidApiLevel getApiLevel() {
-                    return classApiMapping.getOrDefault(classReference, ANDROID_PLATFORM);
+                    return classApiMapping.getOrDefault(classReference, AndroidApiLevel.UNKNOWN);
                   }
 
                   @Override

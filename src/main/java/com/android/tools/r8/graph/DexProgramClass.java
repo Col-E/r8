@@ -4,12 +4,11 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
-import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
@@ -22,6 +21,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticMarker;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -822,19 +823,26 @@ public class DexProgramClass extends DexClass
     return checksumSupplier;
   }
 
-  public ComputedApiLevel getApiReferenceLevel(
-      AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
+  public AndroidApiLevel getApiReferenceLevel(
+      AppView<?> appView,
+      BiFunction<DexReference, AndroidApiLevel, AndroidApiLevel> apiLevelLookup) {
     // The api level of a class is the max level of it's members, super class and interfaces.
-    return getMembersApiReferenceLevel(
-        apiLevelCompute.computeApiLevelForDefinition(
-            allImmediateSupertypes(), apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
+    AndroidApiLevel computedApiLevel = minApiLevelIfEnabledOrUnknown(appView);
+    for (DexType superType : allImmediateSupertypes()) {
+      computedApiLevel = apiLevelLookup.apply(superType, computedApiLevel);
+      if (computedApiLevel == AndroidApiLevel.UNKNOWN) {
+        return AndroidApiLevel.UNKNOWN;
+      }
+    }
+    return computedApiLevel.max(getMembersApiReferenceLevel(appView));
   }
 
-  public ComputedApiLevel getMembersApiReferenceLevel(ComputedApiLevel memberLevel) {
+  public AndroidApiLevel getMembersApiReferenceLevel(AppView<?> appView) {
+    AndroidApiLevel memberLevel = minApiLevelIfEnabledOrUnknown(appView);
     for (DexEncodedMember<?, ?> member : members()) {
       memberLevel = memberLevel.max(member.getApiLevel());
-      if (memberLevel.isUnknownApiLevel()) {
-        return memberLevel;
+      if (memberLevel == AndroidApiLevel.UNKNOWN) {
+        return AndroidApiLevel.UNKNOWN;
       }
     }
     return memberLevel;

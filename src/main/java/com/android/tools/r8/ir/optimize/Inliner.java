@@ -1088,7 +1088,7 @@ public class Inliner {
             context.getDefinition().accessFlags.demoteFromSynthetic();
           }
 
-          context.getDefinition().copyMetadata(appView, singleTargetMethod);
+          context.getDefinition().copyMetadata(singleTargetMethod);
 
           if (inlineeMayHaveInvokeMethod && options.applyInliningToInlinee) {
             if (inlineeStack.size() + 1 > options.applyInliningToInlineeMaxDepth

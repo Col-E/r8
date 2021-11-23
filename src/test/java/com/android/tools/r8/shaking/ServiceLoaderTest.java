@@ -189,7 +189,7 @@ public class ServiceLoaderTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer);
                   options.dataResourceConsumer = dataResourceConsumer;
                 })
-            .setMinApi(parameters.getApiLevel())
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), OtherTestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

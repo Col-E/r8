@@ -7,7 +7,6 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
@@ -43,7 +42,7 @@ public abstract class ApiModelingTestHelper {
 
   public static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> setMockApiLevelForMethod(
-          Constructor<?> constructor, AndroidApiLevel apiLevel) {
+          Constructor constructor, AndroidApiLevel apiLevel) {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
           options -> {
@@ -119,12 +118,7 @@ public abstract class ApiModelingTestHelper {
     return compilerBuilder -> {
       compilerBuilder.addOptionsModification(
           options -> {
-            options.apiModelingOptions().tracedMethodApiLevelCallback =
-                (methodReference, computedApiLevel) -> {
-                  assertTrue(computedApiLevel.isKnownApiLevel());
-                  consumer.accept(
-                      methodReference, computedApiLevel.asKnownApiLevel().getApiLevel());
-                };
+            options.apiModelingOptions().tracedMethodApiLevelCallback = consumer;
           });
     };
   }

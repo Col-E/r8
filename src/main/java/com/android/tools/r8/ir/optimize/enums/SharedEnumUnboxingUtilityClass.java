@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
+
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfConstNumber;
@@ -147,8 +149,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
             methodBuilder ->
                 methodBuilder
                     .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                    .setApiLevelForDefinition(appView.computedMinApiLevel())
-                    .setApiLevelForCode(appView.computedMinApiLevel())
+                    .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+                    .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
                     .setCode(codeGenerator)
                     .setClassFileVersion(CfVersion.V1_6));
   }
@@ -230,7 +232,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                   dexItemFactory.createField(
                       sharedUtilityClassType, dexItemFactory.intArrayType, "$VALUES"))
               .setAccessFlags(FieldAccessFlags.createPublicStaticFinalSynthetic())
-              .setApiLevel(appView.computedMinApiLevel())
+              .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
               .build();
       fieldAccessInfoCollectionModifierBuilder
           .recordFieldReadInUnknownContext(valuesField.getReference())
@@ -247,8 +249,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           .setAccessFlags(MethodAccessFlags.createForClassInitializer())
           .setCode(createClassInitializerCode(sharedUtilityClassType, valuesField))
           .setClassFileVersion(CfVersion.V1_6)
-          .setApiLevelForDefinition(appView.computedMinApiLevel())
-          .setApiLevelForCode(appView.computedMinApiLevel())
+          .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+          .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
           .build();
     }
 
@@ -293,8 +295,8 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
               .setCode(createValuesMethodCode(sharedUtilityClassType, valuesField))
               .setClassFileVersion(CfVersion.V1_6)
-              .setApiLevelForDefinition(appView.computedMinApiLevel())
-              .setApiLevelForCode(appView.computedMinApiLevel())
+              .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
+              .setApiLevelForCode(minApiLevelIfEnabledOrUnknown(appView))
               .build();
       this.valuesMethod = valuesMethod;
       return valuesMethod;

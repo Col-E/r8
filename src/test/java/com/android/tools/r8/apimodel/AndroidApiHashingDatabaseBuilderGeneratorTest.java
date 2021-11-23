@@ -126,7 +126,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
         AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL);
     DexItemFactory factory = new DexItemFactory();
     AndroidApiLevelHashingDatabaseImpl androidApiLevelDatabase =
-        new AndroidApiLevelHashingDatabaseImpl(ImmutableList.of());
+        new AndroidApiLevelHashingDatabaseImpl(factory, ImmutableList.of());
     parsedApiClasses.forEach(
         parsedApiClass -> {
           DexType type = factory.createType(parsedApiClass.getClassReference().getDescriptor());
@@ -137,13 +137,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
                   methodReferences.forEach(
                       methodReference -> {
                         DexMethod method = factory.createMethod(methodReference);
-                        AndroidApiLevel androidApiLevel;
-                        if (factory.objectMembers.isObjectMember(method)) {
-                          androidApiLevel = AndroidApiLevel.B;
-                        } else {
-                          androidApiLevel = androidApiLevelDatabase.getMethodApiLevel(method);
-                        }
-                        androidApiLevel.isLessThanOrEqualTo(methodApiLevel);
+                        androidApiLevelDatabase
+                            .getMethodApiLevel(method)
+                            .isLessThanOrEqualTo(methodApiLevel);
                       }));
           parsedApiClass.visitFieldReferences(
               (fieldApiLevel, fieldReferences) ->

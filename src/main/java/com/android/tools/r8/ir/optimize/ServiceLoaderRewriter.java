@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
+
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
@@ -178,8 +180,7 @@ public class ServiceLoaderRewriter {
                 DexEncodedMethod addedMethod =
                     createSynthesizedMethod(service, classes, methodProcessingContext);
                 if (appView.options().isGeneratingClassFiles()) {
-                  addedMethod.upgradeClassFileVersion(
-                      code.context().getDefinition().getClassFileVersion());
+                  addedMethod.upgradeClassFileVersion(code.method().getClassFileVersion());
                 }
                 return addedMethod;
               });
@@ -205,11 +206,10 @@ public class ServiceLoaderRewriter {
                     builder
                         .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                         .setProto(proto)
-                        .setApiLevelForDefinition(appView.computedMinApiLevel())
+                        .setApiLevelForDefinition(minApiLevelIfEnabledOrUnknown(appView))
                         .setApiLevelForCode(
                             apiLevelCompute.computeApiLevelForDefinition(
-                                ListUtils.map(classes, clazz -> clazz.type),
-                                apiLevelCompute.getPlatformApiLevelOrUnknown(appView)))
+                                ListUtils.map(classes, clazz -> clazz.type)))
                         .setCode(
                             m ->
                                 ServiceLoaderSourceCode.generate(
@@ -248,7 +248,7 @@ public class ServiceLoaderRewriter {
     private final IRCode code;
     private final InvokeStatic serviceLoaderLoad;
 
-    private final InstructionListIterator iterator;
+    private InstructionListIterator iterator;
 
     Rewriter(IRCode code, InstructionListIterator iterator, InvokeStatic serviceLoaderLoad) {
       this.iterator = iterator;

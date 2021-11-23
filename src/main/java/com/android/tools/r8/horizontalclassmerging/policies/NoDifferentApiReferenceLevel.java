@@ -4,21 +4,21 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
-import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.androidapi.AndroidApiReferenceLevelCache;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
-public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<ComputedApiLevel> {
+public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<AndroidApiLevel> {
 
-  private final AndroidApiLevelCompute apiLevelCompute;
+  private final AndroidApiReferenceLevelCache apiReferenceLevelCache;
   private final AppView<?> appView;
   // TODO(b/188388130): Remove when stabilized.
   private final boolean enableApiCallerIdentification;
 
   public NoDifferentApiReferenceLevel(AppView<?> appView) {
-    apiLevelCompute = AndroidApiLevelCompute.create(appView);
+    apiReferenceLevelCache = AndroidApiReferenceLevelCache.create(appView);
     this.appView = appView;
     enableApiCallerIdentification =
         appView.options().apiModelingOptions().enableApiCallerIdentification;
@@ -35,8 +35,8 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
   }
 
   @Override
-  public ComputedApiLevel getMergeKey(DexProgramClass clazz) {
+  public AndroidApiLevel getMergeKey(DexProgramClass clazz) {
     assert enableApiCallerIdentification;
-    return clazz.getApiReferenceLevel(appView, apiLevelCompute);
+    return clazz.getApiReferenceLevel(appView, apiReferenceLevelCache::lookupMax);
   }
 }
