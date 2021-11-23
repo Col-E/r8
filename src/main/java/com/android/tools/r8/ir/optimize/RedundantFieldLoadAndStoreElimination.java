@@ -63,6 +63,7 @@ public class RedundantFieldLoadAndStoreElimination {
   private final ProgramMethod method;
   private final IRCode code;
   private final int maxCapacityPerBlock;
+  private final boolean release;
 
   // Values that may require type propagation.
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -81,6 +82,7 @@ public class RedundantFieldLoadAndStoreElimination {
     this.method = code.context();
     this.code = code;
     this.maxCapacityPerBlock = Math.max(MIN_CAPACITY_PER_BLOCK, MAX_CAPACITY / code.blocks.size());
+    this.release = !appView.options().debug;
   }
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
@@ -448,13 +450,15 @@ public class RedundantFieldLoadAndStoreElimination {
       activeState.putNonFinalInstanceField(fieldAndObject, value);
 
       // Record that this field is now most recently written by the current instruction.
-      InstancePut mostRecentInstanceFieldWrite =
-          activeState.putMostRecentInstanceFieldWrite(fieldAndObject, instancePut);
-      if (mostRecentInstanceFieldWrite != null) {
-        instructionsToRemove
-            .computeIfAbsent(
-                mostRecentInstanceFieldWrite.getBlock(), ignoreKey(Sets::newIdentityHashSet))
-            .add(mostRecentInstanceFieldWrite);
+      if (release) {
+        InstancePut mostRecentInstanceFieldWrite =
+            activeState.putMostRecentInstanceFieldWrite(fieldAndObject, instancePut);
+        if (mostRecentInstanceFieldWrite != null) {
+          instructionsToRemove
+              .computeIfAbsent(
+                  mostRecentInstanceFieldWrite.getBlock(), ignoreKey(Sets::newIdentityHashSet))
+              .add(mostRecentInstanceFieldWrite);
+        }
       }
     }
   }
@@ -521,13 +525,15 @@ public class RedundantFieldLoadAndStoreElimination {
     } else {
       activeState.putNonFinalStaticField(field.getReference(), value);
 
-      StaticPut mostRecentStaticFieldWrite =
-          activeState.putMostRecentStaticFieldWrite(field.getReference(), staticPut);
-      if (mostRecentStaticFieldWrite != null) {
-        instructionsToRemove
-            .computeIfAbsent(
-                mostRecentStaticFieldWrite.getBlock(), ignoreKey(Sets::newIdentityHashSet))
-            .add(mostRecentStaticFieldWrite);
+      if (release) {
+        StaticPut mostRecentStaticFieldWrite =
+            activeState.putMostRecentStaticFieldWrite(field.getReference(), staticPut);
+        if (mostRecentStaticFieldWrite != null) {
+          instructionsToRemove
+              .computeIfAbsent(
+                  mostRecentStaticFieldWrite.getBlock(), ignoreKey(Sets::newIdentityHashSet))
+              .add(mostRecentStaticFieldWrite);
+        }
       }
     }
   }
