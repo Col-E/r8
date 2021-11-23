@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.DexDebugEvent.Default;
+
 public class DexDebugInfoForSingleLineMethod extends DexDebugInfo {
 
   private static final DexDebugInfoForSingleLineMethod INSTANCE =
-      new DexDebugInfoForSingleLineMethod(0, DexString.EMPTY_ARRAY, DexDebugEvent.EMPTY_ARRAY);
+      new DexDebugInfoForSingleLineMethod(
+          0, DexString.EMPTY_ARRAY, new DexDebugEvent[] {Default.ZERO_CHANGE_DEFAULT_EVENT});
 
   private DexDebugInfoForSingleLineMethod(
       int startLine, DexString[] parameters, DexDebugEvent[] events) {

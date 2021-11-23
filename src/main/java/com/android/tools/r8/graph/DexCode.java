@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashCodeVisitor;
@@ -276,7 +277,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
           new DexString[callee.getArity()],
           new DexDebugEvent[] {
             new DexDebugEvent.SetInlineFrame(callee, callerPosition),
-            DexDebugEvent.ZERO_CHANGE_DEFAULT_EVENT
+            DexDebugEvent.Default.ZERO_CHANGE_DEFAULT_EVENT
           });
     }
     DexDebugEvent[] oldEvents = debugInfo.events;
@@ -438,13 +439,15 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
     DexDebugEntry debugInfo = null;
     Iterator<DexDebugEntry> debugInfoIterator = Collections.emptyIterator();
-    if (getDebugInfo() != null && method != null) {
+    boolean isPc2PcMapping = getDebugInfo() != null && getDebugInfo().isPcToPcMapping();
+    if (!isPc2PcMapping && getDebugInfo() != null && method != null) {
       debugInfoIterator = new DexDebugEntryBuilder(method, new DexItemFactory()).build().iterator();
       debugInfo = debugInfoIterator.hasNext() ? debugInfoIterator.next() : null;
     }
     int instructionNumber = 0;
     Map<Integer, DebugLocalInfo> locals = Collections.emptyMap();
     for (Instruction insn : instructions) {
+      debugInfo = advanceToOffset(insn.getOffset() - 1, debugInfo, debugInfoIterator);
       while (debugInfo != null && debugInfo.address == insn.getOffset()) {
         if (debugInfo.lineEntry || !locals.equals(debugInfo.locals)) {
           builder.append("         ").append(debugInfo.toString(false)).append("\n");
@@ -462,8 +465,16 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
       builder.append('\n');
     }
-    if (debugInfoIterator.hasNext()) {
-      throw new Unreachable("Could not print all debug information.");
+    if (isPc2PcMapping) {
+      builder.append("(has pc2pc debug info mapping)\n");
+    } else if (debugInfoIterator.hasNext()) {
+      Instruction lastInstruction = ArrayUtils.last(instructions);
+      debugInfo = advanceToOffset(lastInstruction.getOffset(), debugInfo, debugInfoIterator);
+      if (debugInfo != null) {
+        throw new Unreachable("Could not print all debug information.");
+      } else {
+        builder.append("(has debug events past last pc)\n");
+      }
     }
     if (tries.length > 0) {
       builder.append("Tries (numbers are offsets)\n");
@@ -481,6 +492,14 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       }
     }
     return builder.toString();
+  }
+
+  DexDebugEntry advanceToOffset(
+      int offset, DexDebugEntry current, Iterator<DexDebugEntry> iterator) {
+    while (current != null && current.address <= offset) {
+      current = iterator.hasNext() ? iterator.next() : null;
+    }
+    return current;
   }
 
   public String toSmaliString(ClassNameMapper naming) {
