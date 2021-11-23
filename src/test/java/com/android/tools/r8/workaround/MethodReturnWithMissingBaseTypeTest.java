@@ -10,7 +10,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,7 +18,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
+public class MethodReturnWithMissingBaseTypeTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -43,12 +42,7 @@ public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector
-                    .applyIf(
-                        parameters.isDexRuntime()
-                            && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.L),
-                        i ->
-                            i.assertIsCompleteMergeGroup(
-                                UsedDuringLaunch.class, NotUsedDuringLaunch.class))
+                    .assertIsCompleteMergeGroup(UsedDuringLaunch.class, NotUsedDuringLaunch.class)
                     .assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -68,8 +62,7 @@ public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
     static void notUsedDuringLaunch() {
       Consumer<?> emptyConsumer = Utils.getEmptyConsumer();
       new UsedDuringLaunch().onlyUsedOnHighApiLevels(emptyConsumer);
-      NotUsedDuringLaunch.f = new Consumer<?>[] {emptyConsumer};
-      new NotUsedDuringLaunch().illegalUseOfConsumerArrayOnDalvik();
+      new NotUsedDuringLaunch().useOfConsumerArray();
     }
   }
 
@@ -90,11 +83,9 @@ public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
   @NeverClassInline
   static class NotUsedDuringLaunch {
 
-    static Consumer<?>[] f;
-
     @NeverInline
-    void illegalUseOfConsumerArrayOnDalvik() {
-      Utils.accept(f);
+    void useOfConsumerArray() {
+      Utils.accept(Utils.getEmptyConsumers());
     }
   }
 
@@ -109,6 +100,11 @@ public class ArrayFieldGetWithMissingBaseTypeTest extends TestBase {
     // @Keep
     public static Consumer<?> getEmptyConsumer() {
       return ignore -> {};
+    }
+
+    // @Keep
+    public static Consumer<?>[] getEmptyConsumers() {
+      return new Consumer<?>[] {getEmptyConsumer()};
     }
   }
 }
