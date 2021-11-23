@@ -517,6 +517,10 @@ public class Enqueuer {
     return appView.appInfo();
   }
 
+  public AndroidApiLevelCompute getApiLevelCompute() {
+    return apiLevelCompute;
+  }
+
   public Mode getMode() {
     return mode;
   }
