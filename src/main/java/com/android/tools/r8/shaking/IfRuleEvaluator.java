@@ -71,15 +71,17 @@ public class IfRuleEvaluator {
             ifRules.entrySet().iterator();
         while (it.hasNext()) {
           Map.Entry<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRuleEntry = it.next();
-          ProguardIfRule ifRule = ifRuleEntry.getKey().get();
+          ProguardIfRule ifRuleKey = ifRuleEntry.getKey().get();
+          Set<ProguardIfRule> ifRulesInEquivalence = ifRuleEntry.getValue();
           ProguardIfRuleEvaluationData ifRuleEvaluationData =
               appView.options().testing.proguardIfRuleEvaluationData;
+          List<ProguardIfRule> toRemove = new ArrayList<>();
 
           // Depending on which types that trigger the -if rule, the application of the subsequent
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if
           // rule and live types.
           for (DexProgramClass clazz :
-              ifRule.relevantCandidatesForRule(
+              ifRuleKey.relevantCandidatesForRule(
                   appView, subtypingInfo, appView.appInfo().classes())) {
             if (!isEffectivelyLive(clazz)) {
               continue;
@@ -89,21 +91,21 @@ public class IfRuleEvaluator {
             if (appView.options().testing.measureProguardIfRuleEvaluations) {
               ifRuleEvaluationData.numberOfProguardIfRuleClassEvaluations++;
             }
-            if (evaluateClassForIfRule(ifRule, clazz)) {
+            if (evaluateClassForIfRule(ifRuleKey, clazz)) {
               // When matching an if rule against a type, the if-rule are filled with the current
               // capture of wildcards. Propagate this down to member rules with same class part
               // equivalence.
-              ifRuleEntry
-                  .getValue()
-                  .removeIf(
-                      memberRule -> {
-                        registerClassCapture(memberRule, clazz, clazz);
-                        if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                          ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
-                        }
-                        return evaluateIfRuleMembersAndMaterialize(memberRule, clazz, clazz)
-                            && canRemoveSubsequentKeepRule(memberRule);
-                      });
+              ifRulesInEquivalence.forEach(
+                  ifRule -> {
+                    registerClassCapture(ifRule, clazz, clazz);
+                    if (appView.options().testing.measureProguardIfRuleEvaluations) {
+                      ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
+                    }
+                    boolean matched = evaluateIfRuleMembersAndMaterialize(ifRule, clazz, clazz);
+                    if (matched && canRemoveSubsequentKeepRule(ifRule)) {
+                      toRemove.add(ifRule);
+                    }
+                  });
             }
 
             // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
@@ -123,25 +125,26 @@ public class IfRuleEvaluator {
                 if (appView.options().testing.measureProguardIfRuleEvaluations) {
                   ifRuleEvaluationData.numberOfProguardIfRuleClassEvaluations++;
                 }
-                if (evaluateClassForIfRule(ifRule, sourceClass)) {
-                  ifRuleEntry
-                      .getValue()
-                      .removeIf(
-                          memberRule -> {
-                            registerClassCapture(memberRule, sourceClass, clazz);
-                            if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                              ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
-                            }
-                            return evaluateIfRuleMembersAndMaterialize(
-                                    memberRule, sourceClass, clazz)
-                                && canRemoveSubsequentKeepRule(memberRule);
-                          });
+                if (evaluateClassForIfRule(ifRuleKey, sourceClass)) {
+                  ifRulesInEquivalence.forEach(
+                      ifRule -> {
+                        registerClassCapture(ifRule, sourceClass, clazz);
+                        if (appView.options().testing.measureProguardIfRuleEvaluations) {
+                          ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
+                        }
+                        if (evaluateIfRuleMembersAndMaterialize(ifRule, sourceClass, clazz)
+                            && canRemoveSubsequentKeepRule(ifRule)) {
+                          toRemove.add(ifRule);
+                        }
+                      });
                 }
               }
             }
           }
-          if (ifRuleEntry.getValue().isEmpty()) {
+          if (ifRulesInEquivalence.size() == toRemove.size()) {
             it.remove();
+          } else if (!toRemove.isEmpty()) {
+            ifRulesInEquivalence.removeAll(toRemove);
           }
         }
         ThreadUtils.awaitFutures(futures);
@@ -153,10 +156,7 @@ public class IfRuleEvaluator {
   }
 
   private boolean canRemoveSubsequentKeepRule(ProguardIfRule rule) {
-    // We cannot remove an if-rule if there is a kept graph consumer, otherwise we would not record
-    // all edges.
-    return Iterables.isEmpty(rule.subsequentRule.getWildcards())
-        && appView.options().keptGraphConsumer == null;
+    return Iterables.isEmpty(rule.subsequentRule.getWildcards());
   }
 
   /**
