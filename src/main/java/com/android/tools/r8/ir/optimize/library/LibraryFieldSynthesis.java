@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import static com.android.tools.r8.graph.DexLibraryClass.asLibraryClassOrNull;
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -39,7 +38,7 @@ public class LibraryFieldSynthesis {
                       .setAccessFlags(
                           FieldAccessFlags.fromCfAccessFlags(
                               Constants.ACC_PRIVATE | Constants.ACC_FINAL))
-                      .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+                      .setApiLevel(appView.computedMinApiLevel())
                       // Will be traced by the enqueuer.
                       .disableAndroidApiLevelCheck()
                       .build());

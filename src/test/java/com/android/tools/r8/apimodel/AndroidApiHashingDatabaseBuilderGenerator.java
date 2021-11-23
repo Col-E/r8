@@ -103,8 +103,7 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     for (int i = 0; i < integers.size(); i++) {
       indices[i] = integers.get(i);
       AndroidApiLevel androidApiLevel = apiLevelMap.get(integers.get(i));
-      apiLevel[i] =
-          (byte) (androidApiLevel == AndroidApiLevel.NOT_SET ? -1 : androidApiLevel.getLevel());
+      apiLevel[i] = (byte) (androidApiLevel == null ? -1 : androidApiLevel.getLevel());
     }
 
     try (FileOutputStream fileOutputStream = new FileOutputStream(pathToIndices.toFile());
@@ -160,7 +159,7 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     return ((reference, apiLevel) -> {
       AndroidApiLevel existingMethod = apiLevelMap.put(reference.hashCode(), apiLevel);
       if (existingMethod != null) {
-        apiLevelMap.put(reference.hashCode(), AndroidApiLevel.NOT_SET);
+        apiLevelMap.put(reference.hashCode(), null);
         Pair<DexReference, AndroidApiLevel> existingPair = reverseMap.get(reference.hashCode());
         addAmbiguousEntry(existingPair.getSecond(), existingPair.getFirst(), ambiguousMap);
         addAmbiguousEntry(apiLevel, reference, ambiguousMap);

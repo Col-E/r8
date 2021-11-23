@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar.constantdynamic;
 import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.CACHE_CONSTANT;
 import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.THROW_ICCE;
 import static com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass.Behaviour.THROW_NSME;
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
 import com.android.tools.r8.cf.code.CfCheckCast;
@@ -56,7 +55,6 @@ import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.ImmutableList;
@@ -194,12 +192,12 @@ public class ConstantDynamicClass {
             DexEncodedField.syntheticBuilder()
                 .setField(this.initializedValueField)
                 .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
-                .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+                .disableAndroidApiLevelCheck()
                 .build(),
             DexEncodedField.syntheticBuilder()
                 .setField(this.constantValueField)
                 .setAccessFlags(FieldAccessFlags.createPrivateStaticSynthetic())
-                .setApiLevel(minApiLevelIfEnabledOrUnknown(appView))
+                .disableAndroidApiLevelCheck()
                 .build()));
   }
 
@@ -210,8 +208,7 @@ public class ConstantDynamicClass {
                 .setMethod(getConstMethod)
                 .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
                 .setCode(generateGetterCode(builder))
-                .setApiLevelForDefinition(AndroidApiLevel.S)
-                .setApiLevelForCode(AndroidApiLevel.S)
+                .disableAndroidApiLevelCheck()
                 .build()));
   }
 

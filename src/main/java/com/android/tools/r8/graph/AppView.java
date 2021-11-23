@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.contexts.CompilationContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.errors.dontwarn.DontWarnConfiguration;
@@ -116,6 +118,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   private final Thread mainThread = Thread.currentThread();
 
+  private final ComputedApiLevel computedMinApiLevel;
+
   private AppView(
       T appInfo,
       WholeProgramOptimizations wholeProgramOptimizations,
@@ -137,6 +141,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.libraryMethodSideEffectModelCollection = new LibraryMethodSideEffectModelCollection(this);
     this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
     this.protoShrinker = ProtoShrinker.create(withLiveness());
+
+    this.computedMinApiLevel = AndroidApiLevelCompute.computeInitialMinApiLevel(appInfo.options());
   }
 
   public boolean verifyMainThread() {
@@ -826,5 +832,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public boolean checkForTesting(Supplier<Boolean> test) {
     return testing().enableTestAssertions ? test.get() : true;
+  }
+
+  public ComputedApiLevel computedMinApiLevel() {
+    return computedMinApiLevel;
   }
 }

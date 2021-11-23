@@ -645,7 +645,7 @@ public final class LambdaClass {
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();
-                    newMethod.copyMetadata(encodedMethod);
+                    newMethod.copyMetadata(appView, encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
                         encodedMethod.getReference(), callTarget);
 
@@ -736,7 +736,7 @@ public final class LambdaClass {
                             .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
                             .setApiLevelForCode(encodedMethod.getApiLevelForCode())
                             .build();
-                    newMethod.copyMetadata(encodedMethod);
+                    newMethod.copyMetadata(appView, encodedMethod);
                     forcefullyMovedLambdaMethodConsumer.acceptForcefullyMovedLambdaMethod(
                         encodedMethod.getReference(), callTarget);
                     return newMethod;

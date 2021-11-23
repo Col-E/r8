@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph.analysis;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -13,18 +14,17 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
-import com.android.tools.r8.utils.AndroidApiLevel;
 
 public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   private final AppView<?> appView;
-  private final AndroidApiLevel minApiLevel;
   private final AndroidApiLevelCompute apiCompute;
+  private final ComputedApiLevel minApiLevel;
 
   public ApiModelAnalysis(AppView<?> appView, AndroidApiLevelCompute apiCompute) {
     this.appView = appView;
-    this.minApiLevel = appView.options().getMinApiLevel();
     this.apiCompute = apiCompute;
+    this.minApiLevel = appView.computedMinApiLevel();
   }
 
   @Override
@@ -73,7 +73,7 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   @Override
   public void notifyFailedMethodResolutionTarget(DexEncodedMethod method) {
     // We may not trace into failed resolution targets.
-    method.setApiLevelForCode(AndroidApiLevel.UNKNOWN);
+    method.setApiLevelForCode(ComputedApiLevel.unknown());
   }
 
   private void computeAndSetApiLevelForDefinition(DexClassAndMember<?, ?> member) {
@@ -81,6 +81,8 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
         .getDefinition()
         .setApiLevelForDefinition(
             apiCompute.computeApiLevelForDefinition(
-                member.getReference(), appView.dexItemFactory()));
+                member.getReference(),
+                appView.dexItemFactory(),
+                apiCompute.getPlatformApiLevelOrUnknown(appView)));
   }
 }

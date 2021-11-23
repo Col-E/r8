@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.horizontalclassmerging.code;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.minApiLevelIfEnabledOrUnknown;
 import static java.lang.Integer.max;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.CfVersionUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
@@ -101,11 +100,11 @@ public class ClassInitializerMerger {
     return null;
   }
 
-  public AndroidApiLevel getApiReferenceLevel(AppView<?> appView) {
+  public ComputedApiLevel getApiReferenceLevel(AppView<?> appView) {
     assert !classInitializers.isEmpty();
     return ListUtils.fold(
         classInitializers,
-        minApiLevelIfEnabledOrUnknown(appView),
+        appView.computedMinApiLevel(),
         (accApiLevel, method) -> accApiLevel.max(method.getDefinition().getApiLevel()));
   }
 

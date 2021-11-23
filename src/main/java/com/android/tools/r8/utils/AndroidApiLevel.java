@@ -4,7 +4,6 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.utils.structural.Ordered;
 import java.util.Arrays;
 import java.util.List;
@@ -43,9 +42,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   R(30),
   S(31),
   Sv2(32),
-  ANDROID_PLATFORM(10000),
-  UNKNOWN(10001),
-  NOT_SET(10002);
+  ANDROID_PLATFORM(10000);
 
   // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
   // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
@@ -76,13 +73,6 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
 
   public DexVersion getDexVersion() {
     return DexVersion.getDexVersion(this);
-  }
-
-  public static AndroidApiLevel minApiLevelIfEnabledOrUnknown(AppView<?> appView) {
-    InternalOptions options = appView.options();
-    return options.apiModelingOptions().enableApiCallerIdentification
-        ? options.getMinApiLevel()
-        : UNKNOWN;
   }
 
   public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {

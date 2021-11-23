@@ -11,10 +11,10 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
-import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
 import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 import static java.util.Objects.requireNonNull;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -71,7 +71,6 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -148,8 +147,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
           ParameterAnnotationsList.empty(),
           null,
           false,
-          NOT_SET,
-          NOT_SET,
+          ComputedApiLevel.notSet(),
+          ComputedApiLevel.notSet(),
           null,
           CallSiteOptimizationInfo.top(),
           DefaultMethodOptimizationInfo.getInstance(),
@@ -168,7 +167,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private CallSiteOptimizationInfo callSiteOptimizationInfo;
   private CfVersion classFileVersion;
   /** The apiLevelForCode describes the api level needed for knowing all references in the code */
-  private AndroidApiLevel apiLevelForCode;
+  private ComputedApiLevel apiLevelForCode;
 
   private KotlinMethodLevelInfo kotlinMemberInfo = getNoKotlinInfo();
   /** Generic signature information if the attribute is present in the input */
@@ -242,8 +241,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       ParameterAnnotationsList parameterAnnotationsList,
       Code code,
       boolean d8R8Synthesized,
-      AndroidApiLevel apiLevelForDefinition,
-      AndroidApiLevel apiLevelForCode,
+      ComputedApiLevel apiLevelForDefinition,
+      ComputedApiLevel apiLevelForCode,
       CfVersion classFileVersion,
       CallSiteOptimizationInfo callSiteOptimizationInfo,
       MethodOptimizationInfo optimizationInfo,
@@ -1232,7 +1231,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
             .fixupOptimizationInfo(appView, prototypeChanges.createMethodOptimizationInfoFixer())
             .setGenericSignature(MethodTypeSignature.noSignature());
     DexEncodedMethod method = builder.build();
-    method.copyMetadata(this);
+    method.copyMetadata(appView, this);
     setObsolete();
     return method;
   }
@@ -1268,23 +1267,23 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return optimizationInfo;
   }
 
-  public AndroidApiLevel getApiLevelForCode() {
+  public ComputedApiLevel getApiLevelForCode() {
     return apiLevelForCode;
   }
 
-  public void clearApiLevelForCode(AppView<?> appView) {
-    this.apiLevelForCode = AndroidApiLevel.minApiLevelIfEnabledOrUnknown(appView);
+  public void clearApiLevelForCode() {
+    this.apiLevelForCode = ComputedApiLevel.notSet();
   }
 
-  public void setApiLevelForCode(AndroidApiLevel apiLevel) {
+  public void setApiLevelForCode(ComputedApiLevel apiLevel) {
     assert apiLevel != null;
     this.apiLevelForCode = apiLevel;
   }
 
   @Override
-  public AndroidApiLevel getApiLevel() {
-    return (shouldNotHaveCode() ? AndroidApiLevel.B : getApiLevelForCode())
-        .max(getApiLevelForDefinition());
+  public ComputedApiLevel getApiLevel() {
+    ComputedApiLevel apiLevelForDefinition = getApiLevelForDefinition();
+    return shouldNotHaveCode() ? apiLevelForDefinition : apiLevelForDefinition.max(apiLevelForCode);
   }
 
   public synchronized MutableMethodOptimizationInfo getMutableOptimizationInfo() {
@@ -1320,12 +1319,14 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.callSiteOptimizationInfo = callSiteOptimizationInfo;
   }
 
-  public void copyMetadata(DexEncodedMethod from) {
+  public void copyMetadata(AppView<?> appView, DexEncodedMethod from) {
     checkIfObsolete();
     if (from.hasClassFileVersion()) {
       upgradeClassFileVersion(from.getClassFileVersion());
     }
-    apiLevelForCode = getApiLevelForCode().max(from.getApiLevelForCode());
+    if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
+      apiLevelForCode = getApiLevelForCode().max(from.getApiLevelForCode());
+    }
   }
 
   public MethodTypeSignature getGenericSignature() {
@@ -1374,8 +1375,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.getInstance();
     private KotlinMethodLevelInfo kotlinInfo = getNoKotlinInfo();
     private CfVersion classFileVersion = null;
-    private AndroidApiLevel apiLevelForDefinition = NOT_SET;
-    private AndroidApiLevel apiLevelForCode = NOT_SET;
+    private ComputedApiLevel apiLevelForDefinition = ComputedApiLevel.notSet();
+    private ComputedApiLevel apiLevelForCode = ComputedApiLevel.notSet();
     private final boolean d8R8Synthesized;
     private boolean deprecated = false;
 
@@ -1611,12 +1612,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public Builder setApiLevelForDefinition(AndroidApiLevel apiLevelForDefinition) {
+    public Builder setApiLevelForDefinition(ComputedApiLevel apiLevelForDefinition) {
       this.apiLevelForDefinition = apiLevelForDefinition;
       return this;
     }
 
-    public Builder setApiLevelForCode(AndroidApiLevel apiLevelForCode) {
+    public Builder setApiLevelForCode(ComputedApiLevel apiLevelForCode) {
       this.apiLevelForCode = apiLevelForCode;
       return this;
     }

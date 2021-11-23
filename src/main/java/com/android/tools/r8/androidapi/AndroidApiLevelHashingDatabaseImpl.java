@@ -4,12 +4,10 @@
 
 package com.android.tools.r8.androidapi;
 
-import static com.android.tools.r8.utils.AndroidApiLevel.NOT_SET;
-import static com.android.tools.r8.utils.AndroidApiLevel.UNKNOWN;
+import static com.android.tools.r8.utils.AndroidApiLevel.ANDROID_PLATFORM;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -41,25 +39,23 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
       new Int2ReferenceOpenHashMap<AndroidApiLevel>();
   private final Map<String, AndroidApiLevel> ambiguousHashesWithApiLevel = new HashMap<>();
   private final Map<DexReference, AndroidApiLevel> ambiguousCache = new IdentityHashMap<>();
-  private final DexItemFactory factory;
 
   public AndroidApiLevelHashingDatabaseImpl(
-      DexItemFactory factory, List<AndroidApiForHashingClass> predefinedApiTypeLookup) {
-    this.factory = factory;
+      List<AndroidApiForHashingClass> predefinedApiTypeLookup) {
     loadData();
     predefinedApiTypeLookup.forEach(
         apiClass -> {
           DexType type = apiClass.getType();
-          lookupNonAmbiguousCache.put(type.hashCode(), NOT_SET);
+          lookupNonAmbiguousCache.put(type.hashCode(), null);
           ambiguousCache.put(type, apiClass.getApiLevel());
           apiClass.visitMethodsWithApiLevels(
               (method, apiLevel) -> {
-                lookupNonAmbiguousCache.put(method.hashCode(), NOT_SET);
+                lookupNonAmbiguousCache.put(method.hashCode(), null);
                 ambiguousCache.put(method, apiLevel);
               });
           apiClass.visitFieldsWithApiLevels(
               (field, apiLevel) -> {
-                lookupNonAmbiguousCache.put(field.hashCode(), NOT_SET);
+                lookupNonAmbiguousCache.put(field.hashCode(), null);
                 ambiguousCache.put(field, apiLevel);
               });
         });
@@ -96,7 +92,7 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
     for (int i = 0; i < hashIndices.length; i++) {
       byte apiLevel = apiLevels[i];
       lookupNonAmbiguousCache.put(
-          hashIndices[i], apiLevel == -1 ? NOT_SET : AndroidApiLevel.getAndroidApiLevel(apiLevel));
+          hashIndices[i], apiLevel == -1 ? null : AndroidApiLevel.getAndroidApiLevel(apiLevel));
     }
     ambiguous.forEach(this::parseAmbiguous);
   }
@@ -130,9 +126,12 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
   }
 
   private AndroidApiLevel lookupApiLevel(DexReference reference) {
-    AndroidApiLevel result = lookupNonAmbiguousCache.getOrDefault(reference.hashCode(), UNKNOWN);
-    if (result != NOT_SET) {
-      return result;
+    // We use Android platform to track if an element is unknown since no occurrences of that api
+    // level exists in the database.
+    AndroidApiLevel result =
+        lookupNonAmbiguousCache.getOrDefault(reference.hashCode(), ANDROID_PLATFORM);
+    if (result != null) {
+      return result == ANDROID_PLATFORM ? null : result;
     }
     return ambiguousCache.computeIfAbsent(
         reference,
