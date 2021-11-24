@@ -31,7 +31,7 @@ public class SourceFileRewriter {
     if (options.isMinifying()) {
       String renaming = getRenameSourceFileAttribute(options);
       if (renaming != null) {
-        return rewriteTo(renaming, isDefault(renaming, options));
+        return rewriteTo(renaming, isDefaultOrEmpty(renaming, options));
       }
     }
     return null;
@@ -40,7 +40,7 @@ public class SourceFileRewriter {
   private static SourceFileProvider computeNonCompatProvider(InternalOptions options) {
     String renaming = getRenameSourceFileAttribute(options);
     if (renaming != null) {
-      return rewriteTo(renaming, isDefault(renaming, options));
+      return rewriteTo(renaming, isDefaultOrEmpty(renaming, options));
     }
     if (options.isMinifying() || options.isOptimizing()) {
       return rewriteToDefaultSourceFile(options.dexItemFactory());
@@ -52,8 +52,9 @@ public class SourceFileRewriter {
     return options.getProguardConfiguration().getRenameSourceFileAttribute();
   }
 
-  public static boolean isDefault(String sourceFile, InternalOptions options) {
-    return options.dexItemFactory().defaultSourceFileAttributeString.equals(sourceFile);
+  public static boolean isDefaultOrEmpty(String sourceFile, InternalOptions options) {
+    return sourceFile.isEmpty()
+        || options.dexItemFactory().defaultSourceFileAttributeString.equals(sourceFile);
   }
 
   private static SourceFileProvider rewriteToDefaultSourceFile(DexItemFactory factory) {

@@ -99,6 +99,30 @@ public class SingleLineInfoInlineRemoveTest extends TestBase {
   }
 
   @Test
+  public void testManuallySetEmptySourceFile() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
+        .addKeepRules("-renamesourcefileattribute")
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class)
+        .inspectStackTrace(
+            (stackTrace, inspector) -> {
+              assertThat(stackTrace, isSame(expectedStackTrace));
+              ClassSubject mainSubject = inspector.clazz(Main.class);
+              assertThat(mainSubject, isPresent());
+              assertThat(mainSubject.uniqueMethodWithName("inlinee"), not(isPresent()));
+              assertThat(
+                  mainSubject.uniqueMethodWithName("shouldRemoveLineNumberForInline"),
+                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
+            });
+  }
+
+  @Test
   public void testNonDefaultSourceFile() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
