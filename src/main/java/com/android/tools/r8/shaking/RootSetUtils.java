@@ -10,6 +10,7 @@ import static java.util.Collections.emptyMap;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.AssumeNoSideEffectsRuleForObjectMembersDiagnostic;
+import com.android.tools.r8.errors.InlinableStaticFinalFieldPreconditionDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -957,6 +958,10 @@ public class RootSetUtils {
       return false;
     }
 
+    boolean sideEffectFreeIsRuleSatisfiedByField(ProguardMemberRule rule, DexClassAndField field) {
+      return rule.matches(field, appView, ignore -> {}, dexStringCache);
+    }
+
     static AnnotationMatchResult containsAllAnnotations(
         List<ProguardTypeMatcher> annotationMatchers, DexClass clazz) {
       return containsAllAnnotations(
@@ -1675,16 +1680,19 @@ public class RootSetUtils {
 
     public void checkAllRulesAreUsed(InternalOptions options) {
       List<ProguardConfigurationRule> rules = options.getProguardConfiguration().getRules();
-      if (rules != null) {
-        for (ProguardConfigurationRule rule : rules) {
-          if (!rule.isUsed()) {
-            String message =
-                "Proguard configuration rule does not match anything: `" + rule.toString() + "`";
-            StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());
-            if (options.testing.reportUnusedProguardConfigurationRules) {
-              options.reporter.info(diagnostic);
-            }
-          }
+      if (rules == null) {
+        return;
+      }
+      for (ProguardConfigurationRule rule : rules) {
+        if (rule.isProguardIfRule() && rule.hasInlinableFieldsMatchingPrecondition()) {
+          List<DexField> fields = new ArrayList<>(rule.getInlinableFieldsMatchingPrecondition());
+          fields.sort(DexField::compareTo);
+          options.reporter.warning(
+              new InlinableStaticFinalFieldPreconditionDiagnostic(rule.asProguardIfRule(), fields));
+        } else if (!rule.isUsed() && options.testing.reportUnusedProguardConfigurationRules) {
+          String message = "Proguard configuration rule does not match anything: `" + rule + "`";
+          StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());
+          options.reporter.info(diagnostic);
         }
       }
     }

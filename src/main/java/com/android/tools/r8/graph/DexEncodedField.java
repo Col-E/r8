@@ -43,6 +43,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
   private KotlinFieldLevelInfo kotlinMemberInfo = getNoKotlinInfo();
 
+  // Mark indicating if this field has been identified as potentially inlined by javac.
+  // This is to ensure consistent tracing in the second round of tree shaking. Remove this field
+  // once conditional rules are represented by rule-instances rather than reevaluating rule-schemas.
+  private boolean isInlinableByJavaC = false;
+
   private static void specify(StructuralSpecification<DexEncodedField, ?> spec) {
     spec.withItem(DexEncodedField::getReference)
         .withItem(DexEncodedField::getAccessFlags)
@@ -356,6 +361,14 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
 
   public static Builder syntheticBuilder() {
     return new Builder(true);
+  }
+
+  public void markAsInlinableByJavaC() {
+    isInlinableByJavaC = true;
+  }
+
+  public boolean isInlinableByJavaC() {
+    return isInlinableByJavaC;
   }
 
   public static class Builder {

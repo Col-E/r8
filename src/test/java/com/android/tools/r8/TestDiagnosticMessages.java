@@ -88,15 +88,15 @@ public abstract class TestDiagnosticMessages {
   public abstract TestDiagnosticMessages assertErrorsCount(int count);
 
   public final TestDiagnosticMessages assertNoInfos() {
-    return assertInfosCount(0);
+    return assertInfosMatch(Collections.emptyList());
   }
 
   public final TestDiagnosticMessages assertNoWarnings() {
-    return assertWarningsCount(0);
+    return assertWarningsMatch(Collections.emptyList());
   }
 
   public final TestDiagnosticMessages assertNoErrors() {
-    return assertErrorsCount(0);
+    return assertErrorsMatch(Collections.emptyList());
   }
 
   // Match exact.

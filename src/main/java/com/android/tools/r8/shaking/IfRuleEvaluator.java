@@ -227,18 +227,27 @@ public class IfRuleEvaluator {
       return true;
     }
 
+    List<DexClassAndField> fieldsInlinedByJavaC = new ArrayList<>();
     Set<DexDefinition> filteredMembers = Sets.newIdentityHashSet();
     Iterables.addAll(
         filteredMembers,
         targetClass.fields(
-            f ->
-                // Fields referenced only by -keep may not be referenced, we therefore have to
-                // filter on both live and referenced.
-                (enqueuer.isFieldLive(f)
-                        || enqueuer.isFieldReferenced(f)
-                        || f.getOptimizationInfo().valueHasBeenPropagated())
-                    && appView.graphLens().getOriginalFieldSignature(f.getReference()).holder
-                        == sourceClass.type));
+            f -> {
+              // Fields that are javac inlined are unsound as predicates for conditional rules.
+              // Ignore any such field members and record it for possible reporting later.
+              if (isFieldInlinedByJavaC(f)) {
+                f.markAsInlinableByJavaC();
+                fieldsInlinedByJavaC.add(DexClassAndField.create(targetClass, f));
+                return false;
+              }
+              // Fields referenced only by -keep may not be referenced, we therefore have to
+              // filter on both live and referenced.
+              return (enqueuer.isFieldLive(f)
+                      || enqueuer.isFieldReferenced(f)
+                      || f.getOptimizationInfo().valueHasBeenPropagated())
+                  && (appView.graphLens().getOriginalFieldSignature(f.getReference()).holder
+                      == sourceClass.type);
+            }));
     Iterables.addAll(
         filteredMembers,
         targetClass.methods(
@@ -249,6 +258,21 @@ public class IfRuleEvaluator {
                     && appView.graphLens().getOriginalMethodSignature(m.getReference()).holder
                         == sourceClass.type));
 
+    // Check if the rule could hypothetically have matched a javac inlined field.
+    // If so mark the rule. Reporting happens only if the rule is otherwise unused.
+    if (!fieldsInlinedByJavaC.isEmpty()) {
+      for (ProguardMemberRule memberRule : memberKeepRules) {
+        if (!memberRule.getRuleType().includesFields()) {
+          continue;
+        }
+        for (DexClassAndField field : fieldsInlinedByJavaC) {
+          if (rootSetBuilder.sideEffectFreeIsRuleSatisfiedByField(memberRule, field)) {
+            rule.addInlinableFieldMatchingPrecondition(field.getReference());
+          }
+        }
+      }
+    }
+
     // If the number of member rules to hold is more than live members, we can't make it.
     if (filteredMembers.size() < memberKeepRules.size()) {
       return false;
@@ -258,6 +282,7 @@ public class IfRuleEvaluator {
     // -keep rule may vary (due to back references). So, we need to try literally all
     // combinations of live members. But, we can at least limit the number of elements per
     // combination as the size of member rules to satisfy.
+    // TODO(b/206086945): Consider ways of reducing the size of this set computation.
     for (Set<DexDefinition> combination :
         Sets.combinations(filteredMembers, memberKeepRules.size())) {
       Collection<DexClassAndField> fieldsInCombination =
@@ -285,6 +310,27 @@ public class IfRuleEvaluator {
       }
     }
     return false;
+  }
+
+  private boolean isFieldInlinedByJavaC(DexEncodedField field) {
+    if (enqueuer.getMode().isFinalTreeShaking()) {
+      // Ignore any field value in the final tree shaking pass so it remains consistent with the
+      // initial pass.
+      return field.isInlinableByJavaC();
+    }
+    if (!field.isStatic() || !field.isFinal()) {
+      return false;
+    }
+    if (!field.hasExplicitStaticValue()) {
+      return false;
+    }
+    if (field.getType().isPrimitiveType()) {
+      return true;
+    }
+    if (field.getType() != appView.dexItemFactory().stringType) {
+      return false;
+    }
+    return field.getStaticValue().isDexValueString();
   }
 
   private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
