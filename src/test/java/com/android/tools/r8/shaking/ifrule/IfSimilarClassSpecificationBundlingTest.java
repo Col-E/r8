@@ -81,7 +81,7 @@ public class IfSimilarClassSpecificationBundlingTest extends TestBase {
       throws IOException, CompilationFailedException, ExecutionException {
     runTest(
         8,
-        12,
+        18,
         "-if class **$R* { int keepA; }",
         "-keep class " + A.class.getTypeName() + " { void a(); }",
         "-if class **$R* { int keepB; }",
@@ -115,7 +115,7 @@ public class IfSimilarClassSpecificationBundlingTest extends TestBase {
       throws IOException, CompilationFailedException, ExecutionException {
     runTest(
         8,
-        12,
+        18,
         "-if class **$R*,**$X { int keepA; }",
         "-keep class " + A.class.getTypeName() + " { void a(); }",
         "-if class **$R*,**$X { int keepB; }",
