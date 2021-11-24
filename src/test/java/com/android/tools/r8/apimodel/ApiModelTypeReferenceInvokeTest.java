@@ -51,8 +51,9 @@ public class ApiModelTypeReferenceInvokeTest extends TestBase {
         .enableInliningAnnotations()
         .addAndroidBuildVersion()
         .compile()
-        // TODO(b/207601948): We should only inline from api level M.
-        .inspect(verifyThat(parameters, apiCaller).inlinedInto(apiCallerCaller))
+        .inspect(
+            verifyThat(parameters, apiCaller)
+                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.M))
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(

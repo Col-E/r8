@@ -53,9 +53,9 @@ public class ApiModelFieldTypeReferenceTest extends TestBase {
                   if (Reference.methodFromMethod(readApiField).equals(method)
                       || Reference.methodFromMethod(setApiField).equals(method)) {
                     if (parameters.isCfRuntime()) {
-                      assertEquals(AndroidApiLevel.L_MR1, apiLevel);
+                      assertEquals(AndroidApiLevel.B, apiLevel);
                     } else {
-                      assertEquals(AndroidApiLevel.L_MR1.max(parameters.getApiLevel()), apiLevel);
+                      assertEquals(AndroidApiLevel.B.max(parameters.getApiLevel()), apiLevel);
                     }
                   }
                 }))

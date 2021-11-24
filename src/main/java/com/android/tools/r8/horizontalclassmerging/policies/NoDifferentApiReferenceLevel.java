@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiReferenceLevelForMerging;
+
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
@@ -37,6 +39,6 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
   @Override
   public ComputedApiLevel getMergeKey(DexProgramClass clazz) {
     assert enableApiCallerIdentification;
-    return clazz.getApiReferenceLevel(appView, apiLevelCompute);
+    return getApiReferenceLevelForMerging(appView, apiLevelCompute, clazz);
   }
 }

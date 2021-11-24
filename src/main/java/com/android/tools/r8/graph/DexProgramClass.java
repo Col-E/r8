@@ -822,21 +822,4 @@ public class DexProgramClass extends DexClass
     return checksumSupplier;
   }
 
-  public ComputedApiLevel getApiReferenceLevel(
-      AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
-    // The api level of a class is the max level of it's members, super class and interfaces.
-    return getMembersApiReferenceLevel(
-        apiLevelCompute.computeApiLevelForDefinition(
-            allImmediateSupertypes(), apiLevelCompute.getPlatformApiLevelOrUnknown(appView)));
-  }
-
-  public ComputedApiLevel getMembersApiReferenceLevel(ComputedApiLevel memberLevel) {
-    for (DexEncodedMember<?, ?> member : members()) {
-      memberLevel = memberLevel.max(member.getApiLevel());
-      if (memberLevel.isUnknownApiLevel()) {
-        return memberLevel;
-      }
-    }
-    return memberLevel;
-  }
 }

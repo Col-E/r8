@@ -7,6 +7,7 @@ import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiReferenceLevelForMerging;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
@@ -531,8 +532,10 @@ public class VerticalClassMerger {
     // Only merge if api reference level of source class is equal to target class. The check is
     // somewhat expensive.
     if (appView.options().apiModelingOptions().enableApiCallerIdentification) {
-      ComputedApiLevel sourceApiLevel = sourceClass.getApiReferenceLevel(appView, apiLevelCompute);
-      ComputedApiLevel targetApiLevel = targetClass.getApiReferenceLevel(appView, apiLevelCompute);
+      ComputedApiLevel sourceApiLevel =
+          getApiReferenceLevelForMerging(appView, apiLevelCompute, sourceClass);
+      ComputedApiLevel targetApiLevel =
+          getApiReferenceLevelForMerging(appView, apiLevelCompute, targetClass);
       if (!sourceApiLevel.equals(targetApiLevel)) {
         if (Log.ENABLED) {
           AbortReason.API_REFERENCE_LEVEL.printLogMessageForClass(sourceClass);
