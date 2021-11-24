@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
@@ -91,25 +90,5 @@ public class DexDebugInfo extends CachedHashValueDexItem implements StructuralIt
     builder.append("  END_SEQUENCE\n");
     builder.append("]\n");
     return builder.toString();
-  }
-
-  public boolean isPcToPcMapping() {
-    if (startLine != 0) {
-      return false;
-    }
-    for (DexString parameter : parameters) {
-      if (parameter != null) {
-        return false;
-      }
-    }
-    if (events.length < 1 || !Default.ZERO_CHANGE_DEFAULT_EVENT.equals(events[0])) {
-      return false;
-    }
-    for (int i = 1; i < events.length; i++) {
-      if (!Default.ONE_CHANGE_DEFAULT_EVENT.equals(events[i])) {
-        return false;
-      }
-    }
-    return true;
   }
 }

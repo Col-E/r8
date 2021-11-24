@@ -7,8 +7,8 @@ package com.android.tools.r8.debuginfo;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static com.android.tools.r8.utils.InternalOptions.LineNumberOptimization.ON;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexDebugEntry;
 import com.android.tools.r8.graph.DexDebugEntryBuilder;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -37,6 +38,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
 
   private static final String FILENAME_MAIN = "EnsureNoDebugInfoEmittedForPcOnlyTest.java";
   private static final Class<?> MAIN = EnsureNoDebugInfoEmittedForPcOnlyTest.class;
+  private static final int INLINED_DEX_PC = 32;
 
   private final TestParameters parameters;
 
@@ -49,9 +51,8 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     this.parameters = parameters;
   }
 
-  private boolean apiLevelSupportsPcAndSourceFileOutput() {
-    // TODO(b/146565491): Update with API level once fixed.
-    return false;
+  private boolean apiLevelSupportsPcOutput() {
+    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O);
   }
 
   @Test
@@ -76,7 +77,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .internalEnableMappingOutput()
         // TODO(b/191038746): Enable LineNumberOptimization for release builds for DEX PC Output.
         .applyIf(
-            apiLevelSupportsPcAndSourceFileOutput(),
+            apiLevelSupportsPcOutput(),
             builder ->
                 builder.addOptionsModification(
                     options -> {
@@ -97,7 +98,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .run(parameters.getRuntime(), MAIN)
         .inspectFailure(
             inspector -> {
-              if (apiLevelSupportsPcAndSourceFileOutput()) {
+              if (apiLevelSupportsPcOutput()) {
                 checkNoDebugInfo(inspector, 5);
               } else {
                 checkHasLineNumberInfo(inspector);
@@ -121,7 +122,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
 
   @Test
   public void testNoEmittedDebugInfoR8() throws Exception {
-    assumeTrue(apiLevelSupportsPcAndSourceFileOutput());
+    assumeTrue(apiLevelSupportsPcOutput());
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)

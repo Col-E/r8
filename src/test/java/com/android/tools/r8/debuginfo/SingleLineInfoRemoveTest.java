@@ -9,18 +9,14 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.hasLineNumberTab
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import java.util.List;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,17 +27,14 @@ import org.junit.runners.Parameterized.Parameters;
 public class SingleLineInfoRemoveTest extends TestBase {
 
   private final TestParameters parameters;
-  private final boolean customSourceFile;
 
-  @Parameters(name = "{0}, custom-source-file:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public SingleLineInfoRemoveTest(TestParameters parameters, boolean customSourceFile) {
+  public SingleLineInfoRemoveTest(TestParameters parameters) {
     this.parameters = parameters;
-    this.customSourceFile = customSourceFile;
   }
 
   public StackTrace expectedStackTrace;
@@ -65,27 +58,9 @@ public class SingleLineInfoRemoveTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
-        .applyIf(
-            customSourceFile,
-            b -> b.getBuilder().setSourceFileProvider(env -> "MyCustomSourceFile"))
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        .inspectOriginalStackTrace(
-            stackTrace -> {
-              for (StackTraceLine line : stackTrace.getStackTraceLines()) {
-                if (customSourceFile) {
-                  assertEquals("MyCustomSourceFile", line.fileName);
-                } else if (parameters.isCfRuntime()) {
-                  assertEquals("SourceFile", line.fileName);
-                } else {
-                  assertThat(
-                      line.fileName,
-                      CoreMatchers.anyOf(
-                          CoreMatchers.is("SourceFile"), CoreMatchers.is("Unknown Source")));
-                }
-              }
-            })
         .inspectStackTrace(
             (stackTrace, inspector) -> {
               assertThat(stackTrace, isSame(expectedStackTrace));
@@ -93,12 +68,8 @@ public class SingleLineInfoRemoveTest extends TestBase {
               assertThat(mainSubject, isPresent());
               assertThat(
                   mainSubject.uniqueMethodWithName("shouldRemoveLineNumber"),
-                  notIf(hasLineNumberTable(), canSingleLineDebugInfoBeDiscarded()));
+                  notIf(hasLineNumberTable(), parameters.isDexRuntime()));
             });
-  }
-
-  private boolean canSingleLineDebugInfoBeDiscarded() {
-    return parameters.isDexRuntime() && !customSourceFile;
   }
 
   public static class Main {

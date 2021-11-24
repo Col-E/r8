@@ -27,6 +27,8 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
+  public static final DexDebugEvent.Default ZERO_CHANGE_DEFAULT_EVENT = Default.create(0, 0);
+
   public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
     // Empty by default.
   }
@@ -708,9 +710,6 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
   }
 
   public static class Default extends DexDebugEvent {
-
-    public static final DexDebugEvent.Default ZERO_CHANGE_DEFAULT_EVENT = Default.create(0, 0);
-    public static final DexDebugEvent.Default ONE_CHANGE_DEFAULT_EVENT = Default.create(1, 1);
 
     final int value;
 
