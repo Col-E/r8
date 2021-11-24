@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -19,16 +18,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.StreamSupport;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
 
   private boolean used = false;
-  private Map<DexField, DexField> inlinableFieldsInPrecondition = new ConcurrentHashMap<>();
   // TODO(b/164019179): Since we are using the rule language for tracing main dex we can end up in
   //  a situation where the references to types are dead.
   private boolean canReferenceDeadTypes = false;
@@ -69,18 +64,6 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
 
   public void markAsUsed() {
     used = true;
-  }
-
-  public boolean hasInlinableFieldsMatchingPrecondition() {
-    return !inlinableFieldsInPrecondition.isEmpty();
-  }
-
-  public Set<DexField> getInlinableFieldsMatchingPrecondition() {
-    return inlinableFieldsInPrecondition.keySet();
-  }
-
-  public void addInlinableFieldMatchingPrecondition(DexField field) {
-    inlinableFieldsInPrecondition.put(field, field);
   }
 
   public boolean isProguardCheckDiscardRule() {

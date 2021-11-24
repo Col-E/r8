@@ -1684,12 +1684,18 @@ public class RootSetUtils {
         return;
       }
       for (ProguardConfigurationRule rule : rules) {
-        if (rule.isProguardIfRule() && rule.hasInlinableFieldsMatchingPrecondition()) {
-          List<DexField> fields = new ArrayList<>(rule.getInlinableFieldsMatchingPrecondition());
-          fields.sort(DexField::compareTo);
-          options.reporter.warning(
-              new InlinableStaticFinalFieldPreconditionDiagnostic(rule.asProguardIfRule(), fields));
-        } else if (!rule.isUsed() && options.testing.reportUnusedProguardConfigurationRules) {
+        if (rule.isProguardIfRule()) {
+          ProguardIfRule ifRule = rule.asProguardIfRule();
+          Set<DexField> unorderedFields = ifRule.getAndClearInlinableFieldsMatchingPrecondition();
+          if (!unorderedFields.isEmpty()) {
+            List<DexField> fields = new ArrayList<>(unorderedFields);
+            fields.sort(DexField::compareTo);
+            options.reporter.warning(
+                new InlinableStaticFinalFieldPreconditionDiagnostic(ifRule, fields));
+            continue;
+          }
+        }
+        if (!rule.isUsed() && options.testing.reportUnusedProguardConfigurationRules) {
           String message = "Proguard configuration rule does not match anything: `" + rule + "`";
           StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());
           options.reporter.info(diagnostic);

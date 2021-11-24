@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.origin.Origin;
@@ -10,7 +11,9 @@ import com.android.tools.r8.position.Position;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class ProguardIfRule extends ProguardKeepRuleBase {
@@ -34,12 +37,24 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
   private final Set<DexReference> preconditions;
   final ProguardKeepRule subsequentRule;
 
+  private Map<DexField, DexField> inlinableFieldsInPrecondition = new ConcurrentHashMap<>();
+
   public Set<DexReference> getPreconditions() {
     return preconditions;
   }
 
   public ProguardKeepRule getSubsequentRule() {
     return subsequentRule;
+  }
+
+  public void addInlinableFieldMatchingPrecondition(DexField field) {
+    inlinableFieldsInPrecondition.put(field, field);
+  }
+
+  public Set<DexField> getAndClearInlinableFieldsMatchingPrecondition() {
+    Set<DexField> fields = inlinableFieldsInPrecondition.keySet();
+    inlinableFieldsInPrecondition = null;
+    return fields;
   }
 
   public static class Builder extends ProguardKeepRuleBase.Builder<ProguardIfRule, Builder> {
