@@ -376,7 +376,8 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               // remove the entire class because we are not reprocessing TestMain.main.
               String propertyName = "property";
               if (kotlinParameters.isNewerThanOrEqualTo(KOTLINC_1_6_0)) {
-                checkFieldIsAbsent(classSubject, JAVA_LANG_STRING, propertyName);
+                FieldSubject field = classSubject.field(JAVA_LANG_STRING, propertyName);
+                assertFalse(field.isPresent());
                 return;
               }
 
