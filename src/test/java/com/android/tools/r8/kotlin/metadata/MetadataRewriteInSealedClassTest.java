@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -28,7 +27,6 @@ import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -142,7 +140,6 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInSealedClass_invalid() throws Exception {
-    Assume.assumeTrue(kotlinParameters.isOlderThan(KOTLINC_1_6_0));
     Path libJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
@@ -165,7 +162,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
             .compileRaw();
 
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    if (kotlinc.is(KotlinCompilerVersion.KOTLINC_1_5_0)) {
+    if (kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_5_0)) {
       assertThat(
           kotlinTestCompileResult.stderr,
           containsString(
