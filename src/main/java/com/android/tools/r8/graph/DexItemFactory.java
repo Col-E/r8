@@ -883,6 +883,7 @@ public class DexItemFactory {
           boxedShortType,
           boxedVoidType,
           enumType,
+          javaLangSystemType,
           npeType,
           objectType,
           stringBufferType,
