@@ -119,6 +119,24 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-dontshrink");
   }
 
+  public T addDontNote(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addDontNote(clazz.getTypeName());
+    }
+    return self();
+  }
+
+  public T addDontNote(Collection<String> classes) {
+    for (String clazz : classes) {
+      addKeepRules("-dontnote " + clazz);
+    }
+    return self();
+  }
+
+  public T addDontNote(String... classes) {
+    return addDontNote(Arrays.asList(classes));
+  }
+
   public T addDontWarn(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addDontWarn(clazz.getTypeName());
