@@ -6,6 +6,7 @@ package com.android.tools.r8.debug;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
@@ -335,6 +336,10 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkLocals(left_mangledLvName, right_mangledLvName),
         // Enter "foo"
         stepInto(),
+        // TODO(b/207743106): Remove when resolved.
+        applyIf(
+            kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_6_0),
+            this::stepInto),
         checkMethod(DEBUGGEE_CLASS, "foo"),
         checkLine(SOURCE_FILE, 34),
         stepOut(),
@@ -384,6 +389,10 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkNoLocal(inlinee2_lambda2_inlineScope),
         // Enter the call to "foo"
         stepInto(),
+        // TODO(b/207743106): Remove when resolved.
+        applyIf(
+            kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_6_0),
+            this::stepInto),
         checkMethod(DEBUGGEE_CLASS, "foo"),
         checkLine(SOURCE_FILE, 34),
         run());

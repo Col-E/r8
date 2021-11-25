@@ -5,9 +5,11 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8TestBuilder;
@@ -79,6 +81,8 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
       KotlinTestParameters kotlinParameters,
       boolean allowAccessModification) {
     super(parameters, kotlinParameters, allowAccessModification);
+    // TODO(b/207736382): Figure out why we cannot inline/merge.
+    assumeTrue(kotlinParameters.getCompiler().isNot(KOTLINC_1_6_0));
   }
 
   @Test

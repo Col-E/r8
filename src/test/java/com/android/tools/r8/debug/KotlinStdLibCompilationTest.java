@@ -14,6 +14,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,6 +55,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
     KotlinCompiler compiler = kotlinTestParameters.getCompiler();
     testForR8(parameters.getBackend())
         .addProgramFiles(compiler.getKotlinStdlibJar(), compiler.getKotlinAnnotationJar())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .addKeepAllAttributes()
         .allowDiagnosticWarningMessages()
         .noMinification()

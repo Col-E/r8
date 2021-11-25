@@ -8,6 +8,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command.NopCommand;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -388,6 +389,11 @@ public abstract class DebugTestBase extends TestBase {
 
   protected final JUnit3Wrapper.Command stepInto() {
     return stepInto(DEFAULT_FILTER);
+  }
+
+  protected final JUnit3Wrapper.Command applyIf(
+      boolean condition, Supplier<JUnit3Wrapper.Command> action) {
+    return condition ? action.get() : new NopCommand();
   }
 
   protected final JUnit3Wrapper.Command stepInto(StepFilter stepFilter) {
@@ -1760,6 +1766,14 @@ public abstract class DebugTestBase extends TestBase {
         @Override
         public String toString() {
           return "run";
+        }
+      }
+
+      class NopCommand implements Command {
+
+        @Override
+        public void perform(JUnit3Wrapper testBase) {
+          // Intentionally empty - it is a nop.
         }
       }
 
