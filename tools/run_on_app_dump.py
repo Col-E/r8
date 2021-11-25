@@ -945,6 +945,9 @@ def parse_options(argv):
   result.add_argument('--shrinker',
                       help='The shrinkers to use (by default, all are run)',
                       action='append')
+  result.add_argument('--temp',
+                      help='A directory to use for temporaries and outputs.',
+                      default=None)
   result.add_argument('--version',
                       default='main',
                       help='The version of R8 to use (e.g., 1.4.51)')
@@ -1087,6 +1090,8 @@ def main(argv):
     return 0
 
   with utils.TempDir() as temp_dir:
+    if options.temp:
+      temp_dir = options.temp
     if options.hash:
       # Download r8-<hash>.jar from
       # https://storage.googleapis.com/r8-releases/raw/.
