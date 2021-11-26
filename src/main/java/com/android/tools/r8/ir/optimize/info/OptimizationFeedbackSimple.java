@@ -154,6 +154,10 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     // Ignored.
   }
 
+  public void setArgumentInfos(ProgramMethod method, CallSiteOptimizationInfo argumentInfos) {
+    method.getDefinition().getMutableOptimizationInfo().setArgumentInfos(argumentInfos);
+  }
+
   @Override
   public void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
     method.getMutableOptimizationInfo().setBridgeInfo(bridgeInfo);

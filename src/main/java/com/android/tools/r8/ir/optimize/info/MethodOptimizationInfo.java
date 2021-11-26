@@ -32,6 +32,8 @@ public abstract class MethodOptimizationInfo
 
   public abstract boolean classInitializerMayBePostponed();
 
+  public abstract CallSiteOptimizationInfo getArgumentInfos();
+
   public abstract ClassInlinerMethodConstraint getClassInlinerMethodConstraint();
 
   public abstract EnumUnboxerMethodClassification getEnumUnboxerMethodClassification();

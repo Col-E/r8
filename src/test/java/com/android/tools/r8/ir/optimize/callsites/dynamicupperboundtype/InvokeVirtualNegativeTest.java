@@ -60,7 +60,7 @@ public class InvokeVirtualNegativeTest extends TestBase {
     assert methodName.equals("m") || methodName.equals("test")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     if (methodName.equals("m")) {
       TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
       assert upperBoundType.isDefinitelyNotNull();

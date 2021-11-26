@@ -63,7 +63,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     assert method.getReference().name.toString().equals("m")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
     AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(1);
     assert abstractValue.isSingleStringValue()

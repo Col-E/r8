@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethodSignature;
@@ -227,9 +228,9 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     }
 
     ConcreteMonomorphicMethodState finalMethodState = widenedMethodState.asMonomorphic();
-    method
-        .getDefinition()
-        .setCallSiteOptimizationInfo(
+    getSimpleFeedback()
+        .setArgumentInfos(
+            method,
             ConcreteCallSiteOptimizationInfo.fromMethodState(appView, method, finalMethodState));
 
     // Strengthen the return value of the method if the method is known to return one of the

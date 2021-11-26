@@ -60,7 +60,7 @@ public class InvokeDirectPositiveTest extends TestBase {
     assert methodName.equals("<init>") || methodName.equals("test")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     TypeElement upperBoundType;
     if (methodName.equals("test")) {
       upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);

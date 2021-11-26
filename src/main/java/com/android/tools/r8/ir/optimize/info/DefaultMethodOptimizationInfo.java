@@ -59,6 +59,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public CallSiteOptimizationInfo getArgumentInfos() {
+    return CallSiteOptimizationInfo.top();
+  }
+
+  @Override
   public ClassInlinerMethodConstraint getClassInlinerMethodConstraint() {
     return ClassInlinerMethodConstraint.alwaysFalse();
   }

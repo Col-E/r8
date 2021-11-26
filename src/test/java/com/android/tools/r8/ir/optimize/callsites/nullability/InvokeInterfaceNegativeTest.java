@@ -63,7 +63,7 @@ public class InvokeInterfaceNegativeTest extends TestBase {
     assert method.getReference().name.toString().equals("m")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     assert upperBoundType.isNullable();
     assert upperBoundType.isClassType()

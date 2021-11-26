@@ -35,6 +35,7 @@ import java.util.Set;
 public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     implements MutableOptimizationInfo {
 
+  private CallSiteOptimizationInfo argumentInfos = CallSiteOptimizationInfo.top();
   private Set<DexType> initializedClassesOnNormalExit =
       DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
   private int returnedArgument = DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT;
@@ -144,6 +145,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   // Copy constructor used to create a mutable copy. Do not forget to copy from template when a new
   // field is added.
   private MutableMethodOptimizationInfo(MutableMethodOptimizationInfo template) {
+    argumentInfos = template.argumentInfos;
     flags = template.flags;
     initializedClassesOnNormalExit = template.initializedClassesOnNormalExit;
     returnedArgument = template.returnedArgument;
@@ -162,7 +164,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   public MutableMethodOptimizationInfo fixup(
       AppView<AppInfoWithLiveness> appView, MethodOptimizationInfoFixer fixer) {
-    return fixupBridgeInfo(fixer)
+    return fixupArgumentInfos(fixer)
+        .fixupBridgeInfo(fixer)
         .fixupClassInlinerMethodConstraint(appView, fixer)
         .fixupEnumUnboxerMethodClassification(fixer)
         .fixupInstanceInitializerInfo(appView, fixer)
@@ -254,6 +257,23 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
 
   void unsetClassInitializerMayBePostponed() {
     clearFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
+  }
+
+  @Override
+  public CallSiteOptimizationInfo getArgumentInfos() {
+    return argumentInfos;
+  }
+
+  public MutableMethodOptimizationInfo fixupArgumentInfos(MethodOptimizationInfoFixer fixer) {
+    if (argumentInfos.isConcreteCallSiteOptimizationInfo()) {
+      argumentInfos =
+          fixer.fixupCallSiteOptimizationInfo(argumentInfos.asConcreteCallSiteOptimizationInfo());
+    }
+    return this;
+  }
+
+  void setArgumentInfos(CallSiteOptimizationInfo argumentInfos) {
+    this.argumentInfos = argumentInfos;
   }
 
   @Override

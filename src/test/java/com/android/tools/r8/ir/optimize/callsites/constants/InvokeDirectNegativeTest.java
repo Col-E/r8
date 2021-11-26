@@ -57,7 +57,7 @@ public class InvokeDirectNegativeTest extends TestBase {
     assert method.getReference().name.toString().equals("test")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
     assert callSiteOptimizationInfo.getAbstractArgumentValue(1).isUnknown();
   }

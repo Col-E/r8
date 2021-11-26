@@ -55,7 +55,7 @@ public class InvokeStaticNegativeTest extends TestBase {
     assert method.getReference().name.toString().equals("test")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     assert callSiteOptimizationInfo.getDynamicUpperBoundType(0).isDefinitelyNotNull();
     assert callSiteOptimizationInfo.getAbstractArgumentValue(0).isUnknown();
   }

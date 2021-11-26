@@ -753,7 +753,8 @@ public class IRBuilder {
     // types, those could be still less precise at one single call site, where specific arguments
     // will be passed during (double) inlining. Instead of adding assumptions and removing invalid
     // ones, it's better not to insert assumptions for inlinee in the beginning.
-    CallSiteOptimizationInfo callSiteOptimizationInfo = getMethod().getCallSiteOptimizationInfo();
+    CallSiteOptimizationInfo callSiteOptimizationInfo =
+        getMethod().getOptimizationInfo().getArgumentInfos();
     if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo() && method == context) {
       // TODO(b/190154391): Consider pruning all argument information from the optimization info
       //  after the second optimization pass. That way we save memory and can assert here that

@@ -412,8 +412,7 @@ public class ArgumentPropagatorProgramOptimizer {
           // OK, this parameter can be removed.
           continue;
         }
-        CallSiteOptimizationInfo optimizationInfo =
-            method.getDefinition().getCallSiteOptimizationInfo();
+        CallSiteOptimizationInfo optimizationInfo = method.getOptimizationInfo().getArgumentInfos();
         if (optimizationInfo.isConcreteCallSiteOptimizationInfo()) {
           ConcreteCallSiteOptimizationInfo concreteOptimizationInfo =
               optimizationInfo.asConcreteCallSiteOptimizationInfo();
@@ -620,7 +619,7 @@ public class ArgumentPropagatorProgramOptimizer {
     private ArgumentInfoCollection computeParameterChangesForMethod(
         ProgramMethod method, IntPredicate removableParameterIndices) {
       ConcreteCallSiteOptimizationInfo optimizationInfo =
-          method.getDefinition().getCallSiteOptimizationInfo().asConcreteCallSiteOptimizationInfo();
+          method.getOptimizationInfo().getArgumentInfos().asConcreteCallSiteOptimizationInfo();
       if (optimizationInfo == null) {
         return ArgumentInfoCollection.empty();
       }

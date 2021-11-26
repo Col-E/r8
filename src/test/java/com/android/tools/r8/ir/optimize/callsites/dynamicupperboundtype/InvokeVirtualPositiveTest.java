@@ -60,7 +60,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     assert methodName.equals("<init>") || methodName.equals("m")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     TypeElement upperBoundType;
     if (methodName.equals("m")) {
       upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);

@@ -66,7 +66,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
     assert method.getReference().name.toString().equals("m")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     if (method.getHolderType().toSourceString().endsWith("$C")) {
       assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
     } else {

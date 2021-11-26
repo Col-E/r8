@@ -79,7 +79,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
           DexEncodedMethod::hasCode,
           method -> {
             CallSiteOptimizationInfo callSiteOptimizationInfo =
-                method.getDefinition().getCallSiteOptimizationInfo();
+                method.getOptimizationInfo().getArgumentInfos();
             if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()
                 && !appView.appInfo().isNeverReprocessMethod(method)) {
               methodsToReprocessBuilder.add(method, currentGraphLens);

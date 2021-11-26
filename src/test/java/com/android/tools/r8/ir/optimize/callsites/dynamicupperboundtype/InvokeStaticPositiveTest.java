@@ -58,7 +58,7 @@ public class InvokeStaticPositiveTest extends TestBase {
     assert methodName.equals("<init>") || methodName.equals("test")
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
-        method.getDefinition().getCallSiteOptimizationInfo();
+        method.getOptimizationInfo().getArgumentInfos();
     // `arg` for `test` or the receiver of `Base#<init>`.
     // TODO(b/139246447): should avoid visiting <init>, which is trivial, default init!
     // For testing purpose, `Base` is not merged and kept. The system correctly caught that, when
