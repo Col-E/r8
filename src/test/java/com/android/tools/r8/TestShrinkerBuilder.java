@@ -458,6 +458,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(NeverSingleCallerInline.class);
   }
 
+  public final T addNoFieldTypeStrengtheningAnnotation() {
+    return addTestingAnnotation(NoFieldTypeStrengthening.class);
+  }
+
   public final T addNoHorizontalClassMergingAnnotations() {
     return addTestingAnnotation(NoHorizontalClassMerging.class);
   }

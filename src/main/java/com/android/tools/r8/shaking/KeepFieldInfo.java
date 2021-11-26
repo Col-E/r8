@@ -24,8 +24,11 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
     return bottom().joiner();
   }
 
+  private final boolean allowFieldTypeStrengthening;
+
   private KeepFieldInfo(Builder builder) {
     super(builder);
+    this.allowFieldTypeStrengthening = builder.isFieldTypeStrengtheningAllowed();
   }
 
   // This builder is not private as there are known instances where it is safe to modify keep info
@@ -33,6 +36,14 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
   @Override
   Builder builder() {
     return new Builder(this);
+  }
+
+  public boolean isFieldTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return internalIsFieldTypeStrengtheningAllowed();
+  }
+
+  boolean internalIsFieldTypeStrengtheningAllowed() {
+    return allowFieldTypeStrengthening;
   }
 
   public Joiner joiner() {
@@ -52,12 +63,32 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
 
   public static class Builder extends KeepInfo.Builder<Builder, KeepFieldInfo> {
 
+    private boolean allowFieldTypeStrengthening;
+
     private Builder() {
       super();
     }
 
     private Builder(KeepFieldInfo original) {
       super(original);
+      allowFieldTypeStrengthening = original.internalIsFieldTypeStrengtheningAllowed();
+    }
+
+    public boolean isFieldTypeStrengtheningAllowed() {
+      return allowFieldTypeStrengthening;
+    }
+
+    public Builder setAllowFieldTypeStrengthening(boolean allowFieldTypeStrengthening) {
+      this.allowFieldTypeStrengthening = allowFieldTypeStrengthening;
+      return self();
+    }
+
+    public Builder allowFieldTypeStrengthening() {
+      return setAllowFieldTypeStrengthening(true);
+    }
+
+    public Builder disallowFieldTypeStrengthening() {
+      return setAllowFieldTypeStrengthening(false);
     }
 
     @Override
@@ -90,6 +121,11 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
 
     public Joiner(KeepFieldInfo info) {
       super(info.builder());
+    }
+
+    public Joiner disallowFieldTypeStrengthening() {
+      builder.disallowFieldTypeStrengthening();
+      return self();
     }
 
     @Override

@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
+import com.android.tools.r8.shaking.NoFieldTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
@@ -27,6 +28,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -429,6 +431,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         .addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
   }
 
+  T addInternalMatchAnnotationOnFieldRule(String name, Class<? extends Annotation> annotation) {
+    return addInternalKeepRules(
+        "-" + name + " class * { @" + annotation.getTypeName() + " <fields>; }");
+  }
+
   T addInternalMatchInterfaceRule(String name, Class<?> matchInterface) {
     return addInternalKeepRules("-" + name + " @" + matchInterface.getTypeName() + " class *");
   }
@@ -487,6 +494,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T noInliningOfSynthetics() {
     return addOptionsModification(options -> options.testing.allowInliningOfSynthetics = false);
+  }
+
+  public T enableNoFieldTypeStrengtheningAnnotations() {
+    return addNoFieldTypeStrengtheningAnnotation()
+        .addInternalMatchAnnotationOnFieldRule(
+            NoFieldTypeStrengtheningRule.RULE_NAME, NoFieldTypeStrengthening.class);
   }
 
   public T enableNoUnusedInterfaceRemovalAnnotations() {

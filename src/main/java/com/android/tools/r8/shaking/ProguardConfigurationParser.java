@@ -480,6 +480,11 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString(NoFieldTypeStrengtheningRule.RULE_NAME)) {
+          ProguardConfigurationRule rule = parseNoFieldTypeStrengtheningRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString(NoUnusedInterfaceRemovalRule.RULE_NAME)) {
           ProguardConfigurationRule rule = parseNoUnusedInterfaceRemovalRule(optionStart);
           configurationBuilder.addRule(rule);
@@ -772,6 +777,17 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       ClassInlineRule.Builder keepRuleBuilder =
           ClassInlineRule.builder().setOrigin(origin).setStart(start).setType(type);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private NoFieldTypeStrengtheningRule parseNoFieldTypeStrengtheningRule(Position start)
+        throws ProguardRuleParserException {
+      NoFieldTypeStrengtheningRule.Builder keepRuleBuilder =
+          NoFieldTypeStrengtheningRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

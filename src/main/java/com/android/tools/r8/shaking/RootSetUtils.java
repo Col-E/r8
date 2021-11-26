@@ -263,6 +263,8 @@ public class RootSetUtils {
         markMatchingOverriddenMethods(
             appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+      } else if (rule instanceof NoFieldTypeStrengtheningRule) {
+        markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
       } else if (rule instanceof InlineRule
           || rule instanceof ConstantArgumentRule
           || rule instanceof UnusedArgumentRule
@@ -1224,6 +1226,13 @@ public class RootSetUtils {
           default:
             throw new Unreachable();
         }
+        context.markAsUsed();
+      } else if (context instanceof NoFieldTypeStrengtheningRule) {
+        assert item.isProgramField();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .asFieldJoiner()
+            .disallowFieldTypeStrengthening();
         context.markAsUsed();
       } else if (context instanceof NoUnusedInterfaceRemovalRule) {
         noUnusedInterfaceRemoval.add(item.asClass().type);

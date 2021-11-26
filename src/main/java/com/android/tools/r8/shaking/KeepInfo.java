@@ -239,7 +239,7 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     abstract boolean isEqualTo(K other);
 
-    private K original;
+    protected K original;
     private boolean allowAccessModification;
     private boolean allowAnnotationRemoval;
     private boolean allowMinification;
@@ -439,14 +439,14 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
 
     abstract J self();
 
-    final Builder<B, K> builder;
+    final B builder;
 
     // The set of rules that have contributed to this joiner. These are only needed for the
     // interpretation of keep rules into keep info, and is therefore not stored in the keep info
     // builder above.
     final Set<ProguardKeepRuleBase> rules = Sets.newIdentityHashSet();
 
-    Joiner(Builder<B, K> builder) {
+    Joiner(B builder) {
       this.builder = builder;
     }
 
