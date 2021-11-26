@@ -163,7 +163,9 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       return FieldLookupResult.builder(this)
           .setReboundReference(rewrittenReboundReference)
           .setReference(rewrittenNonReboundReference)
-          .setCastType(previous.getRewrittenCastType(this::internalDescribeLookupClassType))
+          .setReadCastType(previous.getRewrittenReadCastType(this::internalDescribeLookupClassType))
+          .setWriteCastType(
+              previous.getRewrittenWriteCastType(this::internalDescribeLookupClassType))
           .build();
     } else {
       // TODO(b/168282032): We should always have the rebound reference, so this should become
@@ -171,7 +173,9 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       DexField rewrittenReference = previous.getRewrittenReference(fieldMap);
       return FieldLookupResult.builder(this)
           .setReference(rewrittenReference)
-          .setCastType(previous.getRewrittenCastType(this::internalDescribeLookupClassType))
+          .setReadCastType(previous.getRewrittenReadCastType(this::internalDescribeLookupClassType))
+          .setWriteCastType(
+              previous.getRewrittenWriteCastType(this::internalDescribeLookupClassType))
           .build();
     }
   }

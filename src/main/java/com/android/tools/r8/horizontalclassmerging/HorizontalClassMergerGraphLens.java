@@ -77,10 +77,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
     return FieldLookupResult.builder(this)
         .setReference(lookup.getReference())
         .setReboundReference(lookup.getReboundReference())
-        .setCastType(
+        .setReadCastType(
             lookup.getReference().getType() != previous.getReference().getType()
                 ? lookupType(previous.getReference().getType())
                 : null)
+        .setWriteCastType(previous.getRewrittenWriteCastType(this::internalDescribeLookupClassType))
         .build();
   }
 

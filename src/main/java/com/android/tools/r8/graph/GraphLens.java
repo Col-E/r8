@@ -118,40 +118,64 @@ public abstract class GraphLens {
    */
   public static class FieldLookupResult extends MemberLookupResult<DexField> {
 
-    private final DexType castType;
+    private final DexType readCastType;
+    private final DexType writeCastType;
 
-    private FieldLookupResult(DexField reference, DexField reboundReference, DexType castType) {
+    private FieldLookupResult(
+        DexField reference,
+        DexField reboundReference,
+        DexType readCastType,
+        DexType writeCastType) {
       super(reference, reboundReference);
-      this.castType = castType;
+      this.readCastType = readCastType;
+      this.writeCastType = writeCastType;
     }
 
     public static Builder builder(GraphLens lens) {
       return new Builder(lens);
     }
 
-    public boolean hasCastType() {
-      return castType != null;
+    public boolean hasReadCastType() {
+      return readCastType != null;
     }
 
-    public DexType getCastType() {
-      return castType;
+    public DexType getReadCastType() {
+      return readCastType;
     }
 
-    public DexType getRewrittenCastType(Function<DexType, DexType> fn) {
-      return hasCastType() ? fn.apply(castType) : null;
+    public DexType getRewrittenReadCastType(Function<DexType, DexType> fn) {
+      return hasReadCastType() ? fn.apply(readCastType) : null;
+    }
+
+    public boolean hasWriteCastType() {
+      return writeCastType != null;
+    }
+
+    public DexType getWriteCastType() {
+      return writeCastType;
+    }
+
+    public DexType getRewrittenWriteCastType(Function<DexType, DexType> fn) {
+      return hasWriteCastType() ? fn.apply(writeCastType) : null;
     }
 
     public static class Builder extends MemberLookupResult.Builder<DexField, Builder> {
 
-      private DexType castType;
+      private DexType readCastType;
+      private DexType writeCastType;
       private GraphLens lens;
 
       private Builder(GraphLens lens) {
         this.lens = lens;
       }
 
-      public Builder setCastType(DexType castType) {
-        this.castType = castType;
+      public Builder setReadCastType(DexType readCastType) {
+        this.readCastType = readCastType;
+        return this;
+      }
+
+      public Builder setWriteCastType(DexType writeCastType) {
+        this.writeCastType = writeCastType;
         return this;
       }
 
@@ -162,7 +186,7 @@ public abstract class GraphLens {
 
       public FieldLookupResult build() {
         // TODO(b/168282032): All non-identity graph lenses should set the rebound reference.
-        return new FieldLookupResult(reference, reboundReference, castType);
+        return new FieldLookupResult(reference, reboundReference, readCastType, writeCastType);
       }
     }
   }

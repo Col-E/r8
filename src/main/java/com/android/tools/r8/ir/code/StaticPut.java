@@ -58,6 +58,11 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   }
 
   @Override
+  public void setValue(Value value) {
+    replaceValue(0, value);
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int src = builder.allocatedRegister(value(), getNumber());

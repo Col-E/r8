@@ -10,9 +10,13 @@ public interface FieldPut {
 
   DexField getField();
 
+  Position getPosition();
+
   int getValueIndex();
 
   Value value();
+
+  void setValue(Value value);
 
   FieldInstruction asFieldInstruction();
 

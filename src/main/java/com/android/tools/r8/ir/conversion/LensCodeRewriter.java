@@ -68,6 +68,7 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.FieldInstruction;
+import com.android.tools.r8.ir.code.FieldPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -104,6 +105,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -347,13 +349,14 @@ public class LensCodeRewriter {
                   SingleNumberValue numberValue = parameter.getValue(appView);
 
                   // Try to find an existing constant instruction, otherwise generate a new one.
+                  InstructionListIterator finalIterator = iterator;
                   Value value =
                       parameterMap
                           .computeIfAbsent(numberValue, ignore -> new IdentityHashMap<>())
                           .computeIfAbsent(
                               type,
                               ignore -> {
-                                iterator.previous();
+                                finalIterator.previous();
                                 Instruction instruction =
                                     numberValue.createMaterializingInstruction(
                                         appView,
@@ -363,8 +366,8 @@ public class LensCodeRewriter {
                                 assert !instruction.instructionTypeCanThrow();
                                 instruction.setPosition(
                                     options.debug ? invoke.getPosition() : Position.none());
-                                iterator.add(instruction);
-                                iterator.next();
+                                finalIterator.add(instruction);
+                                finalIterator.next();
                                 return instruction.outValue();
                               });
 
@@ -448,15 +451,15 @@ public class LensCodeRewriter {
                     new InstanceGet(newOutValue, instanceGet.object(), rewrittenField));
               }
               if (newOutValue != null) {
-                if (lookup.hasCastType() && newOutValue.hasNonDebugUsers()) {
+                if (lookup.hasReadCastType() && newOutValue.hasNonDebugUsers()) {
                   TypeElement castType =
                       TypeElement.fromDexType(
-                          lookup.getCastType(), newOutValue.getType().nullability(), appView);
+                          lookup.getReadCastType(), newOutValue.getType().nullability(), appView);
                   Value castOutValue = code.createValue(castType);
                   newOutValue.replaceUsers(castOutValue);
                   CheckCast checkCast =
                       SafeCheckCast.builder()
-                          .setCastType(lookup.getCastType())
+                          .setCastType(lookup.getReadCastType())
                           .setObject(newOutValue)
                           .setOutValue(castOutValue)
                           .setPosition(instanceGet)
@@ -476,6 +479,8 @@ public class LensCodeRewriter {
               InstancePut instancePut = current.asInstancePut();
               DexField field = instancePut.getField();
               FieldLookupResult lookup = graphLens.lookupFieldResult(field);
+              insertCastForFieldAssignmentIfNeeded(code, blocks, iterator, instancePut, lookup);
+
               DexField rewrittenField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(rewrittenField, method.getReference());
@@ -517,15 +522,15 @@ public class LensCodeRewriter {
                 iterator.replaceCurrentInstruction(new StaticGet(newOutValue, rewrittenField));
               }
               if (newOutValue != null) {
-                if (lookup.hasCastType() && newOutValue.hasNonDebugUsers()) {
+                if (lookup.hasReadCastType() && newOutValue.hasNonDebugUsers()) {
                   TypeElement castType =
                       TypeElement.fromDexType(
-                          lookup.getCastType(), newOutValue.getType().nullability(), appView);
+                          lookup.getReadCastType(), newOutValue.getType().nullability(), appView);
                   Value castOutValue = code.createValue(castType);
                   newOutValue.replaceUsers(castOutValue);
                   CheckCast checkCast =
                       SafeCheckCast.builder()
-                          .setCastType(lookup.getCastType())
+                          .setCastType(lookup.getReadCastType())
                           .setObject(newOutValue)
                           .setOutValue(castOutValue)
                           .setPosition(staticGet)
@@ -545,6 +550,8 @@ public class LensCodeRewriter {
               StaticPut staticPut = current.asStaticPut();
               DexField field = staticPut.getField();
               FieldLookupResult lookup = graphLens.lookupFieldResult(field);
+              insertCastForFieldAssignmentIfNeeded(code, blocks, iterator, staticPut, lookup);
+
               DexField actualField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
                   graphLens.lookupPutFieldForMethod(actualField, method.getReference());
@@ -743,6 +750,30 @@ public class LensCodeRewriter {
 
     assert code.isConsistentSSABeforeTypesAreCorrect();
     assert code.hasNoMergedClasses(appView);
+  }
+
+  private void insertCastForFieldAssignmentIfNeeded(
+      IRCode code,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      FieldPut fieldPut,
+      FieldLookupResult lookup) {
+    if (lookup.hasWriteCastType()) {
+      iterator.previous();
+      CheckCast checkCast =
+          SafeCheckCast.builder()
+              .setObject(fieldPut.value())
+              .setFreshOutValue(code, lookup.getWriteCastType().toTypeElement(appView))
+              .setCastType(lookup.getWriteCastType())
+              .setPosition(fieldPut.getPosition())
+              .build();
+      iterator.add(checkCast);
+      iterator =
+          iterator.splitCopyCatchHandlers(code, blocks, appView.options()).listIterator(code);
+      fieldPut.setValue(checkCast.outValue());
+      Instruction next = iterator.next();
+      assert next == fieldPut;
+    }
   }
 
   private DexField rewriteFieldReference(FieldLookupResult lookup, ProgramMethod context) {

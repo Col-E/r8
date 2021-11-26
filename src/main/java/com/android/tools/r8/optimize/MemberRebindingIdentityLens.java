@@ -56,7 +56,7 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
 
   @Override
   protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
-    assert !previous.hasCastType();
+    assert !previous.hasReadCastType();
     assert !previous.hasReboundReference();
     return FieldLookupResult.builder(this)
         .setReference(previous.getReference())

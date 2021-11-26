@@ -80,6 +80,11 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
   }
 
   @Override
+  public void setValue(Value value) {
+    replaceValue(1, value);
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int valueRegister = builder.allocatedRegister(value(), getNumber());
