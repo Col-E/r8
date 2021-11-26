@@ -80,6 +80,15 @@ public class KotlinCompilerTool {
     public KotlinCompiler getCompiler() {
       return new KotlinCompiler(this);
     }
+
+    public static List<KotlinCompilerVersion> getSupported() {
+      return Arrays.stream(KotlinCompilerVersion.values())
+          .filter(
+              compiler ->
+                  compiler.isGreaterThanOrEqualTo(MIN_SUPPORTED_VERSION)
+                      && compiler.isLessThanOrEqualTo(MAX_SUPPORTED_VERSION))
+          .collect(Collectors.toList());
+    }
   }
 
   public static final class KotlinCompiler {

@@ -44,10 +44,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters()
-            .withCompiler(KotlinCompilerVersion.KOTLINC_1_3_72)
-            .withAllTargetVersions()
-            .build());
+        getKotlinTestParameters().withOldCompilersIfSet().withAllTargetVersions().build());
   }
 
   public MetadataFirstToLatestTest(
@@ -59,7 +56,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
   @Test
   public void smokeTest() throws Exception {
     runTest(
-        KotlinCompilerVersion.KOTLINC_1_5_0,
+        KotlinCompilerVersion.MAX_SUPPORTED_VERSION,
         libJars.getForConfiguration(kotlinc, targetVersion),
         kotlinc.getKotlinStdlibJar());
   }
@@ -93,7 +90,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
         assertThrows(
             AssertionError.class,
             () -> {
-              runTest(KotlinCompilerVersion.KOTLINC_1_3_72, libJar, stdLibJar);
+              runTest(kotlinParameters.getCompiler().getCompilerVersion(), libJar, stdLibJar);
             });
     assertThat(
         assertionError.getMessage(),
@@ -120,7 +117,7 @@ public class MetadataFirstToLatestTest extends KotlinMetadataTestBase {
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .writeToZip();
-    runTest(KotlinCompilerVersion.KOTLINC_1_5_0, libJar, stdLibJar);
+    runTest(KotlinCompilerVersion.MAX_SUPPORTED_VERSION, libJar, stdLibJar);
   }
 
   private void runTest(KotlinCompilerVersion kotlinCompilerVersion, Path libJar, Path stdLibJar)

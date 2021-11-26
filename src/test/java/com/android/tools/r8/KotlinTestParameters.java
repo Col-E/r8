@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
@@ -69,6 +71,8 @@ public class KotlinTestParameters {
     private Predicate<KotlinTargetVersion> targetVersionFilter = t -> false;
     private boolean withDevCompiler =
         System.getProperty("com.android.tools.r8.kotlincompilerdev") != null;
+    private boolean withOldCompilers =
+        System.getProperty("com.android.tools.r8.kotlincompilerold") != null;
 
     private Builder() {}
 
@@ -101,6 +105,11 @@ public class KotlinTestParameters {
       return this;
     }
 
+    public Builder withOldCompilersIfSet() {
+      assumeTrue(withOldCompilers);
+      return this;
+    }
+
     public Builder withAllTargetVersions() {
       withTargetVersionFilter(t -> t != KotlinTargetVersion.NONE);
       return this;
@@ -126,10 +135,16 @@ public class KotlinTestParameters {
       List<KotlinCompilerVersion> compilerVersions;
       if (withDevCompiler) {
         compilerVersions = ImmutableList.of(KotlinCompilerVersion.KOTLIN_DEV);
-      } else {
+      } else if (withOldCompilers) {
         compilerVersions =
             Arrays.stream(KotlinCompilerVersion.values())
-                .filter(c -> c != KotlinCompilerVersion.KOTLIN_DEV && compilerFilter.test(c))
+                .filter(c -> c.isLessThan(KotlinCompilerVersion.MIN_SUPPORTED_VERSION))
+                .collect(Collectors.toList());
+
+      } else {
+        compilerVersions =
+            KotlinCompilerVersion.getSupported().stream()
+                .filter(c -> compilerFilter.test(c))
                 .collect(Collectors.toList());
       }
       for (KotlinCompilerVersion kotlinVersion : compilerVersions) {

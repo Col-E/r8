@@ -196,6 +196,9 @@ def ParseOptions():
                     help='Specify to download a kotlin dev compiler and run '
                          'tests with that',
                     default=False, action='store_true')
+  result.add_option('--kotlin-compiler-old',
+                    help='Specify to run tests on older kotlin compilers',
+                    default=False, action='store_true')
   return result.parse_args()
 
 def archive_failures(options):
@@ -283,6 +286,8 @@ def Main():
     gradle_args.append('-Pprint_full_stacktraces')
   if options.print_obfuscated_stacktraces:
     gradle_args.append('-Pprint_obfuscated_stacktraces')
+  if options.kotlin_compiler_old:
+    gradle_args.append('-Dcom.android.tools.r8.kotlincompilerold=1')
   if options.kotlin_compiler_dev:
     gradle_args.append('-Dcom.android.tools.r8.kotlincompilerdev=1')
     download_kotlin_dev.download_newest()

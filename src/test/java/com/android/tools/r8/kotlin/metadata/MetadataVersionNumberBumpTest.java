@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.objectweb.asm.Opcodes.ASM7;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
@@ -43,7 +42,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters()
-            .withCompiler(KotlinCompilerVersion.KOTLINC_1_3_72)
+            .withOldCompilersIfSet()
             .withTargetVersion(KotlinTargetVersion.JAVA_8)
             .build());
   }
