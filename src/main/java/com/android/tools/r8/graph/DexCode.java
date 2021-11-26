@@ -572,9 +572,8 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       return null;
     }
     if (debugInfoForWriting == null) {
-      debugInfoForWriting = new DexDebugInfoForWriting(debugInfo);
+      debugInfoForWriting = DexDebugInfoForWriting.create(debugInfo);
     }
-
     return debugInfoForWriting;
   }
 

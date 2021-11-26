@@ -4,20 +4,36 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
-import java.util.Arrays;
-
 /**
  * Wraps DexDebugInfo to make comparison and hashcode not consider
  * the SetInlineFrames
  */
 public class DexDebugInfoForWriting extends DexDebugInfo {
 
-  public DexDebugInfoForWriting(DexDebugInfo dexDebugInfo) {
-    super(dexDebugInfo.startLine, dexDebugInfo.parameters,
-        Arrays.stream(dexDebugInfo.events)
-            .filter(d -> !(d instanceof SetInlineFrame))
-            .toArray(DexDebugEvent[]::new));
+  private DexDebugInfoForWriting(int startLine, DexString[] parameters, DexDebugEvent[] events) {
+    super(startLine, parameters, events);
   }
 
+  public static DexDebugInfoForWriting create(DexDebugInfo debugInfo) {
+    assert debugInfo != null;
+    int nonWritableEvents = 0;
+    for (DexDebugEvent event : debugInfo.events) {
+      if (!event.isWritableEvent()) {
+        nonWritableEvents++;
+      }
+    }
+    DexDebugEvent[] writableEvents;
+    if (nonWritableEvents == 0) {
+      writableEvents = debugInfo.events;
+    } else {
+      writableEvents = new DexDebugEvent[debugInfo.events.length - nonWritableEvents];
+      int i = 0;
+      for (DexDebugEvent event : debugInfo.events) {
+        if (event.isWritableEvent()) {
+          writableEvents[i++] = event;
+        }
+      }
+    }
+    return new DexDebugInfoForWriting(debugInfo.startLine, debugInfo.parameters, writableEvents);
+  }
 }
