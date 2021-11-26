@@ -138,46 +138,51 @@ public class ProxiesTest extends TestBase {
   }
 
   private void noInterfaceKept(CodeInspector inspector) {
-    // Indirectly assert that method is inlined into x, y and z.
-    assertEquals(1, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
-    assertEquals(1, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
-    assertEquals(1, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
+    // Indirectly assert that method is inlined into x, y and z and that redundant field loads
+    // remove invokes.
+    assertEquals(0, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(0, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(0, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
   public void testNoInterfaceKept() throws Exception {
-    runTest(ImmutableList.of(),
+    runTest(
+        ImmutableList.of(),
         this::noInterfaceKept,
-        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nEXCEPTION\n");
+        "TestClass 1\nTestClass 1\nTestClass 1\nEXCEPTION\n");
   }
 
   private void baseInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x.
     assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
-    // Indirectly assert that method is inlined into y and z.
-    assertEquals(1, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
-    assertEquals(1, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
-    assertEquals(1, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
+    // Indirectly assert that method is inlined into y and z and that redundant field loads
+    // remove invokes.
+    assertEquals(0, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(0, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
+    assertEquals(0, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
   public void testBaseInterfaceKept() throws Exception {
-    runTest(ImmutableList.of(
-        "-keep interface " + BaseInterface.class.getCanonicalName() + " {",
-        "  <methods>;",
-        "}"),
+    runTest(
+        ImmutableList.of(
+            "-keep interface " + BaseInterface.class.getCanonicalName() + " {",
+            "  <methods>;",
+            "}"),
         this::baseInterfaceKept,
-        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n" +
-        "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nEXCEPTION\n");
+        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n"
+            + "TestClass 2\nTestClass 2\nTestClass 2\nEXCEPTION\n");
   }
 
   private void subInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is not inlined into x or y.
     assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
     assertEquals(3, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
-    // Indirectly assert that method is inlined into z.
-    assertEquals(1, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
-    assertEquals(1, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
+    // Indirectly assert that method is inlined into x, y and z and that redundant field loads
+    // remove invokes.
+    assertEquals(0, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
+    assertEquals(0, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
   }
 
   @Test
