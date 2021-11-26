@@ -55,7 +55,7 @@ def make_parser():
     '--r8-flags', '--r8_flags',
     help='Additional option(s) for the compiler.')
   parser.add_argument(
-    '-override',
+    '--override',
     help='Do not override any extracted dump in temp-dir',
     default=False,
     action='store_true')
