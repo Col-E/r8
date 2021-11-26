@@ -735,6 +735,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 
+  // TODO(b/207765416): Enable and remove this once fixed.
+  public boolean enablePcBasedMappingFile = false;
+
   public CallSiteOptimizationOptions callSiteOptimizationOptions() {
     return callSiteOptimizationOptions;
   }
@@ -1863,7 +1866,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseDexPcAsDebugInformation() {
-    return lineNumberOptimization == LineNumberOptimization.ON && hasMinApi(AndroidApiLevel.O);
+    return enablePcBasedMappingFile
+        && lineNumberOptimization == LineNumberOptimization.ON
+        && hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {

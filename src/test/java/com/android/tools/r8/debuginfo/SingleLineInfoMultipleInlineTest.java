@@ -60,6 +60,7 @@ public class SingleLineInfoMultipleInlineTest extends TestBase {
         .addKeepAttributeSourceFile()
         .addKeepAttributeLineNumberTable()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(

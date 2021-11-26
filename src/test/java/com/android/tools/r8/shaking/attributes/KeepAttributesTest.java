@@ -119,6 +119,7 @@ public class KeepAttributesTest extends TestBase {
         .addKeepRules(keepRules)
         .enableSideEffectAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), CLASS)
         .inspector()
         .clazz(CLASS)

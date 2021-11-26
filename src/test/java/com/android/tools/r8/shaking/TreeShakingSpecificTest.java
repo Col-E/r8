@@ -12,13 +12,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -40,6 +39,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class TreeShakingSpecificTest extends TestBase {
 
   private Backend backend;
+  private AndroidApiLevel minApi = AndroidApiLevel.LATEST;
 
   @Parameters(name = "Backend: {1}")
   public static List<Object[]> data() {
@@ -63,18 +63,6 @@ public class TreeShakingSpecificTest extends TestBase {
     return Files.readAllBytes(Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex"));
   }
 
-  private void finishBuild(R8Command.Builder builder, Path out, String test) throws IOException {
-    Path input;
-    if (backend == Backend.DEX) {
-      builder.setOutput(out, OutputMode.DexIndexed);
-      input = Paths.get(EXAMPLES_BUILD_DIR, test, "classes.dex");
-    } else {
-      builder.setOutput(out, OutputMode.ClassFile);
-      input = Paths.get(EXAMPLES_BUILD_DIR, test + ".jar");
-    }
-    ToolHelper.getAppBuilder(builder).addProgramFiles(input);
-  }
-
   @Test
   public void testIgnoreWarnings() throws Exception {
     // Generate R8 processed version without library option.
@@ -86,6 +74,7 @@ public class TreeShakingSpecificTest extends TestBase {
             builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .addIgnoreWarnings()
+        .setMinApi(minApi)
         .compile();
   }
 
@@ -101,6 +90,7 @@ public class TreeShakingSpecificTest extends TestBase {
         .addLibraryFiles()
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .allowDiagnosticErrorMessages()
+        .setMinApi(minApi)
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics
@@ -131,6 +121,8 @@ public class TreeShakingSpecificTest extends TestBase {
             builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
+        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
+        .setMinApi(minApi)
         .compile()
         .inspectProguardMap(
             proguardMap -> {
