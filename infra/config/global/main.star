@@ -336,6 +336,17 @@ r8_builder(
     }
 )
 
+r8_builder(
+    "linux-kotlin_old",
+    dimensions = get_dimensions(),
+    execution_timeout = time.hour * 12,
+    expiration_timeout = time.hour * 35,
+    properties = {
+      "builder_group" : "internal.client.r8",
+      "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-old", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*"]
+    }
+)
+
 def jctf():
   for release in ["", "_release"]:
     for tool in ["d8", "r8cf"]:
