@@ -92,6 +92,7 @@ public class KotlinReflectTest extends KotlinTestBase {
         .addProgramFiles(kotlinc.getKotlinStdlibJar())
         .addProgramFiles(kotlinc.getKotlinReflectJar())
         .addProgramFiles(kotlinc.getKotlinAnnotationJar())
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.LATEST))
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
