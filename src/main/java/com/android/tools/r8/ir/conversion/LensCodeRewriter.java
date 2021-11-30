@@ -479,7 +479,8 @@ public class LensCodeRewriter {
               InstancePut instancePut = current.asInstancePut();
               DexField field = instancePut.getField();
               FieldLookupResult lookup = graphLens.lookupFieldResult(field);
-              insertCastForFieldAssignmentIfNeeded(code, blocks, iterator, instancePut, lookup);
+              iterator =
+                  insertCastForFieldAssignmentIfNeeded(code, blocks, iterator, instancePut, lookup);
 
               DexField rewrittenField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
@@ -550,7 +551,8 @@ public class LensCodeRewriter {
               StaticPut staticPut = current.asStaticPut();
               DexField field = staticPut.getField();
               FieldLookupResult lookup = graphLens.lookupFieldResult(field);
-              insertCastForFieldAssignmentIfNeeded(code, blocks, iterator, staticPut, lookup);
+              iterator =
+                  insertCastForFieldAssignmentIfNeeded(code, blocks, iterator, staticPut, lookup);
 
               DexField actualField = rewriteFieldReference(lookup, method);
               DexMethod replacementMethod =
@@ -752,7 +754,7 @@ public class LensCodeRewriter {
     assert code.hasNoMergedClasses(appView);
   }
 
-  private void insertCastForFieldAssignmentIfNeeded(
+  private InstructionListIterator insertCastForFieldAssignmentIfNeeded(
       IRCode code,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
@@ -774,6 +776,7 @@ public class LensCodeRewriter {
       Instruction next = iterator.next();
       assert next == fieldPut;
     }
+    return iterator;
   }
 
   private DexField rewriteFieldReference(FieldLookupResult lookup, ProgramMethod context) {

@@ -74,6 +74,16 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
       allowFieldTypeStrengthening = original.internalIsFieldTypeStrengtheningAllowed();
     }
 
+    @Override
+    public Builder makeTop() {
+      return super.makeTop().disallowFieldTypeStrengthening();
+    }
+
+    @Override
+    public Builder makeBottom() {
+      return super.makeBottom().allowFieldTypeStrengthening();
+    }
+
     public boolean isFieldTypeStrengtheningAllowed() {
       return allowFieldTypeStrengthening;
     }
@@ -112,6 +122,12 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
     }
 
     @Override
+    boolean internalIsEqualTo(KeepFieldInfo other) {
+      return super.internalIsEqualTo(other)
+          && isFieldTypeStrengtheningAllowed() == other.internalIsFieldTypeStrengtheningAllowed();
+    }
+
+    @Override
     public KeepFieldInfo doBuild() {
       return new KeepFieldInfo(this);
     }
@@ -136,7 +152,10 @@ public final class KeepFieldInfo extends KeepMemberInfo<KeepFieldInfo.Builder, K
     @Override
     public Joiner merge(Joiner joiner) {
       // Should be extended to merge the fields of this class in case any are added.
-      return super.merge(joiner);
+      return super.merge(joiner)
+          .applyIf(
+              !joiner.builder.isFieldTypeStrengtheningAllowed(),
+              KeepFieldInfo.Joiner::disallowFieldTypeStrengthening);
     }
 
     @Override
