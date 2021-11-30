@@ -17,9 +17,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase {
+public class MetadataRewriteLocalDelegatedPropertyTest extends KotlinMetadataTestBase {
 
-  private static final String PKG_APP = PKG + ".delegated_property_app";
+  private static final String PKG_APP = PKG + ".local_delegated_property_app";
   private static final String EXPECTED_MAIN =
       StringUtils.lines(
           "Initial string has been read in CustomDelegate from 'x'",
@@ -36,7 +36,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
         getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
   }
 
-  public MetadataRewriteDelegatedPropertyTest(
+  public MetadataRewriteLocalDelegatedPropertyTest(
       TestParameters parameters, KotlinTestParameters kotlinParameters) {
     super(kotlinParameters);
     this.parameters = parameters;
