@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -1058,6 +1059,10 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return fieldAccessInfo != null
         && fieldAccessInfo.isWritten()
         && !fieldAccessInfo.isWrittenOutside(method);
+  }
+
+  public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexClassAndField field) {
+    return isInstanceFieldWrittenOnlyInInstanceInitializers(field.getDefinition());
   }
 
   public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexEncodedField field) {

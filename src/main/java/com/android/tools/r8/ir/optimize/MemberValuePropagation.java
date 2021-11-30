@@ -411,7 +411,7 @@ public class MemberValuePropagation {
       // Verify that the optimization info is consistent with the static value.
       assert definition.getOptimizationInfo().getAbstractValue().isUnknown()
           || !definition.hasExplicitStaticValue()
-          || abstractValue == definition.getOptimizationInfo().getAbstractValue();
+          || abstractValue.equals(definition.getOptimizationInfo().getAbstractValue());
     } else {
       // This is guaranteed to read the default value of the field.
       abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);

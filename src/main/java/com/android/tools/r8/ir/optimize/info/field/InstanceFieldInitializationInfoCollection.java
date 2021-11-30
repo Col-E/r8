@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -36,6 +37,10 @@ public abstract class InstanceFieldInitializationInfoCollection {
       BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer);
 
   public abstract InstanceFieldInitializationInfo get(DexEncodedField field);
+
+  public final InstanceFieldInitializationInfo get(DexClassAndField field) {
+    return get(field.getDefinition());
+  }
 
   public abstract boolean isEmpty();
 

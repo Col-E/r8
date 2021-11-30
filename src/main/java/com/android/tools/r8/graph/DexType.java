@@ -55,7 +55,11 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   public TypeElement toTypeElement(AppView<?> appView) {
-    return TypeElement.fromDexType(this, Nullability.maybeNull(), appView);
+    return toTypeElement(appView, Nullability.maybeNull());
+  }
+
+  public TypeElement toTypeElement(AppView<?> appView, Nullability nullability) {
+    return TypeElement.fromDexType(this, nullability, appView);
   }
 
   @Override

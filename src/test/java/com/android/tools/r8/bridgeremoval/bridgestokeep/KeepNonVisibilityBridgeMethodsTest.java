@@ -7,6 +7,7 @@ package com.android.tools.r8.bridgeremoval.bridgestokeep;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -51,6 +52,11 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
             "  synthetic void registerObserver(...);",
             "}")
         .allowAccessModification()
+        .addAlwaysInliningAnnotations()
+        .addKeepRules(
+            "-alwaysinline class * { @"
+                + AlwaysInline.class.getTypeName()
+                + " !synthetic <methods>; }")
         .enableNeverClassInliningAnnotations()
         // TODO(b/120764902): MemberSubject.getOriginalName() is not working without the @NeverMerge
         //  annotation on DataAdapter.Observer.

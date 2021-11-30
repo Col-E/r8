@@ -27,6 +27,10 @@ public abstract class FieldOptimizationInfo
 
   public abstract ClassTypeElement getDynamicLowerBoundType();
 
+  public final boolean hasDynamicUpperBoundType() {
+    return getDynamicUpperBoundType() != null;
+  }
+
   public abstract TypeElement getDynamicUpperBoundType();
 
   public ClassTypeElement getExactClassType(AppView<AppInfoWithLiveness> appView) {

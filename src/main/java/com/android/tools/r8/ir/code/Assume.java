@@ -261,6 +261,8 @@ public class Assume extends Instruction {
       assert inType.isNullType() || outType.equals(inType.asReferenceType().asMeetWithNotNull())
           : "At " + this + System.lineSeparator() + outType + " != " + inType;
     } else {
+      assert hasDynamicTypeAssumption();
+      assert !src().isConstNumber();
       assert outType.equals(inType)
           : "At " + this + System.lineSeparator() + outType + " != " + inType;
     }

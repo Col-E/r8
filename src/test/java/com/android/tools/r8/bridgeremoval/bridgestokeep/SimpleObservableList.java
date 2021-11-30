@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.bridgeremoval.bridgestokeep;
 
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.bridgeremoval.bridgestokeep.ObservableList.Observer;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +14,7 @@ public class SimpleObservableList<O extends Observer>
 
   private List<O> observers = new ArrayList<>();
 
+  @AlwaysInline
   @Override
   public void registerObserver(O observer) {
     if (observer != null && observers != null && !observers.contains(observer)) {

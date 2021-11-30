@@ -62,7 +62,7 @@ public class AssumeRemover {
         Assume assumeInstruction = user.asAssume();
         assumeInstruction.unsetDynamicTypeAssumption();
         if (!assumeInstruction.hasNonNullAssumption()) {
-          assumeInstruction.unsetDynamicTypeAssumption();
+          markForRemoval(assumeInstruction);
         }
       }
     }

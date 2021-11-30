@@ -85,8 +85,7 @@ public class FieldAccessAnalysis {
               resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
           if (field != null) {
             if (fieldAssignmentTracker != null) {
-              fieldAssignmentTracker.recordFieldAccess(
-                  fieldInstruction, field.getDefinition(), code.context());
+              fieldAssignmentTracker.recordFieldAccess(fieldInstruction, field, code.context());
             }
             if (fieldBitAccessAnalysis != null) {
               fieldBitAccessAnalysis.recordFieldAccess(

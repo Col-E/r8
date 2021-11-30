@@ -4,19 +4,30 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
+import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcreteArrayTypeFieldState;
+import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcreteClassTypeFieldState;
+import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcretePrimitiveTypeFieldState;
+import com.android.tools.r8.ir.analysis.fieldaccess.state.FieldState;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.BottomValue;
 import com.android.tools.r8.ir.analysis.value.NonConstantNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -30,9 +41,10 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldArgumentInitializationInfo;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
@@ -40,13 +52,14 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class FieldAssignmentTracker {
 
+  private final AbstractValueFactory abstractValueFactory;
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory dexItemFactory;
 
   // A field access graph with edges from methods to the fields that they access. Edges are removed
   // from the graph as we process methods, such that we can conclude that all field writes have been
@@ -58,14 +71,17 @@ public class FieldAssignmentTracker {
   // sites have been seen when a class no longer has any incoming edges.
   private final ObjectAllocationGraph objectAllocationGraph;
 
-  // The set of fields that may store a non-zero value.
-  private final Set<DexEncodedField> nonZeroFields = Sets.newConcurrentHashSet();
+  // Information about the fields in the program. If a field is not a key in the map then no writes
+  // has been seen to the field.
+  private final Map<DexEncodedField, FieldState> fieldStates = new ConcurrentHashMap<>();
 
   private final Map<DexProgramClass, Map<DexEncodedField, AbstractValue>>
       abstractInstanceFieldValues = new ConcurrentHashMap<>();
 
   FieldAssignmentTracker(AppView<AppInfoWithLiveness> appView) {
+    this.abstractValueFactory = appView.abstractValueFactory();
     this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.fieldAccessGraph = new FieldAccessGraph();
     this.objectAllocationGraph = new ObjectAllocationGraph();
   }
@@ -109,33 +125,109 @@ public class FieldAssignmentTracker {
           }
           abstractInstanceFieldValues.put(clazz, abstractInstanceFieldValuesForClass);
         });
-  }
-
-  private boolean isAlwaysZero(DexEncodedField field) {
-    return !appView.appInfo().isPinned(field.getReference()) && !nonZeroFields.contains(field);
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.forEachProgramField(
+          field -> {
+            FieldAccessInfo accessInfo = fieldAccessInfos.get(field.getReference());
+            KeepFieldInfo keepInfo = appView.getKeepInfo(field);
+            if (keepInfo.isPinned(appView.options()) || accessInfo.isWrittenFromMethodHandle()) {
+              fieldStates.put(field.getDefinition(), FieldState.unknown());
+            }
+          });
+    }
   }
 
   void acceptClassInitializerDefaultsResult(
       ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     classInitializerDefaultsResult.forEachOptimizedField(
         (field, value) -> {
-          if (!value.isDefault(field.getReference().type)) {
-            nonZeroFields.add(field);
+          DexType fieldType = field.getType();
+          if (value.isDefault(field.getType())) {
+            return;
           }
+          assert fieldType.isClassType() || fieldType.isPrimitiveType();
+          fieldStates.compute(
+              field,
+              (f, fieldState) -> {
+                if (fieldState == null) {
+                  AbstractValue abstractValue = value.toAbstractValue(abstractValueFactory);
+                  if (fieldType.isClassType()) {
+                    assert abstractValue.isSingleStringValue()
+                        || abstractValue.isSingleDexItemBasedStringValue();
+                    ClassTypeElement nonNullableStringType =
+                        dexItemFactory
+                            .stringType
+                            .toTypeElement(appView, definitelyNotNull())
+                            .asClassType();
+                    return ConcreteClassTypeFieldState.create(
+                        abstractValue, DynamicType.createExact(nonNullableStringType));
+                  } else {
+                    assert fieldType.isPrimitiveType();
+                    return ConcretePrimitiveTypeFieldState.create(abstractValue);
+                  }
+                }
+                // If the field is already assigned outside the class initializer then just give up.
+                return FieldState.unknown();
+              });
         });
   }
 
-  void recordFieldAccess(
-      FieldInstruction instruction, DexEncodedField field, ProgramMethod context) {
+  void recordFieldAccess(FieldInstruction instruction, ProgramField field, ProgramMethod context) {
     if (instruction.isFieldPut()) {
       recordFieldPut(field, instruction.value(), context);
     }
   }
 
-  private void recordFieldPut(DexEncodedField field, Value value, ProgramMethod context) {
-    if (!value.isZero()) {
-      nonZeroFields.add(field);
-    }
+  private void recordFieldPut(ProgramField field, Value value, ProgramMethod context) {
+    // For now only attempt to prove that fields are definitely null. In order to prove a single
+    // value for fields that are not definitely null, we need to prove that the given field is never
+    // read before it is written.
+    AbstractValue abstractValue =
+        value.isZero() ? abstractValueFactory.createZeroValue() : AbstractValue.unknown();
+    fieldStates.compute(
+        field.getDefinition(),
+        (f, fieldState) -> {
+          if (fieldState == null || fieldState.isBottom()) {
+            DexType fieldType = field.getType();
+            if (fieldType.isArrayType()) {
+              return ConcreteArrayTypeFieldState.create(abstractValue);
+            }
+            if (fieldType.isPrimitiveType()) {
+              return ConcretePrimitiveTypeFieldState.create(abstractValue);
+            }
+            assert fieldType.isClassType();
+            DynamicType dynamicType =
+                fieldType.isArrayType()
+                    ? DynamicType.unknown()
+                    : WideningUtils.widenDynamicNonReceiverType(
+                        appView,
+                        value.getDynamicType(appView).withNullability(Nullability.maybeNull()),
+                        field.getType());
+            return ConcreteClassTypeFieldState.create(abstractValue, dynamicType);
+          }
+
+          if (fieldState.isUnknown()) {
+            return fieldState;
+          }
+
+          assert fieldState.isConcrete();
+
+          if (fieldState.isArray()) {
+            ConcreteArrayTypeFieldState arrayFieldState = fieldState.asArray();
+            return arrayFieldState.mutableJoin(appView, abstractValue);
+          }
+
+          if (fieldState.isPrimitive()) {
+            ConcretePrimitiveTypeFieldState primitiveFieldState = fieldState.asPrimitive();
+            return primitiveFieldState.mutableJoin(abstractValue, abstractValueFactory);
+          }
+
+          assert fieldState.isClass();
+
+          ConcreteClassTypeFieldState classFieldState = fieldState.asClass();
+          return classFieldState.mutableJoin(
+              appView, abstractValue, value.getDynamicType(appView), field);
+        });
   }
 
   void recordAllocationSite(NewInstance instruction, DexProgramClass clazz, ProgramMethod context) {
@@ -146,7 +238,7 @@ public class FieldAssignmentTracker {
       return;
     }
 
-    InvokeDirect invoke = instruction.getUniqueConstructorInvoke(appView.dexItemFactory());
+    InvokeDirect invoke = instruction.getUniqueConstructorInvoke(dexItemFactory);
     if (invoke == null) {
       // We just lost track.
       abstractInstanceFieldValues.remove(clazz);
@@ -238,27 +330,33 @@ public class FieldAssignmentTracker {
   }
 
   private void recordAllFieldPutsProcessed(
-      DexEncodedField field, ProgramMethod context, OptimizationFeedbackDelayed feedback) {
-    DexProgramClass clazz = asProgramClassOrNull(appView.definitionForHolder(field, context));
-    if (clazz == null) {
-      assert false;
-      return;
+      ProgramField field, ProgramMethod context, OptimizationFeedbackDelayed feedback) {
+    FieldState fieldState = fieldStates.getOrDefault(field.getDefinition(), FieldState.bottom());
+    AbstractValue abstractValue = fieldState.getAbstractValue(appView.abstractValueFactory());
+    if (abstractValue.isNonTrivial()) {
+      feedback.recordFieldHasAbstractValue(field.getDefinition(), appView, abstractValue);
     }
 
-    if (isAlwaysZero(field)) {
-      feedback.recordFieldHasAbstractValue(
-          field, appView, appView.abstractValueFactory().createSingleNumberValue(0));
+    if (fieldState.isClass() && !field.getOptimizationInfo().hasDynamicUpperBoundType()) {
+      ConcreteClassTypeFieldState classFieldState = fieldState.asClass();
+      DynamicType dynamicType = classFieldState.getDynamicType();
+      if (!dynamicType.isUnknown()) {
+        assert WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, field.getType())
+            == dynamicType;
+        feedback.markFieldHasDynamicType(field, dynamicType);
+      }
     }
 
-    if (!field.isStatic()) {
-      recordAllInstanceFieldPutsProcessed(clazz, field, feedback);
+    if (!field.getAccessFlags().isStatic()) {
+      recordAllInstanceFieldPutsProcessed(field, feedback);
     }
   }
 
   private void recordAllInstanceFieldPutsProcessed(
-      DexProgramClass clazz, DexEncodedField field, OptimizationFeedbackDelayed feedback) {
+      ProgramField field, OptimizationFeedbackDelayed feedback) {
     if (appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
       AbstractValue abstractValue = BottomValue.getInstance();
+      DexProgramClass clazz = field.getHolder();
       for (DexEncodedMethod method : clazz.directMethods(DexEncodedMethod::isInstanceInitializer)) {
         InstanceFieldInitializationInfo fieldInitializationInfo =
             method
@@ -290,7 +388,7 @@ public class FieldAssignmentTracker {
       assert !abstractValue.isBottom();
 
       if (!abstractValue.isUnknown()) {
-        feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
+        feedback.recordFieldHasAbstractValue(field.getDefinition(), appView, abstractValue);
       }
     }
   }
@@ -334,8 +432,7 @@ public class FieldAssignmentTracker {
   static class FieldAccessGraph {
 
     // The fields written by each method.
-    private final Map<DexEncodedMethod, List<DexEncodedField>> fieldWrites =
-        new IdentityHashMap<>();
+    private final Map<DexEncodedMethod, List<ProgramField>> fieldWrites = new IdentityHashMap<>();
 
     // The number of writes that have not yet been processed per field.
     private final Reference2IntMap<DexEncodedField> pendingFieldWrites =
@@ -348,8 +445,7 @@ public class FieldAssignmentTracker {
           appView.appInfo().getFieldAccessInfoCollection();
       fieldAccessInfoCollection.forEach(
           info -> {
-            DexEncodedField field =
-                appView.appInfo().resolveField(info.getField()).getResolvedField();
+            ProgramField field = appView.appInfo().resolveField(info.getField()).getProgramField();
             if (field == null) {
               return;
             }
@@ -359,18 +455,18 @@ public class FieldAssignmentTracker {
                       fieldWrites
                           .computeIfAbsent(context.getDefinition(), ignore -> new ArrayList<>())
                           .add(field));
-              pendingFieldWrites.put(field, info.getNumberOfWriteContexts());
+              pendingFieldWrites.put(field.getDefinition(), info.getNumberOfWriteContexts());
             }
           });
     }
 
-    void markProcessed(ProgramMethod method, Consumer<DexEncodedField> allWritesSeenConsumer) {
-      List<DexEncodedField> fieldWritesInMethod = fieldWrites.get(method.getDefinition());
+    void markProcessed(ProgramMethod method, Consumer<ProgramField> allWritesSeenConsumer) {
+      List<ProgramField> fieldWritesInMethod = fieldWrites.get(method.getDefinition());
       if (fieldWritesInMethod != null) {
-        for (DexEncodedField field : fieldWritesInMethod) {
-          int numberOfPendingFieldWrites = pendingFieldWrites.removeInt(field) - 1;
+        for (ProgramField field : fieldWritesInMethod) {
+          int numberOfPendingFieldWrites = pendingFieldWrites.removeInt(field.getDefinition()) - 1;
           if (numberOfPendingFieldWrites > 0) {
-            pendingFieldWrites.put(field, numberOfPendingFieldWrites);
+            pendingFieldWrites.put(field.getDefinition(), numberOfPendingFieldWrites);
           } else {
             allWritesSeenConsumer.accept(field);
           }

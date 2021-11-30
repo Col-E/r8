@@ -226,8 +226,9 @@ public final class ClassInliner {
         }
 
         // Restore normality.
+        assumeRemover.removeMarkedInstructions();
         code.removeAllDeadAndTrivialPhis(affectedValues);
-        assumeRemover.removeMarkedInstructions().finish();
+        assumeRemover.finish();
         assert code.isConsistentSSA();
         rootsIterator.remove();
         repeat = true;
