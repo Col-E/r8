@@ -33,14 +33,19 @@ public class AssumeRemover {
   private final AppView<?> appView;
   private final IRCode code;
 
-  private final Set<Value> affectedValues = Sets.newIdentityHashSet();
+  private final Set<Value> affectedValues;
   private final Set<Assume> assumeInstructionsToRemove = Sets.newIdentityHashSet();
 
   private boolean mayHaveIntroducedTrivialPhi = false;
 
   public AssumeRemover(AppView<?> appView, IRCode code) {
+    this(appView, code, Sets.newIdentityHashSet());
+  }
+
+  public AssumeRemover(AppView<?> appView, IRCode code, Set<Value> affectedValues) {
     this.appView = appView;
     this.code = code;
+    this.affectedValues = affectedValues;
   }
 
   public Set<Value> getAffectedValues() {

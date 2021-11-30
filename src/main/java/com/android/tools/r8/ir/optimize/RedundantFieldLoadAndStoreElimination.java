@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -189,6 +188,7 @@ public class RedundantFieldLoadAndStoreElimination {
       }
     }
 
+    AssumeRemover assumeRemover = new AssumeRemover(appView, code, affectedValues);
     for (BasicBlock head : code.topologicallySortedBlocks()) {
       if (head.hasUniquePredecessor() && head.getUniquePredecessor().hasUniqueNormalSuccessor()) {
         // Already visited.
@@ -211,14 +211,16 @@ public class RedundantFieldLoadAndStoreElimination {
             }
 
             if (instruction.isInstanceGet()) {
-              handleInstanceGet(it, instruction.asInstanceGet(), field);
+              handleInstanceGet(it, instruction.asInstanceGet(), field, assumeRemover);
             } else if (instruction.isInstancePut()) {
               handleInstancePut(instruction.asInstancePut(), field);
             } else if (instruction.isStaticGet()) {
-              handleStaticGet(it, instruction.asStaticGet(), field);
+              handleStaticGet(it, instruction.asStaticGet(), field, assumeRemover);
             } else if (instruction.isStaticPut()) {
               handleStaticPut(instruction.asStaticPut(), field);
             }
+          } else if (instruction.isAssume()) {
+            assumeRemover.removeIfMarked(instruction.asAssume(), it);
           } else if (instruction.isInitClass()) {
             handleInitClass(it, instruction.asInitClass());
           } else if (instruction.isMonitor()) {
@@ -288,9 +290,7 @@ public class RedundantFieldLoadAndStoreElimination {
       activeStates.recordActiveStateOnBlockExit(end, activeState);
     }
     processInstructionsToRemove();
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
+    assumeRemover.removeMarkedInstructions().finish();
     assert code.isConsistentSSA();
   }
 
@@ -398,7 +398,10 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void handleInstanceGet(
-      InstructionListIterator it, InstanceGet instanceGet, DexClassAndField field) {
+      InstructionListIterator it,
+      InstanceGet instanceGet,
+      DexClassAndField field,
+      AssumeRemover assumeRemover) {
     if (instanceGet.outValue().hasLocalInfo()) {
       clearMostRecentInstanceFieldWrite(instanceGet, field);
       return;
@@ -408,6 +411,7 @@ public class RedundantFieldLoadAndStoreElimination {
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
     if (replacement != null) {
+      assumeRemover.markAssumeDynamicTypeUsersForRemoval(instanceGet.outValue());
       replacement.eliminateRedundantRead(it, instanceGet);
       return;
     }
@@ -464,7 +468,10 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void handleStaticGet(
-      InstructionListIterator instructionIterator, StaticGet staticGet, DexClassAndField field) {
+      InstructionListIterator instructionIterator,
+      StaticGet staticGet,
+      DexClassAndField field,
+      AssumeRemover assumeRemover) {
     if (staticGet.outValue().hasLocalInfo()) {
       killNonFinalActiveFields(staticGet);
       clearMostRecentStaticFieldWrite(staticGet, field);
@@ -473,6 +480,7 @@ public class RedundantFieldLoadAndStoreElimination {
 
     FieldValue replacement = activeState.getStaticFieldValue(field.getReference());
     if (replacement != null) {
+      assumeRemover.markAssumeDynamicTypeUsersForRemoval(staticGet.outValue());
       replacement.eliminateRedundantRead(instructionIterator, staticGet);
       return;
     }

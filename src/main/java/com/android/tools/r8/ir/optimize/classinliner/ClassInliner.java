@@ -14,12 +14,12 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.AssumeRemover;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -209,8 +209,10 @@ public final class ClassInliner {
 
         // Inline the class instance.
         Set<Value> affectedValues = Sets.newIdentityHashSet();
+        AssumeRemover assumeRemover = new AssumeRemover(appView, code, affectedValues);
         try {
-          anyInlinedMethods |= processor.processInlining(code, affectedValues, inliningIRProvider);
+          anyInlinedMethods |=
+              processor.processInlining(code, affectedValues, assumeRemover, inliningIRProvider);
         } catch (IllegalClassInlinerStateException e) {
           // We introduced a user that we cannot handle in the class inliner as a result of force
           // inlining. Abort gracefully from class inlining without removing the instance.
@@ -225,9 +227,7 @@ public final class ClassInliner {
 
         // Restore normality.
         code.removeAllDeadAndTrivialPhis(affectedValues);
-        if (!affectedValues.isEmpty()) {
-          new TypeAnalysis(appView).narrowing(affectedValues);
-        }
+        assumeRemover.removeMarkedInstructions().finish();
         assert code.isConsistentSSA();
         rootsIterator.remove();
         repeat = true;

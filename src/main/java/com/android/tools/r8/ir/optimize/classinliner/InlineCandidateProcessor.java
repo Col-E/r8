@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.AssumeRemover;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -376,6 +377,7 @@ final class InlineCandidateProcessor {
   boolean processInlining(
       IRCode code,
       Set<Value> affectedValues,
+      AssumeRemover assumeRemover,
       InliningIRProvider inliningIRProvider)
       throws IllegalClassInlinerStateException {
     // Verify that `eligibleInstance` is not aliased.
@@ -386,7 +388,7 @@ final class InlineCandidateProcessor {
 
     rebindIndirectEligibleInstanceUsersFromPhis();
     removeMiscUsages(code, affectedValues);
-    removeFieldReads(code);
+    removeFieldReads(code, assumeRemover);
     removeFieldWrites();
     removeInstruction(root);
     return anyInlinedMethods;
@@ -666,24 +668,26 @@ final class InlineCandidateProcessor {
   }
 
   // Replace field reads with appropriate values, insert phis when needed.
-  private void removeFieldReads(IRCode code) {
+  private void removeFieldReads(IRCode code, AssumeRemover assumeRemover) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     if (root.isNewInstance()) {
-      removeFieldReadsFromNewInstance(code, affectedValues);
+      removeFieldReadsFromNewInstance(code, affectedValues, assumeRemover);
     } else {
       assert root.isStaticGet();
-      removeFieldReadsFromStaticGet(code, affectedValues);
+      removeFieldReadsFromStaticGet(code, affectedValues, assumeRemover);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
   }
 
-  private void removeFieldReadsFromNewInstance(IRCode code, Set<Value> affectedValues) {
+  private void removeFieldReadsFromNewInstance(
+      IRCode code, Set<Value> affectedValues, AssumeRemover assumeRemover) {
     TreeSet<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder =
         new TreeSet<>(Comparator.comparingInt(x -> x.outValue().getNumber()));
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
+        assumeRemover.markAssumeDynamicTypeUsersForRemoval(user.outValue());
         if (user.hasUsedOutValue()) {
           uniqueInstanceGetUsersWithDeterministicOrder.add(user.asInstanceGet());
         } else {
@@ -738,7 +742,8 @@ final class InlineCandidateProcessor {
     removeInstruction(fieldRead);
   }
 
-  private void removeFieldReadsFromStaticGet(IRCode code, Set<Value> affectedValues) {
+  private void removeFieldReadsFromStaticGet(
+      IRCode code, Set<Value> affectedValues, AssumeRemover assumeRemover) {
     Set<BasicBlock> seen = Sets.newIdentityHashSet();
     Set<Instruction> users = eligibleInstance.uniqueUsers();
     for (Instruction user : users) {
@@ -759,6 +764,7 @@ final class InlineCandidateProcessor {
         }
 
         if (instruction.isInstanceGet()) {
+          assumeRemover.markAssumeDynamicTypeUsersForRemoval(instruction.outValue());
           if (instruction.hasUsedOutValue()) {
             replaceFieldReadFromStaticGet(
                 code, instructionIterator, user.asInstanceGet(), affectedValues);

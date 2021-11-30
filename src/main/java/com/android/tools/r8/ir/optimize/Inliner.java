@@ -1108,8 +1108,7 @@ public class Inliner {
       }
     }
     assert inlineeStack.isEmpty();
-    assumeRemover.removeMarkedInstructions(blocksToRemove);
-    assumeRemover.finish();
+    assumeRemover.removeMarkedInstructions(blocksToRemove).finish();
     classInitializationAnalysis.finish();
     code.removeBlocks(blocksToRemove);
     code.removeAllDeadAndTrivialPhis();
