@@ -180,6 +180,14 @@ public abstract class AbstractValue {
     return join(other, factory, type.isReferenceType(), false);
   }
 
+  public AbstractValue joinPrimitive(AbstractValue other, AbstractValueFactory factory) {
+    return join(other, factory, false, false);
+  }
+
+  public AbstractValue joinReference(AbstractValue other, AbstractValueFactory factory) {
+    return join(other, factory, true, false);
+  }
+
   // TODO(b/196321452): Clean this up, in particular, replace the "allow" parameters by a
   //  configuration object.
   public AbstractValue join(
