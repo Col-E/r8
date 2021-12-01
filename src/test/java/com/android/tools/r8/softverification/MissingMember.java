@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.softverification;
 
-public class MissingMember {
+public class MissingMember extends RuntimeException {
 
   public static int staticField = 42;
 

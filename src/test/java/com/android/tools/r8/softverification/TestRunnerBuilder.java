@@ -74,8 +74,11 @@ public class TestRunnerBuilder extends TestBase {
 
   private static final Path ANDROID_STUDIO_LIB_PATH = Paths.get("PATH_TO_PROJECT/libs/library.jar");
 
-  private static final int COUNT = 1100;
+  private static final int COUNT = 800;
 
+  private static final List<Class<?>> referenceClasses =
+      ImmutableList.of(
+          MissingClass.class, MissingMember.class, FoundClass.class, MissingSuperType.class);
   private static final List<Class<?>> testClasses =
       ImmutableList.of(
           TestCheckCast.class,
@@ -85,7 +88,9 @@ public class TestRunnerBuilder extends TestBase {
           TestStaticField.class,
           TestStaticMethod.class,
           TestInstanceField.class,
-          TestInstanceMethod.class);
+          TestInstanceMethod.class,
+          TestHashCode.class,
+          TestTryCatch.class);
   private static final Collection<String> testClassBinaryNames =
       ImmutableSet.copyOf(ListUtils.map(testClasses, TestBase::binaryName));
 
@@ -93,8 +98,7 @@ public class TestRunnerBuilder extends TestBase {
     ZipBuilder builder = ZipBuilder.builder(path);
     builder.addFilesRelative(
         ToolHelper.getClassPathForTests(), ToolHelper.getClassFileForTestClass(Measure.class));
-    for (Class<?> clazz :
-        ImmutableList.of(MissingClass.class, MissingMember.class, FoundClass.class)) {
+    for (Class<?> clazz : referenceClasses) {
       String postFix = clazz.getSimpleName();
       int classCounter = 0;
       for (int i = 0; i < COUNT; i++) {
@@ -168,6 +172,11 @@ public class TestRunnerBuilder extends TestBase {
             .replaceClassDescriptorInMethodInstructions(
                 descriptor(MissingClass.class),
                 getDescriptorFromClassBinaryName(referenceBinaryName))
+            .transformTryCatchBlock(
+                "run",
+                (start, end, handler, type, visitor) -> {
+                  visitor.visitTryCatchBlock(start, end, handler, referenceBinaryName);
+                })
             .transform());
   }
 

@@ -4,17 +4,18 @@
 
 package com.android.tools.r8.softverification;
 
-public class MissingClass extends RuntimeException {
+public class MissingSuperType extends MissingClass {
 
   public static int staticField = 42;
 
   public int instanceField = 42;
 
   public static void staticMethod() {
-    System.out.println("MissingClass::staticMethod");
+    System.out.println("MissingSuperType::staticMethod");
   }
 
+  @Override
   public void instanceMethod() {
-    System.out.println("MissingClass::instanceMethod");
+    System.out.println("MissingSuperType::instanceMethod");
   }
 }

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.softverification;
 
-public class FoundClass {
+public class FoundClass extends RuntimeException {
 
   public static int staticField = 42;
 

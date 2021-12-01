@@ -47,8 +47,14 @@ public class TestRunner {
     measure.start("InstanceField");
     TestInstanceField.run();
     sb.append(measure.stop());
+    measure.start("HashCode");
+    TestHashCode.run();
+    sb.append(measure.stop());
     measure.start("InstanceMethod");
     TestInstanceMethod.run();
+    sb.append(measure.stop());
+    measure.start("TryCatch");
+    TestTryCatch.run();
     sb.append(measure.stop());
     return sb.toString();
   }
