@@ -422,7 +422,7 @@ public class ToolHelper {
     protected List<String> classpaths = new ArrayList<>();
     protected String mainClass;
     protected List<String> programArguments = new ArrayList<>();
-    protected List<String> bootClassPaths = new ArrayList<>();
+    protected List<String> bootClasspaths = new ArrayList<>();
     protected String executionDirectory;
 
     public CommandBuilder appendArtOption(String option) {
@@ -450,8 +450,8 @@ public class ToolHelper {
       return this;
     }
 
-    public CommandBuilder appendBootClassPath(String lib) {
-      bootClassPaths.add(lib);
+    public CommandBuilder appendBootClasspath(String lib) {
+      bootClasspaths.add(lib);
       return this;
     }
 
@@ -475,12 +475,12 @@ public class ToolHelper {
         builder.append(entry.getValue());
         result.add(builder.toString());
       }
+      if (!bootClasspaths.isEmpty()) {
+        result.add("-Xbootclasspath:" + String.join(":", bootClasspaths));
+      }
       if (!classpaths.isEmpty()) {
         result.add("-cp");
         result.add(String.join(":", classpaths));
-      }
-      if (!bootClassPaths.isEmpty()) {
-        result.add("-Xbootclasspath:" + String.join(":", bootClassPaths));
       }
       if (mainClass != null) {
         result.add(mainClass);
@@ -555,7 +555,7 @@ public class ToolHelper {
           .setVmOptions(options)
           .setSystemProperties(systemProperties)
           .setClasspath(toFileList(classpaths))
-          .setBootClasspath(toFileList(bootClassPaths))
+          .setBootClasspath(toFileList(bootClasspaths))
           .setMainClass(mainClass)
           .setProgramArguments(programArguments);
     }
@@ -1416,12 +1416,28 @@ public class ToolHelper {
   public static ProcessResult runJava(
       CfRuntime runtime, List<String> vmArgs, List<Path> classpath, String... args)
       throws IOException {
-    String cp =
-        classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
+    return runJava(runtime, vmArgs, ImmutableList.of(), classpath, args);
+  }
+
+  public static ProcessResult runJava(
+      CfRuntime runtime,
+      List<String> vmArgs,
+      List<Path> bootClasspaths,
+      List<Path> classpath,
+      String... args)
+      throws IOException {
     List<String> cmdline = new ArrayList<>(Arrays.asList(runtime.getJavaExecutable().toString()));
     cmdline.addAll(vmArgs);
+    if (!bootClasspaths.isEmpty()) {
+      cmdline.add(
+          "-Xbootclasspath/a:"
+              + bootClasspaths.stream()
+                  .map(Path::toString)
+                  .collect(Collectors.joining(CLASSPATH_SEPARATOR)));
+    }
     cmdline.add("-cp");
-    cmdline.add(cp);
+    cmdline.add(
+        classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR)));
     cmdline.addAll(Arrays.asList(args));
     ProcessBuilder builder = new ProcessBuilder(cmdline);
     return runProcess(builder);

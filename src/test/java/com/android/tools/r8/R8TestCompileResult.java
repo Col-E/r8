@@ -179,7 +179,7 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
     for (int i = 2; i < args.length; i++) {
       args[i] = featureDependencies[i - 2].toString();
     }
-    return runArt(runtime, additionalRunClassPath, mainClassSubject.getFinalName(), args);
+    return runArt(runtime, mainClassSubject.getFinalName(), args);
   }
 
   public String getProguardMap() {

@@ -8,10 +8,12 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.Matchers;
@@ -36,6 +38,9 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    // TODO(b/197078995): Make this work on 12.
+    assumeFalse(
+        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0));
     boolean isMockApiLevel =
         parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(mockApiLevel);
     testForR8(parameters.getBackend())
@@ -58,14 +63,14 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
                     .getRuntime()
                     .maxSupportedApiLevel()
                     .isGreaterThanOrEqualTo(lowerMockApiLevel),
-            b -> b.addRunClasspathClasses(LibraryClass.class, LibraryInterface.class))
+            b -> b.addBootClasspathClasses(LibraryClass.class, LibraryInterface.class))
         .applyIf(
             parameters.isDexRuntime()
                 && parameters
                     .getRuntime()
                     .maxSupportedApiLevel()
                     .isGreaterThanOrEqualTo(mockApiLevel),
-            b -> b.addRunClasspathClasses(OtherLibraryClass.class))
+            b -> b.addBootClasspathClasses(OtherLibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "ProgramClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "Hello World")

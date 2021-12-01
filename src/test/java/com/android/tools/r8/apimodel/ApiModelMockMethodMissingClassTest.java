@@ -8,10 +8,12 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.Matchers;
@@ -37,6 +39,9 @@ public class ApiModelMockMethodMissingClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    // TODO(b/197078995): Make this work on 12.
+    assumeFalse(
+        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0));
     boolean preMockApis =
         parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(initialLibraryMockLevel);
     boolean postMockApis =
@@ -64,7 +69,7 @@ public class ApiModelMockMethodMissingClassTest extends TestBase {
                     .getRuntime()
                     .maxSupportedApiLevel()
                     .isGreaterThanOrEqualTo(initialLibraryMockLevel),
-            b -> b.addRunClasspathClasses(LibraryClass.class))
+            b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(preMockApis, "Hello World")
         .assertSuccessWithOutputLinesIf(

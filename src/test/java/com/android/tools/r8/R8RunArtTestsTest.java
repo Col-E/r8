@@ -2237,7 +2237,7 @@ public abstract class R8RunArtTestsTest {
       builder.appendArtOption("-Xnoimage-dex2oat");
     }
     for (String s : ToolHelper.getBootLibs(dexVm)) {
-      builder.appendBootClassPath(new File(s).getCanonicalPath());
+      builder.appendBootClasspath(new File(s).getCanonicalPath());
     }
     builder.setMainClass(JUNIT_TEST_RUNNER);
     builder.appendProgramArgument(fullClassName);

@@ -33,6 +33,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ObjectArrays;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -56,6 +57,7 @@ public abstract class TestCompileResult<
   public final int minApiLevel;
   private final OutputMode outputMode;
   final List<Path> additionalRunClassPath = new ArrayList<>();
+  final List<Path> additionalBootClasspath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
   private boolean withArtFrameworks = true;
@@ -164,12 +166,10 @@ public abstract class TestCompileResult<
       case DEX:
         return runArt(
             new DexRuntime(ToolHelper.getDexVm()),
-            additionalRunClassPath,
             mainClassSubject.getFinalName());
       case CF:
         return runJava(
             TestRuntime.getDefaultJavaRuntime(),
-            additionalRunClassPath,
             mainClassSubject.getFinalName());
       default:
         throw new Unreachable();
@@ -207,12 +207,11 @@ public abstract class TestCompileResult<
     }
     assertThat("Did you forget a keep rule for the main method?", mainClassSubject, isPresent());
     if (runtime.isDex()) {
-      return runArt(runtime, additionalRunClassPath, mainClassSubject.getFinalName(), args);
+      return runArt(runtime, mainClassSubject.getFinalName(), args);
     }
     assert runtime.isCf();
     return runJava(
         runtime,
-        additionalRunClassPath,
         ObjectArrays.concat(mainClassSubject.getFinalName(), args));
   }
 
@@ -250,6 +249,38 @@ public abstract class TestCompileResult<
       }
       consumer.finished(null);
       additionalRunClassPath.addAll(Collections.singletonList(path));
+      return self();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public CR addBootClasspathClasses(Class<?>... classes) throws Exception {
+    return addBootClasspathClasses(Arrays.asList(classes));
+  }
+
+  public CR addBootClasspathClasses(List<Class<?>> classes) throws Exception {
+    if (getBackend() == Backend.DEX) {
+      additionalBootClasspath.add(
+          testForD8(state.getTempFolder())
+              .addProgramClasses(classes)
+              .setMinApi(minApiLevel)
+              .compile()
+              .writeToZip());
+      return self();
+    }
+    assert getBackend() == Backend.CF;
+    try {
+      Path path = state.getNewTempFolder().resolve("runtime-classes.jar");
+      ArchiveConsumer consumer = new ArchiveConsumer(path);
+      for (Class<?> clazz : classes) {
+        consumer.accept(
+            ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
+            DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
+            null);
+      }
+      consumer.finished(null);
+      additionalBootClasspath.add(path);
       return self();
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -523,30 +554,29 @@ public abstract class TestCompileResult<
     }
   }
 
-  private RR runJava(TestRuntime runtime, List<Path> additionalClassPath, String... arguments)
-      throws IOException {
+  private RR runJava(TestRuntime runtime, String... arguments) throws IOException {
     assert runtime != null;
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.ClassFile);
-    List<Path> classPath = ImmutableList.<Path>builder()
-        .addAll(additionalClassPath)
-        .add(out)
-        .build();
-    ProcessResult result = ToolHelper.runJava(runtime.asCf(), vmArguments, classPath, arguments);
+    List<Path> classPath =
+        ImmutableList.<Path>builder().addAll(additionalRunClassPath).add(out).build();
+    ProcessResult result =
+        ToolHelper.runJava(
+            runtime.asCf(), vmArguments, additionalBootClasspath, classPath, arguments);
     return createRunResult(runtime, result);
   }
 
-  RR runArt(
-      TestRuntime runtime, List<Path> additionalClassPath, String mainClass, String... arguments)
-      throws IOException {
+  RR runArt(TestRuntime runtime, String mainClass, String... arguments) throws IOException {
     DexVm vm = runtime.asDex().getVm();
     // TODO(b/127785410): Always assume a non-null runtime.
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
-    List<String> classPath = ImmutableList.<String>builder()
-        .addAll(additionalClassPath.stream().map(Path::toString).collect(Collectors.toList()))
-        .add(out.toString())
-        .build();
+    List<String> classPath =
+        ImmutableList.<String>builder()
+            .addAll(
+                additionalRunClassPath.stream().map(Path::toString).collect(Collectors.toList()))
+            .add(out.toString())
+            .build();
     Consumer<ArtCommandBuilder> commandConsumer =
         withArt6Plus64BitsLib && vm.getVersion().isNewerThanOrEqual(DexVm.Version.V6_0_1)
             ? builder -> builder.appendArtOption("--64")
@@ -554,6 +584,22 @@ public abstract class TestCompileResult<
     commandConsumer =
         commandConsumer.andThen(
             builder -> {
+              if (!additionalBootClasspath.isEmpty()) {
+                DexVm dexVm = runtime.asDex().getVm();
+                if (dexVm.isNewerThan(DexVm.ART_4_4_4_HOST)) {
+                  builder.appendArtOption("-Ximage:/system/non/existent/image.art");
+                  builder.appendArtOption("-Xnoimage-dex2oat");
+                }
+                try {
+                  for (String s : ToolHelper.getBootLibs(dexVm)) {
+                    builder.appendBootClasspath(new File(s).getCanonicalPath());
+                  }
+                } catch (Exception e) {
+                  throw new RuntimeException();
+                }
+                additionalBootClasspath.forEach(
+                    path -> builder.appendBootClasspath(path.toString()));
+              }
               for (String vmArgument : vmArguments) {
                 builder.appendArtOption(vmArgument);
               }
