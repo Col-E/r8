@@ -181,6 +181,7 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry<ProgramMethod> {
 
   @Override
   public void registerExceptionGuard(DexType guard) {
+    setMaxApiReferenceLevel(guard);
     enqueuer.traceExceptionGuard(guard, getContext());
   }
 
