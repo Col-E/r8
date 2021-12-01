@@ -61,9 +61,8 @@ import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.StatefulObjectValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -151,7 +150,7 @@ public class MethodOptimizationInfoCollector {
     }
     computeEnumUnboxerMethodClassification(method, code, feedback, methodProcessor, timing);
     computeSimpleInliningConstraint(method, code, feedback, timing);
-    computeDynamicReturnType(dynamicTypeOptimization, feedback, definition, code, timing);
+    computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code, timing);
     if (options.enableInitializedClassesAnalysis) {
       computeInitializedClassesOnNormalExit(feedback, definition, code, timing);
     }
@@ -874,7 +873,7 @@ public class MethodOptimizationInfoCollector {
   private void computeDynamicReturnType(
       DynamicTypeOptimization dynamicTypeOptimization,
       OptimizationFeedback feedback,
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       Timing timing) {
     timing.begin("Compute dynamic return type");
@@ -885,46 +884,39 @@ public class MethodOptimizationInfoCollector {
   private void computeDynamicReturnType(
       DynamicTypeOptimization dynamicTypeOptimization,
       OptimizationFeedback feedback,
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code) {
-    if (dynamicTypeOptimization != null) {
-      DexType staticReturnTypeRaw = method.getReference().proto.returnType;
-      if (!staticReturnTypeRaw.isReferenceType()) {
-        return;
-      }
-      TypeElement dynamicUpperBoundReturnType =
-          dynamicTypeOptimization.computeDynamicReturnType(method, code);
-      if (dynamicUpperBoundReturnType != null) {
-        if (dynamicUpperBoundReturnType.isReferenceType()
-            && dynamicUpperBoundReturnType.isDefinitelyNull()) {
-          feedback.methodReturnsAbstractValue(
-              method, appView, appView.abstractValueFactory().createSingleNumberValue(0));
-          feedback.methodReturnsObjectWithUpperBoundType(method, appView, TypeElement.getNull());
-        } else {
-          TypeElement staticReturnType =
-              TypeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
-          // If the dynamic return type is not more precise than the static return type there is no
-          // need to record it.
-          if (dynamicUpperBoundReturnType.strictlyLessThan(staticReturnType, appView)) {
-            feedback.methodReturnsObjectWithUpperBoundType(
-                method, appView, dynamicUpperBoundReturnType);
-          }
-        }
-      }
+    if (dynamicTypeOptimization == null) {
+      return;
+    }
+    if (!method.getReturnType().isReferenceType()) {
+      return;
+    }
 
-      if (dynamicUpperBoundReturnType != null && dynamicUpperBoundReturnType.isNullType()) {
-        return;
-      }
+    DynamicType dynamicReturnType = dynamicTypeOptimization.computeDynamicReturnType(method, code);
+    if (dynamicReturnType.isBottom() || dynamicReturnType.isUnknown()) {
+      return;
+    }
 
-      ClassTypeElement dynamicLowerBoundReturnType =
-          dynamicTypeOptimization.computeDynamicLowerBoundType(method, code);
-      if (dynamicLowerBoundReturnType != null) {
-        assert dynamicUpperBoundReturnType == null
-            || dynamicUpperBoundReturnType
-                .nullability()
-                .lessThanOrEqual(dynamicLowerBoundReturnType.nullability());
-        feedback.methodReturnsObjectWithLowerBoundType(method, dynamicLowerBoundReturnType);
-      }
+    if (dynamicReturnType.isNullType()) {
+      feedback.methodReturnsAbstractValue(
+          method.getDefinition(), appView, appView.abstractValueFactory().createNullValue());
+      feedback.setDynamicReturnType(method, appView, dynamicReturnType);
+      return;
+    }
+
+    if (dynamicReturnType.isNotNullType()) {
+      feedback.setDynamicReturnType(method, appView, dynamicReturnType);
+      return;
+    }
+
+    // If the dynamic return type is not more precise than the static return type there is no
+    // need to record it.
+    DynamicTypeWithUpperBound staticReturnType = method.getReturnType().toDynamicType(appView);
+    if (dynamicReturnType
+        .asDynamicTypeWithUpperBound()
+        .strictlyLessThan(staticReturnType, appView)) {
+      feedback.setDynamicReturnType(method, appView, dynamicReturnType);
     }
   }
 

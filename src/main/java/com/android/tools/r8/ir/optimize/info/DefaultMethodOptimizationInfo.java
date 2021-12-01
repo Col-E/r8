@@ -7,8 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -32,8 +31,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   static int UNKNOWN_RETURNED_ARGUMENT = -1;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
   static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
-  static TypeElement UNKNOWN_TYPE = null;
-  static ClassTypeElement UNKNOWN_CLASS_TYPE = null;
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
@@ -74,13 +71,8 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public TypeElement getDynamicUpperBoundType() {
-    return UNKNOWN_TYPE;
-  }
-
-  @Override
-  public ClassTypeElement getDynamicLowerBoundType() {
-    return UNKNOWN_CLASS_TYPE;
+  public DynamicType getDynamicType() {
+    return DynamicType.unknown();
   }
 
   @Override

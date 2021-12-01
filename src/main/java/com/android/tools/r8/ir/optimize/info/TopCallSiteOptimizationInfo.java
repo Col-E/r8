@@ -13,9 +13,4 @@ class TopCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   static TopCallSiteOptimizationInfo getInstance() {
     return INSTANCE;
   }
-
-  @Override
-  public boolean isTop() {
-    return true;
-  }
 }

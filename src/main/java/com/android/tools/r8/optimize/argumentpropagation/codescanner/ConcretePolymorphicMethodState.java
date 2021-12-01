@@ -7,6 +7,7 @@ package com.android.tools.r8.optimize.argumentpropagation.codescanner;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.HashMap;
@@ -18,24 +19,28 @@ import java.util.function.Function;
 public class ConcretePolymorphicMethodState extends ConcreteMethodState
     implements ConcretePolymorphicMethodStateOrBottom, ConcretePolymorphicMethodStateOrUnknown {
 
-  private final Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> receiverBoundsToState;
+  private final Map<DynamicTypeWithUpperBound, ConcreteMonomorphicMethodStateOrUnknown>
+      receiverBoundsToState;
 
   private ConcretePolymorphicMethodState(
-      Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> receiverBoundsToState) {
+      Map<DynamicTypeWithUpperBound, ConcreteMonomorphicMethodStateOrUnknown>
+          receiverBoundsToState) {
     this.receiverBoundsToState = receiverBoundsToState;
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
   }
 
   private ConcretePolymorphicMethodState(
-      DynamicType receiverBounds, ConcreteMonomorphicMethodStateOrUnknown methodState) {
+      DynamicTypeWithUpperBound receiverBounds,
+      ConcreteMonomorphicMethodStateOrUnknown methodState) {
     this.receiverBoundsToState = new HashMap<>(1);
     receiverBoundsToState.put(receiverBounds, methodState);
     assert !isEffectivelyUnknown();
   }
 
   public static ConcretePolymorphicMethodStateOrUnknown create(
-      DynamicType receiverBounds, ConcreteMonomorphicMethodStateOrUnknown methodState) {
+      DynamicTypeWithUpperBound receiverBounds,
+      ConcreteMonomorphicMethodStateOrUnknown methodState) {
     return receiverBounds.isUnknown() && methodState.isUnknown()
         ? MethodState.unknown()
         : new ConcretePolymorphicMethodState(receiverBounds, methodState);
@@ -44,7 +49,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   private ConcretePolymorphicMethodStateOrUnknown add(
       AppView<AppInfoWithLiveness> appView,
       DexMethodSignature methodSignature,
-      DynamicType bounds,
+      DynamicTypeWithUpperBound bounds,
       ConcreteMonomorphicMethodStateOrUnknown methodState,
       StateCloner cloner) {
     assert !isEffectivelyBottom();
@@ -90,11 +95,12 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   }
 
   public void forEach(
-      BiConsumer<? super DynamicType, ? super ConcreteMonomorphicMethodStateOrUnknown> consumer) {
+      BiConsumer<? super DynamicTypeWithUpperBound, ? super ConcreteMonomorphicMethodStateOrUnknown>
+          consumer) {
     receiverBoundsToState.forEach(consumer);
   }
 
-  public MethodState getMethodStateForBounds(DynamicType dynamicType) {
+  public MethodState getMethodStateForBounds(DynamicTypeWithUpperBound dynamicType) {
     ConcreteMonomorphicMethodStateOrUnknown methodStateForBounds =
         receiverBoundsToState.get(dynamicType);
     if (methodStateForBounds != null) {
@@ -115,7 +121,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
   public MethodState mutableCopy() {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
-    Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> receiverBoundsToState =
+    Map<DynamicTypeWithUpperBound, ConcreteMonomorphicMethodStateOrUnknown> receiverBoundsToState =
         new HashMap<>();
     forEach((bounds, methodState) -> receiverBoundsToState.put(bounds, methodState.mutableCopy()));
     return new ConcretePolymorphicMethodState(receiverBoundsToState);
@@ -123,16 +129,16 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
 
   public MethodState mutableCopyWithRewrittenBounds(
       AppView<AppInfoWithLiveness> appView,
-      Function<DynamicType, DynamicType> boundsRewriter,
+      Function<DynamicTypeWithUpperBound, DynamicTypeWithUpperBound> boundsRewriter,
       DexMethodSignature methodSignature,
       StateCloner cloner) {
     assert !isEffectivelyBottom();
     assert !isEffectivelyUnknown();
-    Map<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> rewrittenReceiverBoundsToState =
-        new HashMap<>();
-    for (Entry<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> entry :
+    Map<DynamicTypeWithUpperBound, ConcreteMonomorphicMethodStateOrUnknown>
+        rewrittenReceiverBoundsToState = new HashMap<>();
+    for (Entry<DynamicTypeWithUpperBound, ConcreteMonomorphicMethodStateOrUnknown> entry :
         receiverBoundsToState.entrySet()) {
-      DynamicType rewrittenBounds = boundsRewriter.apply(entry.getKey());
+      DynamicTypeWithUpperBound rewrittenBounds = boundsRewriter.apply(entry.getKey());
       if (rewrittenBounds == null) {
         continue;
       }
@@ -160,7 +166,7 @@ public class ConcretePolymorphicMethodState extends ConcreteMethodState
     assert !isEffectivelyUnknown();
     assert !methodState.isEffectivelyBottom();
     assert !methodState.isEffectivelyUnknown();
-    for (Entry<DynamicType, ConcreteMonomorphicMethodStateOrUnknown> entry :
+    for (Entry<DynamicTypeWithUpperBound, ConcreteMonomorphicMethodStateOrUnknown> entry :
         methodState.receiverBoundsToState.entrySet()) {
       ConcretePolymorphicMethodStateOrUnknown result =
           add(appView, methodSignature, entry.getKey(), entry.getValue(), cloner);

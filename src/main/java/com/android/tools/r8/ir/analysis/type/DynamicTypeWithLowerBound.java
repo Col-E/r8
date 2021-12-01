@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Objects;
 
-public class DynamicTypeWithLowerBound extends DynamicType {
+public class DynamicTypeWithLowerBound extends DynamicTypeWithUpperBound {
 
   private final ClassTypeElement dynamicLowerBoundType;
 
@@ -16,6 +16,7 @@ public class DynamicTypeWithLowerBound extends DynamicType {
       ClassTypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
     super(dynamicUpperBoundType);
     assert !dynamicUpperBoundType.equals(dynamicLowerBoundType);
+    assert dynamicUpperBoundType.nullability() == dynamicLowerBoundType.nullability();
     this.dynamicLowerBoundType = dynamicLowerBoundType;
   }
 
@@ -64,7 +65,7 @@ public class DynamicTypeWithLowerBound extends DynamicType {
   }
 
   @Override
-  public DynamicType withNullability(Nullability nullability) {
+  public DynamicTypeWithLowerBound withNullability(Nullability nullability) {
     if (getDynamicUpperBoundType().nullability() == nullability) {
       return this;
     }

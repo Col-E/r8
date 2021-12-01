@@ -63,7 +63,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
+    assertTrue(callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNotNull());
   }
 
   private void inspect(CodeInspector inspector) {

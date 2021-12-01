@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
 public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
@@ -43,14 +44,18 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
       DexClassAndMethod singleTarget,
       Set<Value> affectedValues,
       Set<BasicBlock> blocksToRemove) {
-    if (singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf
+    if (appView.hasLiveness()
+        && singleTarget.getReference() == appView.dexItemFactory().enumMembers.valueOf
         && invoke.inValues().get(0).isConstClass()) {
-      insertAssumeDynamicType(code, instructionIterator, invoke);
+      insertAssumeDynamicType(appView.withLiveness(), code, instructionIterator, invoke);
     }
   }
 
   private void insertAssumeDynamicType(
-      IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      InstructionListIterator instructionIterator,
+      InvokeMethod invoke) {
     // TODO(b/152516470): Support unboxing enums with Enum#valueOf in try-catch.
     if (invoke.getBlock().hasCatchHandlers()) {
       return;
@@ -62,8 +67,6 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
         || enumClass.superType != appView.dexItemFactory().enumType) {
       return;
     }
-    TypeElement dynamicUpperBoundType =
-        TypeElement.fromDexType(enumType, definitelyNotNull(), appView);
     Value outValue = invoke.outValue();
     if (outValue == null) {
       return;
@@ -73,9 +76,10 @@ public class EnumMethodOptimizer extends StatelessLibraryMethodModelCollection {
     outValue.replaceUsers(specializedOutValue);
 
     // Insert AssumeDynamicType instruction.
+    DynamicTypeWithUpperBound dynamicType = enumType.toDynamicType(appView, definitelyNotNull());
     Assume assumeInstruction =
         Assume.createAssumeDynamicTypeInstruction(
-            dynamicUpperBoundType, null, specializedOutValue, outValue, invoke, appView);
+            dynamicType, specializedOutValue, outValue, invoke, appView);
     assumeInstruction.setPosition(appView.options().debug ? invoke.getPosition() : Position.none());
     instructionIterator.add(assumeInstruction);
   }

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -285,11 +286,11 @@ public class ArgumentPropagatorCodeScanner {
       ProgramMethod resolvedMethod,
       ProgramMethod context,
       ConcretePolymorphicMethodStateOrBottom existingMethodState) {
-    DynamicType dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
+    DynamicTypeWithUpperBound dynamicReceiverType = invoke.getReceiver().getDynamicType(appView);
     assert !dynamicReceiverType.getDynamicUpperBoundType().nullability().isDefinitelyNull();
 
     ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, context);
-    DynamicType bounds =
+    DynamicTypeWithUpperBound bounds =
         computeBoundsForPolymorphicMethodState(
             invoke, resolvedMethod, singleTarget, context, dynamicReceiverType);
     MethodState existingMethodStateForBounds =
@@ -319,13 +320,13 @@ public class ArgumentPropagatorCodeScanner {
     return ConcretePolymorphicMethodState.create(bounds, methodStateForBounds);
   }
 
-  private DynamicType computeBoundsForPolymorphicMethodState(
+  private DynamicTypeWithUpperBound computeBoundsForPolymorphicMethodState(
       InvokeMethodWithReceiver invoke,
       ProgramMethod resolvedMethod,
       ProgramMethod singleTarget,
       ProgramMethod context,
-      DynamicType dynamicReceiverType) {
-    DynamicType bounds =
+      DynamicTypeWithUpperBound dynamicReceiverType) {
+    DynamicTypeWithUpperBound bounds =
         singleTarget != null
             ? DynamicType.createExact(
                 singleTarget.getHolderType().toTypeElement(appView).asClassType())

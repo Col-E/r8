@@ -54,7 +54,7 @@ public class ConcreteReceiverParameterState extends ConcreteReferenceTypeParamet
 
   @Override
   public Nullability getNullability() {
-    return getDynamicType().getDynamicUpperBoundType().nullability();
+    return getDynamicType().getNullability();
   }
 
   @Override

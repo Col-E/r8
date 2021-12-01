@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -53,19 +53,12 @@ public class Assume extends Instruction {
   }
 
   public static Assume createAssumeDynamicTypeInstruction(
-      TypeElement dynamicUpperBoundType,
-      ClassTypeElement dynamicLowerBoundType,
+      DynamicTypeWithUpperBound dynamicType,
       Value dest,
       Value src,
       Instruction origin,
       AppView<?> appView) {
-    return new Assume(
-        new DynamicTypeAssumption(dynamicUpperBoundType, dynamicLowerBoundType),
-        null,
-        dest,
-        src,
-        origin,
-        appView);
+    return new Assume(new DynamicTypeAssumption(dynamicType), null, dest, src, origin, appView);
   }
 
   @Override
@@ -142,7 +135,7 @@ public class Assume extends Instruction {
       return false;
     }
     if (hasDynamicTypeAssumption()) {
-      outType = dynamicTypeAssumption.getDynamicUpperBoundType();
+      outType = dynamicTypeAssumption.getDynamicType().getDynamicUpperBoundType();
     }
     if (appView.appInfo().hasLiveness()) {
       if (outType.isClassType()
@@ -281,13 +274,14 @@ public class Assume extends Instruction {
       builder.append("; not null");
     }
     if (hasDynamicTypeAssumption()) {
+      DynamicTypeWithUpperBound dynamicType = dynamicTypeAssumption.getDynamicType();
       if (hasOutValue()) {
-        if (!dynamicTypeAssumption.dynamicUpperBoundType.equalUpToNullability(outValue.getType())) {
-          builder.append("; upper bound: ").append(dynamicTypeAssumption.dynamicUpperBoundType);
+        if (!dynamicType.getDynamicUpperBoundType().equalUpToNullability(outValue.getType())) {
+          builder.append("; upper bound: ").append(dynamicType.getDynamicUpperBoundType());
         }
       }
-      if (dynamicTypeAssumption.dynamicLowerBoundType != null) {
-        builder.append("; lower bound: ").append(dynamicTypeAssumption.dynamicLowerBoundType);
+      if (dynamicType.hasDynamicLowerBoundType()) {
+        builder.append("; lower bound: ").append(dynamicType.getDynamicLowerBoundType());
       }
     }
     return builder.toString();
@@ -295,27 +289,23 @@ public class Assume extends Instruction {
 
   public static class DynamicTypeAssumption {
 
-    private final TypeElement dynamicUpperBoundType;
-    private final ClassTypeElement dynamicLowerBoundType;
+    private final DynamicTypeWithUpperBound dynamicType;
 
-    public DynamicTypeAssumption(
-        TypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
-      this.dynamicUpperBoundType = dynamicUpperBoundType;
-      this.dynamicLowerBoundType = dynamicLowerBoundType;
+    public DynamicTypeAssumption(DynamicTypeWithUpperBound dynamicType) {
+      assert dynamicType != null;
+      this.dynamicType = dynamicType;
     }
 
-    public TypeElement getDynamicUpperBoundType() {
-      return dynamicUpperBoundType;
-    }
-
-    public ClassTypeElement getDynamicLowerBoundType() {
-      return dynamicLowerBoundType;
+    public DynamicTypeWithUpperBound getDynamicType() {
+      return dynamicType;
     }
 
     public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
-      assert !dynamicUpperBoundType.isBottom();
-      assert !dynamicUpperBoundType.isTop();
-      assert dynamicUpperBoundType.lessThanOrEqualUpToNullability(src.getType(), appView);
+      assert !dynamicType.isBottom();
+      assert !dynamicType.isUnknown();
+      assert dynamicType
+          .getDynamicUpperBoundType()
+          .lessThanOrEqualUpToNullability(src.getType(), appView);
       return true;
     }
 
@@ -328,13 +318,12 @@ public class Assume extends Instruction {
         return false;
       }
       DynamicTypeAssumption assumption = (DynamicTypeAssumption) other;
-      return dynamicUpperBoundType == assumption.dynamicUpperBoundType
-          && dynamicLowerBoundType == assumption.dynamicLowerBoundType;
+      return dynamicType.equals(assumption.dynamicType);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(dynamicUpperBoundType, dynamicLowerBoundType);
+      return dynamicType.hashCode();
     }
   }
 

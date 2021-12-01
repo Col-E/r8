@@ -3,22 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 
-// A flat lattice structure:
-//   BOTTOM, TOP, and a lattice element that holds accumulated argument info.
+// A flat lattice structure: TOP and a lattice element that holds accumulated argument info.
 public abstract class CallSiteOptimizationInfo {
 
   public static TopCallSiteOptimizationInfo top() {
     return TopCallSiteOptimizationInfo.getInstance();
-  }
-
-  public boolean isTop() {
-    return false;
   }
 
   public boolean isConcreteCallSiteOptimizationInfo() {
@@ -29,32 +22,10 @@ public abstract class CallSiteOptimizationInfo {
     return null;
   }
 
-  public CallSiteOptimizationInfo join(
-      CallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod method) {
-    if (other.isTop()) {
-      return other;
-    }
-    if (isTop()) {
-      return this;
-    }
-    assert isConcreteCallSiteOptimizationInfo() && other.isConcreteCallSiteOptimizationInfo();
-    return asConcreteCallSiteOptimizationInfo()
-        .join(other.asConcreteCallSiteOptimizationInfo(), appView, method);
-  }
-
-  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod method) {
-    return false;
-  }
-
-
   // The index exactly matches with in values of invocation, i.e., even including receiver.
-  public TypeElement getDynamicUpperBoundType(int argIndex) {
+  public DynamicType getDynamicType(int argIndex) {
     return null;
   }
-
-  // TODO(b/139246447): dynamic lower bound type?
-
-  // TODO(b/69963623): we need to re-run unused argument removal?
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
   public AbstractValue getAbstractArgumentValue(int argIndex) {

@@ -4,8 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 
@@ -35,13 +34,8 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
-  public ClassTypeElement getDynamicLowerBoundType() {
-    return null;
-  }
-
-  @Override
-  public TypeElement getDynamicUpperBoundType() {
-    return null;
+  public DynamicType getDynamicType() {
+    return DynamicType.unknown();
   }
 
   @Override

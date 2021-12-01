@@ -140,7 +140,7 @@ public class EnumValueOptimizer {
 
         // Since the value is a single field value, the type should be exact.
         assert abstractValue.isSingleFieldValue();
-        ClassTypeElement enumFieldType = optimizationInfo.getExactClassType(appView);
+        ClassTypeElement enumFieldType = optimizationInfo.getDynamicType().getExactClassType();
         if (enumFieldType == null) {
           assert false : "Expected to have an exact dynamic type for enum instance";
           continue;

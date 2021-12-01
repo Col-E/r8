@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.fieldaccess.state.ConcretePrimitiveTypeF
 import com.android.tools.r8.ir.analysis.fieldaccess.state.FieldState;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
@@ -154,13 +155,18 @@ public class FieldAssignmentTracker {
                   if (fieldType.isClassType()) {
                     assert abstractValue.isSingleStringValue()
                         || abstractValue.isSingleDexItemBasedStringValue();
-                    ClassTypeElement nonNullableStringType =
-                        dexItemFactory
-                            .stringType
-                            .toTypeElement(appView, definitelyNotNull())
-                            .asClassType();
-                    return ConcreteClassTypeFieldState.create(
-                        abstractValue, DynamicType.createExact(nonNullableStringType));
+                    if (fieldType == dexItemFactory.stringType) {
+                      return ConcreteClassTypeFieldState.create(
+                          abstractValue, DynamicType.definitelyNotNull());
+                    } else {
+                      ClassTypeElement nonNullableStringType =
+                          dexItemFactory
+                              .stringType
+                              .toTypeElement(appView, definitelyNotNull())
+                              .asClassType();
+                      return ConcreteClassTypeFieldState.create(
+                          abstractValue, DynamicType.createExact(nonNullableStringType));
+                    }
                   } else {
                     assert fieldType.isPrimitiveType();
                     return ConcretePrimitiveTypeFieldState.create(abstractValue);
@@ -337,13 +343,20 @@ public class FieldAssignmentTracker {
       feedback.recordFieldHasAbstractValue(field.getDefinition(), appView, abstractValue);
     }
 
-    if (fieldState.isClass() && !field.getOptimizationInfo().hasDynamicUpperBoundType()) {
+    if (fieldState.isClass() && field.getOptimizationInfo().getDynamicType().isUnknown()) {
       ConcreteClassTypeFieldState classFieldState = fieldState.asClass();
       DynamicType dynamicType = classFieldState.getDynamicType();
       if (!dynamicType.isUnknown()) {
         assert WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, field.getType())
             == dynamicType;
-        feedback.markFieldHasDynamicType(field, dynamicType);
+        if (dynamicType.isNotNullType()) {
+          feedback.markFieldHasDynamicType(field.getDefinition(), dynamicType);
+        } else {
+          DynamicTypeWithUpperBound staticType = field.getType().toDynamicType(appView);
+          if (dynamicType.asDynamicTypeWithUpperBound().strictlyLessThan(staticType, appView)) {
+            feedback.markFieldHasDynamicType(field.getDefinition(), dynamicType);
+          }
+        }
       }
     }
 

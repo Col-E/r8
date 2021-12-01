@@ -3,31 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.info;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.utils.MapUtils.canonicalizeEmptyMap;
 import static java.util.Objects.requireNonNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import java.util.List;
 
 // Accumulated optimization info from call sites.
 public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
@@ -35,7 +29,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   // inValues() size == DexMethod.arity + (isStatic ? 0 : 1) // receiver
   // That is, this information takes into account the receiver as well.
   private final int size;
-  private final Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes;
+  private final Int2ReferenceMap<DynamicType> dynamicTypes;
   private final Int2ReferenceMap<AbstractValue> constants;
 
   private ConcreteCallSiteOptimizationInfo(int size) {
@@ -44,29 +38,24 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
   private ConcreteCallSiteOptimizationInfo(
       int size,
-      Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes,
+      Int2ReferenceMap<DynamicType> dynamicTypes,
       Int2ReferenceMap<AbstractValue> constants) {
     assert size > 0;
+    assert constants.values().stream().noneMatch(AbstractValue::isUnknown);
+    assert dynamicTypes.values().stream().noneMatch(DynamicType::isUnknown);
     this.size = size;
-    this.dynamicUpperBoundTypes = requireNonNull(dynamicUpperBoundTypes);
+    this.dynamicTypes = requireNonNull(dynamicTypes);
     this.constants = requireNonNull(constants);
   }
 
   private static CallSiteOptimizationInfo create(
       int size,
-      Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes,
+      Int2ReferenceMap<DynamicType> dynamicTypes,
       Int2ReferenceMap<AbstractValue> constants) {
-    return constants.isEmpty() && dynamicUpperBoundTypes.isEmpty()
+    return constants.isEmpty() && dynamicTypes.isEmpty()
         ? top()
         : new ConcreteCallSiteOptimizationInfo(
-            size, canonicalizeEmptyMap(dynamicUpperBoundTypes), canonicalizeEmptyMap(constants));
-  }
-
-  public CallSiteOptimizationInfo fixupAfterExtraNullParameters(int extraNullParameters) {
-    return extraNullParameters > 0
-        ? new ConcreteCallSiteOptimizationInfo(
-            size + extraNullParameters, dynamicUpperBoundTypes, constants)
-        : this;
+            size, canonicalizeEmptyMap(dynamicTypes), canonicalizeEmptyMap(constants));
   }
 
   public CallSiteOptimizationInfo fixupAfterParametersChanged(
@@ -79,7 +68,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     if (parameterChanges.isEmpty()) {
       if (prototypeChanges.hasExtraParameters()) {
         return new ConcreteCallSiteOptimizationInfo(
-            size + prototypeChanges.numberOfExtraParameters(), dynamicUpperBoundTypes, constants);
+            size + prototypeChanges.numberOfExtraParameters(), dynamicTypes, constants);
       }
       return this;
     }
@@ -94,7 +83,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
     Int2ReferenceMap<AbstractValue> rewrittenConstants =
         new Int2ReferenceArrayMap<>(newSizeAfterParameterRemoval);
-    Int2ReferenceMap<TypeElement> rewrittenDynamicUpperBoundTypes =
+    Int2ReferenceMap<DynamicType> rewrittenDynamicTypes =
         new Int2ReferenceArrayMap<>(newSizeAfterParameterRemoval);
     for (int parameterIndex = 0, rewrittenParameterIndex = 0;
         parameterIndex < size;
@@ -105,154 +94,29 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         if (!abstractValue.isUnknown()) {
           rewrittenConstants.put(rewrittenParameterIndex, abstractValue);
         }
-        TypeElement dynamicUpperBoundType = dynamicUpperBoundTypes.get(parameterIndex);
-        if (dynamicUpperBoundType != null) {
-          rewrittenDynamicUpperBoundTypes.put(rewrittenParameterIndex, dynamicUpperBoundType);
+        DynamicType dynamicType = dynamicTypes.get(parameterIndex);
+        if (dynamicType != null) {
+          rewrittenDynamicTypes.put(rewrittenParameterIndex, dynamicType);
         }
         rewrittenParameterIndex++;
       }
     }
     return ConcreteCallSiteOptimizationInfo.create(
         newSizeAfterParameterRemoval + prototypeChanges.numberOfExtraParameters(),
-        rewrittenDynamicUpperBoundTypes,
+        rewrittenDynamicTypes,
         rewrittenConstants);
   }
 
-  CallSiteOptimizationInfo join(
-      ConcreteCallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod method) {
-    assert size == other.size;
-    assert size == method.getNumberOfArguments();
-    ConcreteCallSiteOptimizationInfo result = new ConcreteCallSiteOptimizationInfo(size);
-    for (int i = 0; i < result.size; i++) {
-      AbstractValue abstractValue =
-          getAbstractArgumentValue(i)
-              .join(
-                  other.getAbstractArgumentValue(i),
-                  appView.abstractValueFactory(),
-                  method.getArgumentType(i));
-      if (abstractValue.isNonTrivial()) {
-        result.constants.put(i, abstractValue);
-      }
-
-      TypeElement thisUpperBoundType = getDynamicUpperBoundType(i);
-      if (thisUpperBoundType == null) {
-        // This means the corresponding argument is primitive. The counterpart should be too.
-        assert other.getDynamicUpperBoundType(i) == null;
-        continue;
-      }
-      assert thisUpperBoundType.isReferenceType();
-      TypeElement otherUpperBoundType = other.getDynamicUpperBoundType(i);
-      assert otherUpperBoundType != null && otherUpperBoundType.isReferenceType();
-      result.dynamicUpperBoundTypes.put(
-          i, thisUpperBoundType.join(otherUpperBoundType, appView));
-    }
-    if (result.hasUsefulOptimizationInfo(appView, method)) {
-      return result;
-    }
-    // As soon as we know the argument collection so far does not have any useful optimization info,
-    // move to TOP so that further collection can be simply skipped.
-    return top();
-  }
-
-  private TypeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod method) {
-    int argOffset = method.getFirstNonReceiverArgumentIndex();
-    int size = method.getReference().getArity() + argOffset;
-    TypeElement[] staticTypes = new TypeElement[size];
-    if (!method.isStatic()) {
-      staticTypes[0] =
-          TypeElement.fromDexType(method.getHolderType(), definitelyNotNull(), appView);
-    }
-    for (int i = 0; i < method.getReference().getArity(); i++) {
-      staticTypes[i + argOffset] =
-          TypeElement.fromDexType(method.getParameter(i), maybeNull(), appView);
-    }
-    return staticTypes;
-  }
-
   @Override
-  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod method) {
-    TypeElement[] staticTypes = getStaticTypes(appView, method);
-    for (int i = 0; i < size; i++) {
-      AbstractValue abstractValue = getAbstractArgumentValue(i);
-      if (abstractValue.isNonTrivial()) {
-        return true;
-      }
-
-      if (!staticTypes[i].isReferenceType()) {
-        continue;
-      }
-      TypeElement dynamicUpperBoundType = getDynamicUpperBoundType(i);
-      if (dynamicUpperBoundType == null) {
-        continue;
-      }
-      // To avoid the full join of type lattices below, separately check if the nullability of
-      // arguments is improved, and if so, we can eagerly conclude that we've collected useful
-      // call site information for this method.
-      Nullability nullability = dynamicUpperBoundType.nullability();
-      if (nullability.isDefinitelyNull()) {
-        return true;
-      }
-      // TODO(b/139246447): Similar to nullability, if dynamic lower bound type is available,
-      //   we stop here and regard that call sites of this method have useful info.
-      // In general, though, we're looking for (strictly) better dynamic types for arguments.
-      if (dynamicUpperBoundType.strictlyLessThan(staticTypes[i], appView)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @Override
-  public TypeElement getDynamicUpperBoundType(int argIndex) {
+  public DynamicType getDynamicType(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
-    return dynamicUpperBoundTypes.getOrDefault(argIndex, null);
+    return dynamicTypes.getOrDefault(argIndex, DynamicType.unknown());
   }
 
   @Override
   public AbstractValue getAbstractArgumentValue(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
     return constants.getOrDefault(argIndex, UnknownValue.getInstance());
-  }
-
-  public static CallSiteOptimizationInfo fromArguments(
-      AppView<AppInfoWithLiveness> appView,
-      DexMethod invokedMethod,
-      List<Value> arguments,
-      ProgramMethod context) {
-    ConcreteCallSiteOptimizationInfo newCallSiteInfo =
-        new ConcreteCallSiteOptimizationInfo(arguments.size());
-    boolean hasReceiver = arguments.size() > invokedMethod.getArity();
-    boolean isTop = true;
-    for (int i = 0; i < newCallSiteInfo.size; i++) {
-      Value arg = arguments.get(i);
-
-      // Constant propagation.
-        Value aliasedValue = arg.getAliasedValue();
-        if (!aliasedValue.isPhi()) {
-          AbstractValue abstractValue = aliasedValue.definition.getAbstractValue(appView, context);
-          if (abstractValue.isNonTrivial()) {
-            newCallSiteInfo.constants.put(i, abstractValue);
-            isTop = false;
-          }
-      }
-
-      // Type propagation.
-      if (arg.getType().isReferenceType()) {
-        TypeElement staticType =
-            TypeElement.fromDexType(
-                hasReceiver ? invokedMethod.holder : invokedMethod.proto.getParameter(i),
-                maybeNull(),
-                appView);
-        TypeElement dynamicUpperBoundType = arg.getDynamicUpperBoundType(appView);
-        if (dynamicUpperBoundType != staticType) {
-          newCallSiteInfo.dynamicUpperBoundTypes.put(i, dynamicUpperBoundType);
-          isTop = false;
-        } else {
-          newCallSiteInfo.dynamicUpperBoundTypes.put(i, staticType);
-        }
-      }
-    }
-    return isTop ? CallSiteOptimizationInfo.top() : newCallSiteInfo;
   }
 
   public static CallSiteOptimizationInfo fromMethodState(
@@ -280,7 +144,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       // Type propagation.
       DexType staticType = method.getDefinition().getArgumentType(argumentIndex);
       if (staticType.isReferenceType()) {
-        TypeElement staticTypeElement = staticType.toTypeElement(appView);
+        DynamicTypeWithUpperBound staticTypeElement = staticType.toDynamicType(appView);
         if (staticType.isArrayType()) {
           Nullability nullability = concreteParameterState.asArrayParameter().getNullability();
           if (nullability.isDefinitelyNull()) {
@@ -288,8 +152,8 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
                   argumentIndex, appView.abstractValueFactory().createNullValue());
             isTop = false;
           } else if (nullability.isDefinitelyNotNull()) {
-            newCallSiteInfo.dynamicUpperBoundTypes.put(
-                argumentIndex, staticTypeElement.asArrayType().asDefinitelyNotNull());
+            newCallSiteInfo.dynamicTypes.put(
+                argumentIndex, staticTypeElement.withNullability(Nullability.definitelyNotNull()));
             isTop = false;
           } else {
             // The nullability should never be unknown, since we should use the unknown method state
@@ -300,8 +164,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         } else if (staticType.isClassType()) {
           DynamicType dynamicType = concreteParameterState.asReferenceParameter().getDynamicType();
           if (!dynamicType.isUnknown()) {
-            newCallSiteInfo.dynamicUpperBoundTypes.put(
-                argumentIndex, dynamicType.getDynamicUpperBoundType());
+            newCallSiteInfo.dynamicTypes.put(argumentIndex, dynamicType);
             isTop = false;
           }
         }
@@ -326,18 +189,17 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       return false;
     }
     ConcreteCallSiteOptimizationInfo otherInfo = (ConcreteCallSiteOptimizationInfo) other;
-    return dynamicUpperBoundTypes.equals(otherInfo.dynamicUpperBoundTypes)
-        && constants.equals(otherInfo.constants);
+    return dynamicTypes.equals(otherInfo.dynamicTypes) && constants.equals(otherInfo.constants);
   }
 
   @Override
   public int hashCode() {
-    return System.identityHashCode(dynamicUpperBoundTypes) * 7 + System.identityHashCode(constants);
+    return System.identityHashCode(dynamicTypes) * 7 + System.identityHashCode(constants);
   }
 
   @Override
   public String toString() {
-    return dynamicUpperBoundTypes.toString()
+    return dynamicTypes.toString()
         + (constants == null ? "" : (System.lineSeparator() + constants));
   }
 }

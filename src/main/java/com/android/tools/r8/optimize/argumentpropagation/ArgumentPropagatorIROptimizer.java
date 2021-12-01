@@ -5,8 +5,9 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Argument;
@@ -75,16 +76,15 @@ public class ArgumentPropagatorIROptimizer {
       // TODO(b/190154391): This should also materialize dynamic lower bound information.
       // TODO(b/190154391) This should also materialize the nullability of array arguments.
       if (argumentValue.getType().isReferenceType()) {
-        TypeElement dynamicUpperBoundType =
-            optimizationInfo.getDynamicUpperBoundType(argument.getIndex());
-        if (dynamicUpperBoundType == null || dynamicUpperBoundType.isTop()) {
+        DynamicType dynamicType = optimizationInfo.getDynamicType(argument.getIndex());
+        if (dynamicType.isUnknown()) {
           continue;
         }
-        if (dynamicUpperBoundType.isBottom()) {
+        if (dynamicType.isBottom()) {
           assert false;
           continue;
         }
-        if (dynamicUpperBoundType.isDefinitelyNull()) {
+        if (dynamicType.getNullability().isDefinitelyNull()) {
           ConstNumber nullInstruction = code.createConstNull();
           nullInstruction.setPosition(argument.getPosition());
           affectedValues.addAll(argumentValue.affectedValues());
@@ -92,21 +92,36 @@ public class ArgumentPropagatorIROptimizer {
           instructionsToAdd.add(nullInstruction);
           continue;
         }
+        if (dynamicType.isNotNullType()) {
+          if (!argumentValue.getType().isDefinitelyNotNull()) {
+            Value nonNullValue =
+                code.createValue(argumentValue.getType().asReferenceType().asMeetWithNotNull());
+            argumentValue.replaceUsers(nonNullValue, affectedValues);
+            Assume assumeNotNull =
+                Assume.createAssumeNonNullInstruction(
+                    nonNullValue, argumentValue, argument, appView);
+            assumeNotNull.setPosition(argument.getPosition());
+            assumeInstructions.add(assumeNotNull);
+          }
+          continue;
+        }
+        DynamicTypeWithUpperBound dynamicTypeWithUpperBound =
+            dynamicType.asDynamicTypeWithUpperBound();
         Value specializedArg;
-        if (dynamicUpperBoundType.strictlyLessThan(argumentValue.getType(), appView)) {
+        if (dynamicTypeWithUpperBound.strictlyLessThan(argumentValue.getType(), appView)) {
           specializedArg = code.createValue(argumentValue.getType());
           affectedValues.addAll(argumentValue.affectedValues());
           argumentValue.replaceUsers(specializedArg);
           Assume assumeType =
               Assume.createAssumeDynamicTypeInstruction(
-                  dynamicUpperBoundType, null, specializedArg, argumentValue, argument, appView);
+                  dynamicTypeWithUpperBound, specializedArg, argumentValue, argument, appView);
           assumeType.setPosition(argument.getPosition());
           assumeInstructions.add(assumeType);
         } else {
           specializedArg = argumentValue;
         }
         assert specializedArg != null && specializedArg.getType().isReferenceType();
-        if (dynamicUpperBoundType.isDefinitelyNotNull()) {
+        if (dynamicType.getNullability().isDefinitelyNotNull()) {
           // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
           if (!specializedArg.getType().isDefinitelyNotNull()) {
             Value nonNullArg =

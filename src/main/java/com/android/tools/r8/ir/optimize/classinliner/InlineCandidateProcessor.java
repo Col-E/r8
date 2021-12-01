@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -179,13 +180,12 @@ final class InlineCandidateProcessor {
     }
     DexEncodedField field = fieldResolutionResult.getResolvedField();
     FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-    ClassTypeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
-    if (dynamicLowerBoundType == null
-        || !dynamicLowerBoundType.equals(optimizationInfo.getDynamicUpperBoundType())) {
+    DynamicType dynamicType = optimizationInfo.getDynamicType();
+    if (!dynamicType.isExactClassType()) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
     eligibleClass =
-        asProgramClassOrNull(appView.definitionFor(dynamicLowerBoundType.getClassType()));
+        asProgramClassOrNull(appView.definitionFor(dynamicType.getExactClassType().getClassType()));
     if (eligibleClass == null) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }

@@ -6,12 +6,10 @@ package com.android.tools.r8.ir.optimize.info;
 
 import static java.util.Collections.emptySet;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -34,32 +32,16 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   private AbstractValue abstractValue = UnknownValue.getInstance();
   private int flags;
   private int readBits = 0;
-  private ClassTypeElement dynamicLowerBoundType = null;
-  private TypeElement dynamicUpperBoundType = null;
+  private DynamicType dynamicType = DynamicType.unknown();
 
   public MutableFieldOptimizationInfo fixupClassTypeReferences(
-      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return fixupClassTypeReferences(appView, lens, emptySet());
   }
 
   public MutableFieldOptimizationInfo fixupClassTypeReferences(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      GraphLens lens,
-      Set<DexType> prunedTypes) {
-    if (dynamicUpperBoundType != null) {
-      dynamicUpperBoundType = dynamicUpperBoundType.rewrittenWithLens(appView, lens, prunedTypes);
-    }
-    if (dynamicLowerBoundType != null) {
-      TypeElement dynamicLowerBoundType =
-          this.dynamicLowerBoundType.rewrittenWithLens(appView, lens);
-      if (dynamicLowerBoundType.isClassType()) {
-        this.dynamicLowerBoundType = dynamicLowerBoundType.asClassType();
-      } else {
-        assert dynamicLowerBoundType.isPrimitiveType();
-        this.dynamicLowerBoundType = null;
-        this.dynamicUpperBoundType = null;
-      }
-    }
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, Set<DexType> prunedTypes) {
+    dynamicType = dynamicType.rewrittenWithLens(appView, lens, prunedTypes);
     return this;
   }
 
@@ -68,8 +50,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
     copy.abstractValue = abstractValue;
     copy.flags = flags;
     copy.readBits = readBits;
-    copy.dynamicLowerBoundType = dynamicLowerBoundType;
-    copy.dynamicUpperBoundType = dynamicUpperBoundType;
+    copy.dynamicType = dynamicType;
     return copy;
   }
 
@@ -106,21 +87,12 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   }
 
   @Override
-  public ClassTypeElement getDynamicLowerBoundType() {
-    return dynamicLowerBoundType;
+  public DynamicType getDynamicType() {
+    return dynamicType;
   }
 
-  void setDynamicLowerBoundType(ClassTypeElement type) {
-    dynamicLowerBoundType = type;
-  }
-
-  @Override
-  public TypeElement getDynamicUpperBoundType() {
-    return dynamicUpperBoundType;
-  }
-
-  void setDynamicUpperBoundType(TypeElement type) {
-    dynamicUpperBoundType = type;
+  void setDynamicType(DynamicType dynamicType) {
+    this.dynamicType = dynamicType;
   }
 
   @Override

@@ -6,8 +6,7 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -38,14 +37,7 @@ public abstract class MethodOptimizationInfo
 
   public abstract EnumUnboxerMethodClassification getEnumUnboxerMethodClassification();
 
-  public abstract TypeElement getDynamicUpperBoundType();
-
-  public final TypeElement getDynamicUpperBoundTypeOrElse(TypeElement orElse) {
-    TypeElement dynamicUpperBoundType = getDynamicUpperBoundType();
-    return dynamicUpperBoundType != null ? dynamicUpperBoundType : orElse;
-  }
-
-  public abstract ClassTypeElement getDynamicLowerBoundType();
+  public abstract DynamicType getDynamicType();
 
   public final boolean hasNonNullParamOrThrow() {
     return getNonNullParamOrThrow() != null;

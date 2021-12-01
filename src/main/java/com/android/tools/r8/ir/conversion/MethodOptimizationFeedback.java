@@ -9,8 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
@@ -38,10 +37,12 @@ public interface MethodOptimizationFeedback {
   void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue);
 
-  void methodReturnsObjectWithUpperBoundType(
-      DexEncodedMethod method, AppView<?> appView, TypeElement type);
+  default void setDynamicReturnType(
+      ProgramMethod method, AppView<?> appView, DynamicType dynamicType) {
+    setDynamicReturnType(method.getDefinition(), appView, dynamicType);
+  }
 
-  void methodReturnsObjectWithLowerBoundType(DexEncodedMethod method, ClassTypeElement type);
+  void setDynamicReturnType(DexEncodedMethod method, AppView<?> appView, DynamicType dynamicType);
 
   void methodMayNotHaveSideEffects(DexEncodedMethod method);
 
@@ -92,9 +93,7 @@ public interface MethodOptimizationFeedback {
 
   void unsetClassInlinerMethodConstraint(ProgramMethod method);
 
-  void unsetDynamicLowerBoundReturnType(ProgramMethod method);
-
-  void unsetDynamicUpperBoundReturnType(ProgramMethod method);
+  void unsetDynamicReturnType(ProgramMethod method);
 
   void unsetEnumUnboxerMethodClassification(ProgramMethod method);
 
@@ -135,8 +134,7 @@ public interface MethodOptimizationFeedback {
       unsetCheckNullReceiverBeforeAnySideEffect(method);
       unsetClassInitializerMayBePostponed(method);
       unsetClassInlinerMethodConstraint(method);
-      unsetDynamicLowerBoundReturnType(method);
-      unsetDynamicUpperBoundReturnType(method);
+      unsetDynamicReturnType(method);
       unsetEnumUnboxerMethodClassification(method);
       unsetForceInline(method);
       unsetInitializedClassesOnNormalExit(method);

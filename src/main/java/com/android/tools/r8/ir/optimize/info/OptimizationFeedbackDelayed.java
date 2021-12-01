@@ -8,10 +8,10 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
@@ -40,6 +40,10 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   private final Map<DexEncodedMethod, MutableMethodOptimizationInfo> methodOptimizationInfos =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, ConstraintWithTarget> processed = new IdentityHashMap<>();
+
+  private MutableFieldOptimizationInfo getFieldOptimizationInfoForUpdating(ProgramField field) {
+    return getFieldOptimizationInfoForUpdating(field.getDefinition());
+  }
 
   private synchronized MutableFieldOptimizationInfo getFieldOptimizationInfoForUpdating(
       DexEncodedField field) {
@@ -133,13 +137,8 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public void markFieldHasDynamicLowerBoundType(DexEncodedField field, ClassTypeElement type) {
-    getFieldOptimizationInfoForUpdating(field).setDynamicLowerBoundType(type);
-  }
-
-  @Override
-  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeElement type) {
-    getFieldOptimizationInfoForUpdating(field).setDynamicUpperBoundType(type);
+  public void markFieldHasDynamicType(DexEncodedField field, DynamicType dynamicType) {
+    getFieldOptimizationInfoForUpdating(field).setDynamicType(dynamicType);
   }
 
   @Override
@@ -199,15 +198,9 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void methodReturnsObjectWithUpperBoundType(
-      DexEncodedMethod method, AppView<?> appView, TypeElement type) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithUpperBoundType(appView, type);
-  }
-
-  @Override
-  public synchronized void methodReturnsObjectWithLowerBoundType(
-      DexEncodedMethod method, ClassTypeElement type) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithLowerBoundType(type);
+  public synchronized void setDynamicReturnType(
+      DexEncodedMethod method, AppView<?> appView, DynamicType dynamicType) {
+    getMethodOptimizationInfoForUpdating(method).setDynamicType(appView, dynamicType, method);
   }
 
   @Override
@@ -333,13 +326,8 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void unsetDynamicLowerBoundReturnType(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetDynamicLowerBoundReturnType();
-  }
-
-  @Override
-  public synchronized void unsetDynamicUpperBoundReturnType(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetDynamicUpperBoundReturnType();
+  public synchronized void unsetDynamicReturnType(ProgramMethod method) {
+    getMethodOptimizationInfoForUpdating(method).unsetDynamicType();
   }
 
   @Override

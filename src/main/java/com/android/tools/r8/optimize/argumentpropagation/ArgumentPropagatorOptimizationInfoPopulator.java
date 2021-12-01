@@ -212,8 +212,9 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
                       .asClassParameter()
                       .getDynamicType();
               DexType staticType = method.getArgumentType(index);
-              assert dynamicType
-                  == WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, staticType);
+              assert dynamicType.isUnknown()
+                  || !WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, staticType)
+                      .isUnknown();
               return true;
             });
 

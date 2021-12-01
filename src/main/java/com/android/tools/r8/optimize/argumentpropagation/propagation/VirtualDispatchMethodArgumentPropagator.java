@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePolymorphicMethodState;
@@ -46,7 +46,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
 
     // Argument information for virtual methods that is currently inactive, but should be propagated
     // to all overrides below a given upper bound.
-    final Map<DynamicType, MethodStateCollectionBySignature> inactiveUntilUpperBound =
+    final Map<DynamicTypeWithUpperBound, MethodStateCollectionBySignature> inactiveUntilUpperBound =
         new HashMap<>();
 
     PropagationState(DexProgramClass clazz) {

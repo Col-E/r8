@@ -4,10 +4,31 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-public class ExactDynamicType extends DynamicType {
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.Set;
+
+public class ExactDynamicType extends DynamicTypeWithUpperBound {
 
   ExactDynamicType(ClassTypeElement exactDynamicType) {
     super(exactDynamicType);
+  }
+
+  @Override
+  public ClassTypeElement getDynamicUpperBoundType() {
+    return getExactClassType();
+  }
+
+  @Override
+  public ClassTypeElement getDynamicLowerBoundType() {
+    return getExactClassType();
+  }
+
+  @Override
+  public ClassTypeElement getExactClassType() {
+    return super.getDynamicUpperBoundType().asClassType();
   }
 
   @Override
@@ -16,13 +37,27 @@ public class ExactDynamicType extends DynamicType {
   }
 
   @Override
-  public ClassTypeElement getDynamicUpperBoundType() {
-    return super.getDynamicUpperBoundType().asClassType();
+  public boolean isExactClassType() {
+    return true;
   }
 
   @Override
-  public ClassTypeElement getDynamicLowerBoundType() {
-    return getDynamicUpperBoundType();
+  public DynamicType rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens graphLens, Set<DexType> prunedTypes) {
+    TypeElement rewrittenType =
+        getExactClassType().rewrittenWithLens(appView, graphLens, prunedTypes);
+    assert rewrittenType.isClassType() || rewrittenType.isPrimitiveType();
+    return rewrittenType.isClassType()
+        ? new ExactDynamicType(rewrittenType.asClassType())
+        : unknown();
+  }
+
+  @Override
+  public ExactDynamicType withNullability(Nullability nullability) {
+    if (getNullability() == nullability) {
+      return this;
+    }
+    return new ExactDynamicType(getExactClassType().getOrCreateVariant(nullability));
   }
 
   @Override
@@ -31,19 +66,11 @@ public class ExactDynamicType extends DynamicType {
       return false;
     }
     ExactDynamicType dynamicType = (ExactDynamicType) other;
-    return getDynamicUpperBoundType().equals(dynamicType.getDynamicUpperBoundType());
+    return getExactClassType().equals(dynamicType.getExactClassType());
   }
 
   @Override
   public int hashCode() {
-    return getDynamicLowerBoundType().hashCode();
-  }
-
-  @Override
-  public DynamicType withNullability(Nullability nullability) {
-    if (getDynamicUpperBoundType().nullability() == nullability) {
-      return this;
-    }
-    return new ExactDynamicType(getDynamicUpperBoundType().getOrCreateVariant(nullability));
+    return getExactClassType().hashCode();
   }
 }

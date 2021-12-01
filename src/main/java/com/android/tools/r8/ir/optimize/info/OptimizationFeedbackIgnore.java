@@ -10,8 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
@@ -44,10 +43,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markFieldAsPropagated(DexEncodedField field) {}
 
   @Override
-  public void markFieldHasDynamicLowerBoundType(DexEncodedField field, ClassTypeElement type) {}
-
-  @Override
-  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeElement type) {}
+  public void markFieldHasDynamicType(DexEncodedField field, DynamicType dynamicType) {}
 
   @Override
   public void markFieldBitsRead(DexEncodedField field, int bitsRead) {}
@@ -79,12 +75,8 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {}
 
   @Override
-  public void methodReturnsObjectWithUpperBoundType(
-      DexEncodedMethod method, AppView<?> appView, TypeElement type) {}
-
-  @Override
-  public void methodReturnsObjectWithLowerBoundType(
-      DexEncodedMethod method, ClassTypeElement type) {}
+  public void setDynamicReturnType(
+      DexEncodedMethod method, AppView<?> appView, DynamicType dynamicType) {}
 
   @Override
   public void methodMayNotHaveSideEffects(DexEncodedMethod method) {}
@@ -160,10 +152,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void unsetClassInlinerMethodConstraint(ProgramMethod method) {}
 
   @Override
-  public void unsetDynamicLowerBoundReturnType(ProgramMethod method) {}
-
-  @Override
-  public void unsetDynamicUpperBoundReturnType(ProgramMethod method) {}
+  public void unsetDynamicReturnType(ProgramMethod method) {}
 
   @Override
   public void unsetEnumUnboxerMethodClassification(ProgramMethod method) {}

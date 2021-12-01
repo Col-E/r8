@@ -12,7 +12,9 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
@@ -217,10 +219,9 @@ public class AssumeInserter {
       return false;
     }
 
-    TypeElement dynamicUpperBoundType =
-        TypeElement.fromDexType(invoke.getInvokedMethod().holder, definitelyNotNull(), appView);
-    assumedValuesBuilder.addAssumedValueKnownToDominateAllUsers(
-        invoke, outValue, dynamicUpperBoundType, null);
+    DynamicTypeWithUpperBound dynamicType =
+        invoke.getInvokedMethod().getHolderType().toDynamicType(appView, definitelyNotNull());
+    assumedValuesBuilder.addAssumedValueKnownToDominateAllUsers(invoke, outValue, dynamicType);
     return true;
   }
 
@@ -257,10 +258,7 @@ public class AssumeInserter {
     if (invoke.hasUsedOutValue()) {
       needsAssumeInstruction =
           computeAssumedValuesForOutValue(
-              invoke,
-              optimizationInfo.getDynamicUpperBoundTypeOrElse(invoke.getOutType()),
-              optimizationInfo.getDynamicLowerBoundType(),
-              assumedValuesBuilder);
+              invoke, optimizationInfo.getDynamicType(), assumedValuesBuilder);
     }
 
     // Case (3), parameters that are not null after the invocation.
@@ -306,35 +304,38 @@ public class AssumeInserter {
 
     FieldOptimizationInfo optimizationInfo = field.getDefinition().getOptimizationInfo();
     return computeAssumedValuesForOutValue(
-        fieldGet,
-        optimizationInfo.getDynamicUpperBoundTypeOrElse(fieldGet.getOutType()),
-        optimizationInfo.getDynamicLowerBoundType(),
-        assumedValuesBuilder);
+        fieldGet, optimizationInfo.getDynamicType(), assumedValuesBuilder);
   }
 
   private boolean computeAssumedValuesForOutValue(
       Instruction instruction,
-      TypeElement dynamicUpperBoundType,
-      ClassTypeElement dynamicLowerBoundType,
+      DynamicType dynamicType,
       AssumedValues.Builder assumedValuesBuilder) {
     Value outValue = instruction.outValue();
-
     // Do not insert dynamic type information if it does not refine the static type.
-    boolean isRedundant =
-        !dynamicUpperBoundType.strictlyLessThan(outValue.getType(), appView)
-            && dynamicLowerBoundType == null;
-    if (isRedundant) {
+    if (dynamicType.isUnknown()) {
       return false;
     }
 
-    // Do not insert dynamic type information if the dynamic type only refines the nullability.
-    if (dynamicUpperBoundType.equalUpToNullability(outValue.getType())
-        && dynamicLowerBoundType == null) {
-      assert dynamicUpperBoundType.isDefinitelyNotNull();
+    // Insert an assume-not-null instruction if the dynamic type only refines the nullability.
+    if (dynamicType.isNotNullType()) {
+      assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(instruction, outValue);
+      return true;
+    }
+
+    DynamicTypeWithUpperBound dynamicTypeWithUpperBound = dynamicType.asDynamicTypeWithUpperBound();
+    DynamicTypeWithUpperBound staticType = DynamicType.create(appView, outValue.getType());
+    if (!dynamicTypeWithUpperBound.strictlyLessThan(staticType, appView)) {
+      return false;
+    }
+
+    if (!dynamicTypeWithUpperBound.getNullability().isMaybeNull()
+        && dynamicTypeWithUpperBound.withNullability(Nullability.maybeNull()).equals(staticType)) {
+      assert dynamicTypeWithUpperBound.getNullability().isDefinitelyNotNull();
       assumedValuesBuilder.addNonNullValueKnownToDominateAllUsers(instruction, outValue);
     } else {
       assumedValuesBuilder.addAssumedValueKnownToDominateAllUsers(
-          instruction, outValue, dynamicUpperBoundType, dynamicLowerBoundType);
+          instruction, outValue, dynamicTypeWithUpperBound);
     }
     return true;
   }
@@ -707,21 +708,17 @@ public class AssumeInserter {
       this.dynamicTypeAssumption = dynamicTypeAssumption;
     }
 
-    void setDynamicTypeAssumption(
-        TypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
-      dynamicTypeAssumption =
-          new DynamicTypeAssumption(dynamicUpperBoundType, dynamicLowerBoundType);
-      if (dynamicUpperBoundType.isDefinitelyNotNull()) {
-        setNotNull();
-      }
-      if (dynamicLowerBoundType != null && dynamicLowerBoundType.isDefinitelyNotNull()) {
+    void setDynamicTypeAssumption(DynamicTypeWithUpperBound dynamicType) {
+      assert dynamicType != null;
+      dynamicTypeAssumption = new DynamicTypeAssumption(dynamicType);
+      if (dynamicType.getDynamicUpperBoundType().isDefinitelyNotNull()) {
         setNotNull();
       }
     }
 
     boolean isNull() {
       return dynamicTypeAssumption != null
-          && dynamicTypeAssumption.getDynamicUpperBoundType().isDefinitelyNull();
+          && dynamicTypeAssumption.getDynamicType().getNullability().isDefinitelyNull();
     }
 
     boolean isNonNull() {
@@ -874,17 +871,12 @@ public class AssumeInserter {
       }
 
       void addAssumedValueKnownToDominateAllUsers(
-          Instruction instruction,
-          Value assumedValue,
-          TypeElement dynamicUpperBoundType,
-          ClassTypeElement dynamicLowerBoundType) {
+          Instruction instruction, Value assumedValue, DynamicTypeWithUpperBound dynamicType) {
         updateAssumedValueInfo(
             instruction,
             assumedValue,
             AssumedDominance.everything(),
-            assumedValueInfo ->
-                assumedValueInfo.setDynamicTypeAssumption(
-                    dynamicUpperBoundType, dynamicLowerBoundType));
+            assumedValueInfo -> assumedValueInfo.setDynamicTypeAssumption(dynamicType));
       }
 
       void addNonNullValueKnownToDominateAllUsers(Instruction instruction, Value nonNullValue) {

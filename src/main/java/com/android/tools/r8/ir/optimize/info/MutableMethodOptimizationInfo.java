@@ -6,14 +6,14 @@ package com.android.tools.r8.ir.optimize.info;
 
 import static java.util.Collections.emptySet;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.ir.analysis.inlining.NeverSimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -45,9 +45,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
       ClassInlinerMethodConstraint.alwaysFalse();
   private EnumUnboxerMethodClassification enumUnboxerMethodClassification =
       EnumUnboxerMethodClassification.unknown();
-  private TypeElement returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
-  private ClassTypeElement returnsObjectWithLowerBoundType =
-      DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
+  private DynamicType dynamicType = DynamicType.unknown();
   private InlinePreference inlining = InlinePreference.Default;
   // Stores information about instance methods and constructors for
   // class inliner, null value indicates that the method is not eligible.
@@ -150,8 +148,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     initializedClassesOnNormalExit = template.initializedClassesOnNormalExit;
     returnedArgument = template.returnedArgument;
     abstractReturnValue = template.abstractReturnValue;
-    returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
-    returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
+    dynamicType = template.dynamicType;
     inlining = template.inlining;
     simpleInliningConstraint = template.simpleInliningConstraint;
     bridgeInfo = template.bridgeInfo;
@@ -177,29 +174,13 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
-      AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
     return fixupClassTypeReferences(appView, lens, emptySet());
   }
 
   public MutableMethodOptimizationInfo fixupClassTypeReferences(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      GraphLens lens,
-      Set<DexType> prunedTypes) {
-    if (returnsObjectWithUpperBoundType != null) {
-      returnsObjectWithUpperBoundType =
-          returnsObjectWithUpperBoundType.rewrittenWithLens(appView, lens, prunedTypes);
-    }
-    if (returnsObjectWithLowerBoundType != null) {
-      TypeElement returnsObjectWithLowerBoundType =
-          this.returnsObjectWithLowerBoundType.rewrittenWithLens(appView, lens, prunedTypes);
-      if (returnsObjectWithLowerBoundType.isClassType()) {
-        this.returnsObjectWithLowerBoundType = returnsObjectWithLowerBoundType.asClassType();
-      } else {
-        assert returnsObjectWithLowerBoundType.isPrimitiveType();
-        this.returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
-        this.returnsObjectWithLowerBoundType = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
-      }
-    }
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, Set<DexType> prunedTypes) {
+    dynamicType = dynamicType.rewrittenWithLens(appView, lens, prunedTypes);
     return this;
   }
 
@@ -321,13 +302,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
-  public TypeElement getDynamicUpperBoundType() {
-    return returnsObjectWithUpperBoundType;
-  }
-
-  @Override
-  public ClassTypeElement getDynamicLowerBoundType() {
-    return returnsObjectWithLowerBoundType;
+  public DynamicType getDynamicType() {
+    return dynamicType;
   }
 
   @Override
@@ -626,8 +602,8 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     abstractReturnValue = UnknownValue.getInstance();
   }
 
-  void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeElement type) {
-    assert type != null;
+  void setDynamicType(AppView<?> appView, DynamicType newDynamicType, DexEncodedMethod method) {
+    assert newDynamicType != null;
     // We may get more precise type information if the method is reprocessed (e.g., due to
     // optimization info collected from all call sites), and hence the
     // `returnsObjectWithUpperBoundType` is allowed to become more precise.
@@ -635,31 +611,30 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     // Nullability could be less precise, though. For example, suppose a value is known to be
     // non-null after a safe invocation, hence recorded with the non-null variant. If that call is
     // inlined and the method is reprocessed, such non-null assumption cannot be made again.
-    assert returnsObjectWithUpperBoundType == DefaultMethodOptimizationInfo.UNKNOWN_TYPE
-            || type.lessThanOrEqualUpToNullability(returnsObjectWithUpperBoundType, appView)
-        : "upper bound type changed from " + returnsObjectWithUpperBoundType + " to " + type;
-    returnsObjectWithUpperBoundType = type;
-    if (type.isNullType()) {
-      returnsObjectWithLowerBoundType = null;
+    assert verifyDynamicType(appView, newDynamicType, method);
+    dynamicType = newDynamicType;
+  }
+
+  private boolean verifyDynamicType(
+      AppView<?> appView, DynamicType newDynamicType, DexEncodedMethod method) {
+    if (appView.enableWholeProgramOptimizations()) {
+      TypeElement staticReturnType = method.getReturnType().toTypeElement(appView);
+      TypeElement previousDynamicUpperBoundType =
+          dynamicType.getDynamicUpperBoundType(staticReturnType);
+      TypeElement newDynamicUpperBoundType =
+          newDynamicType.getDynamicUpperBoundType(staticReturnType);
+      assert newDynamicUpperBoundType.lessThanOrEqualUpToNullability(
+              previousDynamicUpperBoundType, appView)
+          : "upper bound type changed from "
+              + previousDynamicUpperBoundType
+              + " to "
+              + newDynamicUpperBoundType;
     }
+    return true;
   }
 
-  void unsetDynamicUpperBoundReturnType() {
-    returnsObjectWithUpperBoundType = null;
-  }
-
-  void markReturnsObjectWithLowerBoundType(ClassTypeElement type) {
-    assert type != null;
-    // Currently, we only have a lower bound type when we have _exact_ runtime type information.
-    // Thus, the type should never become more precise (although the nullability could).
-    assert returnsObjectWithLowerBoundType == DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE
-            || type.equalUpToNullability(returnsObjectWithLowerBoundType)
-        : "lower bound type changed from " + returnsObjectWithLowerBoundType + " to " + type;
-    returnsObjectWithLowerBoundType = type;
-  }
-
-  void unsetDynamicLowerBoundReturnType() {
-    returnsObjectWithLowerBoundType = null;
+  void unsetDynamicType() {
+    dynamicType = DynamicType.unknown();
   }
 
   // TODO(b/140214568): Should be package-private.

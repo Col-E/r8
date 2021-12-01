@@ -15,6 +15,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -66,14 +67,18 @@ public class InvokeInterfacePositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
-    assert upperBoundType.isDefinitelyNotNull();
+    DynamicType dynamicType = callSiteOptimizationInfo.getDynamicType(1);
     if (method.getHolderType().toSourceString().endsWith("$A")) {
+      TypeElement upperBoundType =
+          callSiteOptimizationInfo
+              .getDynamicType(1)
+              .asDynamicTypeWithUpperBound()
+              .getDynamicUpperBoundType();
+      assert upperBoundType.isDefinitelyNotNull();
       assert upperBoundType.isClassType()
           && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");
     } else {
-      assert upperBoundType.isClassType()
-          && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Base");
+      assertTrue(dynamicType.isNotNullType());
     }
   }
 

@@ -30,6 +30,8 @@ import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutio
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -1655,16 +1657,13 @@ public class CodeRewriter {
                     value.isDefinedByInstructionSatisfying(
                         Instruction::isAssumeWithDynamicTypeAssumption));
         if (aliasedValue != null) {
-          TypeElement dynamicType =
-              aliasedValue
-                  .definition
-                  .asAssume()
-                  .getDynamicTypeAssumption()
-                  .getDynamicUpperBoundType();
-          if (dynamicType.isDefinitelyNull()) {
+          DynamicTypeWithUpperBound dynamicType =
+              aliasedValue.getDefinition().asAssume().getDynamicTypeAssumption().getDynamicType();
+          Nullability nullability = dynamicType.getNullability();
+          if (nullability.isDefinitelyNull()) {
             result = InstanceOfResult.FALSE;
-          } else if (dynamicType.lessThanOrEqual(instanceOfType, appView)
-              && (!inType.isNullable() || !dynamicType.isNullable())) {
+          } else if (dynamicType.getDynamicUpperBoundType().lessThanOrEqual(instanceOfType, appView)
+              && (!inType.isNullable() || !nullability.isNullable())) {
             result = InstanceOfResult.TRUE;
           }
         }

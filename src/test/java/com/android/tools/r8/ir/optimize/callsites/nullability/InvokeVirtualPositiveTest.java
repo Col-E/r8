@@ -60,7 +60,11 @@ public class InvokeVirtualPositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
+    TypeElement upperBoundType =
+        callSiteOptimizationInfo
+            .getDynamicType(1)
+            .asDynamicTypeWithUpperBound()
+            .getDynamicUpperBoundType();
     assert upperBoundType.isClassType()
         && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$A");
     if (method.getHolderType().toSourceString().endsWith("$A")) {

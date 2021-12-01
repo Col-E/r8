@@ -63,7 +63,11 @@ public class InvokeStaticPositiveTest extends TestBase {
     // TODO(b/139246447): should avoid visiting <init>, which is trivial, default init!
     // For testing purpose, `Base` is not merged and kept. The system correctly caught that, when
     // the default initializer is invoked, the receiver had a refined type, `Sub1`.
-    TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
+    TypeElement upperBoundType =
+        callSiteOptimizationInfo
+            .getDynamicType(0)
+            .asDynamicTypeWithUpperBound()
+            .getDynamicUpperBoundType();
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
         && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");

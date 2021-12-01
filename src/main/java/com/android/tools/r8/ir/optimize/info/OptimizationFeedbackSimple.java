@@ -10,8 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
@@ -51,12 +50,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void markFieldHasDynamicLowerBoundType(DexEncodedField field, ClassTypeElement type) {
-    // Ignored.
-  }
-
-  @Override
-  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeElement type) {
+  public void markFieldHasDynamicType(DexEncodedField field, DynamicType dynamicType) {
     // Ignored.
   }
 
@@ -108,15 +102,9 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void methodReturnsObjectWithUpperBoundType(
-      DexEncodedMethod method, AppView<?> appView, TypeElement type) {
-    method.getMutableOptimizationInfo().markReturnsObjectWithUpperBoundType(appView, type);
-  }
-
-  @Override
-  public void methodReturnsObjectWithLowerBoundType(
-      DexEncodedMethod method, ClassTypeElement type) {
-    // Ignored.
+  public void setDynamicReturnType(
+      DexEncodedMethod method, AppView<?> appView, DynamicType dynamicType) {
+    method.getMutableOptimizationInfo().setDynamicType(appView, dynamicType, method);
   }
 
   @Override
@@ -250,15 +238,8 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void unsetDynamicLowerBoundReturnType(ProgramMethod method) {
-    withMutableMethodOptimizationInfo(
-        method, MutableMethodOptimizationInfo::unsetDynamicLowerBoundReturnType);
-  }
-
-  @Override
-  public void unsetDynamicUpperBoundReturnType(ProgramMethod method) {
-    withMutableMethodOptimizationInfo(
-        method, MutableMethodOptimizationInfo::unsetDynamicUpperBoundReturnType);
+  public void unsetDynamicReturnType(ProgramMethod method) {
+    withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetDynamicType);
   }
 
   @Override

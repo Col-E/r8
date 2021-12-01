@@ -60,7 +60,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
+    assert callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNotNull();
     AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(1);
     if (method.getHolderType().toSourceString().endsWith("$A")) {
       assert abstractValue.isSingleStringValue()

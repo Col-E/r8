@@ -5,9 +5,8 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.JumpInstruction;
@@ -29,41 +28,16 @@ public class DynamicTypeOptimization {
    *
    * <p>If the method has no normal exits, then null is returned.
    */
-  public TypeElement computeDynamicReturnType(DexEncodedMethod method, IRCode code) {
-    assert method.getReference().proto.returnType.isReferenceType();
-    List<TypeElement> returnedTypes = new ArrayList<>();
-    for (BasicBlock block : code.blocks) {
+  public DynamicType computeDynamicReturnType(ProgramMethod method, IRCode code) {
+    assert method.getReturnType().isReferenceType();
+    List<DynamicType> returnedTypes = new ArrayList<>();
+    for (BasicBlock block : code.getBlocks()) {
       JumpInstruction exitInstruction = block.exit();
       if (exitInstruction.isReturn()) {
         Value returnValue = exitInstruction.asReturn().returnValue();
-        returnedTypes.add(returnValue.getDynamicUpperBoundType(appView));
+        returnedTypes.add(returnValue.getDynamicType(appView));
       }
     }
-    return returnedTypes.isEmpty() ? null : TypeElement.join(returnedTypes, appView);
-  }
-
-  public ClassTypeElement computeDynamicLowerBoundType(DexEncodedMethod method, IRCode code) {
-    assert method.getReference().proto.returnType.isReferenceType();
-    ClassTypeElement result = null;
-    for (BasicBlock block : code.blocks) {
-      JumpInstruction exitInstruction = block.exit();
-      if (exitInstruction.isReturn()) {
-        Value returnValue = exitInstruction.asReturn().returnValue();
-        ClassTypeElement dynamicLowerBoundType = returnValue.getDynamicLowerBoundType(appView);
-        if (dynamicLowerBoundType == null) {
-          return null;
-        }
-        if (result == null) {
-          result = dynamicLowerBoundType;
-        } else if (dynamicLowerBoundType.equalUpToNullability(result)) {
-          if (dynamicLowerBoundType.nullability() != result.nullability()) {
-            result = dynamicLowerBoundType.join(result, appView).asClassType();
-          }
-        } else {
-          return null;
-        }
-      }
-    }
-    return result;
+    return DynamicType.join(appView, returnedTypes);
   }
 }

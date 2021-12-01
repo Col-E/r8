@@ -6,10 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.ProgramField;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -21,18 +18,7 @@ public interface FieldOptimizationFeedback {
 
   void markFieldAsPropagated(DexEncodedField field);
 
-  default void markFieldHasDynamicType(ProgramField field, DynamicType dynamicType) {
-    TypeElement dynamicUpperBoundType = dynamicType.getDynamicUpperBoundType();
-    markFieldHasDynamicUpperBoundType(field.getDefinition(), dynamicUpperBoundType);
-    if (dynamicType.hasDynamicLowerBoundType()) {
-      ClassTypeElement dynamicLowerBoundType = dynamicType.getDynamicLowerBoundType();
-      markFieldHasDynamicLowerBoundType(field.getDefinition(), dynamicLowerBoundType);
-    }
-  }
-
-  void markFieldHasDynamicLowerBoundType(DexEncodedField field, ClassTypeElement type);
-
-  void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeElement type);
+  void markFieldHasDynamicType(DexEncodedField field, DynamicType dynamicType);
 
   void markFieldBitsRead(DexEncodedField field, int bitsRead);
 

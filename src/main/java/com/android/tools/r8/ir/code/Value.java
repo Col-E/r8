@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -1093,7 +1094,7 @@ public class Value implements Comparable<Value> {
     return type;
   }
 
-  public DynamicType getDynamicType(AppView<AppInfoWithLiveness> appView) {
+  public DynamicTypeWithUpperBound getDynamicType(AppView<AppInfoWithLiveness> appView) {
     return DynamicType.create(appView, this);
   }
 
@@ -1124,7 +1125,12 @@ public class Value implements Comparable<Value> {
       // If there is an alias of the receiver, which is defined by an Assume instruction that
       // carries a dynamic type, then use the dynamic type as the refined receiver type.
       lattice =
-          aliasedValue.definition.asAssume().getDynamicTypeAssumption().getDynamicUpperBoundType();
+          aliasedValue
+              .definition
+              .asAssume()
+              .getDynamicTypeAssumption()
+              .getDynamicType()
+              .getDynamicUpperBoundType();
 
       // For precision, verify that the dynamic type is at least as precise as the static type.
       assert lattice.lessThanOrEqualUpToNullability(type, appView) : type + " < " + lattice;
@@ -1190,6 +1196,7 @@ public class Value implements Comparable<Value> {
               .getDefinition()
               .asAssume()
               .getDynamicTypeAssumption()
+              .getDynamicType()
               .getDynamicLowerBoundType();
       if (aliasedValueType != null) {
         aliasedValueType = aliasedValueType.meetNullability(getType().nullability());

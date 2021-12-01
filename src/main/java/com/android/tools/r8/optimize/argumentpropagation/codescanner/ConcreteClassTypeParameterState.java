@@ -67,7 +67,7 @@ public class ConcreteClassTypeParameterState extends ConcreteReferenceTypeParame
 
   @Override
   public Nullability getNullability() {
-    return getDynamicType().getDynamicUpperBoundType().nullability();
+    return getDynamicType().getNullability();
   }
 
   @Override

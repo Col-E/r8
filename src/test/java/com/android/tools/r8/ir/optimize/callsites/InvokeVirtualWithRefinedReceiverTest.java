@@ -63,9 +63,9 @@ public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
     if (method.getHolderType().toSourceString().endsWith("$C")) {
-      assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
+      assert callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNotNull();
     } else {
-      assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNull();
+      assert callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNull();
     }
   }
 

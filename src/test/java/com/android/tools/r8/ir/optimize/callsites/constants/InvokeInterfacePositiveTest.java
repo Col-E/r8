@@ -64,7 +64,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
+    assert callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNotNull();
     AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(1);
     assert abstractValue.isSingleStringValue()
         && abstractValue.asSingleStringValue().getDexString().toString().equals("nul");

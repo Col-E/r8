@@ -12,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -52,14 +51,12 @@ public class InvokeStaticNegativeTest extends TestBase {
   }
 
   private void callSiteOptimizationInfoInspect(ProgramMethod method) {
-    assert method.getReference().name.toString().equals("test")
-        : "Unexpected revisit: " + method.toSourceString();
+    assertTrue(
+        "Unexpected revisit: " + method.toSourceString(),
+        method.getReference().name.toString().equals("test"));
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
-    assert upperBoundType.isDefinitelyNotNull();
-    assert upperBoundType.isClassType()
-        && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Base");
+    assertTrue(callSiteOptimizationInfo.getDynamicType(0).isNotNullType());
   }
 
   private void inspect(CodeInspector inspector) {

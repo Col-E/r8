@@ -24,6 +24,8 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoColl
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -32,6 +34,7 @@ import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraphLens.Builder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
+import com.android.tools.r8.utils.AccessUtils;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IntBox;
@@ -467,8 +470,8 @@ public class ArgumentPropagatorProgramOptimizer {
     }
 
     private DexField getNewFieldSignature(ProgramField field) {
-      TypeElement dynamicUpperBoundType = field.getOptimizationInfo().getDynamicUpperBoundType();
-      if (dynamicUpperBoundType == null) {
+      DynamicType dynamicType = field.getOptimizationInfo().getDynamicType();
+      if (dynamicType.isUnknown()) {
         return field.getReference();
       }
 
@@ -481,11 +484,19 @@ public class ArgumentPropagatorProgramOptimizer {
         return field.getReference();
       }
 
-      if (dynamicUpperBoundType.isNullType()) {
+      if (dynamicType.isNullType()) {
         // Don't optimize always null fields; these will be optimized anyway.
         return field.getReference();
       }
 
+      if (dynamicType.isNotNullType()) {
+        // We don't have a more specific type.
+        return field.getReference();
+      }
+
+      DynamicTypeWithUpperBound dynamicTypeWithUpperBound =
+          dynamicType.asDynamicTypeWithUpperBound();
+      TypeElement dynamicUpperBoundType = dynamicTypeWithUpperBound.getDynamicUpperBoundType();
       assert dynamicUpperBoundType.isReferenceType();
 
       ClassTypeElement staticFieldType = field.getType().toTypeElement(appView).asClassType();
@@ -516,32 +527,11 @@ public class ArgumentPropagatorProgramOptimizer {
         newStaticFieldType = dynamicUpperBoundType.asArrayType().toDexType(dexItemFactory);
       }
 
-      if (!isAccessibleInSameContextsAs(newStaticFieldType, field.getType())) {
+      if (!AccessUtils.isAccessibleInSameContextsAs(newStaticFieldType, field.getType(), appView)) {
         return field.getReference();
       }
 
       return field.getReference().withType(newStaticFieldType, dexItemFactory);
-    }
-
-    private boolean isAccessibleInSameContextsAs(DexType newType, DexType oldType) {
-      DexType newBaseType = newType.toBaseType(dexItemFactory);
-      if (!newBaseType.isClassType()) {
-        return true;
-      }
-      DexClass newBaseClass = appView.definitionFor(newBaseType);
-      if (newBaseClass == null) {
-        return false;
-      }
-      if (newBaseClass.isPublic()) {
-        return true;
-      }
-      DexType oldBaseType = oldType.toBaseType(dexItemFactory);
-      assert oldBaseType.isClassType();
-      DexClass oldBaseClass = appView.definitionFor(oldBaseType);
-      if (oldBaseClass == null || oldBaseClass.isPublic()) {
-        return false;
-      }
-      return newBaseType.isSamePackage(oldBaseType);
     }
 
     private DexMethod getNewMethodSignature(

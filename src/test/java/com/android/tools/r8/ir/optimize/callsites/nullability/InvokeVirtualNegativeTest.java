@@ -62,13 +62,21 @@ public class InvokeVirtualNegativeTest extends TestBase {
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
     if (methodName.equals("m")) {
-      TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
+      TypeElement upperBoundType =
+          callSiteOptimizationInfo
+              .getDynamicType(1)
+              .asDynamicTypeWithUpperBound()
+              .getDynamicUpperBoundType();
       assert upperBoundType.isNullable();
       assert upperBoundType.isClassType()
           && upperBoundType.asClassType().getClassType().equals(method.getHolderType());
     } else {
       assert methodName.equals("test");
-      assert callSiteOptimizationInfo.getDynamicUpperBoundType(0).isDefinitelyNotNull();
+      assert callSiteOptimizationInfo
+          .getDynamicType(0)
+          .asDynamicTypeWithUpperBound()
+          .getDynamicUpperBoundType()
+          .isDefinitelyNotNull();
     }
   }
 

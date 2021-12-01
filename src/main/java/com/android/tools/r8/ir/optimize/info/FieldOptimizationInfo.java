@@ -4,13 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class FieldOptimizationInfo
     implements MemberOptimizationInfo<MutableFieldOptimizationInfo> {
@@ -25,36 +20,7 @@ public abstract class FieldOptimizationInfo
    */
   public abstract int getReadBits();
 
-  public abstract ClassTypeElement getDynamicLowerBoundType();
-
-  public final boolean hasDynamicUpperBoundType() {
-    return getDynamicUpperBoundType() != null;
-  }
-
-  public abstract TypeElement getDynamicUpperBoundType();
-
-  public ClassTypeElement getExactClassType(AppView<AppInfoWithLiveness> appView) {
-    ClassTypeElement dynamicLowerBoundType = getDynamicLowerBoundType();
-    TypeElement dynamicUpperBoundType = getDynamicUpperBoundType();
-    if (dynamicUpperBoundType == null || !dynamicUpperBoundType.isClassType()) {
-      return null;
-    }
-    DexType upperType = dynamicUpperBoundType.asClassType().getClassType();
-    if (dynamicLowerBoundType != null && upperType == dynamicLowerBoundType.getClassType()) {
-      return dynamicLowerBoundType;
-    }
-    DexClass upperClass = appView.definitionFor(upperType);
-    if (upperClass != null && upperClass.isEffectivelyFinal(appView)) {
-      assert dynamicLowerBoundType == null;
-      return ClassTypeElement.create(upperType, dynamicUpperBoundType.nullability(), appView);
-    }
-    return null;
-  }
-
-  public final TypeElement getDynamicUpperBoundTypeOrElse(TypeElement orElse) {
-    TypeElement dynamicUpperBoundType = getDynamicUpperBoundType();
-    return dynamicUpperBoundType != null ? dynamicUpperBoundType : orElse;
-  }
+  public abstract DynamicType getDynamicType();
 
   public abstract boolean isDead();
 

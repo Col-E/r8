@@ -14,9 +14,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.NullOrAbstractValue;
@@ -147,26 +146,17 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     // Abstract value.
     feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
 
-    // Dynamic upper bound type.
-    TypeElement fieldType =
-        TypeElement.fromDexType(field.getReference().type, Nullability.maybeNull(), appView);
-    TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
-    if (dynamicUpperBoundType.strictlyLessThan(fieldType, appView)) {
-      if (maybeNull && dynamicUpperBoundType.isDefinitelyNotNull()) {
-        assert dynamicUpperBoundType.isReferenceType();
-        dynamicUpperBoundType = dynamicUpperBoundType.asReferenceType().asMaybeNull();
+    // Dynamic type.
+    if (field.getType().isReferenceType()) {
+      DynamicTypeWithUpperBound staticType = field.getType().toDynamicType(appView);
+      DynamicTypeWithUpperBound dynamicType = value.getDynamicType(appView);
+      if (dynamicType.strictlyLessThan(staticType, appView)) {
+        if (maybeNull && dynamicType.getNullability().isDefinitelyNotNull()) {
+          assert dynamicType.getDynamicUpperBoundType().isReferenceType();
+          dynamicType = dynamicType.withNullability(Nullability.maybeNull());
+        }
+        feedback.markFieldHasDynamicType(field, dynamicType);
       }
-      feedback.markFieldHasDynamicUpperBoundType(field, dynamicUpperBoundType);
-    }
-
-    // Dynamic lower bound type.
-    ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
-    if (dynamicLowerBoundType != null) {
-      assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
-      if (maybeNull && dynamicLowerBoundType.isDefinitelyNotNull()) {
-        dynamicLowerBoundType = dynamicLowerBoundType.asMaybeNull().asClassType();
-      }
-      feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
   }
 

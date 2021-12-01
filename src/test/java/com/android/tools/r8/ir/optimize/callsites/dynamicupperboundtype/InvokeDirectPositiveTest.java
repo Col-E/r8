@@ -63,12 +63,20 @@ public class InvokeDirectPositiveTest extends TestBase {
         method.getOptimizationInfo().getArgumentInfos();
     TypeElement upperBoundType;
     if (methodName.equals("test")) {
-      upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
+      upperBoundType =
+          callSiteOptimizationInfo
+              .getDynamicType(1)
+              .asDynamicTypeWithUpperBound()
+              .getDynamicUpperBoundType();
     } else {
       // TODO(b/139246447): should avoid visiting <init>, which is trivial, default init!
       // For testing purpose, `Base` is not merged and kept. The system correctly caught that, when
       // the default initializer is invoked, the receiver had a refined type, `Sub1`.
-      upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
+      upperBoundType =
+          callSiteOptimizationInfo
+              .getDynamicType(0)
+              .asDynamicTypeWithUpperBound()
+              .getDynamicUpperBoundType();
     }
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
