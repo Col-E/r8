@@ -143,7 +143,11 @@ public abstract class SingleFieldValue extends SingleValue {
         return factory.createSingleNumberValue(enumDataMap.getUnboxedValue(field));
       }
     }
-    return factory.createSingleFieldValue(
-        lens.lookupField(field), getObjectState().rewrittenWithLens(appView, lens));
+    DexField rewrittenField = lens.lookupField(field);
+    ObjectState rewrittenObjectState = getObjectState().rewrittenWithLens(appView, lens);
+    if (rewrittenField != field || rewrittenObjectState != getObjectState()) {
+      return factory.createSingleFieldValue(rewrittenField, rewrittenObjectState);
+    }
+    return this;
   }
 }

@@ -10,8 +10,10 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistryWithResult;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -187,19 +189,41 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
     }
 
     @Override
+    public void registerInstanceFieldRead(DexField field) {
+      registerFieldAccess(field);
+    }
+
+    @Override
+    public void registerInstanceFieldWrite(DexField field) {
+      registerFieldAccess(field);
+    }
+
+    @Override
+    public void registerStaticFieldRead(DexField field) {
+      registerFieldAccess(field);
+    }
+
+    @Override
+    public void registerStaticFieldWrite(DexField field) {
+      registerFieldAccess(field);
+    }
+
+    private void registerFieldAccess(DexField field) {
+      FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field);
+      if (resolutionResult.getProgramField() == null) {
+        return;
+      }
+
+      ProgramField resolvedField = resolutionResult.getProgramField();
+      DexField rewrittenFieldReference =
+          graphLens.internalGetNextFieldSignature(resolvedField.getReference());
+      if (rewrittenFieldReference != resolvedField.getReference()) {
+        markAffected();
+      }
+    }
+
+    @Override
     public void registerInitClass(DexType type) {}
-
-    @Override
-    public void registerInstanceFieldRead(DexField field) {}
-
-    @Override
-    public void registerInstanceFieldWrite(DexField field) {}
-
-    @Override
-    public void registerStaticFieldRead(DexField field) {}
-
-    @Override
-    public void registerStaticFieldWrite(DexField field) {}
 
     @Override
     public void registerTypeReference(DexType type) {}

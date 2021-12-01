@@ -318,7 +318,7 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
   }
 
   public void forEachFieldMatching(
-      Predicate<DexEncodedField> predicate, Consumer<DexEncodedField> consumer) {
+      Predicate<? super DexEncodedField> predicate, Consumer<? super DexEncodedField> consumer) {
     fields(predicate).forEach(consumer);
   }
 

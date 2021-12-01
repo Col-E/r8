@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize.argumentpropagation;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -14,6 +15,7 @@ import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class ArgumentPropagatorGraphLens extends NestedGraphLens {
 
@@ -21,9 +23,10 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
 
   ArgumentPropagatorGraphLens(
       AppView<AppInfoWithLiveness> appView,
+      BidirectionalOneToOneMap<DexField, DexField> fieldMap,
       BidirectionalOneToOneMap<DexMethod, DexMethod> methodMap,
       Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges) {
-    super(appView, EMPTY_FIELD_MAP, methodMap, EMPTY_TYPE_MAP);
+    super(appView, fieldMap, methodMap, EMPTY_TYPE_MAP);
     this.prototypeChanges = prototypeChanges;
   }
 
@@ -31,9 +34,27 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     return new Builder(appView);
   }
 
+  public boolean hasPrototypeChanges(DexMethod method) {
+    return method != internalGetPreviousMethodSignature(method);
+  }
+
   public RewrittenPrototypeDescription getPrototypeChanges(DexMethod method) {
-    assert method != internalGetPreviousMethodSignature(method);
+    assert hasPrototypeChanges(method);
     return prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none());
+  }
+
+  @Override
+  protected FieldLookupResult internalDescribeLookupField(FieldLookupResult previous) {
+    FieldLookupResult lookupResult = super.internalDescribeLookupField(previous);
+    if (lookupResult.getReference().getType() != previous.getReference().getType()) {
+      return FieldLookupResult.builder(this)
+          .setReboundReference(lookupResult.getReboundReference())
+          .setReference(lookupResult.getReference())
+          .setReadCastType(lookupResult.getReadCastType())
+          .setWriteCastType(lookupResult.getReference().getType())
+          .build();
+    }
+    return lookupResult;
   }
 
   @Override
@@ -58,6 +79,11 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   }
 
   @Override
+  public DexField internalGetNextFieldSignature(DexField field) {
+    return super.internalGetNextFieldSignature(field);
+  }
+
+  @Override
   public DexMethod internalGetNextMethodSignature(DexMethod method) {
     return super.internalGetNextMethodSignature(method);
   }
@@ -65,6 +91,8 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   public static class Builder {
 
     private final AppView<AppInfoWithLiveness> appView;
+    private final MutableBidirectionalOneToOneMap<DexField, DexField> newFieldSignatures =
+        new BidirectionalOneToOneHashMap<>();
     private final MutableBidirectionalOneToOneMap<DexMethod, DexMethod> newMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
     private final Map<DexMethod, RewrittenPrototypeDescription> prototypeChanges =
@@ -75,13 +103,20 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     }
 
     public boolean isEmpty() {
-      return newMethodSignatures.isEmpty();
+      return newFieldSignatures.isEmpty() && newMethodSignatures.isEmpty();
     }
 
     public ArgumentPropagatorGraphLens.Builder mergeDisjoint(
         ArgumentPropagatorGraphLens.Builder partialGraphLensBuilder) {
+      newFieldSignatures.putAll(partialGraphLensBuilder.newFieldSignatures);
       newMethodSignatures.putAll(partialGraphLensBuilder.newMethodSignatures);
       prototypeChanges.putAll(partialGraphLensBuilder.prototypeChanges);
+      return this;
+    }
+
+    public Builder recordMove(DexField from, DexField to) {
+      assert from != to;
+      newFieldSignatures.put(from, to);
       return this;
     }
 
@@ -99,9 +134,26 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     }
 
     public ArgumentPropagatorGraphLens build() {
-      return isEmpty()
-          ? null
-          : new ArgumentPropagatorGraphLens(appView, newMethodSignatures, prototypeChanges);
+      if (isEmpty()) {
+        return null;
+      }
+      ArgumentPropagatorGraphLens argumentPropagatorGraphLens =
+          new ArgumentPropagatorGraphLens(
+              appView, newFieldSignatures, newMethodSignatures, prototypeChanges);
+      fixupPrototypeChangesAfterFieldSignatureChanges(argumentPropagatorGraphLens);
+      return argumentPropagatorGraphLens;
+    }
+
+    private void fixupPrototypeChangesAfterFieldSignatureChanges(
+        ArgumentPropagatorGraphLens argumentPropagatorGraphLens) {
+      for (Entry<DexMethod, RewrittenPrototypeDescription> entry : prototypeChanges.entrySet()) {
+        RewrittenPrototypeDescription prototypeChangesForMethod = entry.getValue();
+        RewrittenPrototypeDescription rewrittenPrototypeChangesForMethod =
+            prototypeChangesForMethod.rewrittenWithLens(appView, argumentPropagatorGraphLens);
+        if (rewrittenPrototypeChangesForMethod != prototypeChangesForMethod) {
+          entry.setValue(rewrittenPrototypeChangesForMethod);
+        }
+      }
     }
   }
 }

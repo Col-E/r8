@@ -371,6 +371,15 @@ public class Timing {
     stack.push(child);
   }
 
+  public <E extends Exception> void time(String title, ThrowingAction<E> action) throws E {
+    begin(title);
+    try {
+      action.execute();
+    } finally {
+      end();
+    }
+  }
+
   public <T> T time(String title, Supplier<T> supplier) {
     begin(title);
     try {

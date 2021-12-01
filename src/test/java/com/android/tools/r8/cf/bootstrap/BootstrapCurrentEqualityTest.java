@@ -50,7 +50,10 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   private static final String HELLO_NAME = "hello.Hello";
   private static final String[] KEEP_HELLO = {
-    "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
+    "-keep class " + HELLO_NAME + " {",
+    "  public static void main(...);",
+    "}",
+    "-allowaccessmodification"
   };
 
   private static Pair<Path, Path> r8R8Debug;

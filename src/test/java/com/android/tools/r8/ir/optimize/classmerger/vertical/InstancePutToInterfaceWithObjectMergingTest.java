@@ -65,6 +65,7 @@ public class InstancePutToInterfaceWithObjectMergingTest extends TestBase {
                 inspector.assertNoClassesMerged();
               }
             })
+        .addOptionsModification(options -> options.testing.allowTypeErrors = true)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

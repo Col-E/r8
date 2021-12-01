@@ -196,7 +196,12 @@ public class DexProgramClass extends DexClass
   }
 
   public void forEachProgramField(Consumer<? super ProgramField> consumer) {
-    forEachField(field -> consumer.accept(new ProgramField(this, field)));
+    forEachProgramFieldMatching(alwaysTrue(), consumer);
+  }
+
+  public void forEachProgramFieldMatching(
+      Predicate<? super DexEncodedField> predicate, Consumer<? super ProgramField> consumer) {
+    forEachFieldMatching(predicate, field -> consumer.accept(new ProgramField(this, field)));
   }
 
   public void forEachProgramInstanceField(Consumer<? super ProgramField> consumer) {

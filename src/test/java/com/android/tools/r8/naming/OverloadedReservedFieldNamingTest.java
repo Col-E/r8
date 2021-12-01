@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotR
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoFieldTypeStrengthening;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
@@ -30,7 +31,8 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
 
   @Parameterized.Parameters(name = "{1}, overload aggressively: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public OverloadedReservedFieldNamingTest(
@@ -47,7 +49,8 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
         .addKeepRules(
             "-keep class " + A.class.getTypeName() + " { boolean a; }",
             overloadAggressively ? "-overloadaggressively" : "")
-        .setMinApi(parameters.getRuntime())
+        .enableNoFieldTypeStrengtheningAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyAggressiveOverloading)
         .run(parameters.getRuntime(), TestClass.class)
@@ -82,6 +85,8 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
 
     static final boolean a = System.currentTimeMillis() >= 0;
     static final String hello = System.currentTimeMillis() >= 0 ? "Hello" : null;
+
+    @NoFieldTypeStrengthening
     static final Object world = System.currentTimeMillis() >= 0 ? " world!" : null;
 
     @Override

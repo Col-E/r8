@@ -65,7 +65,11 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
 
   public MutableFieldOptimizationInfo mutableCopy() {
     MutableFieldOptimizationInfo copy = new MutableFieldOptimizationInfo();
+    copy.abstractValue = abstractValue;
     copy.flags = flags;
+    copy.readBits = readBits;
+    copy.dynamicLowerBoundType = dynamicLowerBoundType;
+    copy.dynamicUpperBoundType = dynamicUpperBoundType;
     return copy;
   }
 
@@ -75,11 +79,12 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo
   }
 
   void setAbstractValue(AbstractValue abstractValue) {
+    assert getAbstractValue().isUnknown() || abstractValue.isNonTrivial();
     this.abstractValue = abstractValue;
   }
 
   public void fixupAbstractValue(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    abstractValue = abstractValue.rewrittenWithLens(appView, lens);
+    setAbstractValue(abstractValue.rewrittenWithLens(appView, lens));
   }
 
   @Override

@@ -214,6 +214,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return simpleInliningConstraintFactory;
   }
 
+  public DexApplication app() {
+    return appInfo().app();
+  }
+
   public T appInfo() {
     assert !appInfo.hasClassHierarchy() || enableWholeProgramOptimizations();
     return appInfo;

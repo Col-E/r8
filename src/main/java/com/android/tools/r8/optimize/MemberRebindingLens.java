@@ -137,7 +137,8 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
     FieldRebindingIdentityLens.Builder builder = FieldRebindingIdentityLens.builder();
     nonReboundFieldReferenceToDefinitionMap.forEach(
         (nonReboundFieldReference, reboundFieldReference) -> {
-          DexField rewrittenReboundFieldReference = lens.lookupField(reboundFieldReference);
+          DexField rewrittenReboundFieldReference =
+              lens.getRenamedFieldSignature(reboundFieldReference);
           DexField rewrittenNonReboundFieldReference =
               rewrittenReboundFieldReference.withHolder(
                   lens.lookupType(nonReboundFieldReference.getHolderType()), dexItemFactory);

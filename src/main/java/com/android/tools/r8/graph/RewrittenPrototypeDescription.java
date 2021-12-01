@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
@@ -46,6 +47,12 @@ public class RewrittenPrototypeDescription {
           public ArgumentInfo combine(ArgumentInfo info) {
             assert false : "ArgumentInfo NO_INFO should not be combined";
             return info;
+          }
+
+          @Override
+          public ArgumentInfo rewrittenWithLens(
+              AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+            return this;
           }
 
           @Override
@@ -90,6 +97,9 @@ public class RewrittenPrototypeDescription {
 
     // ArgumentInfo are combined with `this` first, and the `info` argument second.
     public abstract ArgumentInfo combine(ArgumentInfo info);
+
+    public abstract ArgumentInfo rewrittenWithLens(
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens);
 
     @Override
     public abstract boolean equals(Object obj);
@@ -162,6 +172,18 @@ public class RewrittenPrototypeDescription {
     @Override
     public ArgumentInfo combine(ArgumentInfo info) {
       assert false : "Once the argument is removed one cannot modify it any further.";
+      return this;
+    }
+
+    @Override
+    public RemovedArgumentInfo rewrittenWithLens(
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+      SingleValue rewrittenSingleValue =
+          hasSingleValue() ? singleValue.rewrittenWithLens(appView, graphLens) : null;
+      DexType rewrittenType = graphLens.lookupType(type);
+      if (rewrittenSingleValue != singleValue || rewrittenType != type) {
+        return new RemovedArgumentInfo(rewrittenSingleValue, rewrittenType);
+      }
       return this;
     }
 
@@ -250,6 +272,19 @@ public class RewrittenPrototypeDescription {
       assert !getNewType().isVoidType();
       assert getNewType() == other.getOldType();
       return new RewrittenTypeInfo(getOldType(), other.getNewType(), other.getSingleValue());
+    }
+
+    @Override
+    public RewrittenTypeInfo rewrittenWithLens(
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+      DexType rewrittenNewType = graphLens.lookupType(newType);
+      SingleValue rewrittenSingleValue =
+          hasSingleValue() ? getSingleValue().rewrittenWithLens(appView, graphLens) : null;
+      if (rewrittenNewType != newType || rewrittenSingleValue != singleValue) {
+        // The old type is intentionally not rewritten.
+        return new RewrittenTypeInfo(oldType, rewrittenNewType, rewrittenSingleValue);
+      }
+      return this;
     }
 
     @Override
@@ -366,6 +401,28 @@ public class RewrittenPrototypeDescription {
 
     public int size() {
       return argumentInfos.size();
+    }
+
+    public ArgumentInfoCollection rewrittenWithLens(
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+      Int2ObjectSortedMap<ArgumentInfo> rewrittenArgumentInfos = new Int2ObjectRBTreeMap<>();
+      for (Int2ObjectMap.Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
+        ArgumentInfo argumentInfo = entry.getValue();
+        ArgumentInfo rewrittenArgumentInfo = argumentInfo.rewrittenWithLens(appView, graphLens);
+        if (rewrittenArgumentInfo != argumentInfo) {
+          rewrittenArgumentInfos.put(entry.getIntKey(), rewrittenArgumentInfo);
+        }
+      }
+      if (!rewrittenArgumentInfos.isEmpty()) {
+        for (Int2ObjectMap.Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
+          int key = entry.getIntKey();
+          if (!rewrittenArgumentInfos.containsKey(key)) {
+            rewrittenArgumentInfos.put(key, entry.getValue());
+          }
+        }
+        return new ArgumentInfoCollection(rewrittenArgumentInfos);
+      }
+      return this;
     }
 
     @Override
@@ -692,6 +749,20 @@ public class RewrittenPrototypeDescription {
             : encodedMethod.getReference().proto.returnType;
     DexType[] newParameters = argumentInfoCollection.rewriteParameters(encodedMethod);
     return dexItemFactory.createProto(newReturnType, newParameters);
+  }
+
+  public RewrittenPrototypeDescription rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+    ArgumentInfoCollection newArgumentInfoCollection =
+        argumentInfoCollection.rewrittenWithLens(appView, graphLens);
+    RewrittenTypeInfo newRewrittenReturnInfo =
+        hasRewrittenReturnInfo() ? rewrittenReturnInfo.rewrittenWithLens(appView, graphLens) : null;
+    if (newArgumentInfoCollection != argumentInfoCollection
+        || newRewrittenReturnInfo != rewrittenReturnInfo) {
+      return new RewrittenPrototypeDescription(
+          extraParameters, newRewrittenReturnInfo, newArgumentInfoCollection);
+    }
+    return this;
   }
 
   public RewrittenPrototypeDescription withRewrittenReturnInfo(

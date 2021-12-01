@@ -4,11 +4,23 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
+
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.TreeFixerBase;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
+import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -20,13 +32,14 @@ import java.util.concurrent.ExecutorService;
  * Takes as input a mapping from old method signatures to new method signatures (with parameters
  * removed), and rewrites all method definitions in the application to their new method signatures.
  */
-public class ArgumentPropagatorApplicationFixer {
+public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ArgumentPropagatorGraphLens graphLens;
 
   public ArgumentPropagatorApplicationFixer(
       AppView<AppInfoWithLiveness> appView, ArgumentPropagatorGraphLens graphLens) {
+    super(appView);
     this.appView = appView;
     this.graphLens = graphLens;
   }
@@ -47,12 +60,25 @@ public class ArgumentPropagatorApplicationFixer {
     ThreadUtils.processItems(affectedClasses, this::fixupClass, executorService);
     timing.end();
 
+    // Fixup optimization info.
+    timing.time("Fixup optimization info", () -> fixupOptimizationInfos(executorService));
+
     timing.begin("Rewrite AppView");
     appView.rewriteWithLens(graphLens);
     timing.end();
   }
 
   private void fixupClass(DexProgramClass clazz) {
+    fixupFields(clazz);
+    fixupMethods(clazz);
+  }
+
+  private void fixupFields(DexProgramClass clazz) {
+    clazz.setInstanceFields(fixupFields(clazz.instanceFields()));
+    clazz.setStaticFields(fixupFields(clazz.staticFields()));
+  }
+
+  private void fixupMethods(DexProgramClass clazz) {
     MethodCollection methodCollection = clazz.getMethodCollection();
     methodCollection.replaceMethods(
         method -> {
@@ -68,11 +94,74 @@ public class ArgumentPropagatorApplicationFixer {
               builder -> {
                 RewrittenPrototypeDescription prototypeChanges =
                     graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
-                builder
-                    .apply(prototypeChanges.createParameterAnnotationsRemover(method))
-                    .fixupOptimizationInfo(
-                        appView, prototypeChanges.createMethodOptimizationInfoFixer());
+                builder.apply(prototypeChanges.createParameterAnnotationsRemover(method));
               });
         });
+  }
+
+  private void fixupOptimizationInfos(ExecutorService executorService) throws ExecutionException {
+    getSimpleFeedback()
+        .fixupOptimizationInfos(
+            appView,
+            executorService,
+            new OptimizationInfoFixer() {
+              @Override
+              public void fixup(
+                  DexEncodedField field, MutableFieldOptimizationInfo optimizationInfo) {
+                optimizationInfo.fixupAbstractValue(appView, graphLens);
+              }
+
+              @Override
+              public void fixup(
+                  DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
+                // Fixup the return value in case the method returns a field that had its signature
+                // changed.
+                optimizationInfo.fixupAbstractReturnValue(appView, graphLens);
+
+                // Rewrite the optimization info to account for method signature changes.
+                if (graphLens.hasPrototypeChanges(method.getReference())) {
+                  RewrittenPrototypeDescription prototypeChanges =
+                      graphLens.getPrototypeChanges(method.getReference());
+                  MethodOptimizationInfoFixer fixer =
+                      prototypeChanges.createMethodOptimizationInfoFixer();
+                  optimizationInfo.fixup(appView, fixer);
+                }
+              }
+            });
+  }
+
+  @Override
+  public DexField fixupFieldReference(DexField field) {
+    return graphLens.internalGetNextFieldSignature(field);
+  }
+
+  @Override
+  public DexMethod fixupMethodReference(DexMethod method) {
+    throw new Unreachable();
+  }
+
+  @Override
+  public DexType fixupType(DexType type) {
+    throw new Unreachable();
+  }
+
+  @Override
+  public DexType mapClassType(DexType type) {
+    return type;
+  }
+
+  @Override
+  public void recordFieldChange(DexField from, DexField to) {
+    // Intentionally empty.
+  }
+
+  @Override
+  public void recordMethodChange(DexMethod from, DexMethod to) {
+    // Intentionally empty.
+  }
+
+  @Override
+  public void recordClassChange(DexType from, DexType to) {
+    throw new Unreachable();
   }
 }

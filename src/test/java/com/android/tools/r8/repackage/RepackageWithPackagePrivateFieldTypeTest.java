@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoFieldTypeStrengthening;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -33,6 +33,7 @@ public class RepackageWithPackagePrivateFieldTypeTest extends RepackageTestBase 
         .addKeepClassRules(NonPublicKeptClass.class)
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
+        .enableNoFieldTypeStrengtheningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -63,6 +64,7 @@ public class RepackageWithPackagePrivateFieldTypeTest extends RepackageTestBase 
 
   public static class IneligibleForRepackaging {
 
+    @NoFieldTypeStrengthening
     private static NonPublicKeptClass FIELD =
         System.currentTimeMillis() > 0 ? new PublicSubClass() : null;
 
