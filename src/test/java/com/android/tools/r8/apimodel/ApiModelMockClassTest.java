@@ -6,7 +6,6 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -57,7 +56,7 @@ public class ApiModelMockClassTest extends TestBase {
         .inspect(
             inspector ->
                 // TODO(b/204982782): These should be stubbed for api-level 1-23.
-                assertThat(inspector.clazz(LibraryClass.class), not(Matchers.isPresent())));
+                assertThat(inspector.clazz(LibraryClass.class), Matchers.isAbsent()));
   }
 
   // Only present from api level 23.
