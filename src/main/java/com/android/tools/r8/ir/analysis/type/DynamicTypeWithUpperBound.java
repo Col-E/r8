@@ -38,15 +38,10 @@ public class DynamicTypeWithUpperBound extends DynamicType {
 
   public static DynamicTypeWithUpperBound create(
       AppView<AppInfoWithLiveness> appView, TypeElement dynamicUpperBoundType) {
-    ClassTypeElement dynamicLowerBoundType = null;
-    if (dynamicUpperBoundType.isClassType()) {
-      ClassTypeElement dynamicUpperBoundClassType = dynamicUpperBoundType.asClassType();
-      DexClass dynamicUpperBoundClass =
-          appView.definitionFor(dynamicUpperBoundClassType.getClassType());
-      if (dynamicUpperBoundClass != null && dynamicUpperBoundClass.isEffectivelyFinal(appView)) {
-        dynamicLowerBoundType = dynamicUpperBoundClassType;
-      }
-    }
+    ClassTypeElement dynamicLowerBoundType =
+        isEffectivelyFinal(appView, dynamicUpperBoundType)
+            ? dynamicUpperBoundType.asClassType()
+            : null;
     return create(appView, dynamicUpperBoundType, dynamicLowerBoundType);
   }
 
@@ -84,6 +79,15 @@ public class DynamicTypeWithUpperBound extends DynamicType {
         value.getDynamicLowerBoundType(
             appView, dynamicUpperBoundType, dynamicUpperBoundType.nullability());
     return create(appView, dynamicUpperBoundType, dynamicLowerBoundType);
+  }
+
+  private static boolean isEffectivelyFinal(AppView<?> appView, TypeElement type) {
+    if (type.isClassType()) {
+      ClassTypeElement classType = type.asClassType();
+      DexClass clazz = appView.definitionFor(classType.getClassType());
+      return clazz != null && clazz.isEffectivelyFinal(appView);
+    }
+    return false;
   }
 
   @Override
@@ -157,7 +161,10 @@ public class DynamicTypeWithUpperBound extends DynamicType {
       AppView<AppInfoWithLiveness> appView, DynamicTypeWithUpperBound dynamicType) {
     TypeElement upperBoundType =
         getDynamicUpperBoundType().join(dynamicType.getDynamicUpperBoundType(), appView);
-    ClassTypeElement lowerBoundType = meetDynamicLowerBound(appView, dynamicType);
+    ClassTypeElement lowerBoundType =
+        isEffectivelyFinal(appView, upperBoundType)
+            ? upperBoundType.asClassType()
+            : meetDynamicLowerBound(appView, dynamicType);
     if (upperBoundType.equals(getDynamicUpperBoundType())
         && Objects.equals(lowerBoundType, getDynamicLowerBoundType())) {
       return this;

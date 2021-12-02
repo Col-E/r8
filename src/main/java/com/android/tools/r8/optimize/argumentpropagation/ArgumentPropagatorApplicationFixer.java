@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodCollection;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.TreeFixerBase;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
@@ -100,6 +101,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
   }
 
   private void fixupOptimizationInfos(ExecutorService executorService) throws ExecutionException {
+    PrunedItems prunedItems = PrunedItems.empty(appView.app());
     getSimpleFeedback()
         .fixupOptimizationInfos(
             appView,
@@ -116,7 +118,9 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
                   DexEncodedMethod method, MutableMethodOptimizationInfo optimizationInfo) {
                 // Fixup the return value in case the method returns a field that had its signature
                 // changed.
-                optimizationInfo.fixupAbstractReturnValue(appView, graphLens);
+                optimizationInfo
+                    .fixupAbstractReturnValue(appView, graphLens)
+                    .fixupInstanceInitializerInfo(appView, graphLens, prunedItems);
 
                 // Rewrite the optimization info to account for method signature changes.
                 if (graphLens.hasPrototypeChanges(method.getReference())) {
