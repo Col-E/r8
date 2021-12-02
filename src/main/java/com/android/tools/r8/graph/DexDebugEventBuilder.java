@@ -261,6 +261,11 @@ public class DexDebugEventBuilder {
           factory.createSetOutlineCallerFrame(
               nextPosition.getOutlineCallee(), nextPosition.getOutlinePositions()));
     }
+    addDefaultEventWithAdvancePcIfNecessary(lineDelta, pcDelta, events, factory);
+  }
+
+  public static void addDefaultEventWithAdvancePcIfNecessary(
+      int lineDelta, int pcDelta, List<DexDebugEvent> events, DexItemFactory factory) {
     if (lineDelta < Constants.DBG_LINE_BASE
         || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {
       events.add(factory.createAdvanceLine(lineDelta));

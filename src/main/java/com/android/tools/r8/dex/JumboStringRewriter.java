@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex;
 
 import static com.android.tools.r8.graph.DexCode.TryHandler.NO_HANDLER;
+import static com.android.tools.r8.graph.DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary;
 
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.ConstStringJumbo;
@@ -233,7 +234,7 @@ public class JumboStringRewriter {
           Instruction target = debugEventTargets.get(lastOriginalOffset);
           int lineDelta = defaultEvent.getLineDelta();
           int pcDelta = target.getOffset() - lastNewOffset;
-          addDefaultEvent(lineDelta, pcDelta, events);
+          addDefaultEventWithAdvancePcIfNecessary(lineDelta, pcDelta, events, factory);
           lastNewOffset = target.getOffset();
         } else {
           events.add(event);
@@ -245,27 +246,6 @@ public class JumboStringRewriter {
           events.toArray(DexDebugEvent.EMPTY_ARRAY));
     }
     return code.getDebugInfo();
-  }
-
-  // Add a default event. If the lineDelta and pcDelta can be encoded in one default event
-  // that will be done. Otherwise, this can output an advance line and/or advance pc event
-  // followed by a default event. A default event is always emitted as that is what will
-  // materialize an entry in the line table.
-  private void addDefaultEvent(int lineDelta, int pcDelta, List<DexDebugEvent> events) {
-    if (lineDelta < Constants.DBG_LINE_BASE
-        || lineDelta - Constants.DBG_LINE_BASE >= Constants.DBG_LINE_RANGE) {
-      events.add(factory.createAdvanceLine(lineDelta));
-      lineDelta = 0;
-    }
-    if (pcDelta >= Constants.DBG_ADDRESS_RANGE) {
-      events.add(factory.createAdvancePC(pcDelta));
-      pcDelta = 0;
-    }
-    int specialOpcode =
-        0x0a + (lineDelta - Constants.DBG_LINE_BASE) + Constants.DBG_LINE_RANGE * pcDelta;
-    assert specialOpcode >= 0x0a;
-    assert specialOpcode <= 0xff;
-    events.add(factory.createDefault(specialOpcode));
   }
 
   private List<Instruction> expandCode() {
