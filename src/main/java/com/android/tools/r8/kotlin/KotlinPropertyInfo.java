@@ -58,6 +58,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
 
   private final KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations;
 
+  private final KotlinJvmMethodSignatureInfo syntheticMethodForDelegate;
+
   private KotlinPropertyInfo(
       int flags,
       int getterFlags,
@@ -72,7 +74,8 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
       KotlinJvmFieldSignatureInfo fieldSignature,
       KotlinJvmMethodSignatureInfo getterSignature,
       KotlinJvmMethodSignatureInfo setterSignature,
-      KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations) {
+      KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations,
+      KotlinJvmMethodSignatureInfo syntheticMethodForDelegate) {
     this.flags = flags;
     this.getterFlags = getterFlags;
     this.setterFlags = setterFlags;
@@ -87,6 +90,7 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     this.getterSignature = getterSignature;
     this.setterSignature = setterSignature;
     this.syntheticMethodForAnnotations = syntheticMethodForAnnotations;
+    this.syntheticMethodForDelegate = syntheticMethodForDelegate;
   }
 
   public static KotlinPropertyInfo create(
@@ -108,7 +112,9 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
         KotlinJvmMethodSignatureInfo.create(
             JvmExtensionsKt.getSetterSignature(kmProperty), factory),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), factory));
+            JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), factory),
+        KotlinJvmMethodSignatureInfo.create(
+            JvmExtensionsKt.getSyntheticMethodForDelegate(kmProperty), factory));
   }
 
   @Override
@@ -187,6 +193,11 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
             syntheticMethodForAnnotations.rewrite(
                 extensionVisitor::visitSyntheticMethodForAnnotations, null, appView, namingLens);
       }
+      if (syntheticMethodForDelegate != null) {
+        rewritten |=
+            syntheticMethodForDelegate.rewrite(
+                extensionVisitor::visitSyntheticMethodForDelegate, null, appView, namingLens);
+      }
     }
     return rewritten;
   }
@@ -214,6 +225,9 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     }
     if (syntheticMethodForAnnotations != null) {
       syntheticMethodForAnnotations.trace(definitionSupplier);
+    }
+    if (syntheticMethodForDelegate != null) {
+      syntheticMethodForDelegate.trace(definitionSupplier);
     }
   }
 }

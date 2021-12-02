@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KotlinTestParameters;
@@ -19,7 +20,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.Collection;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
-import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -123,7 +123,7 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
     Assert.assertEquals(1, compileResult.exitCode);
     assertThat(
         compileResult.stderr,
-        CoreMatchers.containsString(
+        containsString(
             "unsupported [reference to the synthetic extension property for a Java get/set"
                 + " method]"));
   }
@@ -134,9 +134,6 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
     KotlinClassMetadata kotlinClassMetadata = clazz.getKotlinClassMetadata();
     Assert.assertNotNull(kotlinClassMetadata);
     String metadataAsString = KotlinMetadataWriter.kotlinMetadataToString("", kotlinClassMetadata);
-    // TODO(b/208365670): We should model this when landed.
-    assertThat(
-        metadataAsString,
-        CoreMatchers.not(CoreMatchers.containsString("syntheticMethodForDelegate:")));
+    assertThat(metadataAsString, containsString("syntheticMethodForDelegate:"));
   }
 }

@@ -303,6 +303,7 @@ public class KotlinMetadataWriter {
 
   public static void appendKmClass(String indent, StringBuilder sb, KmClass kmClass) {
     appendKeyValue(indent, "flags", sb, kmClass.getFlags() + "");
+    appendKeyValue(indent, "jvmFlags", sb, JvmExtensionsKt.getJvmFlags(kmClass) + "");
     appendKeyValue(indent, "name", sb, kmClass.getName());
     appendKeyValue(
         indent,
@@ -518,13 +519,22 @@ public class KotlinMetadataWriter {
               "setterSignature",
               sb,
               setterSignature != null ? setterSignature.asString() : "null");
-          JvmMethodSignature syntheticMethod =
+          JvmMethodSignature syntheticMethodForAnnotations =
               JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty);
           appendKeyValue(
               newIndent,
               "syntheticMethodForAnnotations",
               sb,
-              syntheticMethod != null ? syntheticMethod.asString() : "null");
+              syntheticMethodForAnnotations != null
+                  ? syntheticMethodForAnnotations.asString()
+                  : "null");
+          JvmMethodSignature syntheticMethodForDelegate =
+              JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty);
+          appendKeyValue(
+              newIndent,
+              "syntheticMethodForDelegate",
+              sb,
+              syntheticMethodForDelegate != null ? syntheticMethodForDelegate.asString() : "null");
         });
   }
 

@@ -54,6 +54,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   private final int[] metadataVersion;
   private final String inlineClassUnderlyingPropertyName;
   private final KotlinTypeInfo inlineClassUnderlyingType;
+  private final int jvmFlags;
 
   // List of tracked assignments of kotlin metadata.
   private final KotlinMetadataMembersTracker originalMembersWithKotlinInfo;
@@ -77,7 +78,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       int[] metadataVersion,
       String inlineClassUnderlyingPropertyName,
       KotlinTypeInfo inlineClassUnderlyingType,
-      KotlinMetadataMembersTracker originalMembersWithKotlinInfo) {
+      KotlinMetadataMembersTracker originalMembersWithKotlinInfo,
+      int jvmFlags) {
     this.flags = flags;
     this.name = name;
     this.nameCanBeSynthesizedFromClassOrAnonymousObjectOrigin =
@@ -98,6 +100,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.inlineClassUnderlyingPropertyName = inlineClassUnderlyingPropertyName;
     this.inlineClassUnderlyingType = inlineClassUnderlyingType;
     this.originalMembersWithKotlinInfo = originalMembersWithKotlinInfo;
+    this.jvmFlags = jvmFlags;
   }
 
   public static KotlinClassInfo create(
@@ -180,7 +183,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         metadataVersion,
         kmClass.getInlineClassUnderlyingPropertyName(),
         KotlinTypeInfo.create(kmClass.getInlineClassUnderlyingType(), factory, reporter),
-        originalMembersWithKotlinInfo);
+        originalMembersWithKotlinInfo,
+        JvmExtensionsKt.getJvmFlags(kmClass));
   }
 
   private static KotlinTypeReference getAnonymousObjectOrigin(
@@ -371,6 +375,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     JvmClassExtensionVisitor extensionVisitor =
         (JvmClassExtensionVisitor) kmClass.visitExtensions(JvmClassExtensionVisitor.TYPE);
+    extensionVisitor.visitJvmFlags(jvmFlags);
     extensionVisitor.visitModuleName(moduleName);
     if (anonymousObjectOrigin != null) {
       rewritten |=
