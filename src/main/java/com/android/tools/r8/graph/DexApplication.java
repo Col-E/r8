@@ -22,7 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 
-public abstract class DexApplication {
+public abstract class DexApplication implements DexDefinitionSupplier {
 
   public final ImmutableList<DataResourceProvider> dataResourceProviders;
 
@@ -55,6 +55,11 @@ public abstract class DexApplication {
   }
 
   public abstract Builder<?> builder();
+
+  @Override
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
+  }
 
   public DexDefinitionSupplier getDefinitionsSupplier(
       SyntheticDefinitionsProvider syntheticDefinitionsProvider) {

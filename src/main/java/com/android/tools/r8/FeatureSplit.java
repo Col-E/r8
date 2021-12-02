@@ -38,6 +38,14 @@ public class FeatureSplit {
         }
       };
 
+  public static final FeatureSplit BASE_STARTUP =
+      new FeatureSplit(null, null) {
+        @Override
+        public boolean isBase() {
+          return true;
+        }
+      };
+
   private final ProgramConsumer programConsumer;
   private final List<ProgramResourceProvider> programResourceProviders;
 

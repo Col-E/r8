@@ -155,7 +155,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
   public String toString() {
     return "SynthesizingContext{"
         + getSynthesizingContextType()
-        + (featureSplit != FeatureSplit.BASE ? ", feature:" + featureSplit : "")
+        + (!featureSplit.isBase() ? ", feature:" + featureSplit : "")
         + "}";
   }
 

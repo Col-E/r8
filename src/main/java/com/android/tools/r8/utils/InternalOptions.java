@@ -33,6 +33,7 @@ import com.android.tools.r8.errors.InvalidLibrarySuperclassDiagnostic;
 import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -159,6 +160,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public DataResourceConsumer dataResourceConsumer;
   public FeatureSplitConfiguration featureSplitConfiguration;
+  public StartupConfiguration startupConfiguration;
 
   public List<Consumer<InspectorImpl>> outputInspections = Collections.emptyList();
 

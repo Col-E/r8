@@ -387,7 +387,7 @@ public class VerticalClassMerger {
 
     if (!appInfo
         .getClassToFeatureSplitMap()
-        .isInSameFeatureOrBothInBase(sourceClass, targetClass, appView.getSyntheticItems())) {
+        .isInSameFeatureOrBothInSameBase(sourceClass, targetClass, appView.getSyntheticItems())) {
       return false;
     }
     if (appView.appServices().allServiceTypes().contains(sourceClass.type)

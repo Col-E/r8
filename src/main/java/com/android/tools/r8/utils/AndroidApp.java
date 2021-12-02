@@ -34,6 +34,7 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -528,6 +529,7 @@ public class AndroidApp {
           dumpProgramResources(
               dumpProgramFileName,
               options.getFeatureSplitConfiguration(),
+              options.getStartupConfiguration(),
               nextDexIndex,
               out,
               reporter,
@@ -581,6 +583,7 @@ public class AndroidApp {
   private int dumpProgramResources(
       String archiveName,
       FeatureSplitConfiguration featureSplitConfiguration,
+      StartupConfiguration startupConfiguration,
       int nextDexIndex,
       ZipOutputStream out,
       Reporter reporter,
@@ -595,7 +598,7 @@ public class AndroidApp {
     try {
       ClassToFeatureSplitMap classToFeatureSplitMap =
           ClassToFeatureSplitMap.createInitialClassToFeatureSplitMap(
-              dexItemFactory, featureSplitConfiguration, reporter);
+              dexItemFactory, featureSplitConfiguration, startupConfiguration, reporter);
       if (featureSplitConfiguration != null) {
         for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
           ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream();

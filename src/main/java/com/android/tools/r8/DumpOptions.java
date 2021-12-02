@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -145,6 +146,11 @@ public class DumpOptions {
 
   public FeatureSplitConfiguration getFeatureSplitConfiguration() {
     return featureSplitConfiguration;
+  }
+
+  public StartupConfiguration getStartupConfiguration() {
+    // The startup configuration is not included in dumps.
+    return null;
   }
 
   public String getParsedProguardConfiguration() {

@@ -10,6 +10,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
@@ -819,6 +820,10 @@ public final class R8Command extends BaseCompilerCommand {
     skipDump = false;
   }
 
+  public DexItemFactory getDexItemFactory() {
+    return proguardConfiguration.getDexItemFactory();
+  }
+
   /** Get the enable-tree-shaking state. */
   public boolean getEnableTreeShaking() {
     return enableTreeShaking;
@@ -904,6 +909,9 @@ public final class R8Command extends BaseCompilerCommand {
     internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();
 
     internal.featureSplitConfiguration = featureSplitConfiguration;
+
+    internal.startupConfiguration =
+        StartupConfiguration.createStartupConfiguration(getDexItemFactory(), getReporter());
 
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 

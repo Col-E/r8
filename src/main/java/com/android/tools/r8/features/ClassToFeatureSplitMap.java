@@ -8,6 +8,7 @@ import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -21,72 +22,96 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class ClassToFeatureSplitMap {
 
-  private final Map<DexType, FeatureSplit> classToFeatureSplitMap = new IdentityHashMap<>();
+  private final FeatureSplit baseStartup;
+  private final Map<DexType, FeatureSplit> classToFeatureSplitMap;
   private final Map<FeatureSplit, String> representativeStringsForFeatureSplit;
 
-  private ClassToFeatureSplitMap() {
-    this(new HashMap<>());
-  }
-
-  private ClassToFeatureSplitMap(Map<FeatureSplit, String> representativeStringsForFeatureSplit) {
+  private ClassToFeatureSplitMap(
+      FeatureSplit baseStartup,
+      Map<DexType, FeatureSplit> classToFeatureSplitMap,
+      Map<FeatureSplit, String> representativeStringsForFeatureSplit) {
+    this.baseStartup = baseStartup;
+    this.classToFeatureSplitMap = classToFeatureSplitMap;
     this.representativeStringsForFeatureSplit = representativeStringsForFeatureSplit;
   }
 
   public static ClassToFeatureSplitMap createEmptyClassToFeatureSplitMap() {
-    return new ClassToFeatureSplitMap(null);
+    return new ClassToFeatureSplitMap(FeatureSplit.BASE, new IdentityHashMap<>(), null);
   }
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
       InternalOptions options) {
     return createInitialClassToFeatureSplitMap(
-        options.dexItemFactory(), options.featureSplitConfiguration, options.reporter);
+        options.dexItemFactory(),
+        options.featureSplitConfiguration,
+        options.startupConfiguration,
+        options.reporter);
   }
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
       DexItemFactory dexItemFactory,
       FeatureSplitConfiguration featureSplitConfiguration,
+      StartupConfiguration startupConfiguration,
       Reporter reporter) {
-    ClassToFeatureSplitMap result = new ClassToFeatureSplitMap();
-    if (featureSplitConfiguration == null) {
-      return result;
+    if (featureSplitConfiguration == null && startupConfiguration == null) {
+      return createEmptyClassToFeatureSplitMap();
     }
 
-    for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
-      String representativeType = null;
-      for (ProgramResourceProvider programResourceProvider :
-          featureSplit.getProgramResourceProviders()) {
-        try {
-          for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
-            for (String classDescriptor : programResource.getClassDescriptors()) {
-              DexType type = dexItemFactory.createType(classDescriptor);
-              result.classToFeatureSplitMap.put(type, featureSplit);
-              if (representativeType == null || classDescriptor.compareTo(representativeType) > 0) {
-                representativeType = classDescriptor;
+    Map<DexType, FeatureSplit> classToFeatureSplitMap = new IdentityHashMap<>();
+    Map<FeatureSplit, String> representativeStringsForFeatureSplit = new IdentityHashMap<>();
+    if (featureSplitConfiguration != null) {
+      for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+        String representativeType = null;
+        for (ProgramResourceProvider programResourceProvider :
+            featureSplit.getProgramResourceProviders()) {
+          try {
+            for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
+              for (String classDescriptor : programResource.getClassDescriptors()) {
+                DexType type = dexItemFactory.createType(classDescriptor);
+                classToFeatureSplitMap.put(type, featureSplit);
+                if (representativeType == null
+                    || classDescriptor.compareTo(representativeType) > 0) {
+                  representativeType = classDescriptor;
+                }
               }
             }
+          } catch (ResourceException e) {
+            throw reporter.fatalError(e.getMessage());
           }
-        } catch (ResourceException e) {
-          throw reporter.fatalError(e.getMessage());
+        }
+        if (representativeType != null) {
+          representativeStringsForFeatureSplit.put(featureSplit, representativeType);
         }
       }
-      if (representativeType != null) {
-        result.representativeStringsForFeatureSplit.put(featureSplit, representativeType);
-      }
     }
-    return result;
-  }
 
-  public int compareFeatureSplitsForDexTypes(DexType a, DexType b, SyntheticItems syntheticItems) {
-    FeatureSplit featureSplitA = getFeatureSplit(a, syntheticItems);
-    FeatureSplit featureSplitB = getFeatureSplit(b, syntheticItems);
-    return compareFeatureSplits(featureSplitA, featureSplitB);
+    FeatureSplit baseStartup;
+    if (startupConfiguration != null && startupConfiguration.hasStartupClasses()) {
+      DexType representativeType = null;
+      for (DexType startupClass : startupConfiguration.getStartupClasses()) {
+        if (classToFeatureSplitMap.containsKey(startupClass)) {
+          continue;
+        }
+        classToFeatureSplitMap.put(startupClass, FeatureSplit.BASE_STARTUP);
+        if (representativeType == null
+            || startupClass.getDescriptor().compareTo(representativeType.getDescriptor()) > 0) {
+          representativeType = startupClass;
+        }
+      }
+      baseStartup = FeatureSplit.BASE_STARTUP;
+      representativeStringsForFeatureSplit.put(
+          baseStartup, representativeType.toDescriptorString());
+    } else {
+      baseStartup = FeatureSplit.BASE;
+    }
+    return new ClassToFeatureSplitMap(
+        baseStartup, classToFeatureSplitMap, representativeStringsForFeatureSplit);
   }
 
   public int compareFeatureSplits(FeatureSplit featureSplitA, FeatureSplit featureSplitB) {
@@ -105,6 +130,14 @@ public class ClassToFeatureSplitMap {
     return representativeStringsForFeatureSplit
         .get(featureSplitA)
         .compareTo(representativeStringsForFeatureSplit.get(featureSplitB));
+  }
+
+  /**
+   * Returns the base startup if there are any startup classes given on input. Otherwise returns
+   * base.
+   */
+  public FeatureSplit getBaseStartup() {
+    return baseStartup;
   }
 
   public Map<FeatureSplit, Set<DexProgramClass>> getFeatureSplitClasses(
@@ -128,7 +161,7 @@ public class ClassToFeatureSplitMap {
     if (feature != null) {
       return feature;
     }
-    feature = syntheticItems.getContextualFeatureSplit(type);
+    feature = syntheticItems.getContextualFeatureSplit(type, this);
     if (feature != null) {
       return feature;
     }
@@ -161,23 +194,18 @@ public class ClassToFeatureSplitMap {
     return !isInBase(clazz, syntheticItems);
   }
 
-  public boolean isInSameFeatureOrBothInBase(
+  public boolean isInSameFeatureOrBothInSameBase(
       ProgramMethod a, ProgramMethod b, SyntheticItems syntheticItems) {
-    return isInSameFeatureOrBothInBase(a.getHolder(), b.getHolder(), syntheticItems);
+    return isInSameFeatureOrBothInSameBase(a.getHolder(), b.getHolder(), syntheticItems);
   }
 
-  public boolean isInSameFeatureOrBothInBase(
+  public boolean isInSameFeatureOrBothInSameBase(
       DexProgramClass a, DexProgramClass b, SyntheticItems syntheticItems) {
     return getFeatureSplit(a, syntheticItems) == getFeatureSplit(b, syntheticItems);
   }
 
-  public boolean isInSameFeatureOrBothInBase(DexType a, DexType b, SyntheticItems syntheticItems) {
-    return getFeatureSplit(a, syntheticItems) == getFeatureSplit(b, syntheticItems);
-  }
-
   public ClassToFeatureSplitMap rewrittenWithLens(GraphLens lens) {
-    ClassToFeatureSplitMap rewrittenClassToFeatureSplitMap =
-        new ClassToFeatureSplitMap(representativeStringsForFeatureSplit);
+    Map<DexType, FeatureSplit> rewrittenClassToFeatureSplitMap = new IdentityHashMap<>();
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
           DexType rewrittenType = lens.lookupType(type);
@@ -185,25 +213,24 @@ public class ClassToFeatureSplitMap {
             // The type was removed by enum unboxing.
             return;
           }
-          FeatureSplit existing =
-              rewrittenClassToFeatureSplitMap.classToFeatureSplitMap.put(
-                  rewrittenType, featureSplit);
+          FeatureSplit existing = rewrittenClassToFeatureSplitMap.put(rewrittenType, featureSplit);
           // If we map two classes to the same class then they must be from the same feature split.
           assert existing == null || existing == featureSplit;
         });
-    return rewrittenClassToFeatureSplitMap;
+    return new ClassToFeatureSplitMap(
+        baseStartup, rewrittenClassToFeatureSplitMap, representativeStringsForFeatureSplit);
   }
 
   public ClassToFeatureSplitMap withoutPrunedItems(PrunedItems prunedItems) {
-    ClassToFeatureSplitMap classToFeatureSplitMapAfterPruning =
-        new ClassToFeatureSplitMap(representativeStringsForFeatureSplit);
+    Map<DexType, FeatureSplit> rewrittenClassToFeatureSplitMap = new IdentityHashMap<>();
     classToFeatureSplitMap.forEach(
         (type, featureSplit) -> {
           if (!prunedItems.getRemovedClasses().contains(type)) {
-            classToFeatureSplitMapAfterPruning.classToFeatureSplitMap.put(type, featureSplit);
+            rewrittenClassToFeatureSplitMap.put(type, featureSplit);
           }
         });
-    return classToFeatureSplitMapAfterPruning;
+    return new ClassToFeatureSplitMap(
+        baseStartup, rewrittenClassToFeatureSplitMap, representativeStringsForFeatureSplit);
   }
 
   // Static helpers to avoid verbose predicates.

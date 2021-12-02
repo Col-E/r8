@@ -161,7 +161,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ClassToFeatureSplitMap classToFeatureSplitMap = appView.appInfo().getClassToFeatureSplitMap();
-    if (!classToFeatureSplitMap.isInSameFeatureOrBothInBase(singleTarget, method, syntheticItems)) {
+    if (!classToFeatureSplitMap.isInSameFeatureOrBothInSameBase(
+        singleTarget, method, syntheticItems)) {
       // Still allow inlining if we inline from the base into a feature.
       if (!classToFeatureSplitMap.isInBase(singleTarget.getHolder(), syntheticItems)) {
         whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();

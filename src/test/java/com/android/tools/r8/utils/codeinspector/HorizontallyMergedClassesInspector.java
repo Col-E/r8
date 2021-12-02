@@ -71,8 +71,17 @@ public class HorizontallyMergedClassesInspector {
 
   public HorizontallyMergedClassesInspector applyIf(
       boolean condition, ThrowableConsumer<HorizontallyMergedClassesInspector> consumer) {
+    return applyIf(condition, consumer, ThrowableConsumer.empty());
+  }
+
+  public HorizontallyMergedClassesInspector applyIf(
+      boolean condition,
+      ThrowableConsumer<HorizontallyMergedClassesInspector> thenConsumer,
+      ThrowableConsumer<HorizontallyMergedClassesInspector> elseConsumer) {
     if (condition) {
-      consumer.acceptWithRuntimeException(this);
+      thenConsumer.acceptWithRuntimeException(this);
+    } else {
+      elseConsumer.acceptWithRuntimeException(this);
     }
     return this;
   }

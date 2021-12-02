@@ -103,21 +103,29 @@ public class AppServices {
               + "`";
       return true;
     }
-    if (featureImplementations.size() > 1
-        || !featureImplementations.containsKey(FeatureSplit.BASE)) {
+    if (featureImplementations.keySet().stream().anyMatch(feature -> !feature.isBase())) {
       return true;
     }
+    // All service implementations are in one of the base splits.
+    assert featureImplementations.size() <= 2;
     // Check if service is defined feature
     DexProgramClass serviceClass = appView.definitionForProgramType(serviceType);
     if (serviceClass != null
         && classToFeatureSplitMap.isInFeature(serviceClass, appView.getSyntheticItems())) {
       return true;
     }
-    for (DexType implementationType : featureImplementations.get(FeatureSplit.BASE)) {
-      DexProgramClass implementationClass = appView.definitionForProgramType(implementationType);
-      if (implementationClass != null
-          && classToFeatureSplitMap.isInFeature(implementationClass, appView.getSyntheticItems())) {
-        return true;
+    for (Entry<FeatureSplit, List<DexType>> entry : featureImplementations.entrySet()) {
+      FeatureSplit feature = entry.getKey();
+      assert feature.isBase();
+      List<DexType> implementationTypes = entry.getValue();
+      for (DexType implementationType : implementationTypes) {
+        DexProgramClass implementationClass = appView.definitionForProgramType(implementationType);
+        if (implementationClass != null
+            && classToFeatureSplitMap.isInFeature(
+                implementationClass, appView.getSyntheticItems())) {
+          assert false;
+          return true;
+        }
       }
     }
     return false;
@@ -216,6 +224,7 @@ public class AppServices {
 
     public AppServices build() {
       for (DataResourceProvider provider : appView.appInfo().app().dataResourceProviders) {
+        // TODO(b/208677025): This should use BASE_STARTUP for startup classes.
         readServices(provider, FeatureSplit.BASE);
       }
       if (options.featureSplitConfiguration != null) {
