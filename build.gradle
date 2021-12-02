@@ -2201,6 +2201,13 @@ test { task ->
         systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
     }
 
+    if (project.hasProperty('kotlin_compiler_dev')) {
+        systemProperty 'com.android.tools.r8.kotlincompilerdev', '1';
+    }
+
+    if (project.hasProperty('kotlin_compiler_old')) {
+        systemProperty 'com.android.tools.r8.kotlincompilerold', '1';
+    }
 
     if (!useTestingState) {
         testLogging.exceptionFormat = 'full'

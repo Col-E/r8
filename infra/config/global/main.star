@@ -332,7 +332,7 @@ r8_builder(
     expiration_timeout = time.hour * 35,
     properties = {
       "builder_group" : "internal.client.r8",
-      "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-dev", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*"]
+      "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-dev", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*", "*debug*"]
     }
 )
 
@@ -343,7 +343,7 @@ r8_builder(
     expiration_timeout = time.hour * 35,
     properties = {
       "builder_group" : "internal.client.r8",
-      "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-old", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*"]
+      "test_options" : ["--runtimes=dex-default:jdk11", "--kotlin-compiler-old", "--one_line_per_test", "--archive_failures", "--no-internal", "*kotlin*", "*debug*"]
     }
 )
 

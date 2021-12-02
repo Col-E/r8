@@ -287,9 +287,9 @@ def Main():
   if options.print_obfuscated_stacktraces:
     gradle_args.append('-Pprint_obfuscated_stacktraces')
   if options.kotlin_compiler_old:
-    gradle_args.append('-Dcom.android.tools.r8.kotlincompilerold=1')
+    gradle_args.append('-Pkotlin_compiler_old')
   if options.kotlin_compiler_dev:
-    gradle_args.append('-Dcom.android.tools.r8.kotlincompilerdev=1')
+    gradle_args.append('-Pkotlin_compiler_dev')
     download_kotlin_dev.download_newest()
   if os.name == 'nt':
     # temporary hack
