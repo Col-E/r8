@@ -139,11 +139,6 @@ public class L8TestBuilder {
     return this;
   }
 
-  public L8TestBuilder setDisableL8AnnotationRemoval(boolean disableL8AnnotationRemoval) {
-    return addOptionsModifier(
-        options -> options.testing.disableL8AnnotationRemoval = disableL8AnnotationRemoval);
-  }
-
   public L8TestCompileResult compile()
       throws IOException, CompilationFailedException, ExecutionException {
     // We wrap exceptions in a RuntimeException to call this from a lambda.

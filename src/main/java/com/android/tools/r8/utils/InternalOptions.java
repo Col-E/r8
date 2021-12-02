@@ -1637,7 +1637,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean allowInvokeErrors = false;
     public boolean allowUnnecessaryDontWarnWildcards = true;
     public boolean allowUnusedDontWarnRules = true;
-    public boolean disableL8AnnotationRemoval = false;
     public boolean reportUnusedProguardConfigurationRules = false;
     public boolean alwaysUseExistingAccessInfoCollectionsInMemberRebinding = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;

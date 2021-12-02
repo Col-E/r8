@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -382,13 +381,6 @@ public class AnnotationRemover {
               .getKeepInfo()
               .getClassInfo(innerClassAttribute.getOuter(), appView)
               .isInnerClassesAttributeRemovalAllowed(options);
-    }
-  }
-
-  public static void clearAnnotations(AppView<?> appView) {
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.clearAnnotations();
-      clazz.members().forEach(DexDefinition::clearAnnotations);
     }
   }
 

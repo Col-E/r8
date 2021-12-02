@@ -163,10 +163,6 @@ public class DesugaredLibraryTestBase extends TestBase {
               L8TestBuilder::setDebug)
           .addOptionsModifier(optionsModifier)
           .setDesugarJDKLibsConfiguration(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-          // If we compile extended library here, it means we use TestNG. TestNG requires
-          // annotations, hence we disable annotation removal. This implies that extra warnings are
-          // generated.
-          .setDisableL8AnnotationRemoval(!additionalProgramFiles.isEmpty())
           .compile()
           .applyIf(
               additionalProgramFiles.isEmpty(),

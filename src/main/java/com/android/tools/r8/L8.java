@@ -19,7 +19,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
-import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.L8TreePruner;
 import com.android.tools.r8.synthesis.SyntheticFinalization;
 import com.android.tools.r8.utils.AndroidApp;
@@ -134,10 +133,6 @@ public class L8 {
       options.enableLoadStoreOptimization = false;
 
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
-
-      if (!options.testing.disableL8AnnotationRemoval) {
-        AnnotationRemover.clearAnnotations(appView);
-      }
 
       new IRConverter(appView, timing).convert(appView, executor);
 
