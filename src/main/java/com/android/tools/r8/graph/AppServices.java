@@ -123,7 +123,6 @@ public class AppServices {
         if (implementationClass != null
             && classToFeatureSplitMap.isInFeature(
                 implementationClass, appView.getSyntheticItems())) {
-          assert false;
           return true;
         }
       }
