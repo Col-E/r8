@@ -269,7 +269,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector, true, true);
+    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
   }
 
   private void configureHorizontalClassMerging(R8FullTestBuilder testBuilder) {
