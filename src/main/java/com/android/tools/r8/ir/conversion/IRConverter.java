@@ -114,7 +114,6 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
