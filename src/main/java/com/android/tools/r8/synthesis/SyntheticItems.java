@@ -41,7 +41,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -59,23 +58,17 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   /** Collection of pending items. */
   private static class PendingSynthetics {
-    /**
-     * Thread safe collection of synthesized classes that are not yet committed to the application.
-     *
-     * <p>TODO(b/158159959): Remove legacy support.
-     */
-    private final Map<DexType, LegacySyntheticDefinition> legacyClasses = new ConcurrentHashMap<>();
 
     /** Thread safe collection of synthetic items not yet committed to the application. */
     private final ConcurrentHashMap<DexType, SyntheticDefinition<?, ?, ?>> nonLegacyDefinitions =
         new ConcurrentHashMap<>();
 
     boolean isEmpty() {
-      return legacyClasses.isEmpty() && nonLegacyDefinitions.isEmpty();
+      return nonLegacyDefinitions.isEmpty();
     }
 
     boolean containsType(DexType type) {
-      return legacyClasses.containsKey(type) || nonLegacyDefinitions.containsKey(type);
+      return nonLegacyDefinitions.containsKey(type);
     }
 
     boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
@@ -84,21 +77,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
 
     boolean verifyNotRewritten(NonIdentityGraphLens lens) {
-      assert legacyClasses.keySet().equals(lens.rewriteTypes(legacyClasses.keySet()));
       assert nonLegacyDefinitions.keySet().equals(lens.rewriteTypes(nonLegacyDefinitions.keySet()));
       return true;
     }
 
     Collection<DexProgramClass> getAllProgramClasses() {
-      List<DexProgramClass> allPending =
-          new ArrayList<>(nonLegacyDefinitions.size() + legacyClasses.size());
+      List<DexProgramClass> allPending = new ArrayList<>(nonLegacyDefinitions.size());
       for (SyntheticDefinition<?, ?, ?> item : nonLegacyDefinitions.values()) {
         if (item.isProgramDefinition()) {
           allPending.add(item.asProgramDefinition().getHolder());
         }
-      }
-      for (LegacySyntheticDefinition legacy : legacyClasses.values()) {
-        allPending.add(legacy.getDefinition());
       }
       return Collections.unmodifiableList(allPending);
     }
@@ -189,22 +177,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
     DexClass clazz = null;
     SyntheticKind kind = null;
-    LegacySyntheticDefinition legacyItem = pending.legacyClasses.get(type);
-    if (legacyItem != null) {
-      clazz = legacyItem.getDefinition();
-    } else {
-      SyntheticDefinition<?, ?, ?> item = pending.nonLegacyDefinitions.get(type);
-      if (item != null) {
-        clazz = item.getHolder();
-        kind = item.getKind();
-        assert clazz.isProgramClass() == item.isProgramDefinition();
-        assert clazz.isClasspathClass() == item.isClasspathDefinition();
-      }
+    SyntheticDefinition<?, ?, ?> item = pending.nonLegacyDefinitions.get(type);
+    if (item != null) {
+      clazz = item.getHolder();
+      kind = item.getKind();
+      assert clazz.isProgramClass() == item.isProgramDefinition();
+      assert clazz.isClasspathClass() == item.isClasspathDefinition();
     }
     if (clazz != null) {
-      assert legacyItem != null || kind != null;
-      assert baseDefinitionFor.apply(type) == null
-              || (kind != null && kind.mayOverridesNonProgramType)
+      assert kind != null;
+      assert baseDefinitionFor.apply(type) == null || kind.mayOverridesNonProgramType
           : "Pending synthetic definition also present in the active program: " + type;
       return clazz;
     }
@@ -227,10 +209,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return committed.containsType(type);
   }
 
-  private boolean isLegacyCommittedSynthetic(DexType type) {
-    return committed.containsLegacyType(type);
-  }
-
   private boolean isNonLegacyCommittedSynthetic(DexType type) {
     return committed.containsNonLegacyType(type);
   }
@@ -239,20 +217,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return pending.containsType(type);
   }
 
-  private boolean isLegacyPendingSynthetic(DexType type) {
-    return pending.legacyClasses.containsKey(type);
-  }
-
   private boolean isNonLegacyPendingSynthetic(DexType type) {
     return pending.nonLegacyDefinitions.containsKey(type);
-  }
-
-  public boolean isLegacySyntheticClass(DexType type) {
-    return isLegacyCommittedSynthetic(type) || isLegacyPendingSynthetic(type);
-  }
-
-  public boolean isLegacySyntheticClass(DexProgramClass clazz) {
-    return isLegacySyntheticClass(clazz.getType());
   }
 
   public boolean isNonLegacySynthetic(DexProgramClass clazz) {
@@ -291,7 +257,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public boolean isSyntheticClass(DexType type) {
-    return isLegacySyntheticClass(type) || isNonLegacySynthetic(type);
+    return isNonLegacySynthetic(type);
   }
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
@@ -307,18 +273,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public FeatureSplit getContextualFeatureSplit(DexType type) {
-    if (pending.legacyClasses.containsKey(type)) {
-      LegacySyntheticDefinition definition = pending.legacyClasses.get(type);
-      return definition.getFeatureSplit();
-    }
-    if (committed.containsLegacyType(type)) {
-      List<LegacySyntheticReference> types = committed.getLegacyTypes(type);
-      if (types.isEmpty()) {
-        return null;
-      }
-      assert verifyAllHaveSameFeature(types, LegacySyntheticReference::getFeatureSplit);
-      return types.get(0).getFeatureSplit();
-    }
     if (isSyntheticOfKind(type, SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
       return FeatureSplit.BASE;
     }
@@ -358,13 +312,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     ImmutableList.Builder<DexType> builder = ImmutableList.builder();
     forEachSynthesizingContext(
         type, synthesizingContext -> builder.add(synthesizingContext.getSynthesizingContextType()));
-    for (LegacySyntheticReference legacyReference : committed.getLegacyTypes(type)) {
-      builder.addAll(legacyReference.getContexts());
-    }
-    LegacySyntheticDefinition legacyDefinition = pending.legacyClasses.get(type);
-    if (legacyDefinition != null) {
-      builder.addAll(legacyDefinition.getContexts());
-    }
     return builder.build();
   }
 
@@ -416,10 +363,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return true;
   }
 
-  public Collection<DexProgramClass> getLegacyPendingClasses() {
-    return ListUtils.map(pending.legacyClasses.values(), LegacySyntheticDefinition::getDefinition);
-  }
-
   private SynthesizingContext getSynthesizingContext(
       ProgramDefinition context, AppView<?> appView) {
     return getSynthesizingContext(
@@ -450,29 +393,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   // Addition and creation of synthetic items.
-
-  public void addLegacySyntheticClassForLibraryDesugaring(DexProgramClass clazz) {
-    internalAddLegacySyntheticClass(clazz);
-    // No context information is added for library context.
-    // This is intended only to support desugared-library compilation.
-  }
-
-  // TODO(b/158159959): Remove the usage of this direct class addition.
-  public void addLegacySyntheticClass(
-      DexProgramClass clazz, ProgramDefinition context, FeatureSplit featureSplit) {
-    LegacySyntheticDefinition legacyItem = internalAddLegacySyntheticClass(clazz);
-    legacyItem.addContext(context, featureSplit);
-  }
-
-  private LegacySyntheticDefinition internalAddLegacySyntheticClass(DexProgramClass clazz) {
-    assert !isCommittedSynthetic(clazz.type);
-    assert !pending.nonLegacyDefinitions.containsKey(clazz.type);
-    LegacySyntheticDefinition legacyItem =
-        pending.legacyClasses.computeIfAbsent(
-            clazz.getType(), type -> new LegacySyntheticDefinition(clazz));
-    assert legacyItem.getDefinition() == clazz;
-    return legacyItem;
-  }
 
   private DexProgramClass internalEnsureDexProgramClass(
       SyntheticKind kind,
@@ -824,9 +744,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     DexApplication application = prunedItems.getPrunedApp();
     Set<DexType> removedClasses = prunedItems.getNoLongerSyntheticItems();
     CommittedSyntheticsCollection.Builder builder = committed.builder();
-    // Legacy synthetics must already have been committed to the app.
-    assert verifyClassesAreInApp(application, pending.legacyClasses.values());
-    builder.addLegacyClasses(pending.legacyClasses);
     // Compute the synthetic additions and add them to the application.
     ImmutableList<DexType> committedProgramTypes;
     DexApplication amendedApplication;
@@ -861,15 +778,6 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         amendedApplication,
         builder.build().pruneItems(prunedItems),
         committedProgramTypes);
-  }
-
-  private static boolean verifyClassesAreInApp(
-      DexApplication app, Collection<LegacySyntheticDefinition> classes) {
-    for (LegacySyntheticDefinition item : classes) {
-      DexProgramClass clazz = item.getDefinition();
-      assert app.programDefinitionFor(clazz.type) != null : "Missing synthetic: " + clazz.type;
-    }
-    return true;
   }
 
   public void writeAttributeIfIntermediateSyntheticClass(

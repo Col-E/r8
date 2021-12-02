@@ -51,13 +51,6 @@ public class MissingClasses {
     return new MissingClasses(Sets.newIdentityHashSet());
   }
 
-  public MissingClasses commitSyntheticItems(CommittedItems committedItems) {
-    return builder()
-        // TODO(b/175542052): Synthetic types should not be reported as missing in the first place.
-        .removeAlreadyMissingClasses(committedItems.getLegacySyntheticTypes())
-        .build();
-  }
-
   public void forEach(Consumer<DexType> missingClassConsumer) {
     missingClasses.forEach(missingClassConsumer);
   }

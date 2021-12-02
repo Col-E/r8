@@ -269,8 +269,7 @@ public class SyntheticFinalization {
         new CommittedItems(
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
             application,
-            new CommittedSyntheticsCollection(
-                committed.getLegacyTypes(), finalMethods, finalClasses, finalInputSynthetics),
+            new CommittedSyntheticsCollection(finalMethods, finalClasses, finalInputSynthetics),
             ImmutableList.of()),
         syntheticFinalizationGraphLens,
         PrunedItems.builder().setPrunedApp(application).addRemovedClasses(prunedSynthetics).build(),
@@ -329,13 +328,6 @@ public class SyntheticFinalization {
 
   private boolean verifyOneSyntheticPerSyntheticClass() {
     Set<DexType> seen = Sets.newIdentityHashSet();
-    committed
-        .getLegacyTypes()
-        .forEach(
-            (type, references) -> {
-              assert seen.add(type);
-              assert references.size() == 1;
-            });
     committed
         .getNonLegacyClasses()
         .forEach(

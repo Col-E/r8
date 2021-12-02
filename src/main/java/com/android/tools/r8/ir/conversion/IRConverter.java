@@ -819,18 +819,7 @@ public class IRConverter {
 
     // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
-    assert checkLegacySyntheticsAreInBuilder(appView, builder);
     return builder.build();
-  }
-
-  private boolean checkLegacySyntheticsAreInBuilder(
-      AppView<AppInfoWithLiveness> appView, Builder<?> builder) {
-    Collection<DexProgramClass> inAppInfo =
-        appView.appInfo().getSyntheticItems().getLegacyPendingClasses();
-    Collection<DexProgramClass> inBuilder = builder.getSynthesizedClasses();
-    assert inAppInfo.containsAll(inBuilder);
-    assert inBuilder.containsAll(inAppInfo);
-    return true;
   }
 
   private void waveStart(ProgramMethodSet wave) {

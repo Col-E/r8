@@ -34,7 +34,6 @@ class CommittedSyntheticsCollection {
     private final CommittedSyntheticsCollection parent;
     private Map<DexType, List<SyntheticProgramClassReference>> newNonLegacyClasses = null;
     private Map<DexType, List<SyntheticMethodReference>> newNonLegacyMethods = null;
-    private Map<DexType, List<LegacySyntheticReference>> newLegacyClasses = null;
     private ImmutableSet.Builder<DexType> newSyntheticInputs = null;
 
     public Builder(CommittedSyntheticsCollection parent) {
@@ -76,28 +75,6 @@ class CommittedSyntheticsCollection {
       return this;
     }
 
-    public Builder addLegacyClasses(Map<DexType, LegacySyntheticDefinition> classes) {
-      if (newLegacyClasses == null) {
-        newLegacyClasses = new IdentityHashMap<>();
-      }
-      classes.forEach(
-          (type, item) ->
-              newLegacyClasses
-                  .computeIfAbsent(type, ignore -> new ArrayList<>())
-                  .add(item.toReference()));
-      return this;
-    }
-
-    public Builder addLegacyClass(LegacySyntheticReference reference) {
-      if (newLegacyClasses == null) {
-        newLegacyClasses = new IdentityHashMap<>();
-      }
-      newLegacyClasses
-          .computeIfAbsent(reference.getHolder(), ignore -> new ArrayList<>())
-          .add(reference);
-      return this;
-    }
-
     public Builder addSyntheticInput(DexType syntheticInput) {
       if (newSyntheticInputs == null) {
         newSyntheticInputs = ImmutableSet.builder();
@@ -116,26 +93,21 @@ class CommittedSyntheticsCollection {
       if (newNonLegacyMethods != null) {
         newSyntheticInputs.addAll(newNonLegacyMethods.keySet());
       }
-      if (newLegacyClasses != null) {
-        newSyntheticInputs.addAll(newLegacyClasses.keySet());
-      }
       return this;
     }
 
     public CommittedSyntheticsCollection build() {
-      if (newNonLegacyClasses == null && newNonLegacyMethods == null && newLegacyClasses == null) {
+      if (newNonLegacyClasses == null && newNonLegacyMethods == null) {
         return parent;
       }
       ImmutableMap<DexType, List<SyntheticProgramClassReference>> allNonLegacyClasses =
           merge(newNonLegacyClasses, parent.nonLegacyClasses);
       ImmutableMap<DexType, List<SyntheticMethodReference>> allNonLegacyMethods =
           merge(newNonLegacyMethods, parent.nonLegacyMethods);
-      ImmutableMap<DexType, List<LegacySyntheticReference>> allLegacyClasses =
-          merge(newLegacyClasses, parent.legacyTypes);
       ImmutableSet<DexType> allSyntheticInputs =
           newSyntheticInputs == null ? parent.syntheticInputs : newSyntheticInputs.build();
       return new CommittedSyntheticsCollection(
-          allLegacyClasses, allNonLegacyMethods, allNonLegacyClasses, allSyntheticInputs);
+          allNonLegacyMethods, allNonLegacyClasses, allSyntheticInputs);
     }
   }
 
@@ -151,15 +123,7 @@ class CommittedSyntheticsCollection {
   }
 
   private static final CommittedSyntheticsCollection EMPTY =
-      new CommittedSyntheticsCollection(
-          ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of());
-
-  /**
-   * Immutable set of synthetic types in the application (eg, committed).
-   *
-   * <p>TODO(b/158159959): Remove legacy support.
-   */
-  private final ImmutableMap<DexType, List<LegacySyntheticReference>> legacyTypes;
+      new CommittedSyntheticsCollection(ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of());
 
   /** Mapping from synthetic type to its synthetic method item description. */
   private final ImmutableMap<DexType, List<SyntheticMethodReference>> nonLegacyMethods;
@@ -171,11 +135,9 @@ class CommittedSyntheticsCollection {
   public final ImmutableSet<DexType> syntheticInputs;
 
   public CommittedSyntheticsCollection(
-      ImmutableMap<DexType, List<LegacySyntheticReference>> legacyTypes,
       ImmutableMap<DexType, List<SyntheticMethodReference>> nonLegacyMethods,
       ImmutableMap<DexType, List<SyntheticProgramClassReference>> nonLegacyClasses,
       ImmutableSet<DexType> syntheticInputs) {
-    this.legacyTypes = legacyTypes;
     this.nonLegacyMethods = nonLegacyMethods;
     this.nonLegacyClasses = nonLegacyClasses;
     this.syntheticInputs = syntheticInputs;
@@ -185,7 +147,6 @@ class CommittedSyntheticsCollection {
   private boolean verifySyntheticInputsSubsetOfSynthetics() {
     Set<DexType> synthetics =
         ImmutableSet.<DexType>builder()
-            .addAll(legacyTypes.keySet())
             .addAll(nonLegacyMethods.keySet())
             .addAll(nonLegacyClasses.keySet())
             .build();
@@ -206,14 +167,13 @@ class CommittedSyntheticsCollection {
   }
 
   boolean isEmpty() {
-    boolean empty =
-        legacyTypes.isEmpty() && nonLegacyMethods.isEmpty() && nonLegacyClasses.isEmpty();
+    boolean empty = nonLegacyMethods.isEmpty() && nonLegacyClasses.isEmpty();
     assert !empty || syntheticInputs.isEmpty();
     return empty;
   }
 
   boolean containsType(DexType type) {
-    return containsLegacyType(type) || containsNonLegacyType(type);
+    return containsNonLegacyType(type);
   }
 
   boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
@@ -229,24 +189,12 @@ class CommittedSyntheticsCollection {
     return false;
   }
 
-  public boolean containsLegacyType(DexType type) {
-    return legacyTypes.containsKey(type);
-  }
-
   public boolean containsNonLegacyType(DexType type) {
     return nonLegacyMethods.containsKey(type) || nonLegacyClasses.containsKey(type);
   }
 
   public boolean containsSyntheticInput(DexType type) {
     return syntheticInputs.contains(type);
-  }
-
-  public ImmutableMap<DexType, List<LegacySyntheticReference>> getLegacyTypes() {
-    return legacyTypes;
-  }
-
-  public List<LegacySyntheticReference> getLegacyTypes(DexType type) {
-    return legacyTypes.getOrDefault(type, emptyList());
   }
 
   public ImmutableMap<DexType, List<SyntheticMethodReference>> getNonLegacyMethods() {
@@ -279,13 +227,6 @@ class CommittedSyntheticsCollection {
     }
     Builder builder = CommittedSyntheticsCollection.empty().builder();
     boolean changed = false;
-    for (LegacySyntheticReference reference : IterableUtils.flatten(legacyTypes.values())) {
-      if (removed.contains(reference.getHolder())) {
-        changed = true;
-      } else {
-        builder.addLegacyClass(reference);
-      }
-    }
     for (SyntheticMethodReference reference : IterableUtils.flatten(nonLegacyMethods.values())) {
       if (removed.contains(reference.getHolder())) {
         changed = true;
@@ -314,7 +255,6 @@ class CommittedSyntheticsCollection {
   CommittedSyntheticsCollection rewriteWithLens(NonIdentityGraphLens lens) {
     ImmutableSet.Builder<DexType> syntheticInputsBuilder = ImmutableSet.builder();
     return new CommittedSyntheticsCollection(
-        rewriteItems(legacyTypes, lens, syntheticInputsBuilder),
         rewriteItems(nonLegacyMethods, lens, syntheticInputsBuilder),
         rewriteItems(nonLegacyClasses, lens, syntheticInputsBuilder),
         syntheticInputsBuilder.build());
@@ -340,7 +280,6 @@ class CommittedSyntheticsCollection {
   }
 
   boolean verifyTypesAreInApp(DexApplication application) {
-    assert verifyTypesAreInApp(application, legacyTypes.keySet());
     assert verifyTypesAreInApp(application, nonLegacyMethods.keySet());
     assert verifyTypesAreInApp(application, nonLegacyClasses.keySet());
     assert verifyTypesAreInApp(application, syntheticInputs);

@@ -45,11 +45,6 @@ public class ClassToFeatureSplitMap {
   }
 
   public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
-    return createInitialClassToFeatureSplitMap(appView.options());
-  }
-
-  public static ClassToFeatureSplitMap createInitialClassToFeatureSplitMap(
       InternalOptions options) {
     return createInitialClassToFeatureSplitMap(
         options.dexItemFactory(), options.featureSplitConfiguration, options.reporter);
@@ -59,7 +54,6 @@ public class ClassToFeatureSplitMap {
       DexItemFactory dexItemFactory,
       FeatureSplitConfiguration featureSplitConfiguration,
       Reporter reporter) {
-
     ClassToFeatureSplitMap result = new ClassToFeatureSplitMap();
     if (featureSplitConfiguration == null) {
       return result;

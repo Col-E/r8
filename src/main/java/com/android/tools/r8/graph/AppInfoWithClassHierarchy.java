@@ -161,15 +161,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return this;
   }
 
-  @Override
-  public void addSynthesizedClass(DexProgramClass clazz, ProgramDefinition context) {
-    assert checkIfObsolete();
-    assert context != null;
-    FeatureSplit featureSplit =
-        classToFeatureSplitMap.getFeatureSplit(context, getSyntheticItems());
-    getSyntheticItems().addLegacySyntheticClass(clazz, context, featureSplit);
-  }
-
   /** Primitive traversal over all (non-interface) superclasses of a given type. */
   public TraversalContinuation traverseSuperClasses(
       DexClass clazz, TriFunction<DexType, DexClass, DexClass, TraversalContinuation> fn) {
