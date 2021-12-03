@@ -93,11 +93,6 @@ public class InlineCatchHandlerWithLibraryTypeTest extends TestBase {
         || parameters.getApiLevel().getLevel() < EXCEPTIONS.get(exception);
   }
 
-  private boolean compileTargetHasVerificationBug() {
-    // A CF target could target any API in the end.
-    return parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.L);
-  }
-
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
@@ -131,7 +126,7 @@ public class InlineCatchHandlerWithLibraryTypeTest extends TestBase {
     boolean mainHasInlinedCatchHandler =
         Streams.stream(classSubject.mainMethod().iterateTryCatches())
             .anyMatch(tryCatch -> tryCatch.isCatching(exception));
-    if (compileTargetHasVerificationBug() && compilationTargetIsMissingExceptionType()) {
+    if (compilationTargetIsMissingExceptionType()) {
       assertFalse(mainHasInlinedCatchHandler);
     } else {
       assertTrue(mainHasInlinedCatchHandler);
