@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -72,9 +73,9 @@ public class Regress131349148 extends TestBase {
         result.inspector().clazz(TestClassCallingMethodWithNonExisting.class);
     boolean hasCatchHandler =
         Streams.stream(classSubject.mainMethod().iterateTryCatches()).count() > 0;
-    int runtimeLevel = parameters.getApiLevel().getLevel();
-    assertEquals(runtimeLevel >= AndroidApiLevel.L.getLevel(), hasCatchHandler);
-
+    // The catch handler does not exist in ClassWithCatchNonExisting.methodWithCatch thus we assign
+    // UNKNOWN api level. As a result we do not inline.
+    assertFalse(hasCatchHandler);
   }
 
   static class TestClass {
