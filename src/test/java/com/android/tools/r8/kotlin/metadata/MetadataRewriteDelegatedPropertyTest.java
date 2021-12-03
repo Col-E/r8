@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -36,11 +38,17 @@ public class MetadataRewriteDelegatedPropertyTest extends KotlinMetadataTestBase
           "var com.android.tools.r8.kotlin.metadata.delegated_property_lib.MyDelegatedProperty.oldName:"
               + " kotlin.String");
 
+  private static final KotlinCompilerVersion MIN_SUPPORTED_KOTLIN_VERSION = KOTLINC_1_4_20;
+
   @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
-        getKotlinTestParameters().withAllCompilersAndTargetVersions().build());
+        getKotlinTestParameters()
+            .withOldCompilersStartingFrom(MIN_SUPPORTED_KOTLIN_VERSION)
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_KOTLIN_VERSION)
+            .withAllTargetVersions()
+            .build());
   }
 
   public MetadataRewriteDelegatedPropertyTest(

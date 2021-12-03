@@ -93,7 +93,10 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/nested_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)

@@ -104,7 +104,10 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             .addClasspathFiles(baseLibJar, libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), baseLibJar, libJar)

@@ -140,7 +140,10 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addClasspath(mainJar)

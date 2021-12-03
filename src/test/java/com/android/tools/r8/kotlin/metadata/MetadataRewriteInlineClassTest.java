@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -31,13 +32,15 @@ public class MetadataRewriteInlineClassTest extends KotlinMetadataTestBase {
 
   private final String EXPECTED = StringUtils.lines("Password(s=Hello World!)");
   private final String passwordTypeName = PKG + ".inline_class_lib.Password";
+  private static final KotlinCompilerVersion MIN_SUPPORTED_KOTLIN_VERSION = KOTLINC_1_6_0;
 
   @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
         getKotlinTestParameters()
-            .withCompilersStartingFromIncluding(KotlinCompilerVersion.KOTLINC_1_6_0)
+            .withOldCompilersStartingFrom(MIN_SUPPORTED_KOTLIN_VERSION)
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_KOTLIN_VERSION)
             .withAllTargetVersions()
             .build());
   }

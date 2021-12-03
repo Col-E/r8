@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MAX_SUPPORTED_VERSION;
 import static com.android.tools.r8.ToolHelper.isWindows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -303,9 +304,17 @@ public class KotlinCompilerTool {
 
   /** Compile asserting success and return the output path. */
   public Path compile() throws IOException {
+    return compile(false);
+  }
+
+  public Path compile(boolean expectingFailure) throws IOException {
     Path output = getOrCreateOutputPath();
     ProcessResult result = compileInternal(output);
-    assertEquals(result.toString(), result.exitCode, 0);
+    if (expectingFailure) {
+      assertNotEquals(result.toString(), result.exitCode, 0);
+    } else {
+      assertEquals(result.toString(), result.exitCode, 0);
+    }
     return output;
   }
 

@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertNull;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.kotlin.KotlinMetadataWriter;
@@ -37,13 +38,15 @@ public class MetadataRewriteValueClassTest extends KotlinMetadataTestBase {
   private static final String PKG_LIB = PKG + ".value_class_lib";
   private static final String PKG_APP = PKG + ".value_class_app";
   private final TestParameters parameters;
+  private static final KotlinCompilerVersion MIN_SUPPORTED_KOTLIN_VERSION = KOTLINC_1_5_0;
 
   @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
         getKotlinTestParameters()
-            .withCompilersStartingFromIncluding(KOTLINC_1_5_0)
+            .withOldCompilersStartingFrom(MIN_SUPPORTED_KOTLIN_VERSION)
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_KOTLIN_VERSION)
             .withTargetVersion(JAVA_8)
             .build());
   }

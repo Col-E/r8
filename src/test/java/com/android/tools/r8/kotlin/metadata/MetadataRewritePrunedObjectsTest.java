@@ -89,7 +89,10 @@ public class MetadataRewritePrunedObjectsTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
         .addProgramFiles(output)

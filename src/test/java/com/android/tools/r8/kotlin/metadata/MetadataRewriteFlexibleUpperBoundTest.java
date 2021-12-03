@@ -21,11 +21,9 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import com.android.tools.r8.utils.codeinspector.KmTypeProjectionSubject;
 import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import kotlinx.metadata.KmFlexibleTypeUpperBound;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -96,7 +94,10 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/flexible_upper_bound_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addClasspath(main)
@@ -104,7 +105,7 @@ public class MetadataRewriteFlexibleUpperBoundTest extends KotlinMetadataTestBas
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private void inspect(CodeInspector inspector) throws IOException, ExecutionException {
+  private void inspect(CodeInspector inspector) {
     // We are checking that A is renamed, and that the flexible upper bound information is
     // reflecting that.
     ClassSubject a = inspector.clazz(PKG_LIB + ".A");

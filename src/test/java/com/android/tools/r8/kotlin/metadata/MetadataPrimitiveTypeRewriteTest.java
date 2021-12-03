@@ -99,13 +99,17 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .writeToZip();
+    boolean expectingCompilationError = kotlinParameters.isOlderThanMinSupported() && !keepUnit;
     Path output =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(expectingCompilationError);
+    if (expectingCompilationError) {
+      return;
+    }
     final JvmTestRunResult runResult =
         testForJvm()
             .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)

@@ -135,7 +135,10 @@ public class MetadataRewriteAnnotationTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .addProgramFiles(output)

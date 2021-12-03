@@ -52,6 +52,10 @@ public class KotlinTestParameters {
     return !isNewerThanOrEqualTo(otherVersion);
   }
 
+  public boolean isOlderThanMinSupported() {
+    return isOlderThan(KotlinCompilerVersion.MIN_SUPPORTED_VERSION);
+  }
+
   public boolean isFirst() {
     return index == 0;
   }
@@ -68,6 +72,7 @@ public class KotlinTestParameters {
   public static class Builder {
 
     private Predicate<KotlinCompilerVersion> compilerFilter = c -> false;
+    private Predicate<KotlinCompilerVersion> oldCompilerFilter = c -> true;
     private Predicate<KotlinTargetVersion> targetVersionFilter = t -> false;
     private boolean withDevCompiler =
         System.getProperty("com.android.tools.r8.kotlincompilerdev") != null;
@@ -105,8 +110,18 @@ public class KotlinTestParameters {
       return this;
     }
 
+    public Builder withOldCompilers() {
+      this.withOldCompilers = true;
+      return this;
+    }
+
     public Builder withOldCompilersIfSet() {
       assumeTrue(withOldCompilers);
+      return this;
+    }
+
+    public Builder withOldCompilersStartingFrom(KotlinCompilerVersion minOldVersion) {
+      oldCompilerFilter = oldCompilerFilter.and(v -> v.isGreaterThanOrEqualTo(minOldVersion));
       return this;
     }
 
@@ -139,8 +154,8 @@ public class KotlinTestParameters {
         compilerVersions =
             Arrays.stream(KotlinCompilerVersion.values())
                 .filter(c -> c.isLessThan(KotlinCompilerVersion.MIN_SUPPORTED_VERSION))
+                .filter(c -> oldCompilerFilter.test(c))
                 .collect(Collectors.toList());
-
       } else {
         compilerVersions =
             KotlinCompilerVersion.getSupported().stream()
@@ -162,7 +177,7 @@ public class KotlinTestParameters {
           }
         }
       }
-      assert !testParameters.isEmpty();
+      assert !testParameters.isEmpty() || withOldCompilers;
       return new KotlinTestParametersCollection(testParameters);
     }
   }

@@ -157,7 +157,10 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/extension_function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)

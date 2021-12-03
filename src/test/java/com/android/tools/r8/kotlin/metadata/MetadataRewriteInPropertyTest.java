@@ -95,7 +95,10 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .addSourceFiles(
                 getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_getter", "getter_user"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
@@ -192,7 +195,10 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .addSourceFiles(
                 getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_setter", "setter_user"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)

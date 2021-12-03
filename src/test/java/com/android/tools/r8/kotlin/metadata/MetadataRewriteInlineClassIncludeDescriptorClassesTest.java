@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.*;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,13 +27,15 @@ import org.junit.runners.Parameterized;
 public class MetadataRewriteInlineClassIncludeDescriptorClassesTest extends KotlinMetadataTestBase {
 
   private final String EXPECTED = StringUtils.lines("Hello World!");
+  private static final KotlinCompilerVersion MIN_SUPPORTED_KOTLIN_VERSION = KOTLINC_1_6_0;
 
   @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withCfRuntimes().build(),
         getKotlinTestParameters()
-            .withCompilersStartingFromIncluding(KotlinCompilerVersion.KOTLINC_1_6_0)
+            .withOldCompilersStartingFrom(MIN_SUPPORTED_KOTLIN_VERSION)
+            .withCompilersStartingFromIncluding(MIN_SUPPORTED_KOTLIN_VERSION)
             .withAllTargetVersions()
             .build());
   }
