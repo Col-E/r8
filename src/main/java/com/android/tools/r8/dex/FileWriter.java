@@ -98,8 +98,6 @@ public class FileWriter {
   }
 
   private final ObjectToOffsetMapping mapping;
-  private final MethodToCodeObjectMapping codeMapping;
-  private final AppInfo appInfo;
   private final DexApplication application;
   private final InternalOptions options;
   private final GraphLens graphLens;
@@ -112,20 +110,17 @@ public class FileWriter {
   public FileWriter(
       ByteBufferProvider provider,
       ObjectToOffsetMapping mapping,
-      MethodToCodeObjectMapping codeMapping,
       AppInfo appInfo,
       InternalOptions options,
       NamingLens namingLens,
       CodeToKeep desugaredLibraryCodeToKeep) {
     this.mapping = mapping;
-    this.codeMapping = codeMapping;
-    this.appInfo = appInfo;
     this.application = appInfo.app();
     this.options = options;
     this.graphLens = mapping.getGraphLens();
     this.namingLens = namingLens;
     this.dest = new DexOutputBuffer(provider);
-    this.mixedSectionOffsets = new MixedSectionOffsets(options, codeMapping);
+    this.mixedSectionOffsets = new MixedSectionOffsets(options);
     this.desugaredLibraryCodeToKeep = desugaredLibraryCodeToKeep;
   }
 
@@ -178,9 +173,6 @@ public class FileWriter {
 
     Layout layout = Layout.from(mapping);
     layout.setCodesOffset(layout.dataSectionOffset);
-
-    // Check code objects in the code-mapping are consistent with the collected code objects.
-    assert codeMapping.verifyCodeObjects(mixedSectionOffsets.getCodes());
 
     // Sort the codes first, as their order might impact size due to alignment constraints.
     List<ProgramDexCode> codes = sortDexCodesByClassName();
@@ -340,7 +332,7 @@ public class FileWriter {
     for (DexProgramClass clazz : mapping.getClasses()) {
       clazz.forEachProgramMethod(
           method -> {
-            DexWritableCode code = codeMapping.getCode(method.getDefinition());
+            DexWritableCode code = method.getDefinition().getDexWritableCodeOrNull();
             assert code != null || method.getDefinition().shouldNotHaveCode();
             if (code != null) {
               ProgramDexCode programCode = new ProgramDexCode(code, method);
@@ -661,7 +653,7 @@ public class FileWriter {
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
-      DexWritableCode code = codeMapping.getCode(method);
+      DexWritableCode code = method.getDexWritableCodeOrNull();
       desugaredLibraryCodeToKeep.recordMethod(method.getReference());
       if (code == null) {
         assert method.shouldNotHaveCode();
@@ -670,7 +662,7 @@ public class FileWriter {
         dest.putUleb128(mixedSectionOffsets.getOffsetFor(method, code));
         // Writing the methods starts to take up memory so we are going to flush the
         // code objects since they are no longer necessary after this.
-        codeMapping.clearCode(method);
+        method.unsetCode();
       }
     }
   }
@@ -1077,8 +1069,6 @@ public class FileWriter {
     private static final int NOT_SET = -1;
     private static final int NOT_KNOWN = -2;
 
-    private final MethodToCodeObjectMapping codeMapping;
-
     private final Reference2IntMap<DexEncodedMethod> codes = createReference2IntMap();
     private final Object2IntMap<DexDebugInfo> debugInfos = createObject2IntMap();
     private final Object2IntMap<DexTypeList> typeLists = createObject2IntMap();
@@ -1108,9 +1098,8 @@ public class FileWriter {
       return result;
     }
 
-    private MixedSectionOffsets(InternalOptions options, MethodToCodeObjectMapping codeMapping) {
+    private MixedSectionOffsets(InternalOptions options) {
       this.minApiLevel = options.getMinApiLevel();
-      this.codeMapping = codeMapping;
     }
 
     private <T> boolean add(Object2IntMap<T> map, T item) {
@@ -1151,7 +1140,7 @@ public class FileWriter {
 
     @Override
     public void visit(DexEncodedMethod method) {
-      method.collectMixedSectionItemsWithCodeMapping(this, codeMapping);
+      method.collectMixedSectionItemsWithCodeMapping(this);
     }
 
     @Override

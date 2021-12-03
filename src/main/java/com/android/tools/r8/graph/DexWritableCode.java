@@ -71,6 +71,8 @@ public interface DexWritableCode {
 
   int getOutgoingRegisterSize();
 
+  Code asCode();
+
   default boolean isDexCode() {
     return false;
   }

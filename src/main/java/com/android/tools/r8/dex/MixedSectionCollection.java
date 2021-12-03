@@ -59,8 +59,7 @@ public abstract class MixedSectionCollection {
    * <p>Allows overriding the behavior when dex-file writing.
    */
   public void visit(DexEncodedMethod dexEncodedMethod) {
-    dexEncodedMethod.collectMixedSectionItemsWithCodeMapping(
-        this, MethodToCodeObjectMapping.fromMethodBacking());
+    dexEncodedMethod.collectMixedSectionItemsWithCodeMapping(this);
   }
 
   /**

@@ -351,6 +351,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   @Override
+  public Code asCode() {
+    return this;
+  }
+
+  @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
     DexSourceCode source =
         new DexSourceCode(

@@ -63,13 +63,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -269,7 +266,6 @@ public class ApplicationWriter {
       }
 
       // Generate the dex file contents.
-      List<Future<Boolean>> dexDataFutures = new ArrayList<>();
       timing.begin("Distribute");
       List<VirtualFile> virtualFiles = distribute(executorService);
       timing.end();
@@ -380,11 +376,10 @@ public class ApplicationWriter {
         virtualFile.computeMapping(appView, graphLens, namingLens, initClassLens, timing);
     timing.end();
     timing.begin("Rewrite jumbo strings");
-    MethodToCodeObjectMapping codeMapping =
-        rewriteCodeWithJumboStrings(objectMapping, virtualFile.classes(), appView.appInfo().app());
+    rewriteCodeWithJumboStrings(objectMapping, virtualFile.classes(), appView.appInfo().app());
     timing.end();
     timing.begin("Write bytes");
-    ByteBufferResult result = writeDexFile(objectMapping, codeMapping, byteBufferProvider);
+    ByteBufferResult result = writeDexFile(objectMapping, byteBufferProvider);
     ByteDataView data =
         new ByteDataView(result.buffer.array(), result.buffer.arrayOffset(), result.length);
     timing.end();
@@ -652,7 +647,7 @@ public class ApplicationWriter {
    * <p>If run multiple times on a class, the lowest index that is required to be a JumboString will
    * be used.
    */
-  private MethodToCodeObjectMapping rewriteCodeWithJumboStrings(
+  private void rewriteCodeWithJumboStrings(
       ObjectToOffsetMapping mapping,
       Collection<DexProgramClass> classes,
       DexApplication application) {
@@ -660,19 +655,14 @@ public class ApplicationWriter {
     if (!options.testing.forceJumboStringProcessing) {
       // If there are no strings with jumbo indices at all this is a no-op.
       if (!mapping.hasJumboStrings()) {
-        return MethodToCodeObjectMapping.fromMethodBacking();
+        return;
       }
       // If the globally highest sorting string is not a jumbo string this is also a no-op.
       if (application.highestSortingString != null
           && application.highestSortingString.compareTo(mapping.getFirstJumboString()) < 0) {
-        return MethodToCodeObjectMapping.fromMethodBacking();
+        return;
       }
     }
-    // At least one method needs a jumbo string in which case we construct a thread local mapping
-    // for all code objects and write the processed results into that map.
-    // TODO(b/181636450): Reconsider the code mapping setup now that synthetics are never duplicated
-    //  in outputs.
-    Map<DexEncodedMethod, DexWritableCode> codeMapping = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethodMatching(
           DexEncodedMethod::hasCode,
@@ -684,25 +674,18 @@ public class ApplicationWriter {
                     mapping,
                     application.dexItemFactory,
                     options.testing.forceJumboStringProcessing);
-            codeMapping.put(method.getDefinition(), rewrittenCode);
-            // The mapping now has ownership of the methods code object. This ensures freeing of
-            // code resources once the map entry is cleared and also ensures that we don't end up
-            // using the incorrect code pointer again later!
-            method.getDefinition().unsetCode();
+            method.getDefinition().setCode(rewrittenCode.asCode(), appView);
           });
     }
-    return MethodToCodeObjectMapping.fromMapBacking(codeMapping);
   }
 
   private ByteBufferResult writeDexFile(
       ObjectToOffsetMapping objectMapping,
-      MethodToCodeObjectMapping codeMapping,
       ByteBufferProvider provider) {
     FileWriter fileWriter =
         new FileWriter(
             provider,
             objectMapping,
-            codeMapping,
             appView.appInfo(),
             options,
             namingLens,

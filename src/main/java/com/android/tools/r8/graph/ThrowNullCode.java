@@ -41,6 +41,11 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
   }
 
   @Override
+  public Code asCode() {
+    return this;
+  }
+
+  @Override
   public void acceptHashing(HashingVisitor visitor) {
     visitor.visitInt(getCfWritableCodeKind().hashCode());
   }

@@ -38,7 +38,6 @@ import com.android.tools.r8.code.NewInstance;
 import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.code.XorIntLit8;
-import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
@@ -768,9 +767,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     mixedItems.visit(this);
   }
 
-  public void collectMixedSectionItemsWithCodeMapping(
-      MixedSectionCollection mixedItems, MethodToCodeObjectMapping mapping) {
-    DexWritableCode code = mapping.getCode(this);
+  public void collectMixedSectionItemsWithCodeMapping(MixedSectionCollection mixedItems) {
+    DexWritableCode code = getDexWritableCodeOrNull();
     if (code != null && mixedItems.add(this, code)) {
       code.collectMixedSectionItems(mixedItems);
     }
@@ -1313,6 +1311,12 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   @Override
   public void clearGenericSignature() {
     this.genericSignature = MethodTypeSignature.noSignature();
+  }
+
+  public DexWritableCode getDexWritableCodeOrNull() {
+    Code code = getCode();
+    assert code == null || code.isDexWritableCode();
+    return code == null ? null : code.asDexWritableCode();
   }
 
   public static Builder syntheticBuilder() {

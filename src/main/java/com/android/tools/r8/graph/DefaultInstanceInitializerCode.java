@@ -123,6 +123,11 @@ public class DefaultInstanceInitializerCode extends Code
   }
 
   @Override
+  public Code asCode() {
+    return this;
+  }
+
+  @Override
   public void acceptHashing(HashingVisitor visitor) {
     visitor.visitInt(getCfWritableCodeKind().hashCode());
   }
