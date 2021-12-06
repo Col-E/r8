@@ -235,11 +235,21 @@ public class DynamicTypeWithUpperBound extends DynamicType {
         return hasDynamicLowerBoundType();
       }
       return hasDynamicLowerBoundType()
-          && getDynamicLowerBoundType()
-              .strictlyLessThan(dynamicType.getDynamicLowerBoundType(), appView);
+          && dynamicType
+              .getDynamicLowerBoundType()
+              .strictlyLessThan(getDynamicLowerBoundType(), appView);
     }
-    return getDynamicUpperBoundType()
-        .strictlyLessThan(dynamicType.getDynamicUpperBoundType(), appView);
+    if (!getDynamicUpperBoundType()
+        .strictlyLessThan(dynamicType.getDynamicUpperBoundType(), appView)) {
+      return false;
+    }
+    if (!dynamicType.hasDynamicLowerBoundType()) {
+      return true;
+    }
+    return hasDynamicLowerBoundType()
+        && dynamicType
+            .getDynamicLowerBoundType()
+            .lessThanOrEqualUpToNullability(getDynamicUpperBoundType(), appView);
   }
 
   @Override
