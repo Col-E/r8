@@ -17,6 +17,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class DexSegments {
   public static class Command extends BaseCommand {
@@ -89,7 +90,7 @@ public class DexSegments {
   public static void main(String[] args)
       throws IOException, CompilationFailedException, ResourceException {
     Command.Builder builder = Command.parse(args);
-    Int2ReferenceMap<SegmentInfo> result = run(builder.build());
+    Map<Integer, SegmentInfo> result = run(builder.build());
     if (result == null) {
       return;
     }
@@ -101,7 +102,7 @@ public class DexSegments {
                 " - " + DexSection.typeName(key) + ": " + value.size + " / " + value.items));
   }
 
-  public static Int2ReferenceMap<SegmentInfo> run(Command command)
+  public static Map<Integer, SegmentInfo> run(Command command)
       throws CompilationFailedException, IOException, ResourceException {
     if (command.isPrintHelp()) {
       System.out.println(Command.USAGE_MESSAGE);

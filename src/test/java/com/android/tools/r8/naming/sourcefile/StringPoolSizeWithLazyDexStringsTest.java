@@ -18,7 +18,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,7 +65,7 @@ public class StringPoolSizeWithLazyDexStringsTest extends TestBase {
   }
 
   private void checkStringSegmentSize(R8TestCompileResult result) throws Exception {
-    Int2ReferenceMap<SegmentInfo> segments =
+    Map<Integer, SegmentInfo> segments =
         DexSegments.run(Command.builder().addProgramFiles(result.writeToZip()).build());
     SegmentInfo stringInfo = segments.get(Constants.TYPE_STRING_ID_ITEM);
     assertEquals(8, stringInfo.getItemCount());
