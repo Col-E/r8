@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunct
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -25,10 +24,10 @@ import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import com.android.tools.r8.utils.codeinspector.KmTypeProjectionSubject;
 import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
+import com.android.tools.r8.utils.codeinspector.Matchers;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -77,13 +76,20 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   }
 
   @Test
-  @Ignore("b/154300326")
-  public void testMetadataInExtensionFunction_merged() throws Exception {
+  public void testMetadataInExtensionFunction_merged_compat() throws Exception {
+    testMetadataInExtensionFunction_merged(false);
+  }
+
+  @Test
+  public void testMetadataInExtensionFunction_merged_full() throws Exception {
+    testMetadataInExtensionFunction_merged(true);
+  }
+
+  public void testMetadataInExtensionFunction_merged(boolean full) throws Exception {
     Path libJar =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(
-                extLibJarMap.getForConfiguration(kotlinc, targetVersion),
-                kotlinc.getKotlinAnnotationJar())
+        (full ? testForR8(parameters.getBackend()) : testForR8Compat(parameters.getBackend()))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
+            .addProgramFiles(extLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -95,7 +101,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
-            .inspect(this::inspectMerged)
+            .inspect(inspector -> inspectMerged(inspector, full))
             .writeToZip();
 
     Path output =
@@ -103,7 +109,10 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/extension_function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(full);
+    if (full) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
@@ -112,11 +121,11 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private void inspectMerged(CodeInspector inspector) {
+  private void inspectMerged(CodeInspector inspector, boolean full) {
     String superClassName = PKG + ".extension_function_lib.Super";
     String bClassName = PKG + ".extension_function_lib.B";
 
-    assertThat(inspector.clazz(superClassName), not(isPresent()));
+    assertThat(inspector.clazz(superClassName), Matchers.notIf(isPresent(), full));
 
     ClassSubject impl = inspector.clazz(bClassName);
     assertThat(impl, isPresentAndNotRenamed());

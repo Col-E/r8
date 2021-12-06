@@ -22,11 +22,11 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.Matchers;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,13 +75,20 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
   }
 
   @Test
-  @Ignore("b/154300326")
-  public void testMetadataInFunction_merged() throws Exception {
+  public void testMetadataInFunction_merged_compat() throws Exception {
+    testMetadataInFunction_merged(false);
+  }
+
+  @Test
+  public void testMetadataInFunction_merged_full() throws Exception {
+    testMetadataInFunction_merged(true);
+  }
+
+  public void testMetadataInFunction_merged(boolean full) throws Exception {
     Path libJar =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(
-                funLibJarMap.getForConfiguration(kotlinc, targetVersion),
-                kotlinc.getKotlinAnnotationJar())
+        (full ? testForR8(parameters.getBackend()) : testForR8Compat(parameters.getBackend()))
+            .addClasspathFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar())
+            .addProgramFiles(funLibJarMap.getForConfiguration(kotlinc, targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -89,7 +96,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
-            .inspect(this::inspectMerged)
+            .inspect(inspector -> inspectMerged(inspector, full))
             .writeToZip();
 
     Path output =
@@ -97,7 +104,10 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/function_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(full);
+    if (full) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
@@ -106,12 +116,12 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private void inspectMerged(CodeInspector inspector) {
+  private void inspectMerged(CodeInspector inspector, boolean full) {
     String superClassName = PKG + ".function_lib.Super";
     String bClassName = PKG + ".function_lib.B";
     String bKtClassName = PKG + ".function_lib.BKt";
 
-    assertThat(inspector.clazz(superClassName), not(isPresent()));
+    assertThat(inspector.clazz(superClassName), Matchers.notIf(isPresent(), full));
 
     ClassSubject impl = inspector.clazz(bClassName);
     assertThat(impl, isPresentAndNotRenamed());
