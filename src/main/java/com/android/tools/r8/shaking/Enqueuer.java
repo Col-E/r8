@@ -502,7 +502,7 @@ public class Enqueuer {
     liveFields = new LiveFieldsSet(graphReporter::registerField);
     apiLevelCompute = AndroidApiLevelCompute.create(appView);
     if (mode.isInitialTreeShaking()) {
-      desugaring = CfInstructionDesugaringCollection.create(appView);
+      desugaring = CfInstructionDesugaringCollection.create(appView, apiLevelCompute);
       interfaceProcessor = new InterfaceProcessor(appView);
     } else {
       desugaring = CfInstructionDesugaringCollection.empty();

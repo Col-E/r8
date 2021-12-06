@@ -55,6 +55,10 @@ public class SyntheticMethodBuilder {
     this.syntheticKind = syntheticKind;
   }
 
+  public boolean hasName() {
+    return name != null;
+  }
+
   public SyntheticMethodBuilder setName(String name) {
     return setName(factory.createString(name));
   }

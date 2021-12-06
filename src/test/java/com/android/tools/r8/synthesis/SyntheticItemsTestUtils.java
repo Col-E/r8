@@ -17,7 +17,7 @@ import org.hamcrest.Matcher;
 public class SyntheticItemsTestUtils {
 
   public static String syntheticMethodName() {
-    return SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_PREFIX;
+    return SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_NAME;
   }
 
   public static ClassReference syntheticCompanionClass(Class<?> clazz) {

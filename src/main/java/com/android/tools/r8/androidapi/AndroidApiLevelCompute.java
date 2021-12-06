@@ -47,7 +47,11 @@ public abstract class AndroidApiLevelCompute {
   public static AndroidApiLevelCompute create(AppView<?> appView) {
     return appView.options().apiModelingOptions().enableApiCallerIdentification
         ? new DefaultAndroidApiLevelCompute(appView)
-        : new NoAndroidApiLevelCompute();
+        : noAndroidApiLevelCompute();
+  }
+
+  public static AndroidApiLevelCompute noAndroidApiLevelCompute() {
+    return new NoAndroidApiLevelCompute();
   }
 
   public static ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {

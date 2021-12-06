@@ -105,6 +105,20 @@ public abstract class ApiModelingTestHelper {
         });
   }
 
+  static void enableStubbingOfClasses(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> {
+          options.apiModelingOptions().enableStubbingOfClasses = true;
+        });
+  }
+
+  static void enableOutliningOfMethods(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> {
+          options.apiModelingOptions().enableOutliningOfMethods = true;
+        });
+  }
+
   static void disableCheckAllApiReferencesAreNotUnknown(
       TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
     compilerBuilder.addOptionsModification(

@@ -37,7 +37,8 @@ public class ForwardMethodBuilder {
   private enum InvokeType {
     STATIC,
     VIRTUAL,
-    SPECIAL
+    INTERFACE,
+    SPECIAL,
   }
 
   private final DexItemFactory factory;
@@ -115,7 +116,7 @@ public class ForwardMethodBuilder {
 
   public ForwardMethodBuilder setVirtualTarget(DexMethod method, boolean isInterface) {
     targetMethod = method;
-    invokeType = InvokeType.VIRTUAL;
+    invokeType = isInterface ? InvokeType.INTERFACE : InvokeType.VIRTUAL;
     this.isInterface = isInterface;
     return this;
   }
@@ -243,6 +244,8 @@ public class ForwardMethodBuilder {
         return Opcodes.INVOKEVIRTUAL;
       case SPECIAL:
         return Opcodes.INVOKESPECIAL;
+      case INTERFACE:
+        return Opcodes.INVOKEINTERFACE;
     }
     throw new Unreachable("Unexpected invoke type: " + invokeType);
   }

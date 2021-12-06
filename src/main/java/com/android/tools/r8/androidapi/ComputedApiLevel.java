@@ -38,19 +38,23 @@ public interface ComputedApiLevel extends Equatable<ComputedApiLevel> {
     return isGreaterThanOrEqualTo(other) ? this : other;
   }
 
-  default boolean isGreaterThanOrEqualTo(ComputedApiLevel other) {
+  default boolean isGreaterThan(ComputedApiLevel other) {
     assert !isNotSetApiLevel() && !other.isNotSetApiLevel()
         : "Cannot compute relationship for not set";
-    if (isUnknownApiLevel()) {
-      return true;
-    }
     if (other.isUnknownApiLevel()) {
       return false;
     }
+    if (isUnknownApiLevel()) {
+      return true;
+    }
     assert isKnownApiLevel() && other.isKnownApiLevel();
-    return asKnownApiLevel()
-        .getApiLevel()
-        .isGreaterThanOrEqualTo(other.asKnownApiLevel().getApiLevel());
+    return asKnownApiLevel().getApiLevel().isGreaterThan(other.asKnownApiLevel().getApiLevel());
+  }
+
+  default boolean isGreaterThanOrEqualTo(ComputedApiLevel other) {
+    assert !isNotSetApiLevel() && !other.isNotSetApiLevel()
+        : "Cannot compute relationship for not set";
+    return other.equals(this) || isGreaterThan(other);
   }
 
   default boolean isKnownApiLevel() {

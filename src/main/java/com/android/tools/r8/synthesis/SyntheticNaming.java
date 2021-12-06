@@ -34,13 +34,11 @@ public class SyntheticNaming {
     RETARGET_INTERFACE("RetargetInterface", 21, false, true),
     WRAPPER("$Wrapper", 22, false, true),
     VIVIFIED_WRAPPER("$VivifiedWrapper", 23, false, true),
-    ENUM_CONVERSION("$EnumConversion", 31, false, true),
     LAMBDA("Lambda", 4, false),
     INIT_TYPE_ARGUMENT("-IA", 5, false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_1(SYNTHETIC_CLASS_SEPARATOR + "IA$1", 6, false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_2(SYNTHETIC_CLASS_SEPARATOR + "IA$2", 7, false, true),
     HORIZONTAL_INIT_TYPE_ARGUMENT_3(SYNTHETIC_CLASS_SEPARATOR + "IA$3", 8, false, true),
-    CONST_DYNAMIC("$Condy", 30, false),
     // Method synthetics.
     ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD("CheckNotZero", 27, true),
     RECORD_HELPER("Record", 9, true),
@@ -56,7 +54,10 @@ public class SyntheticNaming {
     OUTLINE("Outline", 19, true),
     API_CONVERSION("APIConversion", 26, true),
     API_CONVERSION_PARAMETERS("APIConversionParameters", 28, true),
-    EMULATED_INTERFACE_MARKER_CLASS("", 29, false, true, true);
+    EMULATED_INTERFACE_MARKER_CLASS("", 29, false, true, true),
+    CONST_DYNAMIC("$Condy", 30, false),
+    ENUM_CONVERSION("$EnumConversion", 31, false, true),
+    API_MODEL_OUTLINE("ApiModelOutline", 32, true, false, false);
 
     static {
       assert verifyNoOverlappingIds();
@@ -140,8 +141,8 @@ public class SyntheticNaming {
    */
   private static final String EXTERNAL_SYNTHETIC_CLASS_SEPARATOR =
       SYNTHETIC_CLASS_SEPARATOR + "ExternalSynthetic";
-  /** Method prefix when generating synthetic methods in a class. */
-  static final String INTERNAL_SYNTHETIC_METHOD_PREFIX = "m";
+  /** Method name when generating synthetic methods in a class. */
+  static final String INTERNAL_SYNTHETIC_METHOD_NAME = "m";
 
   static String getPrefixForExternalSyntheticType(SyntheticKind kind, DexType type) {
     String binaryName = type.toBinaryName();

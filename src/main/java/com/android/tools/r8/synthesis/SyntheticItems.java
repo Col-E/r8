@@ -713,7 +713,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         new SyntheticProgramClassBuilder(type, kind, outerContext, appView.dexItemFactory());
     DexProgramClass clazz =
         classBuilder
-            .addMethod(fn.andThen(m -> m.setName(SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_PREFIX)))
+            .addMethod(fn.andThen(m -> m.setName(SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_NAME)))
             .build();
     ProgramMethod method = new ProgramMethod(clazz, clazz.methods().iterator().next());
     addPendingDefinition(new SyntheticMethodDefinition(kind, outerContext, method));

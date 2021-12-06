@@ -1481,6 +1481,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public boolean enableApiCallerIdentification = true;
     public boolean checkAllApiReferencesAreSet = true;
+    public boolean enableStubbingOfClasses = false;
+    public boolean enableOutliningOfMethods = false;
 
     public void visitMockedApiLevelsForReferences(
         DexItemFactory factory, Consumer<AndroidApiForHashingClass> consumer) {
