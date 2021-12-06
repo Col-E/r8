@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -15,9 +14,7 @@ import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.utils.IterableUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -38,48 +35,11 @@ public final class EmulatedInterfaceApplicationRewriter {
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (emulatedInterfaces.containsKey(clazz.type)) {
         newProgramClasses.add(rewriteEmulatedInterface(clazz));
-      } else if (clazz.isInterface()
-          && !appView.rewritePrefix.hasRewrittenType(clazz.type, appView)
-          && isEmulatedInterfaceSubInterface(clazz)) {
-        // Intentionally filter such classes out.
-        handleEmulatedInterfaceSubInterface(clazz);
       } else {
         newProgramClasses.add(clazz);
       }
     }
     builder.replaceProgramClasses(newProgramClasses);
-  }
-
-  private void handleEmulatedInterfaceSubInterface(DexProgramClass clazz) {
-    // TODO(b/183918843): Investigate how to specify these in the json file.
-    // These are interfaces which needs a companion class for desugared library to work, but
-    // the interface is not supported outside of desugared library. The interface has to be
-    // present during the compilation for the companion class to be generated, but filtered out
-    // afterwards. The companion class needs to be rewritten to have the desugared library
-    // prefix since all classes in desugared library should have the prefix, we used the
-    // questionable method convertJavaNameToDesugaredLibrary to generate a correct type.
-    String newName =
-        appView
-            .options()
-            .desugaredLibraryConfiguration
-            .convertJavaNameToDesugaredLibrary(clazz.type);
-    InterfaceMethodRewriter.addCompanionClassRewriteRule(clazz.type, newName, appView);
-  }
-
-  private boolean isEmulatedInterfaceSubInterface(DexClass subInterface) {
-    assert !emulatedInterfaces.containsKey(subInterface.type);
-    LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(subInterface.interfaces.values));
-    while (!workList.isEmpty()) {
-      DexType next = workList.removeFirst();
-      if (emulatedInterfaces.containsKey(next)) {
-        return true;
-      }
-      DexClass nextClass = appView.definitionFor(next);
-      if (nextClass != null) {
-        workList.addAll(Arrays.asList(nextClass.interfaces.values));
-      }
-    }
-    return false;
   }
 
   // The method transforms emulated interface such as they now have the rewritten type and
