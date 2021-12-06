@@ -106,8 +106,8 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/extension_property_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile(full);
-    if (full) {
+            .compile(full || kotlinParameters.isOlderThanMinSupported());
+    if (full || kotlinParameters.isOlderThanMinSupported()) {
       return;
     }
 
