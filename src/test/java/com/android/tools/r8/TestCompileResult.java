@@ -263,7 +263,7 @@ public abstract class TestCompileResult<
 
   public CR addRunClasspathClassFileData(Collection<byte[]> classes) throws Exception {
     if (getBackend() == Backend.DEX) {
-      additionalBootClasspath.add(
+      additionalRunClassPath.add(
           testForD8(state.getTempFolder())
               .addProgramClassFileData(classes)
               .setMinApi(minApiLevel)

@@ -126,8 +126,8 @@ public class Devirtualizer {
         if (current.isInvokeSuper()) {
           InvokeSuper invoke = current.asInvokeSuper();
 
-          // Check if the instruction can be rewritten to invoke-super. This allows inlining of the
-          // enclosing method into contexts outside the current class.
+          // Check if the instruction can be rewritten to invoke-virtual. This allows inlining of
+          // the enclosing method into contexts outside the current class.
           if (options.testing.enableInvokeSuperToInvokeVirtualRewriting) {
             DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget != null) {
@@ -150,16 +150,19 @@ public class Devirtualizer {
 
           // Rebind the invoke to the most specific target.
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          DexClassAndMethod reboundTarget = rebindSuperInvokeToMostSpecific(invokedMethod, context);
-          if (reboundTarget != null
-              && reboundTarget.getReference() != invokedMethod
-              && !isRebindingNewClassIntoMainDex(context, reboundTarget.getReference())) {
-            it.replaceCurrentInstruction(
-                new InvokeSuper(
-                    reboundTarget.getReference(),
-                    invoke.outValue(),
-                    invoke.arguments(),
-                    reboundTarget.getHolder().isInterface()));
+          DexClass reboundTargetClass = rebindSuperInvokeToMostSpecific(invokedMethod, context);
+          if (reboundTargetClass != null) {
+            DexMethod reboundMethod =
+                invokedMethod.withHolder(reboundTargetClass, appView.dexItemFactory());
+            if (reboundMethod != invokedMethod
+                && !isRebindingNewClassIntoMainDex(context, reboundMethod)) {
+              it.replaceCurrentInstruction(
+                  new InvokeSuper(
+                      reboundMethod,
+                      invoke.outValue(),
+                      invoke.arguments(),
+                      reboundTargetClass.isInterface()));
+            }
           }
           continue;
         }
@@ -318,8 +321,7 @@ public class Devirtualizer {
   }
 
   /** This rebinds invoke-super instructions to their most specific target. */
-  private DexClassAndMethod rebindSuperInvokeToMostSpecific(
-      DexMethod target, ProgramMethod context) {
+  private DexClass rebindSuperInvokeToMostSpecific(DexMethod target, ProgramMethod context) {
     DexClassAndMethod method = appView.appInfo().lookupSuperTarget(target, context);
     if (method == null) {
       return null;
@@ -336,7 +338,20 @@ public class Devirtualizer {
       return null;
     }
 
-    return method;
+    if (method.getHolder().isLibraryClass()) {
+      // We've found a library class as the new holder of the method. Since the library can only
+      // rebind to the library class boundary. Search from the target upwards until we find a
+      // library class.
+      DexClass lowerBound = appView.definitionFor(target.getHolderType(), context);
+      while (lowerBound != null
+          && lowerBound.isProgramClass()
+          && lowerBound != method.getHolder()) {
+        lowerBound = appView.definitionFor(lowerBound.superType, lowerBound.asProgramClass());
+      }
+      return lowerBound;
+    }
+
+    return method.getHolder();
   }
 
   /**
