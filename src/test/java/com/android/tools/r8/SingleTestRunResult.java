@@ -119,6 +119,7 @@ public abstract class SingleTestRunResult<RR extends SingleTestRunResult<RR>>
     return self();
   }
 
+  @Override
   public <E extends Throwable> RR inspectFailure(ThrowingConsumer<CodeInspector, E> consumer)
       throws IOException, E {
     assertFailure();
