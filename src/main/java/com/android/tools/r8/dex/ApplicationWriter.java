@@ -46,6 +46,7 @@ import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -226,31 +227,18 @@ public class ApplicationWriter {
     }
   }
 
+  private boolean willComputeProguardMap() {
+    return proguardMapSupplier != null && options.proguardMapConsumer != null;
+  }
+
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
     Timing timing = appView.appInfo().app().timing;
     timing.begin("DexApplication.write");
-    ProguardMapId proguardMapId =
-        (proguardMapSupplier != null && options.proguardMapConsumer != null)
-            ? proguardMapSupplier.writeProguardMap()
-            : null;
 
-    // If we do have a map then we're called from R8. In that case we have at least one marker.
-    assert proguardMapId == null || (markers != null && markers.size() >= 1);
-
-    if (markers != null && !markers.isEmpty()) {
-      if (proguardMapId != null) {
-        markers.get(0).setPgMapId(proguardMapId.getId());
-      }
-      markerStrings = new ArrayList<>(markers.size());
-      for (Marker marker : markers) {
-        markerStrings.add(appView.dexItemFactory().createString(marker.toString()));
-      }
-    }
-
-    if (options.sourceFileProvider != null) {
-      SourceFileEnvironment environment = createSourceFileEnvironment(proguardMapId);
-      appView.appInfo().classes().forEach(clazz -> rewriteSourceFile(clazz, environment));
-    }
+    Box<ProguardMapId> delayedProguardMapId = new Box<>();
+    List<LazyDexString> lazyDexStrings = new ArrayList<>();
+    computeMarkerStrings(delayedProguardMapId, lazyDexStrings);
+    computeSourceFileString(delayedProguardMapId, lazyDexStrings);
 
     try {
       timing.begin("Insert Attribute Annotations");
@@ -287,20 +275,59 @@ public class ApplicationWriter {
       appView.appInfo().classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
       timing.end();
 
-      TimingMerger merger =
-          timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
-      Collection<Timing> timings =
-          ThreadUtils.processItemsWithResults(
-              virtualFiles,
-              virtualFile -> {
-                Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
-                writeVirtualFile(virtualFile, fileTiming);
-                fileTiming.end();
-                return fileTiming;
-              },
-              executorService);
-      merger.add(timings);
-      merger.end();
+      {
+        // Compute offsets and rewrite jumbo strings so that code offsets are fixed.
+        TimingMerger merger =
+            timing.beginMerger("Pre-write phase", ThreadUtils.getNumberOfThreads(executorService));
+        Collection<Timing> timings =
+            ThreadUtils.processItemsWithResults(
+                virtualFiles,
+                virtualFile -> {
+                  Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
+                  computeOffsetMappingAndRewriteJumboStrings(
+                      virtualFile, lazyDexStrings, fileTiming);
+                  fileTiming.end();
+                  return fileTiming;
+                },
+                executorService);
+        merger.add(timings);
+        merger.end();
+      }
+
+      // Now code offsets are fixed, compute the mapping file content.
+      // TODO(b/207765416): Move the line number optimizer to this point so PC info can be used.
+      if (willComputeProguardMap()) {
+        timing.begin("Write proguard map");
+        delayedProguardMapId.set(proguardMapSupplier.writeProguardMap());
+        timing.end();
+      }
+
+      // With the mapping id/hash known, it is safe to compute the remaining dex strings.
+      timing.begin("Compute lazy strings");
+      List<DexString> forcedStrings = new ArrayList<>();
+      for (LazyDexString lazyDexString : lazyDexStrings) {
+        forcedStrings.add(lazyDexString.compute());
+      }
+      timing.end();
+
+      {
+        // Write the actual dex code.
+        TimingMerger merger =
+            timing.beginMerger("Write files", ThreadUtils.getNumberOfThreads(executorService));
+        Collection<Timing> timings =
+            ThreadUtils.processItemsWithResults(
+                virtualFiles,
+                virtualFile -> {
+                  Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
+                  writeVirtualFile(virtualFile, fileTiming, forcedStrings);
+                  fileTiming.end();
+                  return fileTiming;
+                },
+                executorService);
+        merger.add(timings);
+        merger.end();
+      }
+
       // A consumer can manage the generated keep rules.
       if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
         assert !options.isDesugaredLibraryCompilation();
@@ -313,6 +340,51 @@ public class ApplicationWriter {
     } finally {
       timing.end();
     }
+  }
+
+  private void computeMarkerStrings(
+      Box<ProguardMapId> delayedProguardMapId, List<LazyDexString> lazyDexStrings) {
+    if (markers != null && !markers.isEmpty()) {
+      int firstNonLazyMarker = 0;
+      if (willComputeProguardMap()) {
+        firstNonLazyMarker++;
+        lazyDexStrings.add(
+            new LazyDexString() {
+
+              @Override
+              public DexString internalCompute() {
+                Marker marker = markers.get(0);
+                marker.setPgMapId(delayedProguardMapId.get().getId());
+                return marker.toDexString(appView.dexItemFactory());
+              }
+            });
+      }
+      markerStrings = new ArrayList<>(markers.size() - firstNonLazyMarker);
+      for (int i = firstNonLazyMarker; i < markers.size(); i++) {
+        markerStrings.add(markers.get(i).toDexString(appView.dexItemFactory()));
+      }
+    }
+  }
+
+  private void computeSourceFileString(
+      Box<ProguardMapId> delayedProguardMapId, List<LazyDexString> lazyDexStrings) {
+    if (options.sourceFileProvider == null) {
+      return;
+    }
+    if (!willComputeProguardMap()) {
+      rewriteSourceFile(null);
+      return;
+    }
+    // Clear all source files so as not to collect the original files.
+    appView.appInfo().classes().forEach(clazz -> clazz.setSourceFile(null));
+    // Add a lazy dex string computation to defer construction of the actual string.
+    lazyDexStrings.add(
+        new LazyDexString() {
+          @Override
+          public DexString internalCompute() {
+            return rewriteSourceFile(delayedProguardMapId.get());
+          }
+        });
   }
 
   public static SourceFileEnvironment createSourceFileEnvironment(ProguardMapId proguardMapId) {
@@ -342,16 +414,37 @@ public class ApplicationWriter {
     };
   }
 
-  private void rewriteSourceFile(DexProgramClass clazz, SourceFileEnvironment environment) {
+  private DexString rewriteSourceFile(ProguardMapId proguardMapId) {
     assert options.sourceFileProvider != null;
+    SourceFileEnvironment environment = createSourceFileEnvironment(proguardMapId);
     String sourceFile = options.sourceFileProvider.get(environment);
-    clazz.setSourceFile(sourceFile == null ? null : options.itemFactory.createString(sourceFile));
+    DexString dexSourceFile =
+        sourceFile == null ? null : options.itemFactory.createString(sourceFile);
+    appView.appInfo().classes().forEach(clazz -> clazz.setSourceFile(dexSourceFile));
+    return dexSourceFile;
   }
 
-  private void writeVirtualFile(VirtualFile virtualFile, Timing timing) {
+  private void computeOffsetMappingAndRewriteJumboStrings(
+      VirtualFile virtualFile, List<LazyDexString> lazyDexStrings, Timing timing) {
     if (virtualFile.isEmpty()) {
       return;
     }
+    timing.begin("Compute object offset mapping");
+    virtualFile.computeMapping(
+        appView, graphLens, namingLens, initClassLens, lazyDexStrings.size(), timing);
+    timing.end();
+    timing.begin("Rewrite jumbo strings");
+    rewriteCodeWithJumboStrings(
+        virtualFile.getObjectMapping(), virtualFile.classes(), appView.appInfo().app());
+    timing.end();
+  }
+
+  private void writeVirtualFile(
+      VirtualFile virtualFile, Timing timing, List<DexString> forcedStrings) {
+    if (virtualFile.isEmpty()) {
+      return;
+    }
+
     ProgramConsumer consumer;
     ByteBufferProvider byteBufferProvider;
     if (programConsumer != null) {
@@ -371,13 +464,12 @@ public class ApplicationWriter {
         byteBufferProvider = options.getDexIndexedConsumer();
       }
     }
-    timing.begin("Compute object offset mapping");
-    ObjectToOffsetMapping objectMapping =
-        virtualFile.computeMapping(appView, graphLens, namingLens, initClassLens, timing);
+
+    timing.begin("Reindex for lazy strings");
+    ObjectToOffsetMapping objectMapping = virtualFile.getObjectMapping();
+    objectMapping.computeAndReindexForLazyDexStrings(forcedStrings);
     timing.end();
-    timing.begin("Rewrite jumbo strings");
-    rewriteCodeWithJumboStrings(objectMapping, virtualFile.classes(), appView.appInfo().app());
-    timing.end();
+
     timing.begin("Write bytes");
     ByteBufferResult result = writeDexFile(objectMapping, byteBufferProvider);
     ByteDataView data =
@@ -711,5 +803,18 @@ public class ApplicationWriter {
     list.forEach(
         type -> builder.append(mapMainDexListName(type, namingLens)).append('\n'));
     return builder.toString();
+  }
+
+  public abstract static class LazyDexString {
+    private boolean computed = false;
+
+    public abstract DexString internalCompute();
+
+    public final DexString compute() {
+      assert !computed;
+      DexString value = internalCompute();
+      computed = true;
+      return value;
+    }
   }
 }

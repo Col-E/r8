@@ -209,28 +209,39 @@ public class VirtualFile {
     return prefix;
   }
 
-  public ObjectToOffsetMapping computeMapping(
+  private ObjectToOffsetMapping objectMapping = null;
+
+  public ObjectToOffsetMapping getObjectMapping() {
+    assert objectMapping != null;
+    return objectMapping;
+  }
+
+  public void computeMapping(
       AppView<?> appView,
       GraphLens graphLens,
       NamingLens namingLens,
       InitClassLens initClassLens,
+      int lazyDexStringsCount,
       Timing timing) {
     assert transaction.isEmpty();
-    return new ObjectToOffsetMapping(
-        appView,
-        graphLens,
-        namingLens,
-        initClassLens,
-        transaction.rewriter,
-        indexedItems.classes,
-        indexedItems.protos,
-        indexedItems.types,
-        indexedItems.methods,
-        indexedItems.fields,
-        indexedItems.strings,
-        indexedItems.callSites,
-        indexedItems.methodHandles,
-        timing);
+    assert objectMapping == null;
+    objectMapping =
+        new ObjectToOffsetMapping(
+            appView,
+            graphLens,
+            namingLens,
+            initClassLens,
+            transaction.rewriter,
+            indexedItems.classes,
+            indexedItems.protos,
+            indexedItems.types,
+            indexedItems.methods,
+            indexedItems.fields,
+            indexedItems.strings,
+            indexedItems.callSites,
+            indexedItems.methodHandles,
+            lazyDexStringsCount,
+            timing);
   }
 
   void addClass(DexProgramClass clazz) {

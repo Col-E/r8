@@ -62,6 +62,7 @@ public class DebugByteCodeWriterTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
+        0,
         Timing.empty());
   }
 

@@ -13,13 +13,13 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class DexSegments {
-  private static class Command extends BaseCommand {
+  public static class Command extends BaseCommand {
 
     public static class Builder
         extends BaseCommand.Builder<Command, Builder> {
@@ -89,14 +89,27 @@ public class DexSegments {
   public static void main(String[] args)
       throws IOException, CompilationFailedException, ResourceException {
     Command.Builder builder = Command.parse(args);
-    Command command = builder.build();
+    Int2ReferenceMap<SegmentInfo> result = run(builder.build());
+    if (result == null) {
+      return;
+    }
+    System.out.println("Segments in dex application (name: size / items):");
+    // This output is parsed by tools/test_framework.py. Check the parsing there when updating.
+    result.forEach(
+        (key, value) ->
+            System.out.println(
+                " - " + DexSection.typeName(key) + ": " + value.size + " / " + value.items));
+  }
+
+  public static Int2ReferenceMap<SegmentInfo> run(Command command)
+      throws CompilationFailedException, IOException, ResourceException {
     if (command.isPrintHelp()) {
       System.out.println(Command.USAGE_MESSAGE);
-      return;
+      return null;
     }
     AndroidApp app = command.getInputApp();
 
-    Map<String, SegmentInfo> result = new LinkedHashMap<>();
+    Int2ReferenceMap<SegmentInfo> result = new Int2ReferenceLinkedOpenHashMap<>();
     // Fill the results with all benchmark items otherwise golem may report missing benchmarks.
     int[] benchmarks =
         new int[] {
@@ -119,7 +132,7 @@ public class DexSegments {
           Constants.TYPE_CLASS_DEF_ITEM
         };
     for (int benchmark : benchmarks) {
-      result.computeIfAbsent(DexSection.typeName(benchmark), (key) -> new SegmentInfo());
+      result.computeIfAbsent(benchmark, (key) -> new SegmentInfo());
     }
     try (Closer closer = Closer.create()) {
       for (ProgramResource resource : app.computeAllProgramResources()) {
@@ -127,20 +140,16 @@ public class DexSegments {
           for (DexSection dexSection :
               DexParser.parseMapFrom(
                   closer.register(resource.getByteStream()), resource.getOrigin())) {
-            SegmentInfo info =
-                result.computeIfAbsent(dexSection.typeName(), (key) -> new SegmentInfo());
+            SegmentInfo info = result.computeIfAbsent(dexSection.type, (key) -> new SegmentInfo());
             info.increment(dexSection.length, dexSection.size());
           }
         }
       }
     }
-    System.out.println("Segments in dex application (name: size / items):");
-    // This output is parsed by tools/test_framework.py. Check the parsing there when updating.
-    result.forEach(
-        (key, value) -> System.out.println(" - " + key + ": " + value.size + " / " + value.items));
+    return result;
   }
 
-  private static class SegmentInfo {
+  public static class SegmentInfo {
     private int items;
     private int size;
 
@@ -152,6 +161,14 @@ public class DexSegments {
     void increment(int items, int size) {
       this.items += items;
       this.size += size;
+    }
+
+    public int getItemCount() {
+      return items;
+    }
+
+    public int getSegmentSize() {
+      return size;
     }
   }
 }

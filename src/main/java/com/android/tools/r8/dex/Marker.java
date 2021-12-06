@@ -5,6 +5,7 @@ package com.android.tools.r8.dex;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -289,6 +290,10 @@ public class Marker {
   @Override
   public int hashCode() {
     return tool.hashCode() + 3 * jsonObject.hashCode();
+  }
+
+  public DexString toDexString(DexItemFactory factory) {
+    return factory.createString(toString());
   }
 
   // Try to parse str as a marker.

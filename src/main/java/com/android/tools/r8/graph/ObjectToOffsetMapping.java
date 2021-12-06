@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.CompareToVisitorWithStringTable;
@@ -29,6 +30,7 @@ public class ObjectToOffsetMapping {
   private final static int NOT_FOUND = -1;
   private final static int NOT_SET = -2;
 
+  private final int lazyDexStringsCount;
   private final AppView<?> appView;
   private final GraphLens graphLens;
   private final NamingLens namingLens;
@@ -41,7 +43,8 @@ public class ObjectToOffsetMapping {
   private final Reference2IntLinkedOpenHashMap<DexType> types;
   private final Reference2IntLinkedOpenHashMap<DexMethod> methods;
   private final Reference2IntLinkedOpenHashMap<DexField> fields;
-  private final Reference2IntLinkedOpenHashMap<DexString> strings;
+  // Non-final to support (order consistent) reindexing in case of lazy computed strings.
+  private Reference2IntLinkedOpenHashMap<DexString> strings;
   private final Reference2IntLinkedOpenHashMap<DexCallSite> callSites;
   private final Reference2IntLinkedOpenHashMap<DexMethodHandle> methodHandles;
 
@@ -63,6 +66,7 @@ public class ObjectToOffsetMapping {
       Collection<DexString> strings,
       Collection<DexCallSite> callSites,
       Collection<DexMethodHandle> methodHandles,
+      int lazyDexStringsCount,
       Timing timing) {
     assert appView != null;
     assert graphLens != null;
@@ -75,13 +79,16 @@ public class ObjectToOffsetMapping {
     assert callSites != null;
     assert methodHandles != null;
     assert initClassLens != null;
+    this.lazyDexStringsCount = lazyDexStringsCount;
     this.appView = appView;
     this.graphLens = graphLens;
     this.namingLens = namingLens;
     this.initClassLens = initClassLens;
     this.lensCodeRewriter = lensCodeRewriter;
     timing.begin("Sort strings");
-    this.strings = createSortedMap(strings, DexString::compareTo, this::setFirstJumboString);
+    this.strings =
+        createSortedMap(
+            strings, DexString::compareTo, this::setFirstJumboString, lazyDexStringsCount);
     CompareToVisitor visitor =
         new CompareToVisitorWithStringTable(namingLens, this.strings::getInt);
     timing.end();
@@ -126,6 +133,27 @@ public class ObjectToOffsetMapping {
         };
   }
 
+  public void computeAndReindexForLazyDexStrings(List<DexString> forcedStrings) {
+    assert lazyDexStringsCount == forcedStrings.size();
+    if (forcedStrings.isEmpty()) {
+      return;
+    }
+    // If there are any lazy strings we need to recompute the offsets, even if the strings
+    // are already in the set as we have shifted the initial offset by the size of lazy strings.
+    for (DexString forcedString : forcedStrings) {
+      // Amend the string table to ensure all strings are now present.
+      if (forcedString != null) {
+        strings.put(forcedString, -1);
+      }
+    }
+    Box<DexString> newJumboString = new Box<>();
+    strings = createSortedMap(strings.keySet(), DexString::compareTo, newJumboString::set);
+    // After reindexing it must hold that the new jumbo start is on the same or a larger string.
+    // The new jumbo string is not set as the first determined string is still the cut-off point
+    // where JumboString instructions are used.
+    assert !hasJumboStrings() || newJumboString.get().isGreaterThanOrEqualTo(getFirstJumboString());
+  }
+
   public CompareToVisitor getCompareToVisitor() {
     return compareToVisitor;
   }
@@ -145,6 +173,14 @@ public class ObjectToOffsetMapping {
 
   private <T> Reference2IntLinkedOpenHashMap<T> createSortedMap(
       Collection<T> items, Comparator<T> comparator, Consumer<T> onUInt16Overflow) {
+    return createSortedMap(items, comparator, onUInt16Overflow, 0);
+  }
+
+  private <T> Reference2IntLinkedOpenHashMap<T> createSortedMap(
+      Collection<T> items,
+      Comparator<T> comparator,
+      Consumer<T> onUInt16Overflow,
+      int reservedIndicesBeforeOverflow) {
     if (items.isEmpty()) {
       return new Reference2IntLinkedOpenHashMap<>();
     }
@@ -155,7 +191,7 @@ public class ObjectToOffsetMapping {
     map.defaultReturnValue(NOT_FOUND);
     int index = 0;
     for (T item : sorted) {
-      if (index == Constants.U16BIT_MAX + 1) {
+      if (index + reservedIndicesBeforeOverflow == Constants.U16BIT_MAX + 1) {
         onUInt16Overflow.accept(item);
       }
       map.put(item, index++);
