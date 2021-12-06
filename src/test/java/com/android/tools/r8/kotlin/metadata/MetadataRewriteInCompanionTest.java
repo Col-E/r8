@@ -102,10 +102,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile(kotlinParameters.isOlderThanMinSupported());
-    if (kotlinParameters.isOlderThanMinSupported()) {
-      return;
-    }
+            .compile();
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
@@ -147,7 +144,10 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compile();
+            .compile(kotlinParameters.isOlderThanMinSupported());
+    if (kotlinParameters.isOlderThanMinSupported()) {
+      return;
+    }
 
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
