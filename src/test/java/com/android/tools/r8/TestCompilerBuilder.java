@@ -56,6 +56,7 @@ public abstract class TestCompilerBuilder<
         options.testing.allowUnnecessaryDontWarnWildcards = false;
         options.testing.reportUnusedProguardConfigurationRules = true;
         options.horizontalClassMergerOptions().enable();
+        options.horizontalClassMergerOptions().setEnableInterfaceMerging();
       };
 
   final Backend backend;
