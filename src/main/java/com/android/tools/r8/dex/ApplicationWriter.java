@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
+import static com.android.tools.r8.utils.LineNumberOptimizer.runAndWriteMap;
+
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.DataDirectoryResource;
@@ -41,15 +43,16 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
@@ -63,8 +66,10 @@ import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -84,7 +89,6 @@ public class ApplicationWriter {
   public List<DexString> markerStrings;
 
   public DexIndexedConsumer programConsumer;
-  public final ProguardMapSupplier proguardMapSupplier;
 
   private static class SortAnnotations extends MixedSectionCollection {
 
@@ -154,15 +158,13 @@ public class ApplicationWriter {
       List<Marker> markers,
       GraphLens graphLens,
       InitClassLens initClassLens,
-      NamingLens namingLens,
-      ProguardMapSupplier proguardMapSupplier) {
+      NamingLens namingLens) {
     this(
         appView,
         markers,
         graphLens,
         initClassLens,
         namingLens,
-        proguardMapSupplier,
         null);
   }
 
@@ -172,7 +174,6 @@ public class ApplicationWriter {
       GraphLens graphLens,
       InitClassLens initClassLens,
       NamingLens namingLens,
-      ProguardMapSupplier proguardMapSupplier,
       DexIndexedConsumer consumer) {
     this.appView = appView;
     this.options = appView.options();
@@ -181,7 +182,6 @@ public class ApplicationWriter {
     this.graphLens = graphLens;
     this.initClassLens = initClassLens;
     this.namingLens = namingLens;
-    this.proguardMapSupplier = proguardMapSupplier;
     this.programConsumer = consumer;
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
@@ -228,17 +228,26 @@ public class ApplicationWriter {
   }
 
   private boolean willComputeProguardMap() {
-    return proguardMapSupplier != null && options.proguardMapConsumer != null;
+    return options.proguardMapConsumer != null;
   }
 
+  /** Writer that never needs the input app to deal with mapping info for kotlin. */
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
+    assert !willComputeProguardMap();
+    write(executorService, null);
+  }
+
+  public void write(ExecutorService executorService, AndroidApp inputApp)
+      throws IOException, ExecutionException {
     Timing timing = appView.appInfo().app().timing;
+
     timing.begin("DexApplication.write");
 
     Box<ProguardMapId> delayedProguardMapId = new Box<>();
     List<LazyDexString> lazyDexStrings = new ArrayList<>();
     computeMarkerStrings(delayedProguardMapId, lazyDexStrings);
-    computeSourceFileString(delayedProguardMapId, lazyDexStrings);
+    OriginalSourceFiles originalSourceFiles =
+        computeSourceFileString(delayedProguardMapId, lazyDexStrings);
 
     try {
       timing.begin("Insert Attribute Annotations");
@@ -295,11 +304,9 @@ public class ApplicationWriter {
       }
 
       // Now code offsets are fixed, compute the mapping file content.
-      // TODO(b/207765416): Move the line number optimizer to this point so PC info can be used.
       if (willComputeProguardMap()) {
-        timing.begin("Write proguard map");
-        delayedProguardMapId.set(proguardMapSupplier.writeProguardMap());
-        timing.end();
+        delayedProguardMapId.set(
+            runAndWriteMap(inputApp, appView, namingLens, timing, originalSourceFiles));
       }
 
       // With the mapping id/hash known, it is safe to compute the remaining dex strings.
@@ -366,17 +373,25 @@ public class ApplicationWriter {
     }
   }
 
-  private void computeSourceFileString(
+  private OriginalSourceFiles computeSourceFileString(
       Box<ProguardMapId> delayedProguardMapId, List<LazyDexString> lazyDexStrings) {
     if (options.sourceFileProvider == null) {
-      return;
+      return OriginalSourceFiles.fromClasses();
     }
     if (!willComputeProguardMap()) {
       rewriteSourceFile(null);
-      return;
+      return OriginalSourceFiles.unreachable();
     }
     // Clear all source files so as not to collect the original files.
-    appView.appInfo().classes().forEach(clazz -> clazz.setSourceFile(null));
+    List<DexProgramClass> classes = appView.appInfo().classes();
+    Map<DexType, DexString> originalSourceFiles = new HashMap<>(classes.size());
+    for (DexProgramClass clazz : classes) {
+      DexString originalSourceFile = clazz.getSourceFile();
+      if (originalSourceFile != null) {
+        originalSourceFiles.put(clazz.getType(), originalSourceFile);
+        clazz.setSourceFile(null);
+      }
+    }
     // Add a lazy dex string computation to defer construction of the actual string.
     lazyDexStrings.add(
         new LazyDexString() {
@@ -385,6 +400,8 @@ public class ApplicationWriter {
             return rewriteSourceFile(delayedProguardMapId.get());
           }
         });
+
+    return OriginalSourceFiles.fromMap(originalSourceFiles);
   }
 
   public static SourceFileEnvironment createSourceFileEnvironment(ProguardMapId proguardMapId) {

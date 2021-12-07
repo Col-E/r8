@@ -352,8 +352,7 @@ public class GenerateLintFiles {
             appView,
             options.getMarker(Tool.L8),
             GraphLens.getIdentityLens(),
-            NamingLens.getIdentityLens(),
-            null);
+            NamingLens.getIdentityLens());
     ClassFileConsumer consumer =
         new ClassFileConsumer.ArchiveConsumer(
             lintFile(compilationApiLevel, minApiLevel, FileUtils.JAR_EXTENSION));

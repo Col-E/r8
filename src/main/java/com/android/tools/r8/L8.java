@@ -141,8 +141,7 @@ public class L8 {
       NamingLens namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView);
       new GenericSignatureRewriter(appView, namingLens).run(appView.appInfo().classes(), executor);
 
-      new CfApplicationWriter(
-              appView, options.getMarker(Tool.L8), appView.graphLens(), namingLens, null)
+      new CfApplicationWriter(appView, options.getMarker(Tool.L8), appView.graphLens(), namingLens)
           .write(options.getClassFileConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {

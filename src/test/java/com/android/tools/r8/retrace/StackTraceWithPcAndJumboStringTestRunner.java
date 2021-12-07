@@ -4,7 +4,6 @@
 package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -58,20 +57,7 @@ public class StackTraceWithPcAndJumboStringTestRunner extends TestBase {
             })
         .run(parameters.getRuntime(), getTestClass())
         .assertFailureWithErrorThatThrows(RuntimeException.class)
-        .inspectStackTrace(
-            stacktrace -> {
-              if (isApiLevelWithPcSupport()) {
-                // TODO(b/207765416): Remove this when PC support works with jumbo string rewriting.
-                assertThat(stacktrace, not(isSame(getExpectedStackTrace())));
-              } else {
-                assertThat(stacktrace, isSame(getExpectedStackTrace()));
-              }
-            });
-  }
-
-  private boolean isApiLevelWithPcSupport() {
-    return parameters.isDexRuntime()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport());
+        .inspectStackTrace(stacktrace -> assertThat(stacktrace, isSame(getExpectedStackTrace())));
   }
 
   private StackTrace getExpectedStackTrace() {

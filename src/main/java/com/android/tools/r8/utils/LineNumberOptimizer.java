@@ -54,6 +54,8 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.naming.mappinginformation.CompilerSynthesizedMappingInformation;
 import com.android.tools.r8.naming.mappinginformation.FileNameInformation;
@@ -323,8 +325,32 @@ public class LineNumberOptimizer {
     }
   }
 
+  public static ProguardMapId runAndWriteMap(
+      AndroidApp inputApp,
+      AppView<?> appView,
+      NamingLens namingLens,
+      Timing timing,
+      OriginalSourceFiles originalSourceFiles) {
+    assert appView.options().proguardMapConsumer != null;
+    // When line number optimization is turned off the identity mapping for line numbers is
+    // used. We still run the line number optimizer to collect line numbers and inline frame
+    // information for the mapping file.
+    timing.begin("Line number remapping");
+    ClassNameMapper mapper =
+        run(appView, appView.appInfo().app(), inputApp, namingLens, originalSourceFiles);
+    timing.end();
+    timing.begin("Write proguard map");
+    ProguardMapId mapId = ProguardMapSupplier.create(mapper, appView.options()).writeProguardMap();
+    timing.end();
+    return mapId;
+  }
+
   public static ClassNameMapper run(
-      AppView<?> appView, DexApplication application, AndroidApp inputApp, NamingLens namingLens) {
+      AppView<?> appView,
+      DexApplication application,
+      AndroidApp inputApp,
+      NamingLens namingLens,
+      OriginalSourceFiles originalSourceFiles) {
     // For finding methods in kotlin files based on SourceDebugExtensions, we use a line method map.
     // We create it here to ensure it is only reading class files once.
     CfLineToMethodMapper cfLineToMethodMapper = new CfLineToMethodMapper(inputApp);
@@ -353,8 +379,9 @@ public class LineNumberOptimizer {
                       com.android.tools.r8.position.Position.UNKNOWN));
 
       // Check if source file should be added to the map
-      if (clazz.sourceFile != null) {
-        String sourceFile = clazz.sourceFile.toString();
+      DexString originalSourceFile = originalSourceFiles.getOriginalSourceFile(clazz);
+      if (originalSourceFile != null) {
+        String sourceFile = originalSourceFile.toString();
         if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
           onDemandClassNamingBuilder
               .get()

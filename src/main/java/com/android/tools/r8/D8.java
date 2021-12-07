@@ -28,10 +28,8 @@ import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
-import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -44,7 +42,6 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -269,11 +266,9 @@ public final class D8 {
       namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
 
       if (options.isGeneratingClassFiles()) {
-        ProguardMapSupplier proguardMapSupplier =
-            finalizeApplication(inputApp, appView, executor, namingLens);
-        new CfApplicationWriter(
-                appView, marker, GraphLens.getIdentityLens(), namingLens, proguardMapSupplier)
-            .write(options.getClassFileConsumer());
+        finalizeApplication(inputApp, appView, executor, namingLens);
+        new CfApplicationWriter(appView, marker, GraphLens.getIdentityLens(), namingLens)
+            .write(options.getClassFileConsumer(), inputApp);
       } else {
         if (!hasDexResources || !hasClassResources || !appView.rewritePrefix.isRewriting()) {
           // All inputs are either dex or cf, or there is nothing to rewrite.
@@ -314,17 +309,15 @@ public final class D8 {
                       executor, appView.appInfo().app(), appView.appInfo().getMainDexInfo());
           appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
         }
-        ProguardMapSupplier proguardMapSupplier =
-            finalizeApplication(inputApp, appView, executor, namingLens);
+        finalizeApplication(inputApp, appView, executor, namingLens);
 
         new ApplicationWriter(
                 appView,
                 marker == null ? null : ImmutableList.copyOf(markers),
                 appView.graphLens(),
                 InitClassLens.getThrowingInstance(),
-                namingLens,
-                proguardMapSupplier)
-            .write(executor);
+                namingLens)
+            .write(executor, inputApp);
       }
       options.printWarnings();
     } catch (ExecutionException e) {
@@ -338,19 +331,13 @@ public final class D8 {
     }
   }
 
-  private static ProguardMapSupplier finalizeApplication(
+  private static void finalizeApplication(
       AndroidApp inputApp,
       AppView<AppInfo> appView,
       ExecutorService executorService,
       NamingLens namingLens)
       throws ExecutionException {
     SyntheticFinalization.finalize(appView, executorService);
-    if (appView.options().proguardMapConsumer == null) {
-      return null;
-    }
-    ClassNameMapper classNameMapper =
-        LineNumberOptimizer.run(appView, appView.appInfo().app(), inputApp, namingLens);
-    return ProguardMapSupplier.create(classNameMapper, appView.options());
   }
 
   private static DexApplication rewriteNonDexInputs(
@@ -395,7 +382,6 @@ public final class D8 {
             GraphLens.getIdentityLens(),
             InitClassLens.getThrowingInstance(),
             desugaringLens,
-            null,
             convertedCfFiles)
         .write(executor);
     AndroidApp.Builder builder = AndroidApp.builder(inputApp);

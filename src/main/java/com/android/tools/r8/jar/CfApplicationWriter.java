@@ -4,6 +4,7 @@
 package com.android.tools.r8.jar;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
+import static com.android.tools.r8.utils.LineNumberOptimizer.runAndWriteMap;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
@@ -40,14 +41,15 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableMap;
@@ -90,16 +92,10 @@ public class CfApplicationWriter {
   private final Marker marker;
   private final Predicate<DexType> isTypeMissing;
 
-  public final ProguardMapSupplier proguardMapSupplier;
-
   private static final CfVersion MIN_VERSION_FOR_COMPILER_GENERATED_CODE = CfVersion.V1_6;
 
   public CfApplicationWriter(
-      AppView<?> appView,
-      Marker marker,
-      GraphLens graphLens,
-      NamingLens namingLens,
-      ProguardMapSupplier proguardMapSupplier) {
+      AppView<?> appView, Marker marker, GraphLens graphLens, NamingLens namingLens) {
     this.application = appView.appInfo().app();
     this.appView = appView;
     this.graphLens = graphLens;
@@ -107,15 +103,19 @@ public class CfApplicationWriter {
     this.options = appView.options();
     assert marker != null;
     this.marker = marker;
-    this.proguardMapSupplier = proguardMapSupplier;
     this.isTypeMissing =
         PredicateUtils.isNull(appView.appInfo()::definitionForWithoutExistenceAssert);
   }
 
   public void write(ClassFileConsumer consumer) {
+    assert options.proguardMapConsumer == null;
+    write(consumer, null);
+  }
+
+  public void write(ClassFileConsumer consumer, AndroidApp inputApp) {
     application.timing.begin("CfApplicationWriter.write");
     try {
-      writeApplication(consumer);
+      writeApplication(inputApp, consumer);
     } finally {
       application.timing.end();
     }
@@ -132,12 +132,12 @@ public class CfApplicationWriter {
     return true;
   }
 
-  private void writeApplication(ClassFileConsumer consumer) {
-    ProguardMapId proguardMapId =
-        (proguardMapSupplier != null && options.proguardMapConsumer != null)
-            ? proguardMapSupplier.writeProguardMap()
-            : null;
-    if (proguardMapId != null) {
+  private void writeApplication(AndroidApp inputApp, ClassFileConsumer consumer) {
+    ProguardMapId proguardMapId = null;
+    if (options.proguardMapConsumer != null) {
+      proguardMapId =
+          runAndWriteMap(
+              inputApp, appView, namingLens, application.timing, OriginalSourceFiles.fromClasses());
       marker.setPgMapId(proguardMapId.getId());
     }
     Optional<String> markerString =

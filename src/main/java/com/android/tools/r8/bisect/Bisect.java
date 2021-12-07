@@ -194,8 +194,7 @@ public class Bisect {
             null,
             GraphLens.getIdentityLens(),
             InitClassLens.getThrowingInstance(),
-            NamingLens.getIdentityLens(),
-            null);
+            NamingLens.getIdentityLens());
     writer.write(executor);
     options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);

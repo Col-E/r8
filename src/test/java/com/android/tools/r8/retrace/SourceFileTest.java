@@ -8,7 +8,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -85,7 +85,7 @@ public class SourceFileTest extends TestBase {
 
   private void runTest(boolean addDummyArg, BiConsumer<StackTrace, CodeInspector> consumer)
       throws Exception {
-    R8FullTestBuilder r8FullTestBuilder =
+    R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(Main.class, ClassWithoutCustomFileName.class)
             .addProgramClassFileData(
@@ -94,11 +94,12 @@ public class SourceFileTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
-            .addKeepAttributeSourceFile();
+            .addKeepAttributeSourceFile()
+            .compile();
     R8TestRunResult runResult =
         addDummyArg
-            ? r8FullTestBuilder.run(parameters.getRuntime(), Main.class, "foo")
-            : r8FullTestBuilder.run(parameters.getRuntime(), Main.class);
+            ? compileResult.run(parameters.getRuntime(), Main.class, "foo")
+            : compileResult.run(parameters.getRuntime(), Main.class);
     runResult.assertFailureWithErrorThatMatches(containsString("Hello World!"));
     StackTrace originalStackTrace = runResult.getOriginalStackTrace();
     StackTrace retracedStackTrace = originalStackTrace.retrace(runResult.proguardMap());
