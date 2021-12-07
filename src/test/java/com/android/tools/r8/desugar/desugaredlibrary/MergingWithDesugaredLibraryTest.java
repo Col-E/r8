@@ -210,7 +210,7 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
   }
 
   private boolean someLibraryDesugaringRequired() {
-    return parameters.getApiLevel().getLevel() <= AndroidApiLevel.N.getLevel();
+    return requiresAnyCoreLibDesugaring(parameters);
   }
 
   @Test
