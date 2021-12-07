@@ -279,7 +279,7 @@ public abstract class TestCompileResult<
       }
       Path path = state.getNewTempFolder().resolve("runtime-classes.jar");
       appBuilder.build().writeToZip(path, OutputMode.ClassFile);
-      additionalBootClasspath.add(path);
+      additionalRunClassPath.add(path);
       return self();
     } catch (IOException e) {
       throw new RuntimeException(e);
