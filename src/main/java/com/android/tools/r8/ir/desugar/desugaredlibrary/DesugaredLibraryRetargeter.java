@@ -128,6 +128,13 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     if (retargetLibraryMember.isEmpty() || !instruction.isInvoke()) {
       return NO_REWRITING;
     }
+    if (appView
+        .options()
+        .desugaredLibraryConfiguration
+        .getDontRetargetLibMember()
+        .contains(context.getContextType())) {
+      return NO_REWRITING;
+    }
     CfInvoke cfInvoke = instruction.asInvoke();
     DexMethod invokedMethod = cfInvoke.getMethod();
     InvokeRetargetingResult retarget =
