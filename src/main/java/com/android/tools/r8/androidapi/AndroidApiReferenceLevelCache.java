@@ -63,10 +63,7 @@ public class AndroidApiReferenceLevelCache {
       return appView.computedMinApiLevel();
     }
     DexClass clazz = appView.definitionFor(contextType);
-    if (clazz == null) {
-      return unknownValue;
-    }
-    if (!clazz.isLibraryClass()) {
+    if (clazz != null && clazz.isProgramClass()) {
       return appView.computedMinApiLevel();
     }
     if (reference.getContextType() == factory.objectType) {

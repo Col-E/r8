@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.apimodel;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -37,36 +36,31 @@ public class ApiModelNoLibraryReferenceTest extends TestBase {
   public void testR8() throws Exception {
     MethodReference main =
         Reference.methodFromMethod(Main.class.getDeclaredMethod("main", String[].class));
-    // TODO(b/209416097): Looking up the api level will give UNKNOWN since the class is missing.
-    Assert.assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForR8(parameters.getBackend())
-                .addProgramClassFileData(
-                    transformer(Main.class)
-                        .replaceClassDescriptorInMethodInstructions(
-                            descriptor(AccessibilityEvent.class),
-                            DescriptorUtils.javaTypeToDescriptor(API_TYPE_NAME))
-                        .transform())
-                // Add call to empty library classes to have no default android.jar passed in.
-                .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-                .setMinApi(parameters.getApiLevel())
-                .addDontWarn(API_TYPE_NAME)
-                .addKeepMainRule(Main.class)
-                .addAndroidBuildVersion()
-                .apply(ApiModelingTestHelper::enableApiCallerIdentification)
-                .apply(
-                    ApiModelingTestHelper.addTracedApiReferenceLevelCallBack(
-                        (methodReference, apiLevel) -> {
-                          if (methodReference.equals(main)) {
-                            Assert.assertEquals(
-                                parameters.isCfRuntime()
-                                    ? AndroidApiLevel.R
-                                    : AndroidApiLevel.R.max(parameters.getApiLevel()),
-                                apiLevel);
-                          }
-                        }))
-                .compile());
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(
+            transformer(Main.class)
+                .replaceClassDescriptorInMethodInstructions(
+                    descriptor(AccessibilityEvent.class),
+                    DescriptorUtils.javaTypeToDescriptor(API_TYPE_NAME))
+                .transform())
+        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+        .setMinApi(parameters.getApiLevel())
+        .addDontWarn(API_TYPE_NAME)
+        .addKeepMainRule(Main.class)
+        .addAndroidBuildVersion()
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(
+            ApiModelingTestHelper.addTracedApiReferenceLevelCallBack(
+                (methodReference, apiLevel) -> {
+                  if (methodReference.equals(main)) {
+                    Assert.assertEquals(
+                        parameters.isCfRuntime()
+                            ? AndroidApiLevel.R
+                            : AndroidApiLevel.R.max(parameters.getApiLevel()),
+                        apiLevel);
+                  }
+                }))
+        .compile();
   }
 
   /* Only here to get the test to compile */
