@@ -54,14 +54,10 @@ public abstract class AndroidApiLevelCompute {
     return new NoAndroidApiLevelCompute();
   }
 
-  public static ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {
-    if (options.apiModelingOptions().enableApiCallerIdentification) {
+  public ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {
       return options.getMinApiLevel() == AndroidApiLevel.ANDROID_PLATFORM
           ? ComputedApiLevel.platform()
           : new KnownApiLevel(options.getMinApiLevel());
-    } else {
-      return ComputedApiLevel.unknown();
-    }
   }
 
   public ComputedApiLevel getPlatformApiLevelOrUnknown(AppView<?> appView) {
@@ -83,6 +79,11 @@ public abstract class AndroidApiLevelCompute {
     public ComputedApiLevel computeApiLevelForLibraryReference(
         DexReference reference, ComputedApiLevel unknownValue) {
       return unknownValue;
+    }
+
+    @Override
+    public ComputedApiLevel computeInitialMinApiLevel(InternalOptions options) {
+      return ComputedApiLevel.unknown();
     }
   }
 

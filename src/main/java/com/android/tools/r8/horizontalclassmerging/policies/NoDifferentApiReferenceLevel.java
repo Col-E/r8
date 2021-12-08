@@ -20,8 +20,8 @@ public class NoDifferentApiReferenceLevel extends MultiClassSameReferencePolicy<
   private final boolean enableApiCallerIdentification;
 
   public NoDifferentApiReferenceLevel(AppView<?> appView) {
-    apiLevelCompute = AndroidApiLevelCompute.create(appView);
     this.appView = appView;
+    apiLevelCompute = appView.apiLevelCompute();
     enableApiCallerIdentification =
         appView.options().apiModelingOptions().enableApiCallerIdentification;
   }

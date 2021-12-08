@@ -119,6 +119,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   private final Thread mainThread = Thread.currentThread();
 
+  private final AndroidApiLevelCompute apiLevelCompute;
   private final ComputedApiLevel computedMinApiLevel;
 
   private AppView(
@@ -143,7 +144,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
     this.protoShrinker = ProtoShrinker.create(withLiveness());
 
-    this.computedMinApiLevel = AndroidApiLevelCompute.computeInitialMinApiLevel(appInfo.options());
+    this.apiLevelCompute = AndroidApiLevelCompute.create(this);
+    this.computedMinApiLevel = apiLevelCompute.computeInitialMinApiLevel(options());
   }
 
   public boolean verifyMainThread() {
@@ -841,6 +843,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public boolean checkForTesting(Supplier<Boolean> test) {
     return testing().enableTestAssertions ? test.get() : true;
+  }
+
+  public AndroidApiLevelCompute apiLevelCompute() {
+    return apiLevelCompute;
   }
 
   public ComputedApiLevel computedMinApiLevel() {

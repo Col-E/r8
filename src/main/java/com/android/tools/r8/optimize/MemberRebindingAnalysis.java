@@ -55,7 +55,7 @@ public class MemberRebindingAnalysis {
 
   public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
     assert appView.graphLens().isContextFreeForMethods();
-    this.androidApiLevelCompute = AndroidApiLevelCompute.create(appView);
+    this.androidApiLevelCompute = appView.apiLevelCompute();
     this.appView = appView;
     this.options = appView.options();
     this.lensBuilder = MemberRebindingLens.builder(appView);

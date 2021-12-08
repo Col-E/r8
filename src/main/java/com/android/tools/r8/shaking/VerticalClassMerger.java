@@ -262,7 +262,7 @@ public class VerticalClassMerger {
     this.executorService = executorService;
     this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.lensBuilder = new VerticalClassMergerGraphLens.Builder(appView.dexItemFactory());
-    this.apiLevelCompute = AndroidApiLevelCompute.create(appView);
+    this.apiLevelCompute = appView.apiLevelCompute();
     this.timing = timing;
 
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();

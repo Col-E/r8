@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph.analysis;
 
+import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -35,11 +36,13 @@ public class GetArrayOfMissingTypeVerifyErrorWorkaround implements EnqueuerField
 
   private final DexItemFactory dexItemFactory;
   private final Enqueuer enqueuer;
+  private final AndroidApiLevelCompute apiLevelCompute;
 
   public GetArrayOfMissingTypeVerifyErrorWorkaround(
       AppView<? extends AppInfoWithClassHierarchy> appView, Enqueuer enqueuer) {
     this.dexItemFactory = appView.dexItemFactory();
     this.enqueuer = enqueuer;
+    this.apiLevelCompute = appView.apiLevelCompute();
   }
 
   public static void register(
@@ -82,9 +85,7 @@ public class GetArrayOfMissingTypeVerifyErrorWorkaround implements EnqueuerField
       return false;
     }
     ComputedApiLevel baseTypeApiLevel =
-        enqueuer
-            .getApiLevelCompute()
-            .computeApiLevelForLibraryReference(baseType, ComputedApiLevel.unknown());
+        apiLevelCompute.computeApiLevelForLibraryReference(baseType, ComputedApiLevel.unknown());
     return !baseTypeApiLevel.isKnownApiLevel()
         || baseTypeApiLevel
             .asKnownApiLevel()
