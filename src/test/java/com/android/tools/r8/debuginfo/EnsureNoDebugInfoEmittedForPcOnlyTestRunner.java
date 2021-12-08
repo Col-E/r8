@@ -62,7 +62,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
         .internalEnableMappingOutput()
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), MAIN)
         // For a debug build we always expect the output to have actual line information.
         .inspectFailure(this::checkHasLineNumberInfo)
@@ -76,7 +75,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
         .internalEnableMappingOutput()
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         // TODO(b/191038746): Enable LineNumberOptimization for release builds for DEX PC Output.
         .applyIf(
             apiLevelSupportsPcOutput(),
@@ -115,7 +113,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .release()
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), MAIN)
         // If compiling without a map output actual debug info should also be retained. Otherwise
         // there would not be any way to obtain the actual lines.
@@ -131,7 +128,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), MAIN)
         .inspectOriginalStackTrace(
             (stackTrace, inspector) -> {

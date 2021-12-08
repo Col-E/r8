@@ -52,7 +52,6 @@ public class StackTraceWithPcAndJumboStringTestRunner extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
             o -> {
-              o.enablePcBasedMappingFile = true;
               o.testing.forceJumboStringProcessing = true;
             })
         .run(parameters.getRuntime(), getTestClass())

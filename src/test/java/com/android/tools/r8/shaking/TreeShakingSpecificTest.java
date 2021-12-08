@@ -121,7 +121,6 @@ public class TreeShakingSpecificTest extends TestBase {
             builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .setMinApi(minApi)
         .compile()
         .inspectProguardMap(

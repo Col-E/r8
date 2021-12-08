@@ -70,7 +70,6 @@ public class DexPcWithDebugInfoForOverloadedMethodsTestRunner extends TestBase {
         .addKeepAttributeLineNumberTable()
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString(EXPECTED))
         .inspectOriginalStackTrace(

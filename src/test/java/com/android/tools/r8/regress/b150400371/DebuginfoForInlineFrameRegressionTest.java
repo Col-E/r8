@@ -38,7 +38,6 @@ public class DebuginfoForInlineFrameRegressionTest extends TestBase {
         .addKeepMainRule(InlineInto.class)
         .addKeepRules("-keepparameternames")
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(o -> o.enablePcBasedMappingFile = true)
         .run(parameters.getRuntime(), InlineInto.class)
         .assertSuccessWithOutputLines("42foo")
         .inspect(
