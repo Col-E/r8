@@ -338,7 +338,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         stepInto(),
         // TODO(b/207743106): Remove when resolved.
         applyIf(
-            kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_6_0),
+            kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0,
             this::stepInto),
         checkMethod(DEBUGGEE_CLASS, "foo"),
         checkLine(SOURCE_FILE, 34),
@@ -391,7 +391,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         stepInto(),
         // TODO(b/207743106): Remove when resolved.
         applyIf(
-            kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLINC_1_6_0),
+            kotlinParameters.getCompilerVersion() == KotlinCompilerVersion.KOTLINC_1_6_0,
             this::stepInto),
         checkMethod(DEBUGGEE_CLASS, "foo"),
         checkLine(SOURCE_FILE, 34),

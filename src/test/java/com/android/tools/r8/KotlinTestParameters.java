@@ -32,6 +32,10 @@ public class KotlinTestParameters {
     return kotlinc;
   }
 
+  public KotlinCompilerVersion getCompilerVersion() {
+    return kotlinc.getCompilerVersion();
+  }
+
   public KotlinTargetVersion getTargetVersion() {
     return targetVersion;
   }
