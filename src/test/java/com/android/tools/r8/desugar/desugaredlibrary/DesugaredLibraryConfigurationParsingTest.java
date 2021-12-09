@@ -20,8 +20,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -70,10 +70,11 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
       ImmutableMap.<String, Object>builder()
           .put(
               "configuration_format_version",
-              DesugaredLibraryConfigurationParser.MAX_SUPPORTED_VERSION)
+              LegacyDesugaredLibrarySpecificationParser.MAX_SUPPORTED_VERSION)
           .put("group_id", "com.tools.android")
           .put("artifact_id", "desugar_jdk_libs")
-          .put("version", DesugaredLibraryConfigurationParser.MIN_SUPPORTED_VERSION.toString())
+          .put(
+              "version", LegacyDesugaredLibrarySpecificationParser.MIN_SUPPORTED_VERSION.toString())
           .put("required_compilation_api_level", 1)
           .put("synthesized_library_classes_package_prefix", "j$.")
           .put("common_flags", Collections.emptyList())
@@ -85,20 +86,20 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
     return new LinkedHashMap<>(TEMPLATE);
   }
 
-  private DesugaredLibraryConfigurationParser parser(DiagnosticsHandler handler) {
-    return new DesugaredLibraryConfigurationParser(
+  private LegacyDesugaredLibrarySpecificationParser parser(DiagnosticsHandler handler) {
+    return new LegacyDesugaredLibrarySpecificationParser(
         factory, new Reporter(handler), libraryCompilation, minApi.getLevel());
   }
 
-  private DesugaredLibraryConfiguration runPassing(String resource) {
+  private LegacyDesugaredLibrarySpecification runPassing(String resource) {
     return runPassing(StringResource.fromString(resource, origin));
   }
 
-  private DesugaredLibraryConfiguration runPassing(StringResource resource) {
+  private LegacyDesugaredLibrarySpecification runPassing(StringResource resource) {
     TestDiagnosticMessagesImpl handler = new TestDiagnosticMessagesImpl();
-    DesugaredLibraryConfiguration config = parser(handler).parse(resource);
+    LegacyDesugaredLibrarySpecification spec = parser(handler).parse(resource);
     handler.assertNoMessages();
-    return config;
+    return spec;
   }
 
   private void runFailing(String json, Consumer<TestDiagnosticMessages> checker) {
@@ -114,9 +115,9 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
   @Test
   public void testReference() throws Exception {
     // Just test that the reference file parses without issues.
-    DesugaredLibraryConfiguration config =
+    LegacyDesugaredLibrarySpecification spec =
         runPassing(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
-    assertEquals(libraryCompilation, config.isLibraryCompilation());
+    assertEquals(libraryCompilation, spec.isLibraryCompilation());
   }
 
   @Test
@@ -161,7 +162,7 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
   @Test
   public void testUnsupportedVersion() {
     LinkedHashMap<String, Object> data = template();
-    SemanticVersion minVersion = DesugaredLibraryConfigurationParser.MIN_SUPPORTED_VERSION;
+    SemanticVersion minVersion = LegacyDesugaredLibrarySpecificationParser.MIN_SUPPORTED_VERSION;
     data.put(
         "version",
         new SemanticVersion(minVersion.getMajor(), minVersion.getMinor(), minVersion.getPatch() - 1)
@@ -255,15 +256,15 @@ public class DesugaredLibraryConfigurationParsingTest extends TestBase {
                     "java.util.Foo", "j$.util.FooConv1",
                     "java.util.Foo2", "j$.util.FooConv2"))));
     // The gson parser will overwrite the key in order during parsing, thus hiding potential issues.
-    DesugaredLibraryConfiguration config = runPassing(toJson(data).replace("Foo2", "Foo"));
+    LegacyDesugaredLibrarySpecification spec = runPassing(toJson(data).replace("Foo2", "Foo"));
     assertEquals(
         Collections.singletonList("java.util.Foo"),
-        config.getCustomConversions().keySet().stream()
+        spec.getCustomConversions().keySet().stream()
             .map(DexType::toString)
             .collect(Collectors.toList()));
     assertEquals(
         Collections.singletonList("j$.util.FooConv2"),
-        config.getCustomConversions().values().stream()
+        spec.getCustomConversions().values().stream()
             .map(DexType::toString)
             .collect(Collectors.toList()));
   }

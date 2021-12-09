@@ -169,7 +169,7 @@ public final class D8 {
       AndroidApp inputApp, InternalOptions options, ExecutorService executor, Timing timing)
       throws IOException {
     PrefixRewritingMapper rewritePrefix =
-        options.desugaredLibraryConfiguration.getPrefixRewritingMapper();
+        options.desugaredLibrarySpecification.getPrefixRewritingMapper();
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
     LazyLoadedDexApplication app = applicationReader.read(executor);
     AppInfo appInfo = AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app));

@@ -24,8 +24,8 @@ import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
@@ -227,12 +227,12 @@ public class DesugaredLibraryTestBase extends TestBase {
     return desugaredLib;
   }
 
-  protected DesugaredLibraryConfiguration configurationWithSupportAllCallbacksFromLibrary(
+  protected LegacyDesugaredLibrarySpecification configurationWithSupportAllCallbacksFromLibrary(
       InternalOptions options,
       boolean libraryCompilation,
       TestParameters parameters,
       boolean supportAllCallbacksFromLibrary) {
-    return new DesugaredLibraryConfigurationParser(
+    return new LegacyDesugaredLibrarySpecificationParser(
             options.dexItemFactory(),
             options.reporter,
             libraryCompilation,

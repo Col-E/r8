@@ -376,10 +376,10 @@ final class ClassProcessor {
     this.dexItemFactory = appView.dexItemFactory();
     this.helper = new InterfaceDesugaringSyntheticHelper(appView);
     needsLibraryInfo =
-        !appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
+        !appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface().isEmpty()
             || !appView
                 .options()
-                .desugaredLibraryConfiguration
+                .desugaredLibrarySpecification
                 .getRetargetCoreLibMember()
                 .isEmpty();
     this.isLiveMethod = isLiveMethod;
@@ -510,7 +510,7 @@ final class ClassProcessor {
       DexClass iface = appView.definitionFor(emulatedInterface);
       if (iface != null) {
         assert iface.isLibraryClass()
-            || appView.options().desugaredLibraryConfiguration.isLibraryCompilation();
+            || appView.options().desugaredLibrarySpecification.isLibraryCompilation();
         workList.addIfNotSeen(iface.getInterfaces());
       }
     }
@@ -761,7 +761,7 @@ final class ClassProcessor {
     assert needsLibraryInfo();
     assert method.getDefinition().isNonPrivateVirtualMethod();
     return !method.getAccessFlags().isFinal()
-        && appView.options().desugaredLibraryConfiguration.retargetMethod(method, appView) != null;
+        && appView.options().desugaredLibrarySpecification.retargetMethod(method, appView) != null;
   }
 
   private boolean dontRewrite(DexClassAndMethod method) {
@@ -850,7 +850,7 @@ final class ClassProcessor {
     DexMethod forwardMethod =
         target.getHolder().isInterface()
             ? helper.ensureDefaultAsMethodOfCompanionClassStub(target).getReference()
-            : appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
+            : appView.options().desugaredLibrarySpecification.retargetMethod(target, appView);
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
             target, clazz, forwardMethod, dexItemFactory);

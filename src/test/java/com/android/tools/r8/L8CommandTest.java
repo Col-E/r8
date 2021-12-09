@@ -246,7 +246,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void desugaredLibraryConfigurationRequired() throws Throwable {
+  public void desugaredLibrarySpecificationRequired() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
         "L8 requires a desugared library configuration",
         (handler) ->
@@ -357,7 +357,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
     L8Command l8Command =
         parse("--desugared-lib", ToolHelper.getDesugarLibJsonForTesting().toString());
     assertFalse(
-        l8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+        l8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
   }
 
   private void checkSingleForceAllAssertion(

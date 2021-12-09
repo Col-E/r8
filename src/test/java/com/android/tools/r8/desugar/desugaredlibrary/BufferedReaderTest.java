@@ -10,8 +10,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -60,11 +60,11 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
             : "Caught j$.io.UncheckedIOException");
   }
 
-  DesugaredLibraryConfiguration configurationAlternative3(
+  LegacyDesugaredLibrarySpecification configurationAlternative3(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
     // Parse the current configuration and amend the configuration for BufferedReader.lines. The
     // configuration is the same for both program and library.
-    return new DesugaredLibraryConfigurationParser(
+    return new LegacyDesugaredLibrarySpecificationParser(
             options.dexItemFactory(),
             options.reporter,
             libraryCompilation,
@@ -73,11 +73,11 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {
-    options.desugaredLibraryConfiguration = configurationAlternative3(options, false, parameters);
+    options.desugaredLibrarySpecification = configurationAlternative3(options, false, parameters);
   }
 
   private void configurationForLibraryCompilation(InternalOptions options) {
-    options.desugaredLibraryConfiguration = configurationAlternative3(options, true, parameters);
+    options.desugaredLibrarySpecification = configurationAlternative3(options, true, parameters);
   }
 
   @Test
@@ -143,7 +143,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
         .addLibraryFiles(getLibraryFile())
         .addOptionsModification(
             options ->
-                options.desugaredLibraryConfiguration =
+                options.desugaredLibrarySpecification =
                     configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .setMinApi(parameters.getApiLevel())
@@ -172,7 +172,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
         .addLibraryFiles(getLibraryFile())
         .addOptionsModification(
             options ->
-                options.desugaredLibraryConfiguration =
+                options.desugaredLibrarySpecification =
                     configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)

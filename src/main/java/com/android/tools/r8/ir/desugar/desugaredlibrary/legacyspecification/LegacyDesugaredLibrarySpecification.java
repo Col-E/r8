@@ -1,7 +1,7 @@
 // Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.desugar.desugaredlibrary;
+package com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class DesugaredLibraryConfiguration {
+public class LegacyDesugaredLibrarySpecification {
   public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
   public static final boolean FALL_BACK_SUPPORT_ALL_CALLBACKS_FROM_LIBRARY = true;
   private final AndroidApiLevel requiredCompilationAPILevel;
@@ -66,9 +66,9 @@ public class DesugaredLibraryConfiguration {
     return new Builder(dexItemFactory, reporter, origin);
   }
 
-  public static DesugaredLibraryConfiguration withOnlyRewritePrefixForTesting(
+  public static LegacyDesugaredLibrarySpecification withOnlyRewritePrefixForTesting(
       Map<String, String> prefix, InternalOptions options) {
-    return new DesugaredLibraryConfiguration(
+    return new LegacyDesugaredLibrarySpecification(
         AndroidApiLevel.B,
         true,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
@@ -87,8 +87,8 @@ public class DesugaredLibraryConfiguration {
         new DesugarPrefixRewritingMapper(prefix, options.itemFactory, true));
   }
 
-  public static DesugaredLibraryConfiguration empty() {
-    return new DesugaredLibraryConfiguration(
+  public static LegacyDesugaredLibrarySpecification empty() {
+    return new LegacyDesugaredLibrarySpecification(
         AndroidApiLevel.B,
         false,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
@@ -118,7 +118,7 @@ public class DesugaredLibraryConfiguration {
     };
   }
 
-  private DesugaredLibraryConfiguration(
+  private LegacyDesugaredLibrarySpecification(
       AndroidApiLevel requiredCompilationAPILevel,
       boolean libraryCompilation,
       String packagePrefix,
@@ -337,7 +337,7 @@ public class DesugaredLibraryConfiguration {
           rewritePrefix,
           prefix,
           rewrittenPrefix,
-          DesugaredLibraryConfigurationParser.REWRITE_PREFIX_KEY);
+          LegacyDesugaredLibrarySpecificationParser.REWRITE_PREFIX_KEY);
       return this;
     }
 
@@ -349,7 +349,7 @@ public class DesugaredLibraryConfiguration {
           emulateLibraryInterface,
           interfaceType,
           rewrittenType,
-          DesugaredLibraryConfigurationParser.EMULATE_INTERFACE_KEY);
+          LegacyDesugaredLibrarySpecificationParser.EMULATE_INTERFACE_KEY);
       return this;
     }
 
@@ -360,7 +360,7 @@ public class DesugaredLibraryConfiguration {
           customConversions,
           dexType,
           conversionType,
-          DesugaredLibraryConfigurationParser.CUSTOM_CONVERSION_KEY);
+          LegacyDesugaredLibrarySpecificationParser.CUSTOM_CONVERSION_KEY);
       return this;
     }
 
@@ -382,7 +382,7 @@ public class DesugaredLibraryConfiguration {
           typeMap,
           originalType,
           finalType,
-          DesugaredLibraryConfigurationParser.RETARGET_LIB_MEMBER_KEY);
+          LegacyDesugaredLibrarySpecificationParser.RETARGET_LIB_MEMBER_KEY);
       return this;
     }
 
@@ -393,7 +393,7 @@ public class DesugaredLibraryConfiguration {
           backportCoreLibraryMember,
           backportType,
           rewrittenBackportType,
-          DesugaredLibraryConfigurationParser.BACKPORT_KEY);
+          LegacyDesugaredLibrarySpecificationParser.BACKPORT_KEY);
       return this;
     }
 
@@ -428,9 +428,9 @@ public class DesugaredLibraryConfiguration {
       this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
     }
 
-    public DesugaredLibraryConfiguration build() {
+    public LegacyDesugaredLibrarySpecification build() {
       validate();
-      return new DesugaredLibraryConfiguration(
+      return new LegacyDesugaredLibrarySpecification(
           requiredCompilationAPILevel,
           libraryCompilation,
           synthesizedLibraryClassesPackagePrefix,

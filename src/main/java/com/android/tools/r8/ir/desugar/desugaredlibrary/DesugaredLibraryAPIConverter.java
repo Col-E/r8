@@ -181,7 +181,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     return interfaceResult != null
         && appView
             .options()
-            .desugaredLibraryConfiguration
+            .desugaredLibrarySpecification
             .getEmulateLibraryInterface()
             .containsKey(interfaceResult.getHolderType());
   }

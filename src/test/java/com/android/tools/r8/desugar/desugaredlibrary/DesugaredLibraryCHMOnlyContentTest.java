@@ -8,8 +8,8 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -44,7 +44,7 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
             false,
             Collections.emptyList(),
             options -> {
-              options.desugaredLibraryConfiguration =
+              options.desugaredLibrarySpecification =
                   chmOnlyConfiguration(options, true, parameters);
             });
     CodeInspector inspector = new CodeInspector(desugaredLib);
@@ -62,16 +62,16 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
             true,
             Collections.emptyList(),
             options -> {
-              options.desugaredLibraryConfiguration =
+              options.desugaredLibrarySpecification =
                   chmOnlyConfiguration(options, true, parameters);
             });
     CodeInspector inspector = new CodeInspector(desugaredLib);
     assert inspector.clazz("j$.util.concurrent.ConcurrentHashMap").isPresent();
   }
 
-  DesugaredLibraryConfiguration chmOnlyConfiguration(
+  LegacyDesugaredLibrarySpecification chmOnlyConfiguration(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
-    return new DesugaredLibraryConfigurationParser(
+    return new LegacyDesugaredLibrarySpecificationParser(
             options.dexItemFactory(),
             options.reporter,
             libraryCompilation,

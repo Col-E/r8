@@ -28,9 +28,9 @@ public class L8TreePruner {
 
   public L8TreePruner(InternalOptions options) {
     this.options = options;
-    backports.addAll(options.desugaredLibraryConfiguration.getBackportCoreLibraryMember().keySet());
+    backports.addAll(options.desugaredLibrarySpecification.getBackportCoreLibraryMember().keySet());
     emulatedInterfaces.addAll(
-        options.desugaredLibraryConfiguration.getEmulateLibraryInterface().keySet());
+        options.desugaredLibrarySpecification.getEmulateLibraryInterface().keySet());
   }
 
   public DexApplication prune(DexApplication app, PrefixRewritingMapper rewritePrefix) {

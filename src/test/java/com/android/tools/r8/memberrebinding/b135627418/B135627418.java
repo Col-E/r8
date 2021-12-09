@@ -12,7 +12,7 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.memberrebinding.b135627418.library.Drawable;
 import com.android.tools.r8.memberrebinding.b135627418.library.DrawableWrapper;
 import com.android.tools.r8.memberrebinding.b135627418.library.InsetDrawable;
@@ -76,8 +76,8 @@ public class B135627418 extends TestBase {
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(
                 options ->
-                    options.desugaredLibraryConfiguration =
-                        DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(
+                    options.desugaredLibrarySpecification =
+                        LegacyDesugaredLibrarySpecification.withOnlyRewritePrefixForTesting(
                             ImmutableMap.of(packageName + ".runtime", packageName + ".library"),
                             options))
             .compile();

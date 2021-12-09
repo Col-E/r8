@@ -7,7 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -53,8 +53,8 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
         */
         .addOptionsModifier(
             options ->
-                options.desugaredLibraryConfiguration =
-                    DesugaredLibraryConfiguration.builder(
+                options.desugaredLibrarySpecification =
+                    LegacyDesugaredLibrarySpecification.builder(
                             options.dexItemFactory(), options.reporter, Origin.unknown())
                         .setDesugaredLibraryIdentifier("my-identifier")
                         .putRewritePrefix("java.time.", "j$.time.")

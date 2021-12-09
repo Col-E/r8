@@ -15,8 +15,8 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -84,9 +84,9 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         ToolHelper.getAndroidJar(Ordered.max(parameters.getApiLevel(), AndroidApiLevel.O));
   }
 
-  DesugaredLibraryConfiguration desugaredLibraryConfiguration(
+  LegacyDesugaredLibrarySpecification desugaredLibrarySpecification(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
-    return new DesugaredLibraryConfigurationParser(
+    return new LegacyDesugaredLibrarySpecificationParser(
             options.dexItemFactory(),
             options.reporter,
             libraryCompilation,
@@ -99,13 +99,13 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {
-    options.desugaredLibraryConfiguration =
-        desugaredLibraryConfiguration(options, false, parameters);
+    options.desugaredLibrarySpecification =
+        desugaredLibrarySpecification(options, false, parameters);
   }
 
   private void configurationForLibraryCompilation(InternalOptions options) {
-    options.desugaredLibraryConfiguration =
-        desugaredLibraryConfiguration(options, true, parameters);
+    options.desugaredLibrarySpecification =
+        desugaredLibrarySpecification(options, true, parameters);
   }
 
   private Matcher<MethodSubject> invokesObjectsCompare(String holder) {

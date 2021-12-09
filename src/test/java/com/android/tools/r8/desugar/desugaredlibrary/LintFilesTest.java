@@ -14,8 +14,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -125,8 +125,8 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           directory.toString()
         });
     InternalOptions options = new InternalOptions(new DexItemFactory(), new Reporter());
-    DesugaredLibraryConfiguration desugaredLibraryConfiguration =
-        new DesugaredLibraryConfigurationParser(
+    LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+        new LegacyDesugaredLibrarySpecificationParser(
                 options.itemFactory, options.reporter, false, AndroidApiLevel.B.getLevel())
             .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
 
@@ -136,7 +136,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
       }
       Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
       if (apiLevel.getLevel()
-          < desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel()) {
+          < desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel()) {
         System.out.println("!Checking " + compileApiLevelDirectory);
         continue;
       }

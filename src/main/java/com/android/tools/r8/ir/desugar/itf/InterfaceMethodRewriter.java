@@ -35,7 +35,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.icce.AlwaysThrowingInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
@@ -120,11 +120,11 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   public static void checkForAssumedLibraryTypes(AppInfo appInfo, InternalOptions options) {
-    DesugaredLibraryConfiguration config = options.desugaredLibraryConfiguration;
+    LegacyDesugaredLibrarySpecification spec = options.desugaredLibrarySpecification;
     BiConsumer<DexType, DexType> registerEntry = registerMapEntry(appInfo);
-    config.getEmulateLibraryInterface().forEach(registerEntry);
-    config.getCustomConversions().forEach(registerEntry);
-    config.getRetargetCoreLibMember().forEach((method, types) -> types.forEach(registerEntry));
+    spec.getEmulateLibraryInterface().forEach(registerEntry);
+    spec.getCustomConversions().forEach(registerEntry);
+    spec.getRetargetCoreLibMember().forEach((method, types) -> types.forEach(registerEntry));
   }
 
   private static BiConsumer<DexType, DexType> registerMapEntry(AppInfo appInfo) {
@@ -158,7 +158,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
 
   private void initializeEmulatedInterfaceVariables() {
     Map<DexType, DexType> emulateLibraryInterface =
-        options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
+        options.desugaredLibrarySpecification.getEmulateLibraryInterface();
     for (DexType interfaceType : emulateLibraryInterface.keySet()) {
       addRewriteRulesForEmulatedInterface(
           interfaceType, emulateLibraryInterface.get(interfaceType).toSourceString());
@@ -776,7 +776,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       // method (method is on desugared library). Find out if it needs to be
       // retargeted or if it just calls a companion class method and rewrite.
       DexMethod retargetMethod =
-          options.desugaredLibraryConfiguration.retargetMethod(superTarget, appView);
+          options.desugaredLibrarySpecification.retargetMethod(superTarget, appView);
       if (retargetMethod != null) {
         return DesugarDescription.builder()
             .setDesugarRewrite(

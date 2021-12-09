@@ -16,8 +16,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
@@ -128,11 +128,11 @@ public class ExtractWrapperTypesTest extends TestBase {
     CodeInspector desugaredApiJar = getDesugaredApiJar();
     Set<ClassReference> preDesugarTypes = getPreDesugarTypes();
 
-    DesugaredLibraryConfiguration conf = getDesugaredLibraryConfiguration();
+    LegacyDesugaredLibrarySpecification spec = getDesugaredLibraryConfiguration();
     Set<String> wrappersInSpec =
-        conf.getWrapperConversions().stream().map(DexType::toString).collect(Collectors.toSet());
+        spec.getWrapperConversions().stream().map(DexType::toString).collect(Collectors.toSet());
     Set<String> customConversionsInSpec =
-        conf.getCustomConversions().keySet().stream()
+        spec.getCustomConversions().keySet().stream()
             .map(DexType::toString)
             .collect(Collectors.toSet());
     assertEquals(
@@ -191,9 +191,9 @@ public class ExtractWrapperTypesTest extends TestBase {
     return missingWrappers;
   }
 
-  private DesugaredLibraryConfiguration getDesugaredLibraryConfiguration() {
-    DesugaredLibraryConfigurationParser parser =
-        new DesugaredLibraryConfigurationParser(
+  private LegacyDesugaredLibrarySpecification getDesugaredLibraryConfiguration() {
+    LegacyDesugaredLibrarySpecificationParser parser =
+        new LegacyDesugaredLibrarySpecificationParser(
             new DexItemFactory(), null, true, minApi.getLevel());
     return parser.parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
   }

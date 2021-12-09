@@ -53,7 +53,7 @@ import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -385,8 +385,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (isGeneratingDex() || desugarState == DesugarState.ON) {
       marker.setMinApi(getMinApiLevel().getLevel());
     }
-    if (desugaredLibraryConfiguration.getIdentifier() != null) {
-      marker.setDesugaredLibraryIdentifiers(desugaredLibraryConfiguration.getIdentifier());
+    if (desugaredLibrarySpecification.getIdentifier() != null) {
+      marker.setDesugaredLibraryIdentifiers(desugaredLibrarySpecification.getIdentifier());
     }
     if (Version.isDevelopmentVersion()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
@@ -433,7 +433,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean isDesugaredLibraryCompilation() {
-    return desugaredLibraryConfiguration.isLibraryCompilation();
+    return desugaredLibrarySpecification.isLibraryCompilation();
   }
 
   public boolean isRelocatorCompilation() {
@@ -879,8 +879,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // If null, no desugaring of library is performed.
   // If non null it contains flags describing library desugaring.
-  public DesugaredLibraryConfiguration desugaredLibraryConfiguration =
-      DesugaredLibraryConfiguration.empty();
+  public LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+      LegacyDesugaredLibrarySpecification.empty();
 
   public boolean relocatorCompilation = false;
 

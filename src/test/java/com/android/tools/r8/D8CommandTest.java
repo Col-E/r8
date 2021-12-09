@@ -634,7 +634,7 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
   public void desugaredLibrary() throws CompilationFailedException {
     D8Command d8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
     assertFalse(
-        d8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+        d8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
   }
 
   @Test

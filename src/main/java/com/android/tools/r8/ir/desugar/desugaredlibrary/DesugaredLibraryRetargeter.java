@@ -130,7 +130,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
     if (appView
         .options()
-        .desugaredLibraryConfiguration
+        .desugaredLibrarySpecification
         .getDontRetargetLibMember()
         .contains(context.getContextType())) {
       return NO_REWRITING;
@@ -149,7 +149,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       // Final methods can be rewritten as a normal invoke.
       if (superTarget != null && !superTarget.getAccessFlags().isFinal()) {
         return InvokeRetargetingResult.createInvokeRetargetingResult(
-            appView.options().desugaredLibraryConfiguration.retargetMethod(superTarget, appView));
+            appView.options().desugaredLibrarySpecification.retargetMethod(superTarget, appView));
       }
     }
     return retarget;

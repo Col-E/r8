@@ -109,7 +109,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
     if (!appView.rewritePrefix.hasRewrittenTypeInSignature(definition.getProto(), appView)
         || appView
             .options()
-            .desugaredLibraryConfiguration
+            .desugaredLibrarySpecification
             .getEmulateLibraryInterface()
             .containsKey(method.getHolderType())) {
       return false;
@@ -127,7 +127,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         return false;
       }
     }
-    if (!appView.options().desugaredLibraryConfiguration.supportAllCallbacksFromLibrary
+    if (!appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary
         && appView.options().isDesugaredLibraryCompilation()) {
       return false;
     }
@@ -178,11 +178,11 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
   }
 
   private boolean shouldGenerateCallbacksForEmulateInterfaceAPIs(DexClass dexClass) {
-    if (appView.options().desugaredLibraryConfiguration.supportAllCallbacksFromLibrary) {
+    if (appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary) {
       return true;
     }
     Map<DexType, DexType> emulateLibraryInterfaces =
-        appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+        appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface();
     return !(emulateLibraryInterfaces.containsKey(dexClass.type)
         || emulateLibraryInterfaces.containsValue(dexClass.type));
   }

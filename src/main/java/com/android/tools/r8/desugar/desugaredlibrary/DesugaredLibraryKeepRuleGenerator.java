@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.ArrayReference;
 import com.android.tools.r8.references.ClassReference;
@@ -71,7 +71,7 @@ public class DesugaredLibraryKeepRuleGenerator {
       return false;
     }
     return namingLens.hasPrefixRewritingLogic()
-        || options.desugaredLibraryConfiguration.hasEmulatedLibraryInterfaces();
+        || options.desugaredLibrarySpecification.hasEmulatedLibraryInterfaces();
   }
 
   private void run() {
@@ -80,15 +80,15 @@ public class DesugaredLibraryKeepRuleGenerator {
   }
 
   private Predicate<DexType> createTargetPredicate() {
-    DesugaredLibraryConfiguration desugaredLibraryConfiguration =
-        options.desugaredLibraryConfiguration;
+    LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+        options.desugaredLibrarySpecification;
     Set<DexType> potentialTypesToKeep =
         SetUtils.newIdentityHashSet(
-            desugaredLibraryConfiguration.getCustomConversions().values(),
-            desugaredLibraryConfiguration.getEmulateLibraryInterface().values());
+            desugaredLibrarySpecification.getCustomConversions().values(),
+            desugaredLibrarySpecification.getEmulateLibraryInterface().values());
     byte[] synthesizedLibraryClassesPackageDescriptorPrefix =
         DexString.encodeToMutf8(
-            "L" + desugaredLibraryConfiguration.getSynthesizedLibraryClassesPackagePrefix());
+            "L" + desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix());
     return type ->
         namingLens.prefixRewrittenType(type) != null
             || potentialTypesToKeep.contains(type)

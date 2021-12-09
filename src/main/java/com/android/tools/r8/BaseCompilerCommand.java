@@ -7,8 +7,8 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -224,7 +224,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private int minApiLevel = 0;
     private int threadCount = ThreadUtils.NOT_SPECIFIED;
     protected DesugarState desugarState = DesugarState.ON;
-    private List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
+    private List<StringResource> desugaredLibrarySpecificationResources = new ArrayList<>();
     private boolean includeClassesChecksum = false;
     private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
@@ -562,35 +562,35 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     /** Desugared library configuration */
     // Configuration "default" is for testing only and support will be dropped.
     public B addDesugaredLibraryConfiguration(String configuration) {
-      this.desugaredLibraryConfigurationResources.add(
+      this.desugaredLibrarySpecificationResources.add(
           StringResource.fromString(configuration, Origin.unknown()));
       return self();
     }
 
     /** Desugared library configuration */
     public B addDesugaredLibraryConfiguration(StringResource configuration) {
-      this.desugaredLibraryConfigurationResources.add(configuration);
+      this.desugaredLibrarySpecificationResources.add(configuration);
       return self();
     }
 
-    DesugaredLibraryConfiguration getDesugaredLibraryConfiguration(
+    LegacyDesugaredLibrarySpecification getDesugaredLibraryConfiguration(
         DexItemFactory factory, boolean libraryCompilation) {
-      if (desugaredLibraryConfigurationResources.isEmpty()) {
-        return DesugaredLibraryConfiguration.empty();
+      if (desugaredLibrarySpecificationResources.isEmpty()) {
+        return LegacyDesugaredLibrarySpecification.empty();
       }
-      if (desugaredLibraryConfigurationResources.size() > 1) {
+      if (desugaredLibrarySpecificationResources.size() > 1) {
         throw new CompilationError("Only one desugared library configuration is supported.");
       }
-      StringResource desugaredLibraryConfigurationResource =
-          desugaredLibraryConfigurationResources.get(0);
-      DesugaredLibraryConfigurationParser libraryParser =
-          new DesugaredLibraryConfigurationParser(
+      StringResource desugaredLibrarySpecificationResource =
+          desugaredLibrarySpecificationResources.get(0);
+      LegacyDesugaredLibrarySpecificationParser libraryParser =
+          new LegacyDesugaredLibrarySpecificationParser(
               factory, getReporter(), libraryCompilation, getMinApiLevel());
-      return libraryParser.parse(desugaredLibraryConfigurationResource);
+      return libraryParser.parse(desugaredLibrarySpecificationResource);
     }
 
     boolean hasDesugaredLibraryConfiguration() {
-      return !desugaredLibraryConfigurationResources.isEmpty();
+      return !desugaredLibrarySpecificationResources.isEmpty();
     }
 
     /** Encodes checksum for each class when generating dex files. */

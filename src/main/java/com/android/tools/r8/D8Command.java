@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -288,7 +288,7 @@ public final class D8Command extends BaseCompilerCommand {
       intermediate |= getProgramConsumer() instanceof DexFilePerClassFileConsumer;
 
       DexItemFactory factory = new DexItemFactory();
-      DesugaredLibraryConfiguration libraryConfiguration =
+      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
           getDesugaredLibraryConfiguration(factory, false);
 
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules =
@@ -308,7 +308,7 @@ public final class D8Command extends BaseCompilerCommand {
           getDexClassChecksumFilter(),
           getDesugarGraphConsumer(),
           desugaredLibraryKeepRuleConsumer,
-          libraryConfiguration,
+          desugaredLibrarySpecification,
           getAssertionsConfiguration(),
           getOutputInspections(),
           synthesizedClassPrefix,
@@ -328,7 +328,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean intermediate;
   private final DesugarGraphConsumer desugarGraphConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
-  private final DesugaredLibraryConfiguration libraryConfiguration;
+  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final String synthesizedClassPrefix;
   private final boolean skipDump;
   private final boolean enableMainDexListCheck;
@@ -390,7 +390,7 @@ public final class D8Command extends BaseCompilerCommand {
       BiPredicate<String, Long> dexClassChecksumFilter,
       DesugarGraphConsumer desugarGraphConsumer,
       StringConsumer desugaredLibraryKeepRuleConsumer,
-      DesugaredLibraryConfiguration libraryConfiguration,
+      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,
@@ -422,7 +422,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
-    this.libraryConfiguration = libraryConfiguration;
+    this.desugaredLibrarySpecification = desugaredLibrarySpecification;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.skipDump = skipDump;
     this.enableMainDexListCheck = enableMainDexListCheck;
@@ -436,7 +436,7 @@ public final class D8Command extends BaseCompilerCommand {
     intermediate = false;
     desugarGraphConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
-    libraryConfiguration = null;
+    desugaredLibrarySpecification = null;
     synthesizedClassPrefix = null;
     skipDump = false;
     enableMainDexListCheck = true;
@@ -500,7 +500,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.dexClassChecksumFilter = getDexClassChecksumFilter();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
-    internal.desugaredLibraryConfiguration = libraryConfiguration;
+    internal.desugaredLibrarySpecification = desugaredLibrarySpecification;
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
@@ -528,7 +528,7 @@ public final class D8Command extends BaseCompilerCommand {
     dumpBaseCommandOptions(builder);
     return builder
         .setIntermediate(intermediate)
-        .setDesugaredLibraryConfiguration(libraryConfiguration)
+        .setDesugaredLibraryConfiguration(desugaredLibrarySpecification)
         .setMainDexKeepRules(mainDexKeepRules)
         .build();
   }

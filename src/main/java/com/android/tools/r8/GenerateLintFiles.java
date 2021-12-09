@@ -34,8 +34,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -73,7 +73,7 @@ public class GenerateLintFiles {
   private final Reporter reporter = new Reporter();
   private final InternalOptions options = new InternalOptions(factory, reporter);
 
-  private final DesugaredLibraryConfiguration desugaredLibraryConfiguration;
+  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final Path desugaredLibraryImplementation;
   private final Path outputDirectory;
 
@@ -82,7 +82,7 @@ public class GenerateLintFiles {
   public GenerateLintFiles(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
       throws Exception {
-    this.desugaredLibraryConfiguration =
+    this.desugaredLibrarySpecification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
     this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
     this.outputDirectory = Paths.get(outputDirectory);
@@ -119,9 +119,9 @@ public class GenerateLintFiles {
     return Paths.get(jar);
   }
 
-  private DesugaredLibraryConfiguration readDesugaredLibraryConfiguration(
+  private LegacyDesugaredLibrarySpecification readDesugaredLibraryConfiguration(
       String desugarConfigurationPath) {
-    return new DesugaredLibraryConfigurationParser(
+    return new LegacyDesugaredLibrarySpecificationParser(
             factory, reporter, false, AndroidApiLevel.B.getLevel())
         .parse(StringResource.fromFile(Paths.get(desugarConfigurationPath)));
   }
@@ -230,7 +230,7 @@ public class GenerateLintFiles {
     for (DexProgramClass clazz : dexApplication.classes()) {
       String className = clazz.toSourceString();
       // All the methods with the rewritten prefix are supported.
-      for (String prefix : desugaredLibraryConfiguration.getRewritePrefix().keySet()) {
+      for (String prefix : desugaredLibrarySpecification.getRewritePrefix().keySet()) {
         if (clazz.accessFlags.isPublic() && className.startsWith(prefix)) {
           DexProgramClass implementationClass =
               implementationApplication.programDefinitionFor(clazz.getType());
@@ -259,11 +259,11 @@ public class GenerateLintFiles {
 
       // All retargeted methods are supported.
       for (DexEncodedMethod method : clazz.methods()) {
-        if (desugaredLibraryConfiguration
+        if (desugaredLibrarySpecification
             .getRetargetCoreLibMember()
             .keySet()
             .contains(method.getReference().name)) {
-          if (desugaredLibraryConfiguration
+          if (desugaredLibrarySpecification
               .getRetargetCoreLibMember()
               .get(method.getReference().name)
               .containsKey(clazz.type)) {
@@ -275,7 +275,7 @@ public class GenerateLintFiles {
       }
 
       // All emulated interfaces static and default methods are supported.
-      if (desugaredLibraryConfiguration.getEmulateLibraryInterface().containsKey(clazz.type)) {
+      if (desugaredLibrarySpecification.getEmulateLibraryInterface().containsKey(clazz.type)) {
         assert clazz.isInterface();
         for (DexEncodedMethod method : clazz.methods()) {
           if (!method.isDefaultMethod() && !method.isStatic()) {
@@ -384,7 +384,7 @@ public class GenerateLintFiles {
   private void run() throws Exception {
     // Run over all the API levels that the desugared library can be compiled with.
     for (int apiLevel = AndroidApiLevel.LATEST.getLevel();
-        apiLevel >= desugaredLibraryConfiguration.getRequiredCompilationApiLevel().getLevel();
+        apiLevel >= desugaredLibrarySpecification.getRequiredCompilationApiLevel().getLevel();
         apiLevel--) {
       System.out.println("Generating lint files for compile API " + apiLevel);
       run(apiLevel);

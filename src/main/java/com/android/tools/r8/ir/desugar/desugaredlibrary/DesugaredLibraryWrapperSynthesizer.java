@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterThrowRuntimeExceptionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
@@ -178,7 +179,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
     DexType conversionHolder =
-        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
+        appView.options().desugaredLibrarySpecification.getCustomConversions().get(type);
     if (conversionHolder != null) {
       return factory.createMethod(
           conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
@@ -187,7 +188,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private boolean canConvert(DexType type) {
-    return appView.options().desugaredLibraryConfiguration.getCustomConversions().containsKey(type)
+    return appView.options().desugaredLibrarySpecification.getCustomConversions().containsKey(type)
         || canGenerateWrapper(type);
   }
 
@@ -215,7 +216,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private boolean canGenerateWrapper(DexType type) {
-    return appView.options().desugaredLibraryConfiguration.getWrapperConversions().contains(type);
+    return appView.options().desugaredLibrarySpecification.getWrapperConversions().contains(type);
   }
 
   private DexClass getValidClassToWrap(DexType type) {
@@ -476,7 +477,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       if (holderClass == null) {
         assert appView
             .options()
-            .desugaredLibraryConfiguration
+            .desugaredLibrarySpecification
             .getEmulateLibraryInterface()
             .containsValue(dexEncodedMethod.getHolderType());
         isInterface = true;
@@ -666,10 +667,10 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   // conversion methods are present.
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
-    DesugaredLibraryConfiguration conf = appView.options().desugaredLibraryConfiguration;
+    LegacyDesugaredLibrarySpecification spec = appView.options().desugaredLibrarySpecification;
     List<DexProgramClass> validClassesToWrap = new ArrayList<>();
-    for (DexType type : conf.getWrapperConversions()) {
-      assert !conf.getCustomConversions().containsKey(type);
+    for (DexType type : spec.getWrapperConversions()) {
+      assert !spec.getCustomConversions().containsKey(type);
       DexClass validClassToWrap = getValidClassToWrap(type);
       // In broken set-ups we can end up having a json files containing wrappers of non desugared
       // classes. Such wrappers are not required since the class won't be rewritten.

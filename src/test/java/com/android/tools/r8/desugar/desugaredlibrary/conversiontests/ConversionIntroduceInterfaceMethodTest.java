@@ -87,7 +87,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .addOptionsModification(
             opt ->
-                opt.desugaredLibraryConfiguration =
+                opt.desugaredLibrarySpecification =
                     configurationWithSupportAllCallbacksFromLibrary(
                         opt, false, parameters, supportAllCallbacksFromLibrary))
         .compile()
@@ -151,7 +151,7 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .addOptionsModification(
             opt ->
-                opt.desugaredLibraryConfiguration =
+                opt.desugaredLibrarySpecification =
                     configurationWithSupportAllCallbacksFromLibrary(
                         opt, false, parameters, supportAllCallbacksFromLibrary))
         .compile()

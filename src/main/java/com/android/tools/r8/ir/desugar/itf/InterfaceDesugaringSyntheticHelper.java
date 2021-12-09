@@ -69,7 +69,7 @@ public class InterfaceDesugaringSyntheticHelper {
   public InterfaceDesugaringSyntheticHelper(AppView<?> appView) {
     this.appView = appView;
     emulatedInterfaces =
-        appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+        appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface();
 
     this.shouldIgnoreFromReportsPredicate = getShouldIgnoreFromReportsPredicate(appView);
   }
@@ -100,7 +100,7 @@ public class InterfaceDesugaringSyntheticHelper {
 
   boolean dontRewrite(DexClassAndMethod method) {
     for (Pair<DexType, DexString> dontRewrite :
-        appView.options().desugaredLibraryConfiguration.getDontRewriteInvocation()) {
+        appView.options().desugaredLibrarySpecification.getDontRewriteInvocation()) {
       if (method.getHolderType() == dontRewrite.getFirst()
           && method.getName() == dontRewrite.getSecond()) {
         return true;
@@ -515,7 +515,7 @@ public class InterfaceDesugaringSyntheticHelper {
       return appView.rewritePrefix.hasRewrittenType(type, appView)
           || descriptor.endsWith(companionClassNameDescriptorSuffix)
           || isRewrittenEmulatedInterface(type)
-          || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(type)
+          || options.desugaredLibrarySpecification.getCustomConversions().containsValue(type)
           || appView.getDontWarnConfiguration().matches(type);
     };
   }

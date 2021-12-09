@@ -12,7 +12,7 @@ import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -42,7 +42,7 @@ public final class L8Command extends BaseCompilerCommand {
 
   private final D8Command d8Command;
   private final R8Command r8Command;
-  private final DesugaredLibraryConfiguration libraryConfiguration;
+  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final DexItemFactory factory;
 
   boolean isShrinking() {
@@ -95,7 +95,7 @@ public final class L8Command extends BaseCompilerCommand {
       Reporter diagnosticsHandler,
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
-      DesugaredLibraryConfiguration libraryConfiguration,
+      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       int threadCount,
@@ -121,7 +121,7 @@ public final class L8Command extends BaseCompilerCommand {
         null);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
-    this.libraryConfiguration = libraryConfiguration;
+    this.desugaredLibrarySpecification = desugaredLibrarySpecification;
     this.factory = factory;
   }
 
@@ -129,7 +129,7 @@ public final class L8Command extends BaseCompilerCommand {
     super(printHelp, printVersion);
     r8Command = null;
     d8Command = null;
-    libraryConfiguration = null;
+    desugaredLibrarySpecification = null;
     factory = null;
   }
 
@@ -194,10 +194,10 @@ public final class L8Command extends BaseCompilerCommand {
     assert internal.enableInheritanceClassInDexDistributor;
     internal.enableInheritanceClassInDexDistributor = false;
 
-    assert libraryConfiguration != null;
-    internal.desugaredLibraryConfiguration = libraryConfiguration;
+    assert desugaredLibrarySpecification != null;
+    internal.desugaredLibrarySpecification = desugaredLibrarySpecification;
     internal.synthesizedClassPrefix =
-        libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix();
+        desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix();
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;
@@ -332,7 +332,7 @@ public final class L8Command extends BaseCompilerCommand {
       }
 
       DexItemFactory factory = new DexItemFactory();
-      DesugaredLibraryConfiguration libraryConfiguration =
+      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
           getDesugaredLibraryConfiguration(factory, true);
 
       R8Command r8Command = null;
@@ -346,7 +346,7 @@ public final class L8Command extends BaseCompilerCommand {
             R8Command.builder(getReporter())
                 .addProgramResourceProvider((ProgramResourceProvider) l8CfConsumer)
                 .setSynthesizedClassesPrefix(
-                    libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
+                    desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())
                 .setIncludeClassesChecksum(getIncludeClassesChecksum())
@@ -363,7 +363,7 @@ public final class L8Command extends BaseCompilerCommand {
           r8Builder.setProguardMapConsumer(proguardMapConsumer);
         }
         r8Builder.addProguardConfiguration(
-            libraryConfiguration.getExtraKeepRules(), Origin.unknown());
+            desugaredLibrarySpecification.getExtraKeepRules(), Origin.unknown());
         // TODO(b/180903899): Remove rule when -dontwarn sun.misc.Unsafe is part of config.
         r8Builder.addProguardConfiguration(
             ImmutableList.of("-dontwarn sun.misc.Unsafe"), Origin.unknown());
@@ -377,7 +377,7 @@ public final class L8Command extends BaseCompilerCommand {
             D8Command.builder(getReporter())
                 .addProgramResourceProvider((ProgramResourceProvider) l8CfConsumer)
                 .setSynthesizedClassesPrefix(
-                    libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
+                    desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())
                 .setIncludeClassesChecksum(getIncludeClassesChecksum())
@@ -406,7 +406,7 @@ public final class L8Command extends BaseCompilerCommand {
           getReporter(),
           getIncludeClassesChecksum(),
           getDexClassChecksumFilter(),
-          libraryConfiguration,
+          desugaredLibrarySpecification,
           getAssertionsConfiguration(),
           getOutputInspections(),
           getThreadCount(),
@@ -444,6 +444,6 @@ public final class L8Command extends BaseCompilerCommand {
     if (r8Command != null) {
       builder.setProguardConfiguration(r8Command.getInternalOptions().getProguardConfiguration());
     }
-    return builder.setDesugaredLibraryConfiguration(libraryConfiguration).build();
+    return builder.setDesugaredLibraryConfiguration(desugaredLibrarySpecification).build();
   }
 }

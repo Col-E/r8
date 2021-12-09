@@ -123,7 +123,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       }
       if (appView
           .options()
-          .desugaredLibraryConfiguration
+          .desugaredLibrarySpecification
           .getDontRetargetLibMember()
           .contains(clazz.getType())) {
         continue;
@@ -144,7 +144,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     // even if this results in invalid code, these classes are never desugared.
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod =
-        appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
+        appView.options().desugaredLibrarySpecification.retargetMethod(target, appView);
     assert forwardMethod != null && forwardMethod != target.getReference();
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(

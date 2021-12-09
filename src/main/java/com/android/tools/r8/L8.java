@@ -162,7 +162,7 @@ public class L8 {
         new ApplicationReader(inputApp, options, timing).read(executor);
 
     PrefixRewritingMapper rewritePrefix =
-        options.desugaredLibraryConfiguration.getPrefixRewritingMapper();
+        options.desugaredLibrarySpecification.getPrefixRewritingMapper();
 
     DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
     return AppView.createForL8(AppInfo.createInitialAppInfo(app), rewritePrefix);

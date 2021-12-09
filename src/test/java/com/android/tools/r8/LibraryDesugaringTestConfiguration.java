@@ -66,7 +66,7 @@ public class LibraryDesugaringTestConfiguration {
   private final AndroidApiLevel minApiLevel;
   private final Path desugarJdkLibs;
   private final Path customConversions;
-  private final List<StringResource> desugaredLibraryConfigurationResources;
+  private final List<StringResource> desugaredLibrarySpecificationResources;
   private final boolean withKeepRuleConsumer;
   private final KeepRuleConsumer keepRuleConsumer;
   private final CompilationMode mode;
@@ -81,7 +81,7 @@ public class LibraryDesugaringTestConfiguration {
     this.customConversions = null;
     this.keepRuleConsumer = null;
     this.withKeepRuleConsumer = false;
-    this.desugaredLibraryConfigurationResources = null;
+    this.desugaredLibrarySpecificationResources = null;
     this.mode = null;
     this.addRunClassPath = false;
   }
@@ -90,7 +90,7 @@ public class LibraryDesugaringTestConfiguration {
       AndroidApiLevel minApiLevel,
       Path desugarJdkLibs,
       Path customConversions,
-      List<StringResource> desugaredLibraryConfigurationResources,
+      List<StringResource> desugaredLibrarySpecificationResources,
       boolean withKeepRuleConsumer,
       KeepRuleConsumer keepRuleConsumer,
       CompilationMode mode,
@@ -98,7 +98,7 @@ public class LibraryDesugaringTestConfiguration {
     this.minApiLevel = minApiLevel;
     this.desugarJdkLibs = desugarJdkLibs;
     this.customConversions = customConversions;
-    this.desugaredLibraryConfigurationResources = desugaredLibraryConfigurationResources;
+    this.desugaredLibrarySpecificationResources = desugaredLibrarySpecificationResources;
     this.withKeepRuleConsumer = withKeepRuleConsumer;
     this.keepRuleConsumer = keepRuleConsumer;
     this.mode = mode;
@@ -110,7 +110,7 @@ public class LibraryDesugaringTestConfiguration {
     AndroidApiLevel minApiLevel;
     private Path desugarJdkLibs;
     private Path customConversions;
-    private final List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
+    private final List<StringResource> desugaredLibrarySpecificationResources = new ArrayList<>();
     boolean withKeepRuleConsumer = false;
     KeepRuleConsumer keepRuleConsumer;
     private CompilationMode mode = CompilationMode.DEBUG;
@@ -126,8 +126,8 @@ public class LibraryDesugaringTestConfiguration {
     public Builder setConfiguration(Configuration configuration) {
       desugarJdkLibs = configuration.desugarJdkLibs;
       customConversions = configuration.customConversions;
-      desugaredLibraryConfigurationResources.clear();
-      desugaredLibraryConfigurationResources.add(
+      desugaredLibrarySpecificationResources.clear();
+      desugaredLibrarySpecificationResources.add(
           StringResource.fromFile(configuration.configuration));
       return this;
     }
@@ -147,8 +147,8 @@ public class LibraryDesugaringTestConfiguration {
       return this;
     }
 
-    public Builder addDesugaredLibraryConfiguration(StringResource desugaredLibraryConfiguration) {
-      desugaredLibraryConfigurationResources.add(desugaredLibraryConfiguration);
+    public Builder addDesugaredLibraryConfiguration(StringResource desugaredLibrarySpecification) {
+      desugaredLibrarySpecificationResources.add(desugaredLibrarySpecification);
       return this;
     }
 
@@ -163,8 +163,8 @@ public class LibraryDesugaringTestConfiguration {
     }
 
     public LibraryDesugaringTestConfiguration build() {
-      if (desugaredLibraryConfigurationResources.isEmpty()) {
-        desugaredLibraryConfigurationResources.add(
+      if (desugaredLibrarySpecificationResources.isEmpty()) {
+        desugaredLibrarySpecificationResources.add(
             StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
       }
       if (withKeepRuleConsumer) {
@@ -174,7 +174,7 @@ public class LibraryDesugaringTestConfiguration {
           minApiLevel,
           desugarJdkLibs != null ? desugarJdkLibs : DEFAULT.desugarJdkLibs,
           customConversions != null ? customConversions : DEFAULT.customConversions,
-          desugaredLibraryConfigurationResources,
+          desugaredLibrarySpecificationResources,
           withKeepRuleConsumer,
           keepRuleConsumer,
           mode,
@@ -205,7 +205,7 @@ public class LibraryDesugaringTestConfiguration {
     if (keepRuleConsumer != null) {
       builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
-    desugaredLibraryConfigurationResources.forEach(builder::addDesugaredLibraryConfiguration);
+    desugaredLibrarySpecificationResources.forEach(builder::addDesugaredLibraryConfiguration);
   }
 
   public void configure(R8Command.Builder builder) {
@@ -215,7 +215,7 @@ public class LibraryDesugaringTestConfiguration {
     if (keepRuleConsumer != null) {
       builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
-    desugaredLibraryConfigurationResources.forEach(builder::addDesugaredLibraryConfiguration);
+    desugaredLibrarySpecificationResources.forEach(builder::addDesugaredLibraryConfiguration);
   }
 
   public Path buildDesugaredLibrary(TestState state) {
@@ -230,12 +230,12 @@ public class LibraryDesugaringTestConfiguration {
     }
     String finalGeneratedKeepRules = generatedKeepRules;
     try {
-      assert desugaredLibraryConfigurationResources.size() == 1 : "There can be only one";
+      assert desugaredLibrarySpecificationResources.size() == 1 : "There can be only one";
       return L8TestBuilder.create(minApiLevel, Backend.DEX, state)
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .setDesugarJDKLibs(desugarJdkLibs)
           .setDesugarJDKLibsConfiguration(customConversions)
-          .setDesugaredLibraryConfiguration(desugaredLibraryConfigurationResources.get(0))
+          .setDesugaredLibraryConfiguration(desugaredLibrarySpecificationResources.get(0))
           .applyIf(
               mode == CompilationMode.RELEASE,
               builder -> {

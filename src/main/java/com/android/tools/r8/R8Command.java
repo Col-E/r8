@@ -15,7 +15,7 @@ import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -475,7 +475,7 @@ public final class R8Command extends BaseCompilerCommand {
       List<ProguardConfigurationRule> mainDexKeepRules =
           ProguardConfigurationParser.parse(mainDexRules, factory, reporter);
 
-      DesugaredLibraryConfiguration libraryConfiguration =
+      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
           getDesugaredLibraryConfiguration(factory, false);
 
       ProguardConfigurationParser parser =
@@ -585,7 +585,7 @@ public final class R8Command extends BaseCompilerCommand {
               getIncludeClassesChecksum(),
               getDexClassChecksumFilter(),
               desugaredLibraryKeepRuleConsumer,
-              libraryConfiguration,
+              desugaredLibrarySpecification,
               featureSplitConfiguration,
               getAssertionsConfiguration(),
               getOutputInspections(),
@@ -669,7 +669,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final GraphConsumer mainDexKeptGraphConsumer;
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
-  private final DesugaredLibraryConfiguration libraryConfiguration;
+  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
   private final boolean skipDump;
@@ -747,7 +747,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       StringConsumer desugaredLibraryKeepRuleConsumer,
-      DesugaredLibraryConfiguration libraryConfiguration,
+      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
       FeatureSplitConfiguration featureSplitConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
@@ -791,7 +791,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
-    this.libraryConfiguration = libraryConfiguration;
+    this.desugaredLibrarySpecification = desugaredLibrarySpecification;
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.skipDump = skipDump;
@@ -814,7 +814,7 @@ public final class R8Command extends BaseCompilerCommand {
     mainDexKeptGraphConsumer = null;
     syntheticProguardRulesConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
-    libraryConfiguration = null;
+    desugaredLibrarySpecification = null;
     featureSplitConfiguration = null;
     synthesizedClassPrefix = null;
     skipDump = false;
@@ -942,7 +942,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
-    internal.desugaredLibraryConfiguration = libraryConfiguration;
+    internal.desugaredLibrarySpecification = desugaredLibrarySpecification;
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
@@ -1000,7 +1000,7 @@ public final class R8Command extends BaseCompilerCommand {
         .setFeatureSplitConfiguration(featureSplitConfiguration)
         .setProguardConfiguration(proguardConfiguration)
         .setMainDexKeepRules(mainDexKeepRules)
-        .setDesugaredLibraryConfiguration(libraryConfiguration)
+        .setDesugaredLibraryConfiguration(desugaredLibrarySpecification)
         .build();
   }
 }

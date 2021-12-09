@@ -14,7 +14,7 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.DesugaredLibraryMismatchDiagnostic;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
@@ -193,7 +193,7 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
   public void testMergeDifferentLibraryDesugarVersions() throws Exception {
     // DEX code with library desugaring using a desugared library configuration with a
     // different identifier.
-    Box<DesugaredLibraryConfiguration> box = new Box<>();
+    Box<LegacyDesugaredLibrarySpecification> box = new Box<>();
     Path libraryDex =
         testForD8(Backend.DEX)
             .addProgramClasses(Library.class)

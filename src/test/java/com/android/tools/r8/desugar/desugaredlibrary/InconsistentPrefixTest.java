@@ -10,7 +10,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -48,8 +48,8 @@ public class InconsistentPrefixTest extends TestBase {
         .addProgramFiles(inputJar)
         .addOptionsModification(
             options ->
-                options.desugaredLibraryConfiguration =
-                    DesugaredLibraryConfiguration.withOnlyRewritePrefixForTesting(x, options))
+                options.desugaredLibrarySpecification =
+                    LegacyDesugaredLibrarySpecification.withOnlyRewritePrefixForTesting(x, options))
         .compileWithExpectedDiagnostics(
             diagnostics -> {
               diagnostics.assertErrorMessageThatMatches(

@@ -132,7 +132,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     DexType rewrittenContext =
         appView
             .options()
-            .desugaredLibraryConfiguration
+            .desugaredLibrarySpecification
             .getEmulateLibraryInterface()
             .get(synthesizingContextType);
     if (rewrittenContext == null) {

@@ -26,7 +26,7 @@ public final class EmulatedInterfaceApplicationRewriter {
   public EmulatedInterfaceApplicationRewriter(AppView<?> appView) {
     this.appView = appView;
     this.emulatedInterfaces =
-        appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+        appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface();
   }
 
   public void rewriteApplication(DexApplication.Builder<?> builder) {

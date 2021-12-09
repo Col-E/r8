@@ -151,7 +151,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
           DexMethod desugarMethod =
               appView
                   .options()
-                  .desugaredLibraryConfiguration
+                  .desugaredLibrarySpecification
                   .retargetMethod(emulatedDispatchMethod, appView);
           assert desugarMethod
               != null; // This method is reached only for retarget core lib members.
@@ -178,7 +178,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   private void rewriteType(DexType type) {
     String newName =
-        appView.options().desugaredLibraryConfiguration.convertJavaNameToDesugaredLibrary(type);
+        appView.options().desugaredLibrarySpecification.convertJavaNameToDesugaredLibrary(type);
     DexType newType =
         appView.dexItemFactory().createType(DescriptorUtils.javaTypeToDescriptor(newName));
     appView.rewritePrefix.rewriteType(type, newType);

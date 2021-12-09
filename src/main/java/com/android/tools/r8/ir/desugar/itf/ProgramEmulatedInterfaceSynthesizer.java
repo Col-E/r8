@@ -41,7 +41,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
 
   public static ProgramEmulatedInterfaceSynthesizer create(AppView<?> appView) {
     if (!appView.options().isDesugaredLibraryCompilation()
-        || appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()) {
+        || appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface().isEmpty()) {
       return null;
     }
     return new ProgramEmulatedInterfaceSynthesizer(appView);
@@ -166,7 +166,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
     // In practice, there is usually a single case (except for tests),
     // so we do not bother to make the following loop more clever.
     Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
+        appView.options().desugaredLibrarySpecification.getRetargetCoreLibMember();
     for (DexString methodName : retargetCoreLibMember.keySet()) {
       if (method.getName() == methodName) {
         for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {

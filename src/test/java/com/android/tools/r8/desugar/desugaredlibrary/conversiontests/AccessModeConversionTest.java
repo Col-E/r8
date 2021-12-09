@@ -6,7 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -57,8 +57,8 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
   }
 
   private void configureDesugaredLibrary(InternalOptions options, boolean l8Compilation) {
-    DesugaredLibraryConfiguration.Builder builder =
-        DesugaredLibraryConfiguration.builder(
+    LegacyDesugaredLibrarySpecification.Builder builder =
+        LegacyDesugaredLibrarySpecification.builder(
                 options.itemFactory, options.reporter, Origin.unknown())
             .setDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:9.99.99")
             .putRewritePrefix("java.nio.file.AccessMode", "j$.nio.file.AccessMode")
@@ -66,7 +66,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
     if (l8Compilation) {
       builder.setLibraryCompilation();
     }
-    options.desugaredLibraryConfiguration = builder.build();
+    options.desugaredLibrarySpecification = builder.build();
   }
 
   @Test

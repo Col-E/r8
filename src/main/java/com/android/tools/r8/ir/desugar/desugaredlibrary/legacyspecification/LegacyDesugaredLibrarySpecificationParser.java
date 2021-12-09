@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar.desugaredlibrary;
+package com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class DesugaredLibraryConfigurationParser {
+public class LegacyDesugaredLibrarySpecificationParser {
 
   public static final int MAX_SUPPORTED_VERSION = 4;
   public static final SemanticVersion MIN_SUPPORTED_VERSION = new SemanticVersion(1, 0, 9);
@@ -55,10 +55,10 @@ public class DesugaredLibraryConfigurationParser {
   private final boolean libraryCompilation;
   private final int minAPILevel;
 
-  private DesugaredLibraryConfiguration.Builder configurationBuilder = null;
+  private LegacyDesugaredLibrarySpecification.Builder specificationBuilder = null;
   private Origin origin;
 
-  public DesugaredLibraryConfigurationParser(
+  public LegacyDesugaredLibrarySpecificationParser(
       DexItemFactory dexItemFactory,
       Reporter reporter,
       boolean libraryCompilation,
@@ -79,20 +79,21 @@ public class DesugaredLibraryConfigurationParser {
     return json.get(key);
   }
 
-  public DesugaredLibraryConfiguration parse(StringResource stringResource) {
+  public LegacyDesugaredLibrarySpecification parse(StringResource stringResource) {
     return parse(stringResource, builder -> {});
   }
 
-  public DesugaredLibraryConfiguration parse(
+  public LegacyDesugaredLibrarySpecification parse(
       StringResource stringResource,
-      Consumer<DesugaredLibraryConfiguration.Builder> configurationAmender) {
+      Consumer<LegacyDesugaredLibrarySpecification.Builder> configurationAmender) {
     origin = stringResource.getOrigin();
     assert origin != null;
-    configurationBuilder = DesugaredLibraryConfiguration.builder(dexItemFactory, reporter, origin);
+    specificationBuilder =
+        LegacyDesugaredLibrarySpecification.builder(dexItemFactory, reporter, origin);
     if (libraryCompilation) {
-      configurationBuilder.setLibraryCompilation();
+      specificationBuilder.setLibraryCompilation();
     } else {
-      configurationBuilder.setProgramCompilation();
+      specificationBuilder.setProgramCompilation();
     }
     String jsonConfigString;
     JsonObject jsonConfig;
@@ -104,7 +105,7 @@ public class DesugaredLibraryConfigurationParser {
       throw reporter.fatalError(new ExceptionDiagnostic(e, origin));
     }
 
-    configurationBuilder.setJsonSource(jsonConfigString);
+    specificationBuilder.setJsonSource(jsonConfigString);
 
     JsonElement formatVersionElement = required(jsonConfig, CONFIGURATION_FORMAT_VERSION_KEY);
     int formatVersion = formatVersionElement.getAsInt();
@@ -132,13 +133,13 @@ public class DesugaredLibraryConfigurationParser {
     String groupID = required(jsonConfig, GROUP_ID_KEY).getAsString();
     String artifactID = required(jsonConfig, ARTIFACT_ID_KEY).getAsString();
     String identifier = String.join(":", groupID, artifactID, version);
-    configurationBuilder.setDesugaredLibraryIdentifier(identifier);
-    configurationBuilder.setSynthesizedLibraryClassesPackagePrefix(
+    specificationBuilder.setDesugaredLibraryIdentifier(identifier);
+    specificationBuilder.setSynthesizedLibraryClassesPackagePrefix(
         required(jsonConfig, SYNTHESIZED_LIBRARY_CLASSES_PACKAGE_PREFIX_KEY).getAsString());
 
     int required_compilation_api_level =
         required(jsonConfig, REQUIRED_COMPILATION_API_LEVEL_KEY).getAsInt();
-    configurationBuilder.setRequiredCompilationAPILevel(
+    specificationBuilder.setRequiredCompilationAPILevel(
         AndroidApiLevel.getAndroidApiLevel(required_compilation_api_level));
     JsonElement commonFlags = required(jsonConfig, COMMON_FLAGS_KEY);
     JsonElement libraryFlags = required(jsonConfig, LIBRARY_FLAGS_KEY);
@@ -152,17 +153,17 @@ public class DesugaredLibraryConfigurationParser {
       for (JsonElement keepRule : jsonKeepRules) {
         extraKeepRules.add(keepRule.getAsString());
       }
-      configurationBuilder.setExtraKeepRules(extraKeepRules);
+      specificationBuilder.setExtraKeepRules(extraKeepRules);
     }
 
     if (jsonConfig.has(SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY)) {
       boolean supportAllCallbacksFromLibrary =
           jsonConfig.get(SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY).getAsBoolean();
-      configurationBuilder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary);
+      specificationBuilder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary);
     }
-    configurationAmender.accept(configurationBuilder);
-    DesugaredLibraryConfiguration config = configurationBuilder.build();
-    configurationBuilder = null;
+    configurationAmender.accept(specificationBuilder);
+    LegacyDesugaredLibrarySpecification config = specificationBuilder.build();
+    specificationBuilder = null;
     origin = null;
     return config;
   }
@@ -181,52 +182,52 @@ public class DesugaredLibraryConfigurationParser {
     if (jsonFlagSet.has(REWRITE_PREFIX_KEY)) {
       for (Map.Entry<String, JsonElement> rewritePrefix :
           jsonFlagSet.get(REWRITE_PREFIX_KEY).getAsJsonObject().entrySet()) {
-        configurationBuilder.putRewritePrefix(
+        specificationBuilder.putRewritePrefix(
             rewritePrefix.getKey(), rewritePrefix.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(RETARGET_LIB_MEMBER_KEY)) {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_LIB_MEMBER_KEY).getAsJsonObject().entrySet()) {
-        configurationBuilder.putRetargetCoreLibMember(
+        specificationBuilder.putRetargetCoreLibMember(
             retarget.getKey(), retarget.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(BACKPORT_KEY)) {
       for (Map.Entry<String, JsonElement> backport :
           jsonFlagSet.get(BACKPORT_KEY).getAsJsonObject().entrySet()) {
-        configurationBuilder.putBackportCoreLibraryMember(
+        specificationBuilder.putBackportCoreLibraryMember(
             backport.getKey(), backport.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(EMULATE_INTERFACE_KEY)) {
       for (Map.Entry<String, JsonElement> itf :
           jsonFlagSet.get(EMULATE_INTERFACE_KEY).getAsJsonObject().entrySet()) {
-        configurationBuilder.putEmulateLibraryInterface(itf.getKey(), itf.getValue().getAsString());
+        specificationBuilder.putEmulateLibraryInterface(itf.getKey(), itf.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(CUSTOM_CONVERSION_KEY)) {
       for (Map.Entry<String, JsonElement> conversion :
           jsonFlagSet.get(CUSTOM_CONVERSION_KEY).getAsJsonObject().entrySet()) {
-        configurationBuilder.putCustomConversion(
+        specificationBuilder.putCustomConversion(
             conversion.getKey(), conversion.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(WRAPPER_CONVERSION_KEY)) {
       for (JsonElement wrapper : jsonFlagSet.get(WRAPPER_CONVERSION_KEY).getAsJsonArray()) {
-        configurationBuilder.addWrapperConversion(wrapper.getAsString());
+        specificationBuilder.addWrapperConversion(wrapper.getAsString());
       }
     }
     if (jsonFlagSet.has(DONT_REWRITE_KEY)) {
       JsonArray dontRewrite = jsonFlagSet.get(DONT_REWRITE_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRewrite) {
-        configurationBuilder.addDontRewriteInvocation(rewrite.getAsString());
+        specificationBuilder.addDontRewriteInvocation(rewrite.getAsString());
       }
     }
     if (jsonFlagSet.has(DONT_RETARGET_LIB_MEMBER_KEY)) {
       JsonArray dontRetarget = jsonFlagSet.get(DONT_RETARGET_LIB_MEMBER_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRetarget) {
-        configurationBuilder.addDontRetargetLibMember(rewrite.getAsString());
+        specificationBuilder.addDontRetargetLibMember(rewrite.getAsString());
       }
     }
   }

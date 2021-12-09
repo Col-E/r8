@@ -97,7 +97,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
     List<DexMethod> methods = new ArrayList<>();
     PrefixRewritingMapper rewritePrefix =
-        options.desugaredLibraryConfiguration.getPrefixRewritingMapper();
+        options.desugaredLibrarySpecification.getPrefixRewritingMapper();
     AppInfo appInfo = null;
     if (androidApp != null) {
       DexApplication app =
@@ -135,13 +135,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         && appView.options().isDesugaredLibraryCompilation()
         && appView
             .options()
-            .desugaredLibraryConfiguration
+            .desugaredLibrarySpecification
             .getBackportCoreLibraryMember()
             .containsKey(method.holder)) {
       DexType newHolder =
           appView
               .options()
-              .desugaredLibraryConfiguration
+              .desugaredLibrarySpecification
               .getBackportCoreLibraryMember()
               .get(method.holder);
       DexMethod backportedMethod =
@@ -1366,7 +1366,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private void addProvider(MethodProvider generator) {
-      if (appView.options().desugaredLibraryConfiguration.isSupported(generator.method, appView)) {
+      if (appView.options().desugaredLibrarySpecification.isSupported(generator.method, appView)) {
         // TODO(b/174453232): Remove this after the configuration file format has bee updated
         // with the "rewrite_method" section.
         if (generator.method.getHolderType() == appView.dexItemFactory().objectsType) {
