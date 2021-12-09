@@ -8,7 +8,6 @@ lucicfg.enable_experiment("crbug.com/1085650")
 # Launch 0% of Builds in "realms-aware mode"
 luci.builder.defaults.experiments.set({
     "luci.use_realms": 100,
-    "luci.bb_agent": 100,
     "luci.recipes.use_python3": 100
 })
 
