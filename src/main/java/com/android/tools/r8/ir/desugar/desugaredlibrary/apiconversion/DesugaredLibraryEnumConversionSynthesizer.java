@@ -172,7 +172,7 @@ public class DesugaredLibraryEnumConversionSynthesizer {
             programContext,
             appView,
             builder -> buildEnumMethodsWithCode(builder, enumFields, type, vivifiedType),
-            eventConsumer::acceptWrapperProgramClass);
+            eventConsumer::acceptEnumConversionProgramClass);
   }
 
   private DexClass ensureEnumConversionClass(
@@ -192,6 +192,6 @@ public class DesugaredLibraryEnumConversionSynthesizer {
             context.asClasspathOrLibraryClass(),
             appView,
             builder -> buildEnumMethodsWithoutCode(builder, type, vivifiedType),
-            eventConsumer::acceptWrapperClasspathClass);
+            eventConsumer::acceptEnumConversionClasspathClass);
   }
 }
