@@ -4,9 +4,9 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterL8Synthesizer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.RetargetingInfo;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterL8Synthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.ProgramEmulatedInterfaceSynthesizer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.utils.ThreadUtils;

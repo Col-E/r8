@@ -48,7 +48,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryRetargeterLibraryTypeSynthesizer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterLibraryTypeSynthesizer;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.desugar.records.RecordFieldValuesRewriter;

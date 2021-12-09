@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar.desugaredlibrary;
+package com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion;
 
 import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
@@ -34,7 +34,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConversionCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -209,6 +209,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     DexProto newProto = appView.dexItemFactory().createProto(newReturnType, newParameters);
     return appView.dexItemFactory().createMethod(holder, newProto, originalMethod.name);
   }
+
   public void generateTrackingWarnings() {
     generateTrackDesugaredAPIWarnings(trackedAPIs, "", appView);
   }

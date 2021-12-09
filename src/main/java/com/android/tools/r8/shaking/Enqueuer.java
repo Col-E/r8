@@ -106,7 +106,7 @@ import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;

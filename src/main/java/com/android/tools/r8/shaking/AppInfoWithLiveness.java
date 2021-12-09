@@ -50,7 +50,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
