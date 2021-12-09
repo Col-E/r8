@@ -136,8 +136,9 @@ luci.recipe(
       name="rex",
       cipd_package = "infra_internal/recipe_bundles/" +
           "chrome-internal.googlesource.com/chrome/" +
-	  "tools/build_limited/scripts/slave",
-      cipd_version = "refs/heads/master"
+          "tools/build_limited/scripts/slave",
+      cipd_version = "refs/heads/master",
+      use_bbagent = True
 )
 
 common_test_options = [
