@@ -1038,6 +1038,8 @@ def print_golem_config(options):
   print('')
   print('createOpenSourceAppBenchmarks() {')
   print_indented('final cpus = ["Lenovo M90"];', 2)
+  print_indented('final targetsCompat = ["R8"];', 2)
+  print_indented('final targetsFull = ["R8-full-minify-optimize-shrink"];', 2)
   # Avoid calculating this for every app
   jdk_gz = jdk.GetJdkHome() + '.tar.gz'
   download_sha(jdk_gz + '.sha1', False, quiet=True)
@@ -1053,26 +1055,44 @@ def print_golem_config(options):
       print_indented(
           'new StandardBenchmark(name, [Metric.RunTimeRaw, Metric.CodeSize]);',
           indentation + 4)
-      print_indented(
-          'final options = benchmark.addTargets(noImplementation, ["R8"]);',
-          indentation)
-      print_indented('options.cpus = cpus;', indentation)
-      print_indented('options.isScript = true;', indentation)
-      print_indented('options.fromRevision = 9700;', indentation);
-      print_indented('options.mainFile = "tools/run_on_app_dump.py "',
-                     indentation)
-      print_indented('"--golem --quiet --shrinker r8 --app %s";' % app.name,
-                     indentation + 4)
-
       app_gz = os.path.join(utils.OPENSOURCE_DUMPS_DIR, app.folder + '.tar.gz')
       name = 'appResource'
       add_golem_resource(indentation, app_gz, name)
-      print_indented('options.resources.add(appResource);', indentation)
-      print_indented('options.resources.add(openjdk);', indentation)
+      print_golem_config_target('Compat', 'r8', app, indentation)
+      print_golem_config_target(
+        'Full',
+        'r8-full',
+        app,
+        indentation,
+        minify='force-enable',
+        optimize='force-enable',
+        shrink='force-enable')
       print_indented('dumpsSuite.addBenchmark(name);', indentation)
       indentation = 2
       print_indented('}', indentation)
   print('}')
+
+def print_golem_config_target(
+    target, shrinker, app, indentation,
+    minify='default', optimize='default', shrink='default'):
+  options="options" + target
+  print_indented(
+      'final %s = benchmark.addTargets(noImplementation, targets%s);'
+        % (options, target),
+      indentation)
+  print_indented('%s.cpus = cpus;' % options, indentation)
+  print_indented('%s.isScript = true;' % options, indentation)
+  print_indented('%s.fromRevision = 9700;' % options, indentation);
+  print_indented('%s.mainFile = "tools/run_on_app_dump.py "' % options,
+                 indentation)
+  print_indented('"--golem --quiet --shrinker %s --app %s "'
+                   % (shrinker, app.name),
+                 indentation + 4)
+  print_indented('"--minify %s --optimize %s --shrink %s";'
+                   % (minify, optimize, shrink),
+                 indentation + 4)
+  print_indented('%s.resources.add(appResource);' % options, indentation)
+  print_indented('%s.resources.add(openjdk);' % options, indentation)
 
 def add_golem_resource(indentation, gz, name, sha256=None):
   sha = gz + '.sha1'
