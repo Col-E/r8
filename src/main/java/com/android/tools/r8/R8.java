@@ -7,6 +7,7 @@ import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.AssertionUtils.forTesting;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
+import com.android.tools.r8.androidapi.ApiReferenceStubber;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryKeepRuleGenerator;
@@ -814,6 +815,8 @@ public class R8 {
 
       namingLens = PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens);
       namingLens = RecordRewritingNamingLens.createRecordRewritingNamingLens(appView, namingLens);
+
+      new ApiReferenceStubber(appView).run(executorService);
 
       timing.begin("MinifyKotlinMetadata");
       new KotlinMetadataRewriter(appView, namingLens).runForR8(executorService);

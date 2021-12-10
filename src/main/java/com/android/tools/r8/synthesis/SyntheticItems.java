@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -395,6 +396,25 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // This context is not nested in an existing synthetic context so create a new "leaf" context.
     FeatureSplit featureSplit = featureSplits.getFeatureSplit(context, this);
     return SynthesizingContext.fromNonSyntheticInputContext(context, featureSplit);
+  }
+
+  public DexProgramClass addSyntheticClassWithLibraryContext(
+      AppView<?> appView,
+      DexLibraryClass context,
+      SyntheticKind syntheticKind,
+      DexType type,
+      Consumer<SyntheticProgramClassBuilder> programClassBuilderConsumer) {
+    SynthesizingContext synthesizingContext =
+        SynthesizingContext.fromNonSyntheticInputContext(context);
+    SyntheticProgramClassBuilder syntheticProgramClassBuilder =
+        new SyntheticProgramClassBuilder(
+                type, syntheticKind, synthesizingContext, appView.dexItemFactory())
+            .setUseSortedMethodBacking(true);
+    programClassBuilderConsumer.accept(syntheticProgramClassBuilder);
+    DexProgramClass newSyntheticClass = syntheticProgramClassBuilder.build();
+    addPendingDefinition(
+        new SyntheticProgramClassDefinition(syntheticKind, synthesizingContext, newSyntheticClass));
+    return newSyntheticClass;
   }
 
   // Addition and creation of synthetic items.

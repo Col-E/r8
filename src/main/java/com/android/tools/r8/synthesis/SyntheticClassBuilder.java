@@ -38,6 +38,7 @@ public abstract class SyntheticClassBuilder<
   private final Origin origin;
 
   private boolean isAbstract = false;
+  private boolean isFinal = true;
   private boolean isInterface = false;
   private Kind originKind;
   private DexType superType;
@@ -89,6 +90,12 @@ public abstract class SyntheticClassBuilder<
 
   public B setAbstract() {
     isAbstract = true;
+    isFinal = false;
+    return self();
+  }
+
+  public B unsetFinal() {
+    isFinal = false;
     return self();
   }
 
@@ -155,12 +162,13 @@ public abstract class SyntheticClassBuilder<
   }
 
   public C build() {
-    int flag = isAbstract ? Constants.ACC_ABSTRACT : Constants.ACC_FINAL;
+    int abstractFlag = isAbstract ? Constants.ACC_ABSTRACT : 0;
+    int finalFlag = isFinal ? Constants.ACC_FINAL : 0;
     int itfFlag = isInterface ? Constants.ACC_INTERFACE : 0;
     assert !isInterface || isAbstract;
     ClassAccessFlags accessFlags =
         ClassAccessFlags.fromSharedAccessFlags(
-            flag | itfFlag | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
+            abstractFlag | finalFlag | itfFlag | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
     NestHostClassAttribute nestHost = null;
     List<NestMemberClassAttribute> nestMembers = Collections.emptyList();
     EnclosingMethodAttribute enclosingMembers = null;

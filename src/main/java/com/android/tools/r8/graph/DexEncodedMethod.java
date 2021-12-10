@@ -1332,7 +1332,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new Builder(true);
   }
 
-  private static Builder syntheticBuilder(DexEncodedMethod from) {
+  public static Builder syntheticBuilder(DexEncodedMethod from) {
     return new Builder(true, from);
   }
 

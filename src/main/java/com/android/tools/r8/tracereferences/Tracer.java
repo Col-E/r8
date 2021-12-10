@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.tracereferences;
 
-
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.diagnostic.DefinitionContext;
@@ -84,7 +83,9 @@ public class Tracer {
     UseCollector useCollector = new UseCollector(appView, consumer, diagnostics, targetPredicate);
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       DefinitionContext classContext = DefinitionContextUtils.create(clazz);
-      useCollector.registerSuperType(clazz, clazz.superType, classContext);
+      if (clazz.superType != null) {
+        useCollector.registerSuperType(clazz, clazz.superType, classContext);
+      }
       for (DexType implementsType : clazz.getInterfaces()) {
         useCollector.registerSuperType(clazz, implementsType, classContext);
       }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -143,8 +144,34 @@ public abstract class ApiModelingTestHelper {
     };
   }
 
+  static ApiModelingClassVerificationHelper verifyThat(TestParameters parameters, Class<?> clazz) {
+    return new ApiModelingClassVerificationHelper(parameters, clazz);
+  }
+
   static ApiModelingMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
     return new ApiModelingMethodVerificationHelper(parameters, Reference.methodFromMethod(method));
+  }
+
+  public static class ApiModelingClassVerificationHelper {
+
+    private final Class<?> classOfInterest;
+    private final TestParameters parameters;
+
+    public ApiModelingClassVerificationHelper(TestParameters parameters, Class<?> classOfInterest) {
+      this.parameters = parameters;
+      this.classOfInterest = classOfInterest;
+    }
+
+    public ThrowingConsumer<CodeInspector, Exception> stubbedUntil(AndroidApiLevel finalApiLevel) {
+      return inspector -> {
+        assertThat(
+            inspector.clazz(classOfInterest),
+            notIf(
+                isPresent(),
+                parameters.isCfRuntime()
+                    || parameters.getApiLevel().isGreaterThanOrEqualTo(finalApiLevel)));
+      };
+    }
   }
 
   public static class ApiModelingMethodVerificationHelper {

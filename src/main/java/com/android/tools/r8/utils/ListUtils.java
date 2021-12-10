@@ -54,7 +54,7 @@ public class ListUtils {
     return result;
   }
 
-  public static <T> List<T> filter(List<T> list, Predicate<? super T> predicate) {
+  public static <T> List<T> filter(Collection<T> list, Predicate<? super T> predicate) {
     ArrayList<T> filtered = new ArrayList<>(list.size());
     list.forEach(
         t -> {

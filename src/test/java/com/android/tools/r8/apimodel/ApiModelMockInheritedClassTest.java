@@ -6,7 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
@@ -15,7 +15,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,6 +48,7 @@ public class ApiModelMockInheritedClassTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassRules(ProgramClass.class)
         .addAndroidBuildVersion()
+        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel))
         .compile()
@@ -59,10 +59,7 @@ public class ApiModelMockInheritedClassTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "ProgramClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "Hello World")
-        .inspect(
-            inspector ->
-                // TODO(b/204982782): These should be stubbed for api-level 1-23.
-                assertThat(inspector.clazz(LibraryClass.class), Matchers.isAbsent()));
+        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(mockLevel));
   }
 
   // Only present from api level 23.

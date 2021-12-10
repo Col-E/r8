@@ -6,8 +6,7 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
@@ -16,7 +15,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,6 +49,7 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassRules(ProgramClass.class)
         .addAndroidBuildVersion()
+        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, lowerMockApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, lowerMockApiLevel))
         .apply(setMockApiLevelForClass(OtherLibraryClass.class, mockApiLevel))
@@ -74,14 +73,9 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "ProgramClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "Hello World")
-        .inspect(
-            inspector -> {
-              // TODO(b/204982782): These should be stubbed out for api-level 1-23.
-              assertThat(inspector.clazz(LibraryClass.class), not(Matchers.isPresent()));
-              assertThat(inspector.clazz(LibraryInterface.class), not(Matchers.isPresent()));
-              // TODO(b/204982782): This should be stubbed out for api-level 1-24.
-              assertThat(inspector.clazz(OtherLibraryClass.class), not(Matchers.isPresent()));
-            });
+        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(lowerMockApiLevel))
+        .inspect(verifyThat(parameters, LibraryInterface.class).stubbedUntil(lowerMockApiLevel))
+        .inspect(verifyThat(parameters, OtherLibraryClass.class).stubbedUntil(mockApiLevel));
   }
 
   // Only present from api level 23.

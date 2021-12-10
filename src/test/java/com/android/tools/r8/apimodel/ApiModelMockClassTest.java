@@ -6,16 +6,16 @@ package com.android.tools.r8.apimodel;
 
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,14 +42,16 @@ public class ApiModelMockClassTest extends TestBase {
     boolean isMockApiLevel =
         parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(mockLevel);
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class)
+        .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .addAndroidBuildVersion()
+        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel))
+        .enableInliningAnnotations()
         .compile()
         .applyIf(
             parameters.isDexRuntime()
@@ -58,10 +60,7 @@ public class ApiModelMockClassTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "LibraryClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "Hello World")
-        .inspect(
-            inspector ->
-                // TODO(b/204982782): These should be stubbed for api-level 1-23.
-                assertThat(inspector.clazz(LibraryClass.class), Matchers.isAbsent()));
+        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(mockLevel));
   }
 
   // Only present from api level 23.
@@ -72,14 +71,22 @@ public class ApiModelMockClassTest extends TestBase {
     }
   }
 
-  public static class Main {
+  public static class TestClass {
 
-    public static void main(String[] args) {
+    @NeverInline
+    public static void test() {
       if (AndroidBuildVersion.VERSION >= 23) {
         new LibraryClass().foo();
       } else {
         System.out.println("Hello World");
       }
+    }
+  }
+
+  public static class Main {
+
+    public static void main(String[] args) {
+      TestClass.test();
     }
   }
 }
