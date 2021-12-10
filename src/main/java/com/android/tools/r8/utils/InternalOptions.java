@@ -1869,8 +1869,17 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return !isDesugaring() || hasMinApi(AndroidApiLevel.N);
   }
 
+  // Debug entries may be dropped only if the source file content allows being omitted from
+  // stack traces, or if the VM will report the source file even with a null valued debug info.
+  public boolean allowDiscardingResidualDebugInfo() {
+    // TODO(b/146565491): We can drop debug info once fixed at a known min-api.
+    return sourceFileProvider != null && sourceFileProvider.allowDiscardingSourceFile();
+  }
+
   public boolean canUseDexPcAsDebugInformation() {
-    return lineNumberOptimization == LineNumberOptimization.ON && hasMinApi(AndroidApiLevel.O);
+    return lineNumberOptimization == LineNumberOptimization.ON
+        && hasMinApi(AndroidApiLevel.O)
+        && allowDiscardingResidualDebugInfo();
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {

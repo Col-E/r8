@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debuginfo;
 
+import static org.junit.Assert.assertNull;
+
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.OutputMode;
@@ -13,6 +15,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DexParser;
 import com.android.tools.r8.dex.DexSection;
+import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -31,10 +35,8 @@ public class CanonicalizeWithInline extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  private final TestParameters parameters;
-
   public CanonicalizeWithInline(TestParameters parameters) {
-    this.parameters = parameters;
+    parameters.assertNoneRuntime();
   }
 
   private int getNumberOfDebugInfos(Path file) throws IOException {
@@ -58,10 +60,17 @@ public class CanonicalizeWithInline extends TestBase {
             .addProgramClasses(clazzA, clazzB)
             .addKeepRules(
                 "-keepattributes SourceFile,LineNumberTable",
-                "-keep class ** {\n" + "public void call(int);\n" + "}")
+                "-keep class ** { public void call(int); }")
             .enableInliningAnnotations()
             .enableSideEffectAnnotations()
             .compile();
+    result.inspect(
+        inspector -> {
+          DexEncodedMethod method =
+              inspector.clazz(ClassA.class).uniqueMethodWithName("call").getMethod();
+          DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
+          assertNull(debugInfo);
+        });
     Path classesPath = temp.getRoot().toPath();
     result.app.write(classesPath, OutputMode.DexIndexed);
     int numberOfDebugInfos =

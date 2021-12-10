@@ -389,10 +389,6 @@ public class LineNumberOptimizer {
         }
       }
 
-      boolean canStripDebugInfo =
-          appView.options().sourceFileProvider != null
-              && appView.options().sourceFileProvider.allowDiscardingSourceFile();
-
       if (isSyntheticClass) {
         onDemandClassNamingBuilder
             .get()
@@ -444,9 +440,7 @@ public class LineNumberOptimizer {
           List<MappedPosition> mappedPositions;
           Code code = method.getCode();
           boolean canUseDexPc =
-              canStripDebugInfo
-                  && appView.options().canUseDexPcAsDebugInformation()
-                  && methods.size() == 1;
+              appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1;
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (canUseDexPc) {
@@ -485,6 +479,9 @@ public class LineNumberOptimizer {
               && methodMappingInfo.isEmpty()
               && obfuscatedNameDexString == originalMethod.name
               && originalMethod.holder == originalType) {
+            assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
+                || !doesContainPositions(method)
+                || appView.isCfByteCodePassThrough(method);
             continue;
           }
 
@@ -615,10 +612,10 @@ public class LineNumberOptimizer {
             }
             i = j;
           }
-          if (canStripDebugInfo
-              && method.getCode().isDexCode()
+          if (method.getCode().isDexCode()
               && method.getCode().asDexCode().getDebugInfo()
                   == DexDebugInfoForSingleLineMethod.getInstance()) {
+            assert appView.options().allowDiscardingResidualDebugInfo();
             method.getCode().asDexCode().setDebugInfo(null);
           }
         } // for each method of the group
@@ -946,6 +943,7 @@ public class LineNumberOptimizer {
         && !hasOverloads
         && !appView.options().debug
         && appView.options().lineNumberOptimization != LineNumberOptimization.OFF
+        && appView.options().allowDiscardingResidualDebugInfo()
         && (mappedPositions.isEmpty() || !mappedPositions.get(0).isOutlineCaller())) {
       dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
       return mappedPositions;
