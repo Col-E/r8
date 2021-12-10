@@ -553,10 +553,13 @@ def build_app_and_run_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     shrinker))
   print('To compile locally: '
         'tools/run_on_app_dump.py --shrinker {} --r8-compilation-steps {} '
-        '--app {}'.format(
+        '--app {} --minify {} --optimize {} --shrink {}'.format(
     shrinker,
     options.r8_compilation_steps,
-    app.name))
+    app.name,
+    options.minify,
+    options.optimize,
+    options.shrink))
   print('HINT: use --shrinker r8-nolib --no-build if you have a local R8.jar')
   recomp_jar = None
   status = 'success'
@@ -652,6 +655,9 @@ def get_jdk_home(options, app):
 def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                             compilation_step_index, compilation_steps,
                             prev_recomp_jar):
+  def config_file_consumer(file):
+    compiledump.clean_config(file, options)
+    remove_print_lines(file)
   args = AttrDict({
     'dump': dump_for_app(app_dir, app),
     'r8_jar': get_r8_jar(options, temp_dir, shrinker),
@@ -662,7 +668,7 @@ def build_app_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'debug_agent': options.debug_agent,
     'program_jar': prev_recomp_jar,
     'nolib': not is_minified_r8(shrinker),
-    'config_file_consumer': remove_print_lines,
+    'config_file_consumer': config_file_consumer,
     'properties': app.compiler_properties,
     'disable_desugared_lib': False,
     'print_times': options.print_times,
@@ -704,6 +710,7 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
                              compilation_step_index, mapping):
 
   def rewrite_file(file):
+    compiledump.clean_config(file, options)
     remove_print_lines(file)
     with open(file) as f:
       lines = f.readlines()
@@ -723,7 +730,7 @@ def build_test_with_shrinker(app, options, temp_dir, app_dir, shrinker,
     'nolib': not is_minified_r8(shrinker),
     # The config file will have an -applymapping reference to an old map.
     # Update it to point to mapping file build in the compilation of the app.
-    'config_file_consumer': rewrite_file
+    'config_file_consumer': rewrite_file,
   })
 
   test_jar = os.path.join(
@@ -894,6 +901,11 @@ def parse_options(argv):
   result.add_argument('--keystore-password', '--keystore_password',
                       help='Password for app.keystore',
                       default='android')
+  result.add_argument('--minify',
+                      help='Force enable/disable minification' +
+                           ' (defaults to app proguard config)',
+                      choices=['default', 'force-enable', 'force-disable'],
+                      default='default')
   result.add_argument('--monkey',
                       help='Whether to install and run app(s) with monkey',
                       default=False,
@@ -910,6 +922,11 @@ def parse_options(argv):
                       help='Disable logging except for errors',
                       default=False,
                       action='store_true')
+  result.add_argument('--optimize',
+                      help='Force enable/disable optimizations' +
+                           ' (defaults to app proguard config)',
+                      choices=['default', 'force-enable', 'force-disable'],
+                      default='default')
   result.add_argument('--print-times',
                       help='Print timing information from r8',
                       default=False,
@@ -938,6 +955,11 @@ def parse_options(argv):
                       help='Whether to run instrumentation tests',
                       default=False,
                       action='store_true')
+  result.add_argument('--shrink',
+                      help='Force enable/disable shrinking' +
+                           ' (defaults to app proguard config)',
+                      choices=['default', 'force-enable', 'force-disable'],
+                      default='default')
   result.add_argument('--sign-apks', '--sign_apks',
                       help='Whether the APKs should be signed',
                       default=False,

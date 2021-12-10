@@ -38,6 +38,24 @@ def make_parser():
     help='Compiler to use',
     default=None)
   parser.add_argument(
+    '--minify',
+    help='Force enable/disable minification'
+      ' (defaults to app proguard config)',
+    choices=['default', 'force-enable', 'force-disable'],
+    default='default')
+  parser.add_argument(
+    '--optimize',
+    help='Force enable/disable optimizations'
+      ' (defaults to app proguard config)',
+    choices=['default', 'force-enable', 'force-disable'],
+    default='default')
+  parser.add_argument(
+    '--shrink',
+    help='Force enable/disable shrinking'
+      ' (defaults to app proguard config)',
+    choices=['default', 'force-enable', 'force-disable'],
+    default='default')
+  parser.add_argument(
     '-v',
     '--version',
     help='Compiler version to use (default read from dump version file).'
@@ -281,17 +299,39 @@ def download_distribution(args, version, temp):
   return dest
 
 
-def clean_config(file):
+def clean_config(file, args):
   with open(file) as f:
     lines = f.readlines()
+  minify = args.minify
+  optimize = args.optimize
+  shrink = args.shrink
   with open(file, 'w') as f:
+    if minify == 'force-disable':
+      print('Adding config line: -dontobfuscate')
+      f.write('-dontobfuscate\n')
+    if optimize == 'force-disable':
+      print('Adding config line: -dontoptimize')
+      f.write('-dontoptimize\n')
+    if shrink == 'force-disable':
+      print('Adding config line: -dontshrink')
+      f.write('-dontshrink\n')
     for line in lines:
-      if ('-injars' not in line and '-libraryjars' not in line and
-          '-print' not in line):
-        f.write(line)
-      else:
+      if clean_config_line(line, minify, optimize, shrink):
         print('Removing from config line: \n%s' % line)
+      else:
+        f.write(line)
 
+def clean_config_line(line, minify, optimize, shrink):
+  if ('-injars' in line or '-libraryjars' in line or
+      '-print' in line):
+    return True
+  if minify == 'force-enable' and '-dontobfuscate' in line:
+    return True
+  if optimize == 'force-enable' and '-dontoptimize' in line:
+    return True
+  if shrink == 'force-enable' and '-dontshrink' in line:
+    return True
+  return False
 
 def prepare_wrapper(dist, temp, jdkhome):
   wrapper_file = os.path.join(
@@ -376,7 +416,7 @@ def run1(out, args, otherargs, jdkhome=None):
       else:
         # If we get a dump from the wild we can't use -injars, -libraryjars or
         # -print{mapping,usage}
-        clean_config(dump.config_file())
+        clean_config(dump.config_file(), args)
       cmd.extend(['--pg-conf', dump.config_file()])
     if dump.main_dex_rules_resource():
       cmd.extend(['--main-dex-rules', dump.main_dex_rules_resource()])
