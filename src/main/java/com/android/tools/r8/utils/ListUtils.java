@@ -96,6 +96,14 @@ public class ListUtils {
     return -1;
   }
 
+  public static <S, T> List<T> map(S[] list, Function<S, T> fn) {
+    List<T> result = new ArrayList<>();
+    for (S element : list) {
+      result.add(fn.apply(element));
+    }
+    return result;
+  }
+
   public static <S, T> List<T> map(Iterable<S> list, Function<S, T> fn) {
     List<T> result = new ArrayList<>();
     for (S element : list) {

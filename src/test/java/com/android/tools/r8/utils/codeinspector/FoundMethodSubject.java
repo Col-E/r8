@@ -326,7 +326,7 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public List<AnnotationSubject> annotations() {
-    throw new Unimplemented();
+    return FoundAnnotationSubject.listFromDex(dexMethod.annotations());
   }
 
   @Override

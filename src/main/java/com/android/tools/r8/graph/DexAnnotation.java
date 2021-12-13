@@ -114,9 +114,10 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     if (options.retainCompileTimeAnnotations) {
       return true;
     }
-    if (annotation == options.itemFactory.dalvikFastNativeAnnotation
-        || annotation == options.itemFactory.dalvikCriticalNativeAnnotation
-        || annotation == options.itemFactory.annotationSynthesizedClass) {
+    if (annotation == options.itemFactory.annotationSynthesizedClass
+        || annotation
+            .getDescriptor()
+            .startsWith(options.itemFactory.dalvikAnnotationOptimizationPrefix)) {
       return true;
     }
     if (options.processCovariantReturnTypeAnnotations) {

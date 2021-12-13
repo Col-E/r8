@@ -74,6 +74,8 @@ public class DexItemFactory {
   public static final String dalvikAnnotationSignatureString = "Ldalvik/annotation/Signature;";
   public static final String recordTagDescriptorString = "Lcom/android/tools/r8/RecordTag;";
   public static final String recordDescriptorString = "Ljava/lang/Record;";
+  public static final String dalvikAnnotationOptimizationPrefixString =
+      "Ldalvik/annotation/optimization/";
 
   /** Set of types that may be synthesized during compilation. */
   private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
@@ -333,6 +335,10 @@ public class DexItemFactory {
 
   public final DexString valueString = createString("value");
   public final DexString kindString = createString("kind");
+
+  // Prefix for runtime affecting yet potential class-retained annotations.
+  public final DexString dalvikAnnotationOptimizationPrefix =
+      createString(dalvikAnnotationOptimizationPrefixString);
 
   public final DexType booleanType = createStaticallyKnownType(booleanDescriptor);
   public final DexType byteType = createStaticallyKnownType(byteDescriptor);
@@ -679,12 +685,6 @@ public class DexItemFactory {
           "Ldalvik/annotation/codegen/CovariantReturnType$CovariantReturnTypes;");
   public final DexType annotationReachabilitySensitive =
       createStaticallyKnownType("Ldalvik/annotation/optimization/ReachabilitySensitive;");
-
-  // Runtime affecting yet class-retained annotations.
-  public final DexType dalvikFastNativeAnnotation =
-      createStaticallyKnownType("Ldalvik/annotation/optimization/FastNative;");
-  public final DexType dalvikCriticalNativeAnnotation =
-      createStaticallyKnownType("Ldalvik/annotation/optimization/CriticalNative;");
 
   private static final String METAFACTORY_METHOD_NAME = "metafactory";
   private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";

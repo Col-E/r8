@@ -355,11 +355,7 @@ public class FoundClassSubject extends ClassSubject {
 
   @Override
   public List<AnnotationSubject> annotations() {
-    List<AnnotationSubject> result = new ArrayList<>();
-    for (DexAnnotation annotation : dexClass.annotations().annotations) {
-      result.add(new FoundAnnotationSubject(annotation));
-    }
-    return result;
+    return FoundAnnotationSubject.listFromDex(dexClass.annotations());
   }
 
   @Override

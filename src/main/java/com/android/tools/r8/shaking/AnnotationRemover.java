@@ -136,6 +136,12 @@ public class AnnotationRemover {
         return isAnnotationTypeLive;
 
       case DexAnnotation.VISIBILITY_BUILD:
+        if (annotation
+            .getAnnotationType()
+            .getDescriptor()
+            .startsWith(options.itemFactory.dalvikAnnotationOptimizationPrefix)) {
+          return true;
+        }
         if (kind.isParameter()) {
           if (!options.isKeepRuntimeInvisibleParameterAnnotationsEnabled()) {
             return false;
