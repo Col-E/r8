@@ -294,6 +294,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean cfToCfDesugar = false;
   public boolean forceAnnotateSynthetics = false;
   public boolean readDebugSetFileEvent = false;
+  public boolean disableL8AnnotationRemoval =
+      System.getProperty("com.android.tools.r8.disableL8AnnotationRemoval") != null;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
