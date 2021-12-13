@@ -55,8 +55,8 @@ public class LegacyDesugaredLibrarySpecificationParser {
   private final boolean libraryCompilation;
   private final int minAPILevel;
 
-  private LegacyDesugaredLibrarySpecification.Builder specificationBuilder = null;
   private Origin origin;
+  private JsonObject jsonConfig;
 
   public LegacyDesugaredLibrarySpecificationParser(
       DexItemFactory dexItemFactory,
@@ -69,7 +69,24 @@ public class LegacyDesugaredLibrarySpecificationParser {
     this.libraryCompilation = libraryCompilation;
   }
 
-  private JsonElement required(JsonObject json, String key) {
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
+  }
+
+  public Reporter reporter() {
+    return reporter;
+  }
+
+  public JsonObject getJsonConfig() {
+    return jsonConfig;
+  }
+
+  public Origin getOrigin() {
+    assert origin != null;
+    return origin;
+  }
+
+  JsonElement required(JsonObject json, String key) {
     if (!json.has(key)) {
       throw reporter.fatalError(
           new StringDiagnostic(
@@ -84,19 +101,23 @@ public class LegacyDesugaredLibrarySpecificationParser {
   }
 
   public LegacyDesugaredLibrarySpecification parse(
-      StringResource stringResource,
-      Consumer<LegacyDesugaredLibrarySpecification.Builder> configurationAmender) {
-    origin = stringResource.getOrigin();
-    assert origin != null;
-    specificationBuilder =
-        LegacyDesugaredLibrarySpecification.builder(dexItemFactory, reporter, origin);
-    if (libraryCompilation) {
-      specificationBuilder.setLibraryCompilation();
-    } else {
-      specificationBuilder.setProgramCompilation();
-    }
+      StringResource stringResource, Consumer<LegacyTopLevelFlags.Builder> topLevelFlagAmender) {
+    String jsonConfigString = parseJson(stringResource);
+
+    LegacyTopLevelFlags topLevelFlags = parseTopLevelFlags(jsonConfigString, topLevelFlagAmender);
+
+    LegacyRewritingFlags legacyRewritingFlags = parseRewritingFlags();
+
+    LegacyDesugaredLibrarySpecification config =
+        new LegacyDesugaredLibrarySpecification(
+            topLevelFlags, legacyRewritingFlags, libraryCompilation, dexItemFactory);
+    origin = null;
+    return config;
+  }
+
+  String parseJson(StringResource stringResource) {
+    setOrigin(stringResource);
     String jsonConfigString;
-    JsonObject jsonConfig;
     try {
       jsonConfigString = stringResource.getString();
       JsonParser parser = new JsonParser();
@@ -104,8 +125,32 @@ public class LegacyDesugaredLibrarySpecificationParser {
     } catch (Exception e) {
       throw reporter.fatalError(new ExceptionDiagnostic(e, origin));
     }
+    return jsonConfigString;
+  }
 
-    specificationBuilder.setJsonSource(jsonConfigString);
+  void setOrigin(StringResource stringResource) {
+    origin = stringResource.getOrigin();
+    assert origin != null;
+  }
+
+  private LegacyRewritingFlags parseRewritingFlags() {
+    LegacyRewritingFlags.Builder builder =
+        LegacyRewritingFlags.builder(dexItemFactory, reporter, origin);
+    JsonElement commonFlags = required(jsonConfig, COMMON_FLAGS_KEY);
+    JsonElement libraryFlags = required(jsonConfig, LIBRARY_FLAGS_KEY);
+    JsonElement programFlags = required(jsonConfig, PROGRAM_FLAGS_KEY);
+    parseFlagsList(commonFlags.getAsJsonArray(), builder);
+    parseFlagsList(
+        libraryCompilation ? libraryFlags.getAsJsonArray() : programFlags.getAsJsonArray(),
+        builder);
+    return builder.build();
+  }
+
+  LegacyTopLevelFlags parseTopLevelFlags(
+      String jsonConfigString, Consumer<LegacyTopLevelFlags.Builder> topLevelFlagAmender) {
+    LegacyTopLevelFlags.Builder builder = LegacyTopLevelFlags.builder();
+
+    builder.setJsonSource(jsonConfigString);
 
     JsonElement formatVersionElement = required(jsonConfig, CONFIGURATION_FORMAT_VERSION_KEY);
     int formatVersion = formatVersionElement.getAsInt();
@@ -133,101 +178,90 @@ public class LegacyDesugaredLibrarySpecificationParser {
     String groupID = required(jsonConfig, GROUP_ID_KEY).getAsString();
     String artifactID = required(jsonConfig, ARTIFACT_ID_KEY).getAsString();
     String identifier = String.join(":", groupID, artifactID, version);
-    specificationBuilder.setDesugaredLibraryIdentifier(identifier);
-    specificationBuilder.setSynthesizedLibraryClassesPackagePrefix(
+    builder.setDesugaredLibraryIdentifier(identifier);
+    builder.setSynthesizedLibraryClassesPackagePrefix(
         required(jsonConfig, SYNTHESIZED_LIBRARY_CLASSES_PACKAGE_PREFIX_KEY).getAsString());
 
     int required_compilation_api_level =
         required(jsonConfig, REQUIRED_COMPILATION_API_LEVEL_KEY).getAsInt();
-    specificationBuilder.setRequiredCompilationAPILevel(
+    builder.setRequiredCompilationAPILevel(
         AndroidApiLevel.getAndroidApiLevel(required_compilation_api_level));
-    JsonElement commonFlags = required(jsonConfig, COMMON_FLAGS_KEY);
-    JsonElement libraryFlags = required(jsonConfig, LIBRARY_FLAGS_KEY);
-    JsonElement programFlags = required(jsonConfig, PROGRAM_FLAGS_KEY);
-    parseFlagsList(commonFlags.getAsJsonArray());
-    parseFlagsList(
-        libraryCompilation ? libraryFlags.getAsJsonArray() : programFlags.getAsJsonArray());
     if (jsonConfig.has(SHRINKER_CONFIG_KEY)) {
       JsonArray jsonKeepRules = jsonConfig.get(SHRINKER_CONFIG_KEY).getAsJsonArray();
       List<String> extraKeepRules = new ArrayList<>(jsonKeepRules.size());
       for (JsonElement keepRule : jsonKeepRules) {
         extraKeepRules.add(keepRule.getAsString());
       }
-      specificationBuilder.setExtraKeepRules(extraKeepRules);
+      builder.setExtraKeepRules(extraKeepRules);
     }
 
     if (jsonConfig.has(SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY)) {
       boolean supportAllCallbacksFromLibrary =
           jsonConfig.get(SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY).getAsBoolean();
-      specificationBuilder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary);
+      builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary);
     }
-    configurationAmender.accept(specificationBuilder);
-    LegacyDesugaredLibrarySpecification config = specificationBuilder.build();
-    specificationBuilder = null;
-    origin = null;
-    return config;
+
+    topLevelFlagAmender.accept(builder);
+
+    return builder.build();
   }
 
-  private void parseFlagsList(JsonArray jsonFlags) {
+  private void parseFlagsList(JsonArray jsonFlags, LegacyRewritingFlags.Builder builder) {
     for (JsonElement jsonFlagSet : jsonFlags) {
       JsonObject flag = jsonFlagSet.getAsJsonObject();
       int api_level_below_or_equal = required(flag, API_LEVEL_BELOW_OR_EQUAL_KEY).getAsInt();
       if (minAPILevel <= api_level_below_or_equal) {
-        parseFlags(flag);
+        parseFlags(flag, builder);
       }
     }
   }
 
-  private void parseFlags(JsonObject jsonFlagSet) {
+  void parseFlags(JsonObject jsonFlagSet, LegacyRewritingFlags.Builder builder) {
     if (jsonFlagSet.has(REWRITE_PREFIX_KEY)) {
       for (Map.Entry<String, JsonElement> rewritePrefix :
           jsonFlagSet.get(REWRITE_PREFIX_KEY).getAsJsonObject().entrySet()) {
-        specificationBuilder.putRewritePrefix(
-            rewritePrefix.getKey(), rewritePrefix.getValue().getAsString());
+        builder.putRewritePrefix(rewritePrefix.getKey(), rewritePrefix.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(RETARGET_LIB_MEMBER_KEY)) {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_LIB_MEMBER_KEY).getAsJsonObject().entrySet()) {
-        specificationBuilder.putRetargetCoreLibMember(
-            retarget.getKey(), retarget.getValue().getAsString());
+        builder.putRetargetCoreLibMember(retarget.getKey(), retarget.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(BACKPORT_KEY)) {
       for (Map.Entry<String, JsonElement> backport :
           jsonFlagSet.get(BACKPORT_KEY).getAsJsonObject().entrySet()) {
-        specificationBuilder.putBackportCoreLibraryMember(
-            backport.getKey(), backport.getValue().getAsString());
+        builder.putBackportCoreLibraryMember(backport.getKey(), backport.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(EMULATE_INTERFACE_KEY)) {
       for (Map.Entry<String, JsonElement> itf :
           jsonFlagSet.get(EMULATE_INTERFACE_KEY).getAsJsonObject().entrySet()) {
-        specificationBuilder.putEmulateLibraryInterface(itf.getKey(), itf.getValue().getAsString());
+        builder.putEmulateLibraryInterface(itf.getKey(), itf.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(CUSTOM_CONVERSION_KEY)) {
       for (Map.Entry<String, JsonElement> conversion :
           jsonFlagSet.get(CUSTOM_CONVERSION_KEY).getAsJsonObject().entrySet()) {
-        specificationBuilder.putCustomConversion(
-            conversion.getKey(), conversion.getValue().getAsString());
+        builder.putCustomConversion(conversion.getKey(), conversion.getValue().getAsString());
       }
     }
     if (jsonFlagSet.has(WRAPPER_CONVERSION_KEY)) {
       for (JsonElement wrapper : jsonFlagSet.get(WRAPPER_CONVERSION_KEY).getAsJsonArray()) {
-        specificationBuilder.addWrapperConversion(wrapper.getAsString());
+        builder.addWrapperConversion(wrapper.getAsString());
       }
     }
     if (jsonFlagSet.has(DONT_REWRITE_KEY)) {
       JsonArray dontRewrite = jsonFlagSet.get(DONT_REWRITE_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRewrite) {
-        specificationBuilder.addDontRewriteInvocation(rewrite.getAsString());
+        builder.addDontRewriteInvocation(rewrite.getAsString());
       }
     }
     if (jsonFlagSet.has(DONT_RETARGET_LIB_MEMBER_KEY)) {
       JsonArray dontRetarget = jsonFlagSet.get(DONT_RETARGET_LIB_MEMBER_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRetarget) {
-        specificationBuilder.addDontRetargetLibMember(rewrite.getAsString());
+        builder.addDontRetargetLibMember(rewrite.getAsString());
       }
     }
   }

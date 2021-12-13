@@ -7,6 +7,8 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -57,16 +59,15 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
   }
 
   private void configureDesugaredLibrary(InternalOptions options, boolean l8Compilation) {
-    LegacyDesugaredLibrarySpecification.Builder builder =
-        LegacyDesugaredLibrarySpecification.builder(
-                options.itemFactory, options.reporter, Origin.unknown())
-            .setDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:9.99.99")
+    LegacyRewritingFlags rewritingFlags =
+        LegacyRewritingFlags.builder(options.itemFactory, options.reporter, Origin.unknown())
             .putRewritePrefix("java.nio.file.AccessMode", "j$.nio.file.AccessMode")
-            .addWrapperConversion("java.nio.file.AccessMode");
-    if (l8Compilation) {
-      builder.setLibraryCompilation();
-    }
-    options.desugaredLibrarySpecification = builder.build();
+            .addWrapperConversion("java.nio.file.AccessMode")
+            .build();
+    LegacyDesugaredLibrarySpecification specification =
+        new LegacyDesugaredLibrarySpecification(
+            LegacyTopLevelFlags.testing(), rewritingFlags, l8Compilation, options.itemFactory);
+    options.desugaredLibrarySpecification = specification;
   }
 
   @Test

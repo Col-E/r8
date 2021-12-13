@@ -8,8 +8,11 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.List;
 import org.junit.Test;
@@ -35,34 +38,35 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
     this.backend = backend;
   }
 
+  /**
+   * Add this library desugaring configuration:
+   * "library_flags": [
+   *  {
+   *    "rewrite_prefix":{"java.time.": "j$.time."},
+   *    "backport": {"java.lang.DesugarMath": "java.lang.Math"},
+   *    "retarget_lib_member": {"java.util.Date#toInstant": "java.util.DesugarDate"}
+   *  }
+   * ],
+   */
+  private static void specifyDesugaredLibrary(InternalOptions options) {
+    LegacyRewritingFlags rewritingFlags =
+        LegacyRewritingFlags.builder(options.itemFactory, options.reporter, Origin.unknown())
+            .putRewritePrefix("java.time.", "j$.time.")
+            .putBackportCoreLibraryMember("java.lang.DesugarMath", "java.lang.Math")
+            .putRetargetCoreLibMember("java.util.Date#toInstant", "java.util.DesugarDate")
+            .build();
+    options.desugaredLibrarySpecification =
+        new LegacyDesugaredLibrarySpecification(
+            LegacyTopLevelFlags.testing(), rewritingFlags, true, options.itemFactory);
+  }
+
   @Test
   public void test() throws Exception {
     testForL8(AndroidApiLevel.B, backend)
         .noDefaultDesugarJDKLibs()
         .addProgramClassFileData(dump())
         .addLibraryFiles(getLibraryFile())
-        /*
-         Add this library desugaring configuration:
-         "library_flags": [
-           {
-             "rewrite_prefix": {"java.time.": "j$.time."},
-             "backport": {"java.lang.DesugarMath": "java.lang.Math"},
-             "retarget_lib_member": {"java.util.Date#toInstant": "java.util.DesugarDate"}
-           }
-         ],
-        */
-        .addOptionsModifier(
-            options ->
-                options.desugaredLibrarySpecification =
-                    LegacyDesugaredLibrarySpecification.builder(
-                            options.dexItemFactory(), options.reporter, Origin.unknown())
-                        .setDesugaredLibraryIdentifier("my-identifier")
-                        .putRewritePrefix("java.time.", "j$.time.")
-                        .putBackportCoreLibraryMember("java.lang.DesugarMath", "java.lang.Math")
-                        .putRetargetCoreLibMember(
-                            "java.util.Date#toInstant", "java.util.DesugarDate")
-                        .setLibraryCompilation()
-                        .build())
+        .addOptionsModifier(RetargetAndBackportTest::specifyDesugaredLibrary)
         .compile()
         .inspect(
             inspector -> {

@@ -127,7 +127,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         return false;
       }
     }
-    if (!appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary
+    if (!appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary()
         && appView.options().isDesugaredLibraryCompilation()) {
       return false;
     }
@@ -178,7 +178,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
   }
 
   private boolean shouldGenerateCallbacksForEmulateInterfaceAPIs(DexClass dexClass) {
-    if (appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary) {
+    if (appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary()) {
       return true;
     }
     Map<DexType, DexType> emulateLibraryInterfaces =

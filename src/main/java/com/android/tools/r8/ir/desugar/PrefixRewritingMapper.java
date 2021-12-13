@@ -63,6 +63,7 @@ public abstract class PrefixRewritingMapper {
 
     public DesugarPrefixRewritingMapper(
         Map<String, String> prefixes, DexItemFactory itemFactory, boolean libraryCompilation) {
+      assert itemFactory != null || prefixes.isEmpty();
       this.factory = itemFactory;
       this.l8Compilation = libraryCompilation;
       ImmutableMap.Builder<DexString, DexString> builder = ImmutableMap.builder();
