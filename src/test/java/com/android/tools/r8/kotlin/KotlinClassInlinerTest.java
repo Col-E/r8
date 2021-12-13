@@ -6,7 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
-import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLIN_DEV;
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_6_0;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,8 +63,6 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
     // SAM interfaces lambdas are implemented by invoke dynamic in kotlin 1.5 unlike 1.4 where a
     // class is generated for each. In CF we leave invokeDynamic but for DEX we desugar the classes
     // and merge them.
-    // TODO(b/208816049): Fix test.
-    Assume.assumeTrue(kotlinParameters.getCompiler().isNot(KOTLIN_DEV));
     boolean hasKotlinCGeneratedLambdaClasses = kotlinParameters.isOlderThan(KOTLINC_1_5_0);
     String mainClassName = "class_inliner_lambda_j_style.MainKt";
     runTest(
@@ -154,10 +151,13 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
               }
               // TODO(b/173337498): MainKt$testStateless$1 should always be class inlined.
               if (!hasKotlinCGeneratedLambdaClasses) {
+                // Kotlin 1.6.20 and later do not create intrinsics.stringPlus for two argument
+                // string concatination. That allow R8's stringbuilder optimization to reduce the
+                // size of strings and therefore inline the synthetic lambda.
                 assertThat(
                     inspector.clazz(
                         "class_inliner_lambda_j_style.MainKt$$ExternalSyntheticLambda1"),
-                    isPresent());
+                    notIf(isPresent(), kotlinParameters.isNewerThan(KOTLINC_1_6_0)));
               } else {
                 assertThat(
                     inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateless$1"),
