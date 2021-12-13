@@ -51,11 +51,6 @@ public class ApiModelMockClassLoadingTest extends TestBase {
         .compile()
         .applyIf(isLibraryOnBootClassPath, b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), NoClassDefFoundError.class)
-        // TODO(b/209803983): Should fail with a NoClassDefFoundError unless the api level of the
-        //  runtime >= 23.
-        .assertFailureWithErrorThatThrowsIf(
-            parameters.isDexRuntime() && !isLibraryOnBootClassPath, UnsatisfiedLinkError.class)
         .assertSuccessWithOutputLinesIf(isLibraryOnBootClassPath, "Hello World");
   }
 

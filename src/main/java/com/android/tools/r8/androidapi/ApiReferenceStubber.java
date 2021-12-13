@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -134,7 +135,12 @@ public class ApiReferenceStubber {
     if (libraryClassesToMock.isEmpty()) {
       return;
     }
-    libraryClassesToMock.forEach(this::mockMissingLibraryClass);
+    libraryClassesToMock.forEach(
+        (clazz, methods) ->
+            mockMissingLibraryClass(
+                clazz,
+                methods,
+                ThrowExceptionCode.create(appView.dexItemFactory().noClassDefFoundErrorType)));
     // Commit the synthetic items.
     CommittedItems committedItems = appView.getSyntheticItems().commit(appView.appInfo().app());
     if (appView.hasLiveness()) {
@@ -207,7 +213,10 @@ public class ApiReferenceStubber {
     }
   }
 
-  private void mockMissingLibraryClass(DexLibraryClass libraryClass, Set<DexMethod> methodsToStub) {
+  private void mockMissingLibraryClass(
+      DexLibraryClass libraryClass,
+      Set<DexMethod> methodsToStub,
+      ThrowExceptionCode throwExceptionCode) {
     if (libraryClass.getType() == appView.dexItemFactory().objectType
         || libraryClass.getType().toDescriptorString().startsWith("Ljava/")) {
       return;
@@ -237,12 +246,21 @@ public class ApiReferenceStubber {
               if (!libraryClass.isFinal()) {
                 classBuilder.unsetFinal();
               }
-              if (!libraryClass.isInterface()
-                  || appView.options().canUseDefaultAndStaticInterfaceMethods()) {
-                classBuilder.setDirectMethods(
-                    buildLibraryMethodsForProgram(
-                        libraryClass, libraryClass.directMethods(), methodsToStub));
-              }
+              List<DexEncodedMethod> directMethods =
+                  (!libraryClass.isInterface()
+                          || appView.options().canUseDefaultAndStaticInterfaceMethods())
+                      ? buildLibraryMethodsForProgram(
+                          libraryClass, libraryClass.directMethods(), methodsToStub)
+                      : new ArrayList<>();
+              // Add throwing static initializer
+              directMethods.add(
+                  DexEncodedMethod.syntheticBuilder()
+                      .setMethod(
+                          appView.dexItemFactory().createClassInitializer(libraryClass.getType()))
+                      .setAccessFlags(MethodAccessFlags.createForClassInitializer())
+                      .setCode(throwExceptionCode)
+                      .build());
+              classBuilder.setDirectMethods(directMethods);
             });
   }
 
