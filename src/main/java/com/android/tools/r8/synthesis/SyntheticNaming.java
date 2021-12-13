@@ -58,7 +58,7 @@ public class SyntheticNaming {
     CONST_DYNAMIC("$Condy", 30, false),
     ENUM_CONVERSION("$EnumConversion", 31, false, true),
     API_MODEL_OUTLINE("ApiModelOutline", 32, true, false, false),
-    API_MODEL_STUB("", 33, false, true, true);
+    API_MODEL_STUB("ApiModelStub", 33, false, true, true);
 
     static {
       assert verifyNoOverlappingIds();
