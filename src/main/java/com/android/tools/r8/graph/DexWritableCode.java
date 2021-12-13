@@ -20,8 +20,13 @@ public interface DexWritableCode {
   enum DexWritableCodeKind {
     DEFAULT,
     DEFAULT_INSTANCE_INITIALIZER,
-    THROW_NULL
+    THROW_NULL,
+    THROW_EXCEPTION
   }
+
+  boolean isThrowExceptionCode();
+
+  ThrowExceptionCode asThrowExceptionCode();
 
   default int acceptCompareTo(DexWritableCode code, CompareToVisitor visitor) {
     DexWritableCodeKind kind = getDexWritableCodeKind();
@@ -36,6 +41,9 @@ public interface DexWritableCode {
         return 0;
       case THROW_NULL:
         return 0;
+      case THROW_EXCEPTION:
+        assert isThrowExceptionCode();
+        return asThrowExceptionCode().acceptCompareTo(code.asThrowExceptionCode(), visitor);
       default:
         throw new Unreachable();
     }

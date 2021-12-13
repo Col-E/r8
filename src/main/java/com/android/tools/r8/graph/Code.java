@@ -94,7 +94,15 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
+  public boolean isThrowExceptionCode() {
+    return false;
+  }
+
   public ThrowNullCode asThrowNullCode() {
+    return null;
+  }
+
+  public ThrowExceptionCode asThrowExceptionCode() {
     return null;
   }
 
