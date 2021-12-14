@@ -134,7 +134,10 @@ public class DefaultInstanceInitializerCode extends Code
 
   @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    DefaultInstanceInitializerSourceCode source = new DefaultInstanceInitializerSourceCode(method);
+    DexMethod originalMethod =
+        appView.graphLens().getOriginalMethodSignature(method.getReference());
+    DefaultInstanceInitializerSourceCode source =
+        new DefaultInstanceInitializerSourceCode(originalMethod);
     return IRBuilder.create(method, appView, source, origin).build(method);
   }
 
@@ -148,8 +151,10 @@ public class DefaultInstanceInitializerCode extends Code
       Position callerPosition,
       Origin origin,
       RewrittenPrototypeDescription protoChanges) {
+    DexMethod originalMethod =
+        appView.graphLens().getOriginalMethodSignature(method.getReference());
     DefaultInstanceInitializerSourceCode source =
-        new DefaultInstanceInitializerSourceCode(method, callerPosition);
+        new DefaultInstanceInitializerSourceCode(originalMethod, callerPosition);
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
         .build(context);
@@ -379,16 +384,16 @@ public class DefaultInstanceInitializerCode extends Code
 
   static class DefaultInstanceInitializerSourceCode extends SyntheticStraightLineSourceCode {
 
-    DefaultInstanceInitializerSourceCode(ProgramMethod method) {
+    DefaultInstanceInitializerSourceCode(DexMethod method) {
       this(method, null);
     }
 
-    DefaultInstanceInitializerSourceCode(ProgramMethod method, Position callerPosition) {
+    DefaultInstanceInitializerSourceCode(DexMethod method, Position callerPosition) {
       super(
           getInstructionBuilders(),
           SyntheticPosition.builder()
               .setLine(0)
-              .setMethod(method.getReference())
+              .setMethod(method)
               .setCallerPosition(callerPosition)
               .build());
     }
