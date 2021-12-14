@@ -1154,12 +1154,15 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     DexClass targetHolder = singleTarget.getHolder();
     if (targetHolder.isProgramClass()) {
       if (targetHolder.isEnum() && singleTarget.getDefinition().isInstanceInitializer()) {
-        if (code.context().getHolder() == targetHolder && code.method().isClassInitializer()) {
-          // The enum instance initializer is allowed to be called only from the enum clinit.
-          return Reason.ELIGIBLE;
-        } else {
+        // The enum instance initializer is only allowed to be called from an initializer of the
+        // enum itself.
+        if (code.context().getHolder() != targetHolder || !code.method().isInitializer()) {
           return Reason.INVALID_INIT;
         }
+        if (code.method().isInstanceInitializer() && !invoke.getFirstArgument().isThis()) {
+          return Reason.INVALID_INIT;
+        }
+        return Reason.ELIGIBLE;
       }
 
       // Check if this is a checkNotNull() user. In this case, we can create a copy of the method
