@@ -65,7 +65,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
           HashMap<String, Object> toJson = new LinkedHashMap<>();
           toJson.put(API_LEVEL_BELOW_OR_EQUAL_KEY, apiBelowOrEqual);
           if (!flags.getRewritePrefix().isEmpty()) {
-            toJson.put(REWRITE_PREFIX_KEY, new TreeMap(flags.getRewritePrefix()));
+            toJson.put(REWRITE_PREFIX_KEY, new TreeMap<>(flags.getRewritePrefix()));
           }
           if (!flags.getEmulateLibraryInterface().isEmpty()) {
             toJson.put(EMULATE_INTERFACE_KEY, mapToString(flags.getEmulateLibraryInterface()));

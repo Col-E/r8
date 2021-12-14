@@ -23,8 +23,8 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.io.IOException;
+import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -73,12 +73,17 @@ public class ConvertExportReadTest extends TestBase {
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1,
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec2) {
     assertTopLevelFlagsEquals(humanSpec1.getTopLevelFlags(), humanSpec2.getTopLevelFlags());
-    assertFlagMapEquals(humanSpec1.getCommonFlags(), humanSpec2.getCommonFlags());
+    assertFlagMapEquals(
+        humanSpec1.getCommonFlagsForTesting(), humanSpec2.getCommonFlagsForTesting());
+    assertFlagMapEquals(
+        humanSpec1.getLibraryFlagsForTesting(), humanSpec2.getLibraryFlagsForTesting());
+    assertFlagMapEquals(
+        humanSpec1.getProgramFlagsForTesting(), humanSpec2.getProgramFlagsForTesting());
   }
 
   private void assertFlagMapEquals(
-      Int2ObjectMap<HumanRewritingFlags> commonFlags1,
-      Int2ObjectMap<HumanRewritingFlags> commonFlags2) {
+      Map<Integer, HumanRewritingFlags> commonFlags1,
+      Map<Integer, HumanRewritingFlags> commonFlags2) {
     assertEquals(commonFlags1.size(), commonFlags2.size());
     for (int integer : commonFlags1.keySet()) {
       assertTrue(commonFlags2.containsKey(integer));
