@@ -7,6 +7,7 @@ import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
+import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
 import static com.android.tools.r8.utils.AndroidApiLevelUtils.getApiReferenceLevelForMerging;
 
 import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
@@ -1061,7 +1062,7 @@ public class VerticalClassMerger {
           }
         }
 
-        DexEncodedMethod resultingDirectMethod;
+        DexEncodedMethod resultingMethod;
         if (source.accessFlags.isInterface()) {
           // Moving a default interface method into its subtype. This method could be hit directly
           // via an invoke-super instruction from any of the transitive subtypes of this interface,
@@ -1070,7 +1071,7 @@ public class VerticalClassMerger {
           // method name that does not collide with one in the hierarchy of this class.
           MemberPool<DexMethod> methodPoolForTarget =
               methodPoolCollection.buildForHierarchy(target, executorService, timing);
-          resultingDirectMethod =
+          resultingMethod =
               renameMethod(
                   virtualMethod,
                   method ->
@@ -1079,26 +1080,32 @@ public class VerticalClassMerger {
                               MethodSignatureEquivalence.get().wrap(method)),
                   Rename.ALWAYS,
                   appView.dexItemFactory().prependHolderToProto(virtualMethod.getReference()));
-          makeStatic(resultingDirectMethod);
+          makeStatic(resultingMethod);
 
           // Update method pool collection now that we are adding a new public method.
-          methodPoolForTarget.seen(resultingDirectMethod.getReference());
+          methodPoolForTarget.seen(resultingMethod.getReference());
         } else {
           // This virtual method could be called directly from a sub class via an invoke-super in-
-          // struction. Therefore, we translate this virtual method into a direct method, such that
-          // relevant invoke-super instructions can be rewritten into invoke-direct instructions.
-          resultingDirectMethod =
-              renameMethod(virtualMethod, availableMethodSignatures, Rename.ALWAYS);
-          makePrivate(resultingDirectMethod);
+          // struction. Therefore, we translate this virtual method into an instance method with a
+          // unique name, such that relevant invoke-super instructions can be rewritten to target
+          // this method directly.
+          resultingMethod = renameMethod(virtualMethod, availableMethodSignatures, Rename.ALWAYS);
+          if (appView.options().getProguardConfiguration().isAccessModificationAllowed()) {
+            makePublic(resultingMethod);
+          } else {
+            makePrivate(resultingMethod);
+          }
         }
 
-        add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
+        add(
+            resultingMethod.belongsToDirectPool() ? directMethods : virtualMethods,
+            resultingMethod,
+            MethodSignatureEquivalence.get());
 
         // Record that invoke-super instructions in the target class should be redirected to the
         // newly created direct method.
-        redirectSuperCallsInTarget(
-            virtualMethod.getReference(), resultingDirectMethod.getReference());
-        blockRedirectionOfSuperCalls(resultingDirectMethod.getReference());
+        redirectSuperCallsInTarget(virtualMethod, resultingMethod);
+        blockRedirectionOfSuperCalls(resultingMethod.getReference());
 
         if (shadowedBy == null) {
           // In addition to the newly added direct method, create a virtual method such that we do
@@ -1106,15 +1113,14 @@ public class VerticalClassMerger {
           // Note that this method is added independently of whether it will actually be used. If
           // it turns out that the method is never used, it will be removed by the final round
           // of tree shaking.
-          shadowedBy = buildBridgeMethod(virtualMethod, resultingDirectMethod);
+          shadowedBy = buildBridgeMethod(virtualMethod, resultingMethod);
           deferredRenamings.recordCreationOfBridgeMethod(
               virtualMethod.getReference(), shadowedBy.getReference());
           add(virtualMethods, shadowedBy, MethodSignatureEquivalence.get());
         }
 
         deferredRenamings.map(virtualMethod.getReference(), shadowedBy.getReference());
-        deferredRenamings.recordMove(
-            virtualMethod.getReference(), resultingDirectMethod.getReference());
+        deferredRenamings.recordMove(virtualMethod.getReference(), resultingMethod.getReference());
       }
 
       if (abortMerge) {
@@ -1369,7 +1375,11 @@ public class VerticalClassMerger {
       return synthesizedBridges;
     }
 
-    private void redirectSuperCallsInTarget(DexMethod oldTarget, DexMethod newTarget) {
+    private void redirectSuperCallsInTarget(
+        DexEncodedMethod oldTarget, DexEncodedMethod newTarget) {
+      DexMethod oldTargetReference = oldTarget.getReference();
+      DexMethod newTargetReference = newTarget.getReference();
+      Type newTargetType = newTarget.isNonPrivateVirtualMethod() ? VIRTUAL : DIRECT;
       if (source.accessFlags.isInterface()) {
         // If we merge a default interface method from interface I to its subtype C, then we need
         // to rewrite invocations on the form "invoke-super I.m()" to "invoke-direct C.m$I()".
@@ -1379,21 +1389,23 @@ public class VerticalClassMerger {
         // if I has a supertype J. This is due to the fact that invoke-super instructions that
         // resolve to a method on an interface never hit an implementation below that interface.
         deferredRenamings.mapVirtualMethodToDirectInType(
-            oldTarget,
-            prototypeChanges -> new MethodLookupResult(newTarget, null, STATIC, prototypeChanges),
+            oldTargetReference,
+            prototypeChanges ->
+                new MethodLookupResult(newTargetReference, null, STATIC, prototypeChanges),
             target.type);
       } else {
         // If we merge class B into class C, and class C contains an invocation super.m(), then it
-        // is insufficient to rewrite "invoke-super B.m()" to "invoke-direct C.m$B()" (the method
-        // C.m$B denotes the direct method that has been created in C for B.m). In particular, there
-        // might be an instruction "invoke-super A.m()" in C that resolves to B.m at runtime (A is
-        // a superclass of B), which also needs to be rewritten to "invoke-direct C.m$B()".
+        // is insufficient to rewrite "invoke-super B.m()" to "invoke-{direct,virtual} C.m$B()" (the
+        // method C.m$B denotes the direct/virtual method that has been created in C for B.m). In
+        // particular, there might be an instruction "invoke-super A.m()" in C that resolves to B.m
+        // at runtime (A is a superclass of B), which also needs to be rewritten to
+        // "invoke-{direct,virtual} C.m$B()".
         //
         // We handle this by adding a mapping for [target] and all of its supertypes.
         DexProgramClass holder = target;
         while (holder != null && holder.isProgramClass()) {
           DexMethod signatureInHolder =
-              application.dexItemFactory.createMethod(holder.type, oldTarget.proto, oldTarget.name);
+              oldTargetReference.withHolder(holder, appView.dexItemFactory());
           // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
           boolean resolutionSucceeds =
               holder.lookupVirtualMethod(signatureInHolder) != null
@@ -1402,7 +1414,8 @@ public class VerticalClassMerger {
             deferredRenamings.mapVirtualMethodToDirectInType(
                 signatureInHolder,
                 prototypeChanges ->
-                    new MethodLookupResult(newTarget, null, DIRECT, prototypeChanges),
+                    new MethodLookupResult(
+                        newTargetReference, null, newTargetType, prototypeChanges),
                 target.type);
           } else {
             break;
@@ -1416,7 +1429,7 @@ public class VerticalClassMerger {
           Set<DexType> mergedTypes = mergedClasses.getKeys(holder.type);
           for (DexType type : mergedTypes) {
             DexMethod signatureInType =
-                application.dexItemFactory.createMethod(type, oldTarget.proto, oldTarget.name);
+                oldTargetReference.withHolder(type, appView.dexItemFactory());
             // Resolution would have succeeded if the method used to be in [type], or if one of
             // its super classes declared the method.
             boolean resolutionSucceededBeforeMerge =
@@ -1426,7 +1439,8 @@ public class VerticalClassMerger {
               deferredRenamings.mapVirtualMethodToDirectInType(
                   signatureInType,
                   prototypeChanges ->
-                      new MethodLookupResult(newTarget, null, DIRECT, prototypeChanges),
+                      new MethodLookupResult(
+                          newTargetReference, null, newTargetType, prototypeChanges),
                   target.type);
             }
           }
@@ -1469,13 +1483,17 @@ public class VerticalClassMerger {
       accessFlags.setSynthetic();
       accessFlags.unsetAbstract();
 
-      assert invocationTarget.isPrivateMethod() == !invocationTarget.isStatic();
+      assert invocationTarget.isStatic()
+          || invocationTarget.isNonPrivateVirtualMethod()
+          || invocationTarget.isNonStaticPrivateMethod();
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,
               appView.graphLens().getOriginalMethodSignature(method.getReference()),
               invocationTarget.getReference(),
-              invocationTarget.isPrivateMethod() ? DIRECT : STATIC,
+              invocationTarget.isStatic()
+                  ? STATIC
+                  : (invocationTarget.isNonPrivateVirtualMethod() ? VIRTUAL : DIRECT),
               target.isInterface());
 
       // Add the bridge to the list of synthesized bridges such that the method signatures will
@@ -1692,6 +1710,14 @@ public class VerticalClassMerger {
     method.accessFlags.unsetPublic();
     method.accessFlags.unsetProtected();
     method.accessFlags.setPrivate();
+  }
+
+  private static void makePublic(DexEncodedMethod method) {
+    MethodAccessFlags accessFlags = method.getAccessFlags();
+    assert !accessFlags.isAbstract();
+    accessFlags.unsetPrivate();
+    accessFlags.unsetProtected();
+    accessFlags.setPublic();
   }
 
   private static class VerticalClassMergerTreeFixer extends TreeFixerBase {
@@ -1979,7 +2005,7 @@ public class VerticalClassMerger {
         DexClass clazz = appInfo.definitionFor(newMethod.holder);
         if (clazz != null && !clazz.accessFlags.isInterface()) {
           assert appInfo.definitionFor(method.holder).accessFlags.isInterface();
-          methodLookupResultBuilder.setType(Type.VIRTUAL);
+          methodLookupResultBuilder.setType(VIRTUAL);
         }
       }
       return methodLookupResultBuilder.build();
@@ -2087,14 +2113,14 @@ public class VerticalClassMerger {
     @Override
     public void registerInvokeVirtual(DexMethod method) {
       MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), Type.VIRTUAL);
+          appView.graphLens().lookupMethod(method, getContext().getReference(), VIRTUAL);
       checkMethodReference(lookup.getReference(), OptionalBool.FALSE);
     }
 
     @Override
     public void registerInvokeDirect(DexMethod method) {
       MethodLookupResult lookup =
-          appView.graphLens().lookupMethod(method, getContext().getReference(), Type.DIRECT);
+          appView.graphLens().lookupMethod(method, getContext().getReference(), DIRECT);
       checkMethodReference(lookup.getReference(), OptionalBool.UNKNOWN);
     }
 
@@ -2255,7 +2281,7 @@ public class VerticalClassMerger {
       forwardSourceCodeBuilder
           .setReceiver(method.holder)
           .setOriginalMethod(originalMethod)
-          .setTargetReceiver(type == DIRECT ? method.holder : null)
+          .setTargetReceiver(type.isStatic() ? null : method.holder)
           .setTarget(invocationTarget)
           .setInvokeType(type)
           .setIsInterface(isInterface);
@@ -2270,11 +2296,12 @@ public class VerticalClassMerger {
           case DIRECT:
             registry.registerInvokeDirect(invocationTarget);
             break;
-
           case STATIC:
             registry.registerInvokeStatic(invocationTarget);
             break;
-
+          case VIRTUAL:
+            registry.registerInvokeVirtual(invocationTarget);
+            break;
           default:
             throw new Unreachable("Unexpected invocation type: " + type);
         }

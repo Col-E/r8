@@ -505,6 +505,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return !isPrivateMethod() && isVirtualMethod();
   }
 
+  public boolean isNonStaticPrivateMethod() {
+    checkIfObsolete();
+    return isInstance() && isPrivate();
+  }
+
   /**
    * Returns true if this method can be invoked via invoke-virtual, invoke-super or invoke-interface
    * and is non-abstract.
