@@ -23,4 +23,20 @@ public class MultiAPILevelLegacyDesugaredLibrarySpecification {
     this.libraryFlags = libraryFlags;
     this.programFlags = programFlags;
   }
+
+  public LegacyTopLevelFlags getTopLevelFlags() {
+    return topLevelFlags;
+  }
+
+  public Int2ObjectMap<LegacyRewritingFlags> getCommonFlags() {
+    return commonFlags;
+  }
+
+  public Int2ObjectMap<LegacyRewritingFlags> getLibraryFlags() {
+    return libraryFlags;
+  }
+
+  public Int2ObjectMap<LegacyRewritingFlags> getProgramFlags() {
+    return programFlags;
+  }
 }

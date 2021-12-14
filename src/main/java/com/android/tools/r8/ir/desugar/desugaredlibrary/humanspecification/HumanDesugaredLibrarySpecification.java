@@ -1,7 +1,7 @@
 // Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification;
+package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -9,37 +9,34 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Pair;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class LegacyDesugaredLibrarySpecification {
+public class HumanDesugaredLibrarySpecification {
 
   private final boolean libraryCompilation;
-  private final LegacyTopLevelFlags topLevelFlags;
-  private final LegacyRewritingFlags rewritingFlags;
+  private final HumanTopLevelFlags topLevelFlags;
+  private final HumanRewritingFlags rewritingFlags;
   private final PrefixRewritingMapper prefixRewritingMapper;
 
-  public static LegacyDesugaredLibrarySpecification withOnlyRewritePrefixForTesting(
+  public static HumanDesugaredLibrarySpecification withOnlyRewritePrefixForTesting(
       Map<String, String> prefix, InternalOptions options) {
-    return new LegacyDesugaredLibrarySpecification(
-        LegacyTopLevelFlags.empty(),
-        LegacyRewritingFlags.withOnlyRewritePrefixForTesting(prefix, options),
+    return new HumanDesugaredLibrarySpecification(
+        HumanTopLevelFlags.empty(),
+        HumanRewritingFlags.withOnlyRewritePrefixForTesting(prefix, options),
         true,
         options.itemFactory);
   }
 
-  public static LegacyDesugaredLibrarySpecification empty() {
-    return new LegacyDesugaredLibrarySpecification(
-        LegacyTopLevelFlags.empty(), LegacyRewritingFlags.empty(), false, null) {
+  public static HumanDesugaredLibrarySpecification empty() {
+    return new HumanDesugaredLibrarySpecification(
+        HumanTopLevelFlags.empty(), HumanRewritingFlags.empty(), false, null) {
 
       @Override
       public boolean isSupported(DexReference reference, AppView<?> appView) {
@@ -53,9 +50,9 @@ public class LegacyDesugaredLibrarySpecification {
     };
   }
 
-  public LegacyDesugaredLibrarySpecification(
-      LegacyTopLevelFlags topLevelFlags,
-      LegacyRewritingFlags rewritingFlags,
+  public HumanDesugaredLibrarySpecification(
+      HumanTopLevelFlags topLevelFlags,
+      HumanRewritingFlags rewritingFlags,
       boolean libraryCompilation,
       DexItemFactory factory) {
     this.libraryCompilation = libraryCompilation;
@@ -66,14 +63,6 @@ public class LegacyDesugaredLibrarySpecification {
             ? PrefixRewritingMapper.empty()
             : new DesugarPrefixRewritingMapper(
                 rewritingFlags.getRewritePrefix(), factory, libraryCompilation);
-  }
-
-  public LegacyTopLevelFlags getTopLevelFlags() {
-    return topLevelFlags;
-  }
-
-  public LegacyRewritingFlags getRewritingFlags() {
-    return rewritingFlags;
   }
 
   public boolean supportAllCallbacksFromLibrary() {
@@ -96,15 +85,12 @@ public class LegacyDesugaredLibrarySpecification {
     return topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
   }
 
-  // TODO(b/183918843): We are currently computing a new name for the class by replacing the
-  //  initial package prefix by the synthesized library class package prefix, it would be better
-  //  to make the rewriting explicit in the desugared library json file.
-  public String convertJavaNameToDesugaredLibrary(DexType type) {
-    String prefix =
-        DescriptorUtils.getJavaTypeFromBinaryName(getSynthesizedLibraryClassesPackagePrefix());
-    String interfaceType = type.toString();
-    int firstPackage = interfaceType.indexOf('.');
-    return prefix + interfaceType.substring(firstPackage + 1);
+  public HumanTopLevelFlags getTopLevelFlags() {
+    return topLevelFlags;
+  }
+
+  public HumanRewritingFlags getRewritingFlags() {
+    return rewritingFlags;
   }
 
   public String getIdentifier() {
@@ -129,14 +115,13 @@ public class LegacyDesugaredLibrarySpecification {
 
   // If the method is retargeted, answers the retargeted method, else null.
   public DexMethod retargetMethod(DexEncodedMethod method, AppView<?> appView) {
-    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-        rewritingFlags.getRetargetCoreLibMember();
-    Map<DexType, DexType> typeMap = retargetCoreLibMember.get(method.getName());
-    if (typeMap != null && typeMap.containsKey(method.getHolderType())) {
+    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetCoreLibMember();
+    DexType dexType = retargetCoreLibMember.get(method.getReference());
+    if (dexType != null) {
       return appView
           .dexItemFactory()
           .createMethod(
-              typeMap.get(method.getHolderType()),
+              dexType,
               appView.dexItemFactory().prependHolderToProto(method.getReference()),
               method.getName());
     }
@@ -147,7 +132,7 @@ public class LegacyDesugaredLibrarySpecification {
     return retargetMethod(method.getDefinition(), appView);
   }
 
-  public Map<DexString, Map<DexType, DexType>> getRetargetCoreLibMember() {
+  public Map<DexMethod, DexType> getRetargetCoreLibMember() {
     return rewritingFlags.getRetargetCoreLibMember();
   }
 
@@ -163,7 +148,7 @@ public class LegacyDesugaredLibrarySpecification {
     return rewritingFlags.getWrapperConversions();
   }
 
-  public List<Pair<DexType, DexString>> getDontRewriteInvocation() {
+  public Set<DexMethod> getDontRewriteInvocation() {
     return rewritingFlags.getDontRewriteInvocation();
   }
 
