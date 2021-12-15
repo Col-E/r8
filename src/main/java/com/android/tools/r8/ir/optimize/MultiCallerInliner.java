@@ -17,17 +17,16 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
-import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.inliner.multicallerinliner.MultiCallerInlinerCallGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.LazyBox;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodMultiset;
@@ -182,11 +181,8 @@ public class MultiCallerInliner {
   public void onLastWaveDone(
       PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
       throws ExecutionException {
-    CallGraph callGraph =
-        CallGraph.builder(appView)
-            .setCodeLens(appView.graphLens())
-            .setExcludeFieldReadWriteEdges()
-            .build(executorService, Timing.empty());
+    MultiCallerInlinerCallGraph callGraph =
+        MultiCallerInlinerCallGraph.builder(appView).build(executorService);
 
     // The multi inline callers are always rewritten up until the graph lens of the primary
     // optimization pass, so we can safely merge them into the methods to reprocess (which may be

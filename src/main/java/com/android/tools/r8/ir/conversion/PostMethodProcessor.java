@@ -38,9 +38,7 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
   private final Deque<ProgramMethodSet> waves;
   private final ProgramMethodSet processed = ProgramMethodSet.create();
 
-  private PostMethodProcessor(
-      AppView<AppInfoWithLiveness> appView,
-      CallGraph callGraph) {
+  private PostMethodProcessor(AppView<AppInfoWithLiveness> appView, CallGraph callGraph) {
     this.processorContext = appView.createProcessorContext();
     this.waves = createWaves(callGraph);
   }

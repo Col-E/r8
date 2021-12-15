@@ -47,9 +47,7 @@ public class PrimaryMethodProcessor extends MethodProcessorWithWave {
 
   private ProcessorContext processorContext;
 
-  private PrimaryMethodProcessor(
-      AppView<AppInfoWithLiveness> appView,
-      CallGraph callGraph) {
+  private PrimaryMethodProcessor(AppView<AppInfoWithLiveness> appView, CallGraph callGraph) {
     this.appView = appView;
     this.callSiteInformation = callGraph.createCallSiteInformation(appView);
     this.waves = createWaves(appView, callGraph);

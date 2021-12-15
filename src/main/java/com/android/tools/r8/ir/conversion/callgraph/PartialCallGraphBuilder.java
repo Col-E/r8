@@ -12,7 +12,7 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class PartialCallGraphBuilder extends CallGraphBuilderBase {
+public class PartialCallGraphBuilder extends IRProcessingCallGraphBuilderBase {
 
   private final ProgramMethodSet seeds;
 
@@ -28,8 +28,14 @@ public class PartialCallGraphBuilder extends CallGraphBuilderBase {
   }
 
   private void processMethod(ProgramMethod method) {
-    method.registerCodeReferences(
-        new InvokeExtractor(this, getOrCreateNode(method), seeds::contains));
+    IRProcessingCallGraphUseRegistry<Node> registry =
+        new IRProcessingCallGraphUseRegistry<>(
+            appView,
+            getOrCreateNode(method),
+            this::getOrCreateNode,
+            possibleProgramTargetsCache,
+            seeds::contains);
+    method.registerCodeReferences(registry);
   }
 
   @Override

@@ -9,14 +9,13 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-public class CallGraphBuilder extends CallGraphBuilderBase {
+public class CallGraphBuilder extends IRProcessingCallGraphBuilderBase {
 
   public CallGraphBuilder(AppView<AppInfoWithLiveness> appView) {
     super(appView);
@@ -32,19 +31,14 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
   }
 
   private void processMethod(ProgramMethod method) {
-    method.registerCodeReferences(new InvokeExtractor(this, getOrCreateNode(method), alwaysTrue()));
-  }
-
-  @Override
-  public CallGraphBuilder setCodeLens(GraphLens codeLens) {
-    super.setCodeLens(codeLens);
-    return this;
-  }
-
-  @Override
-  public CallGraphBuilder setExcludeFieldReadWriteEdges() {
-    super.setExcludeFieldReadWriteEdges();
-    return this;
+    IRProcessingCallGraphUseRegistry<Node> registry =
+        new IRProcessingCallGraphUseRegistry<>(
+            appView,
+            getOrCreateNode(method),
+            this::getOrCreateNode,
+            possibleProgramTargetsCache,
+            alwaysTrue());
+    method.registerCodeReferences(registry);
   }
 
   @Override

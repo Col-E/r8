@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion.callgraph;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.ir.conversion.callgraph.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -37,17 +36,16 @@ import java.util.stream.Collectors;
  *
  * <p>Recursive calls are not present.
  */
-public class CallGraph {
+public class CallGraph extends CallGraphBase<Node> {
 
-  final Map<DexMethod, Node> nodes;
-  final CycleEliminationResult cycleEliminationResult;
+  private final CycleEliminationResult cycleEliminationResult;
 
   CallGraph(Map<DexMethod, Node> nodes) {
     this(nodes, null);
   }
 
   CallGraph(Map<DexMethod, Node> nodes, CycleEliminationResult cycleEliminationResult) {
-    this.nodes = nodes;
+    super(nodes);
     this.cycleEliminationResult = cycleEliminationResult;
   }
 
@@ -68,10 +66,6 @@ public class CallGraph {
     return appView.options().isShrinking()
         ? new CallGraphBasedCallSiteInformation(appView, this)
         : CallSiteInformation.empty();
-  }
-
-  public boolean isEmpty() {
-    return nodes.isEmpty();
   }
 
   public ProgramMethodSet extractLeaves() {
@@ -97,13 +91,5 @@ public class CallGraph {
     removed.forEach(clean);
     assert !result.isEmpty();
     return result;
-  }
-
-  public Node getNode(ProgramMethod method) {
-    return nodes.get(method.getReference());
-  }
-
-  public Collection<Node> getNodes() {
-    return nodes.values();
   }
 }

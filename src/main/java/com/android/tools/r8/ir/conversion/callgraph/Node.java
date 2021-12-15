@@ -4,16 +4,14 @@
 
 package com.android.tools.r8.ir.conversion.callgraph;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Node implements Comparable<Node> {
+public class Node extends NodeBase<Node> implements Comparable<Node> {
 
   public static Node[] EMPTY_ARRAY = {};
 
-  private final ProgramMethod method;
   private int numberOfCallSites = 0;
 
   // Outgoing calls from this method.
@@ -31,13 +29,14 @@ public class Node implements Comparable<Node> {
   private final Set<Node> writers = new TreeSet<>();
 
   public Node(ProgramMethod method) {
-    this.method = method;
+    super(method);
   }
 
   public void addCallerConcurrently(Node caller) {
     addCallerConcurrently(caller, false);
   }
 
+  @Override
   public void addCallerConcurrently(Node caller, boolean likelySpuriousCallEdge) {
     if (caller != this && !likelySpuriousCallEdge) {
       boolean changedCallers;
@@ -59,6 +58,7 @@ public class Node implements Comparable<Node> {
     }
   }
 
+  @Override
   public void addReaderConcurrently(Node reader) {
     if (reader != this) {
       synchronized (callers) {
@@ -211,13 +211,5 @@ public class Node implements Comparable<Node> {
       }
     }
     return builder.toString();
-  }
-
-  public DexEncodedMethod getMethod() {
-    return method.getDefinition();
-  }
-
-  public ProgramMethod getProgramMethod() {
-    return method;
   }
 }
