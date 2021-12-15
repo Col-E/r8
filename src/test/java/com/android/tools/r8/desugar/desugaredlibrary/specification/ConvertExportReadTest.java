@@ -76,9 +76,12 @@ public class ConvertExportReadTest extends TestBase {
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1,
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec2) {
     assertTopLevelFlagsEquals(humanSpec1.getTopLevelFlags(), humanSpec2.getTopLevelFlags());
-    assertFlagMapEquals(humanSpec1.getCommonFlags(), humanSpec2.getCommonFlags());
-    assertFlagMapEquals(humanSpec1.getLibraryFlags(), humanSpec2.getLibraryFlags());
-    assertFlagMapEquals(humanSpec1.getProgramFlags(), humanSpec2.getProgramFlags());
+    assertFlagMapEquals(
+        humanSpec1.getCommonFlagsForTesting(), humanSpec2.getCommonFlagsForTesting());
+    assertFlagMapEquals(
+        humanSpec1.getLibraryFlagsForTesting(), humanSpec2.getLibraryFlagsForTesting());
+    assertFlagMapEquals(
+        humanSpec1.getProgramFlagsForTesting(), humanSpec2.getProgramFlagsForTesting());
   }
 
   private void assertFlagMapEquals(
