@@ -149,6 +149,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
   private StackMapStatus stackMapStatus = StackMapStatus.NOT_VERIFIED;
+  private final com.android.tools.r8.position.Position diagnosticPosition;
 
   public CfCode(
       DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
@@ -168,12 +169,31 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       List<CfInstruction> instructions,
       List<CfTryCatch> tryCatchRanges,
       List<LocalVariableInfo> localVariables) {
+    this(
+        originalHolder,
+        maxStack,
+        maxLocals,
+        instructions,
+        tryCatchRanges,
+        localVariables,
+        com.android.tools.r8.position.Position.UNKNOWN);
+  }
+
+  public CfCode(
+      DexType originalHolder,
+      int maxStack,
+      int maxLocals,
+      List<CfInstruction> instructions,
+      List<CfTryCatch> tryCatchRanges,
+      List<LocalVariableInfo> localVariables,
+      com.android.tools.r8.position.Position diagnosticPosition) {
     this.originalHolder = originalHolder;
     this.maxStack = maxStack;
     this.maxLocals = maxLocals;
     this.instructions = instructions;
     this.tryCatchRanges = tryCatchRanges;
     this.localVariables = localVariables;
+    this.diagnosticPosition = diagnosticPosition;
   }
 
   @Override
@@ -206,6 +226,10 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   public StackMapStatus getStackMapStatus() {
     assert stackMapStatus != StackMapStatus.NOT_VERIFIED;
     return stackMapStatus;
+  }
+
+  public com.android.tools.r8.position.Position getDiagnosticPosition() {
+    return diagnosticPosition;
   }
 
   public void setMaxLocals(int newMaxLocals) {

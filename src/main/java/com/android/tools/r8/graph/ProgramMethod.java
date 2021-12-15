@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
@@ -170,9 +169,5 @@ public final class ProgramMethod extends DexClassAndMethod
   @Override
   public KotlinMethodLevelInfo getKotlinInfo() {
     return getDefinition().getKotlinInfo();
-  }
-
-  public MethodPosition getPosition() {
-    return getDefinition().getPosition();
   }
 }

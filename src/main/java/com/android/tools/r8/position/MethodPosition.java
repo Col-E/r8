@@ -4,7 +4,9 @@
 package com.android.tools.r8.position;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import java.util.List;
@@ -15,14 +17,41 @@ import java.util.stream.Collectors;
 public class MethodPosition implements Position {
 
   private final MethodReference method;
+  private final Position textPosition;
 
   @Deprecated
   public MethodPosition(DexMethod method) {
     this(method.asMethodReference());
   }
 
+  @Deprecated
   public MethodPosition(MethodReference method) {
+    this(method, Position.UNKNOWN);
+  }
+
+  private MethodPosition(MethodReference method, Position textPosition) {
     this.method = method;
+    this.textPosition = textPosition;
+  }
+
+  public static MethodPosition create(ProgramMethod method) {
+    return create(method.getDefinition());
+  }
+
+  public static MethodPosition create(DexEncodedMethod method) {
+    Position position = UNKNOWN;
+    if (method.hasCode() && method.getCode().isCfCode()) {
+      position = method.getCode().asCfCode().getDiagnosticPosition();
+    }
+    return create(method.getReference().asMethodReference(), position);
+  }
+
+  public static MethodPosition create(MethodReference method) {
+    return new MethodPosition(method, Position.UNKNOWN);
+  }
+
+  public static MethodPosition create(MethodReference method, Position position) {
+    return new MethodPosition(method, position);
   }
 
   /** The method */
@@ -49,6 +78,10 @@ public class MethodPosition implements Position {
     return method.getFormalTypes().stream()
         .map(TypeReference::getDescriptor)
         .collect(Collectors.toList());
+  }
+
+  public Position getTextPosition() {
+    return textPosition;
   }
 
   @Override

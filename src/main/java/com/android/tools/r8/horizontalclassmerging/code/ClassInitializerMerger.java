@@ -42,7 +42,6 @@ import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -136,12 +135,7 @@ public class ClassInitializerMerger {
           SyntheticPosition.builder().setLine(0).setMethod(syntheticMethodReference).build();
       List<CfInstruction> instructions = buildInstructions(callerPosition);
       return new CfCode(
-          syntheticMethodReference.getHolderType(),
-          maxStack,
-          maxLocals,
-          instructions,
-          Collections.emptyList(),
-          Collections.emptyList());
+          syntheticMethodReference.getHolderType(), maxStack, maxLocals, instructions);
     }
 
     private List<CfInstruction> buildInstructions(Position callerPosition) {

@@ -128,13 +128,7 @@ public class GenerateLintFiles {
 
   private CfCode buildEmptyThrowingCfCode(DexMethod method) {
     CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
-    return new CfCode(
-        method.holder,
-        1,
-        method.proto.parameters.size() + 1,
-        Arrays.asList(insn),
-        Collections.emptyList(),
-        Collections.emptyList());
+    return new CfCode(method.holder, 1, method.proto.parameters.size() + 1, Arrays.asList(insn));
   }
 
   private void addMethodsToHeaderJar(

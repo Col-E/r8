@@ -40,7 +40,6 @@ import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.objectweb.asm.Opcodes;
@@ -271,13 +270,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
       int maxStack = 4;
       int maxLocals = 0;
-      return new CfCode(
-          sharedUtilityClassType,
-          maxStack,
-          maxLocals,
-          instructions,
-          Collections.emptyList(),
-          Collections.emptyList());
+      return new CfCode(sharedUtilityClassType, maxStack, maxLocals, instructions);
     }
 
     private DexEncodedMethod createValuesMethod(
@@ -325,9 +318,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
                   Opcodes.INVOKESTATIC, dexItemFactory.javaLangSystemMethods.arraycopy, false),
               // return result
               new CfLoad(ValueType.OBJECT, resultLocalSlot),
-              new CfReturn(ValueType.OBJECT)),
-          Collections.emptyList(),
-          Collections.emptyList());
+              new CfReturn(ValueType.OBJECT)));
     }
 
     private static DexProgramClass findDeterministicContextType(Set<DexProgramClass> contexts) {

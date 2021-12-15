@@ -62,6 +62,8 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.position.TextPosition;
+import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -368,6 +370,8 @@ public class LazyCfCode extends Code {
     private final LazyCfCode code;
     private final DexMethod method;
     private final Origin origin;
+    private int minLine = Integer.MAX_VALUE;
+    private int maxLine = -1;
 
     MethodCodeVisitor(
         JarApplicationReader application,
@@ -406,7 +410,7 @@ public class LazyCfCode extends Code {
         throw new CompilationError(
             "Absent Code attribute in method that is not native or abstract",
             origin,
-            new MethodPosition(method.asMethodReference()));
+            MethodPosition.create(method.asMethodReference(), getDiagnosticPosition()));
       }
       code.setCode(
           new CfCode(
@@ -415,7 +419,20 @@ public class LazyCfCode extends Code {
               maxLocals,
               instructions,
               tryCatchRanges,
-              localVariables));
+              localVariables,
+              getDiagnosticPosition()));
+    }
+
+    private com.android.tools.r8.position.Position getDiagnosticPosition() {
+      if (minLine == Integer.MAX_VALUE) {
+        return com.android.tools.r8.position.Position.UNKNOWN;
+      } else if (minLine == maxLine) {
+        return new TextPosition(0, minLine, TextPosition.UNKNOWN_COLUMN);
+      } else {
+        return new TextRange(
+            new TextPosition(0, minLine, TextPosition.UNKNOWN_COLUMN),
+            new TextPosition(0, maxLine, TextPosition.UNKNOWN_COLUMN));
+      }
     }
 
     @Override
@@ -1015,6 +1032,8 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitLineNumber(int line, Label start) {
+      minLine = Math.min(line, minLine);
+      maxLine = Math.max(line, maxLine);
       if (debugParsingOptions.lineInfo) {
         instructions.add(
             new CfPosition(

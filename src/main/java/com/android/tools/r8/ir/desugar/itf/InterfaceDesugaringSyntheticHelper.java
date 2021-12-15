@@ -481,9 +481,7 @@ public class InterfaceDesugaringSyntheticHelper {
                     ImmutableList.of(
                         new CfInitClass(iface.getType()),
                         new CfStackInstruction(Opcode.Pop),
-                        new CfReturnVoid()),
-                    ImmutableList.of(),
-                    ImmutableList.of());
+                        new CfReturnVoid()));
               }
               DexEncodedField clinitField =
                   ensureStaticClinitFieldToTriggerInterfaceInitialization(iface);
@@ -497,9 +495,7 @@ public class InterfaceDesugaringSyntheticHelper {
                       isWide
                           ? new CfStackInstruction(Opcode.Pop2)
                           : new CfStackInstruction(Opcode.Pop),
-                      new CfReturnVoid()),
-                  ImmutableList.of(),
-                  ImmutableList.of());
+                      new CfReturnVoid()));
             });
   }
 

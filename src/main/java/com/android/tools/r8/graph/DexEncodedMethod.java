@@ -65,7 +65,6 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
@@ -82,7 +81,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -963,9 +961,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         getReference().holder,
         1 + BooleanUtils.intValue(negate),
         getReference().getArity() + 1,
-        Arrays.asList(instructions),
-        Collections.emptyList(),
-        Collections.emptyList());
+        Arrays.asList(instructions));
   }
 
   public DexCode buildInstanceOfDexCode(DexType type, boolean negate) {
@@ -1083,13 +1079,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKESPECIAL, exceptionInitMethod, false))
         .add(new CfThrow());
-    return new CfCode(
-        getReference().holder,
-        3,
-        locals,
-        instructionBuilder.build(),
-        Collections.emptyList(),
-        Collections.emptyList());
+    return new CfCode(getReference().holder, 3, locals, instructionBuilder.build());
   }
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method) {
@@ -1244,10 +1234,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public String codeToString() {
     checkIfObsolete();
     return code == null ? "<no code>" : code.toString(this, null);
-  }
-
-  public MethodPosition getPosition() {
-    return new MethodPosition(getReference().asMethodReference());
   }
 
   @Override

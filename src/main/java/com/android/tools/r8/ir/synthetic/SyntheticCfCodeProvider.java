@@ -5,11 +5,9 @@
 package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexType;
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public abstract class SyntheticCfCodeProvider {
@@ -29,13 +27,7 @@ public abstract class SyntheticCfCodeProvider {
   public abstract CfCode generateCfCode();
 
   protected CfCode standardCfCodeFromInstructions(List<CfInstruction> instructions) {
-    return new CfCode(
-        holder,
-        defaultMaxStack(),
-        defaultMaxLocals(),
-        instructions,
-        defaultTryCatchs(),
-        ImmutableList.of());
+    return new CfCode(holder, defaultMaxStack(), defaultMaxLocals(), instructions);
   }
 
   protected int defaultMaxStack() {
@@ -44,9 +36,5 @@ public abstract class SyntheticCfCodeProvider {
 
   protected int defaultMaxLocals() {
     return 16;
-  }
-
-  protected List<CfTryCatch> defaultTryCatchs() {
-    return ImmutableList.of();
   }
 }

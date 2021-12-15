@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.desugar.nest.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.twr.TwrInstructionDesugaring;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
@@ -167,7 +168,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
               new StringDiagnostic(
                   "Unsupported attempt to desugar non-CF code",
                   method.getOrigin(),
-                  method.getPosition()));
+                  MethodPosition.create(method)));
     }
   }
 

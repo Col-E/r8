@@ -30,8 +30,6 @@ final class LambdaClassConstructorSourceCode {
             new CfStackInstruction(Opcode.Dup),
             new CfInvoke(Opcodes.INVOKESPECIAL, lambda.constructor, false),
             new CfStaticFieldWrite(lambda.lambdaField, lambda.lambdaField),
-            new CfReturnVoid()),
-        ImmutableList.of(),
-        ImmutableList.of());
+            new CfReturnVoid()));
   }
 }

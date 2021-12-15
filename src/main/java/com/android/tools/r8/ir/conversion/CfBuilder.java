@@ -371,13 +371,19 @@ public class CfBuilder {
         localVariablesTable.add(info);
       }
     }
+    com.android.tools.r8.position.Position diagnosticPosition =
+        com.android.tools.r8.position.Position.UNKNOWN;
+    if (method.getCode().isCfCode()) {
+      diagnosticPosition = method.getCode().asCfCode().getDiagnosticPosition();
+    }
     return new CfCode(
         method.getHolderType(),
         stackHeightTracker.maxHeight,
         registerAllocator.registersUsed(),
         instructions,
         tryCatchRanges,
-        localVariablesTable);
+        localVariablesTable,
+        diagnosticPosition);
   }
 
   private static boolean isNopInstruction(Instruction instruction, BasicBlock nextBlock) {

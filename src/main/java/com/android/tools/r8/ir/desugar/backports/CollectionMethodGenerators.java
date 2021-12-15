@@ -60,13 +60,7 @@ public final class CollectionMethodGenerators {
             false),
         new CfReturn(ValueType.OBJECT));
 
-    return new CfCode(
-        method.holder,
-        4,
-        formalCount,
-        builder.build(),
-        ImmutableList.of(),
-        ImmutableList.of());
+    return new CfCode(method.holder, 4, formalCount, builder.build());
   }
 
   public static CfCode generateMapOf(
@@ -111,12 +105,6 @@ public final class CollectionMethodGenerators {
             false),
         new CfReturn(ValueType.OBJECT));
 
-    return new CfCode(
-        method.holder,
-        7,
-        formalCount * 2,
-        builder.build(),
-        ImmutableList.of(),
-        ImmutableList.of());
+    return new CfCode(method.holder, 7, formalCount * 2, builder.build());
   }
 }
