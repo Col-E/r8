@@ -1536,10 +1536,10 @@ public class IRConverter {
 
     if (methodProcessor.isPrimaryMethodProcessor()) {
       enumUnboxer.analyzeEnums(code, conversionOptions);
-      if (inliner != null) {
-        inliner.recordCallEdgesForMultiCallerInlining(
-            method, code, methodProcessor.asPrimaryMethodProcessor());
-      }
+    }
+
+    if (inliner != null) {
+      inliner.recordCallEdgesForMultiCallerInlining(method, code, methodProcessor);
     }
 
     if (libraryMethodOverrideAnalysis != null) {

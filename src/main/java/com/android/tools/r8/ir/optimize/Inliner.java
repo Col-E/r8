@@ -51,7 +51,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
-import com.android.tools.r8.ir.conversion.PrimaryMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
@@ -176,7 +175,7 @@ public class Inliner {
   }
 
   public void recordCallEdgesForMultiCallerInlining(
-      ProgramMethod method, IRCode code, PrimaryMethodProcessor methodProcessor) {
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
     multiCallerInliner.recordCallEdgesForMultiCallerInlining(method, code, methodProcessor);
   }
 
@@ -486,7 +485,9 @@ public class Inliner {
     FORCE,         // Inlinee is marked for forced inlining (bridge method or renamed constructor).
     ALWAYS,        // Inlinee is marked for inlining due to alwaysinline directive.
     SINGLE_CALLER, // Inlinee has precisely one caller.
-    MULTI_CALLER_CANDIDATE, // Inlinee has multiple callers and should not be inlined.
+    // Inlinee has multiple callers and should not be inlined. Only used during the primary
+    // optimization pass.
+    MULTI_CALLER_CANDIDATE,
     SIMPLE,        // Inlinee has simple code suitable for inlining.
     NEVER;         // Inlinee must not be inlined.
 

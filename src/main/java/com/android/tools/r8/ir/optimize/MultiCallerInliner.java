@@ -16,8 +16,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.CallGraph;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
-import com.android.tools.r8.ir.conversion.PrimaryMethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -57,7 +57,11 @@ public class MultiCallerInliner {
   }
 
   void recordCallEdgesForMultiCallerInlining(
-      ProgramMethod method, IRCode code, PrimaryMethodProcessor methodProcessor) {
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
+    if (!methodProcessor.isPrimaryMethodProcessor()) {
+      return;
+    }
+
     LazyBox<DefaultInliningOracle> lazyOracle =
         new LazyBox<>(
             () -> {
@@ -117,30 +121,51 @@ public class MultiCallerInliner {
   }
 
   void recordCallEdgeForMultiCallerInlining(
-      ProgramMethod method, ProgramMethod singleTarget, PrimaryMethodProcessor methodProcessor) {
+      ProgramMethod method, ProgramMethod singleTarget, MethodProcessor methodProcessor) {
     Optional<ProgramMethodMultiset> value =
         multiInlineCallEdges.computeIfAbsent(
             singleTarget, ignoreKey(() -> Optional.of(ProgramMethodMultiset.createConcurrent())));
+
+    // If we are not tracking the callers for the single target, then just return. In this case, we
+    // have previously found that the single target is ineligible for multi caller inlining.
     if (!value.isPresent()) {
       return;
     }
 
+    // Record that we have seen a call site that dispatched to the single target which is eligible
+    // for inlining.
     ProgramMethodMultiset callers = value.get();
     callers.add(method);
 
-    if (callers.size() <= multiCallerInliningInstructionLimits.length) {
-      return;
+    // We track up to n call sites, where n is the size of multiCallerInliningInstructionLimits.
+    if (callers.size() > multiCallerInliningInstructionLimits.length) {
+      stopTrackingCallSitesForMethodIfDefinitelyIneligibleForMultiCallerInlining(
+          method, singleTarget, methodProcessor, callers);
     }
+  }
 
+  private void stopTrackingCallSitesForMethodIfDefinitelyIneligibleForMultiCallerInlining(
+      ProgramMethod method,
+      ProgramMethod singleTarget,
+      MethodProcessor methodProcessor,
+      ProgramMethodMultiset callers) {
+    // First remove the call sites that no longer exist due to single caller inlining.
     callers.removeIf(caller -> caller.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite());
 
+    // Then compute the minimum number of call sites that are guaranteed to be present at the end
+    // of the primary optimization pass.
     IntBox minimumCallers = new IntBox();
     callers.forEachEntry(
         (caller, calls) -> {
+          // If these call sites are inside a method that has a single caller, then the call sites
+          // could potentially disappear as a result of single caller inlining, so don't include
+          // them.
           if (!methodProcessor.getCallSiteInformation().hasSingleCallSite(caller)) {
             minimumCallers.increment(calls);
           }
         });
+
+    // If the threshold is definitely exceeded, then mark as ineligible for multi caller inlining.
     if (minimumCallers.get() > multiCallerInliningInstructionLimits.length) {
       stopTrackingCallSitesForMethod(singleTarget);
     }
