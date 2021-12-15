@@ -176,14 +176,17 @@ public class HumanRewritingFlags {
       this.retargetCoreLibMember = new IdentityHashMap<>(retargetCoreLibMember);
       this.backportCoreLibraryMember = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
-      this.dontRewriteInvocation = dontRewriteInvocation;
-      this.dontRetargetLibMember = dontRetargetLibMember;
-      this.wrapperConversions = wrapperConversions;
+      this.dontRewriteInvocation = Sets.newIdentityHashSet();
+      this.dontRewriteInvocation.addAll(dontRewriteInvocation);
+      this.dontRetargetLibMember = Sets.newIdentityHashSet();
+      this.dontRetargetLibMember.addAll(dontRetargetLibMember);
+      this.wrapperConversions = Sets.newIdentityHashSet();
+      this.wrapperConversions.addAll(wrapperConversions);
     }
 
-    // Utility to set values. Currently assumes the key is fresh.
+    // Utility to set values.
     private <K, V> void put(Map<K, V> map, K key, V value, String desc) {
-      if (map.containsKey(key)) {
+      if (map.containsKey(key) && !map.get(key).equals(value)) {
         throw reporter.fatalError(
             new StringDiagnostic(
                 "Invalid desugared library configuration. "

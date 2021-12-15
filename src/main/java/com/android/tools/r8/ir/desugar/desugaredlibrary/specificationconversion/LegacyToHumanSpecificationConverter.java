@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Human
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
@@ -55,6 +56,8 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
             .parseMultiLevelConfiguration(inputSpecification);
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
         convertAllAPILevels(legacySpec, androidLib, options);
+    MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator.deduplicateFlags(
+        humanSpec, options.dexItemFactory(), options.reporter);
     MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter.export(humanSpec, output);
   }
 
@@ -94,7 +97,8 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
 
   private void legacyLibraryFlagHacks(
       Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app) {
-    HumanRewritingFlags humanRewritingFlags = libraryFlags.get(AndroidApiLevel.N_MR1.getLevel());
+    int level = AndroidApiLevel.N_MR1.getLevel();
+    HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
     HumanRewritingFlags.Builder builder =
         humanRewritingFlags.newBuilder(
             app.dexItemFactory(), app.options.reporter, Origin.unknown());
@@ -122,7 +126,7 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
     target = itemFactory.createType("Ljava/util/DesugarTimeZone;");
     builder.putRetargetCoreLibMember(source, target);
 
-    libraryFlags.put(25, builder.build());
+    libraryFlags.put(level, builder.build());
   }
 
   private DirectMappedDexApplication readApp(Path androidLib, InternalOptions options)

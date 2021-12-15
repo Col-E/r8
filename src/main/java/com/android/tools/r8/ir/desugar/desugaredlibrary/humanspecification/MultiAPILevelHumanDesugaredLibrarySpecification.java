@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
+import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.Map;
 
@@ -51,5 +52,10 @@ public class MultiAPILevelHumanDesugaredLibrarySpecification {
 
   public Map<Integer, HumanRewritingFlags> getProgramFlagsForTesting() {
     return programFlags;
+  }
+
+  public Origin getOrigin() {
+    // TODO(b/184026720): Maintain the origin.
+    return Origin.unknown();
   }
 }
