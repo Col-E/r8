@@ -130,6 +130,10 @@ public class KotlinCompilerTool {
       return compilerVersion == version;
     }
 
+    public boolean isOneOf(KotlinCompilerVersion... versions) {
+      return Arrays.stream(versions).anyMatch(this::is);
+    }
+
     public boolean isNot(KotlinCompilerVersion version) {
       return !is(version);
     }
