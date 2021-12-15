@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestCompilerBuilder;
@@ -20,12 +23,15 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public abstract class ApiModelingTestHelper {
 
@@ -221,6 +227,41 @@ public abstract class ApiModelingTestHelper {
         MethodSubject target = inspector.method(method);
         assertThat(target, isPresent());
         assertThat(target, not(CodeMatchers.invokesMethod(candidate)));
+      };
+    }
+
+    ThrowingConsumer<CodeInspector, Exception> isOutlinedFromUntil(
+        Method method, AndroidApiLevel apiLevel) {
+      return parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)
+          ? isOutlinedFrom(method)
+          : isNotOutlinedFrom(method);
+    }
+
+    ThrowingConsumer<CodeInspector, Exception> isOutlinedFrom(Method method) {
+      return inspector -> {
+        // Check that the call is in a synthetic class.
+        List<FoundMethodSubject> outlinedMethod =
+            inspector.allClasses().stream()
+                .flatMap(clazz -> clazz.allMethods().stream())
+                .filter(
+                    methodSubject ->
+                        methodSubject.isSynthetic()
+                            && invokesMethodWithName(methodOfInterest.getMethodName())
+                                .matches(methodSubject))
+                .collect(Collectors.toList());
+        assertEquals(1, outlinedMethod.size());
+        // Assert that method invokes the outline
+        MethodSubject caller = inspector.method(method);
+        assertThat(caller, isPresent());
+        assertThat(caller, invokesMethod(outlinedMethod.get(0)));
+      };
+    }
+
+    ThrowingConsumer<CodeInspector, Exception> isNotOutlinedFrom(Method method) {
+      return inspector -> {
+        MethodSubject caller = inspector.method(method);
+        assertThat(caller, isPresent());
+        assertThat(caller, invokesMethodWithName(methodOfInterest.getMethodName()));
       };
     }
   }
