@@ -94,14 +94,15 @@ class IdentifierMinifier {
           cnst.BBBB = getRenamedStringLiteral(cnst.getString());
         }
       }
-    } else {
-      assert code.isCfCode();
+    } else if (code.isCfCode()) {
       for (CfInstruction instruction : code.asCfCode().getInstructions()) {
         if (instruction.isConstString()) {
           CfConstString cnst = instruction.asConstString();
           cnst.setString(getRenamedStringLiteral(cnst.getString()));
         }
       }
+    } else {
+      assert code.isCfWritableCode() || code.isDexWritableCode();
     }
   }
 
