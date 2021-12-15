@@ -55,7 +55,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (computedApiLevel.isGreaterThan(appView.computedMinApiLevel())) {
       return desugarLibraryCall(
           methodProcessingContext.createUniqueContext(),
-          instruction,
+          instruction.asInvoke(),
           computedApiLevel,
           dexItemFactory);
     }
@@ -107,11 +107,12 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
   private Collection<CfInstruction> desugarLibraryCall(
       UniqueContext context,
-      CfInstruction instruction,
+      CfInvoke invoke,
       ComputedApiLevel computedApiLevel,
       DexItemFactory factory) {
-    DexMethod method = instruction.asInvoke().getMethod();
-    ProgramMethod programMethod = ensureOutlineMethod(context, method, computedApiLevel, factory);
+    DexMethod method = invoke.getMethod();
+    ProgramMethod programMethod =
+        ensureOutlineMethod(context, method, computedApiLevel, factory, invoke);
     return ImmutableList.of(new CfInvoke(INVOKESTATIC, programMethod.getReference(), false));
   }
 
@@ -119,12 +120,13 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       UniqueContext context,
       DexMethod apiMethod,
       ComputedApiLevel apiLevel,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      CfInvoke invoke) {
     DexClass libraryHolder = appView.definitionFor(apiMethod.getHolderType());
     assert libraryHolder != null;
-    DexEncodedMethod libraryApiMethodDefinition = libraryHolder.lookupMethod(apiMethod);
-    DexProto proto =
-        factory.prependHolderToProtoIf(apiMethod, libraryApiMethodDefinition.isVirtualMethod());
+    boolean isVirtualMethod = invoke.isInvokeVirtual() || invoke.isInvokeInterface();
+    assert verifyLibraryHolderAndInvoke(libraryHolder, apiMethod, isVirtualMethod);
+    DexProto proto = factory.prependHolderToProtoIf(apiMethod, isVirtualMethod);
     return appView
         .getSyntheticItems()
         .createMethod(
@@ -145,18 +147,25 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
                   .setApiLevelForCode(apiLevel)
                   .setCode(
                       m -> {
-                        if (libraryApiMethodDefinition.isStatic()) {
-                          return ForwardMethodBuilder.builder(factory)
-                              .setStaticTarget(apiMethod, libraryHolder.isInterface())
-                              .setStaticSource(apiMethod)
-                              .build();
-                        } else {
+                        if (isVirtualMethod) {
                           return ForwardMethodBuilder.builder(factory)
                               .setVirtualTarget(apiMethod, libraryHolder.isInterface())
                               .setNonStaticSource(apiMethod)
                               .build();
+                        } else {
+                          return ForwardMethodBuilder.builder(factory)
+                              .setStaticTarget(apiMethod, libraryHolder.isInterface())
+                              .setStaticSource(apiMethod)
+                              .build();
                         }
                       });
             });
+  }
+
+  private boolean verifyLibraryHolderAndInvoke(
+      DexClass libraryHolder, DexMethod apiMethod, boolean isVirtualInvoke) {
+    DexEncodedMethod libraryApiMethodDefinition = libraryHolder.lookupMethod(apiMethod);
+    return libraryApiMethodDefinition == null
+        || libraryApiMethodDefinition.isVirtualMethod() == isVirtualInvoke;
   }
 }
