@@ -175,8 +175,8 @@ public class Inliner {
   }
 
   public void recordCallEdgesForMultiCallerInlining(
-      ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
-    multiCallerInliner.recordCallEdgesForMultiCallerInlining(method, code, methodProcessor);
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor, Timing timing) {
+    multiCallerInliner.recordCallEdgesForMultiCallerInlining(method, code, methodProcessor, timing);
   }
 
   /**
@@ -1269,7 +1269,9 @@ public class Inliner {
   }
 
   public void onLastWaveDone(
-      PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
     postMethodProcessorBuilder
         .getMethodsToReprocessBuilder()
@@ -1281,7 +1283,7 @@ public class Inliner {
                     appView,
                     method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()));
     singleInlineCallers.clear();
-    multiCallerInliner.onLastWaveDone(postMethodProcessorBuilder, executorService);
+    multiCallerInliner.onLastWaveDone(postMethodProcessorBuilder, executorService, timing);
   }
 
   public static boolean verifyAllSingleCallerMethodsHaveBeenPruned(

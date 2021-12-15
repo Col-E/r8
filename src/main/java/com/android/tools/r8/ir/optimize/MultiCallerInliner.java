@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.optimize.inliner.multicallerinliner.MultiCallerIn
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.LazyBox;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodMultiset;
@@ -56,11 +57,18 @@ public class MultiCallerInliner {
   }
 
   void recordCallEdgesForMultiCallerInlining(
-      ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor, Timing timing) {
     if (!methodProcessor.isPrimaryMethodProcessor()) {
       return;
     }
 
+    timing.time(
+        "Multi caller inliner: Record call edges",
+        () -> recordCallEdgesForMultiCallerInlining(method, code, methodProcessor));
+  }
+
+  private void recordCallEdgesForMultiCallerInlining(
+      ProgramMethod method, IRCode code, MethodProcessor methodProcessor) {
     LazyBox<DefaultInliningOracle> lazyOracle =
         new LazyBox<>(
             () -> {
@@ -179,11 +187,26 @@ public class MultiCallerInliner {
   }
 
   public void onLastWaveDone(
-      PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
+    timing.begin("Multi caller inliner");
     MultiCallerInlinerCallGraph callGraph =
-        MultiCallerInlinerCallGraph.builder(appView).build(executorService);
+        timing.time(
+            "Call graph construction",
+            () -> MultiCallerInlinerCallGraph.builder(appView).build(executorService));
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> multiInlineCallers =
+        timing.time("Needs inlining analysis", () -> computeMultiInlineCallerMethods(callGraph));
+    postMethodProcessorBuilder
+        .getMethodsToReprocessBuilder()
+        .rewrittenWithLens(appView)
+        .merge(multiInlineCallers);
+    timing.end();
+  }
 
+  private LongLivedProgramMethodSetBuilder<ProgramMethodSet> computeMultiInlineCallerMethods(
+      MultiCallerInlinerCallGraph callGraph) {
     // The multi inline callers are always rewritten up until the graph lens of the primary
     // optimization pass, so we can safely merge them into the methods to reprocess (which may be
     // rewritten with a newer graph lens).
@@ -243,11 +266,7 @@ public class MultiCallerInliner {
               });
           getSimpleFeedback().setMultiCallerMethod(singleTarget);
         });
-
-    postMethodProcessorBuilder
-        .getMethodsToReprocessBuilder()
-        .rewrittenWithLens(appView)
-        .merge(multiInlineCallers);
     multiInlineCallEdges.clear();
+    return multiInlineCallers;
   }
 }

@@ -21,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
-import java.util.function.Supplier;
 
 public class Timing {
 
@@ -380,7 +379,7 @@ public class Timing {
     }
   }
 
-  public <T> T time(String title, Supplier<T> supplier) {
+  public <T, E extends Exception> T time(String title, ThrowingSupplier<T, E> supplier) throws E {
     begin(title);
     try {
       return supplier.get();

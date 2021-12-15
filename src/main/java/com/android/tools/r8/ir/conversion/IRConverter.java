@@ -850,7 +850,7 @@ public class IRConverter {
       PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
       throws ExecutionException {
     if (inliner != null) {
-      inliner.onLastWaveDone(postMethodProcessorBuilder, executorService);
+      inliner.onLastWaveDone(postMethodProcessorBuilder, executorService, timing);
     }
   }
 
@@ -1539,7 +1539,7 @@ public class IRConverter {
     }
 
     if (inliner != null) {
-      inliner.recordCallEdgesForMultiCallerInlining(method, code, methodProcessor);
+      inliner.recordCallEdgesForMultiCallerInlining(method, code, methodProcessor, timing);
     }
 
     if (libraryMethodOverrideAnalysis != null) {
