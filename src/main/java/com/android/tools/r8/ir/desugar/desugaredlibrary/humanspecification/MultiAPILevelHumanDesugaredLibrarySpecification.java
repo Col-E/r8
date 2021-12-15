@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import java.util.Map;
 
 public class MultiAPILevelHumanDesugaredLibrarySpecification {
 
@@ -38,18 +37,6 @@ public class MultiAPILevelHumanDesugaredLibrarySpecification {
   }
 
   public Int2ObjectMap<HumanRewritingFlags> getProgramFlags() {
-    return programFlags;
-  }
-
-  public Map<Integer, HumanRewritingFlags> getCommonFlagsForTesting() {
-    return commonFlags;
-  }
-
-  public Map<Integer, HumanRewritingFlags> getLibraryFlagsForTesting() {
-    return libraryFlags;
-  }
-
-  public Map<Integer, HumanRewritingFlags> getProgramFlagsForTesting() {
     return programFlags;
   }
 }

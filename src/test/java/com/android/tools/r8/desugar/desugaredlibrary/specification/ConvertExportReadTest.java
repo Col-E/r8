@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.IOException;
 import java.util.Map;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,6 +46,8 @@ public class ConvertExportReadTest extends TestBase {
 
   @Test
   public void testMultiLevel() throws IOException {
+    Assume.assumeTrue(ToolHelper.isLocalDevelopment());
+
     LegacyToHumanSpecificationConverter converter = new LegacyToHumanSpecificationConverter();
 
     InternalOptions options = new InternalOptions();
@@ -73,12 +76,9 @@ public class ConvertExportReadTest extends TestBase {
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1,
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec2) {
     assertTopLevelFlagsEquals(humanSpec1.getTopLevelFlags(), humanSpec2.getTopLevelFlags());
-    assertFlagMapEquals(
-        humanSpec1.getCommonFlagsForTesting(), humanSpec2.getCommonFlagsForTesting());
-    assertFlagMapEquals(
-        humanSpec1.getLibraryFlagsForTesting(), humanSpec2.getLibraryFlagsForTesting());
-    assertFlagMapEquals(
-        humanSpec1.getProgramFlagsForTesting(), humanSpec2.getProgramFlagsForTesting());
+    assertFlagMapEquals(humanSpec1.getCommonFlags(), humanSpec2.getCommonFlags());
+    assertFlagMapEquals(humanSpec1.getLibraryFlags(), humanSpec2.getLibraryFlags());
+    assertFlagMapEquals(humanSpec1.getProgramFlags(), humanSpec2.getProgramFlags());
   }
 
   private void assertFlagMapEquals(
