@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -79,6 +80,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class Inliner {
 
@@ -1077,7 +1079,7 @@ public class Inliner {
           }
 
           classInitializationAnalysis.notifyCodeHasChanged();
-          postProcessInlineeBlocks(code, inlinee.code, blockIterator, block, timing);
+          postProcessInlineeBlocks(code, blockIterator, block, blocksToRemove, timing);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
           if (context.getDefinition().isBridge() && !inlinee.code.method().isBridge()) {
@@ -1180,33 +1182,38 @@ public class Inliner {
   /** Applies member rebinding to the inlinee and inserts assume instructions. */
   private void postProcessInlineeBlocks(
       IRCode code,
-      IRCode inlinee,
       BasicBlockIterator blockIterator,
       BasicBlock block,
+      Set<BasicBlock> blocksToRemove,
       Timing timing) {
     BasicBlock state = IteratorUtils.peekNext(blockIterator);
 
-    Set<BasicBlock> inlineeBlocks = SetUtils.newIdentityHashSet(inlinee.blocks);
+    Set<BasicBlock> inlineeBlocks = Sets.newIdentityHashSet();
 
     // Run member value propagation on the inlinee blocks.
-    rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
-    applyMemberValuePropagationToInlinee(code, blockIterator, block, inlineeBlocks);
+    rewindBlockIterator(
+        blockIterator,
+        block,
+        inlineeBlock -> {
+          if (!blocksToRemove.contains(inlineeBlock)) {
+            inlineeBlocks.add(inlineeBlock);
+          }
+        });
+    applyMemberValuePropagationToInlinee(code, blockIterator, inlineeBlocks);
 
     // Add non-null IRs only to the inlinee blocks.
-    insertAssumeInstructions(code, blockIterator, block, inlineeBlocks, timing);
+    rewindBlockIterator(blockIterator, block);
+    insertAssumeInstructions(code, blockIterator, inlineeBlocks, timing);
 
     // Restore the old state of the iterator.
-    rewindBlockIteratorToFirstInlineeBlock(blockIterator, state);
-    // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
+    rewindBlockIterator(blockIterator, state);
   }
 
   private void insertAssumeInstructions(
       IRCode code,
       BasicBlockIterator blockIterator,
-      BasicBlock block,
       Set<BasicBlock> inlineeBlocks,
       Timing timing) {
-    rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
     new AssumeInserter(appView)
         .insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains, timing);
     assert !blockIterator.hasNext();
@@ -1215,9 +1222,7 @@ public class Inliner {
   private void applyMemberValuePropagationToInlinee(
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
-      BasicBlock block,
       Set<BasicBlock> inlineeBlocks) {
-    assert IteratorUtils.peekNext(blockIterator) == block;
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     new MemberValuePropagation(appView)
         .run(code, blockIterator, affectedValues, inlineeBlocks::contains);
@@ -1227,13 +1232,23 @@ public class Inliner {
     assert !blockIterator.hasNext();
   }
 
-  private void rewindBlockIteratorToFirstInlineeBlock(
-      ListIterator<BasicBlock> blockIterator, BasicBlock firstInlineeBlock) {
+  private void rewindBlockIterator(ListIterator<BasicBlock> blockIterator, BasicBlock callerBlock) {
+    rewindBlockIterator(blockIterator, callerBlock, ConsumerUtils.emptyConsumer());
+  }
+
+  private void rewindBlockIterator(
+      ListIterator<BasicBlock> blockIterator,
+      BasicBlock callerBlock,
+      Consumer<BasicBlock> consumer) {
     // Move the cursor back to where the first inlinee block was added.
-    while (blockIterator.hasPrevious() && blockIterator.previous() != firstInlineeBlock) {
-      // Do nothing.
+    while (blockIterator.hasPrevious()) {
+      BasicBlock previous = blockIterator.previous();
+      if (previous == callerBlock) {
+        break;
+      }
+      consumer.accept(previous);
     }
-    assert IteratorUtils.peekNext(blockIterator) == firstInlineeBlock;
+    assert IteratorUtils.peekNext(blockIterator) == callerBlock;
   }
 
   public void enqueueMethodForReprocessing(ProgramMethod method) {
