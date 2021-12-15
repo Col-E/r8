@@ -70,17 +70,10 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
         .assertSuccessWithOutputLinesIf(libraryClassNotStubbed, "LibraryClass::foo")
         .assertSuccessWithOutputLinesIf(!libraryClassNotStubbed, "Hello World")
         .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(libraryClassLevel))
-        // TODO(b/210823526): We should always outline the call if min-api < libraryMethodLevel
-        .applyIf(
-            libraryClassNotStubbed && parameters.getApiLevel().isLessThan(libraryMethodLevel),
-            b ->
-                b.inspect(
-                    verifyThat(parameters, apiMethod)
-                        .isOutlinedFrom(Main.class.getDeclaredMethod("main", String[].class))),
-            b ->
-                b.inspect(
-                    verifyThat(parameters, apiMethod)
-                        .isNotOutlinedFrom(Main.class.getDeclaredMethod("main", String[].class))));
+        .inspect(
+            verifyThat(parameters, apiMethod)
+                .isOutlinedFromUntil(
+                    Main.class.getDeclaredMethod("main", String[].class), libraryMethodLevel));
   }
 
   // Only present from api level 23.

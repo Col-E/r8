@@ -31,6 +31,10 @@ import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 
+/**
+ * This desugaring will outline calls to library methods that are introduced after the min-api
+ * level. For classes introduced after the min-api level see ApiReferenceStubber.
+ */
 public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
   private final AppView<?> appView;
@@ -92,14 +96,6 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
         apiLevelCompute.computeApiLevelForLibraryReference(
             cfInvoke.getMethod(), ComputedApiLevel.unknown());
     if (apiLevel.isGreaterThan(appView.computedMinApiLevel())) {
-      ComputedApiLevel holderApiLevel =
-          apiLevelCompute.computeApiLevelForLibraryReference(
-              holderType, ComputedApiLevel.unknown());
-      if (holderApiLevel.isGreaterThan(appView.computedMinApiLevel())) {
-        // Do not outline where the holder is unknown or introduced later then min api.
-        // TODO(b/208978971): Describe where mocking is done when landing.
-        return appView.computedMinApiLevel();
-      }
       return apiLevel;
     }
     return appView.computedMinApiLevel();
