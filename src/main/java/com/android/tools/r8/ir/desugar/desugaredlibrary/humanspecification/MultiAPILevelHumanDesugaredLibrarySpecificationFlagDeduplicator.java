@@ -38,15 +38,15 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     apis.addAll(specification.getProgramFlags().keySet());
 
     for (Integer api : apis) {
-      deduplicateFlags(api, specification, factory, reporter);
+      deduplicateFlags(specification, factory, reporter, api);
     }
   }
 
   private static void deduplicateFlags(
-      int api,
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
       DexItemFactory factory,
-      Reporter reporter) {
+      Reporter reporter,
+      int api) {
 
     Int2ObjectMap<HumanRewritingFlags> commonFlags = specification.getCommonFlags();
     Int2ObjectMap<HumanRewritingFlags> libraryFlags = specification.getLibraryFlags();
