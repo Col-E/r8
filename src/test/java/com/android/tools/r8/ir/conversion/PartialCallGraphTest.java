@@ -15,7 +15,10 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
+import com.android.tools.r8.ir.conversion.callgraph.CallGraphBuilder;
+import com.android.tools.r8.ir.conversion.callgraph.Node;
+import com.android.tools.r8.ir.conversion.callgraph.PartialCallGraphBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.utils.AndroidApp;
@@ -85,7 +88,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(m1.getMethod()));
-    assertTrue(cg.nodes.isEmpty());
+    assertTrue(cg.isEmpty());
   }
 
   @Test
@@ -132,7 +135,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     wave.addAll(pg.extractRoots().toDefinitionSet());
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(m4.getMethod()));
-    assertTrue(pg.nodes.isEmpty());
+    assertTrue(pg.isEmpty());
   }
 
   private Node findNode(Iterable<Node> nodes, String name) {

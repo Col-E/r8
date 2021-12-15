@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 
 public abstract class MethodProcessorWithWave extends MethodProcessor {

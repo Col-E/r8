@@ -1,7 +1,8 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.conversion;
+
+package com.android.tools.r8.ir.conversion.callgraph;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -15,7 +16,7 @@ public class PartialCallGraphBuilder extends CallGraphBuilderBase {
 
   private final ProgramMethodSet seeds;
 
-  PartialCallGraphBuilder(AppView<AppInfoWithLiveness> appView, ProgramMethodSet seeds) {
+  public PartialCallGraphBuilder(AppView<AppInfoWithLiveness> appView, ProgramMethodSet seeds) {
     super(appView);
     assert seeds != null && !seeds.isEmpty();
     this.seeds = seeds;
@@ -27,7 +28,8 @@ public class PartialCallGraphBuilder extends CallGraphBuilderBase {
   }
 
   private void processMethod(ProgramMethod method) {
-    method.registerCodeReferences(new InvokeExtractor(getOrCreateNode(method), seeds::contains));
+    method.registerCodeReferences(
+        new InvokeExtractor(this, getOrCreateNode(method), seeds::contains));
   }
 
   @Override

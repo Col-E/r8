@@ -9,8 +9,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.conversion.CallGraph.Node;
-import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
+import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
+import com.android.tools.r8.ir.conversion.callgraph.CycleEliminator;
+import com.android.tools.r8.ir.conversion.callgraph.Node;
 import java.util.Set;
 import java.util.TreeSet;
 import org.junit.Test;

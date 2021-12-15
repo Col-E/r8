@@ -13,8 +13,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.ir.conversion.CallGraph.Node;
-import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
+import com.android.tools.r8.ir.conversion.callgraph.CycleEliminator;
+import com.android.tools.r8.ir.conversion.callgraph.Node;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;

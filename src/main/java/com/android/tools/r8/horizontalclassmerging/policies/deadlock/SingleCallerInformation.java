@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.callgraph.CallGraph;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import java.util.IdentityHashMap;
@@ -26,9 +27,9 @@ import java.util.concurrent.ExecutorService;
  * since computing single caller information for such methods is expensive (it involves computing
  * the possible dispatch targets for each virtual invoke).
  *
- * <p>Unlike the {@link com.android.tools.r8.ir.conversion.CallGraph} that is used to determine if a
- * method can be single caller inlined, this considers a method that is called from multiple call
- * sites in the same method to have a single caller.
+ * <p>Unlike the {@link CallGraph} that is used to determine if a method can be single caller
+ * inlined, this considers a method that is called from multiple call sites in the same method to
+ * have a single caller.
  */
 // TODO(b/205611444): account for -keep rules.
 public class SingleCallerInformation {

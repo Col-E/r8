@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.ir.conversion.callgraph.Node;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import java.util.Collections;
 

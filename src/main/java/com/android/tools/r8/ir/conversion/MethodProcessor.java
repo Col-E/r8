@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.callgraph.CallSiteInformation;
 
 public abstract class MethodProcessor {
 
