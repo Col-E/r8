@@ -1017,6 +1017,7 @@ public class Enqueuer {
     markLambdaAsInstantiated(descriptor, context);
     transitionMethodsForInstantiatedLambda(descriptor);
     callSites.computeIfAbsent(callSite, ignore -> ProgramMethodSet.create()).add(context);
+    descriptor.captures.forEach(type -> markTypeAsLive(type, context));
 
     // For call sites representing a lambda, we link the targeted method
     // or field as if it were referenced from the current method.
