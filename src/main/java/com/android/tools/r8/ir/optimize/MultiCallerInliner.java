@@ -1,0 +1,232 @@
+// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.ir.optimize;
+
+import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
+
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.conversion.CallGraph;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.conversion.PrimaryMethodProcessor;
+import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
+import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.LazyBox;
+import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
+import com.android.tools.r8.utils.collections.ProgramMethodMap;
+import com.android.tools.r8.utils.collections.ProgramMethodMultiset;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+
+// TODO(b/142300882): If a method is selected for multi caller inlining, then if it is reprocessed
+//  and we inline into it, we should potentially disable multi caller inlining for that method (or
+//  we should disallow inlining into it).
+public class MultiCallerInliner {
+
+  private final AppView<AppInfoWithLiveness> appView;
+
+  // Maps each method to the set of inlineable call sites targeting the method, or Optional.empty()
+  // if we have stopped tracking the inlineable call sites.
+  private final ProgramMethodMap<Optional<ProgramMethodMultiset>> multiInlineCallEdges =
+      ProgramMethodMap.createConcurrent();
+
+  private final int[] multiCallerInliningInstructionLimits;
+
+  MultiCallerInliner(AppView<AppInfoWithLiveness> appView) {
+    this.appView = appView;
+    this.multiCallerInliningInstructionLimits =
+        appView.options().inlinerOptions().multiCallerInliningInstructionLimits;
+  }
+
+  void recordCallEdgesForMultiCallerInlining(
+      ProgramMethod method, IRCode code, PrimaryMethodProcessor methodProcessor) {
+    LazyBox<DefaultInliningOracle> lazyOracle =
+        new LazyBox<>(
+            () -> {
+              int inliningInstructionAllowance = Integer.MAX_VALUE;
+              return new DefaultInliningOracle(
+                  appView,
+                  new FixedInliningReasonStrategy(Reason.MULTI_CALLER_CANDIDATE),
+                  method,
+                  methodProcessor,
+                  inliningInstructionAllowance);
+            });
+    for (InvokeMethod invoke : code.<InvokeMethod>instructions(Instruction::isInvokeMethod)) {
+      // Don't attempt to multi caller inline constructors. To determine if a constructor is
+      // eligible for inlining, the inliner builds IR for the constructor, which we want to avoid
+      // here for build speed.
+      if (invoke.isInvokeConstructor(appView.dexItemFactory())) {
+        continue;
+      }
+
+      SingleResolutionResult resolutionResult =
+          appView
+              .appInfo()
+              .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
+              .asSingleResolution();
+      if (resolutionResult == null
+          || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
+        continue;
+      }
+
+      ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, method);
+      if (singleTarget == null
+          || !methodProcessor.getCallSiteInformation().isMultiCallerInlineCandidate(singleTarget)) {
+        continue;
+      }
+
+      InlineResult inlineResult =
+          lazyOracle
+              .computeIfAbsent()
+              .computeInlining(
+                  code,
+                  invoke,
+                  resolutionResult,
+                  singleTarget,
+                  method,
+                  ClassInitializationAnalysis.trivial(),
+                  InliningIRProvider.getThrowingInstance(),
+                  NopWhyAreYouNotInliningReporter.getInstance());
+      if (inlineResult == null || inlineResult.isRetryAction()) {
+        stopTrackingCallSitesForMethod(singleTarget);
+        continue;
+      }
+
+      InlineAction action = inlineResult.asInlineAction();
+      assert action.reason == Reason.MULTI_CALLER_CANDIDATE;
+      recordCallEdgeForMultiCallerInlining(method, singleTarget, methodProcessor);
+    }
+  }
+
+  void recordCallEdgeForMultiCallerInlining(
+      ProgramMethod method, ProgramMethod singleTarget, PrimaryMethodProcessor methodProcessor) {
+    Optional<ProgramMethodMultiset> value =
+        multiInlineCallEdges.computeIfAbsent(
+            singleTarget, ignoreKey(() -> Optional.of(ProgramMethodMultiset.createConcurrent())));
+    if (!value.isPresent()) {
+      return;
+    }
+
+    ProgramMethodMultiset callers = value.get();
+    callers.add(method);
+
+    if (callers.size() <= multiCallerInliningInstructionLimits.length) {
+      return;
+    }
+
+    callers.removeIf(caller -> caller.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite());
+
+    IntBox minimumCallers = new IntBox();
+    callers.forEachEntry(
+        (caller, calls) -> {
+          if (!methodProcessor.getCallSiteInformation().hasSingleCallSite(caller)) {
+            minimumCallers.increment(calls);
+          }
+        });
+    if (minimumCallers.get() > multiCallerInliningInstructionLimits.length) {
+      stopTrackingCallSitesForMethod(singleTarget);
+    }
+  }
+
+  private void stopTrackingCallSitesForMethod(ProgramMethod method) {
+    multiInlineCallEdges.put(method, Optional.empty());
+  }
+
+  void onMethodPruned(ProgramMethod method) {
+    assert !multiInlineCallEdges.containsKey(method);
+  }
+
+  public void onLastWaveDone(
+      PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
+      throws ExecutionException {
+    CallGraph callGraph =
+        CallGraph.builder(appView)
+            .setCodeLens(appView.graphLens())
+            .setExcludeFieldReadWriteEdges()
+            .build(executorService, Timing.empty());
+
+    // The multi inline callers are always rewritten up until the graph lens of the primary
+    // optimization pass, so we can safely merge them into the methods to reprocess (which may be
+    // rewritten with a newer graph lens).
+    GraphLens currentGraphLens = appView.graphLens();
+    LongLivedProgramMethodSetBuilder<ProgramMethodSet> multiInlineCallers =
+        LongLivedProgramMethodSetBuilder.createForIdentitySet(currentGraphLens);
+    multiInlineCallEdges.forEach(
+        (singleTarget, value) -> {
+          if (singleTarget.getDefinition().isLibraryMethodOverride().isPossiblyTrue()) {
+            return;
+          }
+
+          if (!value.isPresent()) {
+            return;
+          }
+
+          if (singleTarget.getDefinition().isInstance()
+              && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(singleTarget.getHolder())) {
+            return;
+          }
+
+          ProgramMethodMultiset callers = value.get();
+          callers.removeIf(
+              method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite());
+          if (callers.size() == 0 || callers.size() > multiCallerInliningInstructionLimits.length) {
+            return;
+          }
+
+          int numberOfCallSites = callGraph.getNode(singleTarget).getNumberOfCallSites();
+          // TODO(b/142300882): The number of call sites according to the call graph should
+          //  generally be >= the number of calls that the multi caller inliner has seen. This may
+          //  not hold when calls are removed due to identical block prefix/suffix sharing, however.
+          //  When this happens, the inliner may think that it can inline all call sites found in
+          //  the call graph, although this may not actually be true.
+          if (numberOfCallSites < callers.size()) {
+            return;
+          }
+          if (callers.size() < numberOfCallSites) {
+            // Can't inline all call sites.
+            return;
+          }
+
+          int multiCallerInliningInstructionLimit =
+              multiCallerInliningInstructionLimits[callers.size() - 1];
+          if (!singleTarget
+              .getDefinition()
+              .getCode()
+              .estimatedSizeForInliningAtMost(multiCallerInliningInstructionLimit)) {
+            // Multi caller inlining could lead to a size increase according to the heuristic.
+            return;
+          }
+          callers.forEachEntry(
+              (caller, count) -> {
+                if (!caller.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()) {
+                  multiInlineCallers.add(caller, currentGraphLens);
+                }
+              });
+          getSimpleFeedback().setMultiCallerMethod(singleTarget);
+        });
+
+    postMethodProcessorBuilder
+        .getMethodsToReprocessBuilder()
+        .rewrittenWithLens(appView)
+        .merge(multiInlineCallers);
+    multiInlineCallEdges.clear();
+  }
+}

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
@@ -212,8 +213,15 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
                     .addOptionsModification(disableClassInliner))
         .inspect(
             inspector -> {
-              ClassSubject dataClass = checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
-              checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
+              if (allowAccessModification
+                  && !(kotlinc.is(KotlinCompilerVersion.KOTLINC_1_4_20)
+                      && testParameters.isCfRuntime())) {
+                checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
+              } else {
+                ClassSubject dataClass =
+                    checkClassIsKept(inspector, TEST_DATA_CLASS.getClassName());
+                checkMethodIsRemoved(dataClass, COPY_DEFAULT_METHOD);
+              }
             });
   }
 }

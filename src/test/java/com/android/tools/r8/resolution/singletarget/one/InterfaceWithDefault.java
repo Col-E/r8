@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.singletarget.one;
 
+import com.android.tools.r8.NeverInline;
+
 public interface InterfaceWithDefault {
 
   // Avoid InterfaceWithDefault.class.getCanonicalName() as it may change during shrinking.
@@ -16,6 +18,7 @@ public interface InterfaceWithDefault {
     System.out.println(TAG);
   }
 
+  @NeverInline
   default void overriddenInOtherInterface() {
     System.out.println(TAG);
   }

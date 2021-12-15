@@ -11,7 +11,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
-import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -80,9 +79,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
     }
   }
 
-  private static final Class<?>[] LIBRARY_CLASSES = {
-    NoVerticalClassMerging.class, LibraryBase.class, LibrarySubclass.class
-  };
+  private static final Class<?>[] LIBRARY_CLASSES = {LibraryBase.class, LibrarySubclass.class};
 
   private static final Class<?>[] PROGRAM_CLASSES = {
       ProgramClass.class
@@ -107,13 +104,15 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
   }
 
   private static R8TestCompileResult compileLibrary(Backend backend)
-      throws CompilationFailedException, IOException, ExecutionException {
+      throws CompilationFailedException, IOException {
     return testForR8(staticTemp, backend)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .addProgramClasses(LIBRARY_CLASSES)
         .addKeepMainRule(LibrarySubclass.class)
         .addKeepClassAndDefaultConstructor(LibrarySubclass.class)
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(LibraryBase.class))
         .setMinApi(AndroidApiLevel.B)
         .compile()
         .inspect(

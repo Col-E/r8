@@ -57,6 +57,7 @@ abstract class CallGraphBuilderBase {
       new ConcurrentHashMap<>();
 
   private GraphLens codeLens;
+  private boolean includeFieldReadWriteEdges = true;
 
   CallGraphBuilderBase(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -65,6 +66,11 @@ abstract class CallGraphBuilderBase {
 
   public CallGraphBuilderBase setCodeLens(GraphLens codeLens) {
     this.codeLens = codeLens;
+    return this;
+  }
+
+  public CallGraphBuilderBase setExcludeFieldReadWriteEdges() {
+    includeFieldReadWriteEdges = false;
     return this;
   }
 
@@ -90,7 +96,7 @@ abstract class CallGraphBuilderBase {
     assert cycleEliminator.breakCycles(nodesWithDeterministicOrder).numberOfRemovedCallEdges()
         == 0; // The cycles should be gone.
 
-    return new CallGraph(nodesWithDeterministicOrder, cycleEliminationResult);
+    return new CallGraph(nodes, cycleEliminationResult);
   }
 
   abstract void populateGraph(ExecutorService executorService) throws ExecutionException;
@@ -261,6 +267,10 @@ abstract class CallGraphBuilderBase {
     }
 
     private void processFieldRead(DexField reference) {
+      if (!includeFieldReadWriteEdges) {
+        return;
+      }
+
       DexField rewrittenReference = appView.graphLens().lookupField(reference, codeLens);
       if (!rewrittenReference.getHolderType().isClassType()) {
         return;
@@ -285,6 +295,10 @@ abstract class CallGraphBuilderBase {
     }
 
     private void processFieldWrite(DexField reference) {
+      if (!includeFieldReadWriteEdges) {
+        return;
+      }
+
       DexField rewrittenReference = appView.graphLens().lookupField(reference, codeLens);
       if (!rewrittenReference.getHolderType().isClassType()) {
         return;

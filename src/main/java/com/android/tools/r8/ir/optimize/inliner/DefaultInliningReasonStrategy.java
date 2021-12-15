@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
@@ -33,6 +34,7 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
       InvokeMethod invoke,
       ProgramMethod target,
       ProgramMethod context,
+      DefaultInliningOracle oracle,
       MethodProcessor methodProcessor) {
     DexEncodedMethod targetMethod = target.getDefinition();
     DexMethod targetReference = target.getReference();
@@ -54,9 +56,10 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     if (isSingleCallerInliningTarget(target)) {
       return Reason.SINGLE_CALLER;
     }
-    if (isDoubleInliningTarget(target)) {
-      assert methodProcessor.isPrimaryMethodProcessor();
-      return Reason.DUAL_CALLER;
+    if (isMultiCallerInlineCandidate(invoke, target, oracle, methodProcessor)) {
+      return methodProcessor.isPrimaryMethodProcessor()
+          ? Reason.MULTI_CALLER_CANDIDATE
+          : Reason.ALWAYS;
     }
     return Reason.SIMPLE;
   }
@@ -75,11 +78,20 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     return true;
   }
 
-  private boolean isDoubleInliningTarget(ProgramMethod candidate) {
-    return callSiteInformation.hasDoubleCallSite(candidate)
-        && candidate
-            .getDefinition()
-            .getCode()
-            .estimatedSizeForInliningAtMost(options.getDoubleInliningInstructionLimit());
+  private boolean isMultiCallerInlineCandidate(
+      InvokeMethod invoke,
+      ProgramMethod singleTarget,
+      DefaultInliningOracle oracle,
+      MethodProcessor methodProcessor) {
+    if (oracle.satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
+      return false;
+    }
+    if (methodProcessor.isPrimaryMethodProcessor()) {
+      return callSiteInformation.isMultiCallerInlineCandidate(singleTarget);
+    }
+    if (methodProcessor.isPostMethodProcessor()) {
+      return singleTarget.getOptimizationInfo().isMultiCallerMethod();
+    }
+    return false;
   }
 }

@@ -53,9 +53,7 @@ public class AvoidInliningRecursiveMethodTest extends TestBase {
 
     MethodSubject mainMethodSubject = classSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-
-    // TODO(b/145276800): Should not inline recursive methods.
-    assertTrue(mainMethodSubject.streamInstructions().anyMatch(InstructionSubject::isIf));
+    assertTrue(mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isIf));
   }
 
   static class TestClass {

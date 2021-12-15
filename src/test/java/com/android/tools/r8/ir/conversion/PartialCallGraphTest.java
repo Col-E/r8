@@ -58,12 +58,12 @@ public class PartialCallGraphTest extends CallGraphTestBase {
   @Test
   public void testFullGraph() throws Exception {
     CallGraph cg = new CallGraphBuilder(appView).build(executorService, Timing.empty());
-    Node m1 = findNode(cg.nodes, "m1");
-    Node m2 = findNode(cg.nodes, "m2");
-    Node m3 = findNode(cg.nodes, "m3");
-    Node m4 = findNode(cg.nodes, "m4");
-    Node m5 = findNode(cg.nodes, "m5");
-    Node m6 = findNode(cg.nodes, "m6");
+    Node m1 = findNode(cg.getNodes(), "m1");
+    Node m2 = findNode(cg.getNodes(), "m2");
+    Node m3 = findNode(cg.getNodes(), "m3");
+    Node m4 = findNode(cg.getNodes(), "m4");
+    Node m5 = findNode(cg.getNodes(), "m5");
+    Node m6 = findNode(cg.getNodes(), "m6");
     assertNotNull(m1);
     assertNotNull(m2);
     assertNotNull(m3);
@@ -107,10 +107,10 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     CallGraph pg =
         new PartialCallGraphBuilder(appView, seeds).build(executorService, Timing.empty());
 
-    Node m1 = findNode(pg.nodes, "m1");
-    Node m2 = findNode(pg.nodes, "m2");
-    Node m4 = findNode(pg.nodes, "m4");
-    Node m5 = findNode(pg.nodes, "m5");
+    Node m1 = findNode(pg.getNodes(), "m1");
+    Node m2 = findNode(pg.getNodes(), "m2");
+    Node m4 = findNode(pg.getNodes(), "m4");
+    Node m5 = findNode(pg.getNodes(), "m5");
     assertNotNull(m1);
     assertNotNull(m2);
     assertNotNull(m4);

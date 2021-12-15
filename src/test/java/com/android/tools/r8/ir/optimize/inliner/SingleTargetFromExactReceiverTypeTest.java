@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -32,7 +33,7 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public SingleTargetFromExactReceiverTypeTest(TestParameters parameters) {
@@ -48,9 +49,10 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
             "-keepclassmembers class " + A.class.getTypeName() + " {",
             "  void cannotBeInlinedDueToKeepRule();",
             "}")
+        .enableAlwaysInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOnlyCanBeInlinedHasBeenInlined)
         .run(parameters.getRuntime(), TestClass.class)
@@ -135,6 +137,7 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
       System.out.println("A.canBeInlined()");
     }
 
+    @AlwaysInline
     public void canBeInlinedDueToAssume() {
       System.out.println("A.canBeInlinedDueToAssume()");
     }

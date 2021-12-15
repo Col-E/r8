@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 
@@ -38,6 +39,7 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
       InvokeMethod invoke,
       ProgramMethod target,
       ProgramMethod context,
+      DefaultInliningOracle oracle,
       MethodProcessor methodProcessor) {
     if (references.isAbstractGeneratedMessageLiteBuilder(context.getHolder())
         && invoke.isInvokeSuper()) {
@@ -48,7 +50,7 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
     }
     return references.isDynamicMethod(target) || references.isDynamicMethodBridge(target)
         ? computeInliningReasonForDynamicMethod(invoke, target, context)
-        : parent.computeInliningReason(invoke, target, context, methodProcessor);
+        : parent.computeInliningReason(invoke, target, context, oracle, methodProcessor);
   }
 
   private Reason computeInliningReasonForDynamicMethod(

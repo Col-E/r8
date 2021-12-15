@@ -12,6 +12,10 @@ public abstract class MethodProcessor {
     return false;
   }
 
+  public PrimaryMethodProcessor asPrimaryMethodProcessor() {
+    return null;
+  }
+
   public boolean isPostMethodProcessor() {
     return false;
   }

@@ -24,7 +24,7 @@ public abstract class CallSiteInformation {
    */
   public abstract boolean hasSingleCallSite(ProgramMethod method);
 
-  public abstract boolean hasDoubleCallSite(ProgramMethod method);
+  public abstract boolean isMultiCallerInlineCandidate(ProgramMethod method);
 
   public abstract void unsetCallSiteInformation(ProgramMethod method);
 
@@ -42,7 +42,7 @@ public abstract class CallSiteInformation {
     }
 
     @Override
-    public boolean hasDoubleCallSite(ProgramMethod method) {
+    public boolean isMultiCallerInlineCandidate(ProgramMethod method) {
       return false;
     }
 
@@ -54,8 +54,8 @@ public abstract class CallSiteInformation {
 
   static class CallGraphBasedCallSiteInformation extends CallSiteInformation {
 
-    private final Set<DexMethod> singleCallSite = Sets.newIdentityHashSet();
-    private final Set<DexMethod> doubleCallSite = Sets.newIdentityHashSet();
+    private final Set<DexMethod> singleCallerMethods = Sets.newIdentityHashSet();
+    private final Set<DexMethod> multiCallerInlineCandidates = Sets.newIdentityHashSet();
 
     CallGraphBasedCallSiteInformation(AppView<AppInfoWithLiveness> appView, CallGraph graph) {
       ProgramMethodSet pinned =
@@ -67,7 +67,7 @@ public abstract class CallSiteInformation {
                   appView.getKeepInfo(method).isPinned(appView.options())
                       || appView.appInfo().isMethodTargetedByInvokeDynamic(method));
 
-      for (Node node : graph.nodes) {
+      for (Node node : graph.getNodes()) {
         ProgramMethod method = node.getProgramMethod();
         DexMethod reference = method.getReference();
 
@@ -90,9 +90,9 @@ public abstract class CallSiteInformation {
 
         int numberOfCallSites = node.getNumberOfCallSites();
         if (numberOfCallSites == 1) {
-          singleCallSite.add(reference);
-        } else if (numberOfCallSites == 2) {
-          doubleCallSite.add(reference);
+          singleCallerMethods.add(reference);
+        } else if (numberOfCallSites > 1) {
+          multiCallerInlineCandidates.add(reference);
         }
       }
     }
@@ -105,7 +105,7 @@ public abstract class CallSiteInformation {
      */
     @Override
     public boolean hasSingleCallSite(ProgramMethod method) {
-      return singleCallSite.contains(method.getReference());
+      return singleCallerMethods.contains(method.getReference());
     }
 
     /**
@@ -115,14 +115,14 @@ public abstract class CallSiteInformation {
      * library method this always returns false.
      */
     @Override
-    public boolean hasDoubleCallSite(ProgramMethod method) {
-      return doubleCallSite.contains(method.getReference());
+    public boolean isMultiCallerInlineCandidate(ProgramMethod method) {
+      return multiCallerInlineCandidates.contains(method.getReference());
     }
 
     @Override
     public void unsetCallSiteInformation(ProgramMethod method) {
-      singleCallSite.remove(method.getReference());
-      doubleCallSite.remove(method.getReference());
+      singleCallerMethods.remove(method.getReference());
+      multiCallerInlineCandidates.remove(method.getReference());
     }
   }
 }

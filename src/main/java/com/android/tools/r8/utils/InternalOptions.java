@@ -1317,10 +1317,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         parseSystemPropertyForDevelopmentOrDefault(
             "com.android.tools.r8.inliningInstructionLimit", -1);
 
-    // This defines the limit of instructions in the inlinee
-    public int doubleInliningInstructionLimit =
-        parseSystemPropertyForDevelopmentOrDefault(
-            "com.android.tools.r8.doubleInliningInstructionLimit", -1);
+    public int[] multiCallerInliningInstructionLimits =
+        new int[] {Integer.MAX_VALUE, 28, 16, 12, 10};
 
     // This defines how many instructions of inlinees we can inlinee overall.
     public int inliningInstructionAllowance = 1500;
@@ -1355,20 +1353,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       // Allow the size of the dex code to be up to 5 bytes.
       assert isGeneratingDex();
       return 5;
-    }
-
-    public int getDoubleInliningInstructionLimit() {
-      // If a custom double inlining instruction limit is set, then use that.
-      if (doubleInliningInstructionLimit >= 0) {
-        return doubleInliningInstructionLimit;
-      }
-      // Allow 10 instructions when generating to class files.
-      if (isGeneratingClassFiles()) {
-        return 10;
-      }
-      // Allow the size of the dex code to be up to 20 bytes.
-      assert isGeneratingDex();
-      return 20;
     }
   }
 

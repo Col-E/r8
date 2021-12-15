@@ -91,6 +91,10 @@ public class ArrayUtils {
     return true;
   }
 
+  public static int last(int[] array) {
+    return array[array.length - 1];
+  }
+
   public static <T> T last(T[] array) {
     return array[array.length - 1];
   }

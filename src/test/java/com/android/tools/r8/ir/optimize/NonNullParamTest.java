@@ -97,19 +97,19 @@ public class NonNullParamTest extends TestBase {
 
     MethodSubject checkNull = mainSubject.uniqueMethodWithName("checkNull");
     assertThat(checkNull, isPresent());
-    assertEquals(1, countCallToParamNullCheck(checkNull));
+    assertEquals(0, countCallToParamNullCheck(checkNull));
     assertEquals(1, countPrintCall(checkNull));
-    assertEquals(0, countThrow(checkNull));
+    assertEquals(1, countThrow(checkNull));
 
     MethodSubject paramCheck = mainSubject.uniqueMethodWithName("nonNullAfterParamCheck");
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
-    assertEquals(0, countThrow(paramCheck));
+    assertEquals(1, countThrow(paramCheck));
 
     paramCheck = mainSubject.uniqueMethodWithName("nonNullAfterParamCheckDifferently");
     assertThat(paramCheck, isPresent());
     assertEquals(1, countPrintCall(paramCheck));
-    assertEquals(0, countThrow(paramCheck));
+    assertEquals(1, countThrow(paramCheck));
   }
 
   @Test

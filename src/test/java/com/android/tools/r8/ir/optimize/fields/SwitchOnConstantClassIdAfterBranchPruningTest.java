@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -42,6 +43,7 @@ public class SwitchOnConstantClassIdAfterBranchPruningTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class, C.class))
+        .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .noMinification()
@@ -80,6 +82,7 @@ public class SwitchOnConstantClassIdAfterBranchPruningTest extends TestBase {
   @NeverClassInline
   static class A {
 
+    @NeverInline
     void m() {
       System.out.println("A");
     }
@@ -88,6 +91,7 @@ public class SwitchOnConstantClassIdAfterBranchPruningTest extends TestBase {
   @NeverClassInline
   static class B {
 
+    @NeverInline
     void m() {
       System.out.println("B");
     }
@@ -96,6 +100,7 @@ public class SwitchOnConstantClassIdAfterBranchPruningTest extends TestBase {
   @NeverClassInline
   static class C {
 
+    @NeverInline
     void m() {
       System.out.println("C");
     }

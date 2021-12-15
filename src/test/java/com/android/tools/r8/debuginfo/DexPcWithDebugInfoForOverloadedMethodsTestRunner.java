@@ -23,6 +23,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.RetraceFrameResult;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -67,6 +68,8 @@ public class DexPcWithDebugInfoForOverloadedMethodsTestRunner extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepMethodRules(MAIN, "void overloaded(...)")
         .addKeepAttributeLineNumberTable()
+        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
+        .enableAlwaysInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString(EXPECTED))
@@ -88,13 +91,13 @@ public class DexPcWithDebugInfoForOverloadedMethodsTestRunner extends TestBase {
                           Reference.methodFromMethod(
                               MAIN.getDeclaredMethod("inlinee", String.class)),
                           MINIFIED_LINE_POSITION,
-                          11,
+                          14,
                           FILENAME_INLINE),
                       LinePosition.create(
                           Reference.methodFromMethod(
                               MAIN.getDeclaredMethod("overloaded", String.class)),
                           MINIFIED_LINE_POSITION,
-                          20,
+                          23,
                           FILENAME_INLINE));
               RetraceFrameResult retraceResult =
                   throwingSubject

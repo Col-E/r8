@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -272,7 +273,9 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
         Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
         collectTypes(clazz.uniqueMethodWithName("testInitNeverReturnsNormally")));
 
-    assertThat(inspector.clazz(InvalidRootsTestClass.NeverReturnsNormally.class), isPresent());
+    assertThat(
+        inspector.clazz(InvalidRootsTestClass.NeverReturnsNormally.class),
+        notIf(isPresent(), parameters.isCfRuntime()));
     assertThat(
         inspector.clazz(InvalidRootsTestClass.InitNeverReturnsNormally.class), not(isPresent()));
 

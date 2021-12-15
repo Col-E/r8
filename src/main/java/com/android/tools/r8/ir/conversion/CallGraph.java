@@ -6,17 +6,22 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Call graph representation.
@@ -249,20 +254,28 @@ public class CallGraph {
     }
   }
 
-  final Set<Node> nodes;
+  final Map<DexMethod, Node> nodes;
   final CycleEliminationResult cycleEliminationResult;
 
-  CallGraph(Set<Node> nodes) {
+  CallGraph(Map<DexMethod, Node> nodes) {
     this(nodes, null);
   }
 
-  CallGraph(Set<Node> nodes, CycleEliminationResult cycleEliminationResult) {
+  CallGraph(Map<DexMethod, Node> nodes, CycleEliminationResult cycleEliminationResult) {
     this.nodes = nodes;
     this.cycleEliminationResult = cycleEliminationResult;
   }
 
-  static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
+  public static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
     return new CallGraphBuilder(appView);
+  }
+
+  public static CallGraph createForTesting(Collection<Node> nodes) {
+    return new CallGraph(
+        nodes.stream()
+            .collect(
+                Collectors.toMap(
+                    node -> node.getProgramMethod().getReference(), Function.identity())));
   }
 
   CallSiteInformation createCallSiteInformation(AppView<AppInfoWithLiveness> appView) {
@@ -287,7 +300,7 @@ public class CallGraph {
   private ProgramMethodSet extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
     ProgramMethodSet result = ProgramMethodSet.create();
     Set<Node> removed = Sets.newIdentityHashSet();
-    Iterator<Node> nodeIterator = nodes.iterator();
+    Iterator<Node> nodeIterator = nodes.values().iterator();
     while (nodeIterator.hasNext()) {
       Node node = nodeIterator.next();
       if (predicate.test(node)) {
@@ -299,5 +312,13 @@ public class CallGraph {
     removed.forEach(clean);
     assert !result.isEmpty();
     return result;
+  }
+
+  public Node getNode(ProgramMethod method) {
+    return nodes.get(method.getReference());
+  }
+
+  public Collection<Node> getNodes() {
+    return nodes.values();
   }
 }

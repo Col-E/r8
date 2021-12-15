@@ -67,6 +67,10 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     }
   }
 
+  public void setMultiCallerMethod(ProgramMethod method) {
+    method.getDefinition().getMutableOptimizationInfo().setMultiCallerMethod();
+  }
+
   // METHOD OPTIMIZATION INFO.
 
   @Override

@@ -8,10 +8,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -77,9 +77,10 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
               MethodSubject main = mainClass.mainMethod();
               long checkParameterIsNotNull = countCall(main, "checkParameterIsNotNull");
               long checkNotNullParameter = countCall(main, "checkNotNullParameter");
-              if (kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
-                assertEquals(1, checkParameterIsNotNull);
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.I)) {
                 assertEquals(0, checkNotNullParameter);
+                assertEquals(0, checkParameterIsNotNull);
               } else {
                 assertEquals(1, checkNotNullParameter);
                 assertEquals(0, checkParameterIsNotNull);

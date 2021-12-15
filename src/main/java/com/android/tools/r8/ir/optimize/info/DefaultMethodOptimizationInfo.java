@@ -157,6 +157,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
+  public boolean isMultiCallerMethod() {
+    return false;
+  }
+
+  @Override
   public boolean forceInline() {
     return false;
   }

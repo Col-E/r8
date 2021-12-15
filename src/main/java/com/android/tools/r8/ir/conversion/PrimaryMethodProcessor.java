@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -27,7 +26,7 @@ import java.util.concurrent.ExecutorService;
  * A {@link MethodProcessor} that processes methods in the whole program in a bottom-up manner,
  * i.e., from leaves to roots.
  */
-class PrimaryMethodProcessor extends MethodProcessorWithWave {
+public class PrimaryMethodProcessor extends MethodProcessorWithWave {
 
   interface WaveStartAction {
 
@@ -74,6 +73,11 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
   }
 
   @Override
+  public PrimaryMethodProcessor asPrimaryMethodProcessor() {
+    return this;
+  }
+
+  @Override
   public boolean shouldApplyCodeRewritings(ProgramMethod method) {
     assert !wave.contains(method);
     return !method.getDefinition().isProcessed();
@@ -87,7 +91,7 @@ class PrimaryMethodProcessor extends MethodProcessorWithWave {
   private Deque<ProgramMethodSet> createWaves(AppView<?> appView, CallGraph callGraph) {
     InternalOptions options = appView.options();
     Deque<ProgramMethodSet> waves = new ArrayDeque<>();
-    Set<Node> nodes = callGraph.nodes;
+    Collection<Node> nodes = callGraph.getNodes();
     int waveCount = 1;
     while (!nodes.isEmpty()) {
       ProgramMethodSet wave = callGraph.extractLeaves();

@@ -39,9 +39,11 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.Inliner.RetryAction;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
@@ -54,8 +56,8 @@ import java.util.Set;
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Inliner inliner;
   private final InlinerOptions inlinerOptions;
+  private final MainDexInfo mainDexInfo;
   private final ProgramMethod method;
   private final MethodProcessor methodProcessor;
   private final InliningReasonStrategy reasonStrategy;
@@ -63,18 +65,22 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   DefaultInliningOracle(
       AppView<AppInfoWithLiveness> appView,
-      Inliner inliner,
       InliningReasonStrategy inliningReasonStrategy,
       ProgramMethod method,
       MethodProcessor methodProcessor,
       int inliningInstructionAllowance) {
     this.appView = appView;
-    this.inliner = inliner;
     this.inlinerOptions = appView.options().inlinerOptions();
     this.reasonStrategy = inliningReasonStrategy;
+    this.mainDexInfo = appView.appInfo().getMainDexInfo();
     this.method = method;
     this.methodProcessor = methodProcessor;
     this.instructionAllowance = inliningInstructionAllowance;
+  }
+
+  @Override
+  public AppView<AppInfoWithLiveness> appView() {
+    return appView;
   }
 
   @Override
@@ -187,19 +193,18 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Don't inline code with references beyond root main dex classes into a root main dex class.
     // If we do this it can increase the size of the main dex dependent classes.
     if (reason != Reason.FORCE
-        && inliner.mainDexInfo.disallowInliningIntoContext(
+        && mainDexInfo.disallowInliningIntoContext(
             appView, method, singleTarget, appView.getSyntheticItems())) {
       whyAreYouNotInliningReporter.reportInlineeRefersToClassesNotInMainDex();
       return false;
     }
     assert reason != Reason.FORCE
-        || !inliner.mainDexInfo.disallowInliningIntoContext(
+        || !mainDexInfo.disallowInliningIntoContext(
             appView, method, singleTarget, appView.getSyntheticItems());
     return true;
   }
 
-  private boolean satisfiesRequirementsForSimpleInlining(
-      InvokeMethod invoke, ProgramMethod target) {
+  public boolean satisfiesRequirementsForSimpleInlining(InvokeMethod invoke, ProgramMethod target) {
     // If we are looking for a simple method, only inline if actually simple.
     Code code = target.getDefinition().getCode();
     int instructionLimit =
@@ -249,11 +254,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public InlineResult computeInlining(
+      IRCode code,
       InvokeMethod invoke,
       SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
+      InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
       return null;
@@ -272,7 +279,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     Reason reason =
-        reasonStrategy.computeInliningReason(invoke, singleTarget, context, methodProcessor);
+        reasonStrategy.computeInliningReason(invoke, singleTarget, context, this, methodProcessor);
     if (reason == Reason.NEVER) {
       return null;
     }
@@ -297,8 +304,29 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    return invoke.computeInlining(
-        singleTarget, reason, this, classInitializationAnalysis, whyAreYouNotInliningReporter);
+    InlineAction action =
+        invoke.computeInlining(
+            singleTarget, reason, this, classInitializationAnalysis, whyAreYouNotInliningReporter);
+    if (action == null) {
+      return null;
+    }
+
+    if (!setDowncastTypeIfNeeded(appView, action, invoke, singleTarget, context)) {
+      return null;
+    }
+
+    // Make sure constructor inlining is legal.
+    if (singleTarget.getDefinition().isInstanceInitializer()
+        && !canInlineInstanceInitializer(
+            code,
+            invoke.asInvokeDirect(),
+            singleTarget,
+            inliningIRProvider,
+            whyAreYouNotInliningReporter)) {
+      return null;
+    }
+
+    return action;
   }
 
   private boolean neverInline(
@@ -457,9 +485,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public boolean canInlineInstanceInitializer(
       IRCode code,
-      IRCode inlinee,
       InvokeDirect invoke,
+      ProgramMethod singleTarget,
+      InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    boolean removeInnerFramesIfThrowingNpe = false;
+    IRCode inlinee =
+        inliningIRProvider.getInliningIR(invoke, singleTarget, removeInnerFramesIfThrowingNpe);
+
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
     // Newly Created Objects" it says:
     //
@@ -470,13 +503,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Allow inlining a constructor into a constructor of the same class, as the constructor code
     // is expected to adhere to the VM specification.
     DexType callerMethodHolder = method.getHolderType();
-    DexType calleeMethodHolder = inlinee.method().getHolderType();
+    DexType calleeMethodHolder = singleTarget.getHolderType();
 
     // Forwarding constructor calls that target a constructor in the same class can always be
     // inlined.
     if (method.getDefinition().isInstanceInitializer()
         && callerMethodHolder == calleeMethodHolder
         && invoke.getReceiver() == code.getThis()) {
+      inliningIRProvider.cacheInliningIR(invoke, inlinee);
       return true;
     }
 
@@ -565,6 +599,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     inlinee.returnMarkingColor(markingColor);
+    inliningIRProvider.cacheInliningIR(invoke, inlinee);
     return true;
   }
 

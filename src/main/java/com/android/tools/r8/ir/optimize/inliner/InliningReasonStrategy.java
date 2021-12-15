@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.inliner;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 
 public interface InliningReasonStrategy {
@@ -15,5 +16,6 @@ public interface InliningReasonStrategy {
       InvokeMethod invoke,
       ProgramMethod target,
       ProgramMethod context,
+      DefaultInliningOracle oracle,
       MethodProcessor methodProcessor);
 }

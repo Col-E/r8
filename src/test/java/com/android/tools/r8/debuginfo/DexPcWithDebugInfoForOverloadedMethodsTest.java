@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.debuginfo;
 
+import com.android.tools.r8.AlwaysInline;
+
 public class DexPcWithDebugInfoForOverloadedMethodsTest {
 
+  @AlwaysInline
   private static void inlinee(String message) {
     if (System.currentTimeMillis() > 0) {
       throw new RuntimeException(message);

@@ -630,6 +630,7 @@ public class R8 {
             new BridgeHoisting(appViewWithLiveness).run();
 
             assert Inliner.verifyAllSingleCallerMethodsHaveBeenPruned(appViewWithLiveness);
+            assert Inliner.verifyAllMultiCallerInlinedMethodsHaveBeenPruned(appView);
 
             assert appView.allMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
             assert appView.validateUnboxedEnumsHaveBeenPruned();

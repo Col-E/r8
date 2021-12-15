@@ -333,7 +333,10 @@ public class R8InliningTest extends TestBase {
     assertCounters(INLINABLE, ALWAYS_INLINABLE, countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableDueToSideEffect", ImmutableList.of("inlining.A"));
-    assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
+    assertCounters(
+        parameters.isCfRuntime() ? INLINABLE : NEVER_INLINABLE,
+        NEVER_INLINABLE,
+        countInvokes(inspector, m));
 
     m = clazz.method("int", "notInlinableOnThrow", ImmutableList.of("java.lang.Throwable"));
     assertCounters(ALWAYS_INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));

@@ -468,6 +468,11 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
+  public boolean isMultiCallerMethod() {
+    return inlining == InlinePreference.MultiCallerInline;
+  }
+
+  @Override
   public boolean forceInline() {
     return inlining == InlinePreference.ForceInline;
   }
@@ -644,11 +649,16 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     inlining = InlinePreference.ForceInline;
   }
 
-  // TODO(b/140214568): Should be package-private.
-  public void unsetForceInline() {
-    // For concurrent scenarios we should allow the flag to be already unset
-    assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
+  void unsetForceInline() {
     inlining = InlinePreference.Default;
+  }
+
+  void setMultiCallerMethod() {
+    if (inlining == InlinePreference.Default) {
+      inlining = InlinePreference.MultiCallerInline;
+    } else {
+      assert inlining == InlinePreference.ForceInline;
+    }
   }
 
   void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {

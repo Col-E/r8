@@ -556,11 +556,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
             PACKAGE_NAME,
             mainClass,
             testBuilder -> testBuilder.addOptionsModification(disableAggressiveClassOptimizations))
-        .inspect(
-            inspector -> {
-              checkClassIsRemoved(inspector, testedClass.getClassName());
-              checkClassIsRemoved(inspector, testedClass.getClassName());
-            });
+        .inspect(inspector -> checkClassIsRemoved(inspector, testedClass.getClassName()));
   }
 
   @Test

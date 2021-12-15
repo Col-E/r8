@@ -401,7 +401,7 @@ final class InlineCandidateProcessor {
     }
 
     inliner.performForcedInlining(
-        method, code, directMethodCalls, inliningIRProvider, Timing.empty());
+        method, code, directMethodCalls, inliningIRProvider, methodProcessor, Timing.empty());
 
     // In case we are class inlining an object allocation that does not inherit directly from
     // java.lang.Object, we need keep force inlining the constructor until we reach
@@ -450,7 +450,7 @@ final class InlineCandidateProcessor {
         }
         if (!directMethodCalls.isEmpty()) {
           inliner.performForcedInlining(
-              method, code, directMethodCalls, inliningIRProvider, Timing.empty());
+              method, code, directMethodCalls, inliningIRProvider, methodProcessor, Timing.empty());
         }
       } while (!directMethodCalls.isEmpty());
     }
@@ -504,7 +504,7 @@ final class InlineCandidateProcessor {
 
     if (!methodCallsOnInstance.isEmpty()) {
       inliner.performForcedInlining(
-          method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
+          method, code, methodCallsOnInstance, inliningIRProvider, methodProcessor, Timing.empty());
     } else {
       assert indirectMethodCallsOnInstance.stream()
           .filter(method -> method.getDefinition().getOptimizationInfo().mayHaveSideEffects())

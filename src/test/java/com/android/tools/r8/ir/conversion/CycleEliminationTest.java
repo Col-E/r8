@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -163,7 +164,7 @@ public class CycleEliminationTest extends CallGraphTestBase {
         if (configuration.forceInline.contains(node)) {
           node.getMethod().getMutableOptimizationInfo().markForceInline();
         } else {
-          node.getMethod().getMutableOptimizationInfo().unsetForceInline();
+          getSimpleFeedback().unsetForceInline(node.getProgramMethod());
         }
       }
 

@@ -22,7 +22,7 @@ public abstract class MethodOptimizationInfo
     implements MemberOptimizationInfo<MutableMethodOptimizationInfo> {
 
   enum InlinePreference {
-    NeverInline,
+    MultiCallerInline,
     ForceInline,
     Default
   }
@@ -83,6 +83,8 @@ public abstract class MethodOptimizationInfo
   }
 
   public abstract BitSet getUnusedArguments();
+
+  public abstract boolean isMultiCallerMethod();
 
   public abstract boolean forceInline();
 

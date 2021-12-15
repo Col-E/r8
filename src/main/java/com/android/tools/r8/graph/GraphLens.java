@@ -858,8 +858,9 @@ public abstract class GraphLens {
         GraphLens codeLens,
         LookupMethodContinuation continuation) {
       if (this == codeLens) {
-        return getIdentityLens()
-            .internalLookupMethod(reference, context, type, codeLens, continuation);
+        GraphLens identityLens = getIdentityLens();
+        return identityLens.internalLookupMethod(
+            reference, context, type, identityLens, continuation);
       }
       return previousLens.internalLookupMethod(
           reference,

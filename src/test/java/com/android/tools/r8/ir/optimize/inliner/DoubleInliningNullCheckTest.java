@@ -22,7 +22,7 @@ public class DoubleInliningNullCheckTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -37,16 +37,17 @@ public class DoubleInliningNullCheckTest extends TestBase {
         .addInnerClasses(DoubleInliningNullCheckTest.class)
         .addKeepMainRule(TestClass.class)
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true")
-        .inspect(codeInspector -> {
-          ClassSubject main = codeInspector.clazz(TestClass.class);
-          assertThat(main, isPresent());
-          MethodSubject mainMethod = main.mainMethod();
-          assertThat(mainMethod, isPresent());
-          assertEquals(0, countCall(mainMethod, "checkParameterIsNotNull"));
-        });
+        .inspect(
+            codeInspector -> {
+              ClassSubject main = codeInspector.clazz(TestClass.class);
+              assertThat(main, isPresent());
+              MethodSubject mainMethod = main.mainMethod();
+              assertThat(mainMethod, isPresent());
+              assertEquals(0, countCall(mainMethod, "checkParameterIsNotNull"));
+            });
   }
 
   static class TestClass {

@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Map;
@@ -34,6 +35,11 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     this.appView = appView;
     this.method = method;
     this.invokesToInline = invokesToInline;
+  }
+
+  @Override
+  public AppView<AppInfoWithLiveness> appView() {
+    return appView;
   }
 
   @Override
@@ -62,13 +68,22 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public InlineResult computeInlining(
+      IRCode code,
       InvokeMethod invoke,
       SingleResolutionResult resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
+      InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return computeForInvoke(invoke, resolutionResult, whyAreYouNotInliningReporter);
+    InlineAction action = computeForInvoke(invoke, resolutionResult, whyAreYouNotInliningReporter);
+    if (action == null) {
+      return null;
+    }
+    if (!setDowncastTypeIfNeeded(appView, action, invoke, singleTarget, context)) {
+      return null;
+    }
+    return action;
   }
 
   private InlineAction computeForInvoke(
@@ -97,8 +112,9 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public boolean canInlineInstanceInitializer(
       IRCode code,
-      IRCode inlinee,
       InvokeDirect invoke,
+      ProgramMethod singleTarget,
+      InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true;
   }

@@ -75,6 +75,9 @@ public class CfInvokeDynamic extends CfInstruction {
       NamingLens namingLens,
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
+    if (context.getName().toSourceString().equals("recordNewFieldSignature")) {
+      System.currentTimeMillis();
+    }
     DexCallSite rewrittenCallSite = rewriter.rewriteCallSite(callSite, context);
     DexMethodHandle bootstrapMethod = rewrittenCallSite.bootstrapMethod;
     List<DexValue> bootstrapArgs = rewrittenCallSite.bootstrapArgs;

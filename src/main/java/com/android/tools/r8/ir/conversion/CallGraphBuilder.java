@@ -42,6 +42,12 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
   }
 
   @Override
+  public CallGraphBuilder setExcludeFieldReadWriteEdges() {
+    super.setExcludeFieldReadWriteEdges();
+    return this;
+  }
+
+  @Override
   boolean verifyAllMethodsWithCodeExists() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {

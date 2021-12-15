@@ -47,7 +47,7 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("Hello world", "Hello world", "Hello world");
+    String expectedOutput = StringUtils.times(StringUtils.lines("Hello world"), 6);
 
     R8TestRunResult result =
         testForR8(parameters.getBackend())
@@ -91,8 +91,11 @@ public class InliningIntoVisibilityBridgeTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      // Invoke method three times to prevent the synthetic bridge on InliningIntoVisibilityBridge-
-      // TestClassB from being inlined.
+      // Invoke method multiple times to prevent the synthetic bridge on
+      // InliningIntoVisibilityBridgeTestClassB from being inlined.
+      InliningIntoVisibilityBridgeTestClassC.method();
+      InliningIntoVisibilityBridgeTestClassC.method();
+      InliningIntoVisibilityBridgeTestClassC.method();
       InliningIntoVisibilityBridgeTestClassC.method();
       InliningIntoVisibilityBridgeTestClassC.method();
       InliningIntoVisibilityBridgeTestClassC.method();
