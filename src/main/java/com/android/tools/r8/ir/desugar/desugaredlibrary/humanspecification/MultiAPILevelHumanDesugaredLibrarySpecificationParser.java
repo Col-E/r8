@@ -32,19 +32,21 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationParser
     Int2ObjectMap<HumanRewritingFlags> programFlags = parseAllFlags(PROGRAM_FLAGS_KEY);
 
     return new MultiAPILevelHumanDesugaredLibrarySpecification(
-        topLevelFlags, commonFlags, libraryFlags, programFlags);
+        getOrigin(), topLevelFlags, commonFlags, libraryFlags, programFlags);
   }
 
   private Int2ObjectMap<HumanRewritingFlags> parseAllFlags(String flagKey) {
-    JsonElement jsonFlags = required(jsonConfig, flagKey);
+    JsonElement jsonFlags = required(getJsonConfig(), flagKey);
     Int2ObjectMap<HumanRewritingFlags> flags = new Int2ObjectArrayMap<>();
     for (JsonElement jsonFlagSet : jsonFlags.getAsJsonArray()) {
       JsonObject flag = jsonFlagSet.getAsJsonObject();
       int api_level_below_or_equal = required(flag, API_LEVEL_BELOW_OR_EQUAL_KEY).getAsInt();
       HumanRewritingFlags.Builder builder =
           flags.containsKey(api_level_below_or_equal)
-              ? flags.get(api_level_below_or_equal).newBuilder(dexItemFactory, reporter, origin)
-              : HumanRewritingFlags.builder(dexItemFactory, reporter, origin);
+              ? flags
+                  .get(api_level_below_or_equal)
+                  .newBuilder(dexItemFactory(), reporter(), getOrigin())
+              : HumanRewritingFlags.builder(dexItemFactory(), reporter(), getOrigin());
       parseFlags(flag, builder);
       flags.put(api_level_below_or_equal, builder.build());
     }

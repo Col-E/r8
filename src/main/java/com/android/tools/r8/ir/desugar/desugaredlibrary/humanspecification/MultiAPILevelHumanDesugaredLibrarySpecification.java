@@ -10,20 +10,27 @@ import java.util.Map;
 
 public class MultiAPILevelHumanDesugaredLibrarySpecification {
 
+  private final Origin origin;
   private final HumanTopLevelFlags topLevelFlags;
   private final Int2ObjectMap<HumanRewritingFlags> commonFlags;
   private final Int2ObjectMap<HumanRewritingFlags> libraryFlags;
   private final Int2ObjectMap<HumanRewritingFlags> programFlags;
 
   public MultiAPILevelHumanDesugaredLibrarySpecification(
+      Origin origin,
       HumanTopLevelFlags topLevelFlags,
       Int2ObjectMap<HumanRewritingFlags> commonFlags,
       Int2ObjectMap<HumanRewritingFlags> libraryFlags,
       Int2ObjectMap<HumanRewritingFlags> programFlags) {
+    this.origin = origin;
     this.topLevelFlags = topLevelFlags;
     this.commonFlags = commonFlags;
     this.libraryFlags = libraryFlags;
     this.programFlags = programFlags;
+  }
+
+  public Origin getOrigin() {
+    return origin;
   }
 
   public HumanTopLevelFlags getTopLevelFlags() {
@@ -54,8 +61,4 @@ public class MultiAPILevelHumanDesugaredLibrarySpecification {
     return programFlags;
   }
 
-  public Origin getOrigin() {
-    // TODO(b/184026720): Maintain the origin.
-    return Origin.unknown();
-  }
 }

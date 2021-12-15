@@ -66,19 +66,20 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
       Path androidLib,
       InternalOptions options)
       throws IOException {
+    Origin origin = legacySpec.getOrigin();
     DexApplication app = readApp(androidLib, options);
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
     Int2ObjectArrayMap<HumanRewritingFlags> commonFlags =
-        convertRewritingFlagMap(legacySpec.getCommonFlags(), app);
+        convertRewritingFlagMap(legacySpec.getCommonFlags(), app, origin);
     Int2ObjectArrayMap<HumanRewritingFlags> programFlags =
-        convertRewritingFlagMap(legacySpec.getProgramFlags(), app);
+        convertRewritingFlagMap(legacySpec.getProgramFlags(), app, origin);
     Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags =
-        convertRewritingFlagMap(legacySpec.getLibraryFlags(), app);
+        convertRewritingFlagMap(legacySpec.getLibraryFlags(), app, origin);
 
-    legacyLibraryFlagHacks(libraryFlags, app);
+    legacyLibraryFlagHacks(libraryFlags, app, origin);
 
     return new MultiAPILevelHumanDesugaredLibrarySpecification(
-        humanTopLevelFlags, commonFlags, libraryFlags, programFlags);
+        origin, humanTopLevelFlags, commonFlags, libraryFlags, programFlags);
   }
 
   public HumanDesugaredLibrarySpecification convert(
@@ -86,8 +87,15 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
       throws IOException {
     DexApplication app = readApp(androidLib, options);
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
+
+    // The origin is not maintained in non multi-level specifications.
+    // It should not matter since the origin is used to report invalid specifications, and
+    // converting non multi-level specifications should be performed only with *valid*
+    // specifications in practical cases.
+    Origin origin = Origin.unknown();
+
     HumanRewritingFlags humanRewritingFlags =
-        convertRewritingFlags(legacySpec.getRewritingFlags(), app);
+        convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
     return new HumanDesugaredLibrarySpecification(
         humanTopLevelFlags,
         humanRewritingFlags,
@@ -96,12 +104,11 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
   }
 
   private void legacyLibraryFlagHacks(
-      Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app) {
+      Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
     int level = AndroidApiLevel.N_MR1.getLevel();
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
     HumanRewritingFlags.Builder builder =
-        humanRewritingFlags.newBuilder(
-            app.dexItemFactory(), app.options.reporter, Origin.unknown());
+        humanRewritingFlags.newBuilder(app.dexItemFactory(), app.options.reporter, origin);
     DexItemFactory itemFactory = app.dexItemFactory();
 
     // TODO(b/177977763): This is only a workaround rewriting invokes of j.u.Arrays.deepEquals0
@@ -139,16 +146,16 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
   }
 
   private Int2ObjectArrayMap<HumanRewritingFlags> convertRewritingFlagMap(
-      Int2ObjectMap<LegacyRewritingFlags> libFlags, DexApplication app) {
+      Int2ObjectMap<LegacyRewritingFlags> libFlags, DexApplication app, Origin origin) {
     Int2ObjectArrayMap<HumanRewritingFlags> map = new Int2ObjectArrayMap<>();
-    libFlags.forEach((key, flags) -> map.put((int) key, convertRewritingFlags(flags, app)));
+    libFlags.forEach((key, flags) -> map.put((int) key, convertRewritingFlags(flags, app, origin)));
     return map;
   }
 
   private HumanRewritingFlags convertRewritingFlags(
-      LegacyRewritingFlags flags, DexApplication app) {
+      LegacyRewritingFlags flags, DexApplication app, Origin origin) {
     HumanRewritingFlags.Builder builder =
-        HumanRewritingFlags.builder(app.dexItemFactory(), app.options.reporter, Origin.unknown());
+        HumanRewritingFlags.builder(app.dexItemFactory(), app.options.reporter, origin);
 
     flags.getRewritePrefix().forEach(builder::putRewritePrefix);
     flags.getEmulateLibraryInterface().forEach(builder::putEmulateLibraryInterface);

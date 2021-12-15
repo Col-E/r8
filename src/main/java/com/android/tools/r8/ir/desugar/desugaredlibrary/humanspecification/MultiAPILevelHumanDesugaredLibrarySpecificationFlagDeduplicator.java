@@ -18,15 +18,6 @@ import java.util.function.Consumer;
 
 public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
 
-  public static Origin createOrigin(String source) {
-    return new Origin(Origin.root()) {
-      @Override
-      public String part() {
-        return source;
-      }
-    };
-  }
-
   public static void deduplicateFlags(
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
       DexItemFactory factory,

@@ -32,7 +32,7 @@ public class MultiAPILevelLegacyDesugaredLibrarySpecificationParser
     Int2ObjectMap<LegacyRewritingFlags> programFlags = parseAllFlags(PROGRAM_FLAGS_KEY);
 
     return new MultiAPILevelLegacyDesugaredLibrarySpecification(
-        topLevelFlags, commonFlags, libraryFlags, programFlags);
+        getOrigin(), topLevelFlags, commonFlags, libraryFlags, programFlags);
   }
 
   private Int2ObjectMap<LegacyRewritingFlags> parseAllFlags(String flagKey) {

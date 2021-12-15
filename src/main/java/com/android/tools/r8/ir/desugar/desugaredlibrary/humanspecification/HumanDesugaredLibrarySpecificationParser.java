@@ -43,13 +43,13 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String SHRINKER_CONFIG_KEY = "shrinker_config";
   static final String SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY = "support_all_callbacks_from_library";
 
-  final DexItemFactory dexItemFactory;
-  final Reporter reporter;
+  private final DexItemFactory dexItemFactory;
+  private final Reporter reporter;
   private final boolean libraryCompilation;
   private final int minAPILevel;
 
-  Origin origin;
-  JsonObject jsonConfig;
+  private Origin origin;
+  private JsonObject jsonConfig;
 
   public HumanDesugaredLibrarySpecificationParser(
       DexItemFactory dexItemFactory,
@@ -60,6 +60,23 @@ public class HumanDesugaredLibrarySpecificationParser {
     this.reporter = reporter;
     this.minAPILevel = minAPILevel;
     this.libraryCompilation = libraryCompilation;
+  }
+
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
+  }
+
+  public Reporter reporter() {
+    return reporter;
+  }
+
+  public JsonObject getJsonConfig() {
+    return jsonConfig;
+  }
+
+  public Origin getOrigin() {
+    assert origin != null;
+    return origin;
   }
 
   JsonElement required(JsonObject json, String key) {
