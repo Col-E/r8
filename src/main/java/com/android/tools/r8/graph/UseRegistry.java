@@ -40,6 +40,10 @@ public abstract class UseRegistry<T extends Definition> {
     continuation = TraversalContinuation.BREAK;
   }
 
+  public GraphLens getCodeLens() {
+    return appView.codeLens();
+  }
+
   public final T getContext() {
     return context;
   }
@@ -69,7 +73,7 @@ public abstract class UseRegistry<T extends Definition> {
 
   public void registerInvokeSpecial(DexMethod method) {
     DexClassAndMethod context = getMethodContext();
-    Invoke.Type type = Invoke.Type.fromInvokeSpecial(method, context, appView);
+    Invoke.Type type = Invoke.Type.fromInvokeSpecial(method, context, appView, getCodeLens());
     if (type.isDirect()) {
       registerInvokeDirect(method);
     } else {

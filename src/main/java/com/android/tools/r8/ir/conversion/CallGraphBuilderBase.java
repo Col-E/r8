@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -45,7 +46,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 abstract class CallGraphBuilderBase {
@@ -56,9 +56,16 @@ abstract class CallGraphBuilderBase {
   private final Map<DexMethod, ProgramMethodSet> possibleProgramTargetsCache =
       new ConcurrentHashMap<>();
 
+  private GraphLens codeLens;
+
   CallGraphBuilderBase(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.fieldAccessInfoCollection = appView.appInfo().getFieldAccessInfoCollection();
+  }
+
+  public CallGraphBuilderBase setCodeLens(GraphLens codeLens) {
+    this.codeLens = codeLens;
+    return this;
   }
 
   public CallGraph build(ExecutorService executorService, Timing timing) throws ExecutionException {
@@ -154,10 +161,6 @@ abstract class CallGraphBuilderBase {
       getOrCreateNode(callee).addCallerConcurrently(currentMethod, likelySpuriousCallEdge);
     }
 
-    private void addFieldReadEdge(DexEncodedMethod writer) {
-      addFieldReadEdge(writer.asProgramMethod(appView));
-    }
-
     private void addFieldReadEdge(ProgramMethod writer) {
       assert !writer.getDefinition().isAbstract();
       if (!targetTester.test(writer)) {
@@ -169,7 +172,9 @@ abstract class CallGraphBuilderBase {
     private void processInvoke(Invoke.Type originalType, DexMethod originalMethod) {
       ProgramMethod context = currentMethod.getProgramMethod();
       MethodLookupResult result =
-          appView.graphLens().lookupMethod(originalMethod, context.getReference(), originalType);
+          appView
+              .graphLens()
+              .lookupMethod(originalMethod, context.getReference(), originalType, codeLens);
       DexMethod method = result.getReference();
       Invoke.Type type = result.getType();
       if (type == Invoke.Type.INTERFACE || type == Invoke.Type.VIRTUAL) {
@@ -256,11 +261,12 @@ abstract class CallGraphBuilderBase {
     }
 
     private void processFieldRead(DexField reference) {
-      if (!reference.holder.isClassType()) {
+      DexField rewrittenReference = appView.graphLens().lookupField(reference, codeLens);
+      if (!rewrittenReference.getHolderType().isClassType()) {
         return;
       }
 
-      ProgramField field = appView.appInfo().resolveField(reference).getProgramField();
+      ProgramField field = appView.appInfo().resolveField(rewrittenReference).getProgramField();
       if (field == null || appView.appInfo().isPinned(field)) {
         return;
       }
@@ -279,22 +285,35 @@ abstract class CallGraphBuilderBase {
     }
 
     private void processFieldWrite(DexField reference) {
-      if (reference.getHolderType().isClassType()) {
-        ProgramField field = appView.appInfo().resolveField(reference).getProgramField();
-        if (field != null && field.getAccessFlags().isStatic()) {
-          // Each static field access implicitly triggers the class initializer.
-          addClassInitializerTarget(field.getHolder());
-        }
+      DexField rewrittenReference = appView.graphLens().lookupField(reference, codeLens);
+      if (!rewrittenReference.getHolderType().isClassType()) {
+        return;
+      }
+
+      ProgramField field = appView.appInfo().resolveField(rewrittenReference).getProgramField();
+      if (field == null || appView.appInfo().isPinned(field)) {
+        return;
+      }
+
+      // Each static field access implicitly triggers the class initializer.
+      if (field.getAccessFlags().isStatic()) {
+        addClassInitializerTarget(field.getHolder());
       }
     }
 
     private void processInitClass(DexType type) {
-      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+      DexType rewrittenType = appView.graphLens().lookupType(type);
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(rewrittenType));
       if (clazz == null) {
         assert false;
         return;
       }
       addClassInitializerTarget(clazz);
+    }
+
+    @Override
+    public GraphLens getCodeLens() {
+      return codeLens;
     }
 
     @Override
@@ -402,10 +421,6 @@ abstract class CallGraphBuilderBase {
 
       CycleEliminationResult(Map<DexEncodedMethod, ProgramMethodSet> removedCallEdges) {
         this.removedCallEdges = removedCallEdges;
-      }
-
-      void forEachRemovedCaller(ProgramMethod callee, Consumer<ProgramMethod> fn) {
-        removedCallEdges.getOrDefault(callee.getDefinition(), ProgramMethodSet.empty()).forEach(fn);
       }
 
       int numberOfRemovedCallEdges() {

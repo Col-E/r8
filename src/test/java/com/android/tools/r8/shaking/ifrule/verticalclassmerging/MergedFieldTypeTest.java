@@ -21,7 +21,7 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
 
   static class TestClass {
 
-    private static A field = new B();
+    private static A field = System.currentTimeMillis() >= 0 ? new B() : null;
 
     public static void main(String[] args) {
       System.out.print(field.getClass().getName());

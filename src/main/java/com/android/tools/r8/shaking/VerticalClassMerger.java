@@ -1985,10 +1985,11 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    public MethodLookupResult lookupMethod(
+        DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
       // First look up the method using the existing graph lens (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
-      MethodLookupResult lookup = appView.graphLens().lookupMethod(method, context, type);
+      MethodLookupResult lookup = appView.graphLens().lookupMethod(method, context, type, codeLens);
       // Then check if there is a renaming due to the vertical class merger.
       DexMethod newMethod = lensBuilder.methodMap.get(lookup.getReference());
       if (newMethod == null) {
@@ -2025,7 +2026,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexField lookupField(DexField field) {
+    public DexField lookupField(DexField field, GraphLens codeLens) {
       return lensBuilder.fieldMap.getOrDefault(field, field);
     }
 

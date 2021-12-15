@@ -64,7 +64,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public void configure(R8FullTestBuilder builder) {
@@ -105,7 +105,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
             "-keep class " + Unused.class.getTypeName(),
             getAdditionalKeepRules())
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .apply(this::configure)
         .run(parameters.getRuntime(), getTestClass())
         .assertSuccessWithOutput(expected)

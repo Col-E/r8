@@ -421,11 +421,30 @@ public abstract class GraphLens {
     return lookupMethod(method, context.getReference(), Type.VIRTUAL);
   }
 
-  /** Lookup a rebound or non-rebound method reference using the current graph lens. */
-  public abstract MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type);
+  public final MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    return lookupMethod(method, context, type, null);
+  }
+
+  /**
+   * Lookup a rebound or non-rebound method reference using the current graph lens.
+   *
+   * @param codeLens Specifies the graph lens which has already been applied to the code object. The
+   *     lookup procedure will not recurse beyond this graph lens to ensure that each mapping is
+   *     applied at most once.
+   *     <p>Note: since the compiler currently inserts {@link ClearCodeRewritingGraphLens} it is
+   *     generally valid to pass null for the {@param codeLens}. The removal of {@link
+   *     ClearCodeRewritingGraphLens} is tracked by b/202368283. After this is removed, the compiler
+   *     should generally use the result of calling {@link AppView#codeLens()}.
+   */
+  public abstract MethodLookupResult lookupMethod(
+      DexMethod method, DexMethod context, Type type, GraphLens codeLens);
 
   protected abstract MethodLookupResult internalLookupMethod(
-      DexMethod reference, DexMethod context, Type type, LookupMethodContinuation continuation);
+      DexMethod reference,
+      DexMethod context,
+      Type type,
+      GraphLens codeLens,
+      LookupMethodContinuation continuation);
 
   interface LookupMethodContinuation {
 
@@ -435,21 +454,31 @@ public abstract class GraphLens {
   public abstract RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method);
 
-  /** Lookup a rebound or non-rebound field reference using the current graph lens. */
-  public DexField lookupField(DexField field) {
-    // Lookup the field using the graph lens and return the (non-rebound) reference from the lookup
-    // result.
-    return lookupFieldResult(field).getReference();
+  public final DexField lookupField(DexField field) {
+    return lookupField(field, null);
   }
 
   /** Lookup a rebound or non-rebound field reference using the current graph lens. */
-  public FieldLookupResult lookupFieldResult(DexField field) {
+  public DexField lookupField(DexField field, GraphLens codeLens) {
+    // Lookup the field using the graph lens and return the (non-rebound) reference from the lookup
+    // result.
+    return lookupFieldResult(field, codeLens).getReference();
+  }
+
+  /** Lookup a rebound or non-rebound field reference using the current graph lens. */
+  public final FieldLookupResult lookupFieldResult(DexField field) {
     // Lookup the field using the graph lens and return the lookup result.
-    return internalLookupField(field, x -> x);
+    return lookupFieldResult(field, null);
+  }
+
+  /** Lookup a rebound or non-rebound field reference using the current graph lens. */
+  public final FieldLookupResult lookupFieldResult(DexField field, GraphLens codeLens) {
+    // Lookup the field using the graph lens and return the lookup result.
+    return internalLookupField(field, codeLens, x -> x);
   }
 
   protected abstract FieldLookupResult internalLookupField(
-      DexField reference, LookupFieldContinuation continuation);
+      DexField reference, GraphLens codeLens, LookupFieldContinuation continuation);
 
   interface LookupFieldContinuation {
 
@@ -759,7 +788,8 @@ public abstract class GraphLens {
     }
 
     @Override
-    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    public MethodLookupResult lookupMethod(
+        DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
       if (method.getHolderType().isArrayType()) {
         assert lookupType(method.getReturnType()) == method.getReturnType();
         assert method.getParameters().stream()
@@ -770,7 +800,7 @@ public abstract class GraphLens {
             .build();
       }
       assert method.getHolderType().isClassType();
-      return internalLookupMethod(method, context, type, result -> result);
+      return internalLookupMethod(method, context, type, codeLens, result -> result);
     }
 
     @Override
@@ -810,18 +840,32 @@ public abstract class GraphLens {
 
     @Override
     protected FieldLookupResult internalLookupField(
-        DexField reference, LookupFieldContinuation continuation) {
+        DexField reference, GraphLens codeLens, LookupFieldContinuation continuation) {
+      if (this == codeLens) {
+        return getIdentityLens().internalLookupField(reference, codeLens, continuation);
+      }
       return previousLens.internalLookupField(
-          reference, previous -> continuation.lookupField(internalDescribeLookupField(previous)));
+          reference,
+          codeLens,
+          previous -> continuation.lookupField(internalDescribeLookupField(previous)));
     }
 
     @Override
     protected MethodLookupResult internalLookupMethod(
-        DexMethod reference, DexMethod context, Type type, LookupMethodContinuation continuation) {
+        DexMethod reference,
+        DexMethod context,
+        Type type,
+        GraphLens codeLens,
+        LookupMethodContinuation continuation) {
+      if (this == codeLens) {
+        return getIdentityLens()
+            .internalLookupMethod(reference, context, type, codeLens, continuation);
+      }
       return previousLens.internalLookupMethod(
           reference,
           internalGetPreviousMethodSignature(context),
           type,
+          codeLens,
           previous -> continuation.lookupMethod(internalDescribeLookupMethod(previous, context)));
     }
 
@@ -912,7 +956,9 @@ public abstract class GraphLens {
     }
 
     @Override
-    public MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
+    public MethodLookupResult lookupMethod(
+        DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
+      assert codeLens == null || codeLens.isIdentityLens();
       return MethodLookupResult.builder(this).setReference(method).setType(type).build();
     }
 
@@ -924,7 +970,7 @@ public abstract class GraphLens {
 
     @Override
     protected FieldLookupResult internalLookupField(
-        DexField reference, LookupFieldContinuation continuation) {
+        DexField reference, GraphLens codeLens, LookupFieldContinuation continuation) {
       // Passes the field reference back to the next graph lens. The identity lens intentionally
       // does not set the rebound field reference, since it does not know what that is.
       return continuation.lookupField(
@@ -933,11 +979,14 @@ public abstract class GraphLens {
 
     @Override
     protected MethodLookupResult internalLookupMethod(
-        DexMethod reference, DexMethod context, Type type, LookupMethodContinuation continuation) {
+        DexMethod reference,
+        DexMethod context,
+        Type type,
+        GraphLens codeLens,
+        LookupMethodContinuation continuation) {
       // Passes the method reference back to the next graph lens. The identity lens intentionally
       // does not set the rebound method reference, since it does not know what that is.
-      return continuation.lookupMethod(
-          MethodLookupResult.builder(this).setReference(reference).setType(type).build());
+      return continuation.lookupMethod(lookupMethod(reference, context, type, codeLens));
     }
 
     @Override
@@ -1004,8 +1053,8 @@ public abstract class GraphLens {
 
     @Override
     protected FieldLookupResult internalLookupField(
-        DexField reference, LookupFieldContinuation continuation) {
-      return getIdentityLens().internalLookupField(reference, continuation);
+        DexField reference, GraphLens codeLens, LookupFieldContinuation continuation) {
+      return getIdentityLens().internalLookupField(reference, codeLens, continuation);
     }
 
     @Override
@@ -1015,8 +1064,13 @@ public abstract class GraphLens {
 
     @Override
     protected MethodLookupResult internalLookupMethod(
-        DexMethod reference, DexMethod context, Type type, LookupMethodContinuation continuation) {
-      return getIdentityLens().internalLookupMethod(reference, context, type, continuation);
+        DexMethod reference,
+        DexMethod context,
+        Type type,
+        GraphLens codeLens,
+        LookupMethodContinuation continuation) {
+      return getIdentityLens()
+          .internalLookupMethod(reference, context, type, codeLens, continuation);
     }
 
     @Override
