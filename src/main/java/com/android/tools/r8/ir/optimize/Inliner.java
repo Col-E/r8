@@ -80,6 +80,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 public class Inliner {
@@ -116,41 +117,6 @@ public class Inliner {
         appView.options().canHaveDalvikCatchHandlerVerificationBug()
             ? new AvailableApiExceptions(appView.options())
             : null;
-  }
-
-  boolean neverInline(
-      InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
-      ProgramMethod singleTarget,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    DexMethod singleTargetReference = singleTarget.getReference();
-    if (!appView.getKeepInfo(singleTarget).isInliningAllowed(appView.options())) {
-      whyAreYouNotInliningReporter.reportPinned();
-      return true;
-    }
-
-    if (appInfo.isNeverInlineMethod(singleTargetReference)) {
-      whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
-      return true;
-    }
-
-    if (appInfo.noSideEffects.containsKey(invoke.getInvokedMethod())
-        || appInfo.noSideEffects.containsKey(resolutionResult.getResolvedMethod().getReference())
-        || appInfo.noSideEffects.containsKey(singleTargetReference)) {
-      return !singleTarget.getDefinition().getOptimizationInfo().forceInline();
-    }
-
-    if (!appView.testing().allowInliningOfSynthetics
-        && appView.getSyntheticItems().isSyntheticClass(singleTarget.getHolder())) {
-      return true;
-    }
-
-    return false;
-  }
-
-  boolean isDoubleInliningEnabled(MethodProcessor methodProcessor) {
-    return methodProcessor.isPostMethodProcessor();
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(
@@ -203,18 +169,6 @@ public class Inliner {
       }
     }
     return false;
-  }
-
-  public void enqueueMethodsForReprocessing(
-      PostMethodProcessor.Builder postMethodProcessorBuilder) {
-    // The double inline callers are always rewritten up until the graph lens of the primary
-    // optimization pass, so we can safely merge them into the methods to reprocess (which may be
-    // rewritten with a newer graph lens).
-    postMethodProcessorBuilder
-        .getMethodsToReprocessBuilder()
-        .rewrittenWithLens(appView)
-        .merge(singleInlineCallers);
-    singleInlineCallers.clear();
   }
 
   /**
@@ -1038,9 +992,8 @@ public class Inliner {
             continue;
           }
 
-          // If this code did not go through the full pipeline, apply inlining to make sure
-          // that force inline targets get processed.
-          strategy.ensureMethodProcessed(singleTarget, inlinee.code, feedback);
+          // Verify this code went through the full pipeline.
+          assert singleTarget.getDefinition().isProcessed();
 
           // Make sure constructor inlining is legal.
           assert !singleTargetMethod.isClassInitializer();
@@ -1294,6 +1247,20 @@ public class Inliner {
           }
         });
     singleCallerInlinedMethodsInWave.clear();
+  }
+
+  public void onLastWaveDone(
+      PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService) {
+    postMethodProcessorBuilder
+        .getMethodsToReprocessBuilder()
+        .rewrittenWithLens(appView)
+        .merge(
+            singleInlineCallers
+                .rewrittenWithLens(appView)
+                .removeIf(
+                    appView,
+                    method -> method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite()));
+    singleInlineCallers.clear();
   }
 
   public static boolean verifyAllSingleCallerMethodsHaveBeenPruned(

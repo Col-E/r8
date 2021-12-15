@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Map;
@@ -84,13 +83,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     assert passesInliningConstraints(
         invoke, resolutionResult, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
     return new InlineAction(info.target, invoke, Reason.FORCE);
-  }
-
-  @Override
-  public void ensureMethodProcessed(
-      ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback) {
-    // Do nothing. If the method is not yet processed, we still should
-    // be able to build IR for inlining, though.
   }
 
   @Override

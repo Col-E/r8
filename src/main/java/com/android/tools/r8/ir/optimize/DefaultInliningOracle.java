@@ -39,15 +39,12 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineResult;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.Inliner.RetryAction;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions.InlinerOptions;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -262,7 +259,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    if (inliner.neverInline(invoke, resolutionResult, singleTarget, whyAreYouNotInliningReporter)) {
+    if (neverInline(invoke, resolutionResult, singleTarget, whyAreYouNotInliningReporter)) {
       if (singleTarget.getDefinition().getOptimizationInfo().forceInline()) {
         throw new Unreachable(
             "Unexpected attempt to force inline method `"
@@ -302,6 +299,37 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     return invoke.computeInlining(
         singleTarget, reason, this, classInitializationAnalysis, whyAreYouNotInliningReporter);
+  }
+
+  private boolean neverInline(
+      InvokeMethod invoke,
+      SingleResolutionResult resolutionResult,
+      ProgramMethod singleTarget,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexMethod singleTargetReference = singleTarget.getReference();
+    if (!appView.getKeepInfo(singleTarget).isInliningAllowed(appView.options())) {
+      whyAreYouNotInliningReporter.reportPinned();
+      return true;
+    }
+
+    if (appInfo.isNeverInlineMethod(singleTargetReference)) {
+      whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
+      return true;
+    }
+
+    if (appInfo.noSideEffects.containsKey(invoke.getInvokedMethod())
+        || appInfo.noSideEffects.containsKey(resolutionResult.getResolvedMethod().getReference())
+        || appInfo.noSideEffects.containsKey(singleTargetReference)) {
+      return !singleTarget.getDefinition().getOptimizationInfo().forceInline();
+    }
+
+    if (!appView.testing().allowInliningOfSynthetics
+        && appView.getSyntheticItems().isSyntheticClass(singleTarget.getHolder())) {
+      return true;
+    }
+
+    return false;
   }
 
   public InlineAction computeForInvokeWithReceiver(
@@ -404,17 +432,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     return false;
-  }
-
-  @Override
-  public void ensureMethodProcessed(
-      ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback) {
-    if (!target.getDefinition().isProcessed()) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
-      }
-      inliner.performInlining(target, inlinee, feedback, methodProcessor, Timing.empty());
-    }
   }
 
   @Override

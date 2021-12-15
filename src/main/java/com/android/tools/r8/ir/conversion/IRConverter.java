@@ -678,6 +678,7 @@ public class IRConverter {
           this::waveDone,
           timing,
           executorService);
+      lastWaveDone(postMethodProcessorBuilder, executorService);
       assert appView.graphLens() == graphLensForPrimaryOptimizationPass;
       timing.end();
     }
@@ -712,9 +713,6 @@ public class IRConverter {
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
     }
-
-    ConsumerUtils.acceptIfNotNull(
-        inliner, inliner -> inliner.enqueueMethodsForReprocessing(postMethodProcessorBuilder));
 
     if (!options.debug) {
       new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
@@ -845,6 +843,14 @@ public class IRConverter {
               .build(),
           executorService);
       prunedMethodsInWave.clear();
+    }
+  }
+
+  private void lastWaveDone(
+      PostMethodProcessor.Builder postMethodProcessorBuilder, ExecutorService executorService)
+      throws ExecutionException {
+    if (inliner != null) {
+      inliner.onLastWaveDone(postMethodProcessorBuilder, executorService);
     }
   }
 

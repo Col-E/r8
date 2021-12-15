@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -12,7 +11,6 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 
 interface InliningStrategy {
@@ -46,8 +44,6 @@ interface InliningStrategy {
 
   /** Inform the strategy that the inlinee has been inlined. */
   void markInlined(InlineeWithReason inlinee);
-
-  void ensureMethodProcessed(ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback);
 
   ClassTypeElement getReceiverTypeOrDefault(InvokeMethod invoke, ClassTypeElement defaultValue);
 }
