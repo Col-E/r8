@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
@@ -81,6 +82,9 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.I)) {
                 assertEquals(0, checkNotNullParameter);
                 assertEquals(0, checkParameterIsNotNull);
+              } else if (kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72)) {
+                assertEquals(0, checkNotNullParameter);
+                assertEquals(1, checkParameterIsNotNull);
               } else {
                 assertEquals(1, checkNotNullParameter);
                 assertEquals(0, checkParameterIsNotNull);

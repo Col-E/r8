@@ -13,6 +13,7 @@ import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -90,7 +91,10 @@ public class KotlinIntrinsicsInlineTest extends KotlinTestBase {
   @Test
   public void b139432507_isSupported() throws Exception {
     assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
-    testSingle("isSupported", kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72));
+    testSingle(
+        "isSupported",
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_3_72)
+            && parameters.getApiLevel().isLessThan(AndroidApiLevel.I));
   }
 
   @Test

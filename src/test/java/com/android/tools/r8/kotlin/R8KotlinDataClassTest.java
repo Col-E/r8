@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_3_72;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_4_20;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLIN_DEV;
 
@@ -217,7 +218,7 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
             inspector -> {
               // TODO(b/210828502): Investigate why Person is not removed with kotlin dev.
               if (allowAccessModification
-                  && !(kotlinc.isOneOf(KOTLINC_1_4_20, KOTLIN_DEV)
+                  && !(kotlinc.isOneOf(KOTLINC_1_3_72, KOTLINC_1_4_20, KOTLIN_DEV)
                       && testParameters.isCfRuntime())) {
                 checkClassIsRemoved(inspector, TEST_DATA_CLASS.getClassName());
               } else {
