@@ -21,8 +21,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -41,8 +39,6 @@ public abstract class NamingLens {
   public abstract String lookupPackageName(String packageName);
 
   public abstract DexString lookupDescriptor(DexType type);
-
-  public abstract DexString lookupDescriptorForJavaTypeName(String typeName);
 
   public DexString lookupClassDescriptor(DexType type) {
     assert type.isClassType();
@@ -185,13 +181,9 @@ public abstract class NamingLens {
   public abstract static class NonIdentityNamingLens extends NamingLens {
 
     private final DexItemFactory dexItemFactory;
-    private final Map<String, DexString> typeStringMapping;
 
-    protected NonIdentityNamingLens(
-        DexItemFactory dexItemFactory, Map<DexType, DexString> typeMapping) {
+    protected NonIdentityNamingLens(DexItemFactory dexItemFactory) {
       this.dexItemFactory = dexItemFactory;
-      typeStringMapping = new HashMap<>();
-      typeMapping.forEach((k, v) -> typeStringMapping.put(k.toSourceString(), v));
     }
 
     protected DexItemFactory dexItemFactory() {
@@ -211,11 +203,6 @@ public abstract class NamingLens {
       assert type.isClassType();
       return lookupClassDescriptor(type);
     }
-
-    @Override
-    public DexString lookupDescriptorForJavaTypeName(String typeName) {
-      return typeStringMapping.get(typeName);
-    }
   }
 
   private static final class IdentityLens extends NamingLens {
@@ -227,11 +214,6 @@ public abstract class NamingLens {
     @Override
     public DexString lookupDescriptor(DexType type) {
       return type.descriptor;
-    }
-
-    @Override
-    public DexString lookupDescriptorForJavaTypeName(String typeName) {
-      return null;
     }
 
     @Override

@@ -36,8 +36,7 @@ public class AdaptClassStringWithRepackagingTest extends TestBase {
         .addKeepRules("-adaptclassstrings")
         .addKeepClassRulesWithAllowObfuscation(Foo.class)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/210699098): The class is renamed and so should the output
-        .assertSuccessWithOutputLines(Foo.class.getName())
+        .assertSuccessWithOutputLines("a")
         .inspect(inspector -> assertThat(inspector.clazz(Foo.class), isPresentAndRenamed()));
   }
 

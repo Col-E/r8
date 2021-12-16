@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.NamingLens.NonIdentityNamingLens;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.IdentityHashMap;
 
 // Naming lens for rewriting java.lang.Record to the internal RecordTag type.
 public class RecordRewritingNamingLens extends NonIdentityNamingLens {
@@ -34,7 +33,7 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   public RecordRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
-    super(appView.dexItemFactory(), new IdentityHashMap<>());
+    super(appView.dexItemFactory());
     this.namingLens = namingLens;
     factory = appView.dexItemFactory();
   }
@@ -72,14 +71,6 @@ public class RecordRewritingNamingLens extends NonIdentityNamingLens {
   public DexString lookupName(DexField field) {
     // Record rewriting does not influence field name.
     return namingLens.lookupName(field);
-  }
-
-  @Override
-  public DexString lookupDescriptorForJavaTypeName(String typeName) {
-    if (typeName.equals(factory.recordType.toSourceString())) {
-      return factory.recordTagType.descriptor;
-    }
-    return namingLens.lookupDescriptorForJavaTypeName(typeName);
   }
 
   @Override

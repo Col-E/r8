@@ -34,8 +34,7 @@ public class RepackageMinificationNameClashTest extends TestBase {
         .addKeepClassRulesWithAllowObfuscation(Foo.class)
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/210699098): Should be RepackageMinificationNameClashTest$Foo.
-        .assertSuccessWithOutputLines("a");
+        .assertSuccessWithOutputLines("RepackageMinificationNameClashTest$Foo");
   }
 
   public static class Foo {}

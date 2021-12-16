@@ -13,9 +13,11 @@ import com.android.tools.r8.code.DexItemBasedConstString;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
@@ -23,6 +25,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.records.RecordCfToCfRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.List;
@@ -107,7 +110,23 @@ class IdentifierMinifier {
   }
 
   private DexString getRenamedStringLiteral(DexString originalLiteral) {
-    DexString rewrittenString = lens.lookupDescriptorForJavaTypeName(originalLiteral.toString());
+    String descriptor =
+        DescriptorUtils.javaTypeToDescriptorIfValidJavaType(originalLiteral.toString());
+    if (descriptor == null) {
+      return originalLiteral;
+    }
+    DexType type = appView.dexItemFactory().createType(descriptor);
+    DexType originalType = appView.graphLens().getOriginalType(type);
+    if (originalType != type) {
+      // The type has changed to something clashing with the string.
+      return originalLiteral;
+    }
+    DexType rewrittenType = appView.graphLens().lookupType(type);
+    DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(rewrittenType);
+    if (clazz == null || clazz.isNotProgramClass()) {
+      return originalLiteral;
+    }
+    DexString rewrittenString = lens.lookupClassDescriptor(rewrittenType);
     return rewrittenString == null
         ? originalLiteral
         : appView.dexItemFactory().createString(descriptorToJavaType(rewrittenString.toString()));

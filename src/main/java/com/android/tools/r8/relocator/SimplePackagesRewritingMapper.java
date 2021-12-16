@@ -102,7 +102,7 @@ class SimplePackagesRewritingMapper {
         Map<DexType, DexString> typeMappings,
         Map<String, String> packageMappings,
         DexItemFactory factory) {
-      super(factory, typeMappings);
+      super(factory);
       this.typeMappings = typeMappings;
       this.packageMappings = packageMappings;
     }
