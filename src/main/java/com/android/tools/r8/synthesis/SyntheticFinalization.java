@@ -602,7 +602,11 @@ public class SyntheticFinalization {
                         externalSyntheticTypePrefix,
                         generators,
                         appView,
-                        equivalences::containsKey);
+                        candidateType ->
+                            equivalences.containsKey(candidateType)
+                                || appView
+                                    .horizontallyMergedClasses()
+                                    .hasBeenMergedIntoDifferentType(candidateType));
             equivalences.put(representativeType, group);
           }
         });
