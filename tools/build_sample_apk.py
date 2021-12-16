@@ -159,7 +159,7 @@ def dex(app, api):
   for root, dirnames, filenames in os.walk(get_bin_path(app)):
     for filename in fnmatch.filter(filenames, '*.class'):
         files.append(os.path.join(root, filename))
-  command = [DEFAULT_D8,
+  command = [DEFAULT_D8, '--',
              '--output', get_bin_path(app),
              '--classpath', utils.get_android_jar(api),
              '--min-api', str(api)]
