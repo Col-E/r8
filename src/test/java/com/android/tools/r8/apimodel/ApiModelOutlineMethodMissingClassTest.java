@@ -7,12 +7,12 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
@@ -20,11 +20,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
@@ -59,7 +56,7 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
         !preMockApis && parameters.getApiLevel().isGreaterThanOrEqualTo(finalLibraryMethodLevel);
     boolean betweenMockApis = !preMockApis && !postMockApis;
     Method addedOn23 = LibraryClass.class.getMethod("addedOn23");
-    Method adeddOn27 = LibraryClass.class.getMethod("addedOn27");
+    Method addedOn27 = LibraryClass.class.getMethod("addedOn27");
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class)
@@ -72,7 +69,7 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
             setMockApiLevelForDefaultInstanceInitializer(
                 LibraryClass.class, initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn23, initialLibraryMockLevel))
-        .apply(setMockApiLevelForMethod(adeddOn27, finalLibraryMethodLevel))
+        .apply(setMockApiLevelForMethod(addedOn27, finalLibraryMethodLevel))
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .enableInliningAnnotations()
         .compile()
@@ -103,27 +100,9 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                 assertEquals(3, inspector.allClasses().size());
                 return;
               }
-              ClassSubject testClass = inspector.clazz(TestClass.class);
-              assertThat(testClass, isPresent());
-              MethodSubject testMethod = testClass.uniqueMethodWithName("test");
-              assertThat(testMethod, isPresent());
-              Optional<FoundMethodSubject> synthesizedAddedOn27 =
-                  inspector.allClasses().stream()
-                      .flatMap(clazz -> clazz.allMethods().stream())
-                      .filter(
-                          methodSubject ->
-                              methodSubject.isSynthetic()
-                                  && invokesMethodWithName("addedOn27").matches(methodSubject))
-                      .findFirst();
-              Optional<FoundMethodSubject> synthesizedMissingAndReferenced =
-                  inspector.allClasses().stream()
-                      .flatMap(clazz -> clazz.allMethods().stream())
-                      .filter(
-                          methodSubject ->
-                              methodSubject.isSynthetic()
-                                  && invokesMethodWithName("missingAndReferenced")
-                                      .matches(methodSubject))
-                      .findFirst();
+              Method testMethod = TestClass.class.getDeclaredMethod("test");
+              MethodSubject testMethodSubject = inspector.method(testMethod);
+              assertThat(testMethodSubject, isPresent());
               Optional<FoundMethodSubject> synthesizedMissingNotReferenced =
                   inspector.allClasses().stream()
                       .flatMap(clazz -> clazz.allMethods().stream())
@@ -134,62 +113,17 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                                       .matches(methodSubject))
                       .findFirst();
               assertFalse(synthesizedMissingNotReferenced.isPresent());
-              if (parameters.getApiLevel().isLessThan(AndroidApiLevel.M)) {
-                assertEquals(3, inspector.allClasses().size());
-                assertFalse(synthesizedAddedOn27.isPresent());
-                assertFalse(synthesizedMissingAndReferenced.isPresent());
-              } else if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O_MR1)) {
+              verifyThat(parameters, addedOn23).isOutlinedFromUntil(testMethod, AndroidApiLevel.M);
+              verifyThat(parameters, addedOn27)
+                  .isOutlinedFromUntil(testMethod, AndroidApiLevel.O_MR1);
+              verifyThat(parameters, LibraryClass.class.getDeclaredMethod("missingAndReferenced"))
+                  .isOutlinedFrom(testMethod);
+              if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O_MR1)) {
                 assertEquals(5, inspector.allClasses().size());
-                assertTrue(synthesizedAddedOn27.isPresent());
-                inspectRewrittenToOutline(testMethod, synthesizedAddedOn27.get(), "addedOn27");
-                assertTrue(synthesizedMissingAndReferenced.isPresent());
-                inspectRewrittenToOutline(
-                    testMethod, synthesizedMissingAndReferenced.get(), "missingAndReferenced");
               } else {
                 assertEquals(4, inspector.allClasses().size());
-                assertFalse(synthesizedAddedOn27.isPresent());
-                assertTrue(synthesizedMissingAndReferenced.isPresent());
-                inspectRewrittenToOutline(
-                    testMethod, synthesizedMissingAndReferenced.get(), "missingAndReferenced");
               }
             });
-  }
-
-  private void inspectRewrittenToOutline(
-      MethodSubject callerSubject, FoundMethodSubject outline, String apiMethodName)
-      throws Exception {
-    // Check that the library reference is no longer present.
-    MethodReference libraryMethodReference =
-        Reference.methodFromMethod(LibraryClass.class.getDeclaredMethod(apiMethodName));
-    assertFalse(
-        callerSubject
-            .streamInstructions()
-            .anyMatch(
-                instructionSubject -> {
-                  if (!instructionSubject.isInvoke()) {
-                    return false;
-                  }
-                  return instructionSubject
-                      .getMethod()
-                      .asMethodReference()
-                      .equals(libraryMethodReference);
-                }));
-    MethodReference outlineReference = outline.getMethod().getReference().asMethodReference();
-    assertEquals(
-        1,
-        callerSubject
-            .streamInstructions()
-            .filter(
-                instructionSubject -> {
-                  if (!instructionSubject.isInvoke()) {
-                    return false;
-                  }
-                  return instructionSubject
-                      .getMethod()
-                      .asMethodReference()
-                      .equals(outlineReference);
-                })
-            .count());
   }
 
   // Only present from api level 23.

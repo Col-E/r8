@@ -7,11 +7,11 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
@@ -22,7 +22,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
@@ -81,27 +80,30 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
         .inspect(
             inspector -> {
               // No need to check further on CF.
-              Optional<FoundMethodSubject> synthesizedAddedOn23 =
-                  inspector.allClasses().stream()
-                      .flatMap(clazz -> clazz.allMethods().stream())
-                      .filter(
-                          methodSubject ->
-                              methodSubject.isSynthetic()
-                                  && invokesMethodWithName("addedOn23").matches(methodSubject))
-                      .findFirst();
-              if (parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(classApiLevel)) {
-                assertFalse(synthesizedAddedOn23.isPresent());
-                assertEquals(3, inspector.allClasses().size());
-              } else if (parameters.getApiLevel().isLessThan(methodApiLevel)) {
+              int classCount =
+                  parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(methodApiLevel)
+                      ? 4
+                      : 3;
+              assertEquals(classCount, inspector.allClasses().size());
+              Method testMethod = TestClass.class.getDeclaredMethod("test");
+              verifyThat(parameters, adeddOn23).isOutlinedFromUntil(testMethod, methodApiLevel);
+              if (parameters.isDexRuntime()
+                  && parameters.getApiLevel().isLessThan(methodApiLevel)) {
+                // Verify that we invoke the synthesized outline addedOn23 twice.
+                Optional<FoundMethodSubject> synthesizedAddedOn23 =
+                    inspector.allClasses().stream()
+                        .flatMap(clazz -> clazz.allMethods().stream())
+                        .filter(
+                            methodSubject ->
+                                methodSubject.isSynthetic()
+                                    && invokesMethodWithName("addedOn23").matches(methodSubject))
+                        .findFirst();
                 assertTrue(synthesizedAddedOn23.isPresent());
-                assertEquals(4, inspector.allClasses().size());
-                ClassSubject testClass = inspector.clazz(TestClass.class);
-                assertThat(testClass, isPresent());
-                MethodSubject testMethod = testClass.uniqueMethodWithName("test");
-                assertThat(testMethod, isPresent());
+                MethodSubject testMethodSubject = inspector.method(testMethod);
+                assertThat(testMethodSubject, isPresent());
                 assertEquals(
                     2,
-                    testMethod
+                    testMethodSubject
                         .streamInstructions()
                         .filter(
                             instructionSubject -> {
@@ -114,10 +116,6 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
                                   .equals(synthesizedAddedOn23.get().asMethodReference());
                             })
                         .count());
-              } else {
-                // No outlining on this api level.
-                assertFalse(synthesizedAddedOn23.isPresent());
-                assertEquals(3, inspector.allClasses().size());
               }
             });
   }

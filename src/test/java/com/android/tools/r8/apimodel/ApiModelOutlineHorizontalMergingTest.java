@@ -122,8 +122,7 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
                               methodSubject.isSynthetic()
                                   && invokesMethodWithName("addedOn27").matches(methodSubject))
                       .collect(Collectors.toList());
-              if (parameters.isCfRuntime()
-                  || parameters.getApiLevel().isLessThan(libraryClassApiLevel)) {
+              if (parameters.isCfRuntime()) {
                 assertTrue(outlinedAddedOn23.isEmpty());
                 assertTrue(outlinedAddedOn27.isEmpty());
                 assertEquals(3, inspector.allClasses().size());
