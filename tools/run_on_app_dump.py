@@ -131,6 +131,24 @@ APPS = [
     # not abstract
     'compiler_properties': ['-Dcom.android.tools.r8.allowInvalidCfAccessFlags=true']
   }),
+  App({
+    'id': 'com.example.myapplication',
+    'name': 'empty-activity',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    'url': 'https://github.com/christofferqa/empty_android_activity.git',
+    'revision': '2d297ec3373dadb03cbae916b9feba4792563156',
+    'folder': 'empty-activity',
+  }),
+  App({
+    'id': 'com.example.emptycomposeactivity',
+    'name': 'empty-compose-activity',
+    'dump_app': 'dump_app.zip',
+    'apk_app': 'app-release.apk',
+    'url': 'https://github.com/christofferqa/empty_android_compose_activity.git',
+    'revision': '3c8111b8b7d6e9184049a07e2b96702d7b33d03e',
+    'folder': 'empty-compose-activity',
+  }),
   # TODO(b/172539375): Monkey runner fails on recompilation.
   App({
     'id': 'com.google.firebase.example.fireeats',
