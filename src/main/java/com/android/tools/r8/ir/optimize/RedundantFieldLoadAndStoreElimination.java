@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.FieldGet;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InitClass;
@@ -91,6 +92,10 @@ public class RedundantFieldLoadAndStoreElimination {
 
   private interface FieldValue {
 
+    default ExistingValue asExistingValue() {
+      return null;
+    }
+
     void eliminateRedundantRead(InstructionListIterator it, FieldInstruction redundant);
   }
 
@@ -103,11 +108,20 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     @Override
+    public ExistingValue asExistingValue() {
+      return this;
+    }
+
+    @Override
     public void eliminateRedundantRead(InstructionListIterator it, FieldInstruction redundant) {
       affectedValues.addAll(redundant.value().affectedValues());
       redundant.value().replaceUsers(value);
       it.removeOrReplaceByDebugLocalRead();
       value.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
+    }
+
+    public Value getValue() {
+      return value;
     }
 
     @Override
@@ -411,7 +425,7 @@ public class RedundantFieldLoadAndStoreElimination {
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
     if (replacement != null) {
-      assumeRemover.markAssumeDynamicTypeUsersForRemoval(instanceGet.outValue());
+      markAssumeDynamicTypeUsersForRemoval(instanceGet, replacement, assumeRemover);
       replacement.eliminateRedundantRead(it, instanceGet);
       return;
     }
@@ -427,6 +441,21 @@ public class RedundantFieldLoadAndStoreElimination {
       activeState.clearMostRecentFieldWrites();
     } else {
       activeState.clearMostRecentInstanceFieldWrite(field.getReference());
+    }
+  }
+
+  private void markAssumeDynamicTypeUsersForRemoval(
+      FieldGet fieldGet, FieldValue replacement, AssumeRemover assumeRemover) {
+    ExistingValue existingValue = replacement.asExistingValue();
+    if (existingValue == null
+        || !existingValue
+            .getValue()
+            .isDefinedByInstructionSatisfying(
+                definition ->
+                    definition.isFieldGet()
+                        && definition.asFieldGet().getField().getType()
+                            == fieldGet.getField().getType())) {
+      assumeRemover.markAssumeDynamicTypeUsersForRemoval(fieldGet.outValue());
     }
   }
 
@@ -480,7 +509,7 @@ public class RedundantFieldLoadAndStoreElimination {
 
     FieldValue replacement = activeState.getStaticFieldValue(field.getReference());
     if (replacement != null) {
-      assumeRemover.markAssumeDynamicTypeUsersForRemoval(staticGet.outValue());
+      markAssumeDynamicTypeUsersForRemoval(staticGet, replacement, assumeRemover);
       replacement.eliminateRedundantRead(instructionIterator, staticGet);
       return;
     }

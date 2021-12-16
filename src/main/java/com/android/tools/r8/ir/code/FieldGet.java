@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.DexField;
+
 public interface FieldGet {
+
+  DexField getField();
 
   Value outValue();
 }
