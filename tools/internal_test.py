@@ -109,6 +109,7 @@ def compile_with_memory_min_command(app_data):
       '--max-memory=%s' % int(record['oom-threshold'] * 0.85)
   ]
 
+# TODO(b/210982978): Enable testing of min xmx again
 TEST_COMMANDS = [
     # Run test.py internal testing.
     ['tools/test.py', '--only_internal', '--slow_tests',
@@ -117,9 +118,7 @@ TEST_COMMANDS = [
     ['tools/run_on_app.py', '--run-all', '--out=out'],
     # Find min xmx for selected benchmark apps
     ['tools/gradle.py', 'r8lib'],
-] + (map(find_min_xmx_command, BENCHMARK_APPS)
-     + map(compile_with_memory_max_command, BENCHMARK_APPS)
-     + map(compile_with_memory_min_command, BENCHMARK_APPS))
+]
 
 # Command timeout, in seconds.
 RUN_TIMEOUT = 3600 * 6
