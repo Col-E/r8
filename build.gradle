@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import dx.DexMergerTask
 import dx.DxTask
 import net.ltgt.gradle.errorprone.CheckSeverity
@@ -20,9 +19,6 @@ buildscript {
         mavenCentral()
         gradlePluginPortal()
         jcenter()
-    }
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
     }
 }
 
@@ -270,6 +266,8 @@ dependencies {
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
+    testCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
@@ -290,8 +288,6 @@ dependencies {
     apiUsageSampleCompile "com.google.guava:guava:$guavaVersion"
     kotlinR8TestResourcesCompileOnly "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     errorprone("com.google.errorprone:error_prone_core:$errorproneVersion")
-    testImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    testImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
@@ -741,56 +737,56 @@ task consolidatedLicense {
     }
 }
 
-static mergeServiceFiles(ShadowJar task) {
-    // Everything under META-INF is not included by default.
-    // Should include before 'relocate' so that the service file path and its content
-    // are properly relocated as well.
-    task.mergeServiceFiles {
-        include 'META-INF/services/*'
+def repackageDepFile(file) {
+    if (file.getName().endsWith('.jar')) {
+        return zipTree(file).matching {
+            exclude '**/module-info.class'
+            exclude 'META-INF/maven/**'
+            exclude 'META-INF/LICENSE.txt'
+            exclude 'META-INF/MANIFEST.MF'
+        }
+    } else {
+        return fileTree(file)
     }
 }
 
-task repackageDeps(type: ShadowJar) {
+task repackageDeps(type: Jar) {
     dependsOn downloadCloudDeps
-    configurations = [project.configurations.runtimeClasspath]
-    mergeServiceFiles(it)
-    exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }
-    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
-    exclude { it.getRelativePath().getPathString().equals("META-INF/LICENSE.txt") }
-    baseName 'deps_all'
+    dependsOn project.configurations.runtimeClasspath
+    project.configurations.runtimeClasspath.forEach {
+        from repackageDepFile(it)
+    }
+    archiveFileName = 'deps_all.jar'
 }
 
-task repackageTestDeps(type: ShadowJar) {
+task repackageTestDeps(type: Jar) {
     dependsOn downloadCloudDeps
-    configurations = [project.configurations.testCompile]
-    mergeServiceFiles(it)
-    exclude { it.getRelativePath().getPathString().endsWith("module-info.class") }
-    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
-    baseName 'test_deps_all'
+    dependsOn project.configurations.testCompile
+    project.configurations.testCompile.forEach {
+        from repackageDepFile(it)
+    }
+    archiveFileName = 'test_deps_all.jar'
 }
 
-task repackageSources(type: ShadowJar) {
+task repackageSources(type: Jar) {
     // If this fails then remove all generated folders from
     // build/classes/java/test that is not {com,dalvik}
     from sourceSets.main.output
-    mergeServiceFiles(it)
-    baseName 'sources_main'
+    archiveFileName = 'sources_main.jar'
 }
 
-task repackageSources11(type: ShadowJar) {
+task repackageSources11(type: Jar) {
     from sourceSets.main11.output
-    mergeServiceFiles(it)
-    baseName 'sources_main_11'
+    archiveFileName = 'sources_main_11.jar'
 }
 
-def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife) {
-    return tasks.create("r8Create${name}", ShadowJar) {
+def r8CreateTask(name, baseName, sources, includeSwissArmyKnife) {
+    return tasks.create("r8Create${name}", Jar) {
+        dependsOn sources
         from consolidatedLicense.outputs.files
-        from sources
+        from sources.collect { zipTree(it) }
         exclude "$buildDir/classes/**"
-        baseName baseNameName
-        classifier = null
-        version = null
+        archiveFileName = baseName
         if (includeSwissArmyKnife) {
             manifest {
                 attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
@@ -846,7 +842,7 @@ task r8WithDeps {
     inputs.files ([repackageSources.outputs, repackageDeps.outputs])
     def r8Task = r8CreateTask(
             'WithDeps',
-            'r8_with_deps',
+            'r8_with_deps.jar',
             repackageSources.outputs.files + repackageDeps.outputs.files,
             true)
     dependsOn r8Task
@@ -859,7 +855,7 @@ task r8WithDeps11 {
     inputs.files ([repackageSources11.outputs, repackageDeps.outputs])
     def r8Task = r8CreateTask(
             'WithDeps11',
-            'r8_with_deps_11',
+            'r8_with_deps_11.jar',
             repackageSources11.outputs.files + repackageDeps.outputs.files,
             true)
     dependsOn r8Task
@@ -885,7 +881,7 @@ task r8WithoutDeps {
     inputs.files repackageSources.outputs
     def r8Task = r8CreateTask(
             'WithoutDeps',
-            'r8_without_deps',
+            'r8_without_deps.jar',
             repackageSources.outputs.files,
             true)
     dependsOn r8Task
@@ -907,7 +903,7 @@ task r8NoManifestWithoutDeps {
     inputs.files repackageSources.outputs
     def r8Task = r8CreateTask(
             'NoManifestWithoutDeps',
-            'r8_no_manifest_without_deps',
+            'r8_no_manifest_without_deps.jar',
             repackageSources.outputs.files,
             false)
     dependsOn r8Task
@@ -919,7 +915,7 @@ task r8NoManifestWithDeps {
     inputs.files ([repackageSources.outputs, repackageDeps.outputs])
     def r8Task = r8CreateTask(
             'NoManifestWithDeps',
-            'r8_no_manifest_with_deps',
+            'r8_no_manifest_with_deps.jar',
             repackageSources.outputs.files + repackageDeps.outputs.files,
             false)
     dependsOn r8Task
@@ -943,10 +939,10 @@ task r8NoManifest(type: Copy) {
     outputs.file "${buildDir}/libs/r8_no_manifest.jar"
 }
 
-task D8(type: ShadowJar) {
+task D8(type: Jar) {
     dependsOn r8
     from r8.outputs.files[0]
-    baseName 'd8'
+    archiveFileName = 'd8.jar'
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.D8'
     }
@@ -1015,8 +1011,8 @@ task buildLibraryDesugarConversions(type: Zip, dependsOn: downloadDeps) {
     destinationDir file('build/libs')
 }
 
-task testJarSources(type: ShadowJar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
-    baseName = "r8testsbase"
+task testJarSources(type: Jar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
+    archiveFileName = "r8testsbase.jar"
     from sourceSets.test.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.
     include "com/android/tools/r8/**"
@@ -1152,7 +1148,7 @@ task sourceJar(type: Jar, dependsOn: classes) {
 
 task jctfCommonJar(type: Jar) {
     from sourceSets.jctfCommon.output
-    baseName 'jctfCommon'
+    archiveFileName = 'jctfCommon.jar'
 }
 
 artifacts {
@@ -1186,13 +1182,13 @@ compileTestJava {
 
 task buildCfSegments(type: Jar, dependsOn: downloadDeps) {
     from sourceSets.cfSegments.output
-    baseName 'cf_segments'
+    archiveFileName = 'cf_segments.jar'
     destinationDir file('build/libs')
 }
 
 task buildR8ApiUsageSample(type: Jar) {
     from sourceSets.apiUsageSample.output
-    baseName 'r8_api_usage_sample'
+    archiveFileName = 'r8_api_usage_sample.jar'
     destinationDir file('tests')
 }
 
@@ -1763,7 +1759,7 @@ tasks.withType(Test) {
 }
 
 task buildPreNJdwpTestsJar(type: Jar) {
-    baseName = 'jdwp-tests-preN'
+    archiveFileName = 'jdwp-tests-preN.jar'
     from zipTree('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
     // Exclude the classes containing java8
     exclude 'org/apache/harmony/jpda/tests/jdwp/InterfaceType/*.class'
