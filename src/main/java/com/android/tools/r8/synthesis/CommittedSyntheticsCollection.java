@@ -179,6 +179,15 @@ class CommittedSyntheticsCollection {
   boolean containsTypeOfKind(DexType type, SyntheticKind kind) {
     List<SyntheticProgramClassReference> synthetics = nonLegacyClasses.get(type);
     if (synthetics == null) {
+      List<SyntheticMethodReference> syntheticMethodReferences = nonLegacyMethods.get(type);
+      if (syntheticMethodReferences == null) {
+        return false;
+      }
+      for (SyntheticMethodReference syntheticMethodReference : syntheticMethodReferences) {
+        if (syntheticMethodReference.getKind() == kind) {
+          return true;
+        }
+      }
       return false;
     }
     for (SyntheticProgramClassReference synthetic : synthetics) {
