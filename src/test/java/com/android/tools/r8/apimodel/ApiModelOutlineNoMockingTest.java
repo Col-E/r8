@@ -7,8 +7,8 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
 
@@ -75,13 +75,7 @@ public class ApiModelOutlineNoMockingTest extends TestBase {
               assertThat(inspector.method(mainMethod), isPresent());
               verifyThat(parameters, getterOn23).isOutlinedFromUntil(mainMethod, libraryApiLevel);
               verifyThat(parameters, methodOn23).isOutlinedFromUntil(mainMethod, libraryApiLevel);
-              // TODO(b/211031433): We should not stub classes that we have outlined.
-              assertThat(
-                  inspector.clazz(LibraryClass.class),
-                  notIf(
-                      isPresent(),
-                      parameters.isCfRuntime()
-                          || parameters.getApiLevel().isGreaterThanOrEqualTo(libraryApiLevel)));
+              assertThat(inspector.clazz(LibraryClass.class), isAbsent());
             });
   }
 

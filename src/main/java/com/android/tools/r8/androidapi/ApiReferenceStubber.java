@@ -99,13 +99,6 @@ public class ApiReferenceStubber {
     }
 
     private void checkReferenceToLibraryClass(DexReference reference) {
-      if (reference.isDexMember()) {
-        reference
-            .asDexMember()
-            .getReferencedBaseTypes(appView.dexItemFactory())
-            .forEach(
-                refType -> findReferencedLibraryClasses(appView.graphLens().lookupType(refType)));
-      }
       DexType rewrittenType = appView.graphLens().lookupType(reference.getContextType());
       findReferencedLibraryClasses(rewrittenType);
       if (reference.isDexMethod()) {
@@ -156,6 +149,11 @@ public class ApiReferenceStubber {
   }
 
   public void processClass(DexProgramClass clazz) {
+    if (appView
+        .getSyntheticItems()
+        .isSyntheticOfKind(clazz.getType(), SyntheticKind.API_MODEL_OUTLINE)) {
+      return;
+    }
     findReferencedLibraryClasses(clazz.type);
     clazz.forEachProgramMethodMatching(
         DexEncodedMethod::hasCode,
