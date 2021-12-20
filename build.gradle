@@ -941,7 +941,7 @@ task r8NoManifest(type: Copy) {
 
 task D8(type: Jar) {
     dependsOn r8
-    from r8.outputs.files[0]
+    from zipTree(r8.outputs.files[0])
     archiveFileName = 'd8.jar'
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.D8'
