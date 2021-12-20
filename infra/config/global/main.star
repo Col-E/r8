@@ -173,6 +173,7 @@ def r8_builder(name, priority=26, trigger=True, category=None,
       else ["main-gitiles-trigger"]
   triggering_policy = triggering_policy or scheduler.policy(
       kind = scheduler.GREEDY_BATCHING_KIND,
+      max_batch_size = 1 if release else None,
       max_concurrent_invocations = 4)
 
   luci.builder(
