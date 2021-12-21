@@ -6,6 +6,7 @@ package com.android.tools.r8.androidapi;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -285,14 +286,20 @@ public class ApiReferenceStubber {
         || !method.isStatic()
         || appView.options().canUseDefaultAndStaticInterfaceMethods();
     DexMethod newMethod = method.getReference().withHolder(clazz.type, appView.dexItemFactory());
-    boolean isVirtualInterfaceMethod = method.isVirtualMethod() && clazz.isInterface();
-    return DexEncodedMethod.syntheticBuilder(method)
-        .setMethod(newMethod)
-        .modifyAccessFlags(MethodAccessFlags::setSynthetic)
-        .applyIf(isVirtualInterfaceMethod, b -> b.modifyAccessFlags(MethodAccessFlags::setAbstract))
-        .applyIf(
-            !isVirtualInterfaceMethod && !method.isAbstract(),
-            b -> b.modifyAccessFlags(MethodAccessFlags::setNative))
-        .build();
+    DexEncodedMethod.Builder methodBuilder =
+        DexEncodedMethod.syntheticBuilder(method)
+            .setMethod(newMethod)
+            .modifyAccessFlags(MethodAccessFlags::setSynthetic);
+    if (method.isInstanceInitializer()) {
+      methodBuilder.setCode(DefaultInstanceInitializerCode.get());
+    } else if (method.isVirtualMethod() && clazz.isInterface()) {
+      methodBuilder.modifyAccessFlags(MethodAccessFlags::setAbstract);
+    } else if (method.isAbstract()) {
+      methodBuilder.modifyAccessFlags(MethodAccessFlags::setAbstract);
+    } else {
+      // To allow us not adding a trivial throwing code body we set the access flag as native.
+      methodBuilder.modifyAccessFlags(MethodAccessFlags::setNative);
+    }
+    return methodBuilder.build();
   }
 }

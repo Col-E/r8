@@ -8,6 +8,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
@@ -62,15 +63,7 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
             !isMockApiLevel
                 && parameters.isDexRuntime()
                 && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0),
-            result -> {
-              result.assertStderrMatches(containsString("This dex file is invalid"));
-              result.assertStderrMatches(
-                  containsString(
-                      "Constructor 2("
-                          + descriptor(LibraryClass.class)
-                          + ".<init>)"
-                          + " must not be abstract or native"));
-            });
+            result -> result.assertStderrMatches(not(containsString("This dex file is invalid"))));
   }
 
   // Only present from api level 23.
