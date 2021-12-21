@@ -22,6 +22,7 @@ import org.junit.rules.TemporaryFolder;
 // Two sets of class files with and without JaCoCo offline instrumentation.
 public class JacocoClasses {
 
+  private final TemporaryFolder temp;
   private final Path dir;
 
   private final Path originalJar;
@@ -29,6 +30,7 @@ public class JacocoClasses {
 
   // Create JacocoClasses with just one class provided as bytes.
   public JacocoClasses(byte[] clazz, TemporaryFolder temp) throws IOException {
+    this.temp = temp;
     dir = temp.newFolder().toPath();
 
     // Write the class to a .class file with package sub-directories.
@@ -62,7 +64,7 @@ public class JacocoClasses {
   }
 
   public List<String> generateReport(Path jacocoExec) throws IOException {
-    Path report = dir.resolve("report.scv");
+    Path report = temp.newFolder().toPath().resolve("report.scv");
     ProcessResult result = ToolHelper.runJaCoCoReport(originalJar, jacocoExec, report);
     assertEquals(result.toString(), 0, result.exitCode);
     return Files.readAllLines(report);

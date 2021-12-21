@@ -217,6 +217,14 @@ public abstract class TestCompileResult<
         ObjectArrays.concat(mainClassSubject.getFinalName(), args));
   }
 
+  public RR runWithJaCoCo(Path output, TestRuntime runtime, String mainClass, String... args)
+      throws IOException, ExecutionException {
+    setSystemProperty("jacoco-agent.destfile", output.toString());
+    setSystemProperty("jacoco-agent.dumponexit", "true");
+    setSystemProperty("jacoco-agent.output", "file");
+    return run(runtime, mainClass, args);
+  }
+
   public CR addRunClasspathFiles(Path... classpath) {
     return addRunClasspathFiles(Arrays.asList(classpath));
   }
