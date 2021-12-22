@@ -73,9 +73,13 @@ public class ApiModelMockSuperChainClassTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "ProgramClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "Hello World")
-        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(lowerMockApiLevel))
-        .inspect(verifyThat(parameters, LibraryInterface.class).stubbedUntil(lowerMockApiLevel))
-        .inspect(verifyThat(parameters, OtherLibraryClass.class).stubbedUntil(mockApiLevel));
+        .inspect(
+            inspector -> {
+              verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(lowerMockApiLevel);
+              verifyThat(inspector, parameters, LibraryInterface.class)
+                  .stubbedUntil(lowerMockApiLevel);
+              verifyThat(inspector, parameters, OtherLibraryClass.class).stubbedUntil(mockApiLevel);
+            });
   }
 
   // Only present from api level 23.

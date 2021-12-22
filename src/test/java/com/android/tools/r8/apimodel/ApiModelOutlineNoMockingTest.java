@@ -73,8 +73,10 @@ public class ApiModelOutlineNoMockingTest extends TestBase {
             inspector -> {
               Method mainMethod = Main.class.getDeclaredMethod("main", String[].class);
               assertThat(inspector.method(mainMethod), isPresent());
-              verifyThat(parameters, getterOn23).isOutlinedFromUntil(mainMethod, libraryApiLevel);
-              verifyThat(parameters, methodOn23).isOutlinedFromUntil(mainMethod, libraryApiLevel);
+              verifyThat(inspector, parameters, getterOn23)
+                  .isOutlinedFromUntil(mainMethod, libraryApiLevel);
+              verifyThat(inspector, parameters, methodOn23)
+                  .isOutlinedFromUntil(mainMethod, libraryApiLevel);
               assertThat(inspector.clazz(LibraryClass.class), isAbsent());
             });
   }

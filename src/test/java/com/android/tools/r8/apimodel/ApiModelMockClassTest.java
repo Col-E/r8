@@ -60,7 +60,9 @@ public class ApiModelMockClassTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "LibraryClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "Hello World")
-        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(mockLevel));
+        .inspect(
+            inspector ->
+                verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel));
   }
 
   // Only present from api level 23.

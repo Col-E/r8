@@ -52,8 +52,12 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
         .addRunClasspathClasses(ApiType.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(ApiType.class.getName())
-        .inspect(verifyThat(parameters, apiCallerApiLevel22).inlinedInto(apiCallerCallerApiLevel22))
-        .inspect(inspector -> assertThat(inspector.clazz(OtherCaller.class), not(isPresent())));
+        .inspect(
+            inspector -> {
+              verifyThat(inspector, parameters, apiCallerApiLevel22)
+                  .inlinedInto(apiCallerCallerApiLevel22);
+              assertThat(inspector.clazz(OtherCaller.class), not(isPresent()));
+            });
   }
 
   public static class ApiType {}

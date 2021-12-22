@@ -65,7 +65,10 @@ public class ApiModelDesugaredLibraryReferenceTest extends DesugaredLibraryTestB
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutputLines("Z")
-        .inspect(ApiModelingTestHelper.verifyThat(parameters, printZone).inlinedInto(main));
+        .inspect(
+            inspector ->
+                ApiModelingTestHelper.verifyThat(inspector, parameters, printZone)
+                    .inlinedInto(main));
   }
 
   static class Executor {

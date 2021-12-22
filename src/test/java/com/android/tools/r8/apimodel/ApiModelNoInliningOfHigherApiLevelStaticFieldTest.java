@@ -51,8 +51,9 @@ public class ApiModelNoInliningOfHigherApiLevelStaticFieldTest extends TestBase 
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
         .inspect(
-            verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
+            inspector ->
+                verifyThat(inspector, parameters, apiCaller)
+                    .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.L_MR1))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");

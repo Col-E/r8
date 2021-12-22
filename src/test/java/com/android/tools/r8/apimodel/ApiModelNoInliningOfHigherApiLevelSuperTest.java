@@ -68,7 +68,9 @@ public class ApiModelNoInliningOfHigherApiLevelSuperTest extends TestBase {
                 }))
         .compile()
         // We do not inline overrides calling super.
-        .inspect(verifyThat(parameters, apiCaller).notInlinedInto(apiCallerCaller))
+        .inspect(
+            inspector ->
+                verifyThat(inspector, parameters, apiCaller).notInlinedInto(apiCallerCaller))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::apiLevel22", "Api::apiLevel22");

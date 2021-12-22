@@ -69,11 +69,13 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(libraryClassNotStubbed, "LibraryClass::foo")
         .assertSuccessWithOutputLinesIf(!libraryClassNotStubbed, "Hello World")
-        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(libraryClassLevel))
         .inspect(
-            verifyThat(parameters, apiMethod)
-                .isOutlinedFromUntil(
-                    Main.class.getDeclaredMethod("main", String[].class), libraryMethodLevel));
+            inspector -> {
+              verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryClassLevel);
+              verifyThat(inspector, parameters, apiMethod)
+                  .isOutlinedFromUntil(
+                      Main.class.getDeclaredMethod("main", String[].class), libraryMethodLevel);
+            });
   }
 
   // Only present from api level 23.

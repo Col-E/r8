@@ -86,7 +86,8 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
                       : 3;
               assertEquals(classCount, inspector.allClasses().size());
               Method testMethod = TestClass.class.getDeclaredMethod("test");
-              verifyThat(parameters, adeddOn23).isOutlinedFromUntil(testMethod, methodApiLevel);
+              verifyThat(inspector, parameters, adeddOn23)
+                  .isOutlinedFromUntil(testMethod, methodApiLevel);
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isLessThan(methodApiLevel)) {
                 // Verify that we invoke the synthesized outline addedOn23 twice.

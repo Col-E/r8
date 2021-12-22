@@ -47,7 +47,7 @@ public class ApiModelInlineInSameClassDifferentApiLevelTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .enableInliningAnnotations()
         .compile()
-        .inspect(verifyThat(parameters, callApi).inlinedInto(callCallApi))
+        .inspect(inspector -> verifyThat(inspector, parameters, callApi).inlinedInto(callCallApi))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Api::apiLevel22");

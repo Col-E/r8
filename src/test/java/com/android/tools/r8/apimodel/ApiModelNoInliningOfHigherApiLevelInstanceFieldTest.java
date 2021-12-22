@@ -54,7 +54,10 @@ public class ApiModelNoInliningOfHigherApiLevelInstanceFieldTest extends TestBas
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
-        .inspect(verifyThat(parameters, apiCaller).inlinedIntoFromApiLevel(apiCallerCaller, L_MR1))
+        .inspect(
+            inspector ->
+                verifyThat(inspector, parameters, apiCaller)
+                    .inlinedIntoFromApiLevel(apiCallerCaller, L_MR1))
         .addRunClasspathClasses(Api.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!");

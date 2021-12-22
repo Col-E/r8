@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.apimodel;
 
+import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
@@ -68,8 +69,10 @@ public class ApiModelNoDesugaredLibraryReferenceTest extends DesugaredLibraryTes
             parameters.getDexRuntimeVersion().isNewerThan(Version.V7_0_0),
             result -> result.assertSuccessWithOutputLines("~"))
         .inspect(
-            ApiModelingTestHelper.verifyThat(parameters, printZone)
-                .inlinedIntoFromApiLevel(main, AndroidApiLevel.O));
+            inspector -> {
+              verifyThat(inspector, parameters, printZone)
+                  .inlinedIntoFromApiLevel(main, AndroidApiLevel.O);
+            });
   }
 
   static class Executor {

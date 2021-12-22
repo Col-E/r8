@@ -19,7 +19,6 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.CodeMatchers;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -150,49 +149,56 @@ public abstract class ApiModelingTestHelper {
     };
   }
 
-  static ApiModelingClassVerificationHelper verifyThat(TestParameters parameters, Class<?> clazz) {
-    return new ApiModelingClassVerificationHelper(parameters, clazz);
+  static ApiModelingClassVerificationHelper verifyThat(
+      CodeInspector inspector, TestParameters parameters, Class<?> clazz) {
+    return new ApiModelingClassVerificationHelper(inspector, parameters, clazz);
   }
 
-  static ApiModelingMethodVerificationHelper verifyThat(TestParameters parameters, Method method) {
-    return new ApiModelingMethodVerificationHelper(parameters, Reference.methodFromMethod(method));
+  static ApiModelingMethodVerificationHelper verifyThat(
+      CodeInspector inspector, TestParameters parameters, Method method) {
+    return new ApiModelingMethodVerificationHelper(
+        inspector, parameters, Reference.methodFromMethod(method));
   }
 
   public static class ApiModelingClassVerificationHelper {
 
+    private final CodeInspector inspector;
     private final Class<?> classOfInterest;
     private final TestParameters parameters;
 
-    public ApiModelingClassVerificationHelper(TestParameters parameters, Class<?> classOfInterest) {
+    public ApiModelingClassVerificationHelper(
+        CodeInspector inspector, TestParameters parameters, Class<?> classOfInterest) {
+      this.inspector = inspector;
       this.parameters = parameters;
       this.classOfInterest = classOfInterest;
     }
 
-    public ThrowingConsumer<CodeInspector, Exception> stubbedUntil(AndroidApiLevel finalApiLevel) {
-      return inspector -> {
-        assertThat(
-            inspector.clazz(classOfInterest),
-            notIf(
-                isPresent(),
-                parameters.isCfRuntime()
-                    || parameters.getApiLevel().isGreaterThanOrEqualTo(finalApiLevel)));
-      };
+    public void stubbedUntil(AndroidApiLevel finalApiLevel) {
+      assertThat(
+          inspector.clazz(classOfInterest),
+          notIf(
+              isPresent(),
+              parameters.isCfRuntime()
+                  || parameters.getApiLevel().isGreaterThanOrEqualTo(finalApiLevel)));
     }
   }
 
   public static class ApiModelingMethodVerificationHelper {
 
+    private final CodeInspector inspector;
     private final MethodReference methodOfInterest;
     private final TestParameters parameters;
 
     private ApiModelingMethodVerificationHelper(
-        TestParameters parameters, MethodReference methodOfInterest) {
+        CodeInspector inspector, TestParameters parameters, MethodReference methodOfInterest) {
+      this.inspector = inspector;
       this.methodOfInterest = methodOfInterest;
       this.parameters = parameters;
     }
 
     public ApiModelingMethodVerificationHelper setHolder(FoundClassSubject classSubject) {
       return new ApiModelingMethodVerificationHelper(
+          inspector,
           parameters,
           Reference.method(
               classSubject.getFinalReference(),
@@ -201,68 +207,62 @@ public abstract class ApiModelingTestHelper {
               methodOfInterest.getReturnType()));
     }
 
-    ThrowingConsumer<CodeInspector, Exception> inlinedIntoFromApiLevel(
-        Method method, AndroidApiLevel apiLevel) {
-      return parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevel)
-          ? inlinedInto(method)
-          : notInlinedInto(method);
+    void inlinedIntoFromApiLevel(Method method, AndroidApiLevel apiLevel) {
+      if (parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevel)) {
+        inlinedInto(method);
+      } else {
+        notInlinedInto(method);
+      }
     }
 
-    ThrowingConsumer<CodeInspector, Exception> notInlinedInto(Method method) {
-      return inspector -> {
-        MethodSubject candidate = inspector.method(methodOfInterest);
-        assertThat(candidate, isPresent());
-        MethodSubject target = inspector.method(method);
-        assertThat(target, isPresent());
-        assertThat(target, CodeMatchers.invokesMethod(candidate));
-      };
+    void notInlinedInto(Method method) {
+      MethodSubject candidate = inspector.method(methodOfInterest);
+      assertThat(candidate, isPresent());
+      MethodSubject target = inspector.method(method);
+      assertThat(target, isPresent());
+      assertThat(target, CodeMatchers.invokesMethod(candidate));
     }
 
-    ThrowingConsumer<CodeInspector, Exception> inlinedInto(Method method) {
-      return inspector -> {
-        MethodSubject candidate = inspector.method(methodOfInterest);
-        if (!candidate.isPresent()) {
-          return;
-        }
-        MethodSubject target = inspector.method(method);
-        assertThat(target, isPresent());
-        assertThat(target, not(CodeMatchers.invokesMethod(candidate)));
-      };
+    void inlinedInto(Method method) {
+      MethodSubject candidate = inspector.method(methodOfInterest);
+      if (!candidate.isPresent()) {
+        return;
+      }
+      MethodSubject target = inspector.method(method);
+      assertThat(target, isPresent());
+      assertThat(target, not(CodeMatchers.invokesMethod(candidate)));
     }
 
-    ThrowingConsumer<CodeInspector, Exception> isOutlinedFromUntil(
-        Method method, AndroidApiLevel apiLevel) {
-      return parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)
-          ? isOutlinedFrom(method)
-          : isNotOutlinedFrom(method);
+    void isOutlinedFromUntil(Method method, AndroidApiLevel apiLevel) {
+      if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(apiLevel)) {
+        isOutlinedFrom(method);
+      } else {
+        isNotOutlinedFrom(method);
+      }
     }
 
-    ThrowingConsumer<CodeInspector, Exception> isOutlinedFrom(Method method) {
-      return inspector -> {
-        // Check that the call is in a synthetic class.
-        List<FoundMethodSubject> outlinedMethod =
-            inspector.allClasses().stream()
-                .flatMap(clazz -> clazz.allMethods().stream())
-                .filter(
-                    methodSubject ->
-                        methodSubject.isSynthetic()
-                            && invokesMethodWithName(methodOfInterest.getMethodName())
-                                .matches(methodSubject))
-                .collect(Collectors.toList());
-        assertEquals(1, outlinedMethod.size());
-        // Assert that method invokes the outline
-        MethodSubject caller = inspector.method(method);
-        assertThat(caller, isPresent());
-        assertThat(caller, invokesMethod(outlinedMethod.get(0)));
-      };
+    void isOutlinedFrom(Method method) {
+      // Check that the call is in a synthetic class.
+      List<FoundMethodSubject> outlinedMethod =
+          inspector.allClasses().stream()
+              .flatMap(clazz -> clazz.allMethods().stream())
+              .filter(
+                  methodSubject ->
+                      methodSubject.isSynthetic()
+                          && invokesMethodWithName(methodOfInterest.getMethodName())
+                              .matches(methodSubject))
+              .collect(Collectors.toList());
+      assertEquals(1, outlinedMethod.size());
+      // Assert that method invokes the outline
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, invokesMethod(outlinedMethod.get(0)));
     }
 
-    ThrowingConsumer<CodeInspector, Exception> isNotOutlinedFrom(Method method) {
-      return inspector -> {
-        MethodSubject caller = inspector.method(method);
-        assertThat(caller, isPresent());
-        assertThat(caller, invokesMethodWithName(methodOfInterest.getMethodName()));
-      };
+    void isNotOutlinedFrom(Method method) {
+      MethodSubject caller = inspector.method(method);
+      assertThat(caller, isPresent());
+      assertThat(caller, invokesMethodWithName(methodOfInterest.getMethodName()));
     }
   }
 }

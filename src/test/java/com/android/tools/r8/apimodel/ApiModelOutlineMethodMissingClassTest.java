@@ -113,10 +113,14 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                                       .matches(methodSubject))
                       .findFirst();
               assertFalse(synthesizedMissingNotReferenced.isPresent());
-              verifyThat(parameters, addedOn23).isOutlinedFromUntil(testMethod, AndroidApiLevel.M);
-              verifyThat(parameters, addedOn27)
+              verifyThat(inspector, parameters, addedOn23)
+                  .isOutlinedFromUntil(testMethod, AndroidApiLevel.M);
+              verifyThat(inspector, parameters, addedOn27)
                   .isOutlinedFromUntil(testMethod, AndroidApiLevel.O_MR1);
-              verifyThat(parameters, LibraryClass.class.getDeclaredMethod("missingAndReferenced"))
+              verifyThat(
+                      inspector,
+                      parameters,
+                      LibraryClass.class.getDeclaredMethod("missingAndReferenced"))
                   .isOutlinedFrom(testMethod);
               if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O_MR1)) {
                 assertEquals(5, inspector.allClasses().size());

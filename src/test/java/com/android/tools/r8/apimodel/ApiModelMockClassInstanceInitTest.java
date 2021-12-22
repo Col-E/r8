@@ -58,7 +58,9 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(isMockApiLevel, "LibraryClass::foo")
         .assertSuccessWithOutputLinesIf(!isMockApiLevel, "NoClassDefFoundError")
-        .inspect(verifyThat(parameters, LibraryClass.class).stubbedUntil(mockLevel))
+        .inspect(
+            inspector ->
+                verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel))
         .applyIf(
             !isMockApiLevel
                 && parameters.isDexRuntime()

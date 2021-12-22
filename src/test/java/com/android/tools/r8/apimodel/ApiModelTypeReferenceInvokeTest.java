@@ -52,8 +52,9 @@ public class ApiModelTypeReferenceInvokeTest extends TestBase {
         .addAndroidBuildVersion()
         .compile()
         .inspect(
-            verifyThat(parameters, apiCaller)
-                .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.M))
+            inspector ->
+                verifyThat(inspector, parameters, apiCaller)
+                    .inlinedIntoFromApiLevel(apiCallerCaller, AndroidApiLevel.M))
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(

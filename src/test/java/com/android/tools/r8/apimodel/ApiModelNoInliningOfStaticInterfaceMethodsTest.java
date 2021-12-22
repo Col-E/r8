@@ -64,16 +64,17 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
                 ClassSubject companion = inspector.companionClassFor(ApiCaller.class);
                 assertThat(companion, isPresent());
                 FoundClassSubject foundCompanion = companion.asFoundClassSubject();
-                verifyThat(parameters, callApiLevel22)
+                verifyThat(inspector, parameters, callApiLevel22)
                     .setHolder(foundCompanion)
                     .inlinedIntoFromApiLevel(noApiCallTo22, L_MR1);
-                verifyThat(parameters, callApiLevel26)
+                verifyThat(inspector, parameters, callApiLevel26)
                     .setHolder(foundCompanion)
                     .inlinedIntoFromApiLevel(noApiCallTo26, O);
               } else {
-                verifyThat(parameters, callApiLevel22)
+                verifyThat(inspector, parameters, callApiLevel22)
                     .inlinedIntoFromApiLevel(noApiCallTo22, L_MR1);
-                verifyThat(parameters, callApiLevel26).inlinedIntoFromApiLevel(noApiCallTo26, O);
+                verifyThat(inspector, parameters, callApiLevel26)
+                    .inlinedIntoFromApiLevel(noApiCallTo26, O);
               }
             })
         .addRunClasspathClasses(Api.class)

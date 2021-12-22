@@ -53,10 +53,10 @@ public class ApiModelInlineInSameClassTest extends TestBase {
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .compile()
-        .inspect(verifyThat(parameters, notCallingApi).inlinedIntoFromApiLevel(main, L_MR1))
         .inspect(
             inspector -> {
               // No matter the api level, we should always inline callingApi into notCallingApi.
+              verifyThat(inspector, parameters, notCallingApi).inlinedIntoFromApiLevel(main, L_MR1);
               assertThat(inspector.method(callingApi), not(isPresent()));
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(L_MR1)) {

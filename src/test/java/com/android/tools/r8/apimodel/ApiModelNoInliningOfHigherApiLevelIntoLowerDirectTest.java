@@ -48,7 +48,8 @@ public class ApiModelNoInliningOfHigherApiLevelIntoLowerDirectTest extends TestB
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A::apiLevel21", "B::apiLevel22")
-        .inspect(verifyThat(parameters, apiLevel22).inlinedInto(apiLevel21));
+        .inspect(
+            inspector -> verifyThat(inspector, parameters, apiLevel22).inlinedInto(apiLevel21));
   }
 
   // This tests that program classes where we directly mock the methods to have an api level will
