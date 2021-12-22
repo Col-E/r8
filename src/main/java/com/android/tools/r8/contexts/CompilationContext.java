@@ -34,11 +34,13 @@ public class CompilationContext {
   }
 
   private final Consumer<String> testingConsumer;
+  private final Thread mainThread;
   private final Map<String, String> seenSetForTesting = new ConcurrentHashMap<>();
   private int nextProcessorId = 0;
 
   private CompilationContext(InternalOptions options) {
     testingConsumer = options.testing.processingContextsConsumer;
+    mainThread = options.mainThread;
   }
 
   private boolean verifyContext(ContextDescriptorProvider context) {
@@ -63,6 +65,7 @@ public class CompilationContext {
   public ProcessorContext createProcessorContext() {
     ProcessorContext processorContext = new ProcessorContext(this, nextProcessorId++);
     assert verifyContext(processorContext);
+    assert mainThread == Thread.currentThread() : "Invoked on another thread than main";
     return processorContext;
   }
 

@@ -315,6 +315,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return 16383;
   }
 
+  // We assume options will always be created on the main thread.
+  public Thread mainThread = Thread.currentThread();
+
   public boolean enableSwitchRewriting = true;
   public boolean enableStringSwitchConversion = true;
   public int minimumStringSwitchSize = 3;
