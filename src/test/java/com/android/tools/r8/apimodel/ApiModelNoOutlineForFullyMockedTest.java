@@ -77,8 +77,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
               assertThat(inspector.method(mainMethod), isPresent());
               // TODO(b/211720912): We should never outline since the library class and method is
               //  introduced at the same level.
-              verifyThat(inspector, parameters, methodOn23)
-                  .isOutlinedFromUntil(mainMethod, libraryApiLevel);
+              verifyThat(inspector, parameters, methodOn23).isNotOutlinedFrom(mainMethod);
               verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryApiLevel);
             });
   }

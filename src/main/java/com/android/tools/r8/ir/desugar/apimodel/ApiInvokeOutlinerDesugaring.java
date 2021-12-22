@@ -92,13 +92,18 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (clazz == null || !clazz.isLibraryClass()) {
       return appView.computedMinApiLevel();
     }
-    ComputedApiLevel apiLevel =
+    ComputedApiLevel methodApiLevel =
         apiLevelCompute.computeApiLevelForLibraryReference(
             cfInvoke.getMethod(), ComputedApiLevel.unknown());
-    if (apiLevel.isGreaterThan(appView.computedMinApiLevel())) {
-      return apiLevel;
+    if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(methodApiLevel)) {
+      return appView.computedMinApiLevel();
     }
-    return appView.computedMinApiLevel();
+    // Compute the api level of the holder to see if the method will be stubbed.
+    ComputedApiLevel holderApiLevel =
+        apiLevelCompute.computeApiLevelForLibraryReference(holderType, ComputedApiLevel.unknown());
+    return methodApiLevel.isGreaterThan(holderApiLevel)
+        ? methodApiLevel
+        : appView.computedMinApiLevel();
   }
 
   private Collection<CfInstruction> desugarLibraryCall(
