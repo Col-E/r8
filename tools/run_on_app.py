@@ -740,7 +740,16 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if options.print_dexsegments:
     dex_files = glob(os.path.join(outdir, '*.dex'))
     utils.print_dexsegments(options.print_dexsegments, dex_files)
+    if not options.golem:
+      print('{}-Total(CodeSize): {}'.format(
+              options.print_dexsegments, compute_size_of_dex_files(dex_files)))
   return 0
+
+def compute_size_of_dex_files(dex_files):
+  dex_size = 0
+  for dex_file in dex_files:
+    dex_size += os.path.getsize(dex_file)
+  return dex_size
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
