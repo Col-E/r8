@@ -181,7 +181,7 @@ public class KotlinCompilerTool {
   private final List<String> additionalArguments = new ArrayList<>();
   private boolean useJvmAssertions;
   // TODO(b/211590675): We should enable assertions by default.
-  private boolean enableAssertions = false;
+  private boolean enableAssertions = true;
   private Path output = null;
 
   private KotlinCompilerTool(
@@ -252,8 +252,8 @@ public class KotlinCompilerTool {
     return this;
   }
 
-  public KotlinCompilerTool enableAssertions() {
-    this.enableAssertions = true;
+  public KotlinCompilerTool disableAssertions() {
+    this.enableAssertions = false;
     return this;
   }
 

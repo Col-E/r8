@@ -121,6 +121,7 @@ public class MetadataRewriteAllowAccessModificationTest extends KotlinMetadataTe
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
+            .disableAssertions()
             .compileRaw();
     assertEquals(1, mainResult.exitCode);
     assertThat(mainResult.stderr, containsString("cannot access 'LibReference'"));

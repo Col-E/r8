@@ -76,7 +76,6 @@ public class MetadataRewriteCrossinlineBlockTest extends KotlinMetadataTestBase 
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .enableAssertions()
             .compile();
     testForJvm()
         .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
