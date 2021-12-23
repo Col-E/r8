@@ -21,6 +21,7 @@ import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
+import com.google.common.base.Strings;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
@@ -99,13 +100,21 @@ public class KotlinMetadataUtils {
     return new JvmMethodSignature(method.name.toString(), descBuilder.toString());
   }
 
+  static JvmMethodSignature toDefaultJvmMethodSignature(
+      JvmMethodSignature methodSignature, int intArguments) {
+    return new JvmMethodSignature(
+        methodSignature.getName() + "$default",
+        methodSignature
+            .getDesc()
+            .replace(")", Strings.repeat("I", intArguments) + "Ljava/lang/Object;)"));
+  }
+
   static class KmPropertyProcessor {
     private JvmFieldSignature fieldSignature = null;
     // Custom getter via @get:JvmName("..."). Otherwise, null.
     private JvmMethodSignature getterSignature = null;
     // Custom getter via @set:JvmName("..."). Otherwise, null.
     private JvmMethodSignature setterSignature = null;
-
     KmPropertyProcessor(KmProperty kmProperty) {
       kmProperty.accept(
           new KmPropertyVisitor() {

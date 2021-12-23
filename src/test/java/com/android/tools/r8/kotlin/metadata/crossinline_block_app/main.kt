@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.kotlin.metadata.crossinline_block_app
 
+import com.android.tools.r8.kotlin.metadata.crossinline_block_lib.bar
 import com.android.tools.r8.kotlin.metadata.crossinline_block_lib.foo
 
 fun main(args : Array<String>) {
   if (args.isEmpty()) {
     call("foo")
+    bar(bar3 = 0)
   } else {
     call("bar")
   }

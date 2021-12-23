@@ -4,18 +4,12 @@
 
 package com.android.tools.r8.kotlin.metadata;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
-
-import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,7 +17,11 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteCrossinlineBlockTest extends KotlinMetadataTestBase {
 
-  private final String EXPECTED = StringUtils.lines("foo");
+  private final String EXPECTED =
+      StringUtils.lines(
+          "foo", "42", "42", "0", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42",
+          "42", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42", "42",
+          "42", "42", "42", "42");
   private static final String PKG_LIB = PKG + ".crossinline_block_lib";
   private static final String PKG_APP = PKG + ".crossinline_block_app";
 
@@ -72,26 +70,18 @@ public class MetadataRewriteCrossinlineBlockTest extends KotlinMetadataTestBase 
             .addKeepAllAttributes()
             .compile()
             .writeToZip();
-    ProcessResult kotlinCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(
                 getKotlinFileInTest(DescriptorUtils.getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .enableAssertions()
-            .compileRaw();
-    // TODO(b/211113454): This compilation should not fail.
-    assertNotEquals(0, kotlinCompileResult.exitCode);
-    if (kotlinParameters.isOlderThan(KotlinCompilerVersion.KOTLINC_1_4_20)) {
-      assertThat(
-          kotlinCompileResult.stderr,
-          CoreMatchers.containsString(
-              "java.lang.AssertionError: 'checkParameterIsNotNull' should be invoked on local"));
-    } else {
-      assertThat(
-          kotlinCompileResult.stderr,
-          CoreMatchers.containsString(
-              "java.lang.AssertionError: 'checkNotNullParameter' should be invoked on local"));
-    }
+            .compile();
+    testForJvm()
+        .addRunClasspathFiles(kotlinc.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG_APP + ".MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 }

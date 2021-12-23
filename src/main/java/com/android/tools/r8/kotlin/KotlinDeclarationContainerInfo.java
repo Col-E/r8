@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.isValidMethodDescriptor;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toDefaultJvmMethodSignature;
 import static com.android.tools.r8.utils.FunctionUtils.forEachApply;
 
 import com.android.tools.r8.graph.AppView;
@@ -18,6 +19,8 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.math.IntMath;
+import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +90,7 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
         }
         continue;
       }
-      keepIfInline(kmFunction.getFlags(), method, keepByteCode);
+      keepIfInline(kmFunction.getFlags(), method, signature, methodSignatureMap, keepByteCode);
       method.setKotlinMemberInfo(kotlinFunctionInfo);
       originalAssignmentTracker.add(method.getReference());
     }
@@ -138,8 +141,24 @@ public class KotlinDeclarationContainerInfo implements EnqueuerMetadataTraceable
   }
 
   private static void keepIfInline(
-      int flags, DexEncodedMethod method, Consumer<DexEncodedMethod> keepByteCode) {
+      int flags,
+      DexEncodedMethod method,
+      JvmMethodSignature signature,
+      Map<String, DexEncodedMethod> methodSignatureMap,
+      Consumer<DexEncodedMethod> keepByteCode) {
     if (Flags.IS_INLINE.get(flags)) {
+      // Check if we can find a default method. If there are more than 32 arguments another int
+      // index will be added to the default method.
+      for (int i = 1;
+          i <= IntMath.divide(method.getParameters().size(), 32, RoundingMode.CEILING);
+          i++) {
+        DexEncodedMethod defaultValueMethod =
+            methodSignatureMap.get(toDefaultJvmMethodSignature(signature, i).toString());
+        if (defaultValueMethod != null) {
+          keepByteCode.accept(defaultValueMethod);
+          return;
+        }
+      }
       keepByteCode.accept(method);
     }
   }
