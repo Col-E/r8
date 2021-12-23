@@ -46,8 +46,9 @@ public class ApiModelNoMockForOutlineTest extends TestBase {
   public void testR8() throws Exception {
     assumeFalse(
         parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0));
-    boolean isClassLibraryLevel =
-        parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(classApiLevel);
+    boolean isMethodApiLevel =
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().isGreaterThanOrEqualTo(methodApiLevel);
     Method methodOn23 = LibraryClass.class.getDeclaredMethod("methodOn23");
     Method mainMethod = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
@@ -72,16 +73,15 @@ public class ApiModelNoMockForOutlineTest extends TestBase {
                     .isGreaterThanOrEqualTo(classApiLevel),
             b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(!isClassLibraryLevel, "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            isClassLibraryLevel, "LibraryClass::methodOn23", "Hello World")
+        .assertSuccessWithOutputLinesIf(!isMethodApiLevel, "Hello World")
+        .assertSuccessWithOutputLinesIf(isMethodApiLevel, "LibraryClass::methodOn23", "Hello World")
         .inspect(
             inspector -> {
               assertThat(inspector.method(mainMethod), isPresent());
               verifyThat(inspector, parameters, methodOn23)
                   .isOutlinedFromUntil(mainMethod, methodApiLevel);
               verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(classApiLevel);
-              if (parameters.isDexRuntime() && !isClassLibraryLevel) {
+              if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(classApiLevel)) {
                 // We never trace outlined method for stubs so this holds by default.
                 ClassSubject mockedLibraryClass = inspector.clazz(LibraryClass.class);
                 assertThat(mockedLibraryClass, isPresent());
