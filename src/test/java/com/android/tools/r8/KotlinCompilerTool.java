@@ -180,6 +180,8 @@ public class KotlinCompilerTool {
   private final List<Path> classpath = new ArrayList<>();
   private final List<String> additionalArguments = new ArrayList<>();
   private boolean useJvmAssertions;
+  // TODO(b/211590675): We should enable assertions by default.
+  private boolean enableAssertions = false;
   private Path output = null;
 
   private KotlinCompilerTool(
@@ -247,6 +249,11 @@ public class KotlinCompilerTool {
   public KotlinCompilerTool noStdLib() {
     assert !additionalArguments.contains("-no-stdlib");
     addArguments("-no-stdlib");
+    return this;
+  }
+
+  public KotlinCompilerTool enableAssertions() {
+    this.enableAssertions = true;
     return this;
   }
 
@@ -325,6 +332,9 @@ public class KotlinCompilerTool {
   private ProcessResult compileInternal(Path output) throws IOException {
     List<String> cmdline = new ArrayList<>();
     cmdline.add(jdk.getJavaExecutable().toString());
+    if (enableAssertions) {
+      cmdline.add("-ea");
+    }
     cmdline.add("-cp");
     cmdline.add(compiler.getCompiler().toString());
     cmdline.add(ToolHelper.K2JVMCompiler);
