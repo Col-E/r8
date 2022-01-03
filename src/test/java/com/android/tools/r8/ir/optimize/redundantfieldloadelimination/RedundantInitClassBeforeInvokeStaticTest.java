@@ -45,7 +45,7 @@ public class RedundantInitClassBeforeInvokeStaticTest extends TestBase {
               assertThat(greeterClassSubject, isPresent());
               assertThat(greeterClassSubject.uniqueMethodWithName("hello"), isAbsent());
               assertThat(greeterClassSubject.uniqueMethodWithName("world"), isPresent());
-              assertEquals(1, greeterClassSubject.allFields().size());
+              assertEquals(0, greeterClassSubject.allFields().size());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello world!");
