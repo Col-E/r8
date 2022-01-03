@@ -75,7 +75,7 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0");
+        .assertSuccessWithOutputLines("0", "0");
   }
 
   private static byte[] getTransformedMain() throws IOException {
@@ -98,6 +98,13 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
     public static void main(String[] args) {
       // Transformed from `I get(int)` to `Object get(int)`.
       get(args.length).m();
+
+      // Transformed from `I get(int)` to `Object get(int)`.
+      try {
+        get(args.length).m();
+      } catch (Exception e) {
+        throw new RuntimeException();
+      }
     }
 
     // @Keep
