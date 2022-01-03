@@ -105,6 +105,7 @@ public final class BackportedMethods {
     factory.createSynthesizedType("Ljava/util/stream/IntStream;");
     factory.createSynthesizedType("Ljava/util/stream/LongStream;");
     factory.createSynthesizedType("Ljava/util/stream/Stream;");
+    factory.createSynthesizedType("Lsun/misc/Unsafe;");
     factory.createSynthesizedType("[Ljava/lang/CharSequence;");
     factory.createSynthesizedType("[Ljava/lang/Class;");
     factory.createSynthesizedType("[Ljava/lang/Object;");
@@ -9074,6 +9075,86 @@ public final class BackportedMethods {
                 false),
             new CfReturn(ValueType.OBJECT),
             label8),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode UnsafeMethods_compareAndSwapObject(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        6,
+        6,
+        ImmutableList.of(
+            label0,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2, 4, 5},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.createType("Lsun/misc/Unsafe;")),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.longType),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.objectType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.LONG, 2),
+            new CfLoad(ValueType.OBJECT, 4),
+            new CfLoad(ValueType.OBJECT, 5),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Lsun/misc/Unsafe;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.booleanType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.longType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.objectType),
+                    options.itemFactory.createString("compareAndSwapObject")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfConstNumber(1, ValueType.INT),
+            new CfReturn(ValueType.INT),
+            label2,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2, 4, 5},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.createType("Lsun/misc/Unsafe;")),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.longType),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.objectType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.LONG, 2),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Lsun/misc/Unsafe;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.objectType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.longType),
+                    options.itemFactory.createString("getObject")),
+                false),
+            new CfLoad(ValueType.OBJECT, 4),
+            new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
+            label3,
+            new CfConstNumber(0, ValueType.INT),
+            new CfReturn(ValueType.INT),
+            label4),
         ImmutableList.of(),
         ImmutableList.of());
   }

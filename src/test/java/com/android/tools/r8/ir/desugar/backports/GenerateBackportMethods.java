@@ -50,7 +50,8 @@ public class GenerateBackportMethods extends MethodGenerationBase {
           OptionalMethods.class,
           ShortMethods.class,
           StreamMethods.class,
-          StringMethods.class);
+          StringMethods.class,
+          UnsafeMethods.class);
 
   protected final TestParameters parameters;
 
@@ -101,6 +102,34 @@ public class GenerateBackportMethods extends MethodGenerationBase {
     }
   }
 
+  private static CfInstruction rewriteToUnsafe(
+      DexItemFactory itemFactory, CfInstruction instruction) {
+    // Rewrite references to UnsafeStub to sun.misc.Unsafe.
+    if (instruction.isInvoke()) {
+      String name = instruction.asInvoke().getMethod().getName().toString();
+      if (name.equals("compareAndSwapObject") || name.equals("getObject")) {
+        CfInvoke invoke = instruction.asInvoke();
+        return new CfInvoke(
+            invoke.getOpcode(),
+            itemFactory.createMethod(
+                itemFactory.createType("Lsun/misc/Unsafe;"),
+                invoke.getMethod().getProto(),
+                itemFactory.createString(name)),
+            invoke.isInterface());
+      }
+    }
+    if (instruction.isFrame()) {
+      return instruction
+          .asFrame()
+          .map(
+              type ->
+                  (type.getTypeName().endsWith("$UnsafeStub"))
+                      ? itemFactory.createType("Lsun/misc/Unsafe;")
+                      : type);
+    }
+    return instruction;
+  }
+
   @Override
   protected CfCode getCode(String holderName, String methodName, CfCode code) {
     if (methodName.endsWith("Stub")) {
@@ -111,6 +140,12 @@ public class GenerateBackportMethods extends MethodGenerationBase {
       code.setInstructions(
           code.getInstructions().stream()
               .map(instruction -> rewriteToJava9API(factory, instruction))
+              .collect(Collectors.toList()));
+    }
+    if (holderName.equals("UnsafeMethods") && methodName.equals("compareAndSwapObject")) {
+      code.setInstructions(
+          code.getInstructions().stream()
+              .map(instruction -> rewriteToUnsafe(factory, instruction))
               .collect(Collectors.toList()));
     }
     return code;

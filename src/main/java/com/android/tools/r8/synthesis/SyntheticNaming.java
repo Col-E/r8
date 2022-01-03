@@ -43,6 +43,7 @@ public class SyntheticNaming {
     ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD("CheckNotZero", 27, true),
     RECORD_HELPER("Record", 9, true),
     BACKPORT("Backport", 10, true),
+    BACKPORT_WITH_FORWARDING("BackportWithForwarding", 34, true),
     STATIC_INTERFACE_CALL("StaticInterfaceCall", 11, true),
     TO_STRING_IF_NOT_NULL("ToStringIfNotNull", 12, true),
     THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", 13, true),

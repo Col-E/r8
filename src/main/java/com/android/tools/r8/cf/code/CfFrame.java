@@ -105,6 +105,24 @@ public class CfFrame extends CfInstruction {
       return false;
     }
 
+    FrameType map(java.util.function.Function<DexType, DexType> func) {
+      if (isInitialized()) {
+        DexType type = getInitializedType();
+        DexType newType = func.apply(type);
+        if (type != newType) {
+          return initialized(newType);
+        }
+      }
+      if (isUninitializedNew()) {
+        DexType type = getUninitializedNewType();
+        DexType newType = func.apply(type);
+        if (type != newType) {
+          return uninitializedNew(getUninitializedLabel(), newType);
+        }
+      }
+      return this;
+    }
+
     private FrameType() {}
 
     public static FrameType fromMemberType(MemberType memberType, DexItemFactory factory) {
@@ -511,5 +529,17 @@ public class CfFrame extends CfInstruction {
       return FrameType.initialized(newType);
     }
     return other;
+  }
+
+  public CfFrame map(java.util.function.Function<DexType, DexType> func) {
+    Int2ReferenceSortedMap<FrameType> newLocals = new Int2ReferenceAVLTreeMap<>();
+    for (int var : locals.keySet()) {
+      newLocals.put(var, locals.get(var).map(func));
+    }
+    Deque<FrameType> newStack = new ArrayDeque<>();
+    for (FrameType frameType : stack) {
+      newStack.addLast(frameType.map(func));
+    }
+    return new CfFrame(newLocals, newStack);
   }
 }
