@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
@@ -22,6 +23,8 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
+
+  private static final String EXPECTED = StringUtils.lines("0", "0");
 
   @Parameter(0)
   public boolean enableInlining;
@@ -48,7 +51,7 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
         .addProgramClasses(I.class, A.class)
         .addProgramClassFileData(getTransformedMain())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -75,7 +78,7 @@ public class InterfaceInvokeWithObjectReceiverInliningTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("0", "0");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private static byte[] getTransformedMain() throws IOException {
