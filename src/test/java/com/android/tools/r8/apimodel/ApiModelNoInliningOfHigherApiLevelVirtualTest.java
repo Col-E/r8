@@ -53,6 +53,8 @@ public class ApiModelNoInliningOfHigherApiLevelVirtualTest extends TestBase {
         .apply(setMockApiLevelForClass(Api.class, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compile()
         .inspect(
             inspector ->

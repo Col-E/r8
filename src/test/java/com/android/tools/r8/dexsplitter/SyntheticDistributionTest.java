@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -98,6 +99,8 @@ public class SyntheticDistributionTest extends SplitterTestBase {
                     "keptApplyLambda", MyFunction.class, String.class)))
         .enableInliningAnnotations()
         .noMinification()
+        // BaseDexClassLoader was introduced at api level 14.
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .setMinApi(parameters.getApiLevel());
   }
 

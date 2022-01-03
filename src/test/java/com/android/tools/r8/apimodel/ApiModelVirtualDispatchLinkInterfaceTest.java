@@ -52,6 +52,8 @@ public class ApiModelVirtualDispatchLinkInterfaceTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .apply(
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {

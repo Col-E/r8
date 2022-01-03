@@ -133,6 +133,22 @@ public abstract class ApiModelingTestHelper {
         });
   }
 
+  public static void disableOutliningAndStubbing(
+      TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    disableStubbingOfClasses(compilerBuilder);
+    disableOutlining(compilerBuilder);
+  }
+
+  public static void disableStubbingOfClasses(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> options.apiModelingOptions().enableStubbingOfClasses = false);
+  }
+
+  public static void disableOutlining(TestCompilerBuilder<?, ?, ?, ?, ?> compilerBuilder) {
+    compilerBuilder.addOptionsModification(
+        options -> options.apiModelingOptions().enableOutliningOfMethods = false);
+  }
+
   static <T extends TestCompilerBuilder<?, ?, ?, ?, ?>>
       ThrowableConsumer<T> addTracedApiReferenceLevelCallBack(
           BiConsumer<MethodReference, AndroidApiLevel> consumer) {

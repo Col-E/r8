@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 
@@ -95,7 +96,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     ComputedApiLevel methodApiLevel =
         apiLevelCompute.computeApiLevelForLibraryReference(
             cfInvoke.getMethod(), ComputedApiLevel.unknown());
-    if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(methodApiLevel)) {
+    if (appView.computedMinApiLevel().isGreaterThanOrEqualTo(methodApiLevel)
+        || isApiLevelLessThanOrEqualTo9(methodApiLevel)) {
       return appView.computedMinApiLevel();
     }
     // Compute the api level of the holder to see if the method will be stubbed.
@@ -104,6 +106,11 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     return methodApiLevel.isGreaterThan(holderApiLevel)
         ? methodApiLevel
         : appView.computedMinApiLevel();
+  }
+
+  private boolean isApiLevelLessThanOrEqualTo9(ComputedApiLevel apiLevel) {
+    return apiLevel.isKnownApiLevel()
+        && apiLevel.asKnownApiLevel().getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.G);
   }
 
   private Collection<CfInstruction> desugarLibraryCall(

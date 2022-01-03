@@ -80,6 +80,7 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
             setMockApiLevelForMethod(
                 OtherLibraryClass.class.getMethod("addedOn27"), secondMethodApiLevel))
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableInliningAnnotations()
         .compile()
         .applyIf(

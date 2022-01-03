@@ -50,6 +50,8 @@ public class ApiModelNoVerticalMergingSubReferenceApiTest extends TestBase {
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiMethod, L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .addVerticallyMergedClassesInspector(

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -45,6 +46,8 @@ public class RepackageWithFeatureSplitTest extends RepackageTestBase {
         .addFeatureSplitRuntime()
         .addKeepFeatureMainRule(FeatureMain.class)
         .apply(this::configureRepackaging)
+        // BaseDexClassLoader was introduced at api level 14.
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

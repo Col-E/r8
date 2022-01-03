@@ -71,6 +71,7 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
         .apply(setMockApiLevelForMethod(addedOn23, initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn27, finalLibraryMethodLevel))
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableInliningAnnotations()
         .compile()
         .applyIf(

@@ -52,6 +52,8 @@ public class ApiModelInlineInSameClassTest extends TestBase {
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compile()
         .inspect(
             inspector -> {

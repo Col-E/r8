@@ -1469,10 +1469,14 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Map<ClassReference, AndroidApiLevel> classApiMapping = new HashMap<>();
     public BiConsumer<MethodReference, ComputedApiLevel> tracedMethodApiLevelCallback = null;
 
-    public boolean enableApiCallerIdentification = true;
-    public boolean checkAllApiReferencesAreSet = true;
-    public boolean enableStubbingOfClasses = false;
-    public boolean enableOutliningOfMethods = false;
+    public boolean enableApiCallerIdentification =
+        System.getProperty("com.android.tools.r8.disableApiModeling") == null;
+    public boolean checkAllApiReferencesAreSet =
+        System.getProperty("com.android.tools.r8.disableApiModeling") == null;
+    public boolean enableStubbingOfClasses =
+        System.getProperty("com.android.tools.r8.disableApiModeling") == null;
+    public boolean enableOutliningOfMethods =
+        System.getProperty("com.android.tools.r8.disableApiModeling") == null;
 
     public void visitMockedApiLevelsForReferences(
         DexItemFactory factory, Consumer<AndroidApiForHashingClass> consumer) {

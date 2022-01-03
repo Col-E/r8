@@ -50,6 +50,8 @@ public class ApiModelNoInliningOfHigherApiLevelInterfaceTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A::noApiCall", "ApiCaller::callInterfaceMethod")
         .inspect(

@@ -50,6 +50,8 @@ public class ApiModelNoInliningOfStaticInterfaceMethodsTest extends TestBase {
         .apply(setMockApiLevelForMethod(apiMethod22, L_MR1))
         .apply(setMockApiLevelForMethod(apiMethod26, O))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .noMinification()
         .enableInliningAnnotations()
         .compile()

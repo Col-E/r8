@@ -47,6 +47,8 @@ public class ApiModelTypeReferenceInvokeTest extends TestBase {
         .apply(setMockApiLevelForClass(LibraryClass.class, AndroidApiLevel.M))
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.M))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .addAndroidBuildVersion()

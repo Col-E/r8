@@ -23,6 +23,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -327,7 +328,8 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowUnusedProguardConfigurationRules(),
+            .allowUnusedProguardConfigurationRules()
+            .apply(ApiModelingTestHelper::disableOutlining),
         main,
         programFiles,
         preservedClassNames::contains);

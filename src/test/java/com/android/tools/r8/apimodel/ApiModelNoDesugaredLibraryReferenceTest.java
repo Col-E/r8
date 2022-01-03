@@ -47,6 +47,8 @@ public class ApiModelNoDesugaredLibraryReferenceTest extends DesugaredLibraryTes
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        // We are testing that we do not inline/merge higher api-levels
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .apply(
             ApiModelingTestHelper.addTracedApiReferenceLevelCallBack(
                 (reference, apiLevel) -> {

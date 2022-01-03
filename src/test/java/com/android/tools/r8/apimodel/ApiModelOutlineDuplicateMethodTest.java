@@ -64,6 +64,7 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForMethod(adeddOn23, methodApiLevel))
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableInliningAnnotations()
         .compile()
         .applyIf(
@@ -79,7 +80,6 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
             isMethodApiLevel, "LibraryClass::addedOn23", "LibraryClass::addedOn23", "Hello World")
         .inspect(
             inspector -> {
-              // No need to check further on CF.
               int classCount =
                   parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(methodApiLevel)
                       ? 4
@@ -90,7 +90,7 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
                   .isOutlinedFromUntil(testMethod, methodApiLevel);
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isLessThan(methodApiLevel)) {
-                // Verify that we invoke the synthesized outline addedOn23 twice.
+                // Verify that we invoke the synthesized outline, addedOn23, twice.
                 Optional<FoundMethodSubject> synthesizedAddedOn23 =
                     inspector.allClasses().stream()
                         .flatMap(clazz -> clazz.allMethods().stream())
