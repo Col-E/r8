@@ -247,7 +247,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             }
           }
           if (outValue.getType().isNullType()) {
-            addNullDependencies(code, outValue.uniqueUsers(), eligibleEnums);
+            addNullDependencies(code, outValue, eligibleEnums);
           }
         } else {
           if (instruction.isInvokeMethod()) {
@@ -290,7 +290,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
           }
         }
         if (phi.getType().isNullType()) {
-          addNullDependencies(code, phi.uniqueUsers(), eligibleEnums);
+          addNullDependencies(code, phi, eligibleEnums);
         }
       }
     }
@@ -520,8 +520,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         || method == factory.classMethods.getSimpleName;
   }
 
-  private void addNullDependencies(IRCode code, Set<Instruction> uses, Set<DexType> eligibleEnums) {
-    for (Instruction use : uses) {
+  private void addNullDependencies(IRCode code, Value nullValue, Set<DexType> eligibleEnums) {
+    for (Instruction use : nullValue.uniqueUsers()) {
       if (use.isInvokeMethod()) {
         InvokeMethod invokeMethod = use.asInvokeMethod();
         DexMethod invokedMethod = invokeMethod.getInvokedMethod();
@@ -530,7 +530,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             eligibleEnums.add(paramType);
           }
         }
-        if (invokeMethod.isInvokeMethodWithReceiver()) {
+        if (invokeMethod.isInvokeMethodWithReceiver()
+            && invokeMethod.asInvokeMethodWithReceiver().getReceiver() == nullValue) {
           DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(invokedMethod.holder);
           if (enumClass != null) {
             markEnumAsUnboxable(Reason.ENUM_METHOD_CALLED_WITH_NULL_RECEIVER, enumClass);
