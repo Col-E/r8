@@ -654,9 +654,8 @@ class InterfaceMethodNameMinifier {
                             DexType frontierType = minifierState.getFrontier(clazz.type);
                             iState.addReservationType(frontierType);
                             // The reservation state should already be added, but if a class is
-                            // extending
-                            // an interface, we will not visit the class during the sub-type
-                            // traversel
+                            // extending an interface, we will not visit the class during the
+                            // sub-type traversel.
                             if (minifierState.getReservationState(clazz.type) == null) {
                               minifierState.allocateReservationStateAndReserve(
                                   clazz.type, frontierType);
