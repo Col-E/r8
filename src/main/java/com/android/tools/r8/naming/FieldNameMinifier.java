@@ -180,6 +180,7 @@ class FieldNameMinifier {
 
               ReservedFieldNamingState reservedNames =
                   getOrCreateReservedFieldNamingState(clazz.type);
+              // TODO(b/213041051): This could avoid duplication of strings downwards.
               FieldNamingState state = parentState.createChildState(reservedNames);
               if (clazz.isProgramClass()) {
                 clazz.asProgramClass().forEachProgramField(field -> renameField(field, state));
@@ -191,8 +192,8 @@ class FieldNameMinifier {
   }
 
   private void renameFieldsInInterfaces(Collection<DexClass> interfaces) {
-    InterfacePartitioning partioning = new InterfacePartitioning(this);
-    for (Set<DexClass> partition : partioning.sortedPartitions(interfaces)) {
+    InterfacePartitioning partitioning = new InterfacePartitioning(this);
+    for (Set<DexClass> partition : partitioning.sortedPartitions(interfaces)) {
       renameFieldsInInterfacePartition(partition);
     }
   }
@@ -231,11 +232,10 @@ class FieldNameMinifier {
         if (!visited.add(implementationType)) {
           continue;
         }
-
         DexClass implementation = appView.definitionFor(implementationType);
         if (implementation != null) {
           getOrCreateReservedFieldNamingState(implementationType)
-              .includeReservations(namesToBeReservedInImplementsSubclasses);
+              .setInterfaceMinificationState(namesToBeReservedInImplementsSubclasses);
         }
       }
     }
