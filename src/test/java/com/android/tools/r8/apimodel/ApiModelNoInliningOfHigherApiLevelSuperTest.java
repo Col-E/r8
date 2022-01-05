@@ -55,6 +55,7 @@ public class ApiModelNoInliningOfHigherApiLevelSuperTest extends TestBase {
         .apply(setMockApiLevelForMethod(apiMethod, AndroidApiLevel.L_MR1))
         .apply(setMockApiLevelForDefaultInstanceInitializer(Api.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .apply(
             addTracedApiReferenceLevelCallBack(
                 (method, apiLevel) -> {

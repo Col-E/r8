@@ -48,6 +48,7 @@ public class ApiModelInlineMethodWithApiTypeTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .apply(setMockApiLevelForClass(ApiType.class, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .compile()
         .addRunClasspathClasses(ApiType.class)
         .run(parameters.getRuntime(), Main.class)

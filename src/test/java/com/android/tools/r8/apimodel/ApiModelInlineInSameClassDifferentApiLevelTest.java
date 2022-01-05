@@ -45,6 +45,7 @@ public class ApiModelInlineInSameClassDifferentApiLevelTest extends TestBase {
         .addKeepMainRule(Main.class)
         .apply(setMockApiLevelForMethod(apiLevel22, AndroidApiLevel.L_MR1))
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .compile()
         .inspect(inspector -> verifyThat(inspector, parameters, callApi).inlinedInto(callCallApi))
