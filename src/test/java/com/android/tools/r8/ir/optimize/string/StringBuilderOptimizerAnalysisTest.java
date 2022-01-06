@@ -265,7 +265,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Test
   public void testPhiAtInit() {
-    int expectedNumOfNewBuilder = 2;
+    int expectedNumOfNewBuilder = 0;
     boolean expectToMeetToString = false;
     if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.M)) {
       expectedNumOfNewBuilder = 1;
