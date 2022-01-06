@@ -6,7 +6,7 @@ package com.android.tools.r8.dex;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfoForWriting;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
@@ -74,11 +74,11 @@ public abstract class MixedSectionCollection {
   /**
    * Adds the given debug info to the collection.
    *
-   * Does not add any dependencies.
+   * <p>Does not add any dependencies.
    *
    * @return true if the item was not added before
    */
-  public abstract boolean add(DexDebugInfo dexDebugInfo);
+  public abstract boolean add(DexDebugInfoForWriting dexDebugInfo);
 
   /**
    * Adds the given type list to the collection.

@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.dex;
 
-import com.android.tools.r8.graph.DexDebugEvent;
-import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfoForWriting;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
@@ -17,32 +16,19 @@ public class DebugBytecodeWriter {
 
   private final ObjectToOffsetMapping mapping;
   private final GraphLens graphLens;
-  private final DexDebugInfo info;
+  private final DexDebugInfoForWriting info;
   private ByteBuffer buffer;
 
   public DebugBytecodeWriter(
-      DexDebugInfo info, ObjectToOffsetMapping mapping, GraphLens graphLens) {
+      DexDebugInfoForWriting info, ObjectToOffsetMapping mapping, GraphLens graphLens) {
     this.info = info;
     this.mapping = mapping;
     this.graphLens = graphLens;
-    // Never allocate a zero-sized buffer, as we need to write the header, and the growth policy
-    // requires it to have a positive capacity.
-    this.buffer = ByteBuffer.allocate(info.events.length * 5 + 4);
+    this.buffer = ByteBuffer.allocate(info.estimatedWriteSize());
   }
 
   public byte[] generate() {
-    // Header.
-    putUleb128(info.startLine); // line_start
-    putUleb128(info.parameters.length);
-    for (DexString name : info.parameters) {
-      putString(name);
-    }
-    // Body.
-    for (DexDebugEvent event : info.events) {
-      event.writeOn(this, mapping, graphLens);
-    }
-    // Tail.
-    putByte(Constants.DBG_END_SEQUENCE);
+    info.write(this, mapping, graphLens);
     return Arrays.copyOf(buffer.array(), buffer.position());
   }
 

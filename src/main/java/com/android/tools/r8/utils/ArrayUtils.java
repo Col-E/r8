@@ -131,6 +131,10 @@ public class ArrayUtils {
     return results != null ? results.toArray(emptyArray) : original;
   }
 
+  public static <T> T[] filter(T[] original, Predicate<T> test, T[] emptyArray) {
+    return map(original, e -> test.test(e) ? e : null, emptyArray);
+  }
+
   public static int[] createIdentityArray(int size) {
     int[] array = new int[size];
     for (int i = 0; i < size; i++) {

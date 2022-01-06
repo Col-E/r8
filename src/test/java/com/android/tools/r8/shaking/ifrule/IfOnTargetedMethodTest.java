@@ -8,13 +8,28 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.lang.reflect.Proxy;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class IfOnTargetedMethodTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withApiLevel(AndroidApiLevel.B).build();
+  }
+
+  @Parameter public TestParameters parameters;
 
   @Test
   public void test() throws Exception {
@@ -23,13 +38,14 @@ public class IfOnTargetedMethodTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
+            .setMinApi(parameters.getApiLevel())
             .addInnerClasses(IfOnTargetedMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 "-if interface * { @" + MyAnnotation.class.getTypeName() + " <methods>; }",
                 "-keep,allowobfuscation interface <1>")
-            .run(TestClass.class)
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 

@@ -83,7 +83,9 @@ public class DexSourceCode implements SourceCode {
     this.originalMethod = originalMethod;
     DexDebugInfo info = code.getDebugInfo();
     if (info != null) {
-      debugEntries = info.computeEntries(originalMethod);
+      // IR converting inputs with PC based debug info is not supported.
+      assert info.isEventBasedInfo();
+      debugEntries = info.asEventBasedInfo().computeEntries(originalMethod);
     }
     canonicalPositions =
         new CanonicalPositions(

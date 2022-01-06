@@ -71,6 +71,7 @@ public class DebugSetFileSmaliTest extends TestBase {
                               .getCode()
                               .asDexCode()
                               .getDebugInfo()
+                              .asEventBasedInfo()
                               .events)
                       .anyMatch(e -> e instanceof SetFile));
             })

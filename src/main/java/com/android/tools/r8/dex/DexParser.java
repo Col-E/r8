@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -592,7 +593,7 @@ public class DexParser<T extends DexClass> {
         }
       }
     }
-    return new DexDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
+    return new EventBasedDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   private static class MemberAnnotationIterator<R extends DexMember<?, R>, T extends DexItem> {

@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
-import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfoForWriting;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedArray;
@@ -184,7 +183,7 @@ public class FileWriter {
     } else {
       // Ensure deterministic ordering of debug info by sorting consistent with the code objects.
       layout.setDebugInfosOffset(dest.align(1));
-      Set<DexDebugInfo> seen = new HashSet<>(mixedSectionOffsets.getDebugInfos().size());
+      Set<DexDebugInfoForWriting> seen = new HashSet<>(mixedSectionOffsets.getDebugInfos().size());
       for (ProgramDexCode code : codes) {
         DexDebugInfoForWriting info = code.getCode().getDebugInfoForWriting();
         if (info != null && seen.add(info)) {
@@ -480,7 +479,7 @@ public class FileWriter {
     dest.putInt(mixedSectionOffsets.getOffsetFor(staticFieldValues.get(clazz)));
   }
 
-  private void writeDebugItem(DexDebugInfo debugInfo, GraphLens graphLens) {
+  private void writeDebugItem(DexDebugInfoForWriting debugInfo, GraphLens graphLens) {
     mixedSectionOffsets.setOffsetFor(debugInfo, dest.position());
     dest.putBytes(new DebugBytecodeWriter(debugInfo, mapping, graphLens).generate());
   }
@@ -1070,7 +1069,7 @@ public class FileWriter {
     private static final int NOT_KNOWN = -2;
 
     private final Reference2IntMap<DexEncodedMethod> codes = createReference2IntMap();
-    private final Object2IntMap<DexDebugInfo> debugInfos = createObject2IntMap();
+    private final Object2IntMap<DexDebugInfoForWriting> debugInfos = createObject2IntMap();
     private final Object2IntMap<DexTypeList> typeLists = createObject2IntMap();
     private final Reference2IntMap<DexString> stringData = createReference2IntMap();
     private final Object2IntMap<DexAnnotation> annotations = createObject2IntMap();
@@ -1149,7 +1148,7 @@ public class FileWriter {
     }
 
     @Override
-    public boolean add(DexDebugInfo debugInfo) {
+    public boolean add(DexDebugInfoForWriting debugInfo) {
       return add(debugInfos, debugInfo);
     }
 
@@ -1190,7 +1189,7 @@ public class FileWriter {
       return codes.keySet();
     }
 
-    public Collection<DexDebugInfo> getDebugInfos() {
+    public Collection<DexDebugInfoForWriting> getDebugInfos() {
       return debugInfos.keySet();
     }
 
@@ -1263,7 +1262,7 @@ public class FileWriter {
       return lookup(encodedArray, encodedArrays);
     }
 
-    public int getOffsetFor(DexDebugInfo debugInfo) {
+    public int getOffsetFor(DexDebugInfoForWriting debugInfo) {
       return lookup(debugInfo, debugInfos);
     }
 
@@ -1311,7 +1310,7 @@ public class FileWriter {
       assert old <= NOT_SET;
     }
 
-    void setOffsetFor(DexDebugInfo debugInfo, int offset) {
+    void setOffsetFor(DexDebugInfoForWriting debugInfo, int offset) {
       setOffsetFor(debugInfo, offset, debugInfos);
     }
 

@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.ir.code.IRCode;
@@ -230,15 +231,17 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   public DexDebugInfo debugInfoWithFakeThisParameter(DexItemFactory factory) {
     if (debugInfo == null) {
-      return null;
+      return debugInfo;
     }
+    assert debugInfo.isEventBasedInfo();
+    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
     // User code may already have variables named '_*this'. Use one more than the largest number of
     // underscores present as a prefix to 'this'.
     int largestPrefix = 0;
-    for (DexString parameter : debugInfo.parameters) {
+    for (DexString parameter : eventBasedInfo.parameters) {
       largestPrefix = Integer.max(largestPrefix, getLargestPrefix(factory, parameter));
     }
-    for (DexDebugEvent event : debugInfo.events) {
+    for (DexDebugEvent event : eventBasedInfo.events) {
       if (event instanceof DexDebugEvent.StartLocal) {
         DexString name = ((StartLocal) event).name;
         largestPrefix = Integer.max(largestPrefix, getLargestPrefix(factory, name));
@@ -246,11 +249,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     }
 
     String fakeThisName = Strings.repeat(FAKE_THIS_PREFIX, largestPrefix + 1) + FAKE_THIS_SUFFIX;
-    DexString[] parameters = debugInfo.parameters;
+    DexString[] parameters = eventBasedInfo.parameters;
     DexString[] newParameters = new DexString[parameters.length + 1];
     newParameters[0] = factory.createString(fakeThisName);
     System.arraycopy(parameters, 0, newParameters, 1, parameters.length);
-    return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
+    return new EventBasedDebugInfo(eventBasedInfo.startLine, newParameters, eventBasedInfo.events);
   }
 
   @Override
@@ -268,10 +271,12 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   private DexDebugInfo debugInfoAsInlining(DexMethod caller, DexMethod callee) {
     Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     if (debugInfo == null) {
+      // Inlining is not supported for PC based debug info. The conversion to PC should happen
+      // after optimization (or only for D8 merge inputs) so this should be unreachable.
       // If the method has no debug info we generate a preamble position to denote the inlining.
       // This is consistent with the building IR for inlining which will always ensure the method
       // has a position.
-      return new DexDebugInfo(
+      return new EventBasedDebugInfo(
           0,
           new DexString[callee.getArity()],
           new DexDebugEvent[] {
@@ -279,7 +284,9 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
             DexDebugEvent.ZERO_CHANGE_DEFAULT_EVENT
           });
     }
-    DexDebugEvent[] oldEvents = debugInfo.events;
+    assert debugInfo.isEventBasedInfo();
+    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
+    DexDebugEvent[] oldEvents = eventBasedInfo.events;
     DexDebugEvent[] newEvents = new DexDebugEvent[oldEvents.length + 1];
     int i = 0;
     newEvents[i++] = new DexDebugEvent.SetInlineFrame(callee, callerPosition);
@@ -296,7 +303,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
         newEvents[i++] = event;
       }
     }
-    return new DexDebugInfo(debugInfo.startLine, debugInfo.parameters, newEvents);
+    return new EventBasedDebugInfo(eventBasedInfo.startLine, eventBasedInfo.parameters, newEvents);
   }
 
   public static int getLargestPrefix(DexItemFactory factory, DexString name) {
@@ -313,15 +320,17 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
 
   public DexDebugInfo debugInfoWithoutFirstParameter() {
     if (debugInfo == null) {
-      return null;
-    }
-    DexString[] parameters = debugInfo.parameters;
-    if(parameters.length == 0) {
       return debugInfo;
+    }
+    assert debugInfo.isEventBasedInfo();
+    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
+    DexString[] parameters = eventBasedInfo.parameters;
+    if(parameters.length == 0) {
+      return eventBasedInfo;
     }
     DexString[] newParameters = new DexString[parameters.length - 1];
     System.arraycopy(parameters, 1, newParameters, 0, parameters.length - 1);
-    return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
+    return new EventBasedDebugInfo(eventBasedInfo.startLine, newParameters, eventBasedInfo.events);
   }
 
   @Override
@@ -566,18 +575,15 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
     if (debugInfo != null) {
       getDebugInfoForWriting().collectIndexedItems(indexedItems, graphLens);
     }
-      for (TryHandler handler : handlers) {
-        handler.collectIndexedItems(indexedItems, graphLens);
-      }
+    for (TryHandler handler : handlers) {
+      handler.collectIndexedItems(indexedItems, graphLens);
+    }
   }
 
   @Override
   public DexDebugInfoForWriting getDebugInfoForWriting() {
-    if (debugInfo == null) {
-      return null;
-    }
     if (debugInfoForWriting == null) {
-      debugInfoForWriting = DexDebugInfoForWriting.create(debugInfo);
+      debugInfoForWriting = DexDebugInfo.convertToWritable(debugInfo);
     }
     return debugInfoForWriting;
   }

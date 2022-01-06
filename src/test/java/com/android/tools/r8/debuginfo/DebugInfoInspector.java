@@ -11,11 +11,10 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexDebugEntry;
 import com.android.tools.r8.graph.DexDebugEntryBuilder;
-import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -36,15 +35,18 @@ public class DebugInfoInspector {
   private final DexEncodedMethod method;
   private final List<DexDebugEntry> entries;
 
-  final DexDebugInfo info;
+  final EventBasedDebugInfo info;
 
   public DebugInfoInspector(DexEncodedMethod method, DexItemFactory factory) {
     this.method = method;
-    info = method.getCode().asDexCode().getDebugInfo();
-    if (info != null) {
+    DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
+    if (debugInfo != null) {
+      assert debugInfo.isEventBasedInfo();
+      info = debugInfo.asEventBasedInfo();
       entries = new DexDebugEntryBuilder(method, factory).build();
       checkConsistentEntries();
     } else {
+      info = null;
       entries = Collections.emptyList();
     }
   }
@@ -56,24 +58,6 @@ public class DebugInfoInspector {
   public DebugInfoInspector(AndroidApp app, String clazz, MethodSignature method)
       throws IOException, ExecutionException {
     this(new CodeInspector(app), clazz, method);
-  }
-
-  public boolean hasLocalsInfo() {
-    DexDebugInfo dexInfo = method.getCode().asDexCode().getDebugInfo();
-    if (info == null || dexInfo == null) {
-      return false;
-    }
-    for (DexString parameter : dexInfo.parameters) {
-      if (parameter != null) {
-        return true;
-      }
-    }
-    for (DexDebugEvent event : dexInfo.events) {
-      if (event instanceof DexDebugEvent.StartLocal) {
-        return true;
-      }
-    }
-    return false;
   }
 
   public void checkStartLine(int i) {

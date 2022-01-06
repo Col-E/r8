@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.IRCode;
@@ -120,7 +121,7 @@ public class DexDebugEventBuilder {
         params[i] = (local == null || local.signature != null) ? null : local.name;
       }
     }
-    return new DexDebugInfo(startLine, params, events.toArray(DexDebugEvent.EMPTY_ARRAY));
+    return new EventBasedDebugInfo(startLine, params, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   private void updateBlockEntry(Instruction instruction) {

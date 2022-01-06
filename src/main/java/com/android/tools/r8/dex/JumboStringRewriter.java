@@ -29,6 +29,7 @@ import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.SwitchPayload;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -37,6 +38,7 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
 import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
@@ -216,11 +218,13 @@ public class JumboStringRewriter {
 
   private DexDebugInfo rewriteDebugInfoOffsets() {
     DexCode code = method.getCode().asDexCode();
-    if (debugEventTargets.size() != 0) {
+    if (!debugEventTargets.isEmpty()) {
+      assert code.getDebugInfo().isEventBasedInfo();
+      EventBasedDebugInfo eventBasedInfo = code.getDebugInfo().asEventBasedInfo();
       int lastOriginalOffset = 0;
       int lastNewOffset = 0;
       List<DexDebugEvent> events = new ArrayList<>();
-      for (DexDebugEvent event : code.getDebugInfo().events) {
+      for (DexDebugEvent event : eventBasedInfo.events) {
         if (event instanceof AdvancePC) {
           AdvancePC advance = (AdvancePC) event;
           lastOriginalOffset += advance.delta;
@@ -240,9 +244,9 @@ public class JumboStringRewriter {
           events.add(event);
         }
       }
-      return new DexDebugInfo(
-          code.getDebugInfo().startLine,
-          code.getDebugInfo().parameters,
+      return new EventBasedDebugInfo(
+          eventBasedInfo.startLine,
+          eventBasedInfo.parameters,
           events.toArray(DexDebugEvent.EMPTY_ARRAY));
     }
     return code.getDebugInfo();
@@ -480,22 +484,31 @@ public class JumboStringRewriter {
 
   private void recordDebugEventTargets(Int2ReferenceMap<Instruction> offsetToInstruction) {
     DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
-    if (debugInfo != null) {
-      int address = 0;
-      for (DexDebugEvent event : debugInfo.events) {
-        if (event instanceof AdvancePC) {
-          AdvancePC advance = (AdvancePC) event;
-          address += advance.delta;
-          Instruction target = offsetToInstruction.get(address);
-          assert target != null;
-          debugEventTargets.put(address, target);
-        } else if (event instanceof Default) {
-          Default defaultEvent = (Default) event;
-          address += defaultEvent.getPCDelta();
-          Instruction target = offsetToInstruction.get(address);
-          assert target != null;
-          debugEventTargets.put(address, target);
-        }
+    if (debugInfo == null) {
+      return;
+    }
+    if (debugInfo.isPcBasedInfo()) {
+      // TODO(b/205910335): merging pc based builds may require computing new pc mappings.
+      //  In these cases the old PC should be treated as a "line" and the translation must be
+      //  recorded and amended in the output. Reading PC based debug info as inputs is not yet
+      //  supported so this is unreachable.
+      throw new Unreachable();
+    }
+    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
+    int address = 0;
+    for (DexDebugEvent event : eventBasedInfo.events) {
+      if (event instanceof AdvancePC) {
+        AdvancePC advance = (AdvancePC) event;
+        address += advance.delta;
+        Instruction target = offsetToInstruction.get(address);
+        assert target != null;
+        debugEventTargets.put(address, target);
+      } else if (event instanceof Default) {
+        Default defaultEvent = (Default) event;
+        address += defaultEvent.getPCDelta();
+        Instruction target = offsetToInstruction.get(address);
+        assert target != null;
+        debugEventTargets.put(address, target);
       }
     }
   }

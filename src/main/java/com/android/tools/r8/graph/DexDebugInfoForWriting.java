@@ -4,36 +4,18 @@
 
 package com.android.tools.r8.graph;
 
-/**
- * Wraps DexDebugInfo to make comparison and hashcode not consider
- * the SetInlineFrames
- */
-public class DexDebugInfoForWriting extends DexDebugInfo {
+import com.android.tools.r8.dex.DebugBytecodeWriter;
+import com.android.tools.r8.dex.IndexedItemCollection;
+import com.android.tools.r8.dex.MixedSectionCollection;
 
-  private DexDebugInfoForWriting(int startLine, DexString[] parameters, DexDebugEvent[] events) {
-    super(startLine, parameters, events);
-  }
+/** Interface to guarantee that the info only contains writable events. */
+public interface DexDebugInfoForWriting {
 
-  public static DexDebugInfoForWriting create(DexDebugInfo debugInfo) {
-    assert debugInfo != null;
-    int nonWritableEvents = 0;
-    for (DexDebugEvent event : debugInfo.events) {
-      if (!event.isWritableEvent()) {
-        nonWritableEvents++;
-      }
-    }
-    DexDebugEvent[] writableEvents;
-    if (nonWritableEvents == 0) {
-      writableEvents = debugInfo.events;
-    } else {
-      writableEvents = new DexDebugEvent[debugInfo.events.length - nonWritableEvents];
-      int i = 0;
-      for (DexDebugEvent event : debugInfo.events) {
-        if (event.isWritableEvent()) {
-          writableEvents[i++] = event;
-        }
-      }
-    }
-    return new DexDebugInfoForWriting(debugInfo.startLine, debugInfo.parameters, writableEvents);
-  }
+  void collectMixedSectionItems(MixedSectionCollection collection);
+
+  void collectIndexedItems(IndexedItemCollection indexedItems, GraphLens graphLens);
+
+  int estimatedWriteSize();
+
+  void write(DebugBytecodeWriter writer, ObjectToOffsetMapping mapping, GraphLens graphLens);
 }

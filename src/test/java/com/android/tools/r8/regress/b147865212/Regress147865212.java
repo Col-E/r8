@@ -35,7 +35,8 @@ public class Regress147865212 extends TestBase {
   }
 
   private boolean hasLocal(MethodSubject method) {
-    return Arrays.stream(method.getMethod().getCode().asDexCode().getDebugInfo().events)
+    return Arrays.stream(
+            method.getMethod().getCode().asDexCode().getDebugInfo().asEventBasedInfo().events)
         .anyMatch(event -> event instanceof StartLocal);
   }
 

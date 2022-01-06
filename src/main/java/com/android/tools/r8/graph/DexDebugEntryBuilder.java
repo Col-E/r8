@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.DexDebugEvent.SetOutlineCallerFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetOutlineFrame;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.ir.code.ValueType;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -67,11 +68,11 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
   public DexDebugEntryBuilder(DexEncodedMethod method, DexItemFactory factory) {
     assert method != null && method.getReference() != null;
     this.method = method.getReference();
-    positionState =
-        new DexDebugPositionState(
-            method.getCode().asDexCode().getDebugInfo().startLine, method.getReference());
     DexCode code = method.getCode().asDexCode();
-    DexDebugInfo info = code.getDebugInfo();
+    EventBasedDebugInfo info = code.getDebugInfo().asEventBasedInfo();
+    // Only event based debug info supports conversion to entries.
+    assert info != null;
+    positionState = new DexDebugPositionState(info.startLine, method.getReference());
     int argumentRegister = code.registerSize - code.incomingRegisterSize;
     if (!method.accessFlags.isStatic()) {
       DexString name = factory.thisName;

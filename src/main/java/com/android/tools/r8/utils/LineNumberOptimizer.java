@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexDebugEventVisitor;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfoForSingleLineMethod;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -727,7 +728,9 @@ public class LineNumberOptimizer {
     }
     if (code.isDexCode()) {
       DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
-      return dexDebugInfo == null ? 0 : dexDebugInfo.startLine;
+      return dexDebugInfo == null || !dexDebugInfo.isEventBasedInfo()
+          ? 0
+          : dexDebugInfo.asEventBasedInfo().startLine;
     } else if (code.isCfCode()) {
       List<CfInstruction> instructions = code.asCfCode().getInstructions();
       for (CfInstruction instruction : instructions) {
@@ -823,7 +826,10 @@ public class LineNumberOptimizer {
     if (debugInfo == null) {
       return false;
     }
-    for (DexDebugEvent event : debugInfo.events) {
+    if (debugInfo.isPcBasedInfo()) {
+      return true;
+    }
+    for (DexDebugEvent event : debugInfo.asEventBasedInfo().events) {
       if (event instanceof DexDebugEvent.Default) {
         return true;
       }
@@ -851,7 +857,9 @@ public class LineNumberOptimizer {
     // Do the actual processing for each method.
     DexApplication application = appView.appInfo().app();
     DexCode dexCode = method.getCode().asDexCode();
-    DexDebugInfo debugInfo = dexCode.getDebugInfo();
+    EventBasedDebugInfo debugInfo = dexCode.getDebugInfo().asEventBasedInfo();
+    // TODO(b/205910335): Reconsider this to support pc-based debug info from inputs.
+    assert debugInfo != null;
     List<DexDebugEvent> processedEvents = new ArrayList<>();
 
     PositionEventEmitter positionEventEmitter =
@@ -949,8 +957,8 @@ public class LineNumberOptimizer {
       return mappedPositions;
     }
 
-    DexDebugInfo optimizedDebugInfo =
-        new DexDebugInfo(
+    EventBasedDebugInfo optimizedDebugInfo =
+        new EventBasedDebugInfo(
             positionEventEmitter.getStartLine(),
             debugInfo.parameters,
             processedEvents.toArray(DexDebugEvent.EMPTY_ARRAY));
@@ -989,7 +997,9 @@ public class LineNumberOptimizer {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     DexCode dexCode = method.getCode().asDexCode();
-    DexDebugInfo debugInfo = dexCode.getDebugInfo();
+    EventBasedDebugInfo debugInfo = dexCode.getDebugInfo().asEventBasedInfo();
+    // TODO(b/205910335): Reconsider this to support pc-based debug info from inputs.
+    assert debugInfo != null;
 
     Pair<Integer, Position> lastPosition = new Pair<>();
 
@@ -1034,7 +1044,7 @@ public class LineNumberOptimizer {
   }
 
   private static boolean verifyIdentityMapping(
-      DexDebugInfo originalDebugInfo, DexDebugInfo optimizedDebugInfo) {
+      EventBasedDebugInfo originalDebugInfo, EventBasedDebugInfo optimizedDebugInfo) {
     assert optimizedDebugInfo.startLine == originalDebugInfo.startLine;
     assert optimizedDebugInfo.events.length == originalDebugInfo.events.length;
     for (int i = 0; i < originalDebugInfo.events.length; ++i) {

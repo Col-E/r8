@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debuginfo.DebugInfoInspector;
 import com.android.tools.r8.graph.DexCode;
-import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -24,65 +24,70 @@ public class DebugLocalTests extends JasminTestBase {
   public void testSwap() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = builder.addClass("Test");
-    MethodSignature foo = clazz.addVirtualMethod("foo", ImmutableList.of("Ljava/lang/String;"), "V",
-        // The first three vars are out-of-order to verify that the order is not relied on.
-        ".var 5 is t I from L4 to L6",
-        ".var 1 is bar Ljava/lang/String; from L0 to L9",
-        ".var 0 is this LTest; from L0 to L9",
-        ".var 2 is x I from L1 to L9",
-        ".var 3 is y I from L2 to L9",
-        ".var 4 is z I from L3 to L9",
-        ".var 5 is foobar Ljava/lang/String; from L7 to L9",
-        ".limit locals 6",
-        ".limit stack 2",
-        "L0:",
-        ".line 23",
-        " iconst_1",
-        " istore 2",
-        "L1:",
-        ".line 24",
-        " iconst_2",
-        " istore 3",
-        "L2:",
-        ".line 25",
-        " iconst_3",
-        " istore 4",
-        "L3:",
-        " .line 27",
-        " iload 3",
-        " istore 5",
-        "L4:",
-        " .line 28",
-        " iload 2",
-        " istore 3",
-        "L5:",
-        " .line 29",
-        " iload 5",
-        " istore 2",
-        "L6:",
-        " .line 32",
-        " new java/lang/StringBuilder",
-        " dup",
-        " invokespecial java/lang/StringBuilder/<init>()V",
-        " ldc \"And the value of y is: \"",
-        " invokevirtual java/lang/StringBuilder/append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        " iload 2",
-        " invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;",
-        " iload 3",
-        " invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;",
-        " iload 4",
-        " invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;",
-        " invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;",
-        " astore 5",
-        "L7:",
-        " .line 34",
-        "  getstatic java/lang/System/out Ljava/io/PrintStream;",
-        "  aload 5",
-        "  invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
-        "L8:",
-        " .line 35",
-        " return",
-        "L9:");
+    MethodSignature foo =
+        clazz.addVirtualMethod(
+            "foo",
+            ImmutableList.of("Ljava/lang/String;"),
+            "V",
+            // The first three vars are out-of-order to verify that the order is not relied on.
+            ".var 5 is t I from L4 to L6",
+            ".var 1 is bar Ljava/lang/String; from L0 to L9",
+            ".var 0 is this LTest; from L0 to L9",
+            ".var 2 is x I from L1 to L9",
+            ".var 3 is y I from L2 to L9",
+            ".var 4 is z I from L3 to L9",
+            ".var 5 is foobar Ljava/lang/String; from L7 to L9",
+            ".limit locals 6",
+            ".limit stack 2",
+            "L0:",
+            ".line 23",
+            " iconst_1",
+            " istore 2",
+            "L1:",
+            ".line 24",
+            " iconst_2",
+            " istore 3",
+            "L2:",
+            ".line 25",
+            " iconst_3",
+            " istore 4",
+            "L3:",
+            " .line 27",
+            " iload 3",
+            " istore 5",
+            "L4:",
+            " .line 28",
+            " iload 2",
+            " istore 3",
+            "L5:",
+            " .line 29",
+            " iload 5",
+            " istore 2",
+            "L6:",
+            " .line 32",
+            " new java/lang/StringBuilder",
+            " dup",
+            " invokespecial java/lang/StringBuilder/<init>()V",
+            " ldc \"And the value of y is: \"",
+            " invokevirtual"
+                + " java/lang/StringBuilder/append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+            " iload 2",
+            " invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;",
+            " iload 3",
+            " invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;",
+            " iload 4",
+            " invokevirtual java/lang/StringBuilder/append(I)Ljava/lang/StringBuilder;",
+            " invokevirtual java/lang/StringBuilder/toString()Ljava/lang/String;",
+            " astore 5",
+            "L7:",
+            " .line 34",
+            "  getstatic java/lang/System/out Ljava/io/PrintStream;",
+            "  aload 5",
+            "  invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
+            "L8:",
+            " .line 35",
+            " return",
+            "L9:");
 
     clazz.addMainMethod(
         ".limit stack 3",
@@ -105,7 +110,7 @@ public class DebugLocalTests extends JasminTestBase {
     ClassSubject classSubject = inspector.clazz("Test");
     MethodSubject methodSubject = classSubject.method(foo);
     DexCode code = methodSubject.getMethod().getCode().asDexCode();
-    DexDebugInfo info = code.getDebugInfo();
+    EventBasedDebugInfo info = code.getDebugInfo().asEventBasedInfo();
     assertEquals(23, info.startLine);
     assertEquals(1, info.parameters.length);
     assertEquals("bar", info.parameters[0].toString());

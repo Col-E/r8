@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfoForWriting;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -132,7 +132,7 @@ public class ApplicationWriter {
     }
 
     @Override
-    public boolean add(DexDebugInfo dexDebugInfo) {
+    public boolean add(DexDebugInfoForWriting dexDebugInfo) {
       return true;
     }
 

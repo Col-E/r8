@@ -992,9 +992,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public static void setDebugInfoWithFakeThisParameter(Code code, int arity, AppView<?> appView) {
     if (code.isDexCode()) {
       DexCode dexCode = code.asDexCode();
-      dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(appView.dexItemFactory()));
-      assert (dexCode.getDebugInfo() == null)
-          || (arity == dexCode.getDebugInfo().parameters.length);
+      DexDebugInfo newDebugInfo = dexCode.debugInfoWithFakeThisParameter(appView.dexItemFactory());
+      assert (newDebugInfo == null) || (arity == newDebugInfo.getParameterCount());
+      dexCode.setDebugInfo(newDebugInfo);
     } else {
       assert code.isCfCode();
       CfCode cfCode = code.asCfCode();

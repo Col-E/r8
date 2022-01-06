@@ -138,7 +138,7 @@ public class ReachabilitySensitiveTest extends TestBase {
     // as this is a release build.
     assertTrue(
         (code.getDebugInfo() == null)
-            || Arrays.stream(code.getDebugInfo().events)
+            || Arrays.stream(code.getDebugInfo().asEventBasedInfo().events)
                 .allMatch(event -> !(event instanceof StartLocal)));
   }
 

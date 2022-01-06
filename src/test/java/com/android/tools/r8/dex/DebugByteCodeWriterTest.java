@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens;
@@ -68,10 +69,13 @@ public class DebugByteCodeWriterTest {
 
   @Test
   public void testEmptyDebugInfo() {
-    DexDebugInfo debugInfo = new DexDebugInfo(1, DexString.EMPTY_ARRAY, new DexDebugEvent[]{});
+    DexDebugInfo debugInfo =
+        new EventBasedDebugInfo(1, DexString.EMPTY_ARRAY, new DexDebugEvent[] {});
     DebugBytecodeWriter writer =
         new DebugBytecodeWriter(
-            debugInfo, emptyObjectTObjectMapping(), GraphLens.getIdentityLens());
+            DexDebugInfo.convertToWritable(debugInfo),
+            emptyObjectTObjectMapping(),
+            GraphLens.getIdentityLens());
     Assert.assertEquals(3, writer.generate().length);
   }
 }

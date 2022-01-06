@@ -982,10 +982,10 @@ public class R8 {
   }
 
   private static boolean verifyOriginalMethodInDebugInfo(DexCode code, DexMethod originalMethod) {
-    if (code.getDebugInfo() == null) {
+    if (code.getDebugInfo() == null || code.getDebugInfo().isPcBasedInfo()) {
       return true;
     }
-    for (DexDebugEvent event : code.getDebugInfo().events) {
+    for (DexDebugEvent event : code.getDebugInfo().asEventBasedInfo().events) {
       assert !event.isSetInlineFrame() || event.asSetInlineFrame().hasOuterPosition(originalMethod);
     }
     return true;

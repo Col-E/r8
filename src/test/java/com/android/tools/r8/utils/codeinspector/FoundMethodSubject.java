@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -217,16 +218,21 @@ public class FoundMethodSubject extends MethodSubject {
     }
     if (code.isDexCode()) {
       DexCode dexCode = code.asDexCode();
-      if (dexCode.getDebugInfo() != null) {
-        for (DexString parameter : dexCode.getDebugInfo().parameters) {
-          if (parameter != null) {
-            return true;
-          }
+      if (dexCode.getDebugInfo() == null) {
+        return false;
+      }
+      EventBasedDebugInfo eventBasedInfo = dexCode.getDebugInfo().asEventBasedInfo();
+      if (eventBasedInfo == null) {
+        return false;
+      }
+      for (DexString parameter : eventBasedInfo.parameters) {
+        if (parameter != null) {
+          return true;
         }
-        for (DexDebugEvent event : dexCode.getDebugInfo().events) {
-          if (event instanceof DexDebugEvent.StartLocal) {
-            return true;
-          }
+      }
+      for (DexDebugEvent event : eventBasedInfo.events) {
+        if (event instanceof DexDebugEvent.StartLocal) {
+          return true;
         }
       }
       return false;
@@ -272,10 +278,18 @@ public class FoundMethodSubject extends MethodSubject {
     if (debugInfo == null) {
       return null;
     }
+    if (debugInfo.isPcBasedInfo()) {
+      // For testing we could either view PC based encoding as not having a line table
+      // or as having the full line table for each PC, or we could trim the table to the PC at
+      // each valid instruction. It is unclear which choice that makes most sense so this throws
+      // for now.
+      throw new Unimplemented();
+    }
+    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
     Object2IntMap<InstructionSubject> lineNumberTable = new Object2IntOpenHashMap<>();
     DexDebugPositionState state =
-        new DexDebugPositionState(debugInfo.startLine, getMethod().getReference());
-    Iterator<DexDebugEvent> iterator = Arrays.asList(debugInfo.events).iterator();
+        new DexDebugPositionState(eventBasedInfo.startLine, getMethod().getReference());
+    Iterator<DexDebugEvent> iterator = Arrays.asList(eventBasedInfo.events).iterator();
     for (Instruction insn : code.instructions) {
       int offset = insn.getOffset();
       while (state.getCurrentPc() < offset && iterator.hasNext()) {

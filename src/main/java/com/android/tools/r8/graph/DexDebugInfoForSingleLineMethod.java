@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.graph;
 
-public class DexDebugInfoForSingleLineMethod extends DexDebugInfo {
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
+
+public class DexDebugInfoForSingleLineMethod extends EventBasedDebugInfo {
 
   private static final DexDebugInfoForSingleLineMethod INSTANCE =
       new DexDebugInfoForSingleLineMethod(0, DexString.EMPTY_ARRAY, DexDebugEvent.EMPTY_ARRAY);
