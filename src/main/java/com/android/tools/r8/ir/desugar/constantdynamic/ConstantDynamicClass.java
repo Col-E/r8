@@ -34,6 +34,7 @@ import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -41,6 +42,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -55,6 +57,8 @@ import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.MethodSynthesizerConsumer;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations.UtilityMethodForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
 import com.google.common.collect.ImmutableList;
@@ -80,6 +84,8 @@ public class ConstantDynamicClass {
   public final DexField constantValueField;
   private final DexMethod getConstMethod;
   private final Behaviour behaviour;
+  private DexEncodedMethod bootstrapMethodImpl;
+  private DexMethod finalBootstrapMethodReference;
 
   // Considered final but is set after due to circularity in allocation.
   private DexProgramClass clazz = null;
@@ -115,17 +121,41 @@ public class ConstantDynamicClass {
             .resolveMethod(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
     if (resolution.isSingleResolution()
         && resolution.asSingleResolution().getResolvedMethod().isStatic()) {
-      // Ensure that the bootstrap method is accessible from the generated class.
       SingleResolutionResult result = resolution.asSingleResolution();
-      MethodAccessFlags flags = result.getResolvedMethod().getAccessFlags();
-      flags.unsetPrivate();
-      flags.setPublic();
+      bootstrapMethodImpl = result.getResolvedMethod();
+      if (shouldRewriteBootstrapMethodSignature()) {
+        // The bootstrap method will have its signature modified to have type Object as its first
+        // argument.
+        this.finalBootstrapMethodReference =
+            factory.createMethod(
+                result.getResolvedHolder().getType(),
+                factory.createProto(
+                    bootstrapMethodReference.getReturnType(),
+                    factory.objectType,
+                    factory.stringType,
+                    factory.classType),
+                bootstrapMethodImpl.getName());
+      } else {
+        this.finalBootstrapMethodReference = bootstrapMethodReference;
+        // Ensure that the bootstrap method is accessible from the generated class.
+        MethodAccessFlags flags = bootstrapMethodImpl.getAccessFlags();
+        flags.unsetPrivate();
+        flags.setPublic();
+      }
+
       behaviour = CACHE_CONSTANT;
+
       synthesizeConstantDynamicClass(builder);
     } else {
       // Unconditionally throw as the RI.
       behaviour = resolution.isFailedResolution() ? THROW_NSME : THROW_ICCE;
     }
+  }
+
+  private boolean shouldRewriteBootstrapMethodSignature() {
+    // TODO(b/210485236): Check for references to the bootstrap method outside of dynamic constant.
+    return !appView.enableWholeProgramOptimizations()
+        && appView.options().getMinApiLevel().isLessThan(AndroidApiLevel.O);
   }
 
   public Collection<CfInstruction> desugarConstDynamicInstruction(
@@ -214,13 +244,11 @@ public class ConstantDynamicClass {
 
   private void invokeBootstrapMethod(ImmutableList.Builder<CfInstruction> instructions) {
     assert reference.getBootstrapMethod().type.isInvokeStatic();
-    DexMethodHandle bootstrapMethodHandle = reference.getBootstrapMethod();
-    DexMethod bootstrapMethodReference = bootstrapMethodHandle.asMethod();
     // TODO(b/178172809): Use MethodHandle.invokeWithArguments if supported.
     instructions.add(new CfConstNull());
     instructions.add(new CfConstString(reference.getName()));
     instructions.add(new CfConstClass(reference.getType()));
-    instructions.add(new CfInvoke(INVOKESTATIC, bootstrapMethodReference, false));
+    instructions.add(new CfInvoke(INVOKESTATIC, finalBootstrapMethodReference, false));
     instructions.add(new CfCheckCast(reference.getType()));
   }
 
@@ -316,5 +344,77 @@ public class ConstantDynamicClass {
     assert this.clazz == null;
     assert clazz != null;
     this.clazz = clazz;
+  }
+
+  public void rewriteBootstrapMethodSignatureIfNeeded() {
+    if (!shouldRewriteBootstrapMethodSignature() || behaviour != CACHE_CONSTANT) {
+      return;
+    }
+    DexProgramClass bootstrapMethodHolder =
+        appView.definitionFor(bootstrapMethodImpl.getHolderType()).asProgramClass();
+    DexEncodedMethod replacement =
+        bootstrapMethodHolder
+            .getMethodCollection()
+            .replaceDirectMethod(
+                bootstrapMethodImpl.getReference(),
+                encodedMethod -> {
+                  MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
+                  // Ensure that the bootstrap method is accessible from the generated class.
+                  newAccessFlags.unsetPrivate();
+                  newAccessFlags.setPublic();
+                  DexEncodedMethod newMethod =
+                      DexEncodedMethod.syntheticBuilder()
+                          .setMethod(finalBootstrapMethodReference)
+                          .setAccessFlags(newAccessFlags)
+                          .setGenericSignature(encodedMethod.getGenericSignature())
+                          .setAnnotations(encodedMethod.annotations())
+                          .setParameterAnnotations(encodedMethod.parameterAnnotationsList)
+                          .setCode(adaptCode(encodedMethod))
+                          .setApiLevelForDefinition(encodedMethod.getApiLevelForDefinition())
+                          .setApiLevelForCode(encodedMethod.getApiLevelForCode())
+                          .build();
+                  newMethod.copyMetadata(appView, encodedMethod);
+                  return newMethod;
+                });
+    if (replacement != null) {
+      // Since we've copied the code object from an existing method, the code should already be
+      // processed, and thus we don't need to schedule it for processing in D8.
+      assert !appView.options().isGeneratingClassFiles() || replacement.getCode().isCfCode();
+      assert !appView.options().isGeneratingDex() || replacement.getCode().isDexCode();
+    }
+    // The method might already have been moved by another dynamic constant targeting it.
+    // If so, it must be defined on the holder.
+    ProgramMethod modified =
+        bootstrapMethodHolder.lookupProgramMethod(finalBootstrapMethodReference);
+    assert modified != null;
+    assert modified.getDefinition().isPublicMethod();
+  }
+
+  private DexType mapLookupTypeToObject(DexType type) {
+    return type == appView.dexItemFactory().lookupType ? appView.dexItemFactory().objectType : type;
+  }
+
+  private Code adaptCode(DexEncodedMethod method) {
+    assert behaviour == CACHE_CONSTANT;
+    if (method.getCode().isDexCode()) {
+      return method.getCode();
+    }
+    CfCode code = method.getCode().asCfCode();
+    List<CfInstruction> newInstructions =
+        ListUtils.mapOrElse(
+            code.getInstructions(),
+            instruction ->
+                instruction.isFrame()
+                    ? instruction.asFrame().map(this::mapLookupTypeToObject)
+                    : instruction);
+    return code.getInstructions() != newInstructions
+        ? new CfCode(
+            method.getHolderType(),
+            code.getMaxStack(),
+            code.getMaxLocals(),
+            newInstructions,
+            code.getTryCatchRanges(),
+            code.getLocalVariables())
+        : code;
   }
 }

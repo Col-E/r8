@@ -532,6 +532,27 @@ public class CfFrame extends CfInstruction {
   }
 
   public CfFrame map(java.util.function.Function<DexType, DexType> func) {
+    boolean mapped = false;
+    for (int var : locals.keySet()) {
+      CfFrame.FrameType originalType = locals.get(var);
+      CfFrame.FrameType mappedType = originalType.map(func);
+      mapped = originalType != mappedType;
+      if (mapped) {
+        break;
+      }
+    }
+    if (!mapped) {
+      for (FrameType frameType : stack) {
+        CfFrame.FrameType mappedType = frameType.map(func);
+        mapped = frameType != mappedType;
+        if (mapped) {
+          break;
+        }
+      }
+    }
+    if (!mapped) {
+      return this;
+    }
     Int2ReferenceSortedMap<FrameType> newLocals = new Int2ReferenceAVLTreeMap<>();
     for (int var : locals.keySet()) {
       newLocals.put(var, locals.get(var).map(func));

@@ -49,11 +49,18 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
   public static JacocoClasses testClasses;
 
   private static final String MAIN_CLASS = TestRunner.class.getTypeName();
-  private static final String EXPECTED_OUTPUT =
+  private static final String EXPECTED_OUTPUT_WITH_METHOD_HANDLES =
       StringUtils.lines(
           jacocoBootstrapMethodName,
           "3",
           "java.lang.invoke.MethodHandles$Lookup",
+          "java.lang.String",
+          "java.lang.Class");
+  private static final String EXPECTED_OUTPUT_WITHOUT_METHOD_HANDLES =
+      StringUtils.lines(
+          jacocoBootstrapMethodName,
+          "3",
+          "java.lang.Object",
           "java.lang.String",
           "java.lang.Class");
 
@@ -85,7 +92,7 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
         .addProgramFiles(testClasses.getOriginal())
         .enableJaCoCoAgent(ToolHelper.JACOCO_AGENT, agentOutputOnTheFly)
         .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+        .assertSuccessWithOutput(EXPECTED_OUTPUT_WITH_METHOD_HANDLES);
     checkJacocoReport(agentOutputOnTheFly);
 
     // Run the instrumented code.
@@ -94,7 +101,7 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
         .addProgramFiles(testClasses.getInstrumented())
         .configureJaCoCoAgentForOfflineInstrumentedCode(ToolHelper.JACOCO_AGENT, agentOutputOffline)
         .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+        .assertSuccessWithOutput(EXPECTED_OUTPUT_WITH_METHOD_HANDLES);
     checkJacocoReport(agentOutputOffline);
   }
 
@@ -108,11 +115,10 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .runWithJaCoCo(agentOutput, parameters.getRuntime(), MAIN_CLASS)
-        // TODO(b/210485236): This should never fail.
         .applyIf(
-            parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0),
-            b -> b.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
-            b -> b.assertSuccessWithOutput(EXPECTED_OUTPUT));
+            parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+            b -> b.assertSuccessWithOutput(EXPECTED_OUTPUT_WITHOUT_METHOD_HANDLES),
+            b -> b.assertSuccessWithOutput(EXPECTED_OUTPUT_WITH_METHOD_HANDLES));
     checkJacocoReport(agentOutput);
   }
 
@@ -160,11 +166,10 @@ public class JacocoConstantDynamicGetDeclaredMethods extends TestBase {
             "javax.management.**")
         .compile()
         .runWithJaCoCo(agentOutput, parameters.getRuntime(), MAIN_CLASS)
-        // TODO(b/210485236): This should never fail.
         .applyIf(
             parameters.getDexRuntimeVersion().isOlderThan(Version.V8_1_0),
             b -> b.assertFailureWithErrorThatThrows(ClassNotFoundException.class),
-            b -> b.assertSuccessWithOutput(EXPECTED_OUTPUT));
+            b -> b.assertSuccessWithOutput(EXPECTED_OUTPUT_WITH_METHOD_HANDLES));
     checkJacocoReport(agentOutput);
   }
 
