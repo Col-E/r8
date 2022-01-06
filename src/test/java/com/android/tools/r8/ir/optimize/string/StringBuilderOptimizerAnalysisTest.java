@@ -290,15 +290,17 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   public void testPhiWithDifferentInits() {
     buildAndCheckIR(
         "phiWithDifferentInits",
-        checkOptimizerStates(appView, optimizer -> {
-          assertEquals(2, optimizer.analysis.builderStates.size());
-          for (Value builder : optimizer.analysis.builderStates.keySet()) {
-            Map<Instruction, BuilderState> perBuilderState =
-                optimizer.analysis.builderStates.get(builder);
-            checkBuilderState(optimizer, perBuilderState, null, false);
-          }
-          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
-        }));
+        checkOptimizerStates(
+            appView,
+            optimizer -> {
+              assertEquals(0, optimizer.analysis.builderStates.size());
+              for (Value builder : optimizer.analysis.builderStates.keySet()) {
+                Map<Instruction, BuilderState> perBuilderState =
+                    optimizer.analysis.builderStates.get(builder);
+                checkBuilderState(optimizer, perBuilderState, null, false);
+              }
+              assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+            }));
   }
 
   @Test

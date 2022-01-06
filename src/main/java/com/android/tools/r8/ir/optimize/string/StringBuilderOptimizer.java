@@ -356,6 +356,10 @@ public class StringBuilderOptimizer {
             if (!candidateBuilders.contains(builder)) {
               continue;
             }
+            if (builder.hasPhiUsers()) {
+              candidateBuilders.remove(builder);
+              continue;
+            }
             Map<Instruction, BuilderState> perInstrState = createBuilderState(builder);
             perInstrState.put(instr, BuilderState.createRoot());
             continue;
@@ -394,6 +398,10 @@ public class StringBuilderOptimizer {
             // If `builder` is phi, itself and predecessors won't be tracked.
             // Not being tracked means that they won't be optimized, which is intentional.
             if (!candidateBuilders.contains(builder)) {
+              continue;
+            }
+            if (invoke.hasUsedOutValue()) {
+              candidateBuilders.remove(builder);
               continue;
             }
             Value arg = invoke.inValues().get(1).getAliasedValue();

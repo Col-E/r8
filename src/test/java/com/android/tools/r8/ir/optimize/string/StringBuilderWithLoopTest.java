@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.string;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.AssertUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,16 +26,13 @@ public class StringBuilderWithLoopTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    AssertUtils.assertFailsCompilationIf(
-        parameters.isDexRuntime(),
-        () ->
-            testForR8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .addKeepMainRule(Main.class)
-                .addKeepClassAndMembersRules(Utils.class)
-                .setMinApi(parameters.getApiLevel())
-                .run(parameters.getRuntime(), Main.class)
-                .assertSuccessWithOutputLines("1", "2"));
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addKeepClassAndMembersRules(Utils.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("1", "2");
   }
 
   static class Main {
