@@ -1,4 +1,4 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -28,24 +28,23 @@ import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
-public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProvider {
+public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvider {
 
-  private final DexType interfaceType;
-  private final DexMethod companionMethod;
-  private final DexMethod libraryMethod;
+  private final DexType receiverType;
+  private final DexMethod forwardingMethod;
+  private final DexMethod interfaceMethod;
   private final List<Pair<DexType, DexMethod>> extraDispatchCases;
 
-  public EmulateInterfaceSyntheticCfCodeProvider(
+  public EmulateDispatchSyntheticCfCodeProvider(
       DexType holder,
-      DexType interfaceType,
-      DexMethod companionMethod,
-      DexMethod libraryMethod,
+      DexMethod forwardingMethod,
+      DexMethod interfaceMethod,
       List<Pair<DexType, DexMethod>> extraDispatchCases,
       AppView<?> appView) {
     super(appView, holder);
-    this.interfaceType = interfaceType;
-    this.companionMethod = companionMethod;
-    this.libraryMethod = libraryMethod;
+    this.receiverType = forwardingMethod.getParameter(0);
+    this.forwardingMethod = forwardingMethod;
+    this.interfaceMethod = interfaceMethod;
     this.extraDispatchCases = extraDispatchCases;
   }
 
@@ -60,22 +59,22 @@ public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProv
 
     ImmutableInt2ReferenceSortedMap.Builder<FrameType> localsBuilder =
         ImmutableInt2ReferenceSortedMap.builder();
-    localsBuilder.put(0, FrameType.initialized(interfaceType));
+    localsBuilder.put(0, FrameType.initialized(receiverType));
     int index = 1;
-    for (DexType param : libraryMethod.proto.parameters.values) {
+    for (DexType param : interfaceMethod.proto.parameters.values) {
       localsBuilder.put(index++, FrameType.initialized(param));
     }
     ImmutableInt2ReferenceSortedMap<FrameType> locals = localsBuilder.build();
 
-    instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
-    instructions.add(new CfInstanceOf(libraryMethod.holder));
+    instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+    instructions.add(new CfInstanceOf(interfaceMethod.holder));
     instructions.add(new CfIf(If.Type.EQ, ValueType.INT, labels[nextLabel]));
 
     // Branch with library call.
-    instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
-    instructions.add(new CfCheckCast(libraryMethod.holder));
+    instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
+    instructions.add(new CfCheckCast(interfaceMethod.holder));
     loadExtraParameters(instructions);
-    instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, libraryMethod, true));
+    instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, interfaceMethod, true));
     addReturn(instructions);
 
     // SubInterface dispatch (subInterfaces are ordered).
@@ -83,12 +82,12 @@ public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProv
       // Type check basic block.
       instructions.add(labels[nextLabel++]);
       instructions.add(new CfFrame(locals, ImmutableDeque.of()));
-      instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
+      instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
       instructions.add(new CfInstanceOf(dispatch.getFirst()));
       instructions.add(new CfIf(If.Type.EQ, ValueType.INT, labels[nextLabel]));
 
       // Call basic block.
-      instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
+      instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
       instructions.add(new CfCheckCast(dispatch.getFirst()));
       loadExtraParameters(instructions);
       instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, dispatch.getSecond(), false));
@@ -98,25 +97,25 @@ public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProv
     // Branch with companion call.
     instructions.add(labels[nextLabel]);
     instructions.add(new CfFrame(locals, ImmutableDeque.of()));
-    instructions.add(new CfLoad(ValueType.fromDexType(interfaceType), 0));
+    instructions.add(new CfLoad(ValueType.fromDexType(receiverType), 0));
     loadExtraParameters(instructions);
-    instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, companionMethod, false));
+    instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, forwardingMethod, false));
     addReturn(instructions);
     return standardCfCodeFromInstructions(instructions);
   }
 
   private void loadExtraParameters(List<CfInstruction> instructions) {
     int index = 1;
-    for (DexType type : libraryMethod.proto.parameters.values) {
+    for (DexType type : interfaceMethod.proto.parameters.values) {
       instructions.add(new CfLoad(ValueType.fromDexType(type), index++));
     }
   }
 
   private void addReturn(List<CfInstruction> instructions) {
-    if (libraryMethod.proto.returnType == appView.dexItemFactory().voidType) {
+    if (interfaceMethod.proto.returnType == appView.dexItemFactory().voidType) {
       instructions.add(new CfReturnVoid());
     } else {
-      instructions.add(new CfReturn(ValueType.fromDexType(libraryMethod.proto.returnType)));
+      instructions.add(new CfReturn(ValueType.fromDexType(interfaceMethod.proto.returnType)));
     }
   }
 }

@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
-import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
@@ -145,9 +145,8 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
         helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
     List<Pair<DexType, DexMethod>> extraDispatchCases =
         getDispatchCases(method, theInterface, companionMethod);
-    return new EmulateInterfaceSyntheticCfCodeProvider(
+    return new EmulateDispatchSyntheticCfCodeProvider(
             emulatedInterfaceMethod.getHolderType(),
-            method.getHolderType(),
             companionMethod,
             libraryMethod,
             extraDispatchCases,

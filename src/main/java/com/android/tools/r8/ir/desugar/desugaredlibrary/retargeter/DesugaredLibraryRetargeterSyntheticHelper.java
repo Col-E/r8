@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
-import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -164,9 +164,8 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
               .setCode(
                   methodSig ->
                       appView.options().isDesugaredLibraryCompilation()
-                          ? new EmulateInterfaceSyntheticCfCodeProvider(
+                          ? new EmulateDispatchSyntheticCfCodeProvider(
                                   methodSig.getHolderType(),
-                                  emulatedDispatchMethod.getHolderType(),
                                   desugarMethod,
                                   itfMethod,
                                   Collections.emptyList(),
