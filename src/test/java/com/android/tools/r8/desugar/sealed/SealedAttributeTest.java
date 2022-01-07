@@ -58,7 +58,8 @@ public class SealedAttributeTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     diagnostics.assertErrorThatMatches(
-                        diagnosticMessage(containsString("Sealed classes are not supported")));
+                        diagnosticMessage(
+                            containsString("Sealed classes are not supported as program classes")));
                   });
         });
   }
@@ -75,7 +76,8 @@ public class SealedAttributeTest extends TestBase {
               .compileWithExpectedDiagnostics(
                   diagnostics -> {
                     diagnostics.assertErrorThatMatches(
-                        diagnosticMessage(containsString("Sealed classes are not supported")));
+                        diagnosticMessage(
+                            containsString("Sealed classes are not supported as program classes")));
                   });
         });
   }

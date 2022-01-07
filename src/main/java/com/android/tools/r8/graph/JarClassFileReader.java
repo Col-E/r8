@@ -330,7 +330,11 @@ public class JarClassFileReader<T extends DexClass> {
 
     @Override
     public void visitPermittedSubclass(String permittedSubclass) {
-      throw new CompilationError("Sealed classes are not supported", origin);
+      if (classKind == ClassKind.PROGRAM) {
+        throw new CompilationError("Sealed classes are not supported as program classes", origin);
+      }
+      // For library and classpath just ignore the permitted subclasses, as the compiler is not
+      // validating the code with respect to sealed classes.
     }
 
     @Override
