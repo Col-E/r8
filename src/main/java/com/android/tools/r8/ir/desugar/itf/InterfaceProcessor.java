@@ -168,7 +168,10 @@ public final class InterfaceProcessor {
       companion.getDefinition().downgradeClassFileVersion(definition.getClassFileVersion());
     }
     Code code =
-        definition.getCode().getCodeAsInlining(companion.getReference(), method.getReference());
+        definition
+            .getCode()
+            .getCodeAsInlining(
+                companion.getReference(), method.getReference(), appView.dexItemFactory());
     if (!definition.isStatic()) {
       DexEncodedMethod.setDebugInfoWithFakeThisParameter(
           code, companion.getReference().getArity(), appView);

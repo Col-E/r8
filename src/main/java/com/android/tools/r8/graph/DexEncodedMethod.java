@@ -1222,7 +1222,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     Builder builder =
         builder(this)
             .promoteToStatic()
-            .withoutThisParameter()
+            .withoutThisParameter(appView.dexItemFactory())
             .fixupOptimizationInfo(appView, prototypeChanges.createMethodOptimizationInfoFixer())
             .setGenericSignature(MethodTypeSignature.noSignature());
     DexEncodedMethod method = builder.build();
@@ -1524,10 +1524,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public Builder withoutThisParameter() {
+    public Builder withoutThisParameter(DexItemFactory factory) {
       assert code != null;
       if (code.isDexCode()) {
-        code = code.asDexCode().withoutThisParameter();
+        code = code.asDexCode().withoutThisParameter(factory);
       } else {
         throw new Unreachable("Code " + code.getClass().getSimpleName() + " is not supported.");
       }

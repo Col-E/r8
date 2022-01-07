@@ -25,8 +25,10 @@ import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEvent;
+import com.android.tools.r8.graph.DexDebugEvent.Default;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.PcBasedDebugInfo;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -523,22 +525,28 @@ public class DexParser<T extends DexClass> {
 
   private DexDebugInfo parseDebugInfo() {
     int start = dexReader.getUleb128();
+    boolean isPcBasedDebugInfo = start == 0;
     int parametersSize = dexReader.getUleb128();
     DexString[] parameters = new DexString[parametersSize];
     for (int i = 0; i < parametersSize; i++) {
       int index = dexReader.getUleb128p1();
       if (index != NO_INDEX) {
         parameters[i] = indexedItems.getString(index);
+        isPcBasedDebugInfo = false;
       }
     }
     List<DexDebugEvent> events = new ArrayList<>();
-    for (int head = dexReader.getUbyte(); head != Constants.DBG_END_SEQUENCE; head = dexReader.getUbyte()) {
+    for (int head = dexReader.getUbyte();
+        head != Constants.DBG_END_SEQUENCE;
+        head = dexReader.getUbyte()) {
       switch (head) {
         case Constants.DBG_ADVANCE_PC:
           events.add(dexItemFactory.createAdvancePC(dexReader.getUleb128()));
+          isPcBasedDebugInfo = false;
           break;
         case Constants.DBG_ADVANCE_LINE:
           events.add(dexItemFactory.createAdvanceLine(dexReader.getSleb128()));
+          isPcBasedDebugInfo = false;
           break;
         case Constants.DBG_START_LOCAL: {
           int registerNum = dexReader.getUleb128();
@@ -549,6 +557,7 @@ public class DexParser<T extends DexClass> {
               nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
               typeIdx == NO_INDEX ? null : indexedItems.getType(typeIdx),
               null));
+          isPcBasedDebugInfo = false;
           break;
         }
         case Constants.DBG_START_LOCAL_EXTENDED: {
@@ -561,22 +570,27 @@ public class DexParser<T extends DexClass> {
               nameIdx == NO_INDEX ? null : indexedItems.getString(nameIdx),
               typeIdx == NO_INDEX ? null : indexedItems.getType(typeIdx),
               sigIdx == NO_INDEX ? null : indexedItems.getString(sigIdx)));
+          isPcBasedDebugInfo = false;
           break;
         }
         case Constants.DBG_END_LOCAL: {
           events.add(dexItemFactory.createEndLocal(dexReader.getUleb128()));
+          isPcBasedDebugInfo = false;
           break;
         }
         case Constants.DBG_RESTART_LOCAL: {
           events.add(dexItemFactory.createRestartLocal(dexReader.getUleb128()));
+          isPcBasedDebugInfo = false;
           break;
         }
         case Constants.DBG_SET_PROLOGUE_END: {
           events.add(dexItemFactory.createSetPrologueEnd());
+          isPcBasedDebugInfo = false;
           break;
         }
         case Constants.DBG_SET_EPILOGUE_BEGIN: {
           events.add(dexItemFactory.createSetEpilogueBegin());
+          isPcBasedDebugInfo = false;
           break;
         }
         case Constants.DBG_SET_FILE: {
@@ -585,15 +599,26 @@ public class DexParser<T extends DexClass> {
           if (options.readDebugSetFileEvent) {
             events.add(dexItemFactory.createSetFile(sourceFile));
           }
+          isPcBasedDebugInfo = false;
           break;
         }
         default: {
           assert head >= 0x0a && head <= 0xff;
-          events.add(dexItemFactory.createDefault(head));
+          Default event = dexItemFactory.createDefault(head);
+          events.add(event);
+          if (isPcBasedDebugInfo) {
+            if (events.size() == 1) {
+              isPcBasedDebugInfo = event.equals(dexItemFactory.zeroChangeDefaultEvent);
+            } else {
+              isPcBasedDebugInfo = event.equals(dexItemFactory.oneChangeDefaultEvent);
+            }
+          }
         }
       }
     }
-    return new EventBasedDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
+    return isPcBasedDebugInfo
+        ? new PcBasedDebugInfo(parametersSize, events.size() - 1)
+        : new EventBasedDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   private static class MemberAnnotationIterator<R extends DexMember<?, R>, T extends DexItem> {

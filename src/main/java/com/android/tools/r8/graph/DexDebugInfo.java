@@ -3,20 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DebugBytecodeWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LebUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +35,9 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
 
   abstract int internalAcceptCompareTo(DexDebugInfo other, CompareToVisitor visitor);
 
-  abstract int getParameterCount();
+  public abstract int getStartLine();
+
+  public abstract int getParameterCount();
 
   public boolean isEventBasedInfo() {
     return getKind() == DebugInfoKind.EVENT_BASED;
@@ -91,6 +95,11 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     public PcBasedDebugInfo(int parameterCount, int maxPc) {
       this.parameterCount = parameterCount;
       this.maxPc = maxPc;
+    }
+
+    @Override
+    public int getStartLine() {
+      return START_LINE;
     }
 
     @Override
@@ -157,16 +166,20 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
       for (int i = 0; i < parameterCount; i++) {
         writer.putString(null);
       }
-      DexDebugEvent.ZERO_CHANGE_DEFAULT_EVENT.writeOn(writer, mapping, graphLens);
+      mapping.dexItemFactory().zeroChangeDefaultEvent.writeOn(writer, mapping, graphLens);
       for (int i = 0; i < maxPc; i++) {
-        throw new Unimplemented("add 1,1 increment");
+        mapping.dexItemFactory().oneChangeDefaultEvent.writeOn(writer, mapping, graphLens);
       }
       writer.putByte(Constants.DBG_END_SEQUENCE);
     }
 
     @Override
     public String toString() {
-      return "PcBasedDebugInfo (params: " + parameterCount + ", max-pc: " + maxPc + ")";
+      return "PcBasedDebugInfo (params: "
+          + parameterCount
+          + ", max-pc: "
+          + StringUtils.hexString(maxPc, 2)
+          + ")";
     }
   }
 
@@ -205,7 +218,12 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     }
 
     @Override
-    int getParameterCount() {
+    public int getStartLine() {
+      return startLine;
+    }
+
+    @Override
+    public int getParameterCount() {
       return parameters.length;
     }
 
@@ -261,6 +279,35 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
       builder.append("]\n");
       return builder.toString();
     }
+  }
+
+  public static EventBasedDebugInfo convertToEventBased(DexCode code, DexItemFactory factory) {
+    if (code.getDebugInfo() == null) {
+      return null;
+    }
+    if (code.getDebugInfo().isEventBasedInfo()) {
+      return code.getDebugInfo().asEventBasedInfo();
+    }
+    assert code.getDebugInfo().isPcBasedInfo();
+    PcBasedDebugInfo pcBasedDebugInfo = code.getDebugInfo().asPcBasedInfo();
+    // Generate a line event at each throwing instruction.
+    List<DexDebugEvent> events = new ArrayList<>(code.instructions.length + 1);
+    events.add(factory.zeroChangeDefaultEvent);
+    int pc = 0;
+    int delta = 0;
+    for (Instruction instruction : code.instructions) {
+      delta += instruction.getSize();
+      if (instruction.canThrow()) {
+        DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary(delta, delta, events, factory);
+        pc += delta;
+        delta = 0;
+      }
+    }
+    assert pc + delta - ArrayUtils.last(code.instructions).getSize() <= pcBasedDebugInfo.maxPc;
+    return new EventBasedDebugInfo(
+        PcBasedDebugInfo.START_LINE,
+        new DexString[pcBasedDebugInfo.getParameterCount()],
+        events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   public static DexDebugInfoForWriting convertToWritable(DexDebugInfo debugInfo) {

@@ -59,8 +59,13 @@ public class Timing {
         }
 
         @Override
-        public void scope(String title, TimingScope fn) {
-          // Ignore.
+        public <T> T scope(String title, TimingScope<T> fn) {
+          return fn.apply();
+        }
+
+        @Override
+        public void vscope(String title, VoidTimingScope fn) {
+          fn.apply();
         }
       };
 
@@ -402,7 +407,7 @@ public class Timing {
     top.report(0, top);
   }
 
-  public void scope(String title, TimingScope fn) {
+  public void vscope(String title, VoidTimingScope fn) {
     begin(title);
     try {
       fn.apply();
@@ -411,7 +416,20 @@ public class Timing {
     }
   }
 
-  public interface TimingScope {
+  public <T> T scope(String title, TimingScope<T> fn) {
+    begin(title);
+    try {
+      return fn.apply();
+    } finally {
+      end();
+    }
+  }
+
+  public interface TimingScope<T> {
+    T apply();
+  }
+
+  public interface VoidTimingScope {
     void apply();
   }
 

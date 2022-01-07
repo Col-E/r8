@@ -99,6 +99,8 @@ public class DexItemFactory {
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
   private final SetOutlineFrame setOutlineFrame = new SetOutlineFrame();
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
+  public final DexDebugEvent.Default zeroChangeDefaultEvent = createDefault(0, 0);
+  public final DexDebugEvent.Default oneChangeDefaultEvent = createDefault(1, 1);
 
   // ReferenceTypeElement canonicalization.
   private final ConcurrentHashMap<DexType, ReferenceTypeElement> referenceTypes =
@@ -2742,6 +2744,10 @@ public class DexItemFactory {
     synchronized (defaults) {
       return defaults.computeIfAbsent(value, Default::new);
     }
+  }
+
+  public Default createDefault(int lineDelta, int pcDelta) {
+    return createDefault(Default.create(lineDelta, pcDelta).value);
   }
 
   public EndLocal createEndLocal(int registerNum) {

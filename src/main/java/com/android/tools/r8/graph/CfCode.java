@@ -803,7 +803,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
-  public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
+  public Code getCodeAsInlining(DexMethod caller, DexMethod callee, DexItemFactory factory) {
     Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     List<CfInstruction> newInstructions = new ArrayList<>(instructions.size() + 2);
     CfLabel firstLabel;

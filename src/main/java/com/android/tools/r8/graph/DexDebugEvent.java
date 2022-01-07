@@ -26,8 +26,6 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
-  public static final DexDebugEvent.Default ZERO_CHANGE_DEFAULT_EVENT = Default.create(0, 0);
-
   public void collectIndexedItems(IndexedItemCollection collection, GraphLens graphLens) {
     // Empty by default.
   }
@@ -746,12 +744,14 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
       this.value = value;
     }
 
-    public static int computeSpecialOpcode(int lineDelta, int pcDelta) {
+    // Use DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary instead.
+    static int computeSpecialOpcode(int lineDelta, int pcDelta) {
       return Constants.DBG_FIRST_SPECIAL
           + (lineDelta - Constants.DBG_LINE_BASE)
           + Constants.DBG_LINE_RANGE * pcDelta;
     }
 
+    // Use DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary instead.
     public static Default create(int lineDelta, int pcDelta) {
       return new Default(computeSpecialOpcode(lineDelta, pcDelta));
     }

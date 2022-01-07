@@ -39,10 +39,10 @@ public class DebugInfoInspector {
 
   public DebugInfoInspector(DexEncodedMethod method, DexItemFactory factory) {
     this.method = method;
-    DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
+    EventBasedDebugInfo debugInfo =
+        DexDebugInfo.convertToEventBased(method.getCode().asDexCode(), factory);
     if (debugInfo != null) {
-      assert debugInfo.isEventBasedInfo();
-      info = debugInfo.asEventBasedInfo();
+      info = debugInfo;
       entries = new DexDebugEntryBuilder(method, factory).build();
       checkConsistentEntries();
     } else {

@@ -1869,8 +1869,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return sourceFileProvider != null && sourceFileProvider.allowDiscardingSourceFile();
   }
 
-  public boolean canUseDexPcAsDebugInformation() {
-    return lineNumberOptimization == LineNumberOptimization.ON
+  public boolean canUseDexPc2PcAsDebugInformation() {
+    return lineNumberOptimization == LineNumberOptimization.ON;
+  }
+
+  public boolean canUseNativeDexPcInsteadOfDebugInfo() {
+    return canUseDexPc2PcAsDebugInformation()
         && hasMinApi(AndroidApiLevel.O)
         && allowDiscardingResidualDebugInfo();
   }

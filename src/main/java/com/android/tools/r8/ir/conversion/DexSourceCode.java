@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEntry;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -77,15 +78,17 @@ public class DexSourceCode implements SourceCode {
   private final DexMethod originalMethod;
 
   public DexSourceCode(
-      DexCode code, ProgramMethod method, DexMethod originalMethod, Position callerPosition) {
+      DexCode code,
+      ProgramMethod method,
+      DexMethod originalMethod,
+      Position callerPosition,
+      DexItemFactory factory) {
     this.code = code;
     this.method = method;
     this.originalMethod = originalMethod;
-    DexDebugInfo info = code.getDebugInfo();
+    EventBasedDebugInfo info = DexDebugInfo.convertToEventBased(code, factory);
     if (info != null) {
-      // IR converting inputs with PC based debug info is not supported.
-      assert info.isEventBasedInfo();
-      debugEntries = info.asEventBasedInfo().computeEntries(originalMethod);
+      debugEntries = info.computeEntries(originalMethod);
     }
     canonicalPositions =
         new CanonicalPositions(

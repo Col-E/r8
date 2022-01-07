@@ -74,7 +74,10 @@ import com.google.common.base.Suppliers;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -346,6 +349,117 @@ public class LineNumberOptimizer {
     return mapId;
   }
 
+  private interface PcBasedDebugInfoRecorder {
+    /** Callback to record a code object with a given max instruction PC and parameter count. */
+    void recordPcMappingFor(DexCode code, int lastInstructionPc, int parameterCount);
+
+    /** Callback to record a code object with only a single "line". */
+    void recordSingleLineFor(DexCode code, int parameterCount);
+
+    void recordSingleLineFor(DexCode code, int parameterCount, int lastInstructionPc);
+
+    /**
+     * Install the correct debug info objects.
+     *
+     * <p>Must be called after all recordings have been given to allow computing the debug info
+     * items to be installed.
+     */
+    void updateDebugInfoInCodeObjects();
+  }
+
+  private static class Pc2PcMappingSupport implements PcBasedDebugInfoRecorder {
+
+    // Some DEX VMs require matching parameter count in methods and debug info.
+    // Record the max pc for each parameter count so we can share the param count objects.
+    private Int2IntMap paramToMaxPc = new Int2IntOpenHashMap();
+
+    private final List<Pair<Integer, DexCode>> codesToUpdate = new ArrayList<>();
+
+    // We can only drop single-line debug info if it is OK to lose the source-file info.
+    // This list is null if we must retain single-line entries.
+    private final List<DexCode> singleLineCodesToClear;
+
+    public Pc2PcMappingSupport(boolean allowDiscardingSourceFile) {
+      singleLineCodesToClear = allowDiscardingSourceFile ? new ArrayList<>() : null;
+    }
+
+    @Override
+    public void recordPcMappingFor(DexCode code, int lastInstructionPc, int parameterCount) {
+      codesToUpdate.add(new Pair<>(parameterCount, code));
+      int existing = paramToMaxPc.getOrDefault(parameterCount, -1);
+      if (existing < lastInstructionPc) {
+        paramToMaxPc.put(parameterCount, lastInstructionPc);
+      }
+    }
+
+    @Override
+    public void recordSingleLineFor(DexCode code, int parameterCount) {
+      if (singleLineCodesToClear != null) {
+        singleLineCodesToClear.add(code);
+        return;
+      }
+      int lastInstructionPc = ArrayUtils.last(code.instructions).getOffset();
+      recordPcMappingFor(code, lastInstructionPc, parameterCount);
+    }
+
+    @Override
+    public void recordSingleLineFor(DexCode code, int parameterCount, int lastInstructionPc) {
+      if (singleLineCodesToClear != null) {
+        singleLineCodesToClear.add(code);
+        return;
+      }
+      recordPcMappingFor(code, lastInstructionPc, parameterCount);
+    }
+
+    @Override
+    public void updateDebugInfoInCodeObjects() {
+      Int2ReferenceMap<DexDebugInfo> debugInfos =
+          new Int2ReferenceOpenHashMap<>(paramToMaxPc.size());
+      codesToUpdate.forEach(
+          entry -> {
+            int parameterCount = entry.getFirst();
+            DexCode code = entry.getSecond();
+            DexDebugInfo debugInfo =
+                debugInfos.computeIfAbsent(
+                    parameterCount,
+                    key -> buildPc2PcDebugInfo(paramToMaxPc.get(key), parameterCount));
+            code.setDebugInfo(debugInfo);
+          });
+      if (singleLineCodesToClear != null) {
+        singleLineCodesToClear.forEach(c -> c.setDebugInfo(null));
+      }
+    }
+
+    private static DexDebugInfo buildPc2PcDebugInfo(int lastInstructionPc, int parameterCount) {
+      return new DexDebugInfo.PcBasedDebugInfo(parameterCount, lastInstructionPc);
+    }
+  }
+
+  private static class NativePcSupport implements PcBasedDebugInfoRecorder {
+
+    @Override
+    public void recordPcMappingFor(DexCode code, int lastInstructionPc, int length) {
+      // Strip the info in full as the runtime will emit the PC directly.
+      code.setDebugInfo(null);
+    }
+
+    @Override
+    public void recordSingleLineFor(DexCode code, int parameterCount) {
+      // Strip the info at once as it does not conflict with any PC mapping update.
+      code.setDebugInfo(null);
+    }
+
+    @Override
+    public void recordSingleLineFor(DexCode code, int parameterCount, int lastInstructionPc) {
+      recordSingleLineFor(code, parameterCount);
+    }
+
+    @Override
+    public void updateDebugInfoInCodeObjects() {
+      // Already null out the info so nothing to do.
+    }
+  }
+
   public static ClassNameMapper run(
       AppView<?> appView,
       DexApplication application,
@@ -358,6 +472,11 @@ public class LineNumberOptimizer {
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
 
     Map<DexMethod, OutlineFixupBuilder> outlinesToFix = new IdentityHashMap<>();
+
+    PcBasedDebugInfoRecorder pcBasedDebugInfo =
+        appView.options().canUseNativeDexPcInsteadOfDebugInfo()
+            ? new NativePcSupport()
+            : new Pc2PcMappingSupport(appView.options().allowDiscardingResidualDebugInfo());
 
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
@@ -441,11 +560,13 @@ public class LineNumberOptimizer {
           List<MappedPosition> mappedPositions;
           Code code = method.getCode();
           boolean canUseDexPc =
-              appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1;
+              appView.options().canUseDexPc2PcAsDebugInformation() && methods.size() == 1;
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (canUseDexPc) {
-                mappedPositions = optimizeDexCodePositionsForPc(method, appView, kotlinRemapper);
+                mappedPositions =
+                    optimizeDexCodePositionsForPc(
+                        method, appView, kotlinRemapper, pcBasedDebugInfo);
               } else {
                 mappedPositions =
                     optimizeDexCodePositions(
@@ -616,8 +737,8 @@ public class LineNumberOptimizer {
           if (method.getCode().isDexCode()
               && method.getCode().asDexCode().getDebugInfo()
                   == DexDebugInfoForSingleLineMethod.getInstance()) {
-            assert appView.options().allowDiscardingResidualDebugInfo();
-            method.getCode().asDexCode().setDebugInfo(null);
+            pcBasedDebugInfo.recordSingleLineFor(
+                method.getCode().asDexCode(), method.getParameters().size());
           }
         } // for each method of the group
       } // for each method group, grouped by name
@@ -625,6 +746,9 @@ public class LineNumberOptimizer {
 
     // Fixup all outline positions
     outlinesToFix.values().forEach(OutlineFixupBuilder::fixup);
+
+    // Update all the debug-info objects.
+    pcBasedDebugInfo.updateDebugInfoInCodeObjects();
 
     return classNameMapperBuilder.build();
   }
@@ -728,9 +852,7 @@ public class LineNumberOptimizer {
     }
     if (code.isDexCode()) {
       DexDebugInfo dexDebugInfo = code.asDexCode().getDebugInfo();
-      return dexDebugInfo == null || !dexDebugInfo.isEventBasedInfo()
-          ? 0
-          : dexDebugInfo.asEventBasedInfo().startLine;
+      return dexDebugInfo == null ? 0 : dexDebugInfo.getStartLine();
     } else if (code.isCfCode()) {
       List<CfInstruction> instructions = code.asCfCode().getInstructions();
       for (CfInstruction instruction : instructions) {
@@ -857,8 +979,9 @@ public class LineNumberOptimizer {
     // Do the actual processing for each method.
     DexApplication application = appView.appInfo().app();
     DexCode dexCode = method.getCode().asDexCode();
-    EventBasedDebugInfo debugInfo = dexCode.getDebugInfo().asEventBasedInfo();
-    // TODO(b/205910335): Reconsider this to support pc-based debug info from inputs.
+    // TODO(b/213411850): Do we need to reconsider conversion here to support pc-based D8 merging?
+    EventBasedDebugInfo debugInfo =
+        DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
     assert debugInfo != null;
     List<DexDebugEvent> processedEvents = new ArrayList<>();
 
@@ -993,16 +1116,19 @@ public class LineNumberOptimizer {
   }
 
   private static List<MappedPosition> optimizeDexCodePositionsForPc(
-      DexEncodedMethod method, AppView<?> appView, PositionRemapper positionRemapper) {
+      DexEncodedMethod method,
+      AppView<?> appView,
+      PositionRemapper positionRemapper,
+      PcBasedDebugInfoRecorder debugInfoProvider) {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
     DexCode dexCode = method.getCode().asDexCode();
-    EventBasedDebugInfo debugInfo = dexCode.getDebugInfo().asEventBasedInfo();
-    // TODO(b/205910335): Reconsider this to support pc-based debug info from inputs.
+    // TODO(b/213411850): Do we need to reconsider conversion here to support pc-based D8 merging?
+    EventBasedDebugInfo debugInfo =
+        DexDebugInfo.convertToEventBased(dexCode, appView.dexItemFactory());
     assert debugInfo != null;
-
+    BooleanBox singleOriginalLine = new BooleanBox(true);
     Pair<Integer, Position> lastPosition = new Pair<>();
-
     DexDebugEventVisitor visitor =
         new DexDebugPositionState(
             debugInfo.startLine,
@@ -1011,7 +1137,12 @@ public class LineNumberOptimizer {
           public void visit(Default defaultEvent) {
             super.visit(defaultEvent);
             assert getCurrentLine() >= 0;
+            Position currentPosition = getPositionFromPositionState(this);
             if (lastPosition.getSecond() != null) {
+              if (singleOriginalLine.isTrue()
+                  && !currentPosition.equals(lastPosition.getSecond())) {
+                singleOriginalLine.set(false);
+              }
               remapAndAddForPc(
                   lastPosition.getFirst(),
                   getCurrentPc(),
@@ -1020,7 +1151,7 @@ public class LineNumberOptimizer {
                   mappedPositions);
             }
             lastPosition.setFirst(getCurrentPc());
-            lastPosition.setSecond(getPositionFromPositionState(this));
+            lastPosition.setSecond(currentPosition);
             resetOutlineInformation();
           }
         };
@@ -1029,17 +1160,27 @@ public class LineNumberOptimizer {
       event.accept(visitor);
     }
 
+    int lastInstructionPc = ArrayUtils.last(dexCode.instructions).getOffset();
     if (lastPosition.getSecond() != null) {
-      int lastPc = dexCode.instructions[dexCode.instructions.length - 1].getOffset();
       remapAndAddForPc(
           lastPosition.getFirst(),
-          lastPc + 1,
+          lastInstructionPc + 1,
           lastPosition.getSecond(),
           positionRemapper,
           mappedPositions);
     }
 
-    dexCode.setDebugInfo(null);
+    // If we only have one original line we can always retrace back uniquely.
+    assert !mappedPositions.isEmpty();
+    if (singleOriginalLine.isTrue()
+        && lastPosition.getSecond() != null
+        && !mappedPositions.get(0).isOutlineCaller()) {
+      dexCode.setDebugInfo(DexDebugInfoForSingleLineMethod.getInstance());
+      debugInfoProvider.recordSingleLineFor(
+          dexCode, method.getParameters().size(), lastInstructionPc);
+    } else {
+      debugInfoProvider.recordPcMappingFor(dexCode, lastInstructionPc, debugInfo.parameters.length);
+    }
     return mappedPositions;
   }
 

@@ -274,22 +274,14 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   private LineNumberTable getDexLineNumberTable(DexCode code) {
-    DexDebugInfo debugInfo = code.getDebugInfo();
-    if (debugInfo == null) {
+    EventBasedDebugInfo info = DexDebugInfo.convertToEventBased(code, codeInspector.getFactory());
+    if (info == null) {
       return null;
     }
-    if (debugInfo.isPcBasedInfo()) {
-      // For testing we could either view PC based encoding as not having a line table
-      // or as having the full line table for each PC, or we could trim the table to the PC at
-      // each valid instruction. It is unclear which choice that makes most sense so this throws
-      // for now.
-      throw new Unimplemented();
-    }
-    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
     Object2IntMap<InstructionSubject> lineNumberTable = new Object2IntOpenHashMap<>();
     DexDebugPositionState state =
-        new DexDebugPositionState(eventBasedInfo.startLine, getMethod().getReference());
-    Iterator<DexDebugEvent> iterator = Arrays.asList(eventBasedInfo.events).iterator();
+        new DexDebugPositionState(info.startLine, getMethod().getReference());
+    Iterator<DexDebugEvent> iterator = Arrays.asList(info.events).iterator();
     for (Instruction insn : code.instructions) {
       int offset = insn.getOffset();
       while (state.getCurrentPc() < offset && iterator.hasNext()) {

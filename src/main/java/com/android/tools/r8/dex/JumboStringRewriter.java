@@ -29,7 +29,6 @@ import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.Nop;
 import com.android.tools.r8.code.SwitchPayload;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
@@ -95,8 +94,8 @@ public class JumboStringRewriter {
   private final DexString firstJumboString;
   private final DexItemFactory factory;
   private final Map<Instruction, List<Instruction>> instructionTargets = new IdentityHashMap<>();
-  private final Int2ReferenceMap<Instruction> debugEventTargets
-      = new Int2ReferenceOpenHashMap<>();
+  private EventBasedDebugInfo debugEventBasedInfo = null;
+  private final Int2ReferenceMap<Instruction> debugEventTargets = new Int2ReferenceOpenHashMap<>();
   private final Map<Instruction, Instruction> payloadToSwitch = new IdentityHashMap<>();
   private final Map<Try, TryTargets> tryTargets = new IdentityHashMap<>();
   private final Int2ReferenceMap<Instruction> tryRangeStartAndEndTargets
@@ -219,12 +218,11 @@ public class JumboStringRewriter {
   private DexDebugInfo rewriteDebugInfoOffsets() {
     DexCode code = method.getCode().asDexCode();
     if (!debugEventTargets.isEmpty()) {
-      assert code.getDebugInfo().isEventBasedInfo();
-      EventBasedDebugInfo eventBasedInfo = code.getDebugInfo().asEventBasedInfo();
+      assert debugEventBasedInfo != null;
       int lastOriginalOffset = 0;
       int lastNewOffset = 0;
       List<DexDebugEvent> events = new ArrayList<>();
-      for (DexDebugEvent event : eventBasedInfo.events) {
+      for (DexDebugEvent event : debugEventBasedInfo.events) {
         if (event instanceof AdvancePC) {
           AdvancePC advance = (AdvancePC) event;
           lastOriginalOffset += advance.delta;
@@ -245,8 +243,8 @@ public class JumboStringRewriter {
         }
       }
       return new EventBasedDebugInfo(
-          eventBasedInfo.startLine,
-          eventBasedInfo.parameters,
+          debugEventBasedInfo.startLine,
+          debugEventBasedInfo.parameters,
           events.toArray(DexDebugEvent.EMPTY_ARRAY));
     }
     return code.getDebugInfo();
@@ -483,18 +481,16 @@ public class JumboStringRewriter {
   }
 
   private void recordDebugEventTargets(Int2ReferenceMap<Instruction> offsetToInstruction) {
-    DexDebugInfo debugInfo = method.getCode().asDexCode().getDebugInfo();
-    if (debugInfo == null) {
+    // TODO(b/213411850): Merging pc based D8 builds will map out of PC for any jumbo processed
+    //  method. Instead we should rather retain the PC encoding by bumping the max-pc and recording
+    //  the line number translation. We actually need to do so to support merging with native PC
+    //  support as in that case we can't reflect the change in the line table, only in the mapping.
+    EventBasedDebugInfo eventBasedInfo =
+        DexDebugInfo.convertToEventBased(method.getCode().asDexCode(), factory);
+    if (eventBasedInfo == null) {
       return;
     }
-    if (debugInfo.isPcBasedInfo()) {
-      // TODO(b/205910335): merging pc based builds may require computing new pc mappings.
-      //  In these cases the old PC should be treated as a "line" and the translation must be
-      //  recorded and amended in the output. Reading PC based debug info as inputs is not yet
-      //  supported so this is unreachable.
-      throw new Unreachable();
-    }
-    EventBasedDebugInfo eventBasedInfo = debugInfo.asEventBasedInfo();
+    debugEventBasedInfo = eventBasedInfo;
     int address = 0;
     for (DexDebugEvent event : eventBasedInfo.events) {
       if (event instanceof AdvancePC) {

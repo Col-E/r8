@@ -149,7 +149,7 @@ public abstract class Code extends CachedHashValueDexItem {
     return true;
   }
 
-  public Code getCodeAsInlining(DexMethod caller, DexMethod callee) {
+  public Code getCodeAsInlining(DexMethod caller, DexMethod callee, DexItemFactory factory) {
     throw new Unreachable();
   }
 }
