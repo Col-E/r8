@@ -16,6 +16,7 @@ import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.jacoco.JacocoClasses;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +51,7 @@ public class JacocoConstantDynamicTest extends TestBase {
   public JacocoClasses testClasses;
 
   private static final String MAIN_CLASS = TestRunner.class.getTypeName();
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!", "Hello from I!");
 
   @BeforeClass
   public static void setUpInput() throws IOException {
@@ -85,7 +86,7 @@ public class JacocoConstantDynamicTest extends TestBase {
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
     List<String> onTheFlyReport = testClasses.generateReport(agentOutputOnTheFly);
-    assertEquals(2, onTheFlyReport.size());
+    assertEquals(3, onTheFlyReport.size());
 
     // Run the instrumented code.
     Path agentOutputOffline = output.resolve("offline");
@@ -114,7 +115,7 @@ public class JacocoConstantDynamicTest extends TestBase {
       // TODO(sgjesse): Need to figure out why there is no instrumentation output for newer VMs.
       if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
         List<String> report = testClasses.generateReport(agentOutput);
-        assertEquals(2, report.size());
+        assertEquals(3, report.size());
       } else {
         assertFalse(Files.exists(agentOutput));
       }
@@ -130,16 +131,23 @@ public class JacocoConstantDynamicTest extends TestBase {
   private static JacocoClasses testClasses(TemporaryFolder temp, CfVersion version)
       throws IOException {
     return new JacocoClasses(
-        transformer(TestRunner.class)
-            .setVersion(version) /*.setClassDescriptor("LTestRunner;")*/
-            .transform(),
+        ImmutableList.of(
+            transformer(TestRunner.class).setVersion(version).transform(),
+            transformer(I.class).setVersion(version).transform()),
         temp);
   }
 
-  static class TestRunner {
+  interface I {
+    default void m() {
+      System.out.println("Hello from I!");
+    }
+  }
+
+  static class TestRunner implements I {
 
     public static void main(String[] args) {
       System.out.println("Hello, world!");
+      new TestRunner().m();
     }
   }
 }

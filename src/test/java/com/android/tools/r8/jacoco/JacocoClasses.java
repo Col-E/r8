@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,22 +29,29 @@ public class JacocoClasses {
   private final Path originalJar;
   private final Path instrumentedJar;
 
-  // Create JacocoClasses with just one class provided as bytes.
+  // Create JacocoClasses with just one class provided as class file bytes.
   public JacocoClasses(byte[] clazz, TemporaryFolder temp) throws IOException {
+    this(ImmutableList.of(clazz), temp);
+  }
+
+  // Create JacocoClasses with multiple classes provided as class file bytes.
+  public JacocoClasses(List<byte[]> classes, TemporaryFolder temp) throws IOException {
     this.temp = temp;
     dir = temp.newFolder().toPath();
 
     // Write the class to a .class file with package sub-directories.
-    String typeName = TestBase.extractClassName(clazz);
-    int lastDotIndex = typeName.lastIndexOf('.');
-    String pkg = typeName.substring(0, lastDotIndex);
-    String baseFileName = typeName.substring(lastDotIndex + 1) + CLASS_EXTENSION;
     Path original = dir.resolve("original");
-    Files.createDirectories(original);
-    Path packageDir = original.resolve(pkg.replace(JAVA_PACKAGE_SEPARATOR, File.separatorChar));
-    Files.createDirectories(packageDir);
-    Path classFile = packageDir.resolve(baseFileName);
-    Files.write(classFile, clazz);
+    for (byte[] clazz : classes) {
+      String typeName = TestBase.extractClassName(clazz);
+      int lastDotIndex = typeName.lastIndexOf('.');
+      String pkg = typeName.substring(0, lastDotIndex);
+      String baseFileName = typeName.substring(lastDotIndex + 1) + CLASS_EXTENSION;
+      Files.createDirectories(original);
+      Path packageDir = original.resolve(pkg.replace(JAVA_PACKAGE_SEPARATOR, File.separatorChar));
+      Files.createDirectories(packageDir);
+      Path classFile = packageDir.resolve(baseFileName);
+      Files.write(classFile, clazz);
+    }
 
     // Run offline instrumentation.
     Path instrumented = dir.resolve("instrumented");

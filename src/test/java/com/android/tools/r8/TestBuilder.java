@@ -61,6 +61,23 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return self;
   }
 
+  public T applyIf(
+      boolean value,
+      ThrowableConsumer<T> trueConsumer,
+      boolean value2,
+      ThrowableConsumer<T> trueConsumer2,
+      ThrowableConsumer<T> falseConsumer) {
+    T self = self();
+    if (value) {
+      trueConsumer.acceptWithRuntimeException(self);
+    } else if (value2) {
+      trueConsumer2.acceptWithRuntimeException(self);
+    } else {
+      falseConsumer.acceptWithRuntimeException(self);
+    }
+    return self;
+  }
+
   @Deprecated
   public RR run(String mainClass)
       throws CompilationFailedException, ExecutionException, IOException {
