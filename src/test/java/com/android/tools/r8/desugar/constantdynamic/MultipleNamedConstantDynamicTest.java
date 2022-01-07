@@ -112,13 +112,13 @@ public class MultipleNamedConstantDynamicTest extends TestBase {
     return transformer(A.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy1", A.class, "myConstant", "constantF", Object.class)
+            "condy1", A.class, "myConstant", false, "constantF", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy2", A.class, "myConstant", "constantF", Object.class)
+            "condy2", A.class, "myConstant", false, "constantF", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy3", A.class, "myConstant", "constantG", Object.class)
+            "condy3", A.class, "myConstant", false, "constantG", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy4", A.class, "myConstant", "constantG", Object.class)
+            "condy4", A.class, "myConstant", false, "constantG", Object.class)
         .transform();
   }
 

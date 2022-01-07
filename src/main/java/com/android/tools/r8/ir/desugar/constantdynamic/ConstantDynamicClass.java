@@ -162,7 +162,11 @@ public class ConstantDynamicClass {
       synthesizeConstantDynamicClass(builder);
     } else {
       // Unconditionally throw as the RI.
-      behaviour = resolution.isFailedResolution() ? THROW_NSME : THROW_ICCE;
+      behaviour =
+          resolution.isNoSuchMethodErrorResult(
+                  context.getContextClass(), appView.appInfoForDesugaring())
+              ? THROW_NSME
+              : THROW_ICCE;
     }
   }
 

@@ -101,7 +101,7 @@ public class BootstrapMethodVirtualConstantDynamicTest extends TestBase {
     return transformer(A.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy1", A.class, "myConstant", "constantName", Object.class)
+            "condy1", A.class, "myConstant", false, "constantName", Object.class)
         .transform();
   }
 

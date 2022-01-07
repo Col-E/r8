@@ -978,6 +978,7 @@ public class ClassFileTransformer {
       String constantName,
       Class<?> bootstrapMethodHolder,
       String bootstrapMethodName,
+      boolean isInterfaceInvoke,
       String name,
       Class<?> type) {
     return addMethodTransformer(
@@ -996,7 +997,7 @@ public class ClassFileTransformer {
                           DescriptorUtils.getClassBinaryName(bootstrapMethodHolder),
                           bootstrapMethodName,
                           bootstrapMethodSignature,
-                          bootstrapMethodHolder.isInterface()),
+                          isInterfaceInvoke),
                       new Object[] {}));
             } else {
               super.visitLdcInsn(value);

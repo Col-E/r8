@@ -102,12 +102,12 @@ public class HierarchyConstantDynamicTest extends TestBase {
         transformer(A.class)
             .setVersion(CfVersion.V11)
             .transformConstStringToConstantDynamic(
-                "condy1", A.class, "myConstant", "constantName", Object.class)
+                "condy1", A.class, "myConstant", false, "constantName", Object.class)
             .transform(),
         transformer(B.class)
             .setVersion(CfVersion.V11)
             .transformConstStringToConstantDynamic(
-                "condy1", B.class, "myConstant", "constantName", Object.class)
+                "condy1", B.class, "myConstant", false, "constantName", Object.class)
             .transform());
   }
 

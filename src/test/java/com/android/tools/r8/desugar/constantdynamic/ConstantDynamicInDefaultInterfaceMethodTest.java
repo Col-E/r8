@@ -116,9 +116,9 @@ public class ConstantDynamicInDefaultInterfaceMethodTest extends TestBase {
     return transformer(I.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy1", I.class, "myConstant", "constantName", Object.class)
+            "condy1", I.class, "myConstant", true, "constantName", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy2", I.class, "myConstant", "constantName", Object.class)
+            "condy2", I.class, "myConstant", true, "constantName", Object.class)
         .setPrivate(
             I.class.getDeclaredMethod(
                 "myConstant", MethodHandles.Lookup.class, String.class, Class.class))

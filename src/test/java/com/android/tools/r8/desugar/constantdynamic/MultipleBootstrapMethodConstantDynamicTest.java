@@ -110,13 +110,13 @@ public class MultipleBootstrapMethodConstantDynamicTest extends TestBase {
     return transformer(A.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy1", A.class, "myConstant1", "constantName", Object.class)
+            "condy1", A.class, "myConstant1", false, "constantName", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy2", A.class, "myConstant1", "constantName", Object.class)
+            "condy2", A.class, "myConstant1", false, "constantName", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy3", A.class, "myConstant2", "constantName", Object.class)
+            "condy3", A.class, "myConstant2", false, "constantName", Object.class)
         .transformConstStringToConstantDynamic(
-            "condy4", A.class, "myConstant2", "constantName", Object.class)
+            "condy4", A.class, "myConstant2", false, "constantName", Object.class)
         .transform();
   }
 

@@ -123,16 +123,16 @@ public class SharedBootstrapMethodConstantDynamicTest extends TestBase {
         transformer(A.class)
             .setVersion(CfVersion.V11)
             .transformConstStringToConstantDynamic(
-                "condy1", A.class, "myConstant", "constantName", Object.class)
+                "condy1", A.class, "myConstant", false, "constantName", Object.class)
             .transformConstStringToConstantDynamic(
-                "condy2", A.class, "myConstant", "constantName", Object.class)
+                "condy2", A.class, "myConstant", false, "constantName", Object.class)
             .transform(),
         transformer(B.class)
             .setVersion(CfVersion.V11)
             .transformConstStringToConstantDynamic(
-                "condy3", A.class, "myConstant", "constantName", Object.class)
+                "condy3", A.class, "myConstant", false, "constantName", Object.class)
             .transformConstStringToConstantDynamic(
-                "condy4", A.class, "myConstant", "constantName", Object.class)
+                "condy4", A.class, "myConstant", false, "constantName", Object.class)
             .transform());
   }
 

@@ -126,7 +126,7 @@ public class ConstantDynamicGetDeclaredMethodsTest extends TestBase {
     return transformer(A.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy", A.class, "myConstant", "constantName", Object.class)
+            "condy", A.class, "myConstant", false, "constantName", Object.class)
         .transform();
   }
 

@@ -102,7 +102,7 @@ public class BootstrapMethodNotFoundConstantDynamicTest extends TestBase {
     return transformer(A.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy1", A.class, "methodNotFound", "constantName", Object.class)
+            "condy1", A.class, "methodNotFound", false, "constantName", Object.class)
         .transform();
   }
 

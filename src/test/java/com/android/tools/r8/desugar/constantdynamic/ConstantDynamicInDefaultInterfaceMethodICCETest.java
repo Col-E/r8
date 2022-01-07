@@ -1,4 +1,4 @@
-// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.constantdynamic;
@@ -15,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.util.List;
 import org.junit.Test;
@@ -25,9 +24,9 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class BootstrapMethodPrivateConstantDynamicTest extends TestBase {
+public class ConstantDynamicInDefaultInterfaceMethodICCETest extends TestBase {
 
-  @Parameter public TestParameters parameters;
+  @Parameter() public TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
@@ -44,6 +43,7 @@ public class BootstrapMethodPrivateConstantDynamicTest extends TestBase {
     assumeTrue(parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
     testForJvm()
+        .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
@@ -52,6 +52,7 @@ public class BootstrapMethodPrivateConstantDynamicTest extends TestBase {
   @Test
   public void testDesugaring() throws Exception {
     testForDesugaring(parameters)
+        .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .applyIf(
@@ -64,7 +65,9 @@ public class BootstrapMethodPrivateConstantDynamicTest extends TestBase {
               } else {
                 r.assertFailureWithErrorThatThrows(UnsupportedClassVersionError.class);
               }
-            },
+            })
+        .applyIf(
+            DesugarTestConfiguration::isDesugared,
             r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));
   }
 
@@ -73,17 +76,18 @@ public class BootstrapMethodPrivateConstantDynamicTest extends TestBase {
     assumeTrue(parameters.isDexRuntime() || parameters.getApiLevel().isEqualTo(AndroidApiLevel.B));
 
     testForR8(parameters.getBackend())
+        .addProgramClasses(MAIN_CLASS)
         .addProgramClassFileData(getTransformedClasses())
         .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(A.class)
+        .addKeepMainRule(MAIN_CLASS)
         // TODO(b/198142625): Support CONSTANT_Dynamic output for class files.
         .applyIf(
             parameters.isCfRuntime(),
-            r -> {
+            b -> {
               assertThrows(
                   CompilationFailedException.class,
                   () ->
-                      r.compileWithExpectedDiagnostics(
+                      b.compileWithExpectedDiagnostics(
                           diagnostics -> {
                             diagnostics.assertOnlyErrors();
                             diagnostics.assertErrorsMatch(
@@ -92,31 +96,46 @@ public class BootstrapMethodPrivateConstantDynamicTest extends TestBase {
                                         "Unsupported dynamic constant (not desugaring)")));
                           }));
             },
-            r ->
-                r.run(parameters.getRuntime(), MAIN_CLASS)
+            b ->
+                b.run(parameters.getRuntime(), MAIN_CLASS)
                     .assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class));
   }
 
-  private byte[] getTransformedClasses() throws IOException {
-    return transformer(A.class)
+  // Create a constant dynamic without the interface bit targeting an interface bootstrap method.
+  private byte[] getTransformedClasses() throws Exception {
+    return transformer(I.class)
         .setVersion(CfVersion.V11)
         .transformConstStringToConstantDynamic(
-            "condy1", A.class, "myConstant", false, "constantName", Object.class)
+            "condy1", I.class, "myConstant", false, "constantName", Object.class)
+        .transformConstStringToConstantDynamic(
+            "condy2", I.class, "myConstant", false, "constantName", Object.class)
+        .setPrivate(
+            I.class.getDeclaredMethod(
+                "myConstant", MethodHandles.Lookup.class, String.class, Class.class))
         .transform();
   }
 
-  public static class A {
+  public interface I {
 
-    public static Object f() {
+    default Object f() {
       return "condy1"; // Will be transformed to Constant_DYNAMIC.
     }
 
-    public static void main(String[] args) {
-      System.out.println(f() != null);
+    default Object g() {
+      return "condy2"; // Will be transformed to Constant_DYNAMIC.
     }
 
-    private Object myConstant(MethodHandles.Lookup lookup, String name, Class<?> type) {
+    /* private */ static Object myConstant(
+        MethodHandles.Lookup lookup, String name, Class<?> type) {
       return new Object();
+    }
+  }
+
+  public static class A implements I {
+    public static void main(String[] args) {
+      A a = new A();
+      System.out.println(a.f() != null);
+      System.out.println(a.f() == a.g());
     }
   }
 }
