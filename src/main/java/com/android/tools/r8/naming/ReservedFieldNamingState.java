@@ -43,20 +43,13 @@ class ReservedFieldNamingState extends FieldNamingStateBase<InternalState> {
     return internalState == null ? null : internalState.getReservedByName(name);
   }
 
-  void markReservedDirectly(DexString name, DexString originalName, DexType type) {
-    getOrCreateInternalState(type).markReservedDirectly(name, originalName);
+  void markReserved(DexString name, DexString originalName, DexType type) {
+    getOrCreateInternalState(type).markReserved(name, originalName);
   }
 
   void includeReservations(ReservedFieldNamingState reservedNames) {
     for (Map.Entry<DexType, InternalState> entry : reservedNames.internalStates.entrySet()) {
       getOrCreateInternalState(entry.getKey()).includeReservations(entry.getValue());
-    }
-    includeInterfaceReservationState(reservedNames);
-  }
-
-  void includeReservationsFromBelow(ReservedFieldNamingState reservedNames) {
-    for (Map.Entry<DexType, InternalState> entry : reservedNames.internalStates.entrySet()) {
-      getOrCreateInternalState(entry.getKey()).includeReservationsFromBelow(entry.getValue());
     }
     includeInterfaceReservationState(reservedNames);
   }
@@ -71,7 +64,7 @@ class ReservedFieldNamingState extends FieldNamingStateBase<InternalState> {
 
   void setInterfaceMinificationState(ReservedFieldNamingState namingState) {
     assert namingState != null;
-    assert interfaceMinificationState == null;
+    assert interfaceMinificationState == null || interfaceMinificationState == namingState;
     this.interfaceMinificationState = namingState;
   }
 
@@ -82,25 +75,19 @@ class ReservedFieldNamingState extends FieldNamingStateBase<InternalState> {
 
   static class InternalState {
 
-    private Map<DexString, DexString> reservedNamesDirect = new IdentityHashMap<>();
-    private Map<DexString, DexString> reservedNamesBelow = new IdentityHashMap<>();
+    private final Map<DexString, DexString> reservedNames = new IdentityHashMap<>();
 
     DexString getReservedByName(DexString name) {
-      DexString reservedBy = reservedNamesDirect.get(name);
-      return reservedBy != null ? reservedBy : reservedNamesBelow.get(name);
+      DexString reservedBy = reservedNames.get(name);
+      return reservedBy != null ? reservedBy : reservedNames.get(name);
     }
 
-    void markReservedDirectly(DexString name, DexString originalName) {
-      reservedNamesDirect.put(name, originalName);
+    void markReserved(DexString name, DexString originalName) {
+      reservedNames.put(name, originalName);
     }
 
     void includeReservations(InternalState state) {
-      reservedNamesDirect.putAll(state.reservedNamesDirect);
-    }
-
-    void includeReservationsFromBelow(InternalState state) {
-      reservedNamesBelow.putAll(state.reservedNamesDirect);
-      reservedNamesBelow.putAll(state.reservedNamesBelow);
+      reservedNames.putAll(state.reservedNames);
     }
   }
 }

@@ -20,7 +20,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,7 +133,7 @@ class MethodNameMinifier {
   // The use of a bidirectional map allows us to map a naming state to the type it represents,
   // which is useful for debugging.
   private final BiMap<DexType, MethodReservationState<?>> reservationStates = HashBiMap.create();
-  private final Map<DexType, MethodNamingState<?>> namingStates = new HashMap<>();
+  private final Map<DexType, MethodNamingState<?>> namingStates = new IdentityHashMap<>();
   private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
 
   private final MethodNamingState<?> rootNamingState;

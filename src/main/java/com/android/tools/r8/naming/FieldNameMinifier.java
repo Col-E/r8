@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -19,12 +18,15 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -37,8 +39,12 @@ class FieldNameMinifier {
   private final AppView<AppInfoWithLiveness> appView;
   private final SubtypingInfo subtypingInfo;
   private final Map<DexField, DexString> renaming = new IdentityHashMap<>();
-  private Map<DexType, ReservedFieldNamingState> reservedNamingStates = new IdentityHashMap<>();
+  private final Map<DexType, ReservedFieldNamingState> reservedNamingStates =
+      new IdentityHashMap<>();
   private final MemberNamingStrategy strategy;
+  private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
+  private final Map<DexType, Set<ReservedFieldNamingState>> frontierStatesForInterfaces =
+      new IdentityHashMap<>();
 
   FieldNameMinifier(
       AppView<AppInfoWithLiveness> appView,
@@ -60,8 +66,8 @@ class FieldNameMinifier {
     // Rename the definitions.
     timing.begin("rename-definitions");
     renameFieldsInInterfaces(interfaces);
-    propagateReservedFieldNamesUpwards();
     renameFieldsInClasses();
+    renameFieldsInUnrelatedClasspathClasses();
     timing.end();
     // Rename the references that are not rebound to definitions for some reasons.
     timing.begin("rename-references");
@@ -93,19 +99,36 @@ class FieldNameMinifier {
   }
 
   private void reserveFieldNames() {
-    // Reserve all field names that need to be reserved.
-    appView
-        .appInfo()
-        .forEachTypeInHierarchyOfLiveProgramClasses(
+    // Build up all reservations in the class hierarchy such that all reserved names are placed
+    // at the boundary between a library class and a program class - referred to as the frontier.
+    // Special handling is done for interfaces by always considering them to be roots. When
+    // traversing down the hierarchy we built up a map from interface to reservation states:
+    // - when we reach a frontier find all directly and indirectly implemented interfaces and
+    //   add the current reservation state
+    // - when we see a program class that implements a direct super type that is an interface also
+    //   add the current reservation state. Note that even though we do not visit super interfaces
+    //   here, this still works because a super interface will be in the same partition.
+    // For an in depth description see MethodNameMinifier.
+    TopDownClassHierarchyTraversal.forAllClasses(appView)
+        .visit(
+            appView.appInfo().classes(),
             clazz -> {
-              ReservedFieldNamingState reservedNames = null;
+              DexType frontier =
+                  clazz.superType == null
+                      ? appView.dexItemFactory().objectType
+                      : frontiers.getOrDefault(clazz.superType, clazz.type);
+              // If frontier != clazz.type we have seen a program class that is on the boundary.
+              // Otherwise, if we are visiting a program class then that is the frontier.
+              if (frontier != clazz.type || clazz.isProgramClass()) {
+                DexType existingValue = frontiers.put(clazz.type, frontier);
+                assert existingValue == null;
+              }
+              ReservedFieldNamingState reservationState =
+                  getOrCreateReservedFieldNamingState(frontier);
               for (DexEncodedField field : clazz.fields()) {
                 DexString reservedName = strategy.getReservedName(field, clazz);
                 if (reservedName != null) {
-                  if (reservedNames == null) {
-                    reservedNames = getOrCreateReservedFieldNamingState(clazz.type);
-                  }
-                  reservedNames.markReservedDirectly(
+                  reservationState.markReserved(
                       reservedName, field.getReference().name, field.getReference().type);
                   // TODO(b/148846065): Consider lazily computing the renaming on actual lookups.
                   if (reservedName != field.getReference().name) {
@@ -113,51 +136,47 @@ class FieldNameMinifier {
                   }
                 }
               }
-
-              // For interfaces, propagate reserved names to all implementing classes.
-              if (clazz.isInterface() && reservedNames != null) {
-                for (DexType implementationType :
-                    subtypingInfo.allImmediateImplementsSubtypes(clazz.type)) {
-                  DexClass implementation = appView.definitionFor(implementationType);
-                  if (implementation != null) {
-                    assert !implementation.isInterface();
-                    getOrCreateReservedFieldNamingState(implementationType)
-                        .includeReservations(reservedNames);
+              if (clazz.isInterface()) {
+                frontierStatesForInterfaces.put(
+                    clazz.type, SetUtils.newIdentityHashSet(reservationState));
+              }
+              // Include all reservations from super frontier states. This will propagate reserved
+              // names for interfaces down to implementing subtypes.
+              for (DexType superType : clazz.allImmediateSupertypes()) {
+                // No need to visit object since there are no fields there.
+                if (superType != appView.dexItemFactory().objectType) {
+                  ReservedFieldNamingState superReservationState =
+                      getOrCreateReservedFieldNamingState(
+                          frontiers.getOrDefault(superType, superType));
+                  if (superReservationState != reservationState) {
+                    reservationState.includeReservations(superReservationState);
+                  }
+                  if (clazz.isProgramClass()) {
+                    DexClass superClass = appView.definitionFor(superType, clazz.asProgramClass());
+                    if (superClass != null && superClass.isInterface()) {
+                      frontierStatesForInterfaces.get(superType).add(reservationState);
+                    }
                   }
                 }
               }
-            });
-
-    // TODO(b/148846065): Consider lazily computing the renaming on actual lookups.
-    appView
-        .appInfo()
-        .forEachReferencedClasspathClass(
-            clazz -> {
-              for (DexEncodedField field : clazz.fields()) {
-                DexString reservedName = strategy.getReservedName(field, clazz);
-                if (reservedName != null && reservedName != field.getReference().name) {
-                  renaming.put(field.getReference(), reservedName);
-                }
+              if (frontier == clazz.type && clazz.isProgramClass()) {
+                patchUpAllIndirectlyImplementingInterfacesFromLibraryAndClassPath(
+                    clazz.asProgramClass(), reservationState);
               }
             });
-
-    propagateReservedFieldNamesUpwards();
   }
 
-  private void propagateReservedFieldNamesUpwards() {
-    BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
-        .visit(
-            appView.appInfo().classes(),
-            clazz -> {
-              ReservedFieldNamingState reservedNames = getReservedFieldNamingState(clazz.type);
-              if (reservedNames != null) {
-                for (DexType supertype : clazz.allImmediateSupertypes()) {
-                  if (supertype.isProgramType(appView)) {
-                    getOrCreateReservedFieldNamingState(supertype)
-                        .includeReservationsFromBelow(reservedNames);
-                  }
-                }
+  private void patchUpAllIndirectlyImplementingInterfacesFromLibraryAndClassPath(
+      DexProgramClass clazz, ReservedFieldNamingState reservationState) {
+    appView
+        .appInfo()
+        .traverseSuperTypes(
+            clazz,
+            (superType, superClass, isInterface) -> {
+              if (isInterface && superClass.isNotProgramClass()) {
+                frontierStatesForInterfaces.get(superType).add(reservationState);
               }
+              return TraversalContinuation.CONTINUE;
             });
   }
 
@@ -179,8 +198,7 @@ class FieldNameMinifier {
                           .clone();
 
               ReservedFieldNamingState reservedNames =
-                  getOrCreateReservedFieldNamingState(clazz.type);
-              // TODO(b/213041051): This could avoid duplication of strings downwards.
+                  getReservedFieldNamingState(frontiers.getOrDefault(clazz.type, clazz.type));
               FieldNamingState state = parentState.createChildState(reservedNames);
               if (clazz.isProgramClass()) {
                 clazz.asProgramClass().forEachProgramField(field -> renameField(field, state));
@@ -191,7 +209,24 @@ class FieldNameMinifier {
             });
   }
 
+  private void renameFieldsInUnrelatedClasspathClasses() {
+    if (appView.options().getProguardConfiguration().hasApplyMappingFile()) {
+      appView
+          .appInfo()
+          .forEachReferencedClasspathClass(
+              clazz -> {
+                for (DexEncodedField field : clazz.fields()) {
+                  DexString reservedName = strategy.getReservedName(field, clazz);
+                  if (reservedName != null && reservedName != field.getReference().name) {
+                    renaming.put(field.getReference(), reservedName);
+                  }
+                }
+              });
+    }
+  }
+
   private void renameFieldsInInterfaces(Collection<DexClass> interfaces) {
+    // TODO(b/213415674): Only consider interfaces in the hierarchy of classes.
     InterfacePartitioning partitioning = new InterfacePartitioning(this);
     for (Set<DexClass> partition : partitioning.sortedPartitions(interfaces)) {
       renameFieldsInInterfacePartition(partition);
@@ -199,18 +234,24 @@ class FieldNameMinifier {
   }
 
   private void renameFieldsInInterfacePartition(Set<DexClass> partition) {
-    ReservedFieldNamingState reservedNamesInPartition = new ReservedFieldNamingState(appView);
-    for (DexClass clazz : partition) {
-      ReservedFieldNamingState reservedNamesInInterface = getReservedFieldNamingState(clazz.type);
-      if (reservedNamesInInterface != null) {
-        reservedNamesInPartition.includeReservations(reservedNamesInInterface);
-        reservedNamesInPartition.includeReservationsFromBelow(reservedNamesInInterface);
-      }
-    }
-
     ReservedFieldNamingState namesToBeReservedInImplementsSubclasses =
         new ReservedFieldNamingState(appView);
-
+    ReservedFieldNamingState reservedNamesInPartition = new ReservedFieldNamingState(appView);
+    for (DexClass clazz : partition) {
+      ReservedFieldNamingState reservedNamesInInterface =
+          getReservedFieldNamingState(frontiers.getOrDefault(clazz.type, clazz.type));
+      if (reservedNamesInInterface != null) {
+        reservedNamesInPartition.includeReservations(reservedNamesInInterface);
+        Set<ReservedFieldNamingState> reservedFieldNamingStates =
+            frontierStatesForInterfaces.get(clazz.type);
+        assert reservedFieldNamingStates != null;
+        reservedFieldNamingStates.forEach(
+            reservedStates -> {
+              reservedNamesInPartition.includeReservations(reservedStates);
+              reservedStates.setInterfaceMinificationState(namesToBeReservedInImplementsSubclasses);
+            });
+      }
+    }
     FieldNamingState state = new FieldNamingState(appView, strategy, reservedNamesInPartition);
     for (DexClass clazz : partition) {
       if (clazz.isProgramClass()) {
@@ -220,23 +261,9 @@ class FieldNameMinifier {
             .forEachProgramField(
                 field -> {
                   DexString newName = renameField(field, state);
-                  namesToBeReservedInImplementsSubclasses.markReservedDirectly(
+                  namesToBeReservedInImplementsSubclasses.markReserved(
                       newName, field.getReference().name, field.getReference().type);
                 });
-      }
-    }
-
-    Set<DexType> visited = Sets.newIdentityHashSet();
-    for (DexClass clazz : partition) {
-      for (DexType implementationType : subtypingInfo.allImmediateImplementsSubtypes(clazz.type)) {
-        if (!visited.add(implementationType)) {
-          continue;
-        }
-        DexClass implementation = appView.definitionFor(implementationType);
-        if (implementation != null) {
-          getOrCreateReservedFieldNamingState(implementationType)
-              .setInterfaceMinificationState(namesToBeReservedInImplementsSubclasses);
-        }
       }
     }
   }
@@ -279,12 +306,12 @@ class FieldNameMinifier {
 
   static class InterfacePartitioning {
 
-    private final FieldNameMinifier minfier;
+    private final FieldNameMinifier minifier;
     private final AppView<AppInfoWithLiveness> appView;
     private final Set<DexType> visited = Sets.newIdentityHashSet();
 
     InterfacePartitioning(FieldNameMinifier minifier) {
-      this.minfier = minifier;
+      this.minifier = minifier;
       appView = minifier.appView;
     }
 
@@ -303,7 +330,7 @@ class FieldNameMinifier {
     }
 
     private Set<DexClass> buildSortedPartition(DexClass src) {
-      Set<DexClass> partition = new TreeSet<>((x, y) -> x.type.compareTo(y.type));
+      Set<DexClass> partition = new TreeSet<>(Comparator.comparing(DexClass::getType));
 
       Deque<DexType> worklist = new ArrayDeque<>();
       worklist.add(src.type);
@@ -325,7 +352,7 @@ class FieldNameMinifier {
         if (clazz.isInterface()) {
           partition.add(clazz);
 
-          for (DexType subtype : minfier.subtypingInfo.allImmediateSubtypes(type)) {
+          for (DexType subtype : minifier.subtypingInfo.allImmediateSubtypes(type)) {
             if (visited.add(subtype)) {
               worklist.add(subtype);
             }
@@ -334,7 +361,7 @@ class FieldNameMinifier {
           if (visited.add(clazz.superType)) {
             worklist.add(clazz.superType);
           }
-          for (DexType subclass : minfier.subtypingInfo.allImmediateExtendsSubtypes(type)) {
+          for (DexType subclass : minifier.subtypingInfo.allImmediateExtendsSubtypes(type)) {
             if (visited.add(subclass)) {
               worklist.add(subclass);
             }

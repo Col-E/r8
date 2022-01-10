@@ -45,10 +45,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
   }
 
   public FieldNamingState createChildState(ReservedFieldNamingState reservedNames) {
-    FieldNamingState childState =
-        new FieldNamingState(appView, strategy, reservedNames, internalStates);
-    childState.includeReservations(this.reservedNames);
-    return childState;
+    return new FieldNamingState(appView, strategy, reservedNames, internalStates);
   }
 
   public DexString getOrCreateNameFor(ProgramField field) {
