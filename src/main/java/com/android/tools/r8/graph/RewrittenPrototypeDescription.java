@@ -204,21 +204,28 @@ public class RewrittenPrototypeDescription {
 
   public static class RewrittenTypeInfo extends ArgumentInfo {
 
+    private final DexType castType;
     private final DexType oldType;
     private final DexType newType;
     private final SingleValue singleValue;
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
     public static RewrittenTypeInfo toVoid(
         DexType oldReturnType, DexItemFactory dexItemFactory, SingleValue singleValue) {
       assert singleValue != null;
-      return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType, singleValue);
+      return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType, null, singleValue);
     }
 
     public RewrittenTypeInfo(DexType oldType, DexType newType) {
-      this(oldType, newType, null);
+      this(oldType, newType, null, null);
     }
 
-    public RewrittenTypeInfo(DexType oldType, DexType newType, SingleValue singleValue) {
+    public RewrittenTypeInfo(
+        DexType oldType, DexType newType, DexType castType, SingleValue singleValue) {
+      this.castType = castType;
       this.oldType = oldType;
       this.newType = newType;
       this.singleValue = singleValue;
@@ -227,6 +234,10 @@ public class RewrittenPrototypeDescription {
 
     public RewrittenTypeInfo combine(RewrittenPrototypeDescription other) {
       return other.hasRewrittenReturnInfo() ? combine(other.getRewrittenReturnInfo()) : this;
+    }
+
+    public DexType getCastType() {
+      return castType;
     }
 
     public DexType getNewType() {
@@ -243,6 +254,10 @@ public class RewrittenPrototypeDescription {
 
     boolean hasBeenChangedToReturnVoid() {
       return newType.isVoidType();
+    }
+
+    public boolean hasCastType() {
+      return castType != null;
     }
 
     public boolean hasSingleValue() {
@@ -271,18 +286,23 @@ public class RewrittenPrototypeDescription {
     public RewrittenTypeInfo combine(RewrittenTypeInfo other) {
       assert !getNewType().isVoidType();
       assert getNewType() == other.getOldType();
-      return new RewrittenTypeInfo(getOldType(), other.getNewType(), other.getSingleValue());
+      return new RewrittenTypeInfo(
+          getOldType(), other.getNewType(), getCastType(), other.getSingleValue());
     }
 
     @Override
     public RewrittenTypeInfo rewrittenWithLens(
         AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+      DexType rewrittenCastType = castType != null ? graphLens.lookupType(castType) : null;
       DexType rewrittenNewType = graphLens.lookupType(newType);
       SingleValue rewrittenSingleValue =
           hasSingleValue() ? getSingleValue().rewrittenWithLens(appView, graphLens) : null;
-      if (rewrittenNewType != newType || rewrittenSingleValue != singleValue) {
+      if (rewrittenCastType != castType
+          || rewrittenNewType != newType
+          || rewrittenSingleValue != singleValue) {
         // The old type is intentionally not rewritten.
-        return new RewrittenTypeInfo(oldType, rewrittenNewType, rewrittenSingleValue);
+        return new RewrittenTypeInfo(
+            oldType, rewrittenNewType, rewrittenCastType, rewrittenSingleValue);
       }
       return this;
     }
@@ -307,6 +327,38 @@ public class RewrittenPrototypeDescription {
       assert oldType.toBaseType(dexItemFactory).isClassType();
       assert newType.toBaseType(dexItemFactory).isIntType();
       return true;
+    }
+
+    public static class Builder {
+
+      private DexType castType;
+      private DexType oldType;
+      private DexType newType;
+      private SingleValue singleValue;
+
+      public Builder setCastType(DexType castType) {
+        this.castType = castType;
+        return this;
+      }
+
+      public Builder setOldType(DexType oldType) {
+        this.oldType = oldType;
+        return this;
+      }
+
+      public Builder setNewType(DexType newType) {
+        this.newType = newType;
+        return this;
+      }
+
+      public Builder setSingleValue(SingleValue singleValue) {
+        this.singleValue = singleValue;
+        return this;
+      }
+
+      public RewrittenTypeInfo build() {
+        return new RewrittenTypeInfo(oldType, newType, castType, singleValue);
+      }
     }
   }
 

@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleConstValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -51,11 +50,10 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
                 // usages of that parameter for class inlining.
                 return;
               }
-              if (argumentInfo.isRewrittenTypeInfo()) {
+              if (argumentInfo.isRewrittenTypeInfo()
+                  && argumentInfo.asRewrittenTypeInfo().getNewType().isIntType()) {
                 // This is due to enum unboxing. After enum unboxing, we no longer need information
                 // about the usages of this parameter for class inlining.
-                RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-                assert rewrittenTypeInfo.verifyIsDueToUnboxing(appView.dexItemFactory());
                 return;
               }
               backing.put(changes.getNewArgumentIndex(argumentIndex), usagePerContext);

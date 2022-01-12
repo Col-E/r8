@@ -105,7 +105,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -255,6 +254,9 @@ public class LensCodeRewriter {
                   graphLens.lookupMethod(invokedMethod, method.getReference(), invoke.getType());
               DexMethod actualTarget = lensLookup.getReference();
               Invoke.Type actualInvokeType = lensLookup.getType();
+
+              iterator =
+                  insertCastsForInvokeArgumentsIfNeeded(code, blocks, iterator, invoke, lensLookup);
 
               RewrittenPrototypeDescription prototypeChanges = lensLookup.getPrototypeChanges();
               if (prototypeChanges.requiresRewritingAtCallSite()
@@ -756,7 +758,7 @@ public class LensCodeRewriter {
 
   private InstructionListIterator insertCastForFieldAssignmentIfNeeded(
       IRCode code,
-      ListIterator<BasicBlock> blocks,
+      BasicBlockIterator blocks,
       InstructionListIterator iterator,
       FieldPut fieldPut,
       FieldLookupResult lookup) {
@@ -770,11 +772,68 @@ public class LensCodeRewriter {
               .setPosition(fieldPut.getPosition())
               .build();
       iterator.add(checkCast);
-      iterator =
-          iterator.splitCopyCatchHandlers(code, blocks, appView.options()).listIterator(code);
       fieldPut.setValue(checkCast.outValue());
+
+      if (checkCast.getBlock().hasCatchHandlers()) {
+        // Split the block and reset the block iterator.
+        BasicBlock splitBlock = iterator.splitCopyCatchHandlers(code, blocks, appView.options());
+        BasicBlock previousBlock = blocks.previousUntil(block -> block == splitBlock);
+        assert previousBlock == splitBlock;
+        blocks.next();
+        iterator = splitBlock.listIterator(code);
+      }
+
       Instruction next = iterator.next();
       assert next == fieldPut;
+    }
+    return iterator;
+  }
+
+  private InstructionListIterator insertCastsForInvokeArgumentsIfNeeded(
+      IRCode code,
+      BasicBlockIterator blocks,
+      InstructionListIterator iterator,
+      InvokeMethod invoke,
+      MethodLookupResult lookup) {
+    RewrittenPrototypeDescription prototypeChanges = lookup.getPrototypeChanges();
+    if (prototypeChanges.isEmpty()) {
+      return iterator;
+    }
+    for (int argumentIndex = 0; argumentIndex < invoke.arguments().size(); argumentIndex++) {
+      RewrittenTypeInfo rewrittenTypeInfo =
+          prototypeChanges
+              .getArgumentInfoCollection()
+              .getArgumentInfo(argumentIndex)
+              .asRewrittenTypeInfo();
+      if (rewrittenTypeInfo != null && rewrittenTypeInfo.hasCastType()) {
+        iterator.previous();
+        Value object = invoke.getArgument(argumentIndex);
+        CheckCast checkCast =
+            SafeCheckCast.builder()
+                .setObject(object)
+                .setFreshOutValue(
+                    code,
+                    rewrittenTypeInfo
+                        .getCastType()
+                        .toTypeElement(appView, object.getType().nullability()))
+                .setCastType(rewrittenTypeInfo.getCastType())
+                .setPosition(invoke.getPosition())
+                .build();
+        iterator.add(checkCast);
+        invoke.replaceValue(argumentIndex, checkCast.outValue());
+
+        if (checkCast.getBlock().hasCatchHandlers()) {
+          // Split the block and reset the block iterator.
+          BasicBlock splitBlock = iterator.splitCopyCatchHandlers(code, blocks, appView.options());
+          BasicBlock previousBlock = blocks.previousUntil(block -> block == splitBlock);
+          assert previousBlock == splitBlock;
+          blocks.next();
+          iterator = splitBlock.listIterator(code);
+        }
+
+        Instruction next = iterator.next();
+        assert next == invoke;
+      }
     }
     return iterator;
   }

@@ -52,12 +52,13 @@ public class NullSimpleInliningConstraint extends SimpleInliningArgumentConstrai
           : NeverSimpleInliningConstraint.getInstance();
     } else if (argumentInfo.isRewrittenTypeInfo()) {
       RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-      // We should only get here as a result of enum unboxing.
-      assert rewrittenTypeInfo.verifyIsDueToUnboxing(appView.dexItemFactory());
-      // Rewrite definitely-null constraints to definitely-zero constraints.
-      return nullability.isDefinitelyNull()
-          ? factory.createEqualToNumberConstraint(getArgumentIndex(), 0)
-          : factory.createNotEqualToNumberConstraint(getArgumentIndex(), 0);
+      if (rewrittenTypeInfo.getNewType().isIntType()) {
+        // Rewrite definitely-null constraints to definitely-zero constraints.
+        return nullability.isDefinitelyNull()
+            ? factory.createEqualToNumberConstraint(getArgumentIndex(), 0)
+            : factory.createNotEqualToNumberConstraint(getArgumentIndex(), 0);
+      }
+      return this;
     }
     return withArgumentIndex(changes.getNewArgumentIndex(getArgumentIndex()), factory);
   }

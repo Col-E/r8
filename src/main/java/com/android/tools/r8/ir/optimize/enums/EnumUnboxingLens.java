@@ -63,11 +63,14 @@ class EnumUnboxingLens extends NestedGraphLens {
           if (unboxedEnums.hasUnboxedValueFor(singleFieldValue.getField())) {
             prototypeChanges =
                 prototypeChanges.withRewrittenReturnInfo(
-                    new RewrittenTypeInfo(
-                        rewrittenTypeInfo.getOldType(),
-                        rewrittenTypeInfo.getNewType(),
-                        abstractValueFactory.createSingleNumberValue(
-                            unboxedEnums.getUnboxedValue(singleFieldValue.getField()))));
+                    RewrittenTypeInfo.builder()
+                        .setCastType(rewrittenTypeInfo.getCastType())
+                        .setOldType(rewrittenTypeInfo.getOldType())
+                        .setNewType(rewrittenTypeInfo.getNewType())
+                        .setSingleValue(
+                            abstractValueFactory.createSingleNumberValue(
+                                unboxedEnums.getUnboxedValue(singleFieldValue.getField())))
+                        .build());
           }
         }
       }
