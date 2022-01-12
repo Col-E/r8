@@ -21,9 +21,8 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
   public ConcreteMonomorphicMethodState(List<ParameterState> parameterStates) {
     assert Streams.stream(Iterables.skip(parameterStates, 1))
         .noneMatch(x -> x.isConcrete() && x.asConcrete().isReceiverParameter());
-    assert Iterables.any(parameterStates, parameterState -> !parameterState.isUnknown())
-        : "Must use UnknownMethodState instead";
     this.parameterStates = parameterStates;
+    assert !isEffectivelyUnknown() : "Must use UnknownMethodState instead";
   }
 
   public ParameterState getParameterState(int index) {
@@ -32,6 +31,10 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
 
   public List<ParameterState> getParameterStates() {
     return parameterStates;
+  }
+
+  public boolean isEffectivelyUnknown() {
+    return Iterables.all(parameterStates, ParameterState::isUnknown);
   }
 
   @Override
@@ -75,10 +78,7 @@ public class ConcreteMonomorphicMethodState extends ConcreteMethodState
           || !parameterStates.get(argumentIndex).asConcrete().isReceiverParameter();
     }
 
-    if (Iterables.all(parameterStates, ParameterState::isUnknown)) {
-      return unknown();
-    }
-    return this;
+    return isEffectivelyUnknown() ? unknown() : this;
   }
 
   @Override
