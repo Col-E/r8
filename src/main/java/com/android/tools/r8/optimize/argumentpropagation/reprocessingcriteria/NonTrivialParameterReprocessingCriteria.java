@@ -6,11 +6,10 @@ package com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteReferenceTypeParameterState;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -31,13 +30,16 @@ public class NonTrivialParameterReprocessingCriteria extends ParameterReprocessi
   @Override
   public boolean shouldReprocess(
       AppView<AppInfoWithLiveness> appView,
-      ConcreteParameterState parameterState,
+      ProgramMethod method,
+      ConcreteCallSiteOptimizationInfo methodState,
+      int parameterIndex,
       DexType parameterType) {
-    if (parameterState.isReferenceParameter()) {
-      return shouldReprocess(appView, parameterState.asReferenceParameter(), parameterType);
+    if (parameterType.isReferenceType()) {
+      return shouldReprocessReferenceParameter(
+          appView, method, methodState, parameterIndex, parameterType);
     } else {
-      assert parameterState.isPrimitiveParameter();
-      return shouldReprocess(appView, parameterState.asPrimitiveParameter(), parameterType);
+      assert parameterType.isPrimitiveType();
+      return shouldReprocessPrimitiveParameter(methodState, parameterIndex);
     }
   }
 
@@ -56,34 +58,35 @@ public class NonTrivialParameterReprocessingCriteria extends ParameterReprocessi
     return true;
   }
 
-  private boolean shouldReprocess(
-      AppView<AppInfoWithLiveness> appView,
-      ConcretePrimitiveTypeParameterState parameterState,
-      DexType parameterType) {
-    return true;
+  private boolean shouldReprocessPrimitiveParameter(
+      ConcreteCallSiteOptimizationInfo methodState, int parameterIndex) {
+    return methodState.getAbstractArgumentValue(parameterIndex).isNonTrivial();
   }
 
-  private boolean shouldReprocess(
+  private boolean shouldReprocessReferenceParameter(
       AppView<AppInfoWithLiveness> appView,
-      ConcreteReferenceTypeParameterState parameterState,
+      ProgramMethod method,
+      ConcreteCallSiteOptimizationInfo methodState,
+      int parameterIndex,
       DexType parameterType) {
     if (shouldReprocessDueToAbstractValue()
-        && !parameterState.getAbstractValue(appView).isUnknown()) {
+        && !methodState.getAbstractArgumentValue(parameterIndex).isUnknown()) {
       return true;
     }
     if (shouldReprocessDueToDynamicType()) {
       DynamicType widenedDynamicType =
           WideningUtils.widenDynamicNonReceiverType(
               appView,
-              parameterState.getDynamicType().withNullability(Nullability.maybeNull()),
+              methodState.getDynamicType(parameterIndex).withNullability(Nullability.maybeNull()),
               parameterType);
       if (!widenedDynamicType.isUnknown()) {
         return true;
       }
     }
+    boolean isReceiverParameter = parameterIndex == 0 && method.getDefinition().isInstance();
     if (shouldReprocessDueToNullability()
-        && !parameterState.isReceiverParameter()
-        && !parameterState.getNullability().isUnknown()) {
+        && !isReceiverParameter
+        && !methodState.getNullability(parameterIndex).isUnknown()) {
       return true;
     }
     return false;

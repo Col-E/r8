@@ -7,13 +7,9 @@ package com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodStateOrUnknown;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.UnknownParameterState;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 
@@ -43,35 +39,29 @@ public class MethodReprocessingCriteria {
         parameterIndex, ParameterReprocessingCriteria.alwaysReprocess());
   }
 
-  public ConcreteMonomorphicMethodStateOrUnknown widenMethodState(
+  public boolean shouldReprocess(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod method,
-      ConcreteMonomorphicMethodState methodState) {
-    for (int parameterIndex = 0; parameterIndex < methodState.size(); parameterIndex++) {
-      ParameterState parameterState = methodState.getParameterState(parameterIndex);
-      assert !parameterState.isBottom();
-      if (parameterState.isUnknown()) {
-        continue;
+      CallSiteOptimizationInfo methodState) {
+    if (!methodState.isConcreteCallSiteOptimizationInfo()) {
+      return false;
+    }
+    ConcreteCallSiteOptimizationInfo concreteMethodState =
+        methodState.asConcreteCallSiteOptimizationInfo();
+    for (int parameterIndex = 0;
+        parameterIndex < method.getDefinition().getNumberOfArguments();
+        parameterIndex++) {
+      if (methodState.getAbstractArgumentValue(parameterIndex).isSingleValue()) {
+        return true;
       }
-
-      if (parameterState.getAbstractValue(appView).isSingleValue()) {
-        // Don't widen when we have information that can be used for parameter removal.
-        continue;
-      }
-
       ParameterReprocessingCriteria parameterReprocessingCriteria =
           getParameterReprocessingCriteria(parameterIndex);
       DexType parameterType = method.getArgumentType(parameterIndex);
       if (parameterReprocessingCriteria.shouldReprocess(
-          appView, parameterState.asConcrete(), parameterType)) {
-        continue;
+          appView, method, concreteMethodState, parameterIndex, parameterType)) {
+        return true;
       }
-
-      methodState.setParameterState(parameterIndex, UnknownParameterState.get());
     }
-
-    return Iterables.all(methodState.getParameterStates(), ParameterState::isUnknown)
-        ? MethodState.unknown()
-        : methodState;
+    return false;
   }
 }

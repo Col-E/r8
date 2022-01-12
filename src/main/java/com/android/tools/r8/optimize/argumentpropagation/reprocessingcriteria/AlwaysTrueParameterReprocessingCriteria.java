@@ -6,7 +6,8 @@ package com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /**
@@ -32,7 +33,9 @@ public class AlwaysTrueParameterReprocessingCriteria extends ParameterReprocessi
   @Override
   public boolean shouldReprocess(
       AppView<AppInfoWithLiveness> appView,
-      ConcreteParameterState parameterState,
+      ProgramMethod method,
+      ConcreteCallSiteOptimizationInfo methodState,
+      int parameterIndex,
       DexType parameterType) {
     return true;
   }

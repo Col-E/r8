@@ -107,7 +107,7 @@ public class ArgumentPropagator {
       reprocessingCriteriaCollection.analyzeArgumentUses(method, code);
     } else {
       assert !methodProcessor.isPrimaryMethodProcessor();
-      assert reprocessingCriteriaCollection == null;
+      assert !methodProcessor.isPostMethodProcessor() || reprocessingCriteriaCollection == null;
     }
   }
 
@@ -170,9 +170,10 @@ public class ArgumentPropagator {
             .run(stronglyConnectedProgramComponents, affectedClasses::add, executorService, timing);
 
     // Find all the code objects that need reprocessing.
-    new ArgumentPropagatorMethodReprocessingEnqueuer(appView)
+    new ArgumentPropagatorMethodReprocessingEnqueuer(appView, reprocessingCriteriaCollection)
         .enqueueMethodForReprocessing(
             graphLens, postMethodProcessorBuilder, executorService, timing);
+    reprocessingCriteriaCollection = null;
 
     // Finally, apply the graph lens to the program (i.e., remove constant parameters from method
     // definitions).
@@ -209,7 +210,6 @@ public class ArgumentPropagator {
             stronglyConnectedProgramComponents,
             interfaceDispatchOutsideProgram)
         .populateOptimizationInfo(converter, executorService, timing);
-    reprocessingCriteriaCollection = null;
     timing.end();
   }
 

@@ -22,7 +22,6 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteArr
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteClassTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMethodState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodStateOrUnknown;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcretePrimitiveTypeParameterState;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
@@ -32,7 +31,6 @@ import com.android.tools.r8.optimize.argumentpropagation.propagation.InParameter
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.ArgumentPropagatorReprocessingCriteriaCollection;
-import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.MethodReprocessingCriteria;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
@@ -218,28 +216,18 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
               return true;
             });
 
-    // If we have any reprocessing criteria for the given method, check that they are satisfied
-    // before reenqueing.
-    MethodReprocessingCriteria reprocessingCriteria =
-        reprocessingCriteriaCollection.getReprocessingCriteria(method);
-    ConcreteMonomorphicMethodStateOrUnknown widenedMethodState =
-        reprocessingCriteria.widenMethodState(appView, method, monomorphicMethodState);
-    if (widenedMethodState.isUnknown()) {
-      return;
-    }
-
-    ConcreteMonomorphicMethodState finalMethodState = widenedMethodState.asMonomorphic();
     getSimpleFeedback()
         .setArgumentInfos(
             method,
-            ConcreteCallSiteOptimizationInfo.fromMethodState(appView, method, finalMethodState));
+            ConcreteCallSiteOptimizationInfo.fromMethodState(
+                appView, method, monomorphicMethodState));
 
     // Strengthen the return value of the method if the method is known to return one of the
     // arguments.
     MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
     if (optimizationInfo.returnsArgument()) {
       ParameterState returnedArgumentState =
-          finalMethodState.getParameterState(optimizationInfo.getReturnedArgument());
+          monomorphicMethodState.getParameterState(optimizationInfo.getReturnedArgument());
       OptimizationFeedback.getSimple()
           .methodReturnsAbstractValue(
               method.getDefinition(), appView, returnedArgumentState.getAbstractValue(appView));

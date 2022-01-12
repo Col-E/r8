@@ -502,12 +502,6 @@ public class ArgumentPropagatorCodeScanner {
     // then use UnknownParameterState.
     if (parameterTypeElement.isClassType()) {
       DynamicType dynamicType = argument.getDynamicType(appView);
-      if (!parameterReprocessingCriteria.shouldReprocessDueToDynamicType()) {
-        dynamicType =
-            parameterReprocessingCriteria.widenDynamicClassType(
-                appView, dynamicType, parameterTypeElement.asClassType());
-      }
-
       DynamicType widenedDynamicType =
           WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, parameterType);
       return abstractValue.isUnknown() && widenedDynamicType.isUnknown()

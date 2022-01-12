@@ -119,6 +119,10 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     return constants.getOrDefault(argIndex, UnknownValue.getInstance());
   }
 
+  public Nullability getNullability(int argIndex) {
+    return getDynamicType(argIndex).getNullability();
+  }
+
   public static CallSiteOptimizationInfo fromMethodState(
       AppView<AppInfoWithLiveness> appView,
       ProgramMethod method,

@@ -57,7 +57,7 @@ public class InvokeDirectPositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    assert callSiteOptimizationInfo.getDynamicType(1).isNotNullType();
+    assertTrue(callSiteOptimizationInfo.getDynamicType(1).getNullability().isDefinitelyNotNull());
   }
 
   private void inspect(CodeInspector inspector) {

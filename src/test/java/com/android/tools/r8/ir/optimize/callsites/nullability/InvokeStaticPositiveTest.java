@@ -55,7 +55,7 @@ public class InvokeStaticPositiveTest extends TestBase {
         : "Unexpected revisit: " + method.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo =
         method.getOptimizationInfo().getArgumentInfos();
-    assert callSiteOptimizationInfo.getDynamicType(0).isNotNullType();
+    assertTrue(callSiteOptimizationInfo.getDynamicType(0).getNullability().isDefinitelyNotNull());
   }
 
   private void inspect(CodeInspector inspector) {
