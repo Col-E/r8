@@ -795,6 +795,9 @@ public class OutlinerImpl extends Outliner {
       while (index < currentCandidateInstructions.size()) {
         processInstruction(currentCandidateInstructions.get(index));
       }
+      if (actualInstructions > 0) {
+        candidate(start, index);
+      }
     }
 
     // Get int in-values for an instruction. For commutative binary operations using the current
@@ -1448,12 +1451,17 @@ public class OutlinerImpl extends Outliner {
         boolean sawLinearFlowWithCatchHandlers = false;
         while (instructionIterator.hasNext()) {
           Instruction instruction = instructionIterator.next();
-          // Disregard linear flow when there are catch handlers
-          if (instruction.getBlock() != block
-              && (block.hasCatchHandlers() || instruction.getBlock().hasCatchHandlers())) {
-            lastSeenBlock = instruction.getBlock();
-            sawLinearFlowWithCatchHandlers = true;
-            break;
+          if (instruction.getBlock() != block) {
+            // Disregard linear flow when there are catch handlers
+            if (block.hasCatchHandlers() || instruction.getBlock().hasCatchHandlers()) {
+              lastSeenBlock = instruction.getBlock();
+              sawLinearFlowWithCatchHandlers = true;
+              break;
+            }
+            // Disregard revisiting already processed blocks.
+            if (seenBlocks.contains(instruction.getBlock())) {
+              break;
+            }
           }
           builder.add(instruction);
           counter++;
@@ -1464,6 +1472,7 @@ public class OutlinerImpl extends Outliner {
           }
           lastSeenBlock = instruction.getBlock();
         }
+        // Add all seen blocks including trivial goto blocks skipped by the linear iterator.
         seenBlocks.addAll(instructionIterator.getSeenBlocks());
         if (sawLinearFlowWithCatchHandlers) {
           assert lastSeenBlock != block;
