@@ -232,7 +232,7 @@ public class CheckCast extends Instruction {
       assert outType.equalUpToNullability(castType);
 
       // Check soundness of null information.
-      assert inType.nullability().lessThanOrEqual(outType.nullability());
+      assert inType.nullability() == outType.nullability();
 
       // Since we cannot remove the cast the in-value must be different from null.
       assert !inType.isNullType();

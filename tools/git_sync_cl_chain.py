@@ -44,6 +44,9 @@ def ParseOptions(argv):
                     help='Delete closed branches',
                     choices=['y', 'n', 'ask'],
                     default='ask')
+  result.add_option('--from_branch', '-f',
+                    help='Uppermost upstream to sync from',
+                    default='main')
   result.add_option('--leave_upstream', '--leave-upstream',
                     help='To not update the upstream of the first open branch',
                     action='store_true')
@@ -81,14 +84,14 @@ def main(argv):
         break
     assert current_branch is not None
 
-    if current_branch.upstream == None:
+    if is_root_branch(current_branch, options):
       print('Nothing to sync')
       return
 
     stack = []
     while current_branch:
       stack.append(current_branch)
-      if current_branch.upstream is None:
+      if is_root_branch(current_branch, options):
         break
       current_branch = get_branch_with_name(current_branch.upstream, branches)
 
@@ -168,6 +171,9 @@ def get_delete_branches_option(closed_branches, options):
 
 def get_status_for_current_branch():
   return utils.RunCmd(['git', 'cl', 'status', '--field', 'status'], quiet=True)[0].strip()
+
+def is_root_branch(branch, options):
+  return branch == options.from_branch or branch.upstream is None
 
 def pull_for_current_branch(branch, options):
   if branch.name == 'main' and options.skip_main:

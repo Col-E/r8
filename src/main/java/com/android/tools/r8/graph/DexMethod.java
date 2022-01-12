@@ -145,7 +145,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   @Override
   public String toString() {
-    return "Method " + holder + "." + name + " " + proto.toString();
+    return toSourceString();
   }
 
   public MethodReference asMethodReference() {

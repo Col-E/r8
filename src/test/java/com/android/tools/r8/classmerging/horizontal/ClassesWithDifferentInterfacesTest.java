@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
@@ -26,6 +27,7 @@ public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTe
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
@@ -78,7 +80,7 @@ public class ClassesWithDifferentInterfacesTest extends HorizontalClassMergingTe
 
   public static class Main {
     @NeverInline
-    public static void foo(I i) {
+    public static void foo(@NoParameterTypeStrengthening I i) {
       i.foo();
     }
 

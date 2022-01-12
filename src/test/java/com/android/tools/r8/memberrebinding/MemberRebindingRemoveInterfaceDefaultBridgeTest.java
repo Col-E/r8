@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -49,6 +50,7 @@ public class MemberRebindingRemoveInterfaceDefaultBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(I.class)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
+        .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .run(parameters.getRuntime(), newMainTypeName)
         .assertSuccessWithOutputLines("I::foo")
@@ -85,6 +87,7 @@ public class MemberRebindingRemoveInterfaceDefaultBridgeTest extends TestBase {
     }
 
     @NeverInline
+    @NoParameterTypeStrengthening
     private static void callJ(J j) {
       j.foo();
     }

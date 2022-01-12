@@ -46,6 +46,10 @@ public abstract class DexClassAndMethodSetBase<T extends DexClassAndMethod> impl
     return backing.get(method);
   }
 
+  public T getFirst() {
+    return iterator().next();
+  }
+
   public boolean contains(DexMethod method) {
     return backing.containsKey(method);
   }

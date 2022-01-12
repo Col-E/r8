@@ -35,12 +35,16 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   }
 
   public boolean hasPrototypeChanges(DexMethod method) {
-    return method != internalGetPreviousMethodSignature(method);
+    return prototypeChanges.containsKey(method);
   }
 
   public RewrittenPrototypeDescription getPrototypeChanges(DexMethod method) {
     assert hasPrototypeChanges(method);
     return prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none());
+  }
+
+  public boolean isAffected(DexMethod method) {
+    return method != internalGetPreviousMethodSignature(method) || hasPrototypeChanges(method);
   }
 
   @Override
@@ -61,8 +65,7 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
     DexMethod previous = internalGetPreviousMethodSignature(method);
-    if (previous == method) {
-      assert !this.prototypeChanges.containsKey(method);
+    if (!hasPrototypeChanges(method)) {
       return prototypeChanges;
     }
     RewrittenPrototypeDescription newPrototypeChanges =

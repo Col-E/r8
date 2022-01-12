@@ -1588,7 +1588,12 @@ public class CodeRewriter {
 
     // If the cast is guaranteed to succeed and only there to ensure the program type checks, then
     // check if the program would still type check after removing the cast.
-    if (checkCast.isSafeCheckCast()) {
+    if (checkCast.isSafeCheckCast()
+        || checkCast
+            .getFirstOperand()
+            .getDynamicType(appViewWithLiveness)
+            .getDynamicUpperBoundType()
+            .lessThanOrEqualUpToNullability(castTypeLattice, appView)) {
       TypeElement useType =
           TypeUtils.computeUseType(appViewWithLiveness, context, checkCast.outValue());
       if (inTypeLattice.lessThanOrEqualUpToNullability(useType, appView)) {

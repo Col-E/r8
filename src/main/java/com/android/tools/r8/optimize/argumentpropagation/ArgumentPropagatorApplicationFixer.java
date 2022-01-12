@@ -93,9 +93,11 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
           return method.toTypeSubstitutedMethod(
               methodReferenceAfterParameterRemoval,
               builder -> {
-                RewrittenPrototypeDescription prototypeChanges =
-                    graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
-                builder.apply(prototypeChanges.createParameterAnnotationsRemover(method));
+                if (graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
+                  RewrittenPrototypeDescription prototypeChanges =
+                      graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
+                  builder.apply(prototypeChanges.createParameterAnnotationsRemover(method));
+                }
               });
         });
   }

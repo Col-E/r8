@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -43,6 +44,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeVirtualPositiveTest.class)
         .addKeepMainRule(MAIN)
+        .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
@@ -110,6 +112,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
   @NoVerticalClassMerging
   @NeverClassInline
   static class A {
+    @NoParameterTypeStrengthening
     @NeverInline
     void m(Base arg) {
       if (arg instanceof Sub1) {

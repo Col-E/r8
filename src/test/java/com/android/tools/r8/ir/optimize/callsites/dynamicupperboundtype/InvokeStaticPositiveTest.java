@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -42,6 +43,7 @@ public class InvokeStaticPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeStaticPositiveTest.class)
         .addKeepMainRule(MAIN)
+        .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(
@@ -95,6 +97,7 @@ public class InvokeStaticPositiveTest extends TestBase {
       test(new Sub1()); // calls test with Sub1.
     }
 
+    @NoParameterTypeStrengthening
     @NeverInline
     static void test(Base arg) {
       if (arg instanceof Sub1) {

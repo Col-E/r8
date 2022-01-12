@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -141,7 +142,11 @@ public class ParameterTypeTest extends TestBase {
             .inspector();
 
     ClassSubject superInterface1 = inspector.clazz(B112452064SuperInterface1.class);
-    assertThat(superInterface1, isPresentAndRenamed());
+    if (enableUnusedInterfaceRemoval && enableVerticalClassMerging) {
+      assertThat(superInterface1, isAbsent());
+    } else {
+      assertThat(superInterface1, isPresentAndRenamed());
+    }
     MethodSubject foo = superInterface1.uniqueMethodWithName("foo");
     assertThat(foo, not(isPresent()));
     ClassSubject superInterface2 = inspector.clazz(B112452064SuperInterface2.class);

@@ -7,12 +7,13 @@ package com.android.tools.r8.classmerging.horizontal.testclasses;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 
 public class InterfacesVisibilityTestClasses {
   public static class Invoker {
     @NeverInline
-    public static void invokeFoo(PackagePrivateInterface i) {
+    public static void invokeFoo(@NoParameterTypeStrengthening PackagePrivateInterface i) {
       i.foo();
     }
   }

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
@@ -315,22 +316,32 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         continue;
       }
       DynamicType dynamicType = parameterState.asClassParameter().getDynamicType();
-      if (dynamicType.isUnknown()) {
-        continue;
-      }
       DexType staticType = method.getArgumentType(argumentIndex);
-      if (!WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, staticType)
-          .isUnknown()) {
-        continue;
+      if (shouldWidenDynamicTypeToUnknown(dynamicType, staticType)) {
+        methodState.setParameterState(
+            argumentIndex,
+            parameterState.mutableJoin(
+                appView,
+                new ConcreteClassTypeParameterState(AbstractValue.bottom(), DynamicType.unknown()),
+                staticType,
+                StateCloner.getIdentity()));
       }
-      methodState.setParameterState(
-          argumentIndex,
-          parameterState.mutableJoin(
-              appView,
-              new ConcreteClassTypeParameterState(AbstractValue.bottom(), DynamicType.unknown()),
-              staticType,
-              StateCloner.getIdentity()));
     }
     return !methodState.isEffectivelyUnknown();
+  }
+
+  private boolean shouldWidenDynamicTypeToUnknown(DynamicType dynamicType, DexType staticType) {
+    if (dynamicType.isUnknown()) {
+      return false;
+    }
+    if (WideningUtils.widenDynamicNonReceiverType(appView, dynamicType, staticType).isUnknown()) {
+      return true;
+    }
+    TypeElement staticTypeElement = staticType.toTypeElement(appView);
+    TypeElement dynamicUpperBoundType = dynamicType.getDynamicUpperBoundType(staticTypeElement);
+    if (!dynamicUpperBoundType.lessThanOrEqual(staticTypeElement, appView)) {
+      return true;
+    }
+    return false;
   }
 }

@@ -7,6 +7,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.InterfaceCollection.Builder;
 import com.android.tools.r8.utils.BooleanBox;
@@ -152,6 +153,16 @@ public class ClassTypeElement extends ReferenceTypeElement {
   @Override
   public ClassTypeElement meetNullability(Nullability nullability) {
     return getOrCreateVariant(nullability().meet(nullability));
+  }
+
+  public DexType toDexType(DexItemFactory dexItemFactory) {
+    if (type == dexItemFactory.objectType) {
+      DexType singleKnownInterface = getInterfaces().getSingleKnownInterface();
+      if (singleKnownInterface != null) {
+        return singleKnownInterface;
+      }
+    }
+    return type;
   }
 
   @Override
