@@ -56,14 +56,16 @@ public class Tracer {
   private final DiagnosticsHandler diagnostics;
   private final Predicate<DexType> targetPredicate;
 
-  Tracer(Set<String> targetDescriptors, AndroidApp inputApp, DiagnosticsHandler diagnostics)
+  Tracer(
+      Set<String> targetDescriptors,
+      AndroidApp inputApp,
+      DiagnosticsHandler diagnostics,
+      InternalOptions options)
       throws IOException {
     this(
         AppView.createForTracer(
             AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
-                new ApplicationReader(inputApp, new InternalOptions(), Timing.empty())
-                    .read()
-                    .toDirect(),
+                new ApplicationReader(inputApp, options, Timing.empty()).read().toDirect(),
                 ClassToFeatureSplitMap.createEmptyClassToFeatureSplitMap(),
                 MainDexInfo.none())),
         diagnostics,

@@ -131,6 +131,7 @@ public abstract class DexApplication implements DexDefinitionSupplier {
     return flags;
   }
 
+  @Override
   public abstract DexClass definitionFor(DexType type);
 
   public abstract DexProgramClass programDefinitionFor(DexType type);

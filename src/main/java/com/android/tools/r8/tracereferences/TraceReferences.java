@@ -67,7 +67,9 @@ public class TraceReferences {
     for (ProgramResourceProvider provider : command.getSource()) {
       forEachDescriptor(provider, targetDescriptors::remove);
     }
-    Tracer tracer = new Tracer(targetDescriptors, builder.build(), command.getReporter());
+    InternalOptions options = new InternalOptions();
+    options.lookupLibraryBeforeProgram = true;
+    Tracer tracer = new Tracer(targetDescriptors, builder.build(), command.getReporter(), options);
     tracer.run(command.getConsumer());
   }
 
