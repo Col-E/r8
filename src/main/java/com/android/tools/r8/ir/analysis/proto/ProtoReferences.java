@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Value;
+import java.util.function.Consumer;
 
 public class ProtoReferences {
 
@@ -129,6 +130,17 @@ public class ProtoReferences {
     methodToInvokeMembers = new MethodToInvokeMembers(factory);
   }
 
+  public void forEachMethodReference(Consumer<DexMethod> consumer) {
+    generatedExtensionMethods.forEachMethodReference(consumer);
+    generatedMessageLiteMethods.forEachMethodReference(consumer);
+    generatedMessageLiteBuilderMethods.forEachMethodReference(consumer);
+    generatedMessageLiteExtendableBuilderMethods.forEachMethodReference(consumer);
+    methodToInvokeMembers.forEachMethodReference(consumer);
+    consumer.accept(dynamicMethod);
+    consumer.accept(newMessageInfoMethod);
+    consumer.accept(rawMessageInfoConstructor);
+  }
+
   public DexField getDefaultInstanceField(DexProgramClass holder) {
     return dexItemFactory.createField(holder.type, holder.type, defaultInstanceFieldName);
   }
@@ -220,6 +232,11 @@ public class ProtoReferences {
               dexItemFactory.constructorMethodName);
     }
 
+    public void forEachMethodReference(Consumer<DexMethod> consumer) {
+      consumer.accept(constructor);
+      consumer.accept(constructorWithClass);
+    }
+
     public boolean isConstructor(DexMethod method) {
       return method == constructor || method == constructorWithClass;
     }
@@ -230,7 +247,6 @@ public class ProtoReferences {
     public final DexMethod createBuilderMethod;
     public final DexMethod dynamicMethodBridgeMethod;
     public final DexMethod dynamicMethodBridgeMethodWithObject;
-    public final DexMethod isInitializedMethod;
     public final DexMethod newRepeatedGeneratedExtension;
     public final DexMethod newSingularGeneratedExtension;
 
@@ -251,11 +267,6 @@ public class ProtoReferences {
               dexItemFactory.createProto(
                   dexItemFactory.objectType, methodToInvokeType, dexItemFactory.objectType),
               "dynamicMethod");
-      isInitializedMethod =
-          dexItemFactory.createMethod(
-              generatedMessageLiteType,
-              dexItemFactory.createProto(dexItemFactory.booleanType),
-              "isInitialized");
       newRepeatedGeneratedExtension =
           dexItemFactory.createMethod(
               generatedMessageLiteType,
@@ -283,24 +294,30 @@ public class ProtoReferences {
                   dexItemFactory.classType),
               "newSingularGeneratedExtension");
     }
+
+    public void forEachMethodReference(Consumer<DexMethod> consumer) {
+      consumer.accept(createBuilderMethod);
+      consumer.accept(dynamicMethodBridgeMethod);
+      consumer.accept(dynamicMethodBridgeMethodWithObject);
+      consumer.accept(newRepeatedGeneratedExtension);
+      consumer.accept(newSingularGeneratedExtension);
+    }
   }
 
   public class GeneratedMessageLiteBuilderMethods {
 
-    public final DexMethod buildPartialMethod;
     public final DexMethod constructorMethod;
 
     private GeneratedMessageLiteBuilderMethods(DexItemFactory dexItemFactory) {
-      buildPartialMethod =
-          dexItemFactory.createMethod(
-              generatedMessageLiteBuilderType,
-              dexItemFactory.createProto(generatedMessageLiteType),
-              "buildPartial");
       constructorMethod =
           dexItemFactory.createMethod(
               generatedMessageLiteBuilderType,
               dexItemFactory.createProto(dexItemFactory.voidType, generatedMessageLiteType),
               dexItemFactory.constructorMethodName);
+    }
+
+    public void forEachMethodReference(Consumer<DexMethod> consumer) {
+      consumer.accept(constructorMethod);
     }
   }
 
@@ -321,6 +338,11 @@ public class ProtoReferences {
               dexItemFactory.createProto(
                   dexItemFactory.voidType, generatedMessageLiteExtendableMessageType),
               dexItemFactory.constructorMethodName);
+    }
+
+    public void forEachMethodReference(Consumer<DexMethod> consumer) {
+      consumer.accept(buildPartialMethod);
+      consumer.accept(constructorMethod);
     }
   }
 
@@ -353,6 +375,10 @@ public class ProtoReferences {
       setMemoizedIsInitializedField =
           dexItemFactory.createField(
               methodToInvokeType, methodToInvokeType, "SET_MEMOIZED_IS_INITIALIZED");
+    }
+
+    public void forEachMethodReference(Consumer<DexMethod> consumer) {
+      // Intentionally empty.
     }
 
     public boolean isNewMutableInstanceEnum(DexField field) {

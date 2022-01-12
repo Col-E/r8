@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.utils.IteratorUtils;
 import java.util.ListIterator;
+import java.util.function.Predicate;
 
 public class BasicBlockIterator implements ListIterator<BasicBlock> {
 
@@ -61,6 +62,10 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
   @Override
   public int previousIndex() {
     return listIterator.previousIndex();
+  }
+
+  public BasicBlock previousUntil(Predicate<BasicBlock> predicate) {
+    return IteratorUtils.previousUntil(this, predicate);
   }
 
   @Override

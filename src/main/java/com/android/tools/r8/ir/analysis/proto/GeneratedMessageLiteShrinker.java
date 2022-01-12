@@ -4,38 +4,49 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
-import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCodeUtils;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DependentMinimumKeepInfoCollection;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.Sets;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -60,8 +71,8 @@ public class GeneratedMessageLiteShrinker {
     // Types.
     this.objectArrayType =
         TypeElement.fromDexType(
-            appView.dexItemFactory().objectArrayType, Nullability.definitelyNotNull(), appView);
-    this.stringType = TypeElement.stringClassType(appView, Nullability.definitelyNotNull());
+            appView.dexItemFactory().objectArrayType, definitelyNotNull(), appView);
+    this.stringType = TypeElement.stringClassType(appView, definitelyNotNull());
   }
 
   public void extendRootSet(DependentMinimumKeepInfoCollection dependentMinimumKeepInfo) {
@@ -81,25 +92,17 @@ public class GeneratedMessageLiteShrinker {
             .disallowOptimization();
       }
 
-      ProgramMethod newRepeatedGeneratedExtensionMethod =
-          generatedMessageLiteClass.lookupProgramMethod(
-              references.generatedMessageLiteMethods.newRepeatedGeneratedExtension);
-      if (newRepeatedGeneratedExtensionMethod != null) {
-        dependentMinimumKeepInfo
-            .getOrCreateUnconditionalMinimumKeepInfoFor(
-                newRepeatedGeneratedExtensionMethod.getReference())
-            .disallowOptimization();
-      }
-
-      ProgramMethod newSingularGeneratedExtensionMethod =
-          generatedMessageLiteClass.lookupProgramMethod(
-              references.generatedMessageLiteMethods.newSingularGeneratedExtension);
-      if (newSingularGeneratedExtensionMethod != null) {
-        dependentMinimumKeepInfo
-            .getOrCreateUnconditionalMinimumKeepInfoFor(
-                newSingularGeneratedExtensionMethod.getReference())
-            .disallowOptimization();
-      }
+      references.forEachMethodReference(
+          reference -> {
+            DexProgramClass holder =
+                asProgramClassOrNull(appView.definitionFor(reference.getHolderType()));
+            ProgramMethod method = reference.lookupOnProgramClass(holder);
+            if (method != null) {
+              dependentMinimumKeepInfo
+                  .getOrCreateUnconditionalMinimumKeepInfoFor(method.getReference())
+                  .disallowOptimization();
+            }
+          });
     }
   }
 
@@ -107,7 +110,96 @@ public class GeneratedMessageLiteShrinker {
     ProgramMethod method = code.context();
     if (references.isDynamicMethod(method.getReference())) {
       rewriteDynamicMethod(method, code);
+    } else if (appView.hasLiveness()) {
+      optimizeNewMutableInstance(appView.withLiveness(), code);
     }
+  }
+
+  private void optimizeNewMutableInstance(AppView<AppInfoWithLiveness> appView, IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    BasicBlockIterator blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      InstructionListIterator instructionIterator = block.listIterator(code);
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        DexType newMutableInstanceType = getNewMutableInstanceType(appView, instruction);
+        if (newMutableInstanceType == null) {
+          continue;
+        }
+
+        DexMethod instanceInitializerReference =
+            appView.dexItemFactory().createInstanceInitializer(newMutableInstanceType);
+        ProgramMethod instanceInitializer =
+            asProgramMethodOrNull(appView.definitionFor(instanceInitializerReference));
+        if (instanceInitializer == null
+            || AccessControl.isMemberAccessible(
+                    instanceInitializer, instanceInitializer.getHolder(), code.context(), appView)
+                .isPossiblyFalse()) {
+          continue;
+        }
+
+        NewInstance newInstance =
+            NewInstance.builder()
+                .setType(newMutableInstanceType)
+                .setFreshOutValue(
+                    code, newMutableInstanceType.toTypeElement(appView, definitelyNotNull()))
+                .setPosition(instruction)
+                .build();
+        instructionIterator.replaceCurrentInstruction(newInstance, affectedValues);
+
+        InvokeDirect constructorInvoke =
+            InvokeDirect.builder()
+                .setMethod(instanceInitializerReference)
+                .setSingleArgument(newInstance.outValue())
+                .setPosition(instruction)
+                .build();
+
+        if (block.hasCatchHandlers()) {
+          // Split the block after the new-instance instruction and insert the constructor call in
+          // the split block.
+          BasicBlock splitBlock =
+              instructionIterator.splitCopyCatchHandlers(code, blockIterator, appView.options());
+          instructionIterator = splitBlock.listIterator(code);
+          instructionIterator.add(constructorInvoke);
+          BasicBlock previousBlock =
+              blockIterator.previousUntil(previous -> previous == splitBlock);
+          assert previousBlock != null;
+          blockIterator.next();
+        } else {
+          instructionIterator.add(constructorInvoke);
+        }
+      }
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
+  }
+
+  private DexType getNewMutableInstanceType(
+      AppView<AppInfoWithLiveness> appView, Instruction instruction) {
+    if (!instruction.isInvokeMethodWithReceiver()) {
+      return null;
+    }
+    InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (!references.isDynamicMethod(invokedMethod)
+        && !references.isDynamicMethodBridge(invokedMethod)) {
+      return null;
+    }
+    assert invokedMethod.getParameter(0) == references.methodToInvokeType;
+    if (!references.methodToInvokeMembers.isNewMutableInstanceEnum(
+        invoke.getFirstNonReceiverArgument())) {
+      return null;
+    }
+    TypeElement receiverType = invoke.getReceiver().getDynamicUpperBoundType(appView);
+    if (!receiverType.isClassType()) {
+      return null;
+    }
+    DexType rawReceiverType = receiverType.asClassType().getClassType();
+    return appView.appInfo().isStrictSubtypeOf(rawReceiverType, references.generatedMessageLiteType)
+        ? rawReceiverType
+        : null;
   }
 
   public void postOptimizeDynamicMethods(

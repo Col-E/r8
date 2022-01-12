@@ -38,6 +38,10 @@ public class NewInstance extends Instruction {
     this.clazz = clazz;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public DexType getType() {
     return clazz;
   }
@@ -227,5 +231,25 @@ public class NewInstance extends Instruction {
     assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;
     assert type.isDefinitelyNotNull();
     return true;
+  }
+
+  public static class Builder extends BuilderBase<Builder, NewInstance> {
+
+    private DexType type;
+
+    public Builder setType(DexType type) {
+      this.type = type;
+      return this;
+    }
+
+    @Override
+    public NewInstance build() {
+      return amend(new NewInstance(type, outValue));
+    }
+
+    @Override
+    public Builder self() {
+      return this;
+    }
   }
 }

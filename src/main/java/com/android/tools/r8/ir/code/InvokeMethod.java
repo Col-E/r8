@@ -71,6 +71,10 @@ public abstract class InvokeMethod extends Invoke {
     }
   }
 
+  public Value getFirstNonReceiverArgument() {
+    return getArgument(getFirstNonReceiverArgumentIndex());
+  }
+
   public int getFirstNonReceiverArgumentIndex() {
     return BooleanUtils.intValue(isInvokeMethodWithReceiver());
   }
