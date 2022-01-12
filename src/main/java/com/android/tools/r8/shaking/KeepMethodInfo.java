@@ -24,8 +24,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return bottom().joiner();
   }
 
+  private final boolean allowParameterTypeStrengthening;
+
   private KeepMethodInfo(Builder builder) {
     super(builder);
+    this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
   }
 
   // This builder is not private as there are known instances where it is safe to modify keep info
@@ -37,6 +40,16 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   public boolean isArgumentPropagationAllowed(GlobalKeepInfoConfiguration configuration) {
     return isParameterRemovalAllowed(configuration);
+  }
+
+  public boolean isParameterTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && internalIsParameterTypeStrengtheningAllowed();
+  }
+
+  boolean internalIsParameterTypeStrengtheningAllowed() {
+    return allowParameterTypeStrengthening;
   }
 
   public Joiner joiner() {
@@ -60,12 +73,32 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
 
+    private boolean allowParameterTypeStrengthening;
+
     private Builder() {
       super();
     }
 
     private Builder(KeepMethodInfo original) {
       super(original);
+      allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
+    }
+
+    public boolean isParameterTypeStrengtheningAllowed() {
+      return allowParameterTypeStrengthening;
+    }
+
+    public Builder setAllowParameterTypeStrengthening(boolean allowParameterTypeStrengthening) {
+      this.allowParameterTypeStrengthening = allowParameterTypeStrengthening;
+      return self();
+    }
+
+    public Builder allowParameterTypeStrengthening() {
+      return setAllowParameterTypeStrengthening(true);
+    }
+
+    public Builder disallowParameterTypeStrengthening() {
+      return setAllowParameterTypeStrengthening(false);
     }
 
     @Override
@@ -89,8 +122,25 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     }
 
     @Override
+    boolean internalIsEqualTo(KeepMethodInfo other) {
+      return super.internalIsEqualTo(other)
+          && isParameterTypeStrengtheningAllowed()
+              == other.internalIsParameterTypeStrengtheningAllowed();
+    }
+
+    @Override
     public KeepMethodInfo doBuild() {
       return new KeepMethodInfo(this);
+    }
+
+    @Override
+    public Builder makeTop() {
+      return super.makeTop().disallowParameterTypeStrengthening();
+    }
+
+    @Override
+    public Builder makeBottom() {
+      return super.makeBottom().allowParameterTypeStrengthening();
     }
   }
 
@@ -98,6 +148,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner(KeepMethodInfo info) {
       super(info.builder());
+    }
+
+    public Joiner disallowParameterTypeStrengthening() {
+      builder.disallowParameterTypeStrengthening();
+      return self();
     }
 
     @Override
@@ -108,7 +163,10 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     @Override
     public Joiner merge(Joiner joiner) {
       // Should be extended to merge the fields of this class in case any are added.
-      return super.merge(joiner);
+      return super.merge(joiner)
+          .applyIf(
+              !joiner.builder.isParameterTypeStrengtheningAllowed(),
+              Joiner::disallowParameterTypeStrengthening);
     }
 
     @Override

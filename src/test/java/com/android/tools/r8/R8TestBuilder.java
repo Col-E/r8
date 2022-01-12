@@ -18,6 +18,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.NoFieldTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
+import com.android.tools.r8.shaking.NoParameterTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -436,6 +437,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         "-" + name + " class * { @" + annotation.getTypeName() + " <fields>; }");
   }
 
+  T addInternalMatchAnnotationOnMethodRule(String name, Class<? extends Annotation> annotation) {
+    return addInternalKeepRules(
+        "-" + name + " class * { @" + annotation.getTypeName() + " <methods>; }");
+  }
+
   T addInternalMatchInterfaceRule(String name, Class<?> matchInterface) {
     return addInternalKeepRules("-" + name + " @" + matchInterface.getTypeName() + " class *");
   }
@@ -500,6 +506,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addNoFieldTypeStrengtheningAnnotation()
         .addInternalMatchAnnotationOnFieldRule(
             NoFieldTypeStrengtheningRule.RULE_NAME, NoFieldTypeStrengthening.class);
+  }
+
+  public T enableNoParameterTypeStrengtheningAnnotations() {
+    return addNoParameterTypeStrengtheningAnnotation()
+        .addInternalMatchAnnotationOnMethodRule(
+            NoParameterTypeStrengtheningRule.RULE_NAME, NoParameterTypeStrengthening.class);
   }
 
   public T enableNoUnusedInterfaceRemovalAnnotations() {

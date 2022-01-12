@@ -267,6 +267,7 @@ public class RootSetUtils {
         markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
       } else if (rule instanceof InlineRule
           || rule instanceof ConstantArgumentRule
+          || rule instanceof NoParameterTypeStrengtheningRule
           || rule instanceof UnusedArgumentRule
           || rule instanceof ReprocessMethodRule
           || rule instanceof WhyAreYouNotInliningRule) {
@@ -1242,6 +1243,13 @@ public class RootSetUtils {
         context.markAsUsed();
       } else if (context instanceof NoHorizontalClassMergingRule) {
         noHorizontalClassMerging.add(item.asClass().type);
+        context.markAsUsed();
+      } else if (context instanceof NoParameterTypeStrengtheningRule) {
+        assert item.isProgramMethod();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .asMethodJoiner()
+            .disallowParameterTypeStrengthening();
         context.markAsUsed();
       } else if (context instanceof MemberValuePropagationRule) {
         switch (((MemberValuePropagationRule) context).getType()) {
