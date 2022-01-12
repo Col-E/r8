@@ -25,10 +25,12 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   private final boolean allowParameterTypeStrengthening;
+  private final boolean allowReturnTypeStrengthening;
 
   private KeepMethodInfo(Builder builder) {
     super(builder);
     this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
+    this.allowReturnTypeStrengthening = builder.isReturnTypeStrengtheningAllowed();
   }
 
   // This builder is not private as there are known instances where it is safe to modify keep info
@@ -50,6 +52,16 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   boolean internalIsParameterTypeStrengtheningAllowed() {
     return allowParameterTypeStrengthening;
+  }
+
+  public boolean isReturnTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && internalIsReturnTypeStrengtheningAllowed();
+  }
+
+  boolean internalIsReturnTypeStrengtheningAllowed() {
+    return allowReturnTypeStrengthening;
   }
 
   public Joiner joiner() {
@@ -74,6 +86,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
 
     private boolean allowParameterTypeStrengthening;
+    private boolean allowReturnTypeStrengthening;
 
     private Builder() {
       super();
@@ -82,6 +95,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     private Builder(KeepMethodInfo original) {
       super(original);
       allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
+      allowReturnTypeStrengthening = original.internalIsReturnTypeStrengtheningAllowed();
     }
 
     public boolean isParameterTypeStrengtheningAllowed() {
@@ -99,6 +113,23 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Builder disallowParameterTypeStrengthening() {
       return setAllowParameterTypeStrengthening(false);
+    }
+
+    public boolean isReturnTypeStrengtheningAllowed() {
+      return allowReturnTypeStrengthening;
+    }
+
+    public Builder setAllowReturnTypeStrengthening(boolean allowReturnTypeStrengthening) {
+      this.allowReturnTypeStrengthening = allowReturnTypeStrengthening;
+      return self();
+    }
+
+    public Builder allowReturnTypeStrengthening() {
+      return setAllowReturnTypeStrengthening(true);
+    }
+
+    public Builder disallowReturnTypeStrengthening() {
+      return setAllowReturnTypeStrengthening(false);
     }
 
     @Override
@@ -125,7 +156,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     boolean internalIsEqualTo(KeepMethodInfo other) {
       return super.internalIsEqualTo(other)
           && isParameterTypeStrengtheningAllowed()
-              == other.internalIsParameterTypeStrengtheningAllowed();
+              == other.internalIsParameterTypeStrengtheningAllowed()
+          && isReturnTypeStrengtheningAllowed() == other.internalIsReturnTypeStrengtheningAllowed();
     }
 
     @Override
@@ -135,12 +167,12 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     @Override
     public Builder makeTop() {
-      return super.makeTop().disallowParameterTypeStrengthening();
+      return super.makeTop().disallowParameterTypeStrengthening().disallowReturnTypeStrengthening();
     }
 
     @Override
     public Builder makeBottom() {
-      return super.makeBottom().allowParameterTypeStrengthening();
+      return super.makeBottom().allowParameterTypeStrengthening().allowReturnTypeStrengthening();
     }
   }
 
@@ -150,8 +182,17 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       super(info.builder());
     }
 
+    public Joiner disallowInlining() {
+      return self();
+    }
+
     public Joiner disallowParameterTypeStrengthening() {
       builder.disallowParameterTypeStrengthening();
+      return self();
+    }
+
+    public Joiner disallowReturnTypeStrengthening() {
+      builder.disallowReturnTypeStrengthening();
       return self();
     }
 
@@ -166,7 +207,10 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return super.merge(joiner)
           .applyIf(
               !joiner.builder.isParameterTypeStrengtheningAllowed(),
-              Joiner::disallowParameterTypeStrengthening);
+              Joiner::disallowParameterTypeStrengthening)
+          .applyIf(
+              !joiner.builder.isReturnTypeStrengtheningAllowed(),
+              Joiner::disallowReturnTypeStrengthening);
     }
 
     @Override

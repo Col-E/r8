@@ -8,26 +8,26 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoParameterTypeStrengtheningRule
-    extends NoOptimizationBaseRule<NoParameterTypeStrengtheningRule> {
+public class NoReturnTypeStrengtheningRule
+    extends NoOptimizationBaseRule<NoReturnTypeStrengtheningRule> {
 
-  public static final String RULE_NAME = "noparametertypestrengthening";
+  public static final String RULE_NAME = "noreturntypestrengthening";
 
   public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoParameterTypeStrengtheningRule, Builder> {
+      extends NoOptimizationBaseRule.Builder<NoReturnTypeStrengtheningRule, Builder> {
 
     Builder() {
       super();
     }
 
     @Override
-    public NoParameterTypeStrengtheningRule.Builder self() {
+    public NoReturnTypeStrengtheningRule.Builder self() {
       return this;
     }
 
     @Override
-    public NoParameterTypeStrengtheningRule build() {
-      return new NoParameterTypeStrengtheningRule(
+    public NoReturnTypeStrengtheningRule build() {
+      return new NoReturnTypeStrengtheningRule(
           origin,
           getPosition(),
           source,
@@ -44,7 +44,7 @@ public class NoParameterTypeStrengtheningRule
     }
   }
 
-  NoParameterTypeStrengtheningRule(
+  NoReturnTypeStrengtheningRule(
       Origin origin,
       Position position,
       String source,

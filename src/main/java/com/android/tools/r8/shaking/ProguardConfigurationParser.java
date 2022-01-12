@@ -501,7 +501,14 @@ public class ProguardConfigurationParser {
           return true;
         }
         if (acceptString(NoParameterTypeStrengtheningRule.RULE_NAME)) {
-          ProguardConfigurationRule rule = parseNoParameterTypeStrengtheningRule(optionStart);
+          ProguardConfigurationRule rule =
+              parseNoOptimizationRule(optionStart, NoParameterTypeStrengtheningRule.builder());
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString(NoReturnTypeStrengtheningRule.RULE_NAME)) {
+          ProguardConfigurationRule rule =
+              parseNoOptimizationRule(optionStart, NoReturnTypeStrengtheningRule.builder());
           configurationBuilder.addRule(rule);
           return true;
         }
@@ -833,15 +840,14 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private NoParameterTypeStrengtheningRule parseNoParameterTypeStrengtheningRule(Position start)
-        throws ProguardRuleParserException {
-      NoParameterTypeStrengtheningRule.Builder keepRuleBuilder =
-          NoParameterTypeStrengtheningRule.builder().setOrigin(origin).setStart(start);
-      parseClassSpec(keepRuleBuilder, false);
+    private <R extends NoOptimizationBaseRule<R>, B extends NoOptimizationBaseRule.Builder<R, B>>
+        R parseNoOptimizationRule(Position start, B builder) throws ProguardRuleParserException {
+      builder.setOrigin(origin).setStart(start);
+      parseClassSpec(builder, false);
       Position end = getPosition();
-      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
-      keepRuleBuilder.setEnd(end);
-      return keepRuleBuilder.build();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
+      return builder.build();
     }
 
     private MemberValuePropagationRule parseMemberValuePropagationRule(

@@ -268,6 +268,7 @@ public class RootSetUtils {
       } else if (rule instanceof InlineRule
           || rule instanceof ConstantArgumentRule
           || rule instanceof NoParameterTypeStrengtheningRule
+          || rule instanceof NoReturnTypeStrengtheningRule
           || rule instanceof UnusedArgumentRule
           || rule instanceof ReprocessMethodRule
           || rule instanceof WhyAreYouNotInliningRule) {
@@ -1250,6 +1251,13 @@ public class RootSetUtils {
             .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
             .asMethodJoiner()
             .disallowParameterTypeStrengthening();
+        context.markAsUsed();
+      } else if (context instanceof NoReturnTypeStrengtheningRule) {
+        assert item.isProgramMethod();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .asMethodJoiner()
+            .disallowReturnTypeStrengthening();
         context.markAsUsed();
       } else if (context instanceof MemberValuePropagationRule) {
         switch (((MemberValuePropagationRule) context).getType()) {

@@ -19,6 +19,7 @@ import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.NoFieldTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoParameterTypeStrengtheningRule;
+import com.android.tools.r8.shaking.NoReturnTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoUnusedInterfaceRemovalRule;
 import com.android.tools.r8.shaking.NoVerticalClassMergingRule;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -512,6 +513,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addNoParameterTypeStrengtheningAnnotation()
         .addInternalMatchAnnotationOnMethodRule(
             NoParameterTypeStrengtheningRule.RULE_NAME, NoParameterTypeStrengthening.class);
+  }
+
+  public T enableNoReturnTypeStrengtheningAnnotations() {
+    return addNoReturnTypeStrengtheningAnnotation()
+        .addInternalMatchAnnotationOnMethodRule(
+            NoReturnTypeStrengtheningRule.RULE_NAME, NoReturnTypeStrengthening.class);
   }
 
   public T enableNoUnusedInterfaceRemovalAnnotations() {

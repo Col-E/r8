@@ -8,43 +8,18 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class NoParameterTypeStrengtheningRule
-    extends NoOptimizationBaseRule<NoParameterTypeStrengtheningRule> {
+public abstract class NoOptimizationBaseRule<R extends NoOptimizationBaseRule<R>>
+    extends ProguardConfigurationRule {
 
-  public static final String RULE_NAME = "noparametertypestrengthening";
-
-  public static class Builder
-      extends NoOptimizationBaseRule.Builder<NoParameterTypeStrengtheningRule, Builder> {
+  public abstract static class Builder<R extends NoOptimizationBaseRule<R>, B extends Builder<R, B>>
+      extends ProguardConfigurationRule.Builder<R, B> {
 
     Builder() {
       super();
     }
-
-    @Override
-    public NoParameterTypeStrengtheningRule.Builder self() {
-      return this;
-    }
-
-    @Override
-    public NoParameterTypeStrengtheningRule build() {
-      return new NoParameterTypeStrengtheningRule(
-          origin,
-          getPosition(),
-          source,
-          buildClassAnnotations(),
-          classAccessFlags,
-          negatedClassAccessFlags,
-          classTypeNegated,
-          classType,
-          classNames,
-          buildInheritanceAnnotations(),
-          inheritanceClassName,
-          inheritanceIsExtends,
-          memberRules);
-    }
   }
 
-  NoParameterTypeStrengtheningRule(
+  NoOptimizationBaseRule(
       Origin origin,
       Position position,
       String source,
@@ -72,14 +47,5 @@ public class NoParameterTypeStrengtheningRule
         inheritanceClassName,
         inheritanceIsExtends,
         memberRules);
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  @Override
-  String typeString() {
-    return RULE_NAME;
   }
 }
