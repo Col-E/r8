@@ -236,6 +236,9 @@ public abstract class TypeElement {
     if (this == other) {
       return true;
     }
+    if (isBottom() != other.isBottom()) {
+      return false;
+    }
     if (isPrimitiveType() || other.isPrimitiveType()) {
       return false;
     }

@@ -796,6 +796,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
+  public boolean isSafeCheckCast() {
+    return false;
+  }
+
+  public SafeCheckCast asSafeCheckCast() {
+    return null;
+  }
+
   public boolean isConstNumber() {
     return false;
   }

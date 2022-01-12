@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeUtils;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.ConstantOrNonConstantNumberValue;
 import com.android.tools.r8.ir.analysis.value.SingleConstClassValue;
@@ -1530,8 +1531,7 @@ public class CodeRewriter {
 
     TypeElement inTypeLattice = inValue.getType();
     TypeElement outTypeLattice = outValue.getType();
-    TypeElement castTypeLattice =
-        TypeElement.fromDexType(castType, inTypeLattice.nullability(), appView);
+    TypeElement castTypeLattice = castType.toTypeElement(appView, inTypeLattice.nullability());
 
     assert inTypeLattice.nullability().lessThanOrEqual(outTypeLattice.nullability());
 
@@ -1584,6 +1584,16 @@ public class CodeRewriter {
       it.replaceCurrentInstruction(replacement);
       assert replacement.lookupSingleTarget(appView, context) != null;
       return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
+    }
+
+    // If the cast is guaranteed to succeed and only there to ensure the program type checks, then
+    // check if the program would still type check after removing the cast.
+    if (checkCast.isSafeCheckCast()) {
+      TypeElement useType =
+          TypeUtils.computeUseType(appViewWithLiveness, context, checkCast.outValue());
+      if (inTypeLattice.lessThanOrEqualUpToNullability(useType, appView)) {
+        return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
+      }
     }
 
     // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:

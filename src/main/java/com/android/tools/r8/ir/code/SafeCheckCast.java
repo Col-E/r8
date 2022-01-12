@@ -35,6 +35,16 @@ public class SafeCheckCast extends CheckCast {
     return false;
   }
 
+  @Override
+  public boolean isSafeCheckCast() {
+    return true;
+  }
+
+  @Override
+  public SafeCheckCast asSafeCheckCast() {
+    return this;
+  }
+
   public static class Builder extends CheckCast.Builder {
 
     @Override
