@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeUtils;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerGraphLens.Builder;
 import com.android.tools.r8.horizontalclassmerging.policies.SameInstanceFields.InstanceFieldInfo;
 import com.android.tools.r8.utils.IterableUtils;
@@ -149,12 +151,15 @@ public class ClassInstanceFieldsMerger {
 
     DexEncodedField newField;
     if (needsRelaxedType(targetField, sourceFields)) {
+      DexType newFieldType =
+          DexTypeUtils.computeLeastUpperBound(
+              appView,
+              Iterables.transform(
+                  Iterables.concat(IterableUtils.singleton(targetField), sourceFields),
+                  DexEncodedField::getType));
       newField =
           targetField.toTypeSubstitutedField(
-              appView,
-              targetField
-                  .getReference()
-                  .withType(appView.dexItemFactory().objectType, appView.dexItemFactory()));
+              appView, targetField.getReference().withType(newFieldType, appView.dexItemFactory()));
     } else {
       newField = targetField;
     }
