@@ -445,7 +445,13 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupUnusedArguments(MethodOptimizationInfoFixer fixer) {
-    unusedArguments = fixer.fixupUnusedArguments(unusedArguments);
+    fixupUnusedArguments(fixer.fixupUnusedArguments(unusedArguments));
+    return this;
+  }
+
+  public MutableMethodOptimizationInfo fixupUnusedArguments(BitSet unusedArguments) {
+    this.unusedArguments =
+        unusedArguments != null && !unusedArguments.isEmpty() ? unusedArguments : null;
     return this;
   }
 

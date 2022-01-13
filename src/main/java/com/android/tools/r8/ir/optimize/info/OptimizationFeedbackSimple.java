@@ -210,6 +210,16 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     method.getDefinition().getMutableOptimizationInfo().setUnusedArguments(unusedArguments);
   }
 
+  public void fixupUnusedArguments(ProgramMethod method, Consumer<BitSet> fixer) {
+    if (method.getOptimizationInfo().hasUnusedArguments()) {
+      MutableMethodOptimizationInfo optimizationInfo =
+          method.getDefinition().getMutableOptimizationInfo();
+      BitSet newUnusedArguments = (BitSet) optimizationInfo.getUnusedArguments().clone();
+      fixer.accept(newUnusedArguments);
+      optimizationInfo.fixupUnusedArguments(newUnusedArguments);
+    }
+  }
+
   // Unset methods.
 
   @Override

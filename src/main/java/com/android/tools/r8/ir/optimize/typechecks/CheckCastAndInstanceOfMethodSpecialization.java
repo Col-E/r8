@@ -142,6 +142,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
           parentMethodDefinition.getCode().buildIR(parentMethod, appView, parentMethod.getOrigin());
       converter.markProcessed(code, feedback);
       // Fixup method optimization info (the method no longer returns a constant).
+      feedback.fixupUnusedArguments(parentMethod, unusedArguments -> unusedArguments.clear(0));
       feedback.unsetAbstractReturnValue(parentMethod);
       feedback.unsetClassInlinerMethodConstraint(parentMethod);
     } else {
