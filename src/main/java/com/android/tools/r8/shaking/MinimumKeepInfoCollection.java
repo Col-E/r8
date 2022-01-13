@@ -90,6 +90,11 @@ public class MinimumKeepInfoCollection {
         });
   }
 
+  public KeepInfo.Joiner<?, ?, ?> getOrDefault(
+      DexReference reference, KeepInfo.Joiner<?, ?, ?> defaultValue) {
+    return minimumKeepInfo.getOrDefault(reference, defaultValue);
+  }
+
   public KeepInfo.Joiner<?, ?, ?> getOrCreateMinimumKeepInfoFor(DexReference reference) {
     return minimumKeepInfo.computeIfAbsent(
         reference, ignoreKey(() -> KeepInfo.newEmptyJoinerFor(reference)));

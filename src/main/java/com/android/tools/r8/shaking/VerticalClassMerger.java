@@ -723,7 +723,7 @@ public class VerticalClassMerger {
     KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
     keepInfo.mutate(
         mutator ->
-            mutator.removeKeepInfoForPrunedItems(
+            mutator.removeKeepInfoForMergedClasses(
                 PrunedItems.builder().setRemovedClasses(mergedClasses.keySet()).build()));
     timing.end();
 

@@ -126,7 +126,7 @@ public class HorizontalClassMerger {
     KeepInfoCollection keepInfo = appView.getKeepInfo();
     keepInfo.mutate(
         mutator ->
-            mutator.removeKeepInfoForPrunedItems(
+            mutator.removeKeepInfoForMergedClasses(
                 PrunedItems.builder().setRemovedClasses(mergedClasses.getSources()).build()));
 
     // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that allocation

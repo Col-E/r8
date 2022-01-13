@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.shaking.InlineRule.Type;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSetBuilder;
 import com.android.tools.r8.shaking.RootSetUtils.RootSetBuilder;
@@ -346,11 +347,18 @@ public class IfRuleEvaluator {
         rootSetBuilder.runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
       }
 
+      InlineRule neverInlineForClassInliningRuleForCondition =
+          materializedRule.neverInlineRuleForCondition(dexItemFactory, Type.NEVER_CLASS_INLINE);
+      if (neverInlineForClassInliningRuleForCondition != null) {
+        rootSetBuilder.runPerRule(
+            executorService, futures, neverInlineForClassInliningRuleForCondition, null);
+      }
+
       // If the condition of the -if rule has any members, then we need to keep these members to
       // ensure that the subsequent rule will be applied again in the second round of tree
       // shaking.
       InlineRule neverInlineRuleForCondition =
-          materializedRule.neverInlineRuleForCondition(dexItemFactory);
+          materializedRule.neverInlineRuleForCondition(dexItemFactory, Type.NEVER);
       if (neverInlineRuleForCondition != null) {
         rootSetBuilder.runPerRule(executorService, futures, neverInlineRuleForCondition, null);
       }

@@ -1224,6 +1224,9 @@ final class InlineCandidateProcessor {
         .isPossiblyFalse()) {
       return false;
     }
+    if (!appView.getKeepInfo(singleTarget).isClassInliningAllowed(appView.options())) {
+      return false;
+    }
     if (!singleTarget
         .getDefinition()
         .isInliningCandidate(

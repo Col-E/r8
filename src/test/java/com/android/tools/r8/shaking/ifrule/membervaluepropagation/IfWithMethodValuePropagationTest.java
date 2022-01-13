@@ -23,7 +23,7 @@ public class IfWithMethodValuePropagationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public IfWithMethodValuePropagationTest(TestParameters parameters) {
@@ -41,8 +41,8 @@ public class IfWithMethodValuePropagationTest extends TestBase {
             "}",
             "-keep class " + Layout.class.getTypeName())
         .addLibraryClasses(Library.class)
-        .addLibraryFiles(runtimeJar(parameters))
-        .setMinApi(parameters.getRuntime())
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
         .addRunClasspathFiles(
@@ -50,7 +50,7 @@ public class IfWithMethodValuePropagationTest extends TestBase {
                 .addProgramClasses(Library.class)
                 .addClasspathClasses(Layout.class)
                 .addKeepAllClassesRule()
-                .setMinApi(parameters.getRuntime())
+                .setMinApi(parameters.getApiLevel())
                 .compile()
                 .writeToZip())
         .run(parameters.getRuntime(), TestClass.class)
@@ -58,7 +58,7 @@ public class IfWithMethodValuePropagationTest extends TestBase {
   }
 
   private void verifyOutput(CodeInspector inspector) {
-    // R.ID has been inlined.
+    // R.ID has been removed by dead code removal after member value propagation.
     assertThat(inspector.clazz(R.class), not(isPresent()));
 
     // Layout is kept by the conditional rule.

@@ -98,6 +98,7 @@ import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -1678,7 +1679,8 @@ public class IRConverter {
         || definition.getOptimizationInfo().isReachabilitySensitive()) {
       return false;
     }
-    if (!appView.getKeepInfo(method).isInliningAllowed(options)) {
+    KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+    if (!keepInfo.isInliningAllowed(options) && !keepInfo.isClassInliningAllowed(options)) {
       return false;
     }
     return true;

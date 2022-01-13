@@ -245,6 +245,12 @@ public abstract class KeepInfoCollection {
       this.methodRuleInstances = methodRuleInstances;
     }
 
+    public void removeKeepInfoForMergedClasses(PrunedItems prunedItems) {
+      if (prunedItems.hasRemovedClasses()) {
+        keepClassInfo.keySet().removeAll(prunedItems.getRemovedClasses());
+      }
+    }
+
     public void removeKeepInfoForPrunedItems(PrunedItems prunedItems) {
       if (prunedItems.hasRemovedClasses()) {
         keepClassInfo.keySet().removeAll(prunedItems.getRemovedClasses());

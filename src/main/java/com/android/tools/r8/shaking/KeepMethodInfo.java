@@ -24,11 +24,15 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return bottom().joiner();
   }
 
+  private final boolean allowClassInlining;
+  private final boolean allowInlining;
   private final boolean allowParameterTypeStrengthening;
   private final boolean allowReturnTypeStrengthening;
 
   private KeepMethodInfo(Builder builder) {
     super(builder);
+    this.allowClassInlining = builder.isClassInliningAllowed();
+    this.allowInlining = builder.isInliningAllowed();
     this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
     this.allowReturnTypeStrengthening = builder.isReturnTypeStrengtheningAllowed();
   }
@@ -42,6 +46,22 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   public boolean isArgumentPropagationAllowed(GlobalKeepInfoConfiguration configuration) {
     return isParameterRemovalAllowed(configuration);
+  }
+
+  public boolean isClassInliningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration) && internalIsClassInliningAllowed();
+  }
+
+  boolean internalIsClassInliningAllowed() {
+    return allowClassInlining;
+  }
+
+  public boolean isInliningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration) && internalIsInliningAllowed();
+  }
+
+  boolean internalIsInliningAllowed() {
+    return allowInlining;
   }
 
   public boolean isParameterTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -79,12 +99,10 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return this.equals(bottom());
   }
 
-  public boolean isInliningAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration);
-  }
-
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
 
+    private boolean allowClassInlining;
+    private boolean allowInlining;
     private boolean allowParameterTypeStrengthening;
     private boolean allowReturnTypeStrengthening;
 
@@ -94,8 +112,44 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     private Builder(KeepMethodInfo original) {
       super(original);
+      allowClassInlining = original.internalIsClassInliningAllowed();
+      allowInlining = original.internalIsInliningAllowed();
       allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
       allowReturnTypeStrengthening = original.internalIsReturnTypeStrengtheningAllowed();
+    }
+
+    public boolean isClassInliningAllowed() {
+      return allowClassInlining;
+    }
+
+    public Builder setAllowClassInlining(boolean allowClassInlining) {
+      this.allowClassInlining = allowClassInlining;
+      return self();
+    }
+
+    public Builder allowClassInlining() {
+      return setAllowClassInlining(true);
+    }
+
+    public Builder disallowClassInlining() {
+      return setAllowClassInlining(false);
+    }
+
+    public boolean isInliningAllowed() {
+      return allowInlining;
+    }
+
+    public Builder setAllowInlining(boolean allowInlining) {
+      this.allowInlining = allowInlining;
+      return self();
+    }
+
+    public Builder allowInlining() {
+      return setAllowInlining(true);
+    }
+
+    public Builder disallowInlining() {
+      return setAllowInlining(false);
     }
 
     public boolean isParameterTypeStrengtheningAllowed() {
@@ -155,6 +209,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     @Override
     boolean internalIsEqualTo(KeepMethodInfo other) {
       return super.internalIsEqualTo(other)
+          && isClassInliningAllowed() == other.internalIsClassInliningAllowed()
+          && isInliningAllowed() == other.internalIsInliningAllowed()
           && isParameterTypeStrengtheningAllowed()
               == other.internalIsParameterTypeStrengtheningAllowed()
           && isReturnTypeStrengtheningAllowed() == other.internalIsReturnTypeStrengtheningAllowed();
@@ -167,12 +223,20 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     @Override
     public Builder makeTop() {
-      return super.makeTop().disallowParameterTypeStrengthening().disallowReturnTypeStrengthening();
+      return super.makeTop()
+          .disallowClassInlining()
+          .disallowInlining()
+          .disallowParameterTypeStrengthening()
+          .disallowReturnTypeStrengthening();
     }
 
     @Override
     public Builder makeBottom() {
-      return super.makeBottom().allowParameterTypeStrengthening().allowReturnTypeStrengthening();
+      return super.makeBottom()
+          .allowClassInlining()
+          .allowInlining()
+          .allowParameterTypeStrengthening()
+          .allowReturnTypeStrengthening();
     }
   }
 
@@ -182,7 +246,13 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       super(info.builder());
     }
 
+    public Joiner disallowClassInlining() {
+      builder.disallowClassInlining();
+      return self();
+    }
+
     public Joiner disallowInlining() {
+      builder.disallowInlining();
       return self();
     }
 
@@ -205,6 +275,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     public Joiner merge(Joiner joiner) {
       // Should be extended to merge the fields of this class in case any are added.
       return super.merge(joiner)
+          .applyIf(!joiner.builder.isClassInliningAllowed(), Joiner::disallowClassInlining)
+          .applyIf(!joiner.builder.isInliningAllowed(), Joiner::disallowInlining)
           .applyIf(
               !joiner.builder.isParameterTypeStrengtheningAllowed(),
               Joiner::disallowParameterTypeStrengthening)

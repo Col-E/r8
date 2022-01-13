@@ -29,7 +29,7 @@ public class NoIllegalInlining extends SingleClassPolicy {
   private boolean disallowInlining(ProgramMethod method) {
     Code code = method.getDefinition().getCode();
 
-    if (appView.appInfo().isNeverInlineMethod(method.getReference())) {
+    if (!appView.getKeepInfo(method).isInliningAllowed(appView.options())) {
       return true;
     }
 

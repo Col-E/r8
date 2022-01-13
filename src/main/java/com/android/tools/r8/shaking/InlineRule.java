@@ -13,6 +13,7 @@ public class InlineRule extends ProguardConfigurationRule {
   public enum Type {
     ALWAYS,
     NEVER,
+    NEVER_CLASS_INLINE,
     NEVER_SINGLE_CALLER
   }
 
@@ -103,6 +104,8 @@ public class InlineRule extends ProguardConfigurationRule {
         return "alwaysinline";
       case NEVER:
         return "neverinline";
+      case NEVER_CLASS_INLINE:
+        return "neverclassinlinemethod";
       case NEVER_SINGLE_CALLER:
         return "neversinglecaller";
     }

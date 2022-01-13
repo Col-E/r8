@@ -219,7 +219,8 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
    * <p>Therefore, each time the subsequent rule of an -if rule is applied, we also apply a
    * -neverinline rule for the condition of the -if rule.
    */
-  protected InlineRule neverInlineRuleForCondition(DexItemFactory dexItemFactory) {
+  protected InlineRule neverInlineRuleForCondition(
+      DexItemFactory dexItemFactory, InlineRule.Type type) {
     if (getMemberRules() == null || getMemberRules().isEmpty()) {
       return null;
     }
@@ -242,7 +243,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
             .filter(rule -> rule.getRuleType().includesMethods())
             .map(memberRule -> memberRule.materialize(dexItemFactory))
             .collect(Collectors.toList()),
-        InlineRule.Type.NEVER);
+        type);
   }
 
   protected NoHorizontalClassMergingRule noHorizontalClassMergingRuleForCondition(

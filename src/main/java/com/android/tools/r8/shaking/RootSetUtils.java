@@ -1191,7 +1191,16 @@ public class RootSetUtils {
               alwaysInline.add(reference);
               break;
             case NEVER:
-              neverInline.add(reference);
+              dependentMinimumKeepInfo
+                  .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+                  .asMethodJoiner()
+                  .disallowInlining();
+              break;
+            case NEVER_CLASS_INLINE:
+              dependentMinimumKeepInfo
+                  .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+                  .asMethodJoiner()
+                  .disallowClassInlining();
               break;
             case NEVER_SINGLE_CALLER:
               neverInlineDueToSingleCaller.add(reference);
@@ -1594,7 +1603,6 @@ public class RootSetUtils {
 
   abstract static class RootSetBase {
 
-    final Set<DexMethod> neverInline;
     final Set<DexMethod> neverInlineDueToSingleCaller;
     final Set<DexType> neverClassInline;
     private final DependentMinimumKeepInfoCollection dependentMinimumKeepInfo;
@@ -1603,14 +1611,12 @@ public class RootSetUtils {
     public final ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse;
 
     RootSetBase(
-        Set<DexMethod> neverInline,
         Set<DexMethod> neverInlineDueToSingleCaller,
         Set<DexType> neverClassInline,
         DependentMinimumKeepInfoCollection dependentMinimumKeepInfo,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         List<DelayedRootSetActionItem> delayedRootSetActionItems,
         ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {
-      this.neverInline = neverInline;
       this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
       this.neverClassInline = neverClassInline;
       this.dependentMinimumKeepInfo = dependentMinimumKeepInfo;
@@ -1676,7 +1682,6 @@ public class RootSetUtils {
         List<DelayedRootSetActionItem> delayedRootSetActionItems,
         ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {
       super(
-          neverInline,
           neverInlineDueToSingleCaller,
           neverClassInline,
           dependentMinimumKeepInfo,
@@ -1729,7 +1734,6 @@ public class RootSetUtils {
     }
 
     void addConsequentRootSet(ConsequentRootSet consequentRootSet) {
-      neverInline.addAll(consequentRootSet.neverInline);
       neverInlineDueToSingleCaller.addAll(consequentRootSet.neverInlineDueToSingleCaller);
       neverClassInline.addAll(consequentRootSet.neverClassInline);
       consequentRootSet.dependentKeepClassCompatRule.forEach(
@@ -2015,7 +2019,6 @@ public class RootSetUtils {
         List<DelayedRootSetActionItem> delayedRootSetActionItems,
         ProgramMethodMap<ProgramMethod> pendingMethodMoveInverse) {
       super(
-          neverInline,
           neverInlineDueToSingleCaller,
           neverClassInline,
           dependentMinimumKeepInfo,

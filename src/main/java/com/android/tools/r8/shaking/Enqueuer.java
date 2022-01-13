@@ -3413,7 +3413,8 @@ public class Enqueuer {
 
     private final Map<DexMethod, ProgramMethod> liveMethods = new ConcurrentHashMap<>();
 
-    private final ProgramMethodSet neverInlineMethods = ProgramMethodSet.createConcurrent();
+    private final ProgramMethodMap<KeepMethodInfo.Joiner> minimumKeepInfo =
+        ProgramMethodMap.createConcurrent();
 
     private final Map<DexType, DexClasspathClass> syntheticClasspathClasses =
         new ConcurrentHashMap<>();
@@ -3481,8 +3482,9 @@ public class Enqueuer {
       return set;
     }
 
-    public void addNeverInlineMethod(ProgramMethod method) {
-      neverInlineMethods.add(method);
+    public void addMinimumKeepInfo(ProgramMethod method, Consumer<KeepMethodInfo.Joiner> consumer) {
+      consumer.accept(
+          minimumKeepInfo.computeIfAbsent(method, ignoreKey(KeepMethodInfo::newEmptyJoiner)));
     }
 
     void enqueueWorkItems(Enqueuer enqueuer) {
@@ -3509,7 +3511,10 @@ public class Enqueuer {
                 enqueuer.appInfo(), clazz, itfs);
           });
 
-      neverInlineMethods.forEach(m -> enqueuer.rootSet.neverInline.add(m.getReference()));
+      minimumKeepInfo.forEach(
+          (method, minimumKeepInfoForMethod) ->
+              enqueuer.applyMinimumKeepInfoWhenLiveOrTargeted(
+                  method, UnconditionalKeepInfoEvent.get(), minimumKeepInfoForMethod));
     }
   }
 
@@ -3740,6 +3745,7 @@ public class Enqueuer {
               ? ImmutableSet.of(lambdaSynthesisContext.getReference())
               : ImmutableSet.of(syntheticClass.getType());
         };
+    amendKeepInfoWithCompanionMethods();
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo.getSyntheticItems().commit(app),
@@ -3768,7 +3774,6 @@ public class Enqueuer {
             rootSet.noSideEffects,
             rootSet.assumedValues,
             amendWithCompanionMethods(rootSet.alwaysInline),
-            amendWithCompanionMethods(rootSet.neverInline),
             amendWithCompanionMethods(rootSet.neverInlineDueToSingleCaller),
             amendWithCompanionMethods(rootSet.whyAreYouNotInlining),
             amendWithCompanionMethods(rootSet.keepConstantArguments),
@@ -3792,6 +3797,28 @@ public class Enqueuer {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
     }
     return new EnqueuerResult(appInfoWithLiveness);
+  }
+
+  private void forEachCompanionMethod(BiConsumer<DexMethod, DexMethod> consumer) {
+    if (interfaceProcessor != null) {
+      interfaceProcessor.forEachMethodToMove(consumer);
+    }
+  }
+
+  private void amendKeepInfoWithCompanionMethods() {
+    forEachCompanionMethod(
+        (methodReference, companionReference) -> {
+          ProgramMethod companion = appView.definitionFor(companionReference).asProgramMethod();
+          KeepMethodInfo.Joiner minimumKeepInfoForCompanion =
+              keepInfo.getMethodInfo(methodReference, appInfo).joiner();
+          KeepMethodInfo.Joiner extraMinimumKeepInfoForCompanion =
+              dependentMinimumKeepInfo
+                  .getUnconditionalMinimumKeepInfoOrDefault(MinimumKeepInfoCollection.empty())
+                  .getOrDefault(methodReference, KeepMethodInfo.newEmptyJoiner())
+                  .asMethodJoiner();
+          keepInfo.evaluateMethodRule(
+              companion, minimumKeepInfoForCompanion.merge(extraMinimumKeepInfoForCompanion));
+        });
   }
 
   private Set<DexMethod> amendWithCompanionMethods(Set<DexMethod> methods) {

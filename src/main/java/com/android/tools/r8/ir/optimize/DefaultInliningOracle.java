@@ -341,11 +341,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return true;
     }
 
-    if (appInfo.isNeverInlineMethod(singleTargetReference)) {
-      whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
-      return true;
-    }
-
     if (appInfo.noSideEffects.containsKey(invoke.getInvokedMethod())
         || appInfo.noSideEffects.containsKey(resolutionResult.getResolvedMethod().getReference())
         || appInfo.noSideEffects.containsKey(singleTargetReference)) {

@@ -57,7 +57,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
       // We don't care about calls to native methods.
       return;
     }
-    if (!appView.getKeepInfo(callee).isInliningAllowed(appView.options())) {
+    if (!appView.getKeepInfo(callee).isOptimizationAllowed(appView.options())) {
       // Since the callee is kept and optimizations are disallowed, we cannot inline it into the
       // caller, and we also cannot collect any optimization info for the method. Therefore, we
       // drop the call edge to reduce the total number of call graph edges, which should lead to

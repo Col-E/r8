@@ -146,8 +146,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues;
   /** All methods that should be inlined if possible due to a configuration directive. */
   private final Set<DexMethod> alwaysInline;
-  /** All methods that *must* never be inlined due to a configuration directive (testing only). */
-  private final Set<DexMethod> neverInline;
   /**
    * All methods that *must* never be inlined as a result of having a single caller due to a
    * configuration directive (testing only).
@@ -228,7 +226,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects,
       Map<DexMember<?, ?>, ProguardMemberRule> assumedValues,
       Set<DexMethod> alwaysInline,
-      Set<DexMethod> neverInline,
       Set<DexMethod> neverInlineDueToSingleCaller,
       Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
@@ -266,7 +263,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.assumedValues = assumedValues;
     this.callSites = callSites;
     this.alwaysInline = alwaysInline;
-    this.neverInline = neverInline;
     this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = whyAreYouNotInlining;
     this.keepConstantArguments = keepConstantArguments;
@@ -312,7 +308,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.noSideEffects,
         previous.assumedValues,
         previous.alwaysInline,
-        previous.neverInline,
         previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
         previous.keepConstantArguments,
@@ -363,7 +358,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         pruneMapFromMembers(previous.noSideEffects, prunedItems, executorService, futures),
         pruneMapFromMembers(previous.assumedValues, prunedItems, executorService, futures),
         pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
-        pruneMethods(previous.neverInline, prunedItems, executorService, futures),
         pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, executorService, futures),
         pruneMethods(previous.whyAreYouNotInlining, prunedItems, executorService, futures),
         pruneMethods(previous.keepConstantArguments, prunedItems, executorService, futures),
@@ -571,7 +565,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         noSideEffects,
         assumedValues,
         alwaysInline,
-        neverInline,
         neverInlineDueToSingleCaller,
         whyAreYouNotInlining,
         keepConstantArguments,
@@ -654,7 +647,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.assumedValues = previous.assumedValues;
     this.callSites = previous.callSites;
     this.alwaysInline = previous.alwaysInline;
-    this.neverInline = previous.neverInline;
     this.neverInlineDueToSingleCaller = previous.neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = previous.whyAreYouNotInlining;
     this.keepConstantArguments = previous.keepConstantArguments;
@@ -788,10 +780,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean hasNoAlwaysInlineMethods() {
     return alwaysInline.isEmpty();
-  }
-
-  public boolean isNeverInlineMethod(DexMethod method) {
-    return neverInline.contains(method);
   }
 
   public boolean isNeverInlineDueToSingleCallerMethod(ProgramMethod method) {
@@ -1119,7 +1107,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return false;
     }
     if (!method.getReturnType().isAlwaysNull(this)
-        && !getKeepInfo().getMethodInfo(method, this).isInliningAllowed(options())) {
+        && !getKeepInfo().getMethodInfo(method, this).isOptimizationAllowed(options())) {
       return false;
     }
     return true;
@@ -1295,7 +1283,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             assumedValues,
             (reference, rules) -> assumedValues.get(lens.getOriginalMemberSignature(reference))),
         lens.rewriteReferences(alwaysInline),
-        lens.rewriteReferences(neverInline),
         lens.rewriteReferences(neverInlineDueToSingleCaller),
         lens.rewriteReferences(whyAreYouNotInlining),
         lens.rewriteReferences(keepConstantArguments),
