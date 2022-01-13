@@ -4,19 +4,6 @@
 package trywithresources;
 
 public class TryWithResourcesDesugaredTests extends TryWithResources {
-  private boolean isAndroid() {
-    try {
-      Class.forName("dalvik.system.VMRuntime");
-      return true;
-    } catch (Exception ignored) {
-    }
-    return false;
-  }
-
-  @Override
-  boolean desugaredCodeRunningOnJvm() {
-    return !isAndroid();
-  }
 
   public static void main(String[] args) throws Exception {
     new TryWithResourcesDesugaredTests().test();

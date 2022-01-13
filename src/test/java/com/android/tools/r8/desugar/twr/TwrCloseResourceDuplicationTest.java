@@ -75,10 +75,14 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
             inspector -> {
-              // There should be exactly one synthetic class besides the three program classes.
+              // There should be two synthetic classes besides the three program classes.
+              // One for the desugar version of TWR $closeResource and one for the
+              // Throwable.addSuppressed that is still present in the original $closeResource.
+              // TODO(b/214329923): If the original $closeResource is pruned this will decrease.
+              // TODO(b/168568827): Once we support a nested addSuppressed this will increase.
               int expectedSynthetics =
                   parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport())
-                      ? 1
+                      ? 2
                       : 0;
               assertEquals(INPUT_CLASSES + expectedSynthetics, inspector.allClasses().size());
             });
@@ -91,6 +95,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(Foo.class, Bar.class)
+        // TODO(b/214250388): Don't warn about synthetic code.
         .applyIf(
             parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport()),
             builder -> builder.addDontWarn("java.lang.AutoCloseable"))

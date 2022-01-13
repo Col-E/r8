@@ -109,6 +109,11 @@ public class SyntheticItemsTestUtils {
     return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.TWR_CLOSE_RESOURCE);
   }
 
+  public static boolean isMaybeExternalSuppressedExceptionMethod(ClassReference reference) {
+    // The suppressed exception methods are grouped with the backports.
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.BACKPORT);
+  }
+
   public static boolean isExternalOutlineClass(ClassReference reference) {
     return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.OUTLINE);
   }

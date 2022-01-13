@@ -4,10 +4,6 @@
 package trywithresources;
 
 public class TryWithResourcesNotDesugaredTests extends TryWithResources {
-  @Override
-  boolean desugaredCodeRunningOnJvm() {
-    return false;
-  }
 
   public static void main(String[] args) throws Exception {
     new TryWithResourcesNotDesugaredTests().test();

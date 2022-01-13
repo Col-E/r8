@@ -14,6 +14,7 @@ import com.android.tools.r8.cf.code.CfArrayLoad;
 import com.android.tools.r8.cf.code.CfArrayStore;
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfCmp;
+import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -109,6 +110,7 @@ public final class BackportedMethods {
     factory.createSynthesizedType("[Ljava/lang/CharSequence;");
     factory.createSynthesizedType("[Ljava/lang/Class;");
     factory.createSynthesizedType("[Ljava/lang/Object;");
+    factory.createSynthesizedType("[Ljava/lang/Throwable;");
     factory.createSynthesizedType("[Ljava/util/Map$Entry;");
   }
 
@@ -511,10 +513,14 @@ public final class BackportedMethods {
     CfLabel label15 = new CfLabel();
     CfLabel label16 = new CfLabel();
     CfLabel label17 = new CfLabel();
+    CfLabel label18 = new CfLabel();
+    CfLabel label19 = new CfLabel();
+    CfLabel label20 = new CfLabel();
+    CfLabel label21 = new CfLabel();
     return new CfCode(
         method.holder,
+        6,
         4,
-        3,
         ImmutableList.of(
             label0,
             new CfLoad(ValueType.OBJECT, 1),
@@ -749,7 +755,7 @@ public final class BackportedMethods {
                       FrameType.initialized(options.itemFactory.objectType)
                     }),
                 new ArrayDeque<>(Arrays.asList())),
-            new CfGoto(label16),
+            new CfGoto(label20),
             label12,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
@@ -763,10 +769,76 @@ public final class BackportedMethods {
             new CfStore(ValueType.OBJECT, 2),
             label13,
             new CfLoad(ValueType.OBJECT, 0),
-            new CfIf(If.Type.EQ, ValueType.OBJECT, label14),
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfGoto(label15),
+            new CfIf(If.Type.EQ, ValueType.OBJECT, label19),
             label14,
+            new CfConstClass(options.itemFactory.throwableType),
+            new CfConstString(options.itemFactory.createString("addSuppressed")),
+            new CfConstNumber(1, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(0, ValueType.INT),
+            new CfConstClass(options.itemFactory.throwableType),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.classType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
+                        options.itemFactory.stringType,
+                        options.itemFactory.createType("[Ljava/lang/Class;")),
+                    options.itemFactory.createString("getDeclaredMethod")),
+                false),
+            new CfStore(ValueType.OBJECT, 3),
+            label15,
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfConstNumber(1, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.objectType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.createType("[Ljava/lang/Object;")),
+                    options.itemFactory.createString("invoke")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label16,
+            new CfGoto(label18),
+            label17,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.throwableType),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.throwableType)
+                    }),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(
+                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+            new CfStore(ValueType.OBJECT, 3),
+            label18,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.throwableType),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.throwableType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfThrow(),
+            label19,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1, 2},
@@ -777,19 +849,8 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(Arrays.asList())),
             new CfLoad(ValueType.OBJECT, 2),
-            label15,
-            new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2},
-                    new FrameType[] {
-                      FrameType.initialized(options.itemFactory.throwableType),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.throwableType)
-                    }),
-                new ArrayDeque<>(
-                    Arrays.asList(FrameType.initialized(options.itemFactory.throwableType)))),
             new CfThrow(),
-            label16,
+            label20,
             new CfFrame(
                 new Int2ReferenceAVLTreeMap<>(
                     new int[] {0, 1},
@@ -799,7 +860,7 @@ public final class BackportedMethods {
                     }),
                 new ArrayDeque<>(Arrays.asList())),
             new CfReturnVoid(),
-            label17),
+            label21),
         ImmutableList.of(
             new CfTryCatch(
                 label2,
@@ -841,7 +902,12 @@ public final class BackportedMethods {
                 label0,
                 label11,
                 ImmutableList.of(options.itemFactory.throwableType),
-                ImmutableList.of(label12))),
+                ImmutableList.of(label12)),
+            new CfTryCatch(
+                label14,
+                label16,
+                ImmutableList.of(options.itemFactory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(label17))),
         ImmutableList.of());
   }
 
@@ -9076,6 +9142,163 @@ public final class BackportedMethods {
             new CfReturn(ValueType.OBJECT),
             label8),
         ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode ThrowableMethods_addSuppressed(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        6,
+        3,
+        ImmutableList.of(
+            label0,
+            new CfConstClass(options.itemFactory.throwableType),
+            new CfConstString(options.itemFactory.createString("addSuppressed")),
+            new CfConstNumber(1, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(0, ValueType.INT),
+            new CfConstClass(options.itemFactory.throwableType),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.classType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
+                        options.itemFactory.stringType,
+                        options.itemFactory.createType("[Ljava/lang/Class;")),
+                    options.itemFactory.createString("getDeclaredMethod")),
+                false),
+            new CfStore(ValueType.OBJECT, 2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfConstNumber(1, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfArrayStore(MemberType.OBJECT),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.objectType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.createType("[Ljava/lang/Object;")),
+                    options.itemFactory.createString("invoke")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label2,
+            new CfGoto(label4),
+            label3,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.throwableType),
+                      FrameType.initialized(options.itemFactory.throwableType)
+                    }),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(
+                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+            new CfStore(ValueType.OBJECT, 2),
+            label4,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1},
+                    new FrameType[] {
+                      FrameType.initialized(options.itemFactory.throwableType),
+                      FrameType.initialized(options.itemFactory.throwableType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfReturnVoid(),
+            label5),
+        ImmutableList.of(
+            new CfTryCatch(
+                label0,
+                label2,
+                ImmutableList.of(options.itemFactory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(label3))),
+        ImmutableList.of());
+  }
+
+  public static CfCode ThrowableMethods_getSuppressed(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        2,
+        ImmutableList.of(
+            label0,
+            new CfConstClass(options.itemFactory.throwableType),
+            new CfConstString(options.itemFactory.createString("getSuppressed")),
+            new CfConstNumber(0, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Class;")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.classType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/reflect/Method;"),
+                        options.itemFactory.stringType,
+                        options.itemFactory.createType("[Ljava/lang/Class;")),
+                    options.itemFactory.createString("getDeclaredMethod")),
+                false),
+            new CfStore(ValueType.OBJECT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfConstNumber(0, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Object;")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/reflect/Method;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.objectType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.createType("[Ljava/lang/Object;")),
+                    options.itemFactory.createString("invoke")),
+                false),
+            new CfCheckCast(options.itemFactory.createType("[Ljava/lang/Throwable;")),
+            label2,
+            new CfReturn(ValueType.OBJECT),
+            label3,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0},
+                    new FrameType[] {FrameType.initialized(options.itemFactory.throwableType)}),
+                new ArrayDeque<>(
+                    Arrays.asList(
+                        FrameType.initialized(
+                            options.itemFactory.createType("Ljava/lang/Exception;"))))),
+            new CfStore(ValueType.OBJECT, 1),
+            label4,
+            new CfConstNumber(0, ValueType.INT),
+            new CfNewArray(options.itemFactory.createType("[Ljava/lang/Throwable;")),
+            new CfReturn(ValueType.OBJECT),
+            label5),
+        ImmutableList.of(
+            new CfTryCatch(
+                label0,
+                label2,
+                ImmutableList.of(options.itemFactory.createType("Ljava/lang/Exception;")),
+                ImmutableList.of(label3))),
         ImmutableList.of());
   }
 

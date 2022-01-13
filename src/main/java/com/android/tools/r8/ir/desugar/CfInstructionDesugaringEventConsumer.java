@@ -162,7 +162,7 @@ public abstract class CfInstructionDesugaringEventConsumer
 
     @Override
     public void acceptTwrCloseResourceMethod(ProgramMethod closeMethod, ProgramMethod context) {
-      methodProcessor.scheduleDesugaredMethodForProcessing(closeMethod);
+      methodProcessor.scheduleMethodForProcessing(closeMethod, this);
     }
 
     @Override

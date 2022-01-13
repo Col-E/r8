@@ -36,19 +36,11 @@ public abstract class TryWithResources {
       dumpException(cause, indent + "  cause: ");
     }
 
-    // Dump suppressed UNLESS it is a desugared code running
-    // on JVM, in which case we avoid dumping suppressed, since
-    // the output will be used for comparison with desugared code
-    // running on device.
-    if (!desugaredCodeRunningOnJvm()) {
-      Throwable[] suppressed = e.getSuppressed();
-      for (int i = 0; i < suppressed.length; i++) {
-        dumpException(suppressed[i], indent + "supp[" + i + "]: ");
-      }
+    Throwable[] suppressed = e.getSuppressed();
+    for (int i = 0; i < suppressed.length; i++) {
+      dumpException(suppressed[i], indent + "supp[" + i + "]: ");
     }
   }
-
-  abstract boolean desugaredCodeRunningOnJvm();
 
   // --- TEST SYMBOLS ---
 
@@ -190,9 +182,7 @@ public abstract class TryWithResources {
       packer.act(new RuntimeException("original exception Z"));
 
       for (Throwable unpacked : unpacker.get()) {
-        if (!desugaredCodeRunningOnJvm()) {
-          dumpException(unpacked);
-        }
+        dumpException(unpacked);
       }
     }
   }

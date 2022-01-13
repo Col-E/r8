@@ -49,9 +49,18 @@ public class CloseResourceMethod {
         }
       }
     } catch (Throwable e) {
-      // NOTE: we don't call addSuppressed(...) since the call will be removed
-      // by try-with-resource desugar anyways.
-      throw throwable != null ? throwable : e;
+      if (throwable != null) {
+        // TODO(b/168568827): Directly call Throwable.addSuppressed once fixed.
+        try {
+          Method method = Throwable.class.getDeclaredMethod("addSuppressed", Throwable.class);
+          method.invoke(throwable, e);
+        } catch (Exception ignore) {
+          // Don't add anything when not natively supported.
+        }
+        throw throwable;
+      } else {
+        throw e;
+      }
     }
   }
 }

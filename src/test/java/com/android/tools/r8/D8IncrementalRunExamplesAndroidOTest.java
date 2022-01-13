@@ -99,6 +99,7 @@ public abstract class D8IncrementalRunExamplesAndroidOTest
           Assert.assertTrue(
               descriptor.endsWith(getCompanionClassNameSuffix() + ";")
                   || SyntheticItemsTestUtils.isExternalTwrCloseMethod(reference)
+                  || SyntheticItemsTestUtils.isMaybeExternalSuppressedExceptionMethod(reference)
                   || SyntheticItemsTestUtils.isExternalLambda(reference)
                   || SyntheticItemsTestUtils.isExternalStaticInterfaceCall(reference)
                   || descriptor.equals(mainClassDescriptor));

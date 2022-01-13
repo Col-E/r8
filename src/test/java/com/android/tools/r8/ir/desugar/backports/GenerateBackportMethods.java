@@ -51,6 +51,7 @@ public class GenerateBackportMethods extends MethodGenerationBase {
           ShortMethods.class,
           StreamMethods.class,
           StringMethods.class,
+          ThrowableMethods.class,
           UnsafeMethods.class);
 
   protected final TestParameters parameters;

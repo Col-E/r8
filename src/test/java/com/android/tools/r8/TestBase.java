@@ -1788,6 +1788,10 @@ public class TestBase {
     return AndroidApiLevel.K;
   }
 
+  public static AndroidApiLevel apiLevelWithSuppressedExceptionsSupport() {
+    return AndroidApiLevel.K;
+  }
+
   public static AndroidApiLevel apiLevelWithPcAsLineNumberSupport() {
     return AndroidApiLevel.O;
   }
