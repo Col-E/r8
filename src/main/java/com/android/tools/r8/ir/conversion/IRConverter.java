@@ -81,6 +81,7 @@ import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -96,6 +97,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -1212,6 +1214,20 @@ public class IRConverter {
     }
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
+
+    // Update the IR code if collected call site optimization info has something useful.
+    // While aggregation of parameter information at call sites would be more precise than static
+    // types, those could be still less precise at one single call site, where specific arguments
+    // will be passed during (double) inlining. Instead of adding assumptions and removing invalid
+    // ones, it's better not to insert assumptions for inlinee in the beginning.
+    CallSiteOptimizationInfo callSiteOptimizationInfo =
+        context.getOptimizationInfo().getArgumentInfos();
+    if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo() && appView.hasLiveness()) {
+      ArgumentPropagatorIROptimizer.optimize(
+          appView.withLiveness(),
+          code,
+          callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
+    }
 
     if (assumeInserter != null) {
       assumeInserter.insertAssumeInstructions(code, timing);

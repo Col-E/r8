@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -31,6 +32,7 @@ public class RepackageWithOverridesOfPackagePrivateMethodsTest extends Repackage
         .apply(this::configureRepackaging)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -52,11 +54,13 @@ public class RepackageWithOverridesOfPackagePrivateMethodsTest extends Repackage
     }
 
     @NeverInline
+    @NoParameterTypeStrengthening
     static void greet(HelloGreeterBase greeter) {
       greeter.greet();
     }
 
     @NeverInline
+    @NoParameterTypeStrengthening
     static void greet(WorldGreeterBase greeter) {
       greeter.greet();
     }

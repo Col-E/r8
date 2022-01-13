@@ -120,9 +120,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
-import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
-import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Pair;
@@ -746,26 +744,6 @@ public class IRBuilder {
       assert canUseStackMapTypes() && !hasIncorrectStackMapTypes;
       assert allPhisAreStackMapPhis(ir);
       new TypeAnalysis(appView).narrowing(ir);
-    }
-
-    // Update the IR code if collected call site optimization info has something useful.
-    // While aggregation of parameter information at call sites would be more precise than static
-    // types, those could be still less precise at one single call site, where specific arguments
-    // will be passed during (double) inlining. Instead of adding assumptions and removing invalid
-    // ones, it's better not to insert assumptions for inlinee in the beginning.
-    CallSiteOptimizationInfo callSiteOptimizationInfo =
-        getMethod().getOptimizationInfo().getArgumentInfos();
-    if (callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo() && method == context) {
-      // TODO(b/190154391): Consider pruning all argument information from the optimization info
-      //  after the second optimization pass. That way we save memory and can assert here that
-      //  !appView.hasLiveness() (which currently may happen due to the reflective behavior
-      //  handling in the final round of tree shaking).
-      if (appView.hasLiveness()) {
-        ArgumentPropagatorIROptimizer.optimize(
-            appView.withLiveness(),
-            ir,
-            callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo());
-      }
     }
 
     if (appView.options().isStringSwitchConversionEnabled()) {

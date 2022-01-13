@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
 import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
@@ -60,7 +61,7 @@ import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
-import com.android.tools.r8.ir.code.Assume;
+import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -685,47 +686,28 @@ public class LensCodeRewriter {
             }
             break;
 
-          case ASSUME:
+          case ARGUMENT:
             {
-              // TODO(b/174543992): It's not clear we should rewrite the assumes here. The code
-              // present fixes the problem for enum unboxing, but not for lambda merging.
-              // The LensCodeRewriter is run before most assume instructions are inserted, however,
-              // the call site optimization may propagate assumptions at IR building time, and such
-              // assumes are already present.
-              // R8 clears the assumes if the type is rewritten to a primitive type.
-              Assume assume = current.asAssume();
-              if (assume.hasOutValue()) {
-                TypeElement type = assume.getOutType();
-                TypeElement substituted = type.rewrittenWithLens(appView, graphLens);
-                if (substituted != type) {
-                  assert type.isArrayType() || type.isClassType();
-                  affectedPhis.addAll(assume.outValue().uniquePhiUsers());
-                  if (substituted.isPrimitiveType()) {
-                    assert type.isClassType();
-                    assert appView.unboxedEnums().isUnboxedEnum(type.asClassType().getClassType());
-                    // Any assumption of a class type being converted to a primitive type is
-                    // invalid. Dynamic type is irrelevant and non null is incorrect.
-                    assume.outValue().replaceUsers(assume.src());
-                    iterator.removeOrReplaceByDebugLocalRead();
-                  } else if (substituted.isPrimitiveArrayType()) {
-                    assert type.isArrayType();
-                    // Non-null assumptions on a class array type being converted to a primitive
-                    // array type remains, but dynamic type becomes irrelevant.
-                    assume.unsetDynamicTypeAssumption();
-                    if (assume.hasNonNullAssumption()) {
-                      assume.outValue().setType(substituted);
-                    } else {
-                      assume.outValue().replaceUsers(assume.src());
-                      iterator.removeOrReplaceByDebugLocalRead();
-                    }
-                  } else {
-                    assert !substituted.isPrimitiveType();
-                    assert !substituted.isPrimitiveArrayType();
-                    current.outValue().setType(substituted);
-                  }
-                }
+              Argument argument = current.asArgument();
+              TypeElement currentArgumentType = argument.getOutType();
+              TypeElement newArgumentType =
+                  method
+                      .getArgumentType(argument.getIndex())
+                      .toTypeElement(appView, currentArgumentType.nullability());
+              if (!newArgumentType.equals(currentArgumentType)) {
+                affectedPhis.addAll(argument.outValue().uniquePhiUsers());
+                iterator.replaceCurrentInstruction(
+                    Argument.builder()
+                        .setIndex(argument.getIndex())
+                        .setFreshOutValue(code, newArgumentType)
+                        .setPosition(argument)
+                        .build());
               }
             }
+            break;
+
+          case ASSUME:
+            assert false;
             break;
 
           default:
