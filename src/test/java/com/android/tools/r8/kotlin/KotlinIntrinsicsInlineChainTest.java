@@ -78,7 +78,11 @@ public class KotlinIntrinsicsInlineChainTest extends KotlinTestBase {
               MethodSubject main = mainClass.mainMethod();
               long checkParameterIsNotNull = countCall(main, "checkParameterIsNotNull");
               long checkNotNullParameter = countCall(main, "checkNotNullParameter");
-              if (parameters.isDexRuntime()
+              if (kotlinc.getCompilerVersion().isGreaterThan(KotlinCompilerVersion.KOTLINC_1_6_0)) {
+                assertEquals(
+                    BooleanUtils.intValue(!allowAccessModification), checkNotNullParameter);
+                assertEquals(0, checkParameterIsNotNull);
+              } else if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.I)) {
                 assertEquals(0, checkNotNullParameter);
                 assertEquals(0, checkParameterIsNotNull);
