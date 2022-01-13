@@ -820,7 +820,9 @@ public class ArgumentPropagatorProgramOptimizer {
       assert newReturnTypeElement.isTop()
           || newReturnTypeElement.lessThanOrEqual(staticType.toTypeElement(appView), appView);
       if (!newReturnTypeElement.isClassType()) {
-        assert newReturnTypeElement.isArrayType() || newReturnTypeElement.isTop();
+        assert newReturnTypeElement.isArrayType()
+            || newReturnTypeElement.isNullType()
+            || newReturnTypeElement.isTop();
         return null;
       }
       DexType newReturnType = newReturnTypeElement.asClassType().toDexType(dexItemFactory);
