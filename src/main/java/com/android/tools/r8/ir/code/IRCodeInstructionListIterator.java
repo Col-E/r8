@@ -45,6 +45,17 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public InvokeMethod insertNullCheckInstruction(
+      AppView<?> appView,
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Value value,
+      Position position) {
+    return instructionIterator.insertNullCheckInstruction(
+        appView, code, blockIterator, value, position);
+  }
+
+  @Override
   public boolean replaceCurrentInstructionByNullCheckIfPossible(
       AppView<?> appView, ProgramMethod context) {
     return instructionIterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);

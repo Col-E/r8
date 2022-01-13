@@ -69,6 +69,17 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public InvokeMethod insertNullCheckInstruction(
+      AppView<?> appView,
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Value value,
+      Position position) {
+    return currentBlockIterator.insertNullCheckInstruction(
+        appView, code, blockIterator, value, position);
+  }
+
+  @Override
   public boolean replaceCurrentInstructionByNullCheckIfPossible(
       AppView<?> appView, ProgramMethod context) {
     return currentBlockIterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);

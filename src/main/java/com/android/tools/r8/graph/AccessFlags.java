@@ -230,8 +230,9 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     promote(Constants.ACC_FINAL);
   }
 
-  public void demoteFromFinal() {
+  public T demoteFromFinal() {
     demote(Constants.ACC_FINAL);
+    return self();
   }
 
   public boolean isPromotedToPublic() {

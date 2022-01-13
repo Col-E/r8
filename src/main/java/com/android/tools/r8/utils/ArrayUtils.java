@@ -47,39 +47,6 @@ public class ArrayUtils {
     return results;
   }
 
-  /**
-   * Filters the input array based on the given predicate.
-   *
-   * @param clazz target type's Class to cast
-   * @param original an array of original elements
-   * @param filter a predicate that tells us what to keep
-   * @param <T> target type
-   * @return a partial copy of the original array
-   */
-  public static <T> T[] filter(Class<T[]> clazz, T[] original, Predicate<T> filter) {
-    ArrayList<T> filtered = null;
-    for (int i = 0; i < original.length; i++) {
-      T elt = original[i];
-      if (filter.test(elt)) {
-        if (filtered != null) {
-          filtered.add(elt);
-        }
-      } else {
-        if (filtered == null) {
-          filtered = new ArrayList<>(original.length);
-          for (int j = 0; j < i; j++) {
-            filtered.add(original[j]);
-          }
-        }
-      }
-    }
-    if (filtered == null) {
-      return original;
-    }
-    return filtered.toArray(
-        clazz.cast(Array.newInstance(clazz.getComponentType(), filtered.size())));
-  }
-
   public static <T> boolean isEmpty(T[] array) {
     return array.length == 0;
   }
@@ -131,8 +98,23 @@ public class ArrayUtils {
     return results != null ? results.toArray(emptyArray) : original;
   }
 
-  public static <T> T[] filter(T[] original, Predicate<T> test, T[] emptyArray) {
-    return map(original, e -> test.test(e) ? e : null, emptyArray);
+  public static <T> T[] filter(T[] original, Predicate<T> predicate, T[] emptyArray) {
+    return map(original, e -> predicate.test(e) ? e : null, emptyArray);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> T[] filter(T[] original, Predicate<T> predicate, T[] emptyArray, int newSize) {
+    T[] result = (T[]) Array.newInstance(emptyArray.getClass().getComponentType(), newSize);
+    int newIndex = 0;
+    for (int originalIndex = 0; originalIndex < original.length; originalIndex++) {
+      T element = original[originalIndex];
+      if (predicate.test(element)) {
+        result[newIndex] = element;
+        newIndex++;
+      }
+    }
+    assert newIndex == newSize;
+    return result;
   }
 
   public static int[] createIdentityArray(int size) {

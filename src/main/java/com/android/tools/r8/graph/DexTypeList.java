@@ -64,7 +64,7 @@ public class DexTypeList extends DexItem implements Iterable<DexType>, Structura
   }
 
   public DexTypeList keepIf(Predicate<DexType> predicate) {
-    DexType[] filtered = ArrayUtils.filter(DexType[].class, values, predicate);
+    DexType[] filtered = ArrayUtils.filter(values, predicate, DexType.EMPTY_ARRAY);
     if (filtered != values) {
       return DexTypeList.create(filtered);
     }

@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IntObjConsumer;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -450,6 +451,11 @@ public class RewrittenPrototypeDescription {
       return removed;
     }
 
+    public int numberOfRemovedNonReceiverArguments(DexEncodedMethod method) {
+      return numberOfRemovedArguments()
+          - BooleanUtils.intValue(method.isInstance() && isArgumentRemoved(0));
+    }
+
     public boolean hasArgumentInfo(int argumentIndex) {
       return argumentInfos.containsKey(argumentIndex);
     }
@@ -542,14 +548,12 @@ public class RewrittenPrototypeDescription {
     }
 
     public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
-      // Currently not allowed to remove the receiver of an instance method. This would involve
-      // changing invoke-direct/invoke-virtual into invoke-static.
-      assert encodedMethod.isStatic() || !getArgumentInfo(0).isRemovedArgumentInfo();
-      DexType[] params = encodedMethod.getReference().proto.parameters.values;
+      DexType[] params = encodedMethod.getParameters().values;
       if (isEmpty()) {
         return params;
       }
-      DexType[] newParams = new DexType[params.length - numberOfRemovedArguments()];
+      DexType[] newParams =
+          new DexType[params.length - numberOfRemovedNonReceiverArguments(encodedMethod)];
       int offset = encodedMethod.getFirstNonReceiverArgumentIndex();
       int newParamIndex = 0;
       for (int oldParamIndex = 0; oldParamIndex < params.length; oldParamIndex++) {

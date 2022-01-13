@@ -100,6 +100,13 @@ public interface InstructionListIterator
 
   Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value);
 
+  InvokeMethod insertNullCheckInstruction(
+      AppView<?> appView,
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Value value,
+      Position position);
+
   boolean replaceCurrentInstructionByNullCheckIfPossible(AppView<?> appView, ProgramMethod context);
 
   boolean replaceCurrentInstructionByInitClassIfPossible(

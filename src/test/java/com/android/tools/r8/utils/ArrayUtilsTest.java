@@ -113,7 +113,7 @@ public class ArrayUtilsTest extends TestBase {
   public void testFilter_identity() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.filter(Integer[].class, input, x -> true);
+    Integer[] output = ArrayUtils.filter(input, x -> true, new Integer[0]);
     assertEquals(input, output);
   }
 
@@ -121,7 +121,7 @@ public class ArrayUtilsTest extends TestBase {
   public void testFilter_dropOdd() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.filter(Integer[].class, input, x -> x % 2 == 0);
+    Integer[] output = ArrayUtils.filter(input, x -> x % 2 == 0, new Integer[0]);
     assertNotEquals(input, output);
     assertEquals(2, output.length);
     assertEquals(0, (int) output[0]);
@@ -132,7 +132,7 @@ public class ArrayUtilsTest extends TestBase {
   public void testFilter_dropAll() {
     int size = 3;
     Integer[] input = createInputData(size);
-    Integer[] output = ArrayUtils.filter(Integer[].class, input, x -> false);
+    Integer[] output = ArrayUtils.filter(input, x -> false, new Integer[0]);
     assertNotEquals(input, output);
     assertEquals(0, output.length);
   }

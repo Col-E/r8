@@ -19,10 +19,13 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Move;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -61,6 +64,16 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public InvokeMethod insertNullCheckInstruction(
+        AppView<?> appView,
+        IRCode code,
+        BasicBlockIterator blockIterator,
+        Value value,
+        Position position) {
       throw new Unimplemented();
     }
 

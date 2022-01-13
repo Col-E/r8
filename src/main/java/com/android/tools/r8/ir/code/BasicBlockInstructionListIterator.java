@@ -275,6 +275,40 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
+  public InvokeMethod insertNullCheckInstruction(
+      AppView<?> appView,
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Value value,
+      Position position) {
+    InternalOptions options = appView.options();
+
+    InvokeMethod invoke;
+    if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
+      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
+      invoke =
+          InvokeStatic.builder()
+              .setMethod(requireNonNullMethod)
+              .setSingleArgument(value)
+              .setPosition(position)
+              .build();
+    } else {
+      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+      invoke =
+          InvokeVirtual.builder()
+              .setMethod(getClassMethod)
+              .setSingleArgument(value)
+              .setPosition(position)
+              .build();
+    }
+    add(invoke);
+    if (block.hasCatchHandlers()) {
+      splitCopyCatchHandlers(code, blockIterator, options);
+    }
+    return invoke;
+  }
+
+  @Override
   public boolean replaceCurrentInstructionByNullCheckIfPossible(
       AppView<?> appView, ProgramMethod context) {
     Instruction toBeReplaced = current;

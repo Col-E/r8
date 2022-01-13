@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -337,33 +338,75 @@ public class MethodArrayBacking extends MethodCollectionBacking {
 
   @Override
   public void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
-    replaceDirectMethods(replacement);
-    replaceVirtualMethods(replacement);
+    List<DexEncodedMethod> newVirtualMethods = internalReplaceDirectMethods(replacement);
+    List<DexEncodedMethod> newDirectMethods = internalReplaceVirtualMethods(replacement);
+    addDirectMethods(newDirectMethods);
+    addVirtualMethods(newVirtualMethods);
   }
 
   @Override
   public void replaceDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    List<DexEncodedMethod> newVirtualMethods = internalReplaceDirectMethods(replacement);
+    addVirtualMethods(newVirtualMethods);
+  }
+
+  private List<DexEncodedMethod> internalReplaceDirectMethods(
+      Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
     for (int i = 0; i < directMethods.length; i++) {
       DexEncodedMethod method = directMethods[i];
       DexEncodedMethod newMethod = replacement.apply(method);
       assert newMethod != null;
       if (method != newMethod) {
-        assert belongsToDirectPool(newMethod);
-        directMethods[i] = newMethod;
+        if (belongsToDirectPool(newMethod)) {
+          directMethods[i] = newMethod;
+        } else {
+          directMethods[i] = null;
+          newVirtualMethods.add(newMethod);
+        }
       }
     }
+    if (!newVirtualMethods.isEmpty()) {
+      directMethods =
+          ArrayUtils.filter(
+              directMethods,
+              Objects::nonNull,
+              DexEncodedMethod.EMPTY_ARRAY,
+              directMethods.length - newVirtualMethods.size());
+    }
+    return newVirtualMethods;
   }
 
   @Override
   public void replaceVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    List<DexEncodedMethod> newDirectMethods = internalReplaceVirtualMethods(replacement);
+    addDirectMethods(newDirectMethods);
+  }
+
+  private List<DexEncodedMethod> internalReplaceVirtualMethods(
+      Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    List<DexEncodedMethod> newDirectMethods = new ArrayList<>();
     for (int i = 0; i < virtualMethods.length; i++) {
       DexEncodedMethod method = virtualMethods[i];
       DexEncodedMethod newMethod = replacement.apply(method);
       if (method != newMethod) {
-        assert belongsToVirtualPool(newMethod);
-        virtualMethods[i] = newMethod;
+        if (belongsToVirtualPool(newMethod)) {
+          virtualMethods[i] = newMethod;
+        } else {
+          virtualMethods[i] = null;
+          newDirectMethods.add(newMethod);
+        }
       }
     }
+    if (!newDirectMethods.isEmpty()) {
+      virtualMethods =
+          ArrayUtils.filter(
+              virtualMethods,
+              Objects::nonNull,
+              DexEncodedMethod.EMPTY_ARRAY,
+              virtualMethods.length - newDirectMethods.size());
+    }
+    return newDirectMethods;
   }
 
   @Override
