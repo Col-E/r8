@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package inlining;
 
+@NoHorizontalClassMerging
 class Nullability {
   private final int f;
   public final int publicField;
@@ -48,6 +49,7 @@ class Nullability {
     return a != null ? a.b() : -1;
   }
 
+  @NoMethodStaticizing
   int notInlinableOnThrow(Throwable t) throws Throwable {
     // NPE is not preserved if t is not a NullPointerException.
     throw t;
@@ -61,6 +63,7 @@ class Nullability {
     }
   }
 
+  @NoMethodStaticizing
   public int notInlinableDueToMissingNpeBeforeThrow(Throwable t) throws Throwable {
     try {
       throw t;

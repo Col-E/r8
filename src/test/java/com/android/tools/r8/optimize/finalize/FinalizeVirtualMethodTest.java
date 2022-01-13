@@ -11,6 +11,7 @@ import static org.hamcrest.core.AllOf.allOf;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,6 +40,7 @@ public class FinalizeVirtualMethodTest extends TestBase {
         .addKeepClassAndMembersRules(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -63,6 +65,7 @@ public class FinalizeVirtualMethodTest extends TestBase {
 
     // Should be made final.
     @NeverInline
+    @NoMethodStaticizing
     public void m() {
       System.out.println("A.m()");
     }

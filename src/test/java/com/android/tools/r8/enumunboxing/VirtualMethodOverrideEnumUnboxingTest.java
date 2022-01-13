@@ -11,6 +11,7 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -49,6 +50,7 @@ public class VirtualMethodOverrideEnumUnboxingTest extends EnumUnboxingTestBase 
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .addOptionsModification(options -> enableEnumOptions(options, enumValueOptimization))
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(MyEnum.class))
@@ -93,6 +95,7 @@ public class VirtualMethodOverrideEnumUnboxingTest extends EnumUnboxingTestBase 
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     void m(int x, MyEnum y) {
       System.out.println("B.m(" + x + " : int, " + y.toString() + " : MyEnum)");
     }

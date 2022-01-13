@@ -501,6 +501,7 @@ public class B77836766 extends TestBase {
   }
 
   private void configure(InternalOptions options) {
+    options.callSiteOptimizationOptions().setEnableMethodStaticizing(false);
     // Callees are invoked with a simple constant, e.g., "Bar". Propagating it into the callees
     // bothers what the tests want to check, such as exact instructions in the body that include
     // invocation kinds, like virtual call to a bridge.

@@ -11,6 +11,7 @@ import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -55,6 +56,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument changes.
         .noMinification()
@@ -112,11 +114,13 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public Object m(String arg) {
       return System.currentTimeMillis() >= 0 ? arg : null;
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public Object m2(String arg) {
       return System.currentTimeMillis() >= 0 ? arg : null;
     }
@@ -129,6 +133,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
     // invoke-virtual instruction.
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String superBridge(Object o) {
       return (String) super.m((String) o);
     }
@@ -136,6 +141,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
     // This bridge can be hoisted to A.
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String virtualBridge(Object o) {
       return (String) m((String) o);
     }
@@ -148,6 +154,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
     // By hoisting B1.superBridge() to A this method bridge redundant.
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String superBridge(Object o) {
       return (String) super.m((String) o);
     }
@@ -155,6 +162,7 @@ public class PositiveBridgeHoistingTest extends TestBase {
     // By hoisting B1.virtualBridge() to A this method bridge redundant.
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String virtualBridge(Object o) {
       return (String) m((String) o);
     }
@@ -182,12 +190,14 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public String superBridge(Object o) {
       return System.currentTimeMillis() >= 0 ? ((String) o) : null;
     }
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public String virtualBridge(Object o) {
       return System.currentTimeMillis() >= 0 ? ((String) o) : null;
     }
@@ -201,12 +211,14 @@ public class PositiveBridgeHoistingTest extends TestBase {
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String superBridge(Object o) {
       return (String) super.m2((String) o);
     }
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String virtualBridge(Object o) {
       return (String) m2((String) o);
     }

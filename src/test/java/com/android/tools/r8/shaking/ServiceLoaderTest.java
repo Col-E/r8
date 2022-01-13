@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -92,6 +93,7 @@ public class ServiceLoaderTest extends TestBase {
                 })
             .enableGraphInspector()
             .enableMemberValuePropagationAnnotations()
+            .enableNoMethodStaticizingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
@@ -189,6 +191,7 @@ public class ServiceLoaderTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer);
                   options.dataResourceConsumer = dataResourceConsumer;
                 })
+            .enableNoMethodStaticizingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), OtherTestClass.class)
             .assertSuccessWithOutput(expectedOutput)
@@ -230,6 +233,7 @@ public class ServiceLoaderTest extends TestBase {
   public static class HelloGreeter implements Greeter {
 
     @NeverPropagateValue
+    @NoMethodStaticizing
     @Override
     public String greeting() {
       return "Hello";
@@ -238,6 +242,7 @@ public class ServiceLoaderTest extends TestBase {
 
   public static class WorldGreeter implements Greeter {
 
+    @NoMethodStaticizing
     @Override
     public String greeting() {
       return " world!";

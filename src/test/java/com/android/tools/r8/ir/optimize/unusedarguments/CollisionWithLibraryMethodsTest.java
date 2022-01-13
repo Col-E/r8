@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,6 +51,7 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableInliningAnnotations()
         .minification(minification)
         .setMinApi(parameters.getApiLevel())
@@ -87,6 +89,7 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
 
     @NeverInline
     @NeverPropagateValue
+    @NoMethodStaticizing
     public String toString(Object unused) {
       System.out.print("Hello ");
       return "world!";

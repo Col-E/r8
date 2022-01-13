@@ -12,32 +12,32 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfRuleWithAccessRelaxationTest extends TestBase {
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  public IfRuleWithAccessRelaxationTest(Backend backend) {
-    this.backend = backend;
-  }
-
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void r8Test() throws Exception {
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(IfRuleWithAccessRelaxationTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
@@ -54,6 +54,8 @@ public class IfRuleWithAccessRelaxationTest extends TestBase {
                 "-keep class " + Unused3.class.getTypeName())
             .allowAccessModification()
             .enableInliningAnnotations()
+            .enableNoMethodStaticizingAnnotations()
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .inspector();
 
@@ -80,6 +82,7 @@ public class IfRuleWithAccessRelaxationTest extends TestBase {
     protected int field = 42;
 
     @NeverInline
+    @NoMethodStaticizing
     private void privateMethod() {
       System.out.println("In privateMethod()");
     }

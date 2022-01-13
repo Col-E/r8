@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
@@ -26,6 +27,7 @@ public class NoAbstractClassesWithNonAbstractClassesTest extends HorizontalClass
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -47,6 +49,7 @@ public class NoAbstractClassesWithNonAbstractClassesTest extends HorizontalClass
   @NeverClassInline
   public static class B {
     @NeverInline
+    @NoMethodStaticizing
     public void bar() {
       System.out.println("bar");
     }

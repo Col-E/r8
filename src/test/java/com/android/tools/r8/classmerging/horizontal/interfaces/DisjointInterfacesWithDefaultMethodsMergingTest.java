@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoUnusedInterfaceRemoval;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -50,6 +51,7 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
             })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -80,6 +82,7 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
   @NoVerticalClassMerging
   interface I {
     @NeverInline
+    @NoMethodStaticizing
     default void f() {
       System.out.println("I");
     }
@@ -89,6 +92,7 @@ public class DisjointInterfacesWithDefaultMethodsMergingTest extends TestBase {
   @NoVerticalClassMerging
   interface J {
     @NeverInline
+    @NoMethodStaticizing
     default void g() {
       System.out.println("J");
     }

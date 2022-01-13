@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -58,31 +59,37 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     private Object privateMethod(Object a) {
       return a;
     }
 
     @NeverInline
+    @NoMethodStaticizing
     private Object privateMethod(Object a, Object b) {
       return a;
     }
 
     @NeverInline
+    @NoMethodStaticizing
     private Object privateMethod(Object a, Object b, Object c) {
       return a;
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public Object publicMethod(Object a) {
       return a;
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public Object publicMethod(Object a, Object b) {
       return a;
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public Object publicMethod(Object a, Object b, Object c) {
       return a;
     }
@@ -106,7 +113,10 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
 
   @Override
   public void configure(R8FullTestBuilder builder) {
-    builder.enableNeverClassInliningAnnotations().enableInliningAnnotations();
+    builder
+        .enableNeverClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations();
   }
 
   @Override

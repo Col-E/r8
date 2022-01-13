@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -49,6 +50,7 @@ public class MainDexUnusedArgumentRewriteWithLensTest extends TestBase {
         .addInnerClasses(getClass())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addKeepClassRules(Dependency.class)
         .addMainDexRules(
@@ -101,6 +103,7 @@ public class MainDexUnusedArgumentRewriteWithLensTest extends TestBase {
 
     // Will be rewritten because it has an unused argument
     @NeverInline
+    @NoMethodStaticizing
     public void foo(Object obj, int argumentUnused) {
       B.foo(obj);
     }

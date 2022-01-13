@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -54,6 +55,7 @@ public class ApiModelNoVerticalMergingSubReferenceApiTest extends TestBase {
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .addVerticallyMergedClassesInspector(
             inspector -> {
               if (parameters.isDexRuntime()
@@ -105,6 +107,7 @@ public class ApiModelNoVerticalMergingSubReferenceApiTest extends TestBase {
   public static class Sub extends Base {
 
     @NeverInline
+    @NoMethodStaticizing
     public void callCallApi() {
       System.out.println("Sub::callCallApi");
       callApi();

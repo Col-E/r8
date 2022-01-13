@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaTy
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -50,6 +51,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .addKeepMainRule(Main.class)
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class)
@@ -75,6 +77,7 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
 
   public interface I {
 
+    @NoMethodStaticizing
     default void foo() {
       System.out.println("Hello World!");
     }

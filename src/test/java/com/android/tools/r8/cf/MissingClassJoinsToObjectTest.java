@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -52,6 +53,7 @@ public class MissingClassJoinsToObjectTest extends TestBase {
             .addProgramClasses(TestClass.class, A.class)
             .addKeepMainRule(TestClass.class)
             .addDontWarn(B.class)
+            .enableNoMethodStaticizingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .addRunClasspathFiles(getRuntimeClasspath())
@@ -66,6 +68,7 @@ public class MissingClassJoinsToObjectTest extends TestBase {
 
   static class A {
     @NeverInline
+    @NoMethodStaticizing
     public void foo() {
       System.out.println("A::foo");
     }

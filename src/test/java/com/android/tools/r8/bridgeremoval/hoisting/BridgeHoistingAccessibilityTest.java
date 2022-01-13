@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -75,6 +76,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with argument changes.
@@ -125,6 +127,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // in TestClass.main().
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     /*bridge*/ String bridgeB(Object o) {
       return (String) m((String) o);
     }
@@ -138,6 +141,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // access bridgeC() via class C. From B, the bridge can be hoisted again to A.
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String bridgeC(Object o) {
       return (String) m((String) o);
     }
@@ -150,6 +154,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // in TestClass.main().
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     /*bridge*/ String bridgeB(Object o, int a, int b, int c, int d, int e) {
       return (String) m((String) o, a, b, c, d, e);
     }
@@ -163,6 +168,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     // access bridgeC() via class C. From B, the bridge can be hoisted again to A.
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public /*bridge*/ String bridgeC(Object o, int a, int b, int c, int d, int e) {
       return (String) m((String) o, a, b, c, d, e);
     }

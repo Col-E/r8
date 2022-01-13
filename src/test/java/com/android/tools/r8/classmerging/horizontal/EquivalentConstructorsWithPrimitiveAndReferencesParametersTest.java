@@ -44,6 +44,8 @@ public class EquivalentConstructorsWithPrimitiveAndReferencesParametersTest exte
         .addHorizontallyMergedClassesInspector(
             inspector ->
                 inspector.assertIsCompleteMergeGroup(A.class, B.class).assertNoOtherClassesMerged())
+        .addOptionsModification(
+            options -> options.callSiteOptimizationOptions().setEnableMethodStaticizing(false))
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableUnusedArgumentAnnotations()

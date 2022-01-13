@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoParameterTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
@@ -44,6 +45,7 @@ public class InvokeDirectPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeDirectPositiveTest.class)
         .addKeepMainRule(MAIN)
+        .enableNoMethodStaticizingAnnotations()
         .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -109,6 +111,7 @@ public class InvokeDirectPositiveTest extends TestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     @NoParameterTypeStrengthening
     private void test(Base arg) {
       if (arg instanceof Sub1) {

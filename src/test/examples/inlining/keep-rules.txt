@@ -17,3 +17,7 @@
 -keepconstantarguments class * {
   @inlining.KeepConstantArguments <methods>;
 }
+-nohorizontalclassmerging @inlining.NoHorizontalClassMerging class *
+-nomethodstaticizing class * {
+  @inlining.NoMethodStaticizing <methods>;
+}

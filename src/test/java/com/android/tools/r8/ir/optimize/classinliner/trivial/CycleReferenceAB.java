@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.trivial;
 
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 
 @NoHorizontalClassMerging
 public class CycleReferenceAB {
@@ -14,6 +15,7 @@ public class CycleReferenceAB {
     this.a = a;
   }
 
+  @NoMethodStaticizing
   public void foo(int depth) {
     CycleReferenceBA ba = new CycleReferenceBA("depth=" + depth);
     System.out.println("CycleReferenceAB::foo(" + depth + ")");

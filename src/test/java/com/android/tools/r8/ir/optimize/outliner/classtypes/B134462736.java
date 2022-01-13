@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -66,6 +67,7 @@ public class B134462736 extends TestBase {
         .addInnerClasses(B134462736.class)
         .addKeepMainRule(TestClass.class)
         .enableConstantArgumentAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .noMinification()
         .addOptionsModification(
@@ -83,6 +85,7 @@ public class B134462736 extends TestBase {
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public void consumer(String arg1, String arg2) {
       System.out.println(arg1 + " " + arg2);
     }

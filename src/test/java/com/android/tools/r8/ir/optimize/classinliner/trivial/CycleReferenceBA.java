@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.trivial;
 
+import com.android.tools.r8.NoMethodStaticizing;
+
 public class CycleReferenceBA {
   private String a;
 
@@ -11,6 +13,7 @@ public class CycleReferenceBA {
     this.a = a;
   }
 
+  @NoMethodStaticizing
   public void foo(int depth) {
     CycleReferenceAB ab = new CycleReferenceAB("depth=" + depth);
     System.out.println("CycleReferenceBA::foo(" + depth + ")");

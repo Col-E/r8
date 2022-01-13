@@ -7,6 +7,7 @@ package com.android.tools.r8.bridgeremoval.hoisting.testclasses;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.bridgeremoval.hoisting.BridgeHoistingAccessibilityTest;
 import com.android.tools.r8.bridgeremoval.hoisting.BridgeHoistingAccessibilityTest.CWithRangedInvoke;
@@ -18,6 +19,7 @@ public class BridgeHoistingAccessibilityTestClasses {
   public static class A {
 
     @NeverInline
+    @NoMethodStaticizing
     public Object m(String arg) {
       return System.currentTimeMillis() > 0 ? arg : null;
     }
@@ -37,6 +39,7 @@ public class BridgeHoistingAccessibilityTestClasses {
 
     @KeepConstantArguments
     @NeverInline
+    @NoMethodStaticizing
     public Object m(String arg, int a, int b, int c, int d, int e) {
       return System.currentTimeMillis() > 0 ? arg + a + b + c + d + e : null;
     }

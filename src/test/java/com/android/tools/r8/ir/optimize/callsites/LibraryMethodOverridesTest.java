@@ -8,12 +8,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -34,6 +36,7 @@ public class LibraryMethodOverridesTest extends TestBase {
         .withCfRuntimes()
         // java.util.function.Predicate is not available prior to API level 24 (V7.0).
         .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
         .build();
   }
 
@@ -44,10 +47,10 @@ public class LibraryMethodOverridesTest extends TestBase {
   public void testR8() throws Exception {
     R8TestCompileResult libraryCompileResult =
         testForR8(parameters.getBackend())
-        .addProgramClasses(LibClass.class)
-        .addKeepClassAndMembersRules(LibClass.class)
-        .setMinApi(parameters.getRuntime())
-        .compile();
+            .addProgramClasses(LibClass.class)
+            .addKeepClassAndMembersRules(LibClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, CustomPredicate.class)
         .addClasspathClasses(LibClass.class)
@@ -56,7 +59,8 @@ public class LibraryMethodOverridesTest extends TestBase {
             o ->
                 o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .enableNoMethodStaticizingAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())
         .run(parameters.getRuntime(), MAIN)
@@ -107,11 +111,13 @@ public class LibraryMethodOverridesTest extends TestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     private void live() {
       System.out.println("Live");
     }
 
     @NeverInline
+    @NoMethodStaticizing
     private void alsoLive() {
       System.out.println("Also live");
     }

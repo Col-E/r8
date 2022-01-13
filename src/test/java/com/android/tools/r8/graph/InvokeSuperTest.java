@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -146,6 +147,7 @@ public class InvokeSuperTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MainClassFailing.class)
         .addOptionsModification(o -> o.testing.allowTypeErrors = true)
+        .enableNoMethodStaticizingAnnotations()
         .run(parameters.getRuntime(), MainClassFailing.class)
         .apply(r -> checkNonVerifyingResult(r, true));
   }
@@ -190,6 +192,7 @@ public class InvokeSuperTest extends TestBase {
 
   static class SubClassOfInvokerClass extends InvokerClass {
 
+    @NoMethodStaticizing
     public void subLevel2Method() {
       System.out.println("subLevel2Method in SubClassOfInvokerClass");
     }

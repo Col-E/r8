@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -41,6 +42,7 @@ public class CollisionWithLibraryMethodAfterConstantParameterRemovalTest extends
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -77,6 +79,7 @@ public class CollisionWithLibraryMethodAfterConstantParameterRemovalTest extends
   static class A {
 
     @NeverInline
+    @NoMethodStaticizing
     public String toString(String whichOne) {
       return System.currentTimeMillis() > 0 ? whichOne : null;
     }

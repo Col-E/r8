@@ -10,9 +10,11 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -20,20 +22,18 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class VoidReturnTypeRewritingTest extends TestBase {
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public VoidReturnTypeRewritingTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -48,15 +48,17 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(VoidReturnTypeRewritingTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
+            .enableNoMethodStaticizingAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
             .addKeepRules("-dontobfuscate")
             .addOptionsModification(options -> options.enableClassInlining = false)
-            .run(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
 
@@ -116,6 +118,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public Uninstantiated createVirtual() {
       System.out.print("Factory.createVirtual()");
       return null;
@@ -127,6 +130,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
 
     @Override
     @NeverInline
+    @NoMethodStaticizing
     public Uninstantiated createVirtual() {
       System.out.print("SubFactory.createVirtual()");
       return null;
@@ -138,6 +142,7 @@ public class VoidReturnTypeRewritingTest extends TestBase {
 
     @Override
     @NeverInline
+    @NoMethodStaticizing
     public SubUninstantiated createVirtual() {
       System.out.print("SubSubFactory.createVirtual()");
       return null;

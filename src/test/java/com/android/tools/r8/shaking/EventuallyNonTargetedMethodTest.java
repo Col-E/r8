@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -19,27 +20,26 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class EventuallyNonTargetedMethodTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("A::foo", "C::bar");
 
-  private final TestParameters parameters;
+  @Parameter(0)
+  public TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public EventuallyNonTargetedMethodTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -78,11 +78,13 @@ public class EventuallyNonTargetedMethodTest extends TestBase {
 
     // Non-targeted override.
     @Override
+    @NoMethodStaticizing
     public void foo() {
       System.out.println("C::foo");
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public void bar() {
       System.out.println("C::bar");
     }

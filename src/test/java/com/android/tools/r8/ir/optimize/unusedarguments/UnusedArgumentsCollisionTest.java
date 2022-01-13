@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -59,6 +60,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .minification(minification)
         .setMinApi(parameters.getApiLevel())
@@ -119,6 +121,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
   static class A {
 
     @NeverInline
+    @NoMethodStaticizing
     public void method1() {
       System.out.print("Hello");
     }
@@ -138,6 +141,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public void method2(Object unused) {
       System.out.println(" world");
     }

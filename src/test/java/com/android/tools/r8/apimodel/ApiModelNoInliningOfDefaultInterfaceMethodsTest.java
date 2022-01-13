@@ -11,6 +11,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -50,6 +51,7 @@ public class ApiModelNoInliningOfDefaultInterfaceMethodsTest extends TestBase {
         .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         // We are testing that we do not inline/merge higher api-levels
         .apply(ApiModelingTestHelper::disableOutliningAndStubbing)
+        .enableNoMethodStaticizingAnnotations()
         .noMinification()
         .compile()
         .inspect(
@@ -94,6 +96,8 @@ public class ApiModelNoInliningOfDefaultInterfaceMethodsTest extends TestBase {
   }
 
   public interface ApiCaller {
+
+    @NoMethodStaticizing
     default void callApiLevel() {
       System.out.println("ApiCaller::callApiLevel");
       Api.apiLevel22();

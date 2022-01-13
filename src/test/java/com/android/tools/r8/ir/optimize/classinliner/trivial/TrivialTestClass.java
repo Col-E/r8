@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.classinliner.trivial;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 
 public class TrivialTestClass {
   private static int ID = 0;
@@ -88,6 +89,7 @@ public class TrivialTestClass {
   }
 
   @NeverInline
+  @NoMethodStaticizing
   private void testCycles() {
     new CycleReferenceAB("first").foo(3);
     new CycleReferenceBA("second").foo(4);

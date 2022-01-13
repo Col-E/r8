@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -43,6 +44,7 @@ public class InterfaceInitializedByImplementationTest extends TestBase {
         .addInnerClasses(InterfaceInitializedByImplementationTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .noMinification()
         .compile()
@@ -81,6 +83,7 @@ public class InterfaceInitializedByImplementationTest extends TestBase {
     // TODO(b/144266257): If tree shaking removes this method, then I.<clinit>() won't be run when
     //  A is being class initialized.
     @NeverInline
+    @NoMethodStaticizing
     default void m() {
       System.out.println(" world!");
     }

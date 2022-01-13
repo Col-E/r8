@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -42,6 +43,7 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
         .addInnerClasses(InvokeSuperToInvokeVirtualTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -98,6 +100,7 @@ public class InvokeSuperToInvokeVirtualTest extends TestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     void world() {
       System.out.println(" world!");
     }

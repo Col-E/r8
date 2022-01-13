@@ -15,6 +15,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -48,6 +49,7 @@ public class NonPublicOverrideOfPublicMethodAfterAbstractClassMergingTest extend
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -84,6 +86,7 @@ public class NonPublicOverrideOfPublicMethodAfterAbstractClassMergingTest extend
   abstract static class A {
 
     @NeverInline
+    @NoMethodStaticizing
     void m() {
       System.out.println("A.m()");
     }

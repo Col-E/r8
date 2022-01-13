@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.classmerging.horizontal.testclasses.InterfacesVisibilityTestClasses;
 import com.android.tools.r8.classmerging.horizontal.testclasses.InterfacesVisibilityTestClasses.ImplementingPackagePrivateInterface;
@@ -32,6 +33,7 @@ public class InterfacesVisibilityTest extends HorizontalClassMergingTestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .enableNoParameterTypeStrengtheningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -59,6 +61,7 @@ public class InterfacesVisibilityTest extends HorizontalClassMergingTestBase {
   @NeverClassInline
   public static class A {
     @NeverInline
+    @NoMethodStaticizing
     public void bar() {
       System.out.println("bar");
     }

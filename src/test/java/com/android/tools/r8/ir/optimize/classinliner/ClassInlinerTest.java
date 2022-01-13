@@ -87,6 +87,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .addProgramClasses(classes)
             .enableInliningAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
+            .enableNoMethodStaticizingAnnotations()
             .enableSideEffectAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
