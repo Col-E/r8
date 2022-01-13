@@ -143,6 +143,9 @@ public class IdentifierNameStringMarker {
       return iterator;
     }
     Value in = instruction.value();
+    if (in.isDexItemBasedConstString()) {
+      return iterator;
+    }
     if (!in.isConstString()) {
       warnUndeterminedIdentifierIfNecessary(field, code.context(), instruction, null);
       return iterator;

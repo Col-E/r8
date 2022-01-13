@@ -43,9 +43,6 @@ public class IdentifierNameStringReprocessingTest extends TestBase {
         .enableMemberValuePropagationAnnotations()
         .enableReprocessClassInitializerAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages()
-        // TODO(b/214263216): should not report spurious warning.
-        .compileWithExpectedDiagnostics(diagnostics -> diagnostics.assertWarningsCount(1))
         .run(parameters.getRuntime(), Main.class)
         .apply(
             runResult -> {
