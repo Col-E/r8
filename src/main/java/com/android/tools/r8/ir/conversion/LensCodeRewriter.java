@@ -34,7 +34,6 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 import static com.android.tools.r8.utils.ObjectUtils.getBooleanOrElse;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -338,10 +337,22 @@ public class LensCodeRewriter {
                   }
                 }
 
-                Value newOutValue =
-                    prototypeChanges.hasBeenChangedToReturnVoid()
-                        ? null
-                        : makeOutValue(invoke, code);
+                Value newOutValue;
+                if (prototypeChanges.hasRewrittenReturnInfo()) {
+                  if (invoke.hasOutValue() && !prototypeChanges.hasBeenChangedToReturnVoid()) {
+                    TypeElement newReturnType =
+                        prototypeChanges
+                            .getRewrittenReturnInfo()
+                            .getNewType()
+                            .toTypeElement(appView);
+                    newOutValue = code.createValue(newReturnType, invoke.getLocalInfo());
+                    affectedPhis.addAll(invoke.outValue().uniquePhiUsers());
+                  } else {
+                    newOutValue = null;
+                  }
+                } else {
+                  newOutValue = makeOutValue(invoke, code);
+                }
 
                 Map<SingleNumberValue, Map<DexType, Value>> parameterMap = new IdentityHashMap<>();
 
@@ -417,19 +428,6 @@ public class LensCodeRewriter {
                   } else {
                     iterator.add(constantReturnMaterializingInstruction);
                   }
-                }
-
-                DexType actualReturnType = actualTarget.proto.returnType;
-                DexType expectedReturnType = graphLens.lookupType(invokedMethod.proto.returnType);
-                if (newInvoke.hasOutValue() && actualReturnType != expectedReturnType) {
-                  throw new Unreachable(
-                      "Unexpected need to insert a cast. Possibly related to resolving"
-                          + " b/79143143.\n"
-                          + invokedMethod
-                          + " type changed from "
-                          + expectedReturnType
-                          + " to "
-                          + actualReturnType);
                 }
               }
             }
@@ -663,6 +661,9 @@ public class LensCodeRewriter {
               if (ret.isReturnVoid()) {
                 break;
               }
+
+              insertCastForReturnIfNeeded(code, blocks, iterator, ret);
+
               DexType returnType = code.context().getReturnType();
               Value retValue = ret.returnValue();
               DexType initialType =
@@ -817,6 +818,46 @@ public class LensCodeRewriter {
         assert next == invoke;
       }
     }
+    return iterator;
+  }
+
+  private InstructionListIterator insertCastForReturnIfNeeded(
+      IRCode code, BasicBlockIterator blocks, InstructionListIterator iterator, Return ret) {
+    RewrittenPrototypeDescription prototypeChanges =
+        appView
+            .graphLens()
+            .lookupPrototypeChangesForMethodDefinition(code.context().getReference());
+    if (!prototypeChanges.hasRewrittenReturnInfo()
+        || !prototypeChanges.getRewrittenReturnInfo().hasCastType()) {
+      return iterator;
+    }
+
+    iterator.previous();
+
+    // Split the block and reset the block iterator.
+    if (ret.getBlock().hasCatchHandlers()) {
+      BasicBlock splitBlock = iterator.splitCopyCatchHandlers(code, blocks, options);
+      BasicBlock previousBlock = blocks.previousUntil(block -> block == splitBlock);
+      assert previousBlock != null;
+      blocks.next();
+      iterator = splitBlock.listIterator(code);
+    }
+
+    DexType castType = prototypeChanges.getRewrittenReturnInfo().getCastType();
+    Value returnValue = ret.returnValue();
+    CheckCast checkCast =
+        SafeCheckCast.builder()
+            .setObject(returnValue)
+            .setFreshOutValue(
+                code, castType.toTypeElement(appView, returnValue.getType().nullability()))
+            .setCastType(castType)
+            .setPosition(ret.getPosition())
+            .build();
+    iterator.add(checkCast);
+    ret.replaceValue(0, checkCast.outValue());
+
+    Instruction next = iterator.next();
+    assert next == ret;
     return iterator;
   }
 

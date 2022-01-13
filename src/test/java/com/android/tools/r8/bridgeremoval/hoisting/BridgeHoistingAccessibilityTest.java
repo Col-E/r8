@@ -77,6 +77,8 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
+        // TODO(b/173398086): uniqueMethodWithName() does not work with argument changes.
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

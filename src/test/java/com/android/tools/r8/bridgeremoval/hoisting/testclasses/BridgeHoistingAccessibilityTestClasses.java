@@ -31,6 +31,7 @@ public class BridgeHoistingAccessibilityTestClasses {
     }
   }
 
+  @NoHorizontalClassMerging
   @NoVerticalClassMerging
   public static class AWithRangedInvoke {
 

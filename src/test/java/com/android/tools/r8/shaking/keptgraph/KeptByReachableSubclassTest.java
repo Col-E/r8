@@ -7,6 +7,7 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoReturnTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -44,6 +45,7 @@ public class KeptByReachableSubclassTest extends TestBase {
     GraphInspector inspector =
         testForR8(parameters.getBackend())
             .enableGraphInspector()
+            .enableNoReturnTypeStrengtheningAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .addProgramClasses(CLASS, A.class, B.class)
@@ -95,6 +97,7 @@ public class KeptByReachableSubclassTest extends TestBase {
   public static class TestClass {
 
     @NeverInline
+    @NoReturnTypeStrengthening
     static A create() {
       return new B();
     }

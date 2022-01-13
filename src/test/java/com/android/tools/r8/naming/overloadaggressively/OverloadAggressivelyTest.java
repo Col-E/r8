@@ -11,6 +11,8 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -27,19 +29,18 @@ import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class OverloadAggressivelyTest extends TestBase {
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public OverloadAggressivelyTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
   }
 
   private AndroidApp runR8(AndroidApp app, Class<?> main, Path out, boolean overloadaggressively)
@@ -56,8 +57,8 @@ public class OverloadAggressivelyTest extends TestBase {
                     keepMainProguardConfiguration(main),
                     overloadaggressively ? "-overloadaggressively" : ""),
                 Origin.unknown())
-            .setOutput(out, outputMode(backend))
-            .addLibraryFiles(TestBase.runtimeJar(backend))
+            .setOutput(out, outputMode(parameters.getBackend()))
+            .addLibraryFiles(parameters.getDefaultRuntimeLibrary())
             .build();
     return ToolHelper.runR8(
         command,
@@ -68,10 +69,10 @@ public class OverloadAggressivelyTest extends TestBase {
   }
 
   private ProcessResult runRaw(AndroidApp app, String main) throws IOException {
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       return runOnArtRaw(app, main);
     } else {
-      assert backend == Backend.CF;
+      assert parameters.isCfRuntime();
       return runOnJavaRaw(app, main, Collections.emptyList());
     }
   }
@@ -178,19 +179,20 @@ public class OverloadAggressivelyTest extends TestBase {
     String expected = StringUtils.lines("diff: 0", "d8 v.s. d8", "r8 v.s. r8");
     String expectedOverloadAggressively = StringUtils.lines("diff: 0", "d8 v.s. 8", "r8 v.s. 8");
 
-    if (backend.isCf()) {
+    if (parameters.isCfRuntime()) {
       testForJvm().addTestClasspath().run(MethodResolution.class).assertSuccessWithOutput(expected);
     }
 
-    testForR8Compat(backend)
+    testForR8Compat(parameters.getBackend())
         .addProgramClasses(MethodResolution.class, B.class)
         .addKeepMainRule(MethodResolution.class)
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
         .applyIf(overloadaggressively, builder -> builder.addKeepRules("-overloadaggressively"))
         .enableMemberValuePropagationAnnotations()
+        .enableNoReturnTypeStrengtheningAnnotations()
         .compile()
         .inspect(inspector -> inspect(inspector, overloadaggressively))
-        .run(MethodResolution.class)
+        .run(parameters.getRuntime(), MethodResolution.class)
         .applyIf(
             overloadaggressively,
             runResult -> runResult.assertSuccessWithOutput(expectedOverloadAggressively),
@@ -218,7 +220,7 @@ public class OverloadAggressivelyTest extends TestBase {
 
   @Test
   public void testMethodResolution_aggressively() throws Exception {
-    assumeTrue(backend == Backend.CF);
+    assumeTrue(parameters.isCfRuntime());
     methodResolution(true);
   }
 

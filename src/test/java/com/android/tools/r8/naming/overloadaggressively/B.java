@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming.overloadaggressively;
 
 import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.NoReturnTypeStrengthening;
 
 public class B {
   volatile int f1 = 8;
@@ -16,6 +17,7 @@ public class B {
   }
 
   @NeverPropagateValue
+  @NoReturnTypeStrengthening
   public Object getF2() {
     return f2;
   }

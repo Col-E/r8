@@ -336,6 +336,13 @@ public class RewrittenPrototypeDescription {
       private DexType newType;
       private SingleValue singleValue;
 
+      public Builder applyIf(boolean condition, Consumer<Builder> consumer) {
+        if (condition) {
+          consumer.accept(this);
+        }
+        return this;
+      }
+
       public Builder setCastType(DexType castType) {
         this.castType = castType;
         return this;

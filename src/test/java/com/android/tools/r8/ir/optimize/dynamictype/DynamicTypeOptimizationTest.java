@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoReturnTypeStrengthening;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -43,6 +44,7 @@ public class DynamicTypeOptimizationTest extends TestBase {
         // Keep B to ensure that we will treat it as being instantiated.
         .addKeepClassRulesWithAllowObfuscation(B.class)
         .enableInliningAnnotations()
+        .enableNoReturnTypeStrengtheningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -134,6 +136,7 @@ public class DynamicTypeOptimizationTest extends TestBase {
     }
 
     @NeverInline
+    @NoReturnTypeStrengthening
     private static I get() {
       return new A();
     }

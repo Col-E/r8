@@ -128,6 +128,8 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addKeepRules("-keepclassmembers class **.B { *** Companion; }")
             // Keep the class of the companion class.
             .addKeepRules("-keep class **.*$Companion")
+            // TODO(b/173398086): uniqueMethodWithName() does not work with signature changes.
+            .addKeepRules("-noreturntypestrengthening class **.B { *** access$getElt1$cp(...); }")
             // No rule for Super, but will be kept and renamed.
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             // To keep @JvmField annotation
@@ -135,6 +137,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             // To keep ...$Companion structure
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
             .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
+            .enableProguardTestOptions()
             .compile()
             .inspect(codeInspector -> inspect(codeInspector, false))
             .writeToZip();

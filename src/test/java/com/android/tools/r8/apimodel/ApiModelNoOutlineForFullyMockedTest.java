@@ -13,6 +13,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoReturnTypeStrengthening;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -60,6 +61,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .enableInliningAnnotations()
+        .enableNoReturnTypeStrengtheningAnnotations()
         .compile()
         .applyIf(
             parameters.isDexRuntime()
@@ -93,6 +95,8 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
   public static class Main {
 
     @NeverInline
+    // TODO(b/214329925): Type strengthening should consult API database.
+    @NoReturnTypeStrengthening
     public static Object create() {
       return AndroidBuildVersion.VERSION >= 23 ? new LibraryClass() : null;
     }

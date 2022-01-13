@@ -45,6 +45,8 @@ public class KeptBridgeHoistingTest extends TestBase {
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .enableNeverClassInliningAnnotations()
+        // TODO(b/173398086): uniqueMethodWithName() does not work with signature changes.
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
