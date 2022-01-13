@@ -26,6 +26,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   private final boolean allowClassInlining;
   private final boolean allowInlining;
+  private final boolean allowMethodStaticizing;
   private final boolean allowParameterTypeStrengthening;
   private final boolean allowReturnTypeStrengthening;
 
@@ -33,6 +34,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     super(builder);
     this.allowClassInlining = builder.isClassInliningAllowed();
     this.allowInlining = builder.isInliningAllowed();
+    this.allowMethodStaticizing = builder.isMethodStaticizingAllowed();
     this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
     this.allowReturnTypeStrengthening = builder.isReturnTypeStrengtheningAllowed();
   }
@@ -62,6 +64,17 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   boolean internalIsInliningAllowed() {
     return allowInlining;
+  }
+
+  public boolean isMethodStaticizingAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && configuration.isMethodStaticizingEnabled()
+        && internalIsMethodStaticizingAllowed();
+  }
+
+  boolean internalIsMethodStaticizingAllowed() {
+    return allowMethodStaticizing;
   }
 
   public boolean isParameterTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -103,6 +116,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     private boolean allowClassInlining;
     private boolean allowInlining;
+    private boolean allowMethodStaticizing;
     private boolean allowParameterTypeStrengthening;
     private boolean allowReturnTypeStrengthening;
 
@@ -114,6 +128,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       super(original);
       allowClassInlining = original.internalIsClassInliningAllowed();
       allowInlining = original.internalIsInliningAllowed();
+      allowMethodStaticizing = original.internalIsMethodStaticizingAllowed();
       allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
       allowReturnTypeStrengthening = original.internalIsReturnTypeStrengtheningAllowed();
     }
@@ -150,6 +165,23 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Builder disallowInlining() {
       return setAllowInlining(false);
+    }
+
+    public boolean isMethodStaticizingAllowed() {
+      return allowMethodStaticizing;
+    }
+
+    public Builder setAllowMethodStaticizing(boolean allowMethodStaticizing) {
+      this.allowMethodStaticizing = allowMethodStaticizing;
+      return self();
+    }
+
+    public Builder allowMethodStaticizing() {
+      return setAllowMethodStaticizing(true);
+    }
+
+    public Builder disallowMethodStaticizing() {
+      return setAllowMethodStaticizing(false);
     }
 
     public boolean isParameterTypeStrengtheningAllowed() {
@@ -211,6 +243,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return super.internalIsEqualTo(other)
           && isClassInliningAllowed() == other.internalIsClassInliningAllowed()
           && isInliningAllowed() == other.internalIsInliningAllowed()
+          && isMethodStaticizingAllowed() == other.internalIsMethodStaticizingAllowed()
           && isParameterTypeStrengtheningAllowed()
               == other.internalIsParameterTypeStrengtheningAllowed()
           && isReturnTypeStrengtheningAllowed() == other.internalIsReturnTypeStrengtheningAllowed();
@@ -226,6 +259,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return super.makeTop()
           .disallowClassInlining()
           .disallowInlining()
+          .disallowMethodStaticizing()
           .disallowParameterTypeStrengthening()
           .disallowReturnTypeStrengthening();
     }
@@ -235,6 +269,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return super.makeBottom()
           .allowClassInlining()
           .allowInlining()
+          .allowMethodStaticizing()
           .allowParameterTypeStrengthening()
           .allowReturnTypeStrengthening();
     }
@@ -253,6 +288,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner disallowInlining() {
       builder.disallowInlining();
+      return self();
+    }
+
+    public Joiner disallowMethodStaticizing() {
+      builder.disallowMethodStaticizing();
       return self();
     }
 
@@ -277,6 +317,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return super.merge(joiner)
           .applyIf(!joiner.builder.isClassInliningAllowed(), Joiner::disallowClassInlining)
           .applyIf(!joiner.builder.isInliningAllowed(), Joiner::disallowInlining)
+          .applyIf(!joiner.builder.isMethodStaticizingAllowed(), Joiner::disallowMethodStaticizing)
           .applyIf(
               !joiner.builder.isParameterTypeStrengtheningAllowed(),
               Joiner::disallowParameterTypeStrengthening)

@@ -690,6 +690,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         && getProguardConfiguration().isAccessModificationAllowed();
   }
 
+  @Override
+  public boolean isMethodStaticizingEnabled() {
+    return callSiteOptimizationOptions().isMethodStaticizingEnabled();
+  }
+
   public boolean keepInnerClassStructure() {
     return getProguardConfiguration().getKeepAttributes().signature
         || getProguardConfiguration().getKeepAttributes().innerClasses;
@@ -1258,19 +1263,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public class CallSiteOptimizationOptions {
 
     private boolean enabled = true;
-
-    // Each time we see an invoke with more dispatch targets than the threshold, we stop call site
-    // propagation for all these dispatch targets. The motivation for this is that it is expensive
-    // and that we are somewhat unlikely to have precise knowledge about the value of arguments when
-    // there are many (possibly spurious) call graph edges.
-    private final int maxNumberOfDispatchTargetsBeforeAbandoning = 10;
+    private boolean enableMethodStaticizing = true;
 
     public void disableOptimization() {
       enabled = false;
-    }
-
-    public int getMaxNumberOfDispatchTargetsBeforeAbandoning() {
-      return maxNumberOfDispatchTargetsBeforeAbandoning;
     }
 
     public int getMaxNumberOfInParameters() {
@@ -1284,12 +1280,21 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enabled;
     }
 
+    public boolean isMethodStaticizingEnabled() {
+      return enableMethodStaticizing;
+    }
+
     public CallSiteOptimizationOptions setEnabled(boolean enabled) {
       if (enabled) {
         assert isEnabled();
       } else {
         disableOptimization();
       }
+      return this;
+    }
+
+    public CallSiteOptimizationOptions setEnableMethodStaticizing(boolean enableMethodStaticizing) {
+      this.enableMethodStaticizing = enableMethodStaticizing;
       return this;
     }
   }

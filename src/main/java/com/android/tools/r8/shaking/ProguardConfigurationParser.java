@@ -500,6 +500,12 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString(NoMethodStaticizingRule.RULE_NAME)) {
+          ProguardConfigurationRule rule =
+              parseNoOptimizationRule(optionStart, NoMethodStaticizingRule.builder());
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString(NoParameterTypeStrengtheningRule.RULE_NAME)) {
           ProguardConfigurationRule rule =
               parseNoOptimizationRule(optionStart, NoParameterTypeStrengtheningRule.builder());

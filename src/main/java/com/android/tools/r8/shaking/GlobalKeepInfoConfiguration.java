@@ -16,6 +16,8 @@ public interface GlobalKeepInfoConfiguration {
 
   boolean isAccessModificationEnabled();
 
+  boolean isMethodStaticizingEnabled();
+
   boolean isRepackagingEnabled();
 
   boolean isForceProguardCompatibilityEnabled();

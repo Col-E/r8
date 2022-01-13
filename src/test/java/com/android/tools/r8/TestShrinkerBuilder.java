@@ -466,6 +466,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(NoHorizontalClassMerging.class);
   }
 
+  public final T addNoMethodStaticizingAnnotation() {
+    return addTestingAnnotation(NoMethodStaticizing.class);
+  }
+
   public final T addNoParameterTypeStrengtheningAnnotation() {
     return addTestingAnnotation(NoParameterTypeStrengthening.class);
   }
