@@ -28,6 +28,7 @@ public class FieldAccessAnalysis {
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final FieldAssignmentTracker fieldAssignmentTracker;
   private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
+  private final FieldReadForInvokeReceiverAnalysis fieldReadForInvokeReceiverAnalysis;
   private final FieldReadForWriteAnalysis fieldReadForWriteAnalysis;
 
   public FieldAccessAnalysis(AppView<AppInfoWithLiveness> appView) {
@@ -36,6 +37,7 @@ public class FieldAccessAnalysis {
     this.fieldBitAccessAnalysis =
         options.enableFieldBitAccessAnalysis ? new FieldBitAccessAnalysis() : null;
     this.fieldAssignmentTracker = new FieldAssignmentTracker(appView);
+    this.fieldReadForInvokeReceiverAnalysis = new FieldReadForInvokeReceiverAnalysis(appView);
     this.fieldReadForWriteAnalysis = new FieldReadForWriteAnalysis(appView);
   }
 
@@ -44,10 +46,12 @@ public class FieldAccessAnalysis {
       AppView<? extends AppInfoWithClassHierarchy> appView,
       FieldAssignmentTracker fieldAssignmentTracker,
       FieldBitAccessAnalysis fieldBitAccessAnalysis,
+      FieldReadForInvokeReceiverAnalysis fieldReadForInvokeReceiverAnalysis,
       FieldReadForWriteAnalysis fieldReadForWriteAnalysis) {
     this.appView = appView;
     this.fieldAssignmentTracker = fieldAssignmentTracker;
     this.fieldBitAccessAnalysis = fieldBitAccessAnalysis;
+    this.fieldReadForInvokeReceiverAnalysis = fieldReadForInvokeReceiverAnalysis;
     this.fieldReadForWriteAnalysis = fieldReadForWriteAnalysis;
   }
 
@@ -90,6 +94,10 @@ public class FieldAccessAnalysis {
             if (fieldBitAccessAnalysis != null) {
               fieldBitAccessAnalysis.recordFieldAccess(
                   fieldInstruction, field.getDefinition(), feedback);
+            }
+            if (fieldReadForInvokeReceiverAnalysis != null) {
+              fieldReadForInvokeReceiverAnalysis.recordFieldAccess(
+                  fieldInstruction, field, bytecodeMetadataProviderBuilder, code.context());
             }
             if (fieldReadForWriteAnalysis != null) {
               fieldReadForWriteAnalysis.recordFieldAccess(

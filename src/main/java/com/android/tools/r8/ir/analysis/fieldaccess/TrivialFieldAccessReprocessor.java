@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
+import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
 import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
 import com.android.tools.r8.code.CfOrDexStaticFieldRead;
@@ -52,6 +54,8 @@ public class TrivialFieldAccessReprocessor {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
+
+  private final Map<DexEncodedField, ProgramMethodSet> dependencies = new ConcurrentHashMap<>();
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
   private final Map<DexEncodedField, AbstractAccessContexts> readFields = new ConcurrentHashMap<>();
@@ -233,6 +237,7 @@ public class TrivialFieldAccessReprocessor {
           fieldAccessInfoCollection.get(field.getReference()).asMutable().clearReads();
           methodsToReprocess.addAll(
               contexts.asConcrete().getAccessesWithContexts().values().iterator().next());
+          methodsToReprocess.addAll(dependencies.getOrDefault(field, ProgramMethodSet.empty()));
         });
   }
 
@@ -250,6 +255,7 @@ public class TrivialFieldAccessReprocessor {
           assert !writtenFields.containsKey(field);
           methodsToReprocess.addAll(
               contexts.asConcrete().getAccessesWithContexts().values().iterator().next());
+          methodsToReprocess.addAll(dependencies.getOrDefault(field, ProgramMethodSet.empty()));
         });
   }
 
@@ -326,11 +332,20 @@ public class TrivialFieldAccessReprocessor {
         return;
       }
 
-      if (metadata != null && metadata.isReadForWrite()) {
-        // Ignore this read. If the field ends up only being written, then we will still reprocess
-        // the method with the read-for-write instruction, since the method contains a write that
-        // requires reprocessing.
-        return;
+      if (metadata != null) {
+        if (isUnusedReadAfterMethodStaticizing(metadata)) {
+          // Ignore this read.
+          dependencies
+              .computeIfAbsent(field.getDefinition(), ignoreKey(ProgramMethodSet::createConcurrent))
+              .add(getContext());
+          return;
+        }
+        if (metadata.isReadForWrite()) {
+          // Ignore this read. If the field ends up only being written, then we will still reprocess
+          // the method with the read-for-write instruction, since the method contains a write that
+          // requires reprocessing.
+          return;
+        }
       }
 
       // Record access.
@@ -350,6 +365,28 @@ public class TrivialFieldAccessReprocessor {
           || (!isWrite && nonConstantFields.contains(definition))) {
         methodsToReprocess.add(getContext());
       }
+    }
+
+    private boolean isUnusedReadAfterMethodStaticizing(BytecodeInstructionMetadata metadata) {
+      if (!metadata.isReadForInvokeReceiver()) {
+        return false;
+      }
+      Set<DexMethod> readForInvokeReceiver = metadata.getReadForInvokeReceiver();
+      for (DexMethod methodReference : readForInvokeReceiver) {
+        DexMethod rewrittenMethodReference =
+            appView.graphLens().getRenamedMethodSignature(methodReference, appView.codeLens());
+        DexProgramClass holder =
+            asProgramClassOrNull(appView.definitionFor(rewrittenMethodReference.getHolderType()));
+        ProgramMethod method = rewrittenMethodReference.lookupOnProgramClass(holder);
+        if (method == null) {
+          assert false;
+          return false;
+        }
+        if (!method.getDefinition().isStatic()) {
+          return false;
+        }
+      }
+      return true;
     }
 
     private void recordAccessThatCannotBeOptimized(
