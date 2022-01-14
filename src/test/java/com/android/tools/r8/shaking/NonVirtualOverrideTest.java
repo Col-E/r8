@@ -8,16 +8,15 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -93,50 +92,31 @@ public class NonVirtualOverrideTest extends TestBase {
       memoizeFunction(NonVirtualOverrideTest::compile);
 
   public static String getExpectedResult(boolean isOldVm) throws Exception {
-    if (isOldVm) {
-      return String.join(
-          System.lineSeparator(),
-          "In A.m1()",
-          "In A.m2()",
-          "In A.m3()",
-          "In A.m4()",
-          "In C.m1()",
-          "In A.m2()",
-          "In C.m3()",
-          "In A.m4()",
-          "In A.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
-          "Caught IncompatibleClassChangeError when calling B.m3()",
-          "In C.m1()", // With Java: Caught IllegalAccessError when calling B.m1()
-          "Caught IncompatibleClassChangeError when calling B.m3()",
-          "In C.m1()",
-          "In C.m3()",
-          "");
-    } else {
-      Path referenceJar = staticTemp.getRoot().toPath().resolve("input.jar");
-      ArchiveConsumer inputConsumer = new ArchiveConsumer(referenceJar);
-      inputConsumer.accept(
-          ByteDataView.of(NonVirtualOverrideTestClassDump.dump()),
-          DescriptorUtils.javaTypeToDescriptor(NonVirtualOverrideTestClass.class.getName()),
-          null);
-      inputConsumer.accept(
-          ByteDataView.of(ADump.dump()),
-          DescriptorUtils.javaTypeToDescriptor(A.class.getName()),
-          null);
-      inputConsumer.accept(
-          ByteDataView.of(BDump.dump()),
-          DescriptorUtils.javaTypeToDescriptor(B.class.getName()),
-          null);
-      inputConsumer.accept(
-          ByteDataView.of(CDump.dump()),
-          DescriptorUtils.javaTypeToDescriptor(C.class.getName()),
-          null);
-      inputConsumer.finished(null);
+    Path referenceJar = staticTemp.getRoot().toPath().resolve("input.jar");
+    ArchiveConsumer inputConsumer = new ArchiveConsumer(referenceJar);
+    inputConsumer.accept(
+        ByteDataView.of(NonVirtualOverrideTestClassDump.dump()),
+        DescriptorUtils.javaTypeToDescriptor(NonVirtualOverrideTestClass.class.getName()),
+        null);
+    inputConsumer.accept(
+        ByteDataView.of(ADump.dump()),
+        DescriptorUtils.javaTypeToDescriptor(A.class.getName()),
+        null);
+    inputConsumer.accept(
+        ByteDataView.of(BDump.dump()),
+        DescriptorUtils.javaTypeToDescriptor(B.class.getName()),
+        null);
+    inputConsumer.accept(
+        ByteDataView.of(CDump.dump()),
+        DescriptorUtils.javaTypeToDescriptor(C.class.getName()),
+        null);
+    inputConsumer.finished(null);
 
-      ProcessResult javaResult =
-          ToolHelper.runJava(referenceJar, NonVirtualOverrideTestClass.class.getName());
-      assertEquals(javaResult.exitCode, 0);
-      return javaResult.stdout;
-    }
+    return testForJvm(getStaticTemp())
+        .addProgramFiles(referenceJar)
+        .run(CfRuntime.getDefaultCfRuntime(), NonVirtualOverrideTestClass.class)
+        .assertSuccess()
+        .getStdOut();
   }
 
   public static boolean isDexVmBetween5_1_1and7_0_0(TestParameters parameters) {
