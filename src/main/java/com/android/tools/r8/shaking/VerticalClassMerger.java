@@ -1335,7 +1335,8 @@ public class VerticalClassMerger {
       }
       List<FormalTypeParameter> formals = source.getClassSignature().getFormalTypeParameters();
       if (genericArgumentsToSuperType.size() != formals.size()) {
-        assert false : "Invalid argument count to formals";
+        // TODO(b/214509535): Correctly rewrite signature when type arguments is empty.
+        assert genericArgumentsToSuperType.isEmpty() : "Invalid argument count to formals";
         return null;
       }
       Map<String, FieldTypeSignature> substitutionMap = new HashMap<>();
