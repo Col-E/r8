@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -28,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -143,7 +143,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
             .withHolder(helper.getEmulatedInterface(theInterface.type), appView.dexItemFactory());
     DexMethod companionMethod =
         helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
-    List<Pair<DexType, DexMethod>> extraDispatchCases =
+    LinkedHashMap<DexType, DexMethod> extraDispatchCases =
         getDispatchCases(method, theInterface, companionMethod);
     return new EmulateDispatchSyntheticCfCodeProvider(
             emulatedInterfaceMethod.getHolderType(),
@@ -154,14 +154,14 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
         .generateCfCode();
   }
 
-  private List<Pair<DexType, DexMethod>> getDispatchCases(
+  private LinkedHashMap<DexType, DexMethod> getDispatchCases(
       ProgramMethod method, DexProgramClass theInterface, DexMethod companionMethod) {
     // To properly emulate the library interface call, we need to compute the interfaces
     // inheriting from the interface and manually implement the dispatch with instance of.
     // The list guarantees that an interface is always after interfaces it extends,
     // hence reverse iteration.
     List<DexType> subInterfaces = emulatedInterfacesHierarchy.get(theInterface.type);
-    List<Pair<DexType, DexMethod>> extraDispatchCases = new ArrayList<>();
+    LinkedHashMap<DexType, DexMethod> extraDispatchCases = new LinkedHashMap<>();
     // In practice, there is usually a single case (except for tests),
     // so we do not bother to make the following loop more clever.
     Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
@@ -171,17 +171,16 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
         for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
           DexClass inClass = appView.definitionFor(inType);
           if (inClass != null && implementsInterface(inClass, theInterface.type)) {
-            extraDispatchCases.add(
-                new Pair<>(
-                    inType,
-                    appView
-                        .dexItemFactory()
-                        .createMethod(
-                            retargetCoreLibMember.get(methodName).get(inType),
-                            appView
-                                .dexItemFactory()
-                                .protoWithDifferentFirstParameter(companionMethod.proto, inType),
-                            method.getName())));
+            extraDispatchCases.put(
+                inType,
+                appView
+                    .dexItemFactory()
+                    .createMethod(
+                        retargetCoreLibMember.get(methodName).get(inType),
+                        appView
+                            .dexItemFactory()
+                            .protoWithDifferentFirstParameter(companionMethod.proto, inType),
+                        method.getName()));
           }
         }
       }
@@ -196,11 +195,10 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
         DexEncodedMethod result = subInterfaceClass.lookupVirtualMethod(method.getReference());
         if (result != null && !result.isAbstract()) {
           assert result.isDefaultMethod();
-          extraDispatchCases.add(
-              new Pair<>(
-                  subInterfaceClass.type,
-                  InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass(
-                      result.getReference(), appView.dexItemFactory())));
+          extraDispatchCases.put(
+              subInterfaceClass.type,
+              InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass(
+                  result.getReference(), appView.dexItemFactory()));
         }
       }
     } else {

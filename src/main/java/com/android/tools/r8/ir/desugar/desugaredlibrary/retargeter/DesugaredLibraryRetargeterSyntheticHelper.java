@@ -5,19 +5,21 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
-import java.util.Collections;
+import java.util.LinkedHashMap;
 
 public class DesugaredLibraryRetargeterSyntheticHelper {
 
@@ -27,54 +29,87 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     this.appView = appView;
   }
 
-  public DexClass ensureEmulatedHolderDispatchMethod(
-      DexClassAndMethod emulatedDispatchMethod,
+  public DexMethod ensureForwardingMethod(EmulatedDispatchMethodDescriptor descriptor) {
+    // TODO(b/184026720): We may synthesize a stub on the classpath if absent.
+    assert descriptor.getForwardingMethod().getHolderKind() == null;
+    return descriptor.getForwardingMethod().getMethod();
+  }
+
+  private DexMethod emulatedHolderDispatchMethod(DexType holder, DerivedMethod method) {
+    assert method.getHolderKind() == SyntheticKind.RETARGET_CLASS;
+    return appView.dexItemFactory().createMethod(holder, method.getProto(), method.getName());
+  }
+
+  DexMethod emulatedInterfaceDispatchMethod(DexType holder, DerivedMethod method) {
+    assert method.getHolderKind() == SyntheticKind.RETARGET_INTERFACE;
+    return appView.dexItemFactory().createMethod(holder, method.getProto(), method.getName());
+  }
+
+  public DexMethod getEmulatedInterfaceDispatchMethod(
+      DexClass newInterface, EmulatedDispatchMethodDescriptor descriptor) {
+    DexMethod method =
+        emulatedInterfaceDispatchMethod(newInterface.type, descriptor.getInterfaceMethod());
+    assert newInterface.lookupMethod(method) != null;
+    return method;
+  }
+
+  public DexMethod ensureEmulatedHolderDispatchMethod(
+      EmulatedDispatchMethodDescriptor descriptor,
       DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     assert eventConsumer != null;
+    DerivedMethod emulatedDispatchMethod = descriptor.getEmulatedDispatchMethod();
+    DexClass holderContext =
+        appView.contextIndependentDefinitionFor(emulatedDispatchMethod.getHolderContext());
+    DexClass syntheticClass;
     if (appView.options().isDesugaredLibraryCompilation()) {
-      return appView
-          .getSyntheticItems()
-          .getExistingFixedClass(
-              SyntheticKind.RETARGET_CLASS, emulatedDispatchMethod.getHolder(), appView);
+      syntheticClass =
+          appView
+              .getSyntheticItems()
+              .getExistingFixedClass(
+                  emulatedDispatchMethod.getHolderKind(), holderContext, appView);
+      DexMethod dispatchMethod =
+          emulatedHolderDispatchMethod(syntheticClass.type, emulatedDispatchMethod);
+      assert syntheticClass.lookupMethod(dispatchMethod) != null;
+      return dispatchMethod;
+    } else {
+      DexClass itfClass = ensureEmulatedInterfaceDispatchMethod(descriptor, eventConsumer);
+      ClasspathOrLibraryClass context = holderContext.asClasspathOrLibraryClass();
+      assert context != null;
+      syntheticClass =
+          appView
+              .getSyntheticItems()
+              .ensureFixedClasspathClass(
+                  SyntheticKind.RETARGET_CLASS,
+                  context,
+                  appView,
+                  classBuilder -> buildHolderDispatchMethod(classBuilder, itfClass, descriptor),
+                  clazz -> {
+                    eventConsumer.acceptDesugaredLibraryRetargeterDispatchClasspathClass(clazz);
+                    rewriteType(clazz.type);
+                  });
     }
-    DexClass interfaceClass =
-        ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod, eventConsumer);
-    DexMethod itfMethod =
-        interfaceClass.lookupMethod(emulatedDispatchMethod.getReference()).getReference();
-    ClasspathOrLibraryClass context =
-        emulatedDispatchMethod.getHolder().asClasspathOrLibraryClass();
-    assert context != null;
-    return appView
-        .getSyntheticItems()
-        .ensureFixedClasspathClass(
-            SyntheticKind.RETARGET_CLASS,
-            context,
-            appView,
-            classBuilder ->
-                buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod),
-            clazz -> {
-              eventConsumer.acceptDesugaredLibraryRetargeterDispatchClasspathClass(clazz);
-              rewriteType(clazz.type);
-            });
+    DexMethod dispatchMethod =
+        emulatedHolderDispatchMethod(syntheticClass.type, emulatedDispatchMethod);
+    assert syntheticClass.lookupMethod(dispatchMethod) != null;
+    return dispatchMethod;
   }
 
   public void ensureProgramEmulatedHolderDispatchMethod(
-      DexClassAndMethod emulatedDispatchMethod,
+      EmulatedDispatchMethodDescriptor descriptor,
       DesugaredLibraryRetargeterL8SynthesizerEventConsumer eventConsumer) {
     assert eventConsumer != null;
     assert appView.options().isDesugaredLibraryCompilation();
-    DexClass interfaceClass =
-        ensureEmulatedInterfaceDispatchMethod(emulatedDispatchMethod, eventConsumer);
-    DexMethod itfMethod =
-        interfaceClass.lookupMethod(emulatedDispatchMethod.getReference()).getReference();
+    DerivedMethod emulatedDispatchMethod = descriptor.getEmulatedDispatchMethod();
+    DexClass holderContext =
+        appView.contextIndependentDefinitionFor(emulatedDispatchMethod.getHolderContext());
+    DexClass itfClass = ensureEmulatedInterfaceDispatchMethod(descriptor, eventConsumer);
     appView
         .getSyntheticItems()
         .ensureFixedClass(
-            SyntheticKind.RETARGET_CLASS,
-            emulatedDispatchMethod.getHolder(),
+            emulatedDispatchMethod.getHolderKind(),
+            holderContext,
             appView,
-            classBuilder ->
-                buildHolderDispatchMethod(classBuilder, emulatedDispatchMethod, itfMethod),
+            classBuilder -> buildHolderDispatchMethod(classBuilder, itfClass, descriptor),
             clazz -> {
               eventConsumer.acceptDesugaredLibraryRetargeterDispatchProgramClass(clazz);
               rewriteType(clazz.type);
@@ -82,17 +117,17 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
   }
 
   public DexClass ensureEmulatedInterfaceDispatchMethod(
-      DexClassAndMethod emulatedDispatchMethod,
+      EmulatedDispatchMethodDescriptor descriptor,
       DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     assert eventConsumer != null;
+    DerivedMethod itfMethod = descriptor.getInterfaceMethod();
+    DexClass itfContext = appView.contextIndependentDefinitionFor(itfMethod.getHolderContext());
     if (appView.options().isDesugaredLibraryCompilation()) {
       return appView
           .getSyntheticItems()
-          .getExistingFixedClass(
-              SyntheticKind.RETARGET_INTERFACE, emulatedDispatchMethod.getHolder(), appView);
+          .getExistingFixedClass(itfMethod.getHolderKind(), itfContext, appView);
     }
-    ClasspathOrLibraryClass context =
-        emulatedDispatchMethod.getHolder().asClasspathOrLibraryClass();
+    ClasspathOrLibraryClass context = itfContext.asClasspathOrLibraryClass();
     assert context != null;
     return appView
         .getSyntheticItems()
@@ -100,7 +135,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
             SyntheticKind.RETARGET_INTERFACE,
             context,
             appView,
-            classBuilder -> buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod),
+            classBuilder -> buildInterfaceDispatchMethod(classBuilder, descriptor),
             clazz -> {
               eventConsumer.acceptDesugaredLibraryRetargeterDispatchClasspathClass(clazz);
               rewriteType(clazz.type);
@@ -108,17 +143,19 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
   }
 
   public DexClass ensureEmulatedInterfaceDispatchMethod(
-      DexClassAndMethod emulatedDispatchMethod,
+      EmulatedDispatchMethodDescriptor descriptor,
       DesugaredLibraryRetargeterL8SynthesizerEventConsumer eventConsumer) {
     assert appView.options().isDesugaredLibraryCompilation();
     assert eventConsumer != null;
+    DerivedMethod itfMethod = descriptor.getInterfaceMethod();
+    DexClass itfContext = appView.contextIndependentDefinitionFor(itfMethod.getHolderContext());
     return appView
         .getSyntheticItems()
         .ensureFixedClass(
-            SyntheticKind.RETARGET_INTERFACE,
-            emulatedDispatchMethod.getHolder(),
+            itfMethod.getHolderKind(),
+            itfContext,
             appView,
-            classBuilder -> buildInterfaceDispatchMethod(classBuilder, emulatedDispatchMethod),
+            classBuilder -> buildInterfaceDispatchMethod(classBuilder, descriptor),
             clazz -> {
               eventConsumer.acceptDesugaredLibraryRetargeterDispatchProgramClass(clazz);
               rewriteType(clazz.type);
@@ -126,18 +163,21 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
   }
 
   private void buildInterfaceDispatchMethod(
-      SyntheticClassBuilder<?, ?> classBuilder, DexClassAndMethod emulatedDispatchMethod) {
+      SyntheticClassBuilder<?, ?> classBuilder, EmulatedDispatchMethodDescriptor descriptor) {
     classBuilder
         .setInterface()
         .addMethod(
             methodBuilder -> {
+              DexMethod itfMethod =
+                  emulatedInterfaceDispatchMethod(
+                      classBuilder.getType(), descriptor.getInterfaceMethod());
               MethodAccessFlags flags =
                   MethodAccessFlags.fromSharedAccessFlags(
                       Constants.ACC_PUBLIC | Constants.ACC_ABSTRACT | Constants.ACC_SYNTHETIC,
                       false);
               methodBuilder
-                  .setName(emulatedDispatchMethod.getName())
-                  .setProto(emulatedDispatchMethod.getProto())
+                  .setName(itfMethod.getName())
+                  .setProto(itfMethod.getProto())
                   // Will be traced by the enqueuer.
                   .disableAndroidApiLevelCheck()
                   .setAccessFlags(flags);
@@ -145,34 +185,34 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
   }
 
   private <SCB extends SyntheticClassBuilder<?, ?>> void buildHolderDispatchMethod(
-      SCB classBuilder, DexClassAndMethod emulatedDispatchMethod, DexMethod itfMethod) {
+      SCB classBuilder, DexClass itfClass, EmulatedDispatchMethodDescriptor descriptor) {
     classBuilder.addMethod(
         methodBuilder -> {
-          DexMethod desugarMethod =
-              appView
-                  .options()
-                  .desugaredLibrarySpecification
-                  .retargetMethod(emulatedDispatchMethod, appView);
-          assert desugarMethod
-              != null; // This method is reached only for retarget core lib members.
+          DexMethod dispatchMethod =
+              emulatedHolderDispatchMethod(
+                  classBuilder.getType(), descriptor.getEmulatedDispatchMethod());
           methodBuilder
-              .setName(emulatedDispatchMethod.getName())
-              .setProto(desugarMethod.proto)
+              .setName(dispatchMethod.getName())
+              .setProto(dispatchMethod.getProto())
               .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
               // Will be traced by the enqueuer.
               .disableAndroidApiLevelCheck()
               .setCode(
                   methodSig ->
                       appView.options().isDesugaredLibraryCompilation()
-                          ? new EmulateDispatchSyntheticCfCodeProvider(
-                                  methodSig.getHolderType(),
-                                  desugarMethod,
-                                  itfMethod,
-                                  Collections.emptyList(),
-                                  appView)
-                              .generateCfCode()
+                          ? generateEmulatedDispatchCfCode(descriptor, itfClass, methodSig)
                           : null);
         });
+  }
+
+  private CfCode generateEmulatedDispatchCfCode(
+      EmulatedDispatchMethodDescriptor descriptor, DexClass itfClass, DexMethod methodSig) {
+    DexMethod forwardingMethod = ensureForwardingMethod(descriptor);
+    DexMethod itfMethod = getEmulatedInterfaceDispatchMethod(itfClass, descriptor);
+    assert descriptor.getDispatchCases().isEmpty();
+    return new EmulateDispatchSyntheticCfCodeProvider(
+            methodSig.getHolderType(), forwardingMethod, itfMethod, new LinkedHashMap<>(), appView)
+        .generateCfCode();
   }
 
   private void rewriteType(DexType type) {

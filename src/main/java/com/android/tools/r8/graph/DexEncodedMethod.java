@@ -1184,7 +1184,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public static DexEncodedMethod createDesugaringForwardingMethod(
-      DexClassAndMethod target, DexClass clazz, DexMethod forwardMethod, DexItemFactory factory) {
+      DexEncodedMethod target, DexClass clazz, DexMethod forwardMethod, DexItemFactory factory) {
     DexMethod method = target.getReference();
     assert forwardMethod != null;
     // New method will have the same name, proto, and also all the flags of the
@@ -1206,8 +1206,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                 .setNonStaticSource(newMethod)
                 .setStaticTarget(forwardMethod, isInterfaceMethodReference)
                 .build())
-        .setApiLevelForDefinition(target.getDefinition().getApiLevelForDefinition())
-        .setApiLevelForCode(target.getDefinition().getApiLevelForCode())
+        .setApiLevelForDefinition(target.getApiLevelForDefinition())
+        .setApiLevelForCode(target.getApiLevelForCode())
         .build();
   }
 

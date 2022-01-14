@@ -52,4 +52,20 @@ public class EmulatedDispatchMethodDescriptor {
     this.forwardingMethod = forwardingMethod;
     this.dispatchCases = dispatchCases;
   }
+
+  public DerivedMethod getInterfaceMethod() {
+    return interfaceMethod;
+  }
+
+  public DerivedMethod getEmulatedDispatchMethod() {
+    return emulatedDispatchMethod;
+  }
+
+  public DerivedMethod getForwardingMethod() {
+    return forwardingMethod;
+  }
+
+  public LinkedHashMap<DexType, DerivedMethod> getDispatchCases() {
+    return dispatchCases;
+  }
 }

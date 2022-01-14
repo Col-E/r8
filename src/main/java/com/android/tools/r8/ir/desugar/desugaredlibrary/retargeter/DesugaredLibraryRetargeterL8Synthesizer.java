@@ -4,21 +4,22 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
-import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
+import java.util.Map;
 
 public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesizerDesugaring {
 
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
-  private final DexClassAndMethodSet emulatedDispatchMethods;
+  private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedDispatchMethods;
 
   public static DesugaredLibraryRetargeterL8Synthesizer create(
       AppView<?> appView, RetargetingInfo retargetingInfo) {
     assert appView.options().isDesugaredLibraryCompilation();
-    if (retargetingInfo == null || retargetingInfo.getEmulatedDispatchMethods().isEmpty()) {
+    if (retargetingInfo == null || retargetingInfo.getEmulatedVirtualRetarget().isEmpty()) {
       assert appView.options().desugaredLibrarySpecification.getRetargetCoreLibMember().isEmpty();
       return null;
     }
@@ -29,13 +30,14 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesiz
       AppView<?> appView, RetargetingInfo retargetingInfo) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    emulatedDispatchMethods = retargetingInfo.getEmulatedDispatchMethods();
+    emulatedDispatchMethods = retargetingInfo.getEmulatedVirtualRetarget();
   }
 
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     assert !emulatedDispatchMethods.isEmpty();
-    for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
+    for (EmulatedDispatchMethodDescriptor emulatedDispatchMethod :
+        emulatedDispatchMethods.values()) {
       syntheticHelper.ensureProgramEmulatedHolderDispatchMethod(
           emulatedDispatchMethod, eventConsumer);
     }

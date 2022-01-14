@@ -853,7 +853,7 @@ final class ClassProcessor {
             : appView.options().desugaredLibrarySpecification.retargetMethod(target, appView);
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
-            target, clazz, forwardMethod, dexItemFactory);
+            target.getDefinition(), clazz, forwardMethod, dexItemFactory);
     if (!target.isProgramDefinition()
         || target.getDefinition().isLibraryMethodOverride().isTrue()) {
       desugaringForwardingMethod.setLibraryMethodOverride(OptionalBool.TRUE);

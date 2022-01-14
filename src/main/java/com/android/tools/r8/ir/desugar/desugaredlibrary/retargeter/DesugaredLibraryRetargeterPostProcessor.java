@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
@@ -15,15 +14,16 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterPostProcessingEventConsumer;
 import com.android.tools.r8.utils.OptionalBool;
-import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -34,13 +34,13 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
 
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
-  private final DexClassAndMethodSet emulatedDispatchMethods;
+  private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedDispatchMethods;
 
   public DesugaredLibraryRetargeterPostProcessor(
       AppView<?> appView, RetargetingInfo retargetingInfo) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    emulatedDispatchMethods = retargetingInfo.getEmulatedDispatchMethods();
+    emulatedDispatchMethods = retargetingInfo.getEmulatedVirtualRetarget();
   }
 
   @Override
@@ -57,11 +57,11 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       Collection<DexProgramClass> programClasses,
       DesugaredLibraryRetargeterPostProcessingEventConsumer eventConsumer) {
     assert !appView.options().isDesugaredLibraryCompilation();
-    Map<DexType, List<DexClassAndMethod>> map = Maps.newIdentityHashMap();
-    for (DexClassAndMethod emulatedDispatchMethod : emulatedDispatchMethods) {
-      map.putIfAbsent(emulatedDispatchMethod.getHolderType(), new ArrayList<>(1));
-      map.get(emulatedDispatchMethod.getHolderType()).add(emulatedDispatchMethod);
-    }
+    Map<DexType, List<DexMethod>> map = Maps.newIdentityHashMap();
+    emulatedDispatchMethods.forEach(
+        (method, descriptor) -> {
+          map.putIfAbsent(method.getHolderType(), new ArrayList<>(1)).add(method);
+        });
     for (DexProgramClass clazz : programClasses) {
       if (clazz.superType == null) {
         assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
@@ -84,7 +84,9 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
   }
 
   private boolean inherit(
-      DexLibraryClass clazz, DexType typeToInherit, DexClassAndMethodSet retarget) {
+      DexLibraryClass clazz,
+      DexType typeToInherit,
+      Map<DexMethod, EmulatedDispatchMethodDescriptor> retarget) {
     DexLibraryClass current = clazz;
     while (current.type != appView.dexItemFactory().objectType) {
       if (current.type == typeToInherit) {
@@ -92,7 +94,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       }
       DexClass dexClass = appView.definitionFor(current.superType);
       if (dexClass == null || dexClass.isClasspathClass()) {
-        reportInvalidLibrarySupertype(current, retarget);
+        reportInvalidLibrarySupertype(current, retarget.keySet());
         return false;
       } else if (dexClass.isProgramClass()) {
         // If dexClass is a program class, then it is already correctly desugared.
@@ -106,7 +108,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
   private void ensureInterfacesAndForwardingMethodsSynthesized(
       DesugaredLibraryRetargeterPostProcessingEventConsumer eventConsumer,
       DexProgramClass clazz,
-      List<DexClassAndMethod> methods) {
+      List<DexMethod> methods) {
     // DesugaredLibraryRetargeter emulate dispatch: insertion of a marker interface & forwarding
     // methods.
     // We cannot use the ClassProcessor since this applies up to 26, while the ClassProcessor
@@ -114,9 +116,10 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     if (appView.isAlreadyLibraryDesugared(clazz)) {
       return;
     }
-    for (DexClassAndMethod method : methods) {
+    for (DexMethod method : methods) {
+      EmulatedDispatchMethodDescriptor descriptor = emulatedDispatchMethods.get(method);
       DexClass newInterface =
-          syntheticHelper.ensureEmulatedInterfaceDispatchMethod(method, eventConsumer);
+          syntheticHelper.ensureEmulatedInterfaceDispatchMethod(descriptor, eventConsumer);
       if (clazz.interfaces.contains(newInterface.type)) {
         // The class has already been desugared.
         continue;
@@ -131,30 +134,35 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       clazz.addExtraInterfaces(
           Collections.singletonList(new ClassTypeSignature(newInterface.type)));
       eventConsumer.acceptInterfaceInjection(clazz, newInterface);
-      if (clazz.lookupVirtualMethod(method.getReference()) == null) {
-        DexEncodedMethod newMethod = createForwardingMethod(method, clazz);
+      DexMethod itfMethod =
+          syntheticHelper.getEmulatedInterfaceDispatchMethod(newInterface, descriptor);
+      if (clazz.lookupVirtualMethod(method) == null) {
+        DexEncodedMethod newMethod = createForwardingMethod(itfMethod, descriptor, clazz);
         clazz.addVirtualMethod(newMethod);
         eventConsumer.acceptForwardingMethod(new ProgramMethod(clazz, newMethod));
       }
     }
   }
 
-  private DexEncodedMethod createForwardingMethod(DexClassAndMethod target, DexClass clazz) {
+  private DexEncodedMethod createForwardingMethod(
+      DexMethod target, EmulatedDispatchMethodDescriptor descriptor, DexClass clazz) {
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
-    DexMethod forwardMethod =
-        appView.options().desugaredLibrarySpecification.retargetMethod(target, appView);
-    assert forwardMethod != null && forwardMethod != target.getReference();
+    DexMethod forwardMethod = syntheticHelper.ensureForwardingMethod(descriptor);
+    assert forwardMethod != null && forwardMethod != target;
+    DexEncodedMethod resolvedMethod =
+        appView.appInfoForDesugaring().resolveMethod(target, true).getResolvedMethod();
+    assert resolvedMethod != null;
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(
-            target, clazz, forwardMethod, appView.dexItemFactory());
+            resolvedMethod, clazz, forwardMethod, appView.dexItemFactory());
     desugaringForwardingMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     return desugaringForwardingMethod;
   }
 
   private void reportInvalidLibrarySupertype(
-      DexLibraryClass libraryClass, DexClassAndMethodSet retarget) {
+      DexLibraryClass libraryClass, Set<DexMethod> retarget) {
     DexClass dexClass = appView.definitionFor(libraryClass.superType);
     String message;
     if (dexClass == null) {

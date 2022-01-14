@@ -5,6 +5,9 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
 /**
@@ -25,5 +28,25 @@ public class DerivedMethod {
   public DerivedMethod(DexMethod method, SyntheticKind holderKind) {
     this.holderKind = holderKind;
     this.method = method;
+  }
+
+  public SyntheticKind getHolderKind() {
+    return holderKind;
+  }
+
+  public DexType getHolderContext() {
+    return method.getHolderType();
+  }
+
+  public DexMethod getMethod() {
+    return method;
+  }
+
+  public DexString getName() {
+    return method.getName();
+  }
+
+  public DexProto getProto() {
+    return method.getProto();
   }
 }

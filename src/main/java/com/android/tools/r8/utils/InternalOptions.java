@@ -74,7 +74,6 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
-import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.annotations.VisibleForTesting;
@@ -1037,7 +1036,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       DexType libraryType,
       DexType invalidSuperType,
       String message,
-      DexClassAndMethodSet retarget) {
+      Set<DexMethod> retarget) {
     if (invalidLibraryClasses.add(invalidSuperType)) {
       reporter.warning(
           new InvalidLibrarySuperclassDiagnostic(
@@ -1046,8 +1045,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
               Reference.classFromDescriptor(invalidSuperType.toDescriptorString()),
               message,
               Lists.newArrayList(
-                  Iterables.transform(
-                      retarget, method -> method.getReference().asMethodReference()))));
+                  Iterables.transform(retarget, method -> method.asMethodReference()))));
     }
   }
 
