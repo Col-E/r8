@@ -76,6 +76,11 @@ public class StackTrace {
       return this;
     }
 
+    public Builder remove(int i) {
+      stackTraceLines.remove(i);
+      return this;
+    }
+
     public Builder applyIf(boolean condition, Consumer<Builder> fn) {
       if (condition) {
         fn.accept(this);

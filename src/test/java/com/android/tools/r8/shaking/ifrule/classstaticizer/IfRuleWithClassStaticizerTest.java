@@ -4,15 +4,17 @@
 
 package com.android.tools.r8.shaking.ifrule.classstaticizer;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.shaking.ifrule.classstaticizer.IfRuleWithClassStaticizerTest.StaticizerCandidate.Companion;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -22,69 +24,67 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class IfRuleWithClassStaticizerTest extends TestBase {
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public IfRuleWithClassStaticizerTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("In method()");
 
-    if (backend == Backend.CF) {
-      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(IfRuleWithClassStaticizerTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
-                "-if class " + StaticizerCandidate.Companion.class.getTypeName() + " {",
+                "-if class " + Companion.class.getTypeName() + " {",
                 "  public !static void method();",
                 "}",
                 "-keep class " + Unused.class.getTypeName())
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .run(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
     ClassSubject classSubject = inspector.clazz(StaticizerCandidate.class);
-    assertThat(classSubject, isPresent());
+    assertThat(classSubject, isAbsent());
 
-    if (backend == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       // The class staticizer is not enabled for CF.
       assertThat(inspector.clazz(Unused.class), isPresent());
     } else {
-      assert backend == Backend.DEX;
+      assert parameters.isDexRuntime();
 
-      // There should be a static method on StaticizerCandidate after staticizing.
+      // There should be a static method after staticizing.
+      ClassSubject companionClassSubject = inspector.clazz(StaticizerCandidate.Companion.class);
+      assertThat(companionClassSubject, isPresent());
       List<FoundMethodSubject> staticMethods =
-          classSubject.allMethods().stream()
+          companionClassSubject.allMethods().stream()
               .filter(method -> method.isStatic() && !method.isClassInitializer())
               .collect(Collectors.toList());
       assertEquals(1, staticMethods.size());
-      assertEquals(
-          "void " + StaticizerCandidate.Companion.class.getTypeName() + ".method()",
-          staticMethods.get(0).getOriginalSignature().toString());
+      assertEquals("void method()", staticMethods.get(0).getOriginalSignature().toString());
 
-      // The Companion class should not be present after staticizing.
-      assertThat(inspector.clazz(StaticizerCandidate.Companion.class), not(isPresent()));
-
-      // TODO(b/122867080): The Unused class should be present due to the -if rule.
-      assertThat(inspector.clazz(Unused.class), not(isPresent()));
+      assertThat(inspector.clazz(Unused.class), isPresent());
     }
   }
 

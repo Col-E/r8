@@ -1089,9 +1089,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public DexEncodedMethod toTypeSubstitutedMethod(DexMethod method, Consumer<Builder> consumer) {
     checkIfObsolete();
-    if (this.getReference() == method) {
-      return this;
-    }
     Builder builder = builder(this);
     if (isNonPrivateVirtualMethod() && isLibraryMethodOverride() != OptionalBool.unknown()) {
       builder.setIsLibraryMethodOverride(isLibraryMethodOverride());

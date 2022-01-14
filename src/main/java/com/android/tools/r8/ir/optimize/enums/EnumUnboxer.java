@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
@@ -43,6 +45,8 @@ public abstract class EnumUnboxer {
   public abstract void recordEnumState(DexProgramClass clazz, StaticFieldValues staticFieldValues);
 
   public abstract Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor);
+
+  public abstract void rewriteNullCheck(InstructionListIterator iterator, InvokeMethod invoke);
 
   public abstract void unboxEnums(
       AppView<AppInfoWithLiveness> appView,

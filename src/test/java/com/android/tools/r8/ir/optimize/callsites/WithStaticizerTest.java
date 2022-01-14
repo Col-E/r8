@@ -4,8 +4,7 @@
 package com.android.tools.r8.ir.optimize.callsites;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.CoreMatchers.not;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -16,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +41,11 @@ public class WithStaticizerTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(WithStaticizerTest.class)
         .addKeepMainRule(MAIN)
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertMergedInto(Host.class, Host.Companion.class)
+                    .assertNoOtherClassesMerged())
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -55,14 +58,10 @@ public class WithStaticizerTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     // Check if the candidate is indeed staticized.
     ClassSubject companion = inspector.clazz(Host.Companion.class);
-    assertThat(companion, not(isPresent()));
-
-    // Null check in Companion#foo is migrated to Host#foo.
-    ClassSubject host = inspector.clazz(Host.class);
-    assertThat(host, isPresent());
-    MethodSubject foo = host.uniqueMethodWithName("foo");
+    assertThat(companion, isPresent());
+    MethodSubject foo = companion.uniqueMethodWithName("foo");
     assertThat(foo, isPresent());
-    assertTrue(foo.streamInstructions().noneMatch(InstructionSubject::isIf));
+    assertThat(foo, isStatic());
   }
 
   @NeverClassInline

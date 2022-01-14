@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -168,9 +169,9 @@ public class ClassStaticizerTest extends TestBase {
     //  instantiation of SimpleWithParams, it is marked as ineligible for staticizing.
     assertEquals(
         Lists.newArrayList(
+            "STATIC: String SimpleWithParams.bar(String)",
             "STATIC: String TrivialTestClass.next()",
             "SimpleWithParams SimpleWithParams.INSTANCE",
-            "VIRTUAL: String SimpleWithParams.bar(String)",
             "VIRTUAL: String SimpleWithParams.foo()"),
         references(clazz, "testSimpleWithParams", "void"));
 
@@ -204,9 +205,9 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
+            "STATIC: String SimpleWithThrowingGetter.bar(String)",
             "STATIC: String TrivialTestClass.next()",
             "SimpleWithThrowingGetter SimpleWithThrowingGetter.INSTANCE",
-            "VIRTUAL: String SimpleWithThrowingGetter.bar(String)",
             "VIRTUAL: String SimpleWithThrowingGetter.foo()"),
         references(clazz, "testSimpleWithThrowingGetter", "void"));
 
@@ -219,6 +220,7 @@ public class ClassStaticizerTest extends TestBase {
         Lists.newArrayList(
             "DIRECT: void SimpleWithLazyInit.<init>()",
             "DIRECT: void SimpleWithLazyInit.<init>()",
+            "STATIC: String SimpleWithLazyInit.bar(String)",
             "STATIC: String TrivialTestClass.next()",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
@@ -226,7 +228,6 @@ public class ClassStaticizerTest extends TestBase {
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "VIRTUAL: String SimpleWithLazyInit.bar(String)",
             "VIRTUAL: String SimpleWithLazyInit.foo()"),
         references(clazz, "testSimpleWithLazyInit", "void"));
 
@@ -300,35 +301,37 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String movetohost.HostOk.bar(String)",
-            "STATIC: String movetohost.HostOk.foo()",
+            "STATIC: String movetohost.CandidateOk.bar(String)",
+            "STATIC: String movetohost.CandidateOk.foo()",
             "STATIC: String movetohost.MoveToHostTestClass.next()",
             "STATIC: String movetohost.MoveToHostTestClass.next()",
-            "STATIC: void movetohost.HostOk.blah(String)"),
+            "STATIC: void movetohost.CandidateOk.blah(String)"),
         references(clazz, "testOk", "void"));
 
-    assertThat(inspector.clazz(CandidateOk.class), not(isPresent()));
+    assertThat(inspector.clazz(HostOk.class), isAbsent());
+    assertThat(inspector.clazz(CandidateOk.class), isPresent());
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String movetohost.HostOkSideEffects.bar(String)",
-            "STATIC: String movetohost.HostOkSideEffects.foo()",
+            "STATIC: String movetohost.CandidateOkSideEffects.bar(String)",
+            "STATIC: String movetohost.CandidateOkSideEffects.foo()",
             "STATIC: String movetohost.MoveToHostTestClass.next()",
-            "movetohost.HostOkSideEffects movetohost.HostOkSideEffects.INSTANCE"),
+            "movetohost.CandidateOkSideEffects movetohost.HostOkSideEffects.INSTANCE"),
         references(clazz, "testOkSideEffects", "void"));
 
-    assertThat(inspector.clazz(CandidateOkSideEffects.class), not(isPresent()));
+    assertThat(inspector.clazz(HostOkSideEffects.class), isPresent());
+    assertThat(inspector.clazz(CandidateOkSideEffects.class), isPresent());
 
     assertEquals(
         Lists.newArrayList(
-            "DIRECT: void movetohost.HostConflictMethod.<init>()",
             "STATIC: String movetohost.CandidateConflictMethod.bar(String)",
             "STATIC: String movetohost.CandidateConflictMethod.foo()",
+            "STATIC: String movetohost.HostConflictMethod.bar(String)",
             "STATIC: String movetohost.MoveToHostTestClass.next()",
-            "STATIC: String movetohost.MoveToHostTestClass.next()",
-            "VIRTUAL: String movetohost.HostConflictMethod.bar(String)"),
+            "STATIC: String movetohost.MoveToHostTestClass.next()"),
         references(clazz, "testConflictMethod", "void"));
 
+    assertThat(inspector.clazz(HostConflictMethod.class), isPresent());
     assertThat(inspector.clazz(CandidateConflictMethod.class), isPresent());
 
     assertEquals(
@@ -427,12 +430,14 @@ public class ClassStaticizerTest extends TestBase {
     assertThat(clazz.uniqueMethodWithName("calledTwice"), not(isPresent()));
 
     // Check that the two inlines of "calledTwice" is correctly rewritten.
-    assertThat(clazz.uniqueMethodWithName("foo"), isPresent());
-    assertThat(clazz.uniqueMethodWithName("bar"), isPresent());
+    ClassSubject candidateClassSubject = inspector.clazz(Candidate.class);
+    assertThat(candidateClassSubject, isPresent());
+    assertThat(candidateClassSubject.uniqueMethodWithName("foo"), isPresent());
+    assertThat(candidateClassSubject.uniqueMethodWithName("bar"), isPresent());
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String dualcallinline.DualCallTest.foo()",
-            "STATIC: String dualcallinline.DualCallTest.foo()"),
+            "STATIC: String dualcallinline.Candidate.foo()",
+            "STATIC: String dualcallinline.Candidate.foo()"),
         references(clazz, "main", "void", "java.lang.String[]"));
   }
 }

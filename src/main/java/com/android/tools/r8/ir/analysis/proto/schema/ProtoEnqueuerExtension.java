@@ -295,9 +295,9 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    assert definition.isInvokeMethodWithReceiver()
+    assert definition.isInvokeMethod()
         && references.isFindLiteExtensionByNumberMethod(
-            definition.asInvokeMethodWithReceiver().getInvokedMethod());
+            definition.asInvokeMethod().getInvokedMethod());
   }
 
   /**

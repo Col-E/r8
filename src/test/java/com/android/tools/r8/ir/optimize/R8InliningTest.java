@@ -363,7 +363,7 @@ public class R8InliningTest extends TestBase {
     assertThat(clazz.uniqueMethodWithName("conditionalOperator"), isAbsent());
 
     // The enum parameter is unboxed.
-    MethodSubject m = clazz.uniqueMethodWithName("moreControlFlows$enumunboxing$");
+    MethodSubject m = clazz.uniqueMethodWithName("moreControlFlows");
     assertTrue(m.isPresent());
 
     // Verify that a.b() is resolved to an inline instance-get.

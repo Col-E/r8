@@ -7,6 +7,7 @@ import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
@@ -64,7 +65,7 @@ public class NestStaticMethodAccessTest extends TestBase {
   public void testResolutionAccess() throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(getClasses())
+            buildClassesWithTestingAnnotations(getClasses())
                 .addClassProgramData(getTransformedClasses())
                 .addLibraryFile(parameters.getDefaultRuntimeLibrary())
                 .build(),
@@ -91,6 +92,7 @@ public class NestStaticMethodAccessTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
@@ -114,12 +116,14 @@ public class NestStaticMethodAccessTest extends TestBase {
     return transformer(clazz).setNest(clazz);
   }
 
+  @NoHorizontalClassMerging
   static class A {
     /* will be private */ static void bar() {
       System.out.println("A::bar");
     }
   }
 
+  @NoHorizontalClassMerging
   static class B {
     public void foo() {
       // Static invoke to private method.

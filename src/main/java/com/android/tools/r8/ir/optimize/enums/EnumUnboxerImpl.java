@@ -62,6 +62,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
@@ -1454,6 +1455,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       return enumUnboxerRewriter.rewriteCode(code, methodProcessor);
     }
     return Sets.newIdentityHashSet();
+  }
+
+  @Override
+  public void rewriteNullCheck(InstructionListIterator iterator, InvokeMethod invoke) {
+    if (enumUnboxerRewriter != null) {
+      enumUnboxerRewriter.rewriteNullCheck(iterator, invoke);
+    }
   }
 
   @Override

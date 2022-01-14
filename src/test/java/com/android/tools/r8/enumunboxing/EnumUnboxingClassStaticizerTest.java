@@ -44,6 +44,11 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         .addEnumUnboxingInspector(inspector -> inspector.assertUnboxed(UnboxableEnum.class))
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertMergedInto(CompanionHost.class, Companion.class)
+                    .assertNoOtherClassesMerged())
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .noMinification() // For assertions.
@@ -65,10 +70,9 @@ public class EnumUnboxingClassStaticizerTest extends EnumUnboxingTestBase {
           isPresent());
       return;
     }
-    MethodSubject method =
-        codeInspector.clazz(CompanionHost.class).uniqueMethodWithName(renamedMethodName);
+    MethodSubject method = codeInspector.clazz(Companion.class).uniqueMethodWithName("method");
     assertThat(method, isPresent());
-    assertEquals("int", method.getMethod().getReference().proto.parameters.toString());
+    assertEquals("int", method.getMethod().getParameters().toString());
   }
 
   static class TestClass {

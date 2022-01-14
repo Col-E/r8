@@ -86,7 +86,8 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
           DexMethod methodReferenceBeforeParameterRemoval = method.getReference();
           DexMethod methodReferenceAfterParameterRemoval =
               graphLens.internalGetNextMethodSignature(methodReferenceBeforeParameterRemoval);
-          if (methodReferenceAfterParameterRemoval == methodReferenceBeforeParameterRemoval) {
+          if (methodReferenceAfterParameterRemoval == methodReferenceBeforeParameterRemoval
+              && !graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
             return method;
           }
 
@@ -97,6 +98,13 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
                   RewrittenPrototypeDescription prototypeChanges =
                       graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
                   builder.apply(prototypeChanges.createParameterAnnotationsRemover(method));
+
+                  if (method.isInstance()
+                      && prototypeChanges.getArgumentInfoCollection().isArgumentRemoved(0)) {
+                    builder
+                        .modifyAccessFlags(flags -> flags.demoteFromFinal().promoteToStatic())
+                        .unsetIsLibraryMethodOverride();
+                  }
                 }
               });
         });

@@ -53,6 +53,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
@@ -1009,6 +1010,14 @@ public class Enqueuer {
 
     LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo(), context);
     if (descriptor == null) {
+      for (DexValue bootstrapArgument : callSite.getBootstrapArgs()) {
+        if (bootstrapArgument.isDexValueMethodHandle()) {
+          DexMethodHandle method = bootstrapArgument.asDexValueMethodHandle().getValue();
+          if (method.isMethodHandle()) {
+            methodsTargetedByInvokeDynamic.add(method.asMethod());
+          }
+        }
+      }
       return;
     }
 

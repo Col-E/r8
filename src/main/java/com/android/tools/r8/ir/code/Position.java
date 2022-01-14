@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.structural.HashCodeVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
 import com.android.tools.r8.utils.structural.StructuralMapping;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
+import java.util.function.Predicate;
 
 public abstract class Position implements StructuralItem<Position> {
 
@@ -148,6 +149,26 @@ public abstract class Position implements StructuralItem<Position> {
       lastPosition = lastPosition.callerPosition;
     }
     return lastPosition;
+  }
+
+  public Position getOutermostCallerMatchingOrElse(
+      Predicate<Position> predicate, Position defaultValue) {
+    return getOutermostCallerMatchingOrElse(predicate, defaultValue, false);
+  }
+
+  private Position getOutermostCallerMatchingOrElse(
+      Predicate<Position> predicate, Position defaultValue, boolean isCallerPosition) {
+    if (hasCallerPosition()) {
+      Position position =
+          getCallerPosition().getOutermostCallerMatchingOrElse(predicate, defaultValue, true);
+      if (position != null) {
+        return position;
+      }
+    }
+    if (isCallerPosition && predicate.test(this)) {
+      return this;
+    }
+    return defaultValue;
   }
 
   public Position withOutermostCallerPosition(Position newOutermostCallerPosition) {

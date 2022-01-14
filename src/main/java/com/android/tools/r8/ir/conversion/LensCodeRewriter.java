@@ -100,7 +100,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.verticalclassmerging.InterfaceTypeToClassTypeLensCodeRewriterHelper;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -151,10 +150,7 @@ public class LensCodeRewriter {
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, ProgramMethod method, MethodProcessor methodProcessor) {
-    Set<Phi> affectedPhis =
-        enumUnboxer != null
-            ? enumUnboxer.rewriteCode(code, methodProcessor)
-            : Sets.newIdentityHashSet();
+    Set<Phi> affectedPhis = enumUnboxer.rewriteCode(code, methodProcessor);
     GraphLens graphLens = appView.graphLens();
     DexItemFactory factory = appView.dexItemFactory();
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
@@ -255,6 +251,9 @@ public class LensCodeRewriter {
               DexMethod actualTarget = lensLookup.getReference();
               Invoke.Type actualInvokeType = lensLookup.getType();
 
+              iterator =
+                  insertNullCheckForInvokeReceiverIfNeeded(
+                      code, blocks, iterator, invoke, lensLookup);
               iterator =
                   insertCastsForInvokeArgumentsIfNeeded(code, blocks, iterator, invoke, lensLookup);
 
@@ -769,6 +768,56 @@ public class LensCodeRewriter {
       Instruction next = iterator.next();
       assert next == fieldPut;
     }
+    return iterator;
+  }
+
+  private InstructionListIterator insertNullCheckForInvokeReceiverIfNeeded(
+      IRCode code,
+      BasicBlockIterator blocks,
+      InstructionListIterator iterator,
+      InvokeMethod invoke,
+      MethodLookupResult lookup) {
+    // If the invoke has been staticized, then synthesize a null check for the receiver.
+    if (!invoke.isInvokeMethodWithReceiver() || !lookup.getType().isStatic()) {
+      return iterator;
+    }
+
+    TypeElement receiverType = invoke.asInvokeMethodWithReceiver().getReceiver().getType();
+    if (receiverType.isDefinitelyNotNull()) {
+      return iterator;
+    }
+
+    iterator.previous();
+
+    Position nullCheckPosition =
+        invoke
+            .getPosition()
+            .getOutermostCallerMatchingOrElse(
+                Position::isRemoveInnerFramesIfThrowingNpe, invoke.getPosition());
+    InvokeMethod nullCheck =
+        iterator.insertNullCheckInstruction(
+            appView, code, blocks, invoke.getFirstArgument(), nullCheckPosition);
+
+    // TODO(b/199864962): Lens code rewriting should follow the order of graph lenses, i.e., enum
+    //  unboxing rewriting should happen after method staticizing.
+    if (receiverType.isClassType()
+        && appView.unboxedEnums().isUnboxedEnum(receiverType.asClassType().getClassType())) {
+      iterator.previousUntil(instruction -> instruction == nullCheck);
+      iterator.next();
+      enumUnboxer.rewriteNullCheck(iterator, nullCheck);
+    }
+
+    // Reset the block iterator.
+    if (invoke.getBlock().hasCatchHandlers()) {
+      BasicBlock splitBlock = invoke.getBlock();
+      BasicBlock previousBlock = blocks.previousUntil(block -> block == splitBlock);
+      assert previousBlock == splitBlock;
+      blocks.next();
+      iterator = splitBlock.listIterator(code);
+    }
+
+    Instruction next = iterator.next();
+    assert next == invoke;
     return iterator;
   }
 

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
@@ -45,6 +46,11 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
 
   public boolean isAffected(DexMethod method) {
     return method != internalGetPreviousMethodSignature(method) || hasPrototypeChanges(method);
+  }
+
+  @Override
+  protected boolean isLegitimateToHaveEmptyMappings() {
+    return true;
   }
 
   @Override
@@ -91,6 +97,17 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     return super.internalGetNextMethodSignature(method);
   }
 
+  @Override
+  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+    if (!type.isStatic() && hasPrototypeChanges(newMethod)) {
+      RewrittenPrototypeDescription prototypeChanges = getPrototypeChanges(newMethod);
+      if (prototypeChanges.getArgumentInfoCollection().isArgumentRemoved(0)) {
+        return Type.STATIC;
+      }
+    }
+    return super.mapInvocationType(newMethod, originalMethod, type);
+  }
+
   public static class Builder {
 
     private final AppView<AppInfoWithLiveness> appView;
@@ -106,7 +123,9 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     }
 
     public boolean isEmpty() {
-      return newFieldSignatures.isEmpty() && newMethodSignatures.isEmpty();
+      return newFieldSignatures.isEmpty()
+          && newMethodSignatures.isEmpty()
+          && prototypeChanges.isEmpty();
     }
 
     public ArgumentPropagatorGraphLens.Builder mergeDisjoint(
@@ -133,6 +152,12 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       assert from.getReturnType().isVoidType()
           || !to.getReturnType().isVoidType()
           || prototypeChangesForMethod.hasRewrittenReturnInfo();
+      return this;
+    }
+
+    public Builder recordStaticized(
+        DexMethod method, RewrittenPrototypeDescription prototypeChangesForMethod) {
+      prototypeChanges.put(method, prototypeChangesForMethod);
       return this;
     }
 

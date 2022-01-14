@@ -6,6 +6,7 @@ package com.android.tools.r8.regress.b69825683;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -92,13 +93,10 @@ public class Regress69825683Test extends TestBase {
             .inspector();
 
     List<FoundClassSubject> classes = inspector.allClasses();
-
-    // The synthetic class is still present when generating class files.
-    assertEquals(parameters.isCfRuntime() ? 3 : 2, classes.size());
-    assertEquals(
-        parameters.isCfRuntime(),
+    assertEquals(2, classes.size());
+    assertTrue(
         classes.stream()
             .map(FoundClassSubject::getOriginalName)
-            .anyMatch(name -> name.endsWith("$1")));
+            .noneMatch(name -> name.endsWith("$1")));
   }
 }

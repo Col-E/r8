@@ -148,9 +148,7 @@ public class EnumUnboxingRewriter {
                 continue;
               }
             } else if (invokedMethod == factory.objectMembers.getClass) {
-              assert !invoke.hasOutValue() || !invoke.outValue().hasAnyUsers();
-              replaceEnumInvoke(
-                  iterator, invoke, getSharedUtilityClass().ensureCheckNotZeroMethod(appView));
+              rewriteNullCheck(iterator, invoke);
               continue;
             }
           } else if (invokedMethod == factory.stringBuilderMethods.appendObject
@@ -346,10 +344,7 @@ public class EnumUnboxingRewriter {
         Value argument = invoke.getFirstArgument();
         DexType enumType = getEnumTypeOrNull(argument, convertedEnums);
         if (enumType != null) {
-          replaceEnumInvoke(
-              instructionIterator,
-              invoke,
-              getSharedUtilityClass().ensureCheckNotZeroMethod(appView));
+          rewriteNullCheck(instructionIterator, invoke);
         }
       } else if (invokedMethod == factory.objectsMethods.requireNonNullWithMessage) {
         assert invoke.arguments().size() == 2;
@@ -432,6 +427,11 @@ public class EnumUnboxingRewriter {
         assert false;
       }
     }
+  }
+
+  public void rewriteNullCheck(InstructionListIterator iterator, InvokeMethod invoke) {
+    assert !invoke.hasOutValue() || !invoke.outValue().hasAnyUsers();
+    replaceEnumInvoke(iterator, invoke, getSharedUtilityClass().ensureCheckNotZeroMethod(appView));
   }
 
   private void removeRedundantValuesArrayCloning(
