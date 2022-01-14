@@ -1505,6 +1505,9 @@ public class IRConverter {
       CodeRewriter.removeAssumeInstructions(appView, code);
       timing.end();
       assert code.isConsistentSSA();
+
+      // TODO(b/214496607): Remove when dynamic types are safe w.r.t. interface assignment rules.
+      codeRewriter.rewriteMoveResult(code);
     }
 
     // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.

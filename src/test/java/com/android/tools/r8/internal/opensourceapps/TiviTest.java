@@ -58,6 +58,7 @@ public class TiviTest extends TestBase {
         testForR8(Backend.CF)
             .addProgramFiles(outDirectory.resolve("program.jar"))
             .apply(this::configure)
+            .apply(this::configureCf)
             .compile();
     testForR8(Backend.DEX)
         .addProgramFiles(compileResult.writeToZip())
@@ -79,6 +80,7 @@ public class TiviTest extends TestBase {
         testForR8Compat(Backend.CF)
             .addProgramFiles(outDirectory.resolve("program.jar"))
             .apply(this::configure)
+            .apply(this::configureCf)
             .compile();
     testForR8Compat(Backend.DEX)
         .addProgramFiles(compileResult.writeToZip())
@@ -93,7 +95,12 @@ public class TiviTest extends TestBase {
         .addKeepRuleFiles(outDirectory.resolve("proguard.config"))
         .setMinApi(AndroidApiLevel.M)
         .allowDiagnosticMessages()
+        .allowUnnecessaryDontWarnWildcards()
         .allowUnusedDontWarnPatterns()
         .allowUnusedProguardConfigurationRules();
+  }
+
+  private void configureCf(R8TestBuilder<?> testBuilder) {
+    testBuilder.addOptionsModification(options -> options.horizontalClassMergerOptions().disable());
   }
 }
