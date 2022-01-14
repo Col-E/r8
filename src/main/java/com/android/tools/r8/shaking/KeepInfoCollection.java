@@ -249,6 +249,12 @@ public abstract class KeepInfoCollection {
       if (prunedItems.hasRemovedClasses()) {
         keepClassInfo.keySet().removeAll(prunedItems.getRemovedClasses());
       }
+      if (prunedItems.hasRemovedFields()) {
+        keepFieldInfo.keySet().removeAll(prunedItems.getRemovedFields());
+      }
+      if (prunedItems.hasRemovedMembers()) {
+        keepMethodInfo.keySet().removeAll(prunedItems.getRemovedMethods());
+      }
     }
 
     public void removeKeepInfoForPrunedItems(PrunedItems prunedItems) {

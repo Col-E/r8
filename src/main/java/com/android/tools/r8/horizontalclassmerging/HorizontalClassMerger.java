@@ -103,7 +103,9 @@ public class HorizontalClassMerger {
             : null;
     SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder =
         SyntheticInitializerConverter.builder(appView, codeProvider);
-    applyClassMergers(classMergers, syntheticArgumentClass, syntheticInitializerConverterBuilder);
+    PrunedItems prunedItems =
+        applyClassMergers(
+            classMergers, syntheticArgumentClass, syntheticInitializerConverterBuilder);
 
     SyntheticInitializerConverter syntheticInitializerConverter =
         syntheticInitializerConverterBuilder.build();
@@ -124,10 +126,7 @@ public class HorizontalClassMerger {
 
     // Prune keep info.
     KeepInfoCollection keepInfo = appView.getKeepInfo();
-    keepInfo.mutate(
-        mutator ->
-            mutator.removeKeepInfoForMergedClasses(
-                PrunedItems.builder().setRemovedClasses(mergedClasses.getSources()).build()));
+    keepInfo.mutate(mutator -> mutator.removeKeepInfoForMergedClasses(prunedItems));
 
     // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that allocation
     // sites, fields accesses, etc. are correctly transferred to the target classes.
@@ -142,12 +141,7 @@ public class HorizontalClassMerger {
     }
 
     appView.pruneItems(
-        PrunedItems.builder()
-            .setPrunedApp(appView.appInfo().app())
-            .addRemovedClasses(mergedClasses.getSources())
-            .addNoLongerSyntheticItems(mergedClasses.getSources())
-            .build(),
-        executorService);
+        prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService);
   }
 
   private FieldAccessInfoCollectionModifier createFieldAccessInfoCollectionModifier(
@@ -220,13 +214,16 @@ public class HorizontalClassMerger {
   }
 
   /** Merges all class groups using {@link ClassMerger}. */
-  private void applyClassMergers(
+  private PrunedItems applyClassMergers(
       Collection<ClassMerger> classMergers,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
+    PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder().setPrunedApp(appView.app());
     for (ClassMerger merger : classMergers) {
-      merger.mergeGroup(syntheticArgumentClass, syntheticInitializerConverterBuilder);
+      merger.mergeGroup(
+          prunedItemsBuilder, syntheticArgumentClass, syntheticInitializerConverterBuilder);
     }
+    return prunedItemsBuilder.build();
   }
 
   /**

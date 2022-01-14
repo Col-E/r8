@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMember;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
 import com.android.tools.r8.horizontalclassmerging.code.ClassInitializerMerger;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
@@ -290,16 +291,21 @@ public class ClassMerger {
     group.getTarget().setInterfaces(DexTypeList.create(interfaces));
   }
 
-  void mergeFields() {
+  void mergeFields(PrunedItems.Builder prunedItemsBuilder) {
     if (group.hasClassIdField()) {
       appendClassIdField();
     }
-    mergeInstanceFields();
+    mergeInstanceFields(prunedItemsBuilder);
     mergeStaticFields();
   }
 
-  void mergeInstanceFields() {
-    group.forEachSource(DexClass::clearInstanceFields);
+  void mergeInstanceFields(PrunedItems.Builder prunedItemsBuilder) {
+    group.forEachSource(
+        clazz -> {
+          clazz.forEachInstanceField(
+              field -> prunedItemsBuilder.addRemovedField(field.getReference()));
+          clazz.clearInstanceFields();
+        });
     group.getTarget().setInstanceFields(classInstanceFieldsMerger.merge());
   }
 
@@ -310,16 +316,18 @@ public class ClassMerger {
   }
 
   public void mergeGroup(
+      PrunedItems.Builder prunedItemsBuilder,
       SyntheticArgumentClass syntheticArgumentClass,
       SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
     fixAccessFlags();
     fixNestMemberAttributes();
     mergeAnnotations();
     mergeInterfaces();
-    mergeFields();
+    mergeFields(prunedItemsBuilder);
     mergeMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
     group.getTarget().clearClassSignature();
     group.getTarget().forEachProgramMember(ProgramMember::clearGenericSignature);
+    group.forEachSource(clazz -> prunedItemsBuilder.addRemovedClass(clazz.getType()));
   }
 
   public static class Builder {

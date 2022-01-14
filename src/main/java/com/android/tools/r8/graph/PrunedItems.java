@@ -36,6 +36,10 @@ public class PrunedItems {
     return new Builder();
   }
 
+  public Builder toBuilder() {
+    return new Builder(this);
+  }
+
   public static PrunedItems empty(DexApplication application) {
     return new Builder().setPrunedApp(application).build();
   }
@@ -113,6 +117,17 @@ public class PrunedItems {
     private final Set<DexField> removedFields = Sets.newIdentityHashSet();
     private Set<DexMethod> removedMethods = Sets.newIdentityHashSet();
 
+    Builder() {}
+
+    Builder(PrunedItems prunedItems) {
+      additionalPinnedItems.addAll(prunedItems.getAdditionalPinnedItems());
+      noLongerSyntheticItems.addAll(prunedItems.getNoLongerSyntheticItems());
+      prunedApp = prunedItems.getPrunedApp();
+      removedClasses.addAll(prunedItems.getRemovedClasses());
+      removedFields.addAll(prunedItems.getRemovedFields());
+      removedMethods.addAll(prunedItems.getRemovedMethods());
+    }
+
     public Builder setPrunedApp(DexApplication prunedApp) {
       this.prunedApp = prunedApp;
       return this;
@@ -126,6 +141,12 @@ public class PrunedItems {
 
     public Builder addNoLongerSyntheticItems(Set<DexType> noLongerSyntheticItems) {
       this.noLongerSyntheticItems.addAll(noLongerSyntheticItems);
+      return this;
+    }
+
+    public Builder addRemovedClass(DexType removedClass) {
+      this.noLongerSyntheticItems.add(removedClass);
+      this.removedClasses.add(removedClass);
       return this;
     }
 
