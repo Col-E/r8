@@ -60,7 +60,8 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     Map<DexType, List<DexMethod>> map = Maps.newIdentityHashMap();
     emulatedDispatchMethods.forEach(
         (method, descriptor) -> {
-          map.putIfAbsent(method.getHolderType(), new ArrayList<>(1)).add(method);
+          map.putIfAbsent(method.getHolderType(), new ArrayList<>(1));
+          map.get(method.getHolderType()).add(method);
         });
     for (DexProgramClass clazz : programClasses) {
       if (clazz.superType == null) {

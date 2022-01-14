@@ -54,6 +54,7 @@ import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -1612,6 +1613,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         ConsumerUtils.emptyBiConsumer();
 
     public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
+
+    // Meant to replace desugaredLibrarySpecification, set only from tests at the moment.
+    public MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification = null;
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableMap;
@@ -38,7 +39,15 @@ public class RetargetingInfo {
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
   }
 
-  public static synchronized RetargetingInfo get(AppView<?> appView) {
+  public static RetargetingInfo get(AppView<?> appView) {
+    if (appView.options().testing.machineDesugaredLibrarySpecification != null) {
+      MachineRewritingFlags rewritingFlags =
+          appView.options().testing.machineDesugaredLibrarySpecification.getRewritingFlags();
+      return new RetargetingInfo(
+          rewritingFlags.getStaticRetarget(),
+          rewritingFlags.getNonEmulatedVirtualRetarget(),
+          rewritingFlags.getEmulatedVirtualRetarget());
+    }
     return new RetargetingInfoBuilder(appView).computeRetargetingInfo();
   }
 

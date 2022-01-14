@@ -5,7 +5,13 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -25,15 +31,19 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
+  private final boolean machineSpec;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "machine: {0}, {2}, shrink: {1}")
   public static List<Object[]> data() {
     return buildParameters(
+        BooleanUtils.values(),
         BooleanUtils.values(),
         getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
   }
 
-  public RetargetOverrideTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+  public RetargetOverrideTest(
+      boolean machineSpec, boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.machineSpec = machineSpec;
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
@@ -44,6 +54,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     Path desugaredTwice =
         testForD8(Backend.CF)
             .addLibraryFiles(getLibraryFile())
+            .addOptionsModification(this::setMachineSpec)
             .addProgramFiles(
                 testForD8(Backend.CF)
                     .addLibraryFiles(getLibraryFile())
@@ -65,6 +76,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
       stdout =
           testForD8(Backend.DEX)
               .addProgramFiles(desugaredTwice)
+              .addOptionsModification(this::setMachineSpec)
               .setMinApi(parameters.getApiLevel())
               .disableDesugaring()
               .compile()
@@ -95,6 +107,22 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     assertLines2By2Correct(stdout);
   }
 
+  private void setMachineSpec(InternalOptions opt) {
+    if (!machineSpec) {
+      return;
+    }
+    try {
+      HumanDesugaredLibrarySpecification human =
+          new LegacyToHumanSpecificationConverter()
+              .convert(opt.desugaredLibrarySpecification, getLibraryFile(), opt);
+      MachineDesugaredLibrarySpecification machine =
+          new HumanToMachineSpecificationConverter().convert(human, getLibraryFile(), opt);
+      opt.testing.machineDesugaredLibrarySpecification = machine;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Test
   public void testRetargetOverrideD8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
@@ -102,6 +130,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     String stdout =
         testForD8()
             .addLibraryFiles(getLibraryFile())
+            .addOptionsModification(this::setMachineSpec)
             .addInnerClasses(RetargetOverrideTest.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .setMinApi(parameters.getApiLevel())
@@ -127,6 +156,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
     String stdout =
         testForR8(Backend.DEX)
             .addLibraryFiles(getLibraryFile())
+            .addOptionsModification(this::setMachineSpec)
             .addKeepMainRule(Executor.class)
             .addInnerClasses(RetargetOverrideTest.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

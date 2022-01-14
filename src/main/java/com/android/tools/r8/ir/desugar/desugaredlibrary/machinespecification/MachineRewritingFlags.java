@@ -37,6 +37,18 @@ public class MachineRewritingFlags {
   // Virtual methods to retarget through emulated dispatch.
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
 
+  public Map<DexMethod, DexMethod> getStaticRetarget() {
+    return staticRetarget;
+  }
+
+  public Map<DexMethod, DexMethod> getNonEmulatedVirtualRetarget() {
+    return nonEmulatedVirtualRetarget;
+  }
+
+  public Map<DexMethod, EmulatedDispatchMethodDescriptor> getEmulatedVirtualRetarget() {
+    return emulatedVirtualRetarget;
+  }
+
   public static class Builder {
 
     Builder() {}

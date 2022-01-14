@@ -15,4 +15,12 @@ public class MachineDesugaredLibrarySpecification {
     this.libraryCompilation = libraryCompilation;
     this.rewritingFlags = rewritingFlags;
   }
+
+  public boolean isLibraryCompilation() {
+    return libraryCompilation;
+  }
+
+  public MachineRewritingFlags getRewritingFlags() {
+    return rewritingFlags;
+  }
 }
