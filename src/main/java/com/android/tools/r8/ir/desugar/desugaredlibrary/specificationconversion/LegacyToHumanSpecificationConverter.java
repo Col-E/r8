@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
@@ -43,9 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-public class LegacyToHumanSpecificationConverter implements SpecificationConverter {
+public class LegacyToHumanSpecificationConverter {
 
-  @Override
   public void convertAllAPILevels(
       StringResource inputSpecification, Path androidLib, StringConsumer output)
       throws IOException {
@@ -136,8 +134,7 @@ public class LegacyToHumanSpecificationConverter implements SpecificationConvert
     libraryFlags.put(level, builder.build());
   }
 
-  private DirectMappedDexApplication readApp(Path androidLib, InternalOptions options)
-      throws IOException {
+  private DexApplication readApp(Path androidLib, InternalOptions options) throws IOException {
     AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
     ApplicationReader applicationReader =
         new ApplicationReader(androidApp, options, Timing.empty());
