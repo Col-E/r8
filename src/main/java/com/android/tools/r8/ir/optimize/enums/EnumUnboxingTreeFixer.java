@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
 import com.android.tools.r8.ir.optimize.enums.code.CheckNotZeroCode;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
@@ -189,10 +190,10 @@ class EnumUnboxingTreeFixer {
                               .setApiLevelForCode(appView.computedMinApiLevel())
                               .setCode(method -> new CheckNotZeroCode(checkNotNullMethod))
                               .setOptimizationInfo(
-                                  checkNotNullMethod
-                                      .getOptimizationInfo()
-                                      .asMutableMethodOptimizationInfo()
-                                      .mutableCopy())
+                                  DefaultMethodOptimizationInfo.getInstance()
+                                      .toMutableOptimizationInfo()
+                                      .setEnumUnboxerMethodClassification(
+                                          checkNotNullClassification))
                               .setProto(newProto));
           checkNotNullToCheckNotZeroMapping.put(
               checkNotNullMethod.getReference(), checkNotZeroMethod.getReference());

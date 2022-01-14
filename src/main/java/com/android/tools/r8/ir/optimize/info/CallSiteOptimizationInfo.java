@@ -24,7 +24,7 @@ public abstract class CallSiteOptimizationInfo {
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
   public DynamicType getDynamicType(int argIndex) {
-    return null;
+    return DynamicType.unknown();
   }
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
