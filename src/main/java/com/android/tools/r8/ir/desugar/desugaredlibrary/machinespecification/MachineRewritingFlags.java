@@ -16,9 +16,11 @@ public class MachineRewritingFlags {
 
   MachineRewritingFlags(
       Map<DexMethod, DexMethod> staticRetarget,
-      Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget) {
+      Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
+      Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget) {
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
+    this.emulatedVirtualRetarget = emulatedVirtualRetarget;
   }
 
   // Static methods to retarget, duplicated to library boundaries.
@@ -32,6 +34,9 @@ public class MachineRewritingFlags {
   // code.
   private final Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget;
 
+  // Virtual methods to retarget through emulated dispatch.
+  private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
+
   public static class Builder {
 
     Builder() {}
@@ -40,6 +45,8 @@ public class MachineRewritingFlags {
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> nonEmulatedVirtualRetarget =
         ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexMethod, EmulatedDispatchMethodDescriptor>
+        emulatedVirtualRetarget = ImmutableMap.builder();
 
     public void putStaticRetarget(DexMethod src, DexMethod dest) {
       staticRetarget.put(src, dest);
@@ -49,8 +56,15 @@ public class MachineRewritingFlags {
       nonEmulatedVirtualRetarget.put(src, dest);
     }
 
+    public void putEmulatedVirtualRetarget(DexMethod src, EmulatedDispatchMethodDescriptor dest) {
+      emulatedVirtualRetarget.put(src, dest);
+    }
+
     public MachineRewritingFlags build() {
-      return new MachineRewritingFlags(staticRetarget.build(), nonEmulatedVirtualRetarget.build());
+      return new MachineRewritingFlags(
+          staticRetarget.build(),
+          nonEmulatedVirtualRetarget.build(),
+          emulatedVirtualRetarget.build());
     }
   }
 }
