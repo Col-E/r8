@@ -1091,27 +1091,44 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private void initializeAndroidSv2MethodProviders(DexItemFactory factory) {
-      DexString name;
-      DexProto proto;
-      DexMethod method;
       // sun.misc.Unsafe
+      {
+        // compareAndSwapObject(Object receiver, long offset, Object expect, Object update)
+        DexType type = factory.unsafeType;
+        DexString name = factory.createString("compareAndSwapObject");
+        DexProto proto =
+            factory.createProto(
+                factory.booleanType,
+                factory.objectType,
+                factory.longType,
+                factory.objectType,
+                factory.objectType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodWithForwardingGenerator(
+                method,
+                BackportedMethods::UnsafeMethods_compareAndSwapObject,
+                "compareAndSwapObject",
+                type));
+      }
 
-      // compareAndSwapObject(Object receiver, long offset, Object expect, Object update)
-      name = factory.createString("compareAndSwapObject");
-      proto =
-          factory.createProto(
-              factory.booleanType,
-              factory.objectType,
-              factory.longType,
-              factory.objectType,
-              factory.objectType);
-      method = factory.createMethod(factory.unsafeType, proto, name);
-      addProvider(
-          new StatifyingMethodWithForwardingGenerator(
-              method,
-              BackportedMethods::UnsafeMethods_compareAndSwapObject,
-              "compareAndSwapObject",
-              factory.unsafeType));
+      // java.util.concurrent.atomic.AtomicReferenceFieldUpdater
+      {
+        // compareAndSet(Object object, Object expect, Object update)
+        DexType type =
+            factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceFieldUpdater;");
+        DexString name = factory.createString("compareAndSet");
+        DexProto proto =
+            factory.createProto(
+                factory.booleanType, factory.objectType, factory.objectType, factory.objectType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodWithForwardingGenerator(
+                method,
+                BackportedMethods::AtomicReferenceFieldUpdaterMethods_compareAndSet,
+                "compareAndSet",
+                type));
+      }
     }
 
     private void initializeJava9MethodProviders(DexItemFactory factory) {

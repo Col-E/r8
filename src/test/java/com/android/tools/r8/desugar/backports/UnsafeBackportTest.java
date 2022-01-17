@@ -39,7 +39,7 @@ public class UnsafeBackportTest extends AbstractBackportTest {
 
     ignoreInvokes("objectFieldOffset");
 
-    // sun.misc.Unsafe issue is on API 31.
+    // sun.misc.Unsafe issue is on API 31, see b/211646483..
     registerTarget(AndroidApiLevel.Sv2, 3);
   }
 
