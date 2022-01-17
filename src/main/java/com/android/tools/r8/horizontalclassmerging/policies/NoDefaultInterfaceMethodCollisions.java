@@ -146,7 +146,7 @@ public class NoDefaultInterfaceMethodCollisions
   @Override
   public Map<DexType, InterfaceInfo> preprocess(
       Collection<MergeGroup> groups, ExecutorService executorService) {
-    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
+    SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
     Collection<DexProgramClass> classesOfInterest = computeClassesOfInterest(subtypingInfo);
     Map<DexType, DexMethodSignatureSet> inheritedClassMethodsPerClass =
         computeInheritedClassMethodsPerProgramClass(classesOfInterest);

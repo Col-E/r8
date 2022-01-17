@@ -868,12 +868,20 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     forEachImmediateInterface(fn);
   }
 
+  public void forEachImmediateSupertype(BiConsumer<DexType, Boolean> fn) {
+    if (superType != null) {
+      fn.accept(superType, false);
+    }
+    forEachImmediateInterface(iface -> fn.accept(iface, true));
+  }
+
   public boolean validInterfaceSignatures() {
     return getClassSignature().superInterfaceSignatures().isEmpty()
         || interfaces.values.length == getClassSignature().superInterfaceSignatures.size();
   }
 
-  public void forEachImmediateInterface(BiConsumer<DexType, ClassTypeSignature> consumer) {
+  public void forEachImmediateInterfaceWithSignature(
+      BiConsumer<DexType, ClassTypeSignature> consumer) {
     assert validInterfaceSignatures();
 
     // If there is no generic signature information don't pass any type arguments.
@@ -896,11 +904,12 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
     }
   }
 
-  public void forEachImmediateSupertype(BiConsumer<DexType, ClassTypeSignature> consumer) {
+  public void forEachImmediateSupertypeWithSignature(
+      BiConsumer<DexType, ClassTypeSignature> consumer) {
     if (superType != null) {
       consumer.accept(superType, classSignature.superClassSignature);
     }
-    forEachImmediateInterface(consumer);
+    forEachImmediateInterfaceWithSignature(consumer);
   }
 
   public void forEachImmediateInterfaceWithAppliedTypeArguments(

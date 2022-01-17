@@ -63,7 +63,7 @@ public class GenerateMainDexList {
 
     MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());
 
-    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
+    SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
 
     MainDexRootSet mainDexRootSet =
         MainDexRootSet.builder(appView, subtypingInfo, options.mainDexKeepRules).build(executor);

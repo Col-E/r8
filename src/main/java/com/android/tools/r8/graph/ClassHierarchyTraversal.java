@@ -41,7 +41,7 @@ abstract class ClassHierarchyTraversal<
     }
   }
 
-  final AppView<? extends AppInfoWithClassHierarchy> appView;
+  final DexDefinitionSupplier definitionSupplier;
   final Scope scope;
 
   final Set<DexClass> visited = new HashSet<>();
@@ -49,8 +49,8 @@ abstract class ClassHierarchyTraversal<
 
   boolean excludeInterfaces = false;
 
-  ClassHierarchyTraversal(AppView<? extends AppInfoWithClassHierarchy> appView, Scope scope) {
-    this.appView = appView;
+  ClassHierarchyTraversal(DexDefinitionSupplier definitionSupplier, Scope scope) {
+    this.definitionSupplier = definitionSupplier;
     this.scope = scope;
   }
 
@@ -61,8 +61,8 @@ abstract class ClassHierarchyTraversal<
     return self();
   }
 
-  public void visit(Iterable<DexProgramClass> sources, Consumer<T> visitor) {
-    Iterator<DexProgramClass> sourceIterator = sources.iterator();
+  public void visit(Iterable<? extends DexClass> sources, Consumer<T> visitor) {
+    Iterator<? extends DexClass> sourceIterator = sources.iterator();
 
     // Visit the program classes in the order that is implemented by addDependentsToWorklist().
     while (sourceIterator.hasNext() || !worklist.isEmpty()) {

@@ -162,7 +162,7 @@ public class OnlyDirectlyConnectedOrUnrelatedInterfaces
 
   @Override
   public SubtypingInfo preprocess(Collection<MergeGroup> groups, ExecutorService executorService) {
-    return new SubtypingInfo(appView);
+    return SubtypingInfo.create(appView);
   }
 
   @Override

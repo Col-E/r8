@@ -34,7 +34,7 @@ public class R8Shaking2LookupTest {
     dexItemFactory = program.dexItemFactory;
     AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(program);
     appInfo = appView.appInfo();
-    subtypingInfo = new SubtypingInfo(appView);
+    subtypingInfo = SubtypingInfo.create(appView);
   }
 
   private void validateSubtype(DexType super_type, DexType sub_type) {

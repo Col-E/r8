@@ -352,7 +352,7 @@ public class R8 {
                     options.itemFactory, options.getMinApiLevel()));
           }
         }
-        SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
+        SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
         appView.setRootSet(
             RootSet.builder(
                     appView,
@@ -583,7 +583,7 @@ public class R8 {
               EnqueuerFactory.createForFinalTreeShaking(
                   appView,
                   executorService,
-                  new SubtypingInfo(appView),
+                  SubtypingInfo.create(appView),
                   keptGraphConsumer,
                   prunedTypes);
           if (options.isClassMergingExtensionRequired(enqueuer.getMode())) {
@@ -893,7 +893,7 @@ public class R8 {
     // computing from the initially computed main dex root set.
     MainDexInfo mainDexInfo =
         EnqueuerFactory.createForInitialMainDexTracing(
-                appView, executorService, new SubtypingInfo(appView))
+                appView, executorService, SubtypingInfo.create(appView))
             .traceMainDex(executorService, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
   }
@@ -915,7 +915,7 @@ public class R8 {
 
     Enqueuer enqueuer =
         EnqueuerFactory.createForFinalMainDexTracing(
-            appView, executorService, new SubtypingInfo(appView), mainDexKeptGraphConsumer);
+            appView, executorService, SubtypingInfo.create(appView), mainDexKeptGraphConsumer);
     // Find classes which may have code executed before secondary dex files installation.
     MainDexInfo mainDexInfo = enqueuer.traceMainDex(executorService, timing);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(mainDexInfo));
@@ -1061,7 +1061,7 @@ public class R8 {
     // If there is no kept-graph info, re-run the enqueueing to compute it.
     if (whyAreYouKeepingConsumer == null) {
       whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
-      SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
+      SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
       if (forMainDex) {
         enqueuer =
             EnqueuerFactory.createForFinalMainDexTracing(

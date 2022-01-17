@@ -806,7 +806,7 @@ public class TestBase {
         computeAppViewWithClassHierarchy(app, keepConfig, optionsConsumer);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
+    SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
     RootSet rootSet =
         RootSet.builder(
                 appView, subtypingInfo, appView.options().getProguardConfiguration().getRules())

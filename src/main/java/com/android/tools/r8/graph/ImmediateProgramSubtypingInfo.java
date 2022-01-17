@@ -99,11 +99,6 @@ public class ImmediateProgramSubtypingInfo {
         });
   }
 
-  public void forEachImmediateSubClass(
-      DexProgramClass clazz, Consumer<? super DexProgramClass> consumer) {
-    forEachImmediateSubClassMatching(clazz, alwaysTrue(), consumer);
-  }
-
   public void forEachImmediateSubClassMatching(
       DexProgramClass clazz,
       Predicate<? super DexProgramClass> predicate,

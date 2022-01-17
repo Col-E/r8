@@ -74,7 +74,7 @@ public class InlineTest extends IrInjectionTestBase {
     AppView<AppInfoWithClassHierarchy> appView = AppView.createForR8(application.asDirect());
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    SubtypingInfo subtypingInfo = new SubtypingInfo(appView);
+    SubtypingInfo subtypingInfo = SubtypingInfo.create(appView);
     appView.setRootSet(
         RootSet.builder(
                 appView,

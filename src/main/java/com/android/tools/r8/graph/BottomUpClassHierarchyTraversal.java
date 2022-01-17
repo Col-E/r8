@@ -71,7 +71,7 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
 
     // Add subtypes to worklist.
     for (DexType subtype : immediateSubtypesProvider.apply(clazz.getType())) {
-      DexClass definition = appView.definitionFor(subtype);
+      DexClass definition = definitionSupplier.contextIndependentDefinitionFor(subtype);
       if (definition != null) {
         if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
           addDependentsToWorklist(definition);

@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class SubtypingInfo {
 
@@ -29,119 +28,124 @@ public class SubtypingInfo {
   // Since most Java types has no sub-types, we can just share an empty immutable set until we
   // need to add to it.
   private static final Set<DexType> NO_DIRECT_SUBTYPE = ImmutableSet.of();
-  // Map from types to their subtyping information.
-  private final DexItemFactory factory;
-
-  private final Map<DexType, TypeInfo> typeInfo = new ConcurrentHashMap<>();
-
   // Map from types to their subtypes.
-  private final Map<DexType, ImmutableSet<DexType>> subtypeMap = new IdentityHashMap<>();
+  private final Map<DexType, Set<DexType>> subtypeMap;
 
-  public SubtypingInfo(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    this(appView.appInfo());
+  private final Map<DexType, TypeInfo> typeInfo;
+
+  private SubtypingInfo(Map<DexType, TypeInfo> typeInfo, Map<DexType, Set<DexType>> subtypeMap) {
+    this.typeInfo = typeInfo;
+    this.subtypeMap = subtypeMap;
   }
 
-  public SubtypingInfo(AppInfoWithClassHierarchy appInfo) {
-    this(appInfo.app().asDirect().allClasses(), appInfo);
+  public static SubtypingInfo create(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return create(appView.appInfo());
   }
 
-  private SubtypingInfo(Collection<DexClass> classes, DexDefinitionSupplier definitions) {
-    factory = definitions.dexItemFactory();
-    // Recompute subtype map if we have modified the graph.
-    populateSubtypeMap(classes, definitions::definitionFor, factory);
+  public static SubtypingInfo create(AppInfoWithClassHierarchy appInfo) {
+    return create(appInfo.app().asDirect().allClasses(), appInfo);
   }
 
-  private void populateSuperType(
+  private static SubtypingInfo create(
+      Collection<DexClass> classes, DexDefinitionSupplier definitions) {
+    Map<DexType, TypeInfo> typeInfo = new ConcurrentHashMap<>();
+    Map<DexType, Set<DexType>> subtypeMap = new IdentityHashMap<>();
+    populateSubtypeMap(classes, subtypeMap, typeInfo, definitions);
+    return new SubtypingInfo(typeInfo, subtypeMap);
+  }
+
+  private static void populateSuperType(
       Map<DexType, Set<DexType>> map,
+      Map<DexType, TypeInfo> typeInfo,
       DexType superType,
       DexClass baseClass,
-      Function<DexType, DexClass> definitions) {
+      DexDefinitionSupplier definitionSupplier) {
     if (superType != null) {
       Set<DexType> set = map.computeIfAbsent(superType, ignore -> new HashSet<>());
       if (set.add(baseClass.type)) {
         // Only continue recursion if type has been added to set.
-        populateAllSuperTypes(map, superType, baseClass, definitions);
+        populateAllSuperTypes(map, typeInfo, superType, baseClass, definitionSupplier);
       }
     }
   }
 
-  private DexItemFactory dexItemFactory() {
-    return factory;
+  private TypeInfo getTypeInfo(DexType type) {
+    return getTypeInfo(type, typeInfo);
   }
 
-  private TypeInfo getTypeInfo(DexType type) {
+  private static TypeInfo getTypeInfo(DexType type, Map<DexType, TypeInfo> typeInfo) {
     assert type != null;
     return typeInfo.computeIfAbsent(type, TypeInfo::new);
   }
 
-  private void populateAllSuperTypes(
+  private static void populateAllSuperTypes(
       Map<DexType, Set<DexType>> map,
+      Map<DexType, TypeInfo> typeInfo,
       DexType holder,
       DexClass baseClass,
-      Function<DexType, DexClass> definitions) {
-    DexClass holderClass = definitions.apply(holder);
+      DexDefinitionSupplier definitionSupplier) {
+    DexClass holderClass = definitionSupplier.contextIndependentDefinitionFor(holder);
     // Skip if no corresponding class is found.
+    TypeInfo typeInfoHere = getTypeInfo(holder, typeInfo);
     if (holderClass != null) {
-      populateSuperType(map, holderClass.superType, baseClass, definitions);
-      if (holderClass.superType != null) {
-        getTypeInfo(holderClass.superType).addDirectSubtype(getTypeInfo(holder));
-      } else {
-        // We found java.lang.Object
-        assert dexItemFactory().objectType == holder;
-      }
-      for (DexType inter : holderClass.interfaces.values) {
-        populateSuperType(map, inter, baseClass, definitions);
-        getTypeInfo(inter).addInterfaceSubtype(holder);
-      }
+      holderClass.forEachImmediateSupertype(
+          (superType, isInterface) -> {
+            populateSuperType(map, typeInfo, superType, baseClass, definitionSupplier);
+            TypeInfo superTypeInfo = getTypeInfo(superType, typeInfo);
+            if (isInterface) {
+              superTypeInfo.addInterfaceSubtype(holder);
+            } else {
+              superTypeInfo.addDirectSubtype(typeInfoHere);
+            }
+          });
       if (holderClass.isInterface()) {
-        getTypeInfo(holder).tagAsInterface();
+        typeInfoHere.tagAsInterface();
       }
     } else {
       // The subtype chain is broken, at least make this type a subtype of Object.
-      if (holder != dexItemFactory().objectType) {
-        getTypeInfo(dexItemFactory().objectType).addDirectSubtype(getTypeInfo(holder));
+      DexType objectType = definitionSupplier.dexItemFactory().objectType;
+      if (holder != objectType) {
+        getTypeInfo(objectType, typeInfo).addDirectSubtype(typeInfoHere);
       }
     }
   }
 
-  private void populateSubtypeMap(
+  private static void populateSubtypeMap(
       Collection<DexClass> classes,
-      Function<DexType, DexClass> definitions,
-      DexItemFactory dexItemFactory) {
-    getTypeInfo(dexItemFactory.objectType).tagAsSubtypeRoot();
-    Map<DexType, Set<DexType>> map = new IdentityHashMap<>();
+      Map<DexType, Set<DexType>> map,
+      Map<DexType, TypeInfo> typeInfo,
+      DexDefinitionSupplier definitionSupplier) {
+    getTypeInfo(definitionSupplier.dexItemFactory().objectType, typeInfo).tagAsSubtypeRoot();
     for (DexClass clazz : classes) {
-      populateAllSuperTypes(map, clazz.type, clazz, definitions);
+      populateAllSuperTypes(map, typeInfo, clazz.type, clazz, definitionSupplier);
     }
-    for (Map.Entry<DexType, Set<DexType>> entry : map.entrySet()) {
-      subtypeMap.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
-    }
-    assert validateLevelsAreCorrect(definitions, dexItemFactory);
+    map.replaceAll((k, v) -> ImmutableSet.copyOf(v));
+    assert validateLevelsAreCorrect(typeInfo, definitionSupplier);
   }
 
-  private boolean validateLevelsAreCorrect(
-      Function<DexType, DexClass> definitions, DexItemFactory dexItemFactory) {
+  private static boolean validateLevelsAreCorrect(
+      Map<DexType, TypeInfo> typeInfo, DexDefinitionSupplier definitionSupplier) {
     Set<DexType> seenTypes = Sets.newIdentityHashSet();
     Deque<DexType> worklist = new ArrayDeque<>();
-    DexType objectType = dexItemFactory.objectType;
+    DexType objectType = definitionSupplier.dexItemFactory().objectType;
     worklist.add(objectType);
     while (!worklist.isEmpty()) {
       DexType next = worklist.pop();
-      DexClass nextHolder = definitions.apply(next);
+      DexClass nextHolder = definitionSupplier.contextIndependentDefinitionFor(next);
       DexType superType;
       if (nextHolder == null) {
         // We might lack the definition of Object, so guard against that.
-        superType = next == dexItemFactory.objectType ? null : dexItemFactory.objectType;
+        superType = next == objectType ? null : objectType;
       } else {
         superType = nextHolder.superType;
       }
       assert !seenTypes.contains(next);
       seenTypes.add(next);
-      TypeInfo nextInfo = getTypeInfo(next);
+      TypeInfo nextInfo = getTypeInfo(next, typeInfo);
       if (superType == null) {
         assert nextInfo.hierarchyLevel == ROOT_LEVEL;
       } else {
-        TypeInfo superInfo = getTypeInfo(superType);
+        TypeInfo superInfo = getTypeInfo(superType, typeInfo);
         assert superInfo.hierarchyLevel == nextInfo.hierarchyLevel - 1
             || (superInfo.hierarchyLevel == ROOT_LEVEL
                 && nextInfo.hierarchyLevel == INTERFACE_LEVEL);
@@ -153,7 +157,7 @@ public class SubtypingInfo {
       } else if (nextHolder != null) {
         // Test that the interfaces of this class are interfaces and have this class as subtype.
         for (DexType iface : nextHolder.interfaces.values) {
-          TypeInfo ifaceInfo = getTypeInfo(iface);
+          TypeInfo ifaceInfo = getTypeInfo(iface, typeInfo);
           assert ifaceInfo.directSubtypes.contains(next);
           assert ifaceInfo.hierarchyLevel == INTERFACE_LEVEL;
         }
@@ -164,7 +168,7 @@ public class SubtypingInfo {
 
   public Set<DexType> subtypes(DexType type) {
     assert type.isClassType();
-    ImmutableSet<DexType> subtypes = subtypeMap.get(type);
+    Set<DexType> subtypes = subtypeMap.get(type);
     return subtypes == null ? ImmutableSet.of() : subtypes;
   }
 
