@@ -8,7 +8,6 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SwitchPayload;
 import com.android.tools.r8.dex.CodeToKeep;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
@@ -153,7 +152,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
           || Arrays.stream(instructions).noneMatch(Instruction::isConstString);
       assert Arrays.stream(instructions).noneMatch(Instruction::isDexItemBasedConstString);
       if (highestSortingString != null
-          && mapping.getOffsetFor(highestSortingString) > Constants.MAX_NON_JUMBO_INDEX) {
+          && highestSortingString.isGreaterThanOrEqualTo(mapping.getFirstJumboString())) {
         firstJumboString = mapping.getFirstJumboString();
       }
     }
