@@ -4,13 +4,10 @@
 
 package com.android.tools.r8.naming.applymapping;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,7 +54,7 @@ public class ApplyMappingInterfaceInvokeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ApplyMappingInterfaceInvokeTest(TestParameters parameters) {
@@ -65,14 +62,13 @@ public class ApplyMappingInterfaceInvokeTest extends TestBase {
   }
 
   @Test
-  public void testInvokeVirtual()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testInvokeVirtual() throws Exception {
     Class<?>[] classPathClasses = {I.class, A.class, B.class, C.class};
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(classPathClasses)
             .addKeepAllClassesRuleWithAllowObfuscation()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(classPathClasses)
@@ -80,7 +76,7 @@ public class ApplyMappingInterfaceInvokeTest extends TestBase {
         .noMinification()
         .noTreeShaking()
         .addApplyMapping(libraryResult.getProguardMap())
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), TestApp.class)

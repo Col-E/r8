@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
-import com.android.tools.r8.graph.SubtypingInfo;
+import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -123,7 +123,6 @@ class MethodNameMinifier {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final SubtypingInfo subtypingInfo;
   private final MemberNamingStrategy strategy;
 
   private final Map<DexMethod, DexString> renaming = new IdentityHashMap<>();
@@ -141,12 +140,11 @@ class MethodNameMinifier {
 
   MethodNameMinifier(
       AppView<AppInfoWithLiveness> appView,
-      SubtypingInfo subtypingInfo,
       MemberNamingStrategy strategy) {
     this.appView = appView;
-    this.subtypingInfo = subtypingInfo;
     this.strategy = strategy;
     rootReservationState = MethodReservationState.createRoot(getReservationKeyTransform());
+    reservationStates.put(null, rootReservationState);
     rootNamingState =
         MethodNamingState.createRoot(getNamingKeyTransform(), strategy, rootReservationState);
     namingStates.put(null, rootNamingState);
@@ -202,7 +200,8 @@ class MethodNameMinifier {
     timing.end();
     // Phase 4: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 4");
-    assignNamesToClassesMethods(appView.dexItemFactory().objectType, rootNamingState);
+    assignNamesToClassesMethods();
+    renameMethodsInUnrelatedClasspathClasses();
     timing.end();
     timing.begin("Phase 5: non-rebound references");
     renameNonReboundReferences(executorService);
@@ -211,21 +210,46 @@ class MethodNameMinifier {
     return new MethodRenaming(renaming);
   }
 
-  private void assignNamesToClassesMethods(DexType type, MethodNamingState<?> parentNamingState) {
-    MethodReservationState<?> reservationState =
-        reservationStates.get(frontiers.getOrDefault(type, type));
-    assert reservationState != null : "Could not find reservation state for " + type.toString();
-    MethodNamingState<?> namingState =
-        namingStates.computeIfAbsent(
-            type, ignore -> parentNamingState.createChild(reservationState));
-    DexClass holder = appView.definitionFor(type);
-    if (holder != null && strategy.allowMemberRenaming(holder)) {
-      for (DexEncodedMethod method : holder.allMethodsSorted()) {
-        assignNameToMethod(holder, method, namingState);
-      }
-    }
-    for (DexType subType : subtypingInfo.allImmediateExtendsSubtypes(type)) {
-      assignNamesToClassesMethods(subType, namingState);
+  private void assignNamesToClassesMethods() {
+    TopDownClassHierarchyTraversal.forAllClasses(appView)
+        .excludeInterfaces()
+        .visit(
+            appView.appInfo().classes(),
+            clazz -> {
+              DexType type = clazz.type;
+              MethodReservationState<?> reservationState =
+                  reservationStates.get(frontiers.getOrDefault(type, type));
+              assert reservationState != null
+                  : "Could not find reservation state for " + type.toString();
+              MethodNamingState<?> namingState =
+                  namingStates.computeIfAbsent(
+                      type,
+                      ignore ->
+                          namingStates
+                              .getOrDefault(clazz.superType, rootNamingState)
+                              .createChild(reservationState));
+              DexClass holder = appView.definitionFor(type);
+              if (holder != null && strategy.allowMemberRenaming(holder)) {
+                for (DexEncodedMethod method : holder.allMethodsSorted()) {
+                  assignNameToMethod(holder, method, namingState);
+                }
+              }
+            });
+  }
+
+  private void renameMethodsInUnrelatedClasspathClasses() {
+    if (appView.options().getProguardConfiguration().hasApplyMappingFile()) {
+      appView
+          .appInfo()
+          .forEachReferencedClasspathClass(
+              clazz -> {
+                for (DexEncodedMethod method : clazz.methods()) {
+                  DexString reservedName = strategy.getReservedName(method, clazz);
+                  if (reservedName != null && reservedName != method.getReference().name) {
+                    renaming.put(method.getReference(), reservedName);
+                  }
+                }
+              });
     }
   }
 
@@ -248,42 +272,30 @@ class MethodNameMinifier {
   }
 
   private void reserveNamesInClasses() {
-    reserveNamesInClasses(
-        appView.dexItemFactory().objectType,
-        appView.dexItemFactory().objectType,
-        rootReservationState);
+    TopDownClassHierarchyTraversal.forAllClasses(appView)
+        .visit(
+            appView.appInfo().classes(),
+            clazz -> {
+              DexType type = clazz.type;
+              DexType frontier = frontiers.getOrDefault(clazz.superType, type);
+              if (frontier != type || clazz.isProgramClass()) {
+                DexType existingValue = frontiers.put(clazz.type, frontier);
+                assert existingValue == null;
+              }
+              // If this is not a program class (or effectively a library class as it is missing)
+              // move the frontier forward. This will ensure all reservations are put on the library
+              // or classpath frontier for the program path.
+              allocateReservationStateAndReserve(
+                  type,
+                  frontier,
+                  reservationStates.getOrDefault(clazz.superType, rootReservationState));
+            });
   }
 
-  private void reserveNamesInClasses(
-      DexType type, DexType libraryFrontier, MethodReservationState<?> parentReservationState) {
-    assert !appView.isInterface(type).isTrue();
-
-    MethodReservationState<?> reservationState =
-        allocateReservationStateAndReserve(type, libraryFrontier, parentReservationState);
-
-    // If this is not a program class (or effectively a library class as it is missing) move the
-    // frontier forward. This will ensure all reservations are put on the library or classpath
-    // frontier for the program path.
-    DexClass holder = appView.definitionFor(type);
-    for (DexType subtype : subtypingInfo.allImmediateExtendsSubtypes(type)) {
-      reserveNamesInClasses(
-          subtype,
-          holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier,
-          reservationState);
-    }
-  }
-
-  private MethodReservationState<?> allocateReservationStateAndReserve(
+  private void allocateReservationStateAndReserve(
       DexType type, DexType frontier, MethodReservationState<?> parent) {
-    assert parent != null;
-
-    if (frontier != type) {
-      frontiers.put(type, frontier);
-    }
-
     MethodReservationState<?> state =
         reservationStates.computeIfAbsent(frontier, ignore -> parent.createChild());
-
     DexClass holder = appView.definitionFor(type);
     if (holder != null) {
       for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
@@ -293,8 +305,6 @@ class MethodNameMinifier {
         }
       }
     }
-
-    return state;
   }
 
   private MethodNamingState<?> getOrAllocateMethodNamingStates(DexType type) {

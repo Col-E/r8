@@ -4,9 +4,12 @@
 package com.android.tools.r8.naming.applymapping;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -38,6 +41,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
   public static class LibClassA implements LibInterfaceA {
 
     @Override
+    @NoMethodStaticizing
     public void foo() {
       System.out.println("LibClassA::foo");
     }
@@ -47,10 +51,12 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
   public static class LibClassB implements LibInterfaceB {
 
     @Override
+    @NoMethodStaticizing
     public void foo() {
       System.out.println("LibClassB::foo");
     }
 
+    @NoMethodStaticizing
     public void bar() {
       System.out.println("LibClassB::bar");
     }
@@ -74,7 +80,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
     }
   }
 
-  private static final Class<?>[] LIBRARY_CLASSES = {
+  private static final Class<?>[] CLASSPATH_CLASSES = {
     LibInterfaceA.class, LibInterfaceB.class, LibClassA.class, LibClassB.class
   };
 
@@ -92,7 +98,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
   public void runOnJvm() throws Throwable {
     Assume.assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addProgramClasses(LIBRARY_CLASSES)
+        .addProgramClasses(CLASSPATH_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
@@ -102,15 +108,18 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
   public void devirtualizingNoRenamingOfOverriddenNotKeptInterfaceMethods() throws Exception {
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
-            .addProgramClasses(LIBRARY_CLASSES)
-            .addKeepClassAndMembersRulesWithAllowObfuscation(LibClassA.class, LibClassB.class)
+            .addProgramClasses(CLASSPATH_CLASSES)
+            .addKeepClassAndMembersRulesWithAllowObfuscation(LibClassA.class)
+            .addKeepMainRule(LibClassB.class)
+            .addKeepClassAndDefaultConstructor(LibClassB.class)
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
+            .enableNoMethodStaticizingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();
-    assertThat(inspector.clazz(LibClassA.class), isPresent());
-    assertThat(inspector.clazz(LibClassB.class), isPresent());
+    assertThat(inspector.clazz(LibClassA.class), isPresentAndRenamed());
+    assertThat(inspector.clazz(LibClassB.class), isPresentAndNotRenamed());
 
     // LibInterfaceX should have been moved into LibClassX.
     assertThat(inspector.clazz(LibInterfaceA.class), not(isPresent()));
@@ -121,8 +130,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .noMinification()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
-        .addLibraryClasses(LIBRARY_CLASSES)
-        .addDefaultRuntimeLibrary(parameters)
+        .addClasspathClasses(CLASSPATH_CLASSES)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
@@ -134,19 +142,20 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
   public void devirtualizingNoRenamingOfOverriddenKeptInterfaceMethods() throws Exception {
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
-            .addProgramClasses(LIBRARY_CLASSES)
+            .addProgramClasses(CLASSPATH_CLASSES)
             .addKeepClassAndMembersRulesWithAllowObfuscation(
                 LibClassA.class, LibClassB.class, LibInterfaceA.class)
             .addOptionsModification(options -> options.inlinerOptions().enableInlining = false)
+            .enableNoMethodStaticizingAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile();
 
     CodeInspector inspector = libraryResult.inspector();
-    assertThat(inspector.clazz(LibClassA.class), isPresent());
-    assertThat(inspector.clazz(LibClassB.class), isPresent());
+    assertThat(inspector.clazz(LibClassA.class), isPresentAndRenamed());
+    assertThat(inspector.clazz(LibClassB.class), isPresentAndRenamed());
 
     // LibInterfaceA is now kept.
-    assertThat(inspector.clazz(LibInterfaceA.class), isPresent());
+    assertThat(inspector.clazz(LibInterfaceA.class), isPresentAndRenamed());
     assertThat(inspector.clazz(LibInterfaceB.class), not(isPresent()));
 
     testForR8(parameters.getBackend())
@@ -154,8 +163,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .noMinification()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
-        .addLibraryClasses(LIBRARY_CLASSES)
-        .addDefaultRuntimeLibrary(parameters)
+        .addClasspathClasses(CLASSPATH_CLASSES)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())

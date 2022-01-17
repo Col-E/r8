@@ -66,7 +66,7 @@ public class Minifier {
     MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, subtypingInfo, minifyMembers)
+        new MethodNameMinifier(appView, minifyMembers)
             .computeRenaming(interfaces, executorService, timing);
     timing.end();
 
