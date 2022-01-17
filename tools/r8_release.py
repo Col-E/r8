@@ -324,8 +324,9 @@ def sed(pattern, replace, path):
 
 
 def download_file(version, file, dst):
+  dir = 'raw' if len(version) != 40 else 'raw/main'
   urllib.request.urlretrieve(
-      ('https://storage.googleapis.com/r8-releases/raw/%s/%s' % (version, file)),
+      ('https://storage.googleapis.com/r8-releases/%s/%s/%s' % (dir, version, file)),
       dst)
 
 def download_gfile(gfile, dst):
@@ -842,8 +843,7 @@ def parse_options():
     sys.exit(1)
 
   if args.version and not 'dev' in args.version and args.google3:
-    print("You should not roll a release version into google 3")
-    sys.exit(1)
+    print("WARNING: You should not roll a release version into google 3")
 
   return args
 

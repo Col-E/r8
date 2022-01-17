@@ -395,7 +395,9 @@ def unpack_archive(filename):
     tar.extractall(path=dirname)
 
 def check_gcert():
-  subprocess.check_call(['gcert'])
+  status = subprocess.call(['gcertstatus'])
+  if status != 0:
+    subprocess.check_call(['gcert'])
 
 # Note that gcs is eventually consistent with regards to list operations.
 # This is not a problem in our case, but don't ever use this method
