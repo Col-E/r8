@@ -127,6 +127,7 @@ public class MemberRebindingAnalysis {
     return resolvedMethod.isLibraryMethod()
         && isAccessibleInAllContexts(resolvedMethod, resolutionResult, contexts)
         && !isInvokeSuperToInterfaceMethod(resolvedMethod, invokeType)
+        && !isInvokeSuperToAbstractMethod(resolvedMethod, invokeType)
         && isApiSafeForMemberRebinding(
             resolvedMethod.asLibraryMethod(), androidApiLevelCompute, options);
   }
@@ -145,6 +146,10 @@ public class MemberRebindingAnalysis {
 
   private boolean isInvokeSuperToInterfaceMethod(DexClassAndMethod method, Type invokeType) {
     return method.getHolder().isInterface() && invokeType.isSuper();
+  }
+
+  private boolean isInvokeSuperToAbstractMethod(DexClassAndMethod method, Type invokeType) {
+    return method.getAccessFlags().isAbstract() && invokeType.isSuper();
   }
 
   public static DexField validMemberRebindingTargetFor(

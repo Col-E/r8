@@ -69,11 +69,10 @@ public class MemberRebindingInvokeSuperAbstractTest extends TestBase {
               // We should never rebind this call to LibraryBase::getSystemService since this can
               // cause errors when verifying the code on a device where the image has a definition
               // but it is abstract. For more information, see b/213581039.
-              // TODO(b/213581039): We should not rebind to the abstract method.
               assertThat(
                   getSystemService,
                   CodeMatchers.invokesMethodWithHolderAndName(
-                      typeName(LibraryBase.class), "getSystemService"));
+                      typeName(LibrarySub.class), "getSystemService"));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("LibrarySub::getSystemService");
