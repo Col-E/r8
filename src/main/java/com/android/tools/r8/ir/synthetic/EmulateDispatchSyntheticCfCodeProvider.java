@@ -32,7 +32,6 @@ import org.objectweb.asm.Opcodes;
 public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvider {
 
   private final DexMethod forwardingMethod;
-  private final DexType receiverType;
   private final DexMethod interfaceMethod;
   private final LinkedHashMap<DexType, DexMethod> extraDispatchCases;
 
@@ -44,13 +43,13 @@ public class EmulateDispatchSyntheticCfCodeProvider extends SyntheticCfCodeProvi
       AppView<?> appView) {
     super(appView, holder);
     this.forwardingMethod = forwardingMethod;
-    this.receiverType = forwardingMethod.getParameter(0);
     this.interfaceMethod = interfaceMethod;
     this.extraDispatchCases = extraDispatchCases;
   }
 
   @Override
   public CfCode generateCfCode() {
+    DexType receiverType = forwardingMethod.getParameter(0);
     List<CfInstruction> instructions = new ArrayList<>();
     CfLabel[] labels = new CfLabel[extraDispatchCases.size() + 1];
     for (int i = 0; i < labels.length; i++) {

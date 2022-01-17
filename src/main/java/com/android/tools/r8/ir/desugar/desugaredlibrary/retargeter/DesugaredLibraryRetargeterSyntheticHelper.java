@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
@@ -37,7 +38,8 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
 
   private DexMethod emulatedHolderDispatchMethod(DexType holder, DerivedMethod method) {
     assert method.getHolderKind() == SyntheticKind.RETARGET_CLASS;
-    return appView.dexItemFactory().createMethod(holder, method.getProto(), method.getName());
+    DexProto newProto = appView.dexItemFactory().prependHolderToProto(method.getMethod());
+    return appView.dexItemFactory().createMethod(holder, newProto, method.getName());
   }
 
   DexMethod emulatedInterfaceDispatchMethod(DexType holder, DerivedMethod method) {

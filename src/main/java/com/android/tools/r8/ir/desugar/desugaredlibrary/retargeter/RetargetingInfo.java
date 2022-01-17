@@ -115,12 +115,8 @@ public class RetargetingInfo {
                 DerivedMethod forwardingMethod = new DerivedMethod(forwardingDexMethod);
                 DerivedMethod interfaceMethod =
                     new DerivedMethod(methodReference, SyntheticKind.RETARGET_INTERFACE);
-                DexMethod dispatchDexMethod =
-                    appView
-                        .dexItemFactory()
-                        .createMethod(methodReference.getHolderType(), newProto, methodName);
                 DerivedMethod dispatchMethod =
-                    new DerivedMethod(dispatchDexMethod, SyntheticKind.RETARGET_CLASS);
+                    new DerivedMethod(methodReference, SyntheticKind.RETARGET_CLASS);
                 emulatedVirtualRetarget.put(
                     methodReference,
                     new EmulatedDispatchMethodDescriptor(

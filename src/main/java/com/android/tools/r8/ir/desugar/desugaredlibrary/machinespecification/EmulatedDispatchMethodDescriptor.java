@@ -37,7 +37,6 @@ public class EmulatedDispatchMethodDescriptor {
    * method is the method on the companion class.
    */
   private final DerivedMethod interfaceMethod;
-
   private final DerivedMethod emulatedDispatchMethod;
   private final DerivedMethod forwardingMethod;
   private final LinkedHashMap<DexType, DerivedMethod> dispatchCases;

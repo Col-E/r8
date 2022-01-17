@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
@@ -17,10 +18,12 @@ public class MachineRewritingFlags {
   MachineRewritingFlags(
       Map<DexMethod, DexMethod> staticRetarget,
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
-      Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget) {
+      Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
+      Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces) {
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
+    this.emulatedInterfaces = emulatedInterfaces;
   }
 
   // Static methods to retarget, duplicated to library boundaries.
@@ -37,6 +40,9 @@ public class MachineRewritingFlags {
   // Virtual methods to retarget through emulated dispatch.
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
 
+  // Emulated interface descriptors.
+  private final Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces;
+
   public Map<DexMethod, DexMethod> getStaticRetarget() {
     return staticRetarget;
   }
@@ -49,6 +55,10 @@ public class MachineRewritingFlags {
     return emulatedVirtualRetarget;
   }
 
+  public Map<DexType, EmulatedInterfaceDescriptor> getEmulatedInterfaces() {
+    return emulatedInterfaces;
+  }
+
   public static class Builder {
 
     Builder() {}
@@ -59,6 +69,8 @@ public class MachineRewritingFlags {
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, EmulatedDispatchMethodDescriptor>
         emulatedVirtualRetarget = ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
+        ImmutableMap.builder();
 
     public void putStaticRetarget(DexMethod src, DexMethod dest) {
       staticRetarget.put(src, dest);
@@ -66,6 +78,10 @@ public class MachineRewritingFlags {
 
     public void putNonEmulatedVirtualRetarget(DexMethod src, DexMethod dest) {
       nonEmulatedVirtualRetarget.put(src, dest);
+    }
+
+    public void putEmulatedInterface(DexType src, EmulatedInterfaceDescriptor descriptor) {
+      emulatedInterfaces.put(src, descriptor);
     }
 
     public void putEmulatedVirtualRetarget(DexMethod src, EmulatedDispatchMethodDescriptor dest) {
@@ -76,7 +92,8 @@ public class MachineRewritingFlags {
       return new MachineRewritingFlags(
           staticRetarget.build(),
           nonEmulatedVirtualRetarget.build(),
-          emulatedVirtualRetarget.build());
+          emulatedVirtualRetarget.build(),
+          emulatedInterfaces.build());
     }
   }
 }

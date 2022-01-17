@@ -10,11 +10,17 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,20 +40,41 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
+  private final boolean machineSpec;
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "machine: {0}, {2}, shrink: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public CustomCollectionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+  public CustomCollectionTest(
+      boolean machineSpec, boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.machineSpec = machineSpec;
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
   private final String EXECUTOR =
       "com.android.tools.r8.desugar.desugaredlibrary.CustomCollectionTest$Executor";
+
+  private void setMachineSpec(InternalOptions opt) {
+    if (!machineSpec) {
+      return;
+    }
+    try {
+      HumanDesugaredLibrarySpecification human =
+          new LegacyToHumanSpecificationConverter()
+              .convert(opt.desugaredLibrarySpecification, getLibraryFile(), opt);
+      MachineDesugaredLibrarySpecification machine =
+          new HumanToMachineSpecificationConverter().convert(human, getLibraryFile(), opt);
+      opt.testing.machineDesugaredLibrarySpecification = machine;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   @Test
   public void testCustomCollectionD8() throws Exception {
@@ -56,6 +83,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
         testForD8()
             .addLibraryFiles(getLibraryFile())
             .addInnerClasses(CustomCollectionTest.class)
+            .addOptionsModification(this::setMachineSpec)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
@@ -78,6 +106,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
     Path jar =
         testForD8(Backend.CF)
             .addInnerClasses(CustomCollectionTest.class)
+            .addOptionsModification(this::setMachineSpec)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
@@ -133,6 +162,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
         testForR8(Backend.DEX)
             .addLibraryFiles(getLibraryFile())
             .addInnerClasses(CustomCollectionTest.class)
+            .addOptionsModification(this::setMachineSpec)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
