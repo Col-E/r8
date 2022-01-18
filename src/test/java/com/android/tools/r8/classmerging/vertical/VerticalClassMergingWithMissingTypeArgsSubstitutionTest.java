@@ -4,15 +4,18 @@
 
 package com.android.tools.r8.classmerging.vertical;
 
-import static org.junit.Assert.assertThrows;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsMatcher;
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.ExceptionDiagnostic;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.TypeVariable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,23 +36,41 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
 
   @Test()
   public void test() throws Exception {
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8Compat(parameters.getBackend())
-              .addInnerClasses(getClass())
-              .addKeepMainRule(Main.class)
-              .addKeepClassRules(A.class)
-              .addKeepAttributeSignature()
-              .addVerticallyMergedClassesInspector(
-                  inspector -> inspector.assertMergedIntoSubtype(B.class))
-              .enableInliningAnnotations()
-              .setMinApi(parameters.getApiLevel())
-              .compileWithExpectedDiagnostics(
-                  diagnostics ->
-                      diagnostics.assertErrorsMatch(
-                          DiagnosticsMatcher.diagnosticType(ExceptionDiagnostic.class)));
-        });
+    testForR8Compat(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(A.class)
+        .addKeepAttributeSignature()
+        .addVerticallyMergedClassesInspector(
+            inspector -> inspector.assertMergedIntoSubtype(B.class))
+        .enableInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
+        .enableConstantArgumentAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("T", "Hello World")
+        .inspect(
+            inspector -> {
+              ClassSubject classSubject = inspector.clazz(C.class);
+              assertThat(classSubject, isPresentAndRenamed());
+              assertEquals(
+                  "<T:Ljava/lang/Object;>L" + binaryName(A.class) + "<Ljava/lang/Object;>;",
+                  classSubject.getFinalSignatureAttribute());
+              MethodSubject bar = classSubject.uniqueMethodWithName("bar");
+              assertThat(bar, isPresentAndRenamed());
+              assertEquals("(TT;)V", bar.getFinalSignatureAttribute());
+              // The NeverInline is transferred to the private vertically merged method, making
+              // it hard to lookup.
+              MethodSubject movedFooSubject =
+                  classSubject.uniqueMethodThatMatches(
+                      method ->
+                          method.getMethod().getReference() != bar.getMethod().getReference()
+                              && !method.isInstanceInitializer());
+              assertThat(movedFooSubject, isPresentAndRenamed());
+              assertEquals(
+                  "(Ljava/lang/Object;)Ljava/lang/Object;",
+                  movedFooSubject.getFinalSignatureAttribute());
+            });
   }
 
   static class Main {
@@ -60,7 +81,7 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
           stringC.getClass().getTypeParameters()) {
         System.out.println(typeParameter.getName());
       }
-      stringC.m("Hello World");
+      stringC.bar("Hello World");
     }
   }
 
@@ -68,15 +89,23 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
 
   static class B<T> extends A<T> {
 
+    @KeepConstantArguments
+    @NoMethodStaticizing
     @NeverInline
     public T foo(T t) {
+      if (System.currentTimeMillis() == 0) {
+        throw new RuntimeException("Foo");
+      }
       return t;
     }
   }
 
   static class C<T> extends B {
 
-    void m(T t) {
+    @NoMethodStaticizing
+    @KeepConstantArguments
+    @NeverInline
+    void bar(T t) {
       System.out.println(foo(t));
     }
   }

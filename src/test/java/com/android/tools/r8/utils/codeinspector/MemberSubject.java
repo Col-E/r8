@@ -12,6 +12,7 @@ public abstract class MemberSubject extends ClassOrMemberSubject {
 
   public abstract Signature getFinalSignature();
 
+  @Override
   public String getOriginalName() {
     return getOriginalName(true);
   }

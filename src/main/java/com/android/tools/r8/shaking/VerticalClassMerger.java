@@ -1129,7 +1129,7 @@ public class VerticalClassMerger {
         return false;
       }
 
-      // Rewrite generic signatures before we merge fields.
+      // Rewrite generic signatures before we merge a base with a generic signature.
       rewriteGenericSignatures(target, source, directMethods.values(), virtualMethods.values());
 
       // Convert out of DefaultInstanceInitializerCode, since this piece of code will require lens
@@ -1333,16 +1333,18 @@ public class VerticalClassMerger {
         assert false : "Type should be present in generic signature";
         return null;
       }
+      Map<String, FieldTypeSignature> substitutionMap = new HashMap<>();
       List<FormalTypeParameter> formals = source.getClassSignature().getFormalTypeParameters();
       if (genericArgumentsToSuperType.size() != formals.size()) {
-        // TODO(b/214509535): Correctly rewrite signature when type arguments is empty.
-        assert genericArgumentsToSuperType.isEmpty() : "Invalid argument count to formals";
-        return null;
-      }
-      Map<String, FieldTypeSignature> substitutionMap = new HashMap<>();
-      for (int i = 0; i < formals.size(); i++) {
-        // It is OK to override a generic type variable so we just use put.
-        substitutionMap.put(formals.get(i).getName(), genericArgumentsToSuperType.get(i));
+        if (!genericArgumentsToSuperType.isEmpty()) {
+          assert false : "Invalid argument count to formals";
+          return null;
+        }
+      } else {
+        for (int i = 0; i < formals.size(); i++) {
+          // It is OK to override a generic type variable so we just use put.
+          substitutionMap.put(formals.get(i).getName(), genericArgumentsToSuperType.get(i));
+        }
       }
       return GenericSignaturePartialTypeArgumentApplier.build(
           appView,
@@ -1512,6 +1514,7 @@ public class VerticalClassMerger {
               .setApiLevelForDefinition(method.getApiLevelForDefinition())
               .setApiLevelForCode(method.getApiLevelForDefinition())
               .setIsLibraryMethodOverride(method.isLibraryMethodOverride())
+              .setGenericSignature(method.getGenericSignature())
               .build();
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should
