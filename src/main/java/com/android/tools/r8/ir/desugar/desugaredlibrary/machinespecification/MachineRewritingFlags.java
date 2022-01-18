@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 public class MachineRewritingFlags {
@@ -16,15 +17,24 @@ public class MachineRewritingFlags {
   }
 
   MachineRewritingFlags(
+      Map<DexType, DexType> rewriteType,
+      Map<DexType, DexType> rewriteDerivedTypeOnly,
       Map<DexMethod, DexMethod> staticRetarget,
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
       Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces) {
+    this.rewriteType = rewriteType;
+    this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
     this.emulatedInterfaces = emulatedInterfaces;
   }
+
+  // Rewrites all the references to the keys as well as synthetic types derived from any key.
+  private final Map<DexType, DexType> rewriteType;
+  // Rewrites only synthetic types derived from any key.
+  private final Map<DexType, DexType> rewriteDerivedTypeOnly;
 
   // Static methods to retarget, duplicated to library boundaries.
   private final Map<DexMethod, DexMethod> staticRetarget;
@@ -42,6 +52,14 @@ public class MachineRewritingFlags {
 
   // Emulated interface descriptors.
   private final Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces;
+
+  public Map<DexType, DexType> getRewriteType() {
+    return rewriteType;
+  }
+
+  public Map<DexType, DexType> getRewriteDerivedTypeOnly() {
+    return rewriteDerivedTypeOnly;
+  }
 
   public Map<DexMethod, DexMethod> getStaticRetarget() {
     return staticRetarget;
@@ -63,6 +81,8 @@ public class MachineRewritingFlags {
 
     Builder() {}
 
+    private final Map<DexType, DexType> rewriteType = new IdentityHashMap<>();
+    private final Map<DexType, DexType> rewriteDerivedTypeOnly = new IdentityHashMap<>();
     private final ImmutableMap.Builder<DexMethod, DexMethod> staticRetarget =
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> nonEmulatedVirtualRetarget =
@@ -71,6 +91,14 @@ public class MachineRewritingFlags {
         emulatedVirtualRetarget = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
         ImmutableMap.builder();
+
+    public void rewriteType(DexType src, DexType target) {
+      rewriteType.put(src, target);
+    }
+
+    public void rewriteDerivedTypeOnly(DexType src, DexType target) {
+      rewriteDerivedTypeOnly.put(src, target);
+    }
 
     public void putStaticRetarget(DexMethod src, DexMethod dest) {
       staticRetarget.put(src, dest);
@@ -90,6 +118,8 @@ public class MachineRewritingFlags {
 
     public MachineRewritingFlags build() {
       return new MachineRewritingFlags(
+          rewriteType,
+          rewriteDerivedTypeOnly,
           staticRetarget.build(),
           nonEmulatedVirtualRetarget.build(),
           emulatedVirtualRetarget.build(),

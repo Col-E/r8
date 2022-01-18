@@ -53,6 +53,8 @@ import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.MachineDesugarPrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.nest.Nest;
@@ -891,6 +893,15 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // If non null it contains flags describing library desugaring.
   public LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
       LegacyDesugaredLibrarySpecification.empty();
+
+  public PrefixRewritingMapper getPrefixRewritingMapper() {
+    if (testing.machineDesugaredLibrarySpecification != null) {
+      return new MachineDesugarPrefixRewritingMapper(
+          desugaredLibrarySpecification.getPrefixRewritingMapper(),
+          testing.machineDesugaredLibrarySpecification.getRewritingFlags());
+    }
+    return desugaredLibrarySpecification.getPrefixRewritingMapper();
+  }
 
   public boolean relocatorCompilation = false;
 

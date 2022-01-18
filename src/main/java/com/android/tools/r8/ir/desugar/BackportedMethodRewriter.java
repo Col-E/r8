@@ -100,8 +100,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
   public static List<DexMethod> generateListOfBackportedMethods(
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
     List<DexMethod> methods = new ArrayList<>();
-    PrefixRewritingMapper rewritePrefix =
-        options.desugaredLibrarySpecification.getPrefixRewritingMapper();
+    PrefixRewritingMapper rewritePrefix = options.getPrefixRewritingMapper();
     AppInfo appInfo = null;
     if (androidApp != null) {
       DexApplication app =

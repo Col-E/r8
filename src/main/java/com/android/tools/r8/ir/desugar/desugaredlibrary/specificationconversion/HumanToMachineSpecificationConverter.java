@@ -29,17 +29,24 @@ public class HumanToMachineSpecificationConverter {
     DexApplication app = readApp(androidLib, options);
     AppView<?> appView = AppView.createForD8(AppInfo.createInitialAppInfo(app));
     MachineRewritingFlags machineRewritingFlags =
-        convertRewritingFlags(humanSpec.getRewritingFlags(), appView.appInfoForDesugaring());
+        convertRewritingFlags(
+            humanSpec.getSynthesizedLibraryClassesPackagePrefix(),
+            humanSpec.getRewritingFlags(),
+            appView.appInfoForDesugaring());
     return new MachineDesugaredLibrarySpecification(
         humanSpec.isLibraryCompilation(), machineRewritingFlags);
   }
 
   private MachineRewritingFlags convertRewritingFlags(
-      HumanRewritingFlags rewritingFlags, AppInfoWithClassHierarchy appInfo) {
+      String synthesizedPrefix,
+      HumanRewritingFlags rewritingFlags,
+      AppInfoWithClassHierarchy appInfo) {
     MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
     new HumanToMachineRetargetConverter(appInfo).convertRetargetFlags(rewritingFlags, builder);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)
         .convertEmulatedInterfaces(rewritingFlags, appInfo, builder);
+    new HumanToMachinePrefixConverter(appInfo)
+        .convertPrefixFlags(rewritingFlags, builder, synthesizedPrefix);
     return builder.build();
   }
 

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -217,6 +218,55 @@ public abstract class PrefixRewritingMapper {
     @Override
     public boolean isRewriting() {
       return true;
+    }
+  }
+
+  public static class MachineDesugarPrefixRewritingMapper extends PrefixRewritingMapper {
+
+    private final PrefixRewritingMapper mapper;
+    private final Map<DexType, DexType> rewriteType;
+    private final Map<DexType, DexType> rewriteDerivedTypeOnly;
+
+    public MachineDesugarPrefixRewritingMapper(
+        PrefixRewritingMapper mapper, MachineRewritingFlags flags) {
+      this.mapper = mapper;
+      this.rewriteType = new ConcurrentHashMap<>(flags.getRewriteType());
+      rewriteDerivedTypeOnly = flags.getRewriteDerivedTypeOnly();
+    }
+
+    @Override
+    public DexType rewrittenType(DexType type, AppView<?> appView) {
+      assert mapper.rewrittenType(type, appView) == rewriteType.get(type);
+      return rewriteType.get(type);
+    }
+
+    @Override
+    public DexType rewrittenContextType(DexType context, AppView<?> appView) {
+      if (rewriteType.containsKey(context)) {
+        return rewriteType.get(context);
+      }
+      return rewriteDerivedTypeOnly.get(context);
+    }
+
+    @Override
+    public void rewriteType(DexType type, DexType rewrittenType) {
+      mapper.rewriteType(type, rewrittenType);
+      rewriteType.compute(
+          type,
+          (t, val) -> {
+            assert val == null || val == rewrittenType;
+            return rewrittenType;
+          });
+    }
+
+    @Override
+    public boolean isRewriting() {
+      return true;
+    }
+
+    @Override
+    public void forAllRewrittenTypes(Consumer<DexType> consumer) {
+      rewriteType.keySet().forEach(consumer);
     }
   }
 
