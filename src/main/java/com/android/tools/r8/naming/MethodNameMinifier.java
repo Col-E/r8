@@ -272,6 +272,11 @@ class MethodNameMinifier {
   }
 
   private void reserveNamesInClasses() {
+    // Ensure reservation state for java.lang.Object is always created, even if the type is missing.
+    allocateReservationStateAndReserve(
+        appView.dexItemFactory().objectType,
+        appView.dexItemFactory().objectType,
+        rootReservationState);
     TopDownClassHierarchyTraversal.forAllClasses(appView)
         .visit(
             appView.appInfo().classes(),
@@ -335,6 +340,10 @@ class MethodNameMinifier {
     MethodReservationState<?> reservationState = reservationStates.get(type);
     if (reservationState != null) {
       return reservationState;
+    }
+    if (appView.definitionFor(type) == null) {
+      // Reservation states for missing definitions is always object.
+      return reservationStates.get(appView.dexItemFactory().objectType);
     }
     // If we cannot find the reservation state, which is a result from a library class extending
     // a program class. The gap is tracked in the frontier state.
