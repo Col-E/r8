@@ -324,9 +324,8 @@ public class VerticalClassMerger {
 
     // The set of targets that must remain for proper resolution error cases should not be merged.
     // TODO(b/192821424): Can be removed if handled.
-    for (DexMethod method : appInfo.getFailedMethodResolutionTargets()) {
-      markTypeAsPinned(method.holder, AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE);
-    }
+    extractPinnedItems(
+        appInfo.getFailedMethodResolutionTargets(), AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE);
   }
 
   private <T extends DexReference> void extractPinnedItems(Iterable<T> items, AbortReason reason) {
