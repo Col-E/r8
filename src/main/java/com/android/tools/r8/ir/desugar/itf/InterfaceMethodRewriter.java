@@ -43,7 +43,6 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -160,8 +159,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     Map<DexType, DexType> emulateLibraryInterface =
         options.desugaredLibrarySpecification.getEmulateLibraryInterface();
     for (DexType interfaceType : emulateLibraryInterface.keySet()) {
-      addRewriteRulesForEmulatedInterface(
-          interfaceType, emulateLibraryInterface.get(interfaceType).toSourceString());
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :
@@ -170,35 +167,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
         }
       }
     }
-  }
-
-  void addRewriteRulesForEmulatedInterface(
-      DexType emulatedInterface, String rewrittenEmulatedInterface) {
-    addCompanionClassRewriteRule(emulatedInterface, rewrittenEmulatedInterface);
-    appView.rewritePrefix.rewriteType(
-        InterfaceDesugaringSyntheticHelper.getEmulateLibraryInterfaceClassType(
-            emulatedInterface, factory),
-        factory.createType(
-            DescriptorUtils.javaTypeToDescriptor(
-                rewrittenEmulatedInterface
-                    + InterfaceDesugaringSyntheticHelper.EMULATE_LIBRARY_CLASS_NAME_SUFFIX)));
-  }
-
-  private void addCompanionClassRewriteRule(DexType interfaceType, String rewrittenType) {
-    addCompanionClassRewriteRule(interfaceType, rewrittenType, appView);
-  }
-
-  static void addCompanionClassRewriteRule(
-      DexType interfaceType, String rewrittenType, AppView<?> appView) {
-    appView.rewritePrefix.rewriteType(
-        InterfaceDesugaringSyntheticHelper.getCompanionClassType(
-            interfaceType, appView.dexItemFactory()),
-        appView
-            .dexItemFactory()
-            .createType(
-                DescriptorUtils.javaTypeToDescriptor(
-                    rewrittenType
-                        + InterfaceDesugaringSyntheticHelper.COMPANION_CLASS_NAME_SUFFIX)));
   }
 
   private boolean isAlreadyDesugared(CfInvoke invoke, ProgramMethod context) {

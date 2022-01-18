@@ -235,6 +235,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
             .dexItemFactory()
             .createSynthesizedType(
                 DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
+    // We would need to ensure a classpath class for each type to remove this rewriteType call.
     appView.rewritePrefix.rewriteType(vivifiedType, type);
     return vivifiedType;
   }
