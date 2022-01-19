@@ -34,6 +34,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
   private final List<KotlinTypeProjectionInfo> arguments;
   private final List<KotlinAnnotationInfo> annotations;
   private final KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBound;
+  private final boolean isRaw;
 
   KotlinTypeInfo(
       int flags,
@@ -42,7 +43,8 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
       KotlinTypeInfo outerType,
       List<KotlinTypeProjectionInfo> arguments,
       List<KotlinAnnotationInfo> annotations,
-      KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBound) {
+      KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBound,
+      boolean isRaw) {
     this.flags = flags;
     this.classifier = classifier;
     this.abbreviatedType = abbreviatedType;
@@ -50,6 +52,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
     this.arguments = arguments;
     this.annotations = annotations;
     this.flexibleTypeUpperBound = flexibleTypeUpperBound;
+    this.isRaw = isRaw;
   }
 
   static KotlinTypeInfo create(KmType kmType, DexItemFactory factory, Reporter reporter) {
@@ -64,7 +67,8 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
         getArguments(kmType.getArguments(), factory, reporter),
         KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), factory),
         KotlinFlexibleTypeUpperBoundInfo.create(
-            kmType.getFlexibleTypeUpperBound(), factory, reporter));
+            kmType.getFlexibleTypeUpperBound(), factory, reporter),
+        JvmExtensionsKt.isRaw(kmType));
   }
 
   static List<KotlinTypeProjectionInfo> getArguments(
@@ -104,7 +108,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
     rewritten |=
         flexibleTypeUpperBound.rewrite(
             kmTypeVisitor::visitFlexibleTypeUpperBound, appView, namingLens);
-    if (annotations.isEmpty()) {
+    if (annotations.isEmpty() && !isRaw) {
       return rewritten;
     }
     JvmTypeExtensionVisitor extensionVisitor =
@@ -113,6 +117,7 @@ public class KotlinTypeInfo implements EnqueuerMetadataTraceable {
       for (KotlinAnnotationInfo annotation : annotations) {
         rewritten |= annotation.rewrite(extensionVisitor::visitAnnotation, appView, namingLens);
       }
+      extensionVisitor.visit(isRaw);
     }
     return rewritten;
   }

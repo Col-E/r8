@@ -8,39 +8,23 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.EnqueuerMetadataTraceable;
 import com.android.tools.r8.utils.Reporter;
-import java.util.List;
 import kotlinx.metadata.KmFlexibleTypeUpperBound;
-import kotlinx.metadata.KmType;
-import kotlinx.metadata.jvm.JvmExtensionsKt;
 
-public class KotlinFlexibleTypeUpperBoundInfo extends KotlinTypeInfo {
+public class KotlinFlexibleTypeUpperBoundInfo implements EnqueuerMetadataTraceable {
 
   private static final String KOTLIN_JVM_PLATFORMTYPE = "kotlin.jvm.PlatformType";
   private static final KotlinFlexibleTypeUpperBoundInfo NO_FLEXIBLE_UPPER_BOUND =
-      new KotlinFlexibleTypeUpperBoundInfo(
-          0, null, null, null, null, null, null, KOTLIN_JVM_PLATFORMTYPE);
+      new KotlinFlexibleTypeUpperBoundInfo(KOTLIN_JVM_PLATFORMTYPE, null);
 
   private final String typeFlexibilityId;
+  private final KotlinTypeInfo kotlinTypeInfo;
 
   private KotlinFlexibleTypeUpperBoundInfo(
-      int flags,
-      KotlinClassifierInfo classifier,
-      KotlinTypeInfo abbreviatedType,
-      KotlinTypeInfo outerType,
-      List<KotlinTypeProjectionInfo> arguments,
-      List<KotlinAnnotationInfo> annotations,
-      KotlinFlexibleTypeUpperBoundInfo flexibleTypeUpperBoundInfo,
-      String typeFlexibilityId) {
-    super(
-        flags,
-        classifier,
-        abbreviatedType,
-        outerType,
-        arguments,
-        annotations,
-        flexibleTypeUpperBoundInfo);
+      String typeFlexibilityId, KotlinTypeInfo kotlinTypeInfo) {
     this.typeFlexibilityId = typeFlexibilityId;
+    this.kotlinTypeInfo = kotlinTypeInfo;
     assert KOTLIN_JVM_PLATFORMTYPE.equals(typeFlexibilityId);
   }
 
@@ -49,17 +33,9 @@ public class KotlinFlexibleTypeUpperBoundInfo extends KotlinTypeInfo {
     if (flexibleTypeUpperBound == null) {
       return NO_FLEXIBLE_UPPER_BOUND;
     }
-    KmType kmType = flexibleTypeUpperBound.getType();
     return new KotlinFlexibleTypeUpperBoundInfo(
-        kmType.getFlags(),
-        KotlinClassifierInfo.create(kmType.classifier, factory, reporter),
-        KotlinTypeInfo.create(kmType.getAbbreviatedType(), factory, reporter),
-        KotlinTypeInfo.create(kmType.getOuterType(), factory, reporter),
-        getArguments(kmType.getArguments(), factory, reporter),
-        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), factory),
-        KotlinFlexibleTypeUpperBoundInfo.create(
-            kmType.getFlexibleTypeUpperBound(), factory, reporter),
-        flexibleTypeUpperBound.getTypeFlexibilityId());
+        flexibleTypeUpperBound.getTypeFlexibilityId(),
+        KotlinTypeInfo.create(flexibleTypeUpperBound.getType(), factory, reporter));
   }
 
   boolean rewrite(
@@ -70,7 +46,11 @@ public class KotlinFlexibleTypeUpperBoundInfo extends KotlinTypeInfo {
       // Nothing to do.
       return false;
     }
-    return super.rewrite(
+    if (kotlinTypeInfo == null) {
+      assert false;
+      return false;
+    }
+    return kotlinTypeInfo.rewrite(
         flags -> visitorProvider.get(flags, typeFlexibilityId), appView, namingLens);
   }
 
@@ -79,6 +59,10 @@ public class KotlinFlexibleTypeUpperBoundInfo extends KotlinTypeInfo {
     if (this == NO_FLEXIBLE_UPPER_BOUND) {
       return;
     }
-    super.trace(definitionSupplier);
+    if (kotlinTypeInfo == null) {
+      assert false;
+      return;
+    }
+    kotlinTypeInfo.trace(definitionSupplier);
   }
 }

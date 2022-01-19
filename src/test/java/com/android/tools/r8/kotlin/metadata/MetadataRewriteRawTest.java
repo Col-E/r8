@@ -6,10 +6,7 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromJavaType;
-import static org.junit.Assert.assertThrows;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -18,9 +15,9 @@ import com.android.tools.r8.kotlin.metadata.type_raw_lib.JavaLibraryClass.Generi
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.hamcrest.CoreMatchers;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,26 +82,36 @@ public class MetadataRewriteRawTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataForLib() throws Exception {
-    // TODO(b/215134409): Should not fail with an assertion error.
-    assertThrows(
-        CompilationFailedException.class,
-        () -> {
-          testForR8(parameters.getBackend())
-              .addClasspathFiles(
-                  kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar(), javaLibZip)
-              .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
-              .addKeepRules("-keep class " + PKG_LIB + ".ClassWithRawType { *; }")
-              .addKeepAttributes(
-                  ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
-                  ProguardKeepAttributes.SIGNATURE,
-                  ProguardKeepAttributes.INNER_CLASSES,
-                  ProguardKeepAttributes.ENCLOSING_METHOD)
-              .compileWithExpectedDiagnostics(
-                  diagnostics -> {
-                    diagnostics.assertErrorsMatch(
-                        DiagnosticsMatcher.diagnosticMessage(
-                            CoreMatchers.containsString("The metadata should be equivalent")));
-                  });
-        });
+    Path libJar =
+        testForR8(parameters.getBackend())
+            .addClasspathFiles(
+                kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinAnnotationJar(), javaLibZip)
+            .addProgramFiles(libJars.getForConfiguration(kotlinc, targetVersion))
+            .addKeepRules("-keep class " + PKG_LIB + ".ClassWithRawType { *; }")
+            .addKeepAttributes(
+                ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
+                ProguardKeepAttributes.SIGNATURE,
+                ProguardKeepAttributes.INNER_CLASSES,
+                ProguardKeepAttributes.ENCLOSING_METHOD)
+            .compile()
+            .inspect(
+                inspector ->
+                    assertEqualMetadata(
+                        new CodeInspector(libJars.getForConfiguration(kotlinc, targetVersion)),
+                        inspector,
+                        (addedStrings, addedNonInitStrings) -> {}))
+            .writeToZip();
+    Path main =
+        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
+            .addClasspathFiles(libJar, javaLibZip)
+            .addSourceFiles(getKotlinFileInTest(binaryName(PKG_APP), "main"))
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+    testForJvm()
+        .addRunClasspathFiles(
+            kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar, javaLibZip)
+        .addClasspath(main)
+        .run(parameters.getRuntime(), PKG_APP + ".MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 }
