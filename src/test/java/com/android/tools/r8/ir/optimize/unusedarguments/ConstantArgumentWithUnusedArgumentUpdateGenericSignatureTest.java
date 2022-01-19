@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -52,8 +53,7 @@ public class ConstantArgumentWithUnusedArgumentUpdateGenericSignatureTest extend
               MethodSubject foo =
                   classA.uniqueMethodThatMatches(method -> !method.isInstanceInitializer());
               assertThat(foo, isPresent());
-              // TODO(b/215118784): The generic signature still has 3 parameters.
-              assertEquals("(TT;ITT;)V", foo.getFinalSignatureAttribute());
+              assertNull(foo.getFinalSignatureAttribute());
               assertEquals("void a(int)", foo.getFinalSignature().toString());
             });
   }

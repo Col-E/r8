@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
@@ -53,7 +54,7 @@ public class StaticizeUpdateGenericSignatureTest extends TestBase {
               assertThat(classA, isPresentAndRenamed());
               MethodSubject foo = classA.uniqueMethod();
               assertThat(foo, isPresent());
-              assertEquals("(TT;)Ljava/lang/String;", foo.getFinalSignatureAttribute());
+              assertNull(foo.getFinalSignatureAttribute());
               assertEquals(
                   "java.lang.String a(java.lang.Object)", foo.getFinalSignature().toString());
             });

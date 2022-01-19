@@ -5,12 +5,14 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public abstract class TreeFixerBase {
 
@@ -165,21 +167,28 @@ public abstract class TreeFixerBase {
 
   /** Fixup a list of fields. */
   public DexEncodedField[] fixupFields(List<DexEncodedField> fields) {
+    return fixupFields(fields, ConsumerUtils.emptyConsumer());
+  }
+
+  public DexEncodedField[] fixupFields(
+      List<DexEncodedField> fields, Consumer<DexEncodedField.Builder> consumer) {
     if (fields == null) {
       return DexEncodedField.EMPTY_ARRAY;
     }
     DexEncodedField[] newFields = new DexEncodedField[fields.size()];
     for (int i = 0; i < fields.size(); i++) {
-      newFields[i] = fixupField(fields.get(i));
+      newFields[i] = fixupField(fields.get(i), consumer);
     }
     return newFields;
   }
 
-  private DexEncodedField fixupField(DexEncodedField field) {
+  private DexEncodedField fixupField(
+      DexEncodedField field, Consumer<DexEncodedField.Builder> consumer) {
     DexField fieldReference = field.getReference();
     DexField newFieldReference = fixupFieldReference(fieldReference);
     if (newFieldReference != fieldReference) {
-      return recordFieldChange(field, field.toTypeSubstitutedField(appView, newFieldReference));
+      return recordFieldChange(
+          field, field.toTypeSubstitutedField(appView, newFieldReference, consumer));
     }
     return field;
   }

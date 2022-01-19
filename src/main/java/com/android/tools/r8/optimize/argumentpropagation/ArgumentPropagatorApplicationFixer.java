@@ -14,6 +14,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -75,8 +77,14 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
   }
 
   private void fixupFields(DexProgramClass clazz) {
-    clazz.setInstanceFields(fixupFields(clazz.instanceFields()));
-    clazz.setStaticFields(fixupFields(clazz.staticFields()));
+    clazz.setInstanceFields(
+        fixupFields(
+            clazz.instanceFields(),
+            builder -> builder.setGenericSignature(FieldTypeSignature.noSignature())));
+    clazz.setStaticFields(
+        fixupFields(
+            clazz.staticFields(),
+            builder -> builder.setGenericSignature(FieldTypeSignature.noSignature())));
   }
 
   private void fixupMethods(DexProgramClass clazz) {
@@ -97,8 +105,9 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
                 if (graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
                   RewrittenPrototypeDescription prototypeChanges =
                       graphLens.getPrototypeChanges(methodReferenceAfterParameterRemoval);
-                  builder.apply(prototypeChanges.createParameterAnnotationsRemover(method));
-
+                  builder
+                      .apply(prototypeChanges.createParameterAnnotationsRemover(method))
+                      .setGenericSignature(MethodTypeSignature.noSignature());
                   if (method.isInstance()
                       && prototypeChanges.getArgumentInfoCollection().isArgumentRemoved(0)) {
                     builder
