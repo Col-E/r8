@@ -104,7 +104,7 @@ public class MetadataRewriteRawTest extends KotlinMetadataTestBase {
     Path main =
         kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
             .addClasspathFiles(libJar, javaLibZip)
-            .addSourceFiles(getKotlinFileInTest(binaryName(PKG_APP), "main"))
+            .addSourceFiles(getKotlinFileInTest(getBinaryNameFromJavaType(PKG_APP), "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
     testForJvm()
