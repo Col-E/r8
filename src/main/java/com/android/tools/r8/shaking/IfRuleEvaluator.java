@@ -237,7 +237,6 @@ public class IfRuleEvaluator {
               // Fields that are javac inlined are unsound as predicates for conditional rules.
               // Ignore any such field members and record it for possible reporting later.
               if (isFieldInlinedByJavaC(f)) {
-                f.markAsInlinableByJavaC();
                 fieldsInlinedByJavaC.add(DexClassAndField.create(targetClass, f));
                 return false;
               }
@@ -317,21 +316,9 @@ public class IfRuleEvaluator {
     if (enqueuer.getMode().isFinalTreeShaking()) {
       // Ignore any field value in the final tree shaking pass so it remains consistent with the
       // initial pass.
-      return field.isInlinableByJavaC();
+      return field.getIsInlinableByJavaC();
     }
-    if (!field.isStatic() || !field.isFinal()) {
-      return false;
-    }
-    if (!field.hasExplicitStaticValue()) {
-      return false;
-    }
-    if (field.getType().isPrimitiveType()) {
-      return true;
-    }
-    if (field.getType() != appView.dexItemFactory().stringType) {
-      return false;
-    }
-    return field.getStaticValue().isDexValueString();
+    return field.getOrComputeIsInlinableByJavaC(appView.dexItemFactory());
   }
 
   private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {

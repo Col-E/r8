@@ -367,8 +367,31 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     isInlinableByJavaC = true;
   }
 
-  public boolean isInlinableByJavaC() {
+  public boolean getIsInlinableByJavaC() {
     return isInlinableByJavaC;
+  }
+
+  public boolean getOrComputeIsInlinableByJavaC(DexItemFactory dexItemFactory) {
+    if (getIsInlinableByJavaC()) {
+      return true;
+    }
+    if (!isStatic() || !isFinal()) {
+      return false;
+    }
+    if (!hasExplicitStaticValue()) {
+      return false;
+    }
+    if (getType().isPrimitiveType()) {
+      return true;
+    }
+    if (getType() != dexItemFactory.stringType) {
+      return false;
+    }
+    if (!getStaticValue().isDexValueString()) {
+      return false;
+    }
+    markAsInlinableByJavaC();
+    return true;
   }
 
   public static class Builder {

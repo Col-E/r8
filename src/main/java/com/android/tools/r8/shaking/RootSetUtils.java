@@ -62,6 +62,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OriginWithPosition;
 import com.android.tools.r8.utils.PredicateSet;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -1299,13 +1300,7 @@ public class RootSetUtils {
             throw new Unreachable();
         }
       } else if (context instanceof ProguardIdentifierNameStringRule) {
-        if (item.isField()) {
-          identifierNameStrings.add(item.asField().getReference());
-          context.markAsUsed();
-        } else if (item.isMethod()) {
-          identifierNameStrings.add(item.asMethod().getReference());
-          context.markAsUsed();
-        }
+        evaluateIdentifierNameStringRule(item, context, ifRule);
       } else if (context instanceof ConstantArgumentRule) {
         if (item.isMethod()) {
           keepParametersWithConstantValue.add(item.asMethod().getReference());
@@ -1557,6 +1552,36 @@ public class RootSetUtils {
         includeDescriptorClasses(item, keepRule, preconditionEvent);
         context.markAsUsed();
       }
+    }
+
+    private void evaluateIdentifierNameStringRule(
+        Definition item, ProguardConfigurationRule context, ProguardIfRule ifRule) {
+      // Main dex rules should not contain -identifiernamestring rules.
+      assert !isMainDexRootSetBuilder();
+
+      // We don't expect -identifiernamestring rules to be used as the subsequent of -if rules.
+      assert ifRule == null;
+
+      if (item.isClass()) {
+        return;
+      }
+
+      if (item.isField()) {
+        DexClassAndField field = item.asField();
+        if (field.getDefinition().getOrComputeIsInlinableByJavaC(appView.dexItemFactory())) {
+          Reporter reporter = appView.reporter();
+          reporter.warning(
+              new StringDiagnostic(
+                  "Rule matches the static final field `"
+                      + field.toSourceString()
+                      + "`, which may have been inlined: "
+                      + context.toString(),
+                  context.getOrigin()));
+        }
+      }
+
+      identifierNameStrings.add(item.asMember().getReference());
+      context.markAsUsed();
     }
 
     private boolean isInterfaceMethodNeedingDesugaring(ProgramDefinition item) {
