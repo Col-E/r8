@@ -201,8 +201,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
                 clazz.isInterface(),
                 eventConsumer)
             .generateCfCode();
-    DexEncodedMethod newMethod =
-        wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
+    DexEncodedMethod newMethod = wrapperSynthesizor.newSynthesizedMethod(methodToInstall, cfCode);
     newMethod.setCode(cfCode, appView);
     if (originalMethod.isLibraryMethodOverride().isTrue()) {
       newMethod.setLibraryMethodOverride(OptionalBool.TRUE);

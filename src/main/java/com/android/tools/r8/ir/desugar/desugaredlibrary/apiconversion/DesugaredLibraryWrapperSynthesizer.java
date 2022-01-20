@@ -29,7 +29,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterThrowRuntimeExceptionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
@@ -41,14 +40,11 @@ import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -387,22 +383,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                         wrapperField, reverseWrapperField, context)));
   }
 
-  private boolean isInvalidWrapper(DexClass clazz) {
-    return Iterables.any(allImplementedMethods(clazz), DexEncodedMethod::isFinal);
-  }
-
   private CfCode computeProgramConversionMethodCode(
       DexField wrapperField, DexField reverseWrapperField, DexClass context) {
-    if (isInvalidWrapper(context)) {
-      return new APIConverterThrowRuntimeExceptionCfCodeProvider(
-              appView,
-              factory.createString(
-                  "Unsupported conversion for "
-                      + context.type
-                      + ". See compilation time warnings for more details."),
-              wrapperField.holder)
-          .generateCfCode();
-    }
     assert context.isProgramClass();
     return new APIConverterWrapperConversionCfCodeProvider(
             appView, reverseWrapperField, wrapperField)
@@ -459,7 +441,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
 
   private Collection<DexEncodedMethod> synthesizeVirtualMethodsForVivifiedTypeWrapper(
       DexClass dexClass, DexEncodedField wrapperField) {
-    List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
+    Iterable<DexMethod> allImplementedMethods = allImplementedMethods(dexClass);
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only types in their signature, but each method the wrapper forwards
     // to should used only vivified types.
@@ -470,30 +452,23 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     //   v2 <- convertTypeToVivifiedType(v0);
     //   v3 <- wrappedValue.foo(v2,v1);
     //   return v3;
-    Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
-    for (DexEncodedMethod dexEncodedMethod : dexMethods) {
-      DexClass holderClass = appView.definitionFor(dexEncodedMethod.getHolderType());
+    for (DexMethod method : allImplementedMethods) {
+      DexClass holderClass = appView.definitionFor(method.getHolderType());
       boolean isInterface;
       if (holderClass == null) {
         assert appView
             .options()
             .desugaredLibrarySpecification
             .getEmulateLibraryInterface()
-            .containsValue(dexEncodedMethod.getHolderType());
+            .containsValue(method.getHolderType());
         isInterface = true;
       } else {
         isInterface = holderClass.isInterface();
       }
       DexMethod methodToInstall =
-          factory.createMethod(
-              wrapperField.getHolderType(),
-              dexEncodedMethod.getReference().proto,
-              dexEncodedMethod.getReference().name);
+          factory.createMethod(wrapperField.getHolderType(), method.proto, method.name);
       CfCode cfCode;
-      if (dexEncodedMethod.isFinal()) {
-        finalMethods.add(dexEncodedMethod.getReference());
-        continue;
-      } else if (dexClass.isProgramClass()) {
+      if (dexClass.isProgramClass()) {
         cfCode =
             new APIConverterVivifiedWrapperCfCodeProvider(
                     appView, methodToInstall, wrapperField.getReference(), this, isInterface)
@@ -501,16 +476,15 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       } else {
         cfCode = null;
       }
-      DexEncodedMethod newDexEncodedMethod =
-          newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
+      DexEncodedMethod newDexEncodedMethod = newSynthesizedMethod(methodToInstall, cfCode);
       generatedMethods.add(newDexEncodedMethod);
     }
-    return finalizeWrapperMethods(generatedMethods, finalMethods);
+    return generatedMethods;
   }
 
   private Collection<DexEncodedMethod> synthesizeVirtualMethodsForTypeWrapper(
       DexClass dexClass, DexEncodedField wrapperField) {
-    List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
+    Iterable<DexMethod> dexMethods = allImplementedMethods(dexClass);
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only vivified types in their signature, but each method the wrapper
     // forwards
@@ -522,87 +496,64 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     //   v2 <- convertVivifiedTypeToType(v0);
     //   v3 <- wrappedValue.foo(v2,v1);
     //   return v3;
-    Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
-    for (DexEncodedMethod dexEncodedMethod : dexMethods) {
-      DexClass holderClass = appView.definitionFor(dexEncodedMethod.getHolderType());
+    for (DexMethod method : dexMethods) {
+      DexClass holderClass = appView.definitionFor(method.getHolderType());
       assert holderClass != null || appView.options().isDesugaredLibraryCompilation();
       boolean isInterface = holderClass == null || holderClass.isInterface();
       DexMethod methodToInstall =
           DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-              dexEncodedMethod.getReference(), wrapperField.getHolderType(), appView);
+              method, wrapperField.getHolderType(), appView);
       CfCode cfCode;
-      if (dexEncodedMethod.isFinal()) {
-        finalMethods.add(dexEncodedMethod.getReference());
-        continue;
-      } else if (dexClass.isProgramClass()) {
+      if (dexClass.isProgramClass()) {
         cfCode =
             new APIConverterWrapperCfCodeProvider(
-                    appView,
-                    dexEncodedMethod.getReference(),
-                    wrapperField.getReference(),
-                    this,
-                    isInterface)
+                    appView, method, wrapperField.getReference(), this, isInterface)
                 .generateCfCode();
       } else {
         cfCode = null;
       }
-      DexEncodedMethod newDexEncodedMethod =
-          newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
+      DexEncodedMethod newDexEncodedMethod = newSynthesizedMethod(methodToInstall, cfCode);
       generatedMethods.add(newDexEncodedMethod);
     }
-    return finalizeWrapperMethods(generatedMethods, finalMethods);
+    return generatedMethods;
   }
 
-  private Collection<DexEncodedMethod> finalizeWrapperMethods(
-      List<DexEncodedMethod> generatedMethods, Set<DexMethod> finalMethods) {
-    if (finalMethods.isEmpty()) {
-      return generatedMethods;
-    }
-    // Wrapper is invalid, no need to add the virtual methods.
-    reportFinalMethodsInWrapper(finalMethods);
-    return Collections.emptyList();
-  }
-
-  private void reportFinalMethodsInWrapper(Set<DexMethod> methods) {
-    String[] methodArray =
-        methods.stream().map(method -> method.holder + "#" + method.name).toArray(String[]::new);
-    appView
-        .options()
-        .reporter
-        .warning(
-            new StringDiagnostic(
-                "Desugared library API conversion: cannot wrap final methods "
-                    + Arrays.toString(methodArray)
-                    + ". "
-                    + methods.iterator().next().holder
-                    + " is marked as invalid and will throw a runtime exception upon conversion."));
-  }
-
-  DexEncodedMethod newSynthesizedMethod(
-      DexMethod methodToInstall, DexEncodedMethod template, Code code) {
-    MethodAccessFlags newFlags = template.accessFlags.copy();
-    assert newFlags.isPublic();
-    // It can happen that we wrap an abstract method, in which case the wrapping method is no
-    // longer abstract.
-    if (code != null) {
-      newFlags.unsetAbstract();
-    }
-    // TODO(b/146114533): Fix inlining in synthetic methods and remove unsetBridge.
-    newFlags.unsetBridge();
-    newFlags.setSynthetic();
+  DexEncodedMethod newSynthesizedMethod(DexMethod methodToInstall, Code code) {
+    MethodAccessFlags newFlags =
+        MethodAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false);
+    ComputedApiLevel apiLevelForDefinition =
+        appView.enableWholeProgramOptimizations()
+            ? ComputedApiLevel.notSet()
+            : appView
+                .apiLevelCompute()
+                .computeApiLevelForDefinition(methodToInstall, factory, ComputedApiLevel.unknown());
+    // Since the method is a forwarding method, the api level for code is the same as the
+    // definition.
+    ComputedApiLevel apiLevelForCode = apiLevelForDefinition;
     return DexEncodedMethod.syntheticBuilder()
         .setMethod(methodToInstall)
         .setAccessFlags(newFlags)
         .setCode(code)
-        .setApiLevelForDefinition(template.getApiLevelForDefinition())
-        .setApiLevelForCode(
-            code == null ? ComputedApiLevel.notSet() : template.getApiLevelForCode())
+        .setApiLevelForDefinition(apiLevelForDefinition)
+        .setApiLevelForCode(code == null ? ComputedApiLevel.notSet() : apiLevelForCode)
         .build();
   }
 
-  private List<DexEncodedMethod> allImplementedMethods(DexClass clazz) {
-    return allImplementedMethodsCache.computeIfAbsent(
-        clazz.type, type -> internalAllImplementedMethods(clazz));
+  private Iterable<DexMethod> allImplementedMethods(DexClass clazz) {
+    if (appView.options().testing.machineDesugaredLibrarySpecification != null) {
+      return appView
+          .options()
+          .testing
+          .machineDesugaredLibrarySpecification
+          .getRewritingFlags()
+          .getWrappers()
+          .get(clazz.type);
+    }
+    List<DexEncodedMethod> dexEncodedMethods =
+        allImplementedMethodsCache.computeIfAbsent(
+            clazz.type, type -> internalAllImplementedMethods(clazz));
+    return Iterables.transform(dexEncodedMethods, m -> m.getReference());
   }
 
   private List<DexEncodedMethod> internalAllImplementedMethods(DexClass libraryClass) {
@@ -641,6 +592,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         workList.add(superClass);
       }
     }
+    assert !Iterables.any(implementedMethods, DexEncodedMethod::isFinal);
     return implementedMethods;
   }
 

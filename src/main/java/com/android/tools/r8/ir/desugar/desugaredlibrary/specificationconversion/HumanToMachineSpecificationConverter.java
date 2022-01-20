@@ -47,6 +47,7 @@ public class HumanToMachineSpecificationConverter {
         .convertEmulatedInterfaces(rewritingFlags, appInfo, builder);
     new HumanToMachinePrefixConverter(appInfo)
         .convertPrefixFlags(rewritingFlags, builder, synthesizedPrefix);
+    new HumanToMachineWrapperConverter(appInfo).convertWrappers(rewritingFlags, builder);
     return builder.build();
   }
 

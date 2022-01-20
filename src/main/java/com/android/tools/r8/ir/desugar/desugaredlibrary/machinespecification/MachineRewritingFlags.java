@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MachineRewritingFlags {
@@ -22,13 +24,15 @@ public class MachineRewritingFlags {
       Map<DexMethod, DexMethod> staticRetarget,
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
-      Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces) {
+      Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces,
+      Map<DexType, List<DexMethod>> wrappers) {
     this.rewriteType = rewriteType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
     this.emulatedInterfaces = emulatedInterfaces;
+    this.wrappers = wrappers;
   }
 
   // Rewrites all the references to the keys as well as synthetic types derived from any key.
@@ -52,6 +56,9 @@ public class MachineRewritingFlags {
 
   // Emulated interface descriptors.
   private final Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces;
+
+  // Wrappers and the list of methods they implement.
+  private final Map<DexType, List<DexMethod>> wrappers;
 
   public Map<DexType, DexType> getRewriteType() {
     return rewriteType;
@@ -77,6 +84,10 @@ public class MachineRewritingFlags {
     return emulatedInterfaces;
   }
 
+  public Map<DexType, List<DexMethod>> getWrappers() {
+    return wrappers;
+  }
+
   public static class Builder {
 
     Builder() {}
@@ -91,6 +102,7 @@ public class MachineRewritingFlags {
         emulatedVirtualRetarget = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
         ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexType, List<DexMethod>> wrappers = ImmutableMap.builder();
 
     public void rewriteType(DexType src, DexType target) {
       rewriteType.put(src, target);
@@ -116,6 +128,10 @@ public class MachineRewritingFlags {
       emulatedVirtualRetarget.put(src, dest);
     }
 
+    public void addWrapper(DexType wrapperConversion, List<DexMethod> methods) {
+      wrappers.put(wrapperConversion, ImmutableList.copyOf(methods));
+    }
+
     public MachineRewritingFlags build() {
       return new MachineRewritingFlags(
           rewriteType,
@@ -123,7 +139,8 @@ public class MachineRewritingFlags {
           staticRetarget.build(),
           nonEmulatedVirtualRetarget.build(),
           emulatedVirtualRetarget.build(),
-          emulatedInterfaces.build());
+          emulatedInterfaces.build(),
+          wrappers.build());
     }
   }
 }
