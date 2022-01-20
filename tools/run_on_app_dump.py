@@ -3,24 +3,25 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
+import argparse
+import hashlib
+import os
+import shutil
+import sys
+import time
+import zipfile
+from datetime import datetime
+
 import adb
 import apk_masseur
 import as_utils
 import compiledump
 import gradle
-import hashlib
 import jdk
-import argparse
-import os
-import shutil
-import sys
-import time
 import update_prebuilds_in_android
 import utils
-import zipfile
 
-from datetime import datetime
-
+GOLEM_BUILD_TARGETS = ['R8Lib', 'R8Retrace']
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full']
 
 class AttrDict(dict):
@@ -1060,9 +1061,7 @@ def print_golem_config(options):
   print_indented('final targetsFull = ["R8-full-minify-optimize-shrink"];', 2)
   # Avoid calculating this for every app
   jdk_gz = jdk.GetJdkHome() + '.tar.gz'
-  download_sha(jdk_gz + '.sha1', False, quiet=True)
-  jdk_sha256 = get_sha256(jdk_gz)
-  add_golem_resource(2, jdk_gz, 'openjdk', sha256=jdk_sha256)
+  add_golem_resource(2, jdk_gz, 'openjdk')
   for app in options.apps:
     if app.folder and not app.internal:
       indentation = 2;
@@ -1171,7 +1170,7 @@ def main(argv):
           os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
           quiet=options.quiet)
     elif options.version == 'main':
-      if not (options.no_build or options.golem):
+      if not options.no_build:
         gradle.RunGradle(['R8Retrace', 'r8', '-Pno_internal'])
         build_r8lib = False
         for shrinker in options.shrinker:

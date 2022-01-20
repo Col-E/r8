@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
@@ -64,8 +65,12 @@ public class ProguardTestBuilder
 
   @Override
   ProguardTestCompileResult internalCompile(
-      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
+      Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<AndroidApp> app,
+      BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
+    assert benchmarkResults == null;
     assert !libraryDesugaringTestConfiguration.isEnabled();
     try {
       Path proguardOutputFolder = getState().getNewTempFolder();

@@ -264,14 +264,23 @@ dependencies {
     main11Implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
 
     examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
+
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
+    testCompile "com.google.guava:guava:$guavaVersion"
     testCompile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     testCompile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
     testCompile files('third_party/jdwp-tests/apache-harmony-jdwp-tests-host.jar')
     testCompile files('third_party/ddmlib/ddmlib.jar')
+    testCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    testCompile group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    testCompile group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
+    testCompile group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
+    testCompile group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+    testCompile group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
+
     jctfCommonCompile "junit:junit:$junitVersion"
     jctfTestsCompile "junit:junit:$junitVersion"
     jctfTestsCompile sourceSets.jctfCommon.output

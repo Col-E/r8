@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorEventConsumer;
@@ -110,7 +111,10 @@ public abstract class TestCompilerBuilder<
   }
 
   abstract CR internalCompile(
-      B builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
+      B builder,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<AndroidApp> app,
+      BenchmarkResults benchmarkResults)
       throws CompilationFailedException;
 
   public T addArgumentPropagatorCodeScannerResultInspector(
@@ -183,7 +187,19 @@ public abstract class TestCompilerBuilder<
                             dexItemFactory, verticallyMergedClasses))));
   }
 
+  public CR benchmarkCompile(BenchmarkResults results) throws CompilationFailedException {
+    if (System.getProperty("com.android.tools.r8.printtimes") != null) {
+      allowStdoutMessages();
+    }
+    return internalCompileAndBenchmark(results);
+  }
+
   public CR compile() throws CompilationFailedException {
+    return internalCompileAndBenchmark(null);
+  }
+
+  private CR internalCompileAndBenchmark(BenchmarkResults benchmark)
+      throws CompilationFailedException {
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     if (mainDexClassesCollector != null || mainDexListConsumer != null) {
@@ -239,7 +255,7 @@ public abstract class TestCompilerBuilder<
                     () -> new AssertionError("Unexpected print to stderr"))));
       }
       cr =
-          internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build))
+          internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build), benchmark)
               .addRunClasspathFiles(additionalRunClassPath);
       if (isAndroidBuildVersionAdded) {
         cr.setSystemProperty(AndroidBuildVersion.PROPERTY, "" + builder.getMinApiLevel());

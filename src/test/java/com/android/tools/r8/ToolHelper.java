@@ -14,6 +14,7 @@ import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.desugar.desugaredlibrary.jdk11.DesugaredLibraryJDK11Undesugarer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
@@ -1252,9 +1253,25 @@ public class ToolHelper {
   public static void runR8WithoutResult(
       R8Command command, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
+    runAndBenchmarkR8WithoutResult(command, optionsConsumer, null);
+  }
+
+  public static void runAndBenchmarkR8WithoutResult(
+      R8Command command,
+      Consumer<InternalOptions> optionsConsumer,
+      BenchmarkResults benchmarkResults)
+      throws CompilationFailedException {
     InternalOptions internalOptions = command.getInternalOptions();
     optionsConsumer.accept(internalOptions);
+    long start = 0;
+    if (benchmarkResults != null) {
+      start = System.nanoTime();
+    }
     R8.runForTesting(command.getInputApp(), internalOptions);
+    if (benchmarkResults != null) {
+      long end = System.nanoTime();
+      benchmarkResults.addRuntimeRawResult(end - start);
+    }
   }
 
   public static AndroidApp runR8WithFullResult(
@@ -1324,6 +1341,14 @@ public class ToolHelper {
   public static AndroidApp runD8(
       D8Command.Builder builder, Consumer<InternalOptions> optionsConsumer)
       throws CompilationFailedException {
+    return runAndBenchmarkD8(builder, optionsConsumer, null);
+  }
+
+  public static AndroidApp runAndBenchmarkD8(
+      D8Command.Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      BenchmarkResults benchmarkResults)
+      throws CompilationFailedException {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
     D8Command command = builder.build();
     InternalOptions options = command.getInternalOptions();
@@ -1331,7 +1356,15 @@ public class ToolHelper {
       ExceptionUtils.withD8CompilationHandler(
           options.reporter, () -> optionsConsumer.accept(options));
     }
+    long start = 0;
+    if (benchmarkResults != null) {
+      start = System.nanoTime();
+    }
     D8.runForTesting(command.getInputApp(), options);
+    if (benchmarkResults != null) {
+      long end = System.nanoTime();
+      benchmarkResults.addRuntimeRawResult(end - start);
+    }
     return compatSink.build();
   }
 

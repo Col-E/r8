@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -110,8 +111,12 @@ public class ExternalR8TestBuilder
 
   @Override
   ExternalR8TestCompileResult internalCompile(
-      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
+      Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<AndroidApp> app,
+      BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
+    assert benchmarkResults == null;
     assert !libraryDesugaringTestConfiguration.isEnabled();
     try {
       Path outputFolder = getState().getNewTempFolder();

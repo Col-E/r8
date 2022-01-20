@@ -7,6 +7,7 @@ import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -44,8 +45,12 @@ public class DXTestBuilder
 
   @Override
   DXTestCompileResult internalCompile(
-      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
+      Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<AndroidApp> app,
+      BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
+    assert benchmarkResults == null;
     assert !libraryDesugaringTestConfiguration.isEnabled();
     try {
       Path dxOutputFolder = getState().getNewTempFolder();

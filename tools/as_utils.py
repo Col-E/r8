@@ -3,11 +3,11 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import utils
-
-from distutils.version import LooseVersion
 import os
 import shutil
+from distutils.version import LooseVersion
+
+import utils
 
 if utils.is_python3():
   from html.parser import HTMLParser
@@ -174,7 +174,7 @@ def Move(src, dst, quiet=False):
     shutil.rmtree(dst)
   elif os.path.isfile(dst):
     os.remove(dst)
-  os.rename(src, dst)
+  shutil.move(src, dst)
 
 def MoveDir(src, dst, quiet=False):
   assert os.path.isdir(src)

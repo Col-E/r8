@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -64,10 +65,13 @@ public class D8TestBuilder
 
   @Override
   D8TestCompileResult internalCompile(
-      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
+      Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<AndroidApp> app,
+      BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
     libraryDesugaringTestConfiguration.configure(builder);
-    ToolHelper.runD8(builder, optionsConsumer);
+    ToolHelper.runAndBenchmarkD8(builder, optionsConsumer, benchmarkResults);
     return new D8TestCompileResult(
         getState(),
         app.get(),

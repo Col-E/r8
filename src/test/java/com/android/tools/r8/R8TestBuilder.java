@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.proguardConfigur
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.RunInterface;
 import com.android.tools.r8.dexsplitter.SplitterTestBase.SplitRunner;
@@ -71,7 +72,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   @Override
   R8TestCompileResult internalCompile(
-      Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
+      Builder builder,
+      Consumer<InternalOptions> optionsConsumer,
+      Supplier<AndroidApp> app,
+      BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
     if (!keepRules.isEmpty()) {
       builder.addProguardConfiguration(keepRules, Origin.unknown());
@@ -118,10 +122,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     ToolHelper.addSyntheticProguardRulesConsumerForTesting(
         builder, rules -> box.syntheticProguardRules = rules);
     libraryDesugaringTestConfiguration.configure(builder);
-    ToolHelper.runR8WithoutResult(
+    ToolHelper.runAndBenchmarkR8WithoutResult(
         builder.build(),
         optionsConsumer.andThen(
-            options -> box.proguardConfiguration = options.getProguardConfiguration()));
+            options -> box.proguardConfiguration = options.getProguardConfiguration()),
+        benchmarkResults);
     R8TestCompileResult compileResult =
         new R8TestCompileResult(
             getState(),

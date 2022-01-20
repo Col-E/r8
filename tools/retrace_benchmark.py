@@ -14,6 +14,7 @@ import jdk
 import proguard
 import utils
 
+GOLEM_BUILD_TARGETS = ['R8Lib']
 RETRACERS = ['r8', 'proguard', 'remapper']
 
 def parse_arguments(argv):

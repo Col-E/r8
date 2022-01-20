@@ -18,6 +18,7 @@ import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.benchmarks.BenchmarkResults;
 import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
@@ -25,11 +26,13 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.TriFunction;
+import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -657,5 +660,20 @@ public abstract class TestCompileResult<
     Path oatFile = tmp.resolve("out.oat");
     app.writeToZip(jarFile, OutputMode.DexIndexed);
     return new Dex2OatTestRunResult(app, runtime, ToolHelper.runDex2OatRaw(jarFile, oatFile, vm));
+  }
+
+  public CR benchmarkCodeSize(BenchmarkResults results) throws IOException {
+    Path out = writeToZip();
+    Box<Long> size = new Box<>(0L);
+    ZipUtils.iter(
+        out,
+        (entry, stream) -> {
+          if ((getBackend().isDex() && entry.getName().endsWith(".dex"))
+              || getBackend().isCf() && entry.getName().endsWith(".class")) {
+            size.set(size.get() + entry.getSize());
+          }
+        });
+    results.addCodeSizeResult(size.get());
+    return self();
   }
 }
