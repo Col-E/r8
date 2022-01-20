@@ -5,12 +5,16 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MachineRewritingFlags {
 
@@ -25,7 +29,10 @@ public class MachineRewritingFlags {
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
       Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces,
-      Map<DexType, List<DexMethod>> wrappers) {
+      Map<DexType, List<DexMethod>> wrappers,
+      Map<DexType, DexType> legacyBackport,
+      Set<DexType> dontRetarget,
+      Map<DexType, Pair<DexType, DexString>> customConversions) {
     this.rewriteType = rewriteType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticRetarget = staticRetarget;
@@ -33,6 +40,9 @@ public class MachineRewritingFlags {
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
     this.emulatedInterfaces = emulatedInterfaces;
     this.wrappers = wrappers;
+    this.legacyBackport = legacyBackport;
+    this.dontRetarget = dontRetarget;
+    this.customConversions = customConversions;
   }
 
   // Rewrites all the references to the keys as well as synthetic types derived from any key.
@@ -59,6 +69,10 @@ public class MachineRewritingFlags {
 
   // Wrappers and the list of methods they implement.
   private final Map<DexType, List<DexMethod>> wrappers;
+
+  private final Map<DexType, DexType> legacyBackport;
+  private final Set<DexType> dontRetarget;
+  private final Map<DexType, Pair<DexType, DexString>> customConversions;
 
   public Map<DexType, DexType> getRewriteType() {
     return rewriteType;
@@ -88,6 +102,18 @@ public class MachineRewritingFlags {
     return wrappers;
   }
 
+  public Map<DexType, DexType> getLegacyBackport() {
+    return legacyBackport;
+  }
+
+  public Set<DexType> getDontRetarget() {
+    return dontRetarget;
+  }
+
+  public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
+    return customConversions;
+  }
+
   public static class Builder {
 
     Builder() {}
@@ -103,6 +129,10 @@ public class MachineRewritingFlags {
     private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, List<DexMethod>> wrappers = ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexType, DexType> legacyBackport = ImmutableMap.builder();
+    private final ImmutableSet.Builder<DexType> dontRetarget = ImmutableSet.builder();
+    private final ImmutableMap.Builder<DexType, Pair<DexType, DexString>> customConversions =
+        ImmutableMap.builder();
 
     public void rewriteType(DexType src, DexType target) {
       rewriteType.put(src, target);
@@ -132,6 +162,18 @@ public class MachineRewritingFlags {
       wrappers.put(wrapperConversion, ImmutableList.copyOf(methods));
     }
 
+    public void putLegacyBackport(DexType src, DexType target) {
+      legacyBackport.put(src, target);
+    }
+
+    public void addDontRetarget(DexType type) {
+      dontRetarget.add(type);
+    }
+
+    public void putCustomConversion(DexType src, DexType conversionType, DexString conversionName) {
+      customConversions.put(src, new Pair<>(conversionType, conversionName));
+    }
+
     public MachineRewritingFlags build() {
       return new MachineRewritingFlags(
           rewriteType,
@@ -140,7 +182,10 @@ public class MachineRewritingFlags {
           nonEmulatedVirtualRetarget.build(),
           emulatedVirtualRetarget.build(),
           emulatedInterfaces.build(),
-          wrappers.build());
+          wrappers.build(),
+          legacyBackport.build(),
+          dontRetarget.build(),
+          customConversions.build());
     }
   }
 }

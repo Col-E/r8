@@ -4,20 +4,27 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
-/** TODO(b/184026720): Move the rest of the flags. */
 public class MachineDesugaredLibrarySpecification {
 
   private final boolean libraryCompilation;
+  private final MachineTopLevelFlags topLevelFlags;
   private final MachineRewritingFlags rewritingFlags;
 
   public MachineDesugaredLibrarySpecification(
-      boolean libraryCompilation, MachineRewritingFlags rewritingFlags) {
+      boolean libraryCompilation,
+      MachineTopLevelFlags topLevelFlags,
+      MachineRewritingFlags rewritingFlags) {
     this.libraryCompilation = libraryCompilation;
+    this.topLevelFlags = topLevelFlags;
     this.rewritingFlags = rewritingFlags;
   }
 
   public boolean isLibraryCompilation() {
     return libraryCompilation;
+  }
+
+  public MachineTopLevelFlags getTopLevelFlags() {
+    return topLevelFlags;
   }
 
   public MachineRewritingFlags getRewritingFlags() {

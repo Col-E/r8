@@ -9,10 +9,13 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -33,8 +36,19 @@ public class HumanToMachineSpecificationConverter {
             humanSpec.getSynthesizedLibraryClassesPackagePrefix(),
             humanSpec.getRewritingFlags(),
             appView.appInfoForDesugaring());
+    MachineTopLevelFlags topLevelFlags = convertTopLevelFlags(humanSpec.getTopLevelFlags());
     return new MachineDesugaredLibrarySpecification(
-        humanSpec.isLibraryCompilation(), machineRewritingFlags);
+        humanSpec.isLibraryCompilation(), topLevelFlags, machineRewritingFlags);
+  }
+
+  private MachineTopLevelFlags convertTopLevelFlags(HumanTopLevelFlags topLevelFlags) {
+    return new MachineTopLevelFlags(
+        topLevelFlags.getRequiredCompilationAPILevel(),
+        topLevelFlags.getSynthesizedLibraryClassesPackagePrefix(),
+        topLevelFlags.getIdentifier(),
+        topLevelFlags.getJsonSource(),
+        topLevelFlags.supportAllCallbacksFromLibrary(),
+        topLevelFlags.getExtraKeepRules());
   }
 
   private MachineRewritingFlags convertRewritingFlags(
@@ -48,6 +62,16 @@ public class HumanToMachineSpecificationConverter {
     new HumanToMachinePrefixConverter(appInfo)
         .convertPrefixFlags(rewritingFlags, builder, synthesizedPrefix);
     new HumanToMachineWrapperConverter(appInfo).convertWrappers(rewritingFlags, builder);
+    rewritingFlags
+        .getCustomConversions()
+        .forEach(
+            (type, conversionType) ->
+                builder.putCustomConversion(
+                    type, conversionType, appInfo.dexItemFactory().convertMethodName));
+    for (DexType type : rewritingFlags.getDontRetargetLibMember()) {
+      builder.addDontRetarget(type);
+    }
+    rewritingFlags.getBackportCoreLibraryMember().forEach(builder::putLegacyBackport);
     return builder.build();
   }
 
