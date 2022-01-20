@@ -12,6 +12,7 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoFieldTypeStrengthening;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -84,6 +85,7 @@ public class KeepSignatureTest extends TestBase {
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoFieldTypeStrengtheningAnnotations()
         .run(parameters.getRuntime(), KeptClass.class)
         .assertSuccessWithOutputLines(EXPECTED)
         .inspect(inspector -> inspect(inspector, keptForNotKept));
@@ -137,7 +139,7 @@ public class KeepSignatureTest extends TestBase {
   @NeverClassInline
   public static class NotKeptClass<P> {
 
-    public List<P> notKeptField;
+    @NoFieldTypeStrengthening public List<P> notKeptField;
 
     @KeepConstantArguments
     @NeverInline
