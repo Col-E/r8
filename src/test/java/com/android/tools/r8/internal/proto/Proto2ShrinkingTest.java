@@ -6,9 +6,7 @@ package com.android.tools.r8.internal.proto;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -97,8 +95,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .compile()
             .assertAllInfoMessagesMatch(
                 containsString("Proguard configuration rule does not match anything"))
-            .assertAllWarningMessagesMatch(
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .apply(this::inspectWarningMessages)
             .inspect(
                 outputInspector -> {
                   verifyMapAndRequiredFieldsAreKept(inputInspector, outputInspector);
@@ -374,10 +371,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .compile()
         .assertAllInfoMessagesMatch(
             containsString("Proguard configuration rule does not match anything"))
-        .assertAllWarningMessagesMatch(
-            anyOf(
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
-                containsString("required for default or static interface methods desugaring")))
+        .apply(this::inspectWarningMessages)
         .inspect(
             inspector ->
                 assertRewrittenProtoSchemasMatch(new CodeInspector(PROGRAM_FILES), inspector));
@@ -405,10 +399,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .compile()
         .assertAllInfoMessagesMatch(
             containsString("Proguard configuration rule does not match anything"))
-        .assertAllWarningMessagesMatch(
-            anyOf(
-                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
-                containsString("required for default or static interface methods desugaring")))
+        .apply(this::inspectWarningMessages)
         .inspect(
             outputInspector -> {
               verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector);

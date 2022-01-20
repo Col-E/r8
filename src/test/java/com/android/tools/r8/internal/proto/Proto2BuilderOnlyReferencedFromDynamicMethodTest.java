@@ -6,7 +6,6 @@ package com.android.tools.r8.internal.proto;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -56,7 +55,7 @@ public class Proto2BuilderOnlyReferencedFromDynamicMethodTest extends ProtoShrin
         .compile()
         .assertAllInfoMessagesMatch(
             containsString("Proguard configuration rule does not match anything"))
-        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .apply(this::inspectWarningMessages)
         .inspect(this::inspect)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(
