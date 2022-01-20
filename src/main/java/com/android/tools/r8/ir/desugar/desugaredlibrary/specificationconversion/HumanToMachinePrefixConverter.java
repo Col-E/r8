@@ -71,7 +71,9 @@ public class HumanToMachinePrefixConverter {
       Map<?, DexType> flags) {
     for (DexType type : flags.values()) {
       DexType rewrittenType = rewrittenType(descriptorPrefix, type);
-      builder.rewriteType(type, rewrittenType);
+      if (rewrittenType != null) {
+        builder.rewriteType(type, rewrittenType);
+      }
     }
   }
 
@@ -80,10 +82,9 @@ public class HumanToMachinePrefixConverter {
     for (DexProgramClass clazz : appInfo.classes()) {
       DexType type = clazz.type;
       DexType rewrittenType = rewrittenType(descriptorPrefix, type);
-      if (rewrittenType == null) {
-        continue;
+      if (rewrittenType != null) {
+        builder.rewriteType(type, rewrittenType);
       }
-      builder.rewriteType(type, rewrittenType);
     }
   }
 

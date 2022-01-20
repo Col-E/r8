@@ -135,6 +135,8 @@ public class MachineRewritingFlags {
         ImmutableMap.builder();
 
     public void rewriteType(DexType src, DexType target) {
+      assert src != null;
+      assert target != null;
       rewriteType.put(src, target);
     }
 
