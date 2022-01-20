@@ -50,6 +50,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
@@ -150,8 +151,33 @@ public class LensCodeRewriter {
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, ProgramMethod method, MethodProcessor methodProcessor) {
-    Set<Phi> affectedPhis = enumUnboxer.rewriteCode(code, methodProcessor);
     GraphLens graphLens = appView.graphLens();
+    if (graphLens.isIdentityLens()) {
+      return;
+    }
+    rewritePartial(
+        code, method, methodProcessor, graphLens.asNonIdentityLens(), appView.codeLens());
+    assert code.hasNoMergedClasses(appView);
+  }
+
+  private void rewritePartial(
+      IRCode code,
+      ProgramMethod method,
+      MethodProcessor methodProcessor,
+      NonIdentityGraphLens graphLens,
+      GraphLens codeLens) {
+    // TODO(b/199864962): Rewrite all uses of AppView.graphLens() to graphLens.
+    // TODO(b/199864962): Enum unboxing rewriting should not be part of default rewriting.
+    rewritePartialDefault(code, method, methodProcessor, graphLens, codeLens);
+  }
+
+  private void rewritePartialDefault(
+      IRCode code,
+      ProgramMethod method,
+      MethodProcessor methodProcessor,
+      NonIdentityGraphLens graphLens,
+      GraphLens codeLens) {
+    Set<Phi> affectedPhis = enumUnboxer.rewriteCode(code, methodProcessor);
     DexItemFactory factory = appView.dexItemFactory();
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
     // we track all phi's that needs to be re-computed.
@@ -735,7 +761,6 @@ public class LensCodeRewriter {
     interfaceTypeToClassTypeRewriterHelper.processWorklist();
 
     assert code.isConsistentSSABeforeTypesAreCorrect();
-    assert code.hasNoMergedClasses(appView);
   }
 
   private InstructionListIterator insertCastForFieldAssignmentIfNeeded(
