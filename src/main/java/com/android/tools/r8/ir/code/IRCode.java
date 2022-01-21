@@ -31,6 +31,7 @@ import com.android.tools.r8.utils.LinkedHashSetUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -1231,15 +1232,27 @@ public class IRCode implements ValueFactory {
     for (BasicBlock block : blocks) {
       List<Phi> phis = new ArrayList<>(block.getPhis());
       for (Phi phi : phis) {
-        if (phi.hasAnyUsers()) {
-          anyPhisRemoved |= phi.removeTrivialPhi(builder, affectedValues);
-        } else {
-          phi.removeDeadPhi();
+        WorkList<Phi> reachablePhis = WorkList.newIdentityWorkList(phi);
+        if (isDeadPhi(reachablePhis)) {
+          reachablePhis.getSeenSet().forEach(Phi::removeDeadPhi);
           anyPhisRemoved = true;
+        } else {
+          anyPhisRemoved |= phi.removeTrivialPhi(builder, affectedValues);
         }
       }
     }
     return anyPhisRemoved;
+  }
+
+  private boolean isDeadPhi(WorkList<Phi> reachablePhis) {
+    while (reachablePhis.hasNext()) {
+      Phi currentPhi = reachablePhis.next();
+      if (currentPhi.hasUsers() || currentPhi.hasDebugUsers()) {
+        return false;
+      }
+      reachablePhis.addIfNotSeen(currentPhi.uniquePhiUsers());
+    }
+    return true;
   }
 
   public int reserveMarkingColor() {
