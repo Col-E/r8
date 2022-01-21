@@ -725,13 +725,6 @@ public class ArgumentPropagatorProgramOptimizer {
       if (!isPrototypeChangesAllowed(method, interfaceDispatchOutsideProgram)) {
         return RewrittenPrototypeDescription.none();
       }
-      // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.
-      if (method
-          .getOptimizationInfo()
-          .getEnumUnboxerMethodClassification()
-          .isCheckNotNullClassification()) {
-        return RewrittenPrototypeDescription.none();
-      }
       RewrittenPrototypeDescription prototypeChanges = computePrototypeChangesForMethod(method);
       if (prototypeChanges.isEmpty()) {
         return prototypeChanges;

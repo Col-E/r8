@@ -63,7 +63,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
@@ -653,9 +652,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             .fixupTypeReferences(converter, executorService);
     EnumUnboxingLens enumUnboxingLens = treeFixerResult.getLens();
 
-    // Update the graph lens.
-    appView.rewriteWithLens(enumUnboxingLens);
-
     // Enqueue the (lens rewritten) methods that require reprocessing.
     //
     // Note that the reprocessing set must be rewritten to the new enum unboxing lens before pruning
@@ -681,7 +677,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         new EnumUnboxingRewriter(
             appView,
             treeFixerResult.getCheckNotNullToCheckNotZeroMapping(),
-            converter,
             enumUnboxingLens,
             enumDataMap,
             utilityClasses);
@@ -1459,13 +1454,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       return enumUnboxerRewriter.rewriteCode(code, methodProcessor, prototypeChanges);
     }
     return Sets.newIdentityHashSet();
-  }
-
-  @Override
-  public void rewriteNullCheck(InstructionListIterator iterator, InvokeMethod invoke) {
-    if (enumUnboxerRewriter != null) {
-      enumUnboxerRewriter.rewriteNullCheck(iterator, invoke);
-    }
   }
 
   @Override

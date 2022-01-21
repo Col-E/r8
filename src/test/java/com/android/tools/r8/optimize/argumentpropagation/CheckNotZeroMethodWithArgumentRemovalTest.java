@@ -50,8 +50,7 @@ public class CheckNotZeroMethodWithArgumentRemovalTest extends TestBase {
               MethodSubject checkNotNullSubject =
                   mainClassSubject.uniqueMethodWithName("checkNotNull");
               assertThat(checkNotNullSubject, isPresent());
-              // TODO(b/199864962): Allow parameter removal from check-not-null classified methods.
-              assertEquals(2, checkNotNullSubject.getProgramMethod().getReference().getArity());
+              assertEquals(1, checkNotNullSubject.getProgramMethod().getReference().getArity());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithEmptyOutput();

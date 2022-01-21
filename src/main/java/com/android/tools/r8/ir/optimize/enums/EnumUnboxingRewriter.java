@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumInstanceFieldData.EnumInstanceFieldKnownData;
 import com.android.tools.r8.ir.optimize.enums.classification.CheckNotNullEnumUnboxerMethodClassification;
@@ -55,7 +54,6 @@ public class EnumUnboxingRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping;
-  private final IRConverter converter;
   private final DexItemFactory factory;
   private final InternalOptions options;
   private final EnumDataMap unboxedEnumsData;
@@ -65,13 +63,11 @@ public class EnumUnboxingRewriter {
   EnumUnboxingRewriter(
       AppView<AppInfoWithLiveness> appView,
       Map<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping,
-      IRConverter converter,
       EnumUnboxingLens enumUnboxingLens,
       EnumDataMap unboxedEnumsInstanceFieldData,
       EnumUnboxingUtilityClasses utilityClasses) {
     this.appView = appView;
     this.checkNotNullToCheckNotZeroMapping = checkNotNullToCheckNotZeroMapping;
-    this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.options = appView.options();
     this.enumUnboxingLens = enumUnboxingLens;

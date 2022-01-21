@@ -132,12 +132,18 @@ class EnumUnboxingTreeFixer {
       }
     }
 
+    // Install the new graph lens before processing any checkNotZero() methods.
+    EnumUnboxingLens lens = lensBuilder.build(appView);
+    appView.rewriteWithLens(lens);
+
+    // Rewrite outliner with lens.
+    converter.outliner.rewriteWithLens();
+
     // Create mapping from checkNotNull() to checkNotZero() methods.
     BiMap<DexMethod, DexMethod> checkNotNullToCheckNotZeroMapping =
         duplicateCheckNotNullMethods(converter, executorService);
 
-    return new Result(
-        checkNotNullToCheckNotZeroMapping, lensBuilder.build(appView), prunedItemsBuilder.build());
+    return new Result(checkNotNullToCheckNotZeroMapping, lens, prunedItemsBuilder.build());
   }
 
   private BiMap<DexMethod, DexMethod> duplicateCheckNotNullMethods(

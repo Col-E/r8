@@ -1019,15 +1019,6 @@ public class LensCodeRewriter {
         iterator.insertNullCheckInstruction(
             appView, code, blocks, invoke.getFirstArgument(), nullCheckPosition);
 
-    // TODO(b/199864962): Lens code rewriting should follow the order of graph lenses, i.e., enum
-    //  unboxing rewriting should happen after method staticizing.
-    if (receiverType.isClassType()
-        && appView.unboxedEnums().isUnboxedEnum(receiverType.asClassType().getClassType())) {
-      iterator.previousUntil(instruction -> instruction == nullCheck);
-      iterator.next();
-      enumUnboxer.rewriteNullCheck(iterator, nullCheck);
-    }
-
     // Reset the block iterator.
     if (invoke.getBlock().hasCatchHandlers()) {
       BasicBlock splitBlock = invoke.getBlock();
