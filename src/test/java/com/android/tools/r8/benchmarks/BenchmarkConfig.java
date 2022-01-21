@@ -6,10 +6,52 @@ package com.android.tools.r8.benchmarks;
 import com.android.tools.r8.errors.Unreachable;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.junit.rules.TemporaryFolder;
 
 public class BenchmarkConfig {
+
+  public static void checkBenchmarkConsistency(BenchmarkConfig benchmark, BenchmarkConfig other) {
+    if (benchmark.getTarget().equals(other.getTarget())) {
+      throw new BenchmarkConfigError("Duplicate benchmark name and target: " + benchmark);
+    }
+    if (!benchmark.getMetrics().equals(other.getMetrics())) {
+      throw new BenchmarkConfigError(
+          "Inconsistent metrics for benchmarks: " + benchmark + " and " + other);
+    }
+    if (!benchmark.getSuite().equals(other.getSuite())) {
+      throw new BenchmarkConfigError(
+          "Inconsistent suite for benchmarks: " + benchmark + " and " + other);
+    }
+    if (benchmark.hasTimeWarmupRuns() != other.hasTimeWarmupRuns()) {
+      throw new BenchmarkConfigError(
+          "Inconsistent time-warmup for benchmarks: " + benchmark + " and " + other);
+    }
+  }
+
+  public static Set<BenchmarkMetric> getCommonMetrics(List<BenchmarkConfig> variants) {
+    return getConsistentRepresentative(variants).getMetrics();
+  }
+
+  public static BenchmarkSuite getCommonSuite(List<BenchmarkConfig> variants) {
+    return getConsistentRepresentative(variants).getSuite();
+  }
+
+  public static boolean getCommonTimeWarmupRuns(List<BenchmarkConfig> variants) {
+    return getConsistentRepresentative(variants).hasTimeWarmupRuns();
+  }
+
+  private static BenchmarkConfig getConsistentRepresentative(List<BenchmarkConfig> variants) {
+    if (variants.isEmpty()) {
+      throw new BenchmarkConfigError("Unexpected attempt to check consistency of empty collection");
+    }
+    BenchmarkConfig representative = variants.get(0);
+    for (int i = 1; i < variants.size(); i++) {
+      checkBenchmarkConsistency(representative, variants.get(i));
+    }
+    return representative;
+  }
 
   public static class Builder {
 
@@ -128,7 +170,7 @@ public class BenchmarkConfig {
 
   public String getWarmupName() {
     if (!timeWarmupRuns) {
-      throw new Unreachable("Invalid attempt at getting warmup benchmark name");
+      throw new BenchmarkConfigError("Invalid attempt at getting warmup benchmark name");
     }
     return getName() + "Warmup";
   }

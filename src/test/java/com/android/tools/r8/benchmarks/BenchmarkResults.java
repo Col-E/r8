@@ -4,7 +4,6 @@
 package com.android.tools.r8.benchmarks;
 
 import com.android.tools.r8.benchmarks.BenchmarkRunner.ResultMode;
-import com.android.tools.r8.errors.Unreachable;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
@@ -40,7 +39,7 @@ public class BenchmarkResults {
 
   private static void verifyMetric(BenchmarkMetric metric, boolean expected, boolean actual) {
     if (expected != actual) {
-      throw new Unreachable(
+      throw new BenchmarkConfigError(
           "Mismatched config and result for "
               + metric.name()
               + ". Expected by config: "
@@ -87,7 +86,7 @@ public class BenchmarkResults {
       long size = codeSizeResults.getLong(0);
       for (int i = 1; i < codeSizeResults.size(); i++) {
         if (size != codeSizeResults.getLong(i)) {
-          throw new Unreachable(
+          throw new RuntimeException(
               "Unexpected code size difference: " + size + " and " + codeSizeResults.getLong(i));
         }
       }
