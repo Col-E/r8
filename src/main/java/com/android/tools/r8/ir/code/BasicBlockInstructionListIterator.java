@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class BasicBlockInstructionListIterator implements InstructionListIterator {
 
@@ -350,8 +351,11 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
-  public boolean replaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
+  public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      DexType type,
+      Consumer<InitClass> consumer) {
     Instruction toBeReplaced = current;
     assert toBeReplaced != null;
     assert toBeReplaced.isStaticFieldInstruction() || toBeReplaced.isInvokeStatic();
@@ -377,7 +381,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
     if (clazz != null) {
       Value dest = code.createValue(TypeElement.getInt());
-      replaceCurrentInstruction(new InitClass(dest, clazz.type));
+      InitClass initClass = new InitClass(dest, clazz.type);
+      replaceCurrentInstruction(initClass);
+      consumer.accept(initClass);
     }
     return true;
   }

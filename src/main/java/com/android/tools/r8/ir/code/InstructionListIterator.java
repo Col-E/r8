@@ -15,10 +15,12 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
@@ -109,8 +111,17 @@ public interface InstructionListIterator
 
   boolean replaceCurrentInstructionByNullCheckIfPossible(AppView<?> appView, ProgramMethod context);
 
-  boolean replaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type);
+  default boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
+    return removeOrReplaceCurrentInstructionByInitClassIfPossible(
+        appView, code, type, ConsumerUtils.emptyConsumer());
+  }
+
+  boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      DexType type,
+      Consumer<InitClass> consumer);
 
   void replaceCurrentInstructionWithConstClass(
       AppView<?> appView, IRCode code, DexType type, DebugLocalInfo localInfo);

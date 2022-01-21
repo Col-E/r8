@@ -183,8 +183,7 @@ public class ClassStaticizerTest extends TestBase {
         Lists.newArrayList(
             "STATIC: String SimpleWithSideEffects.bar(String)",
             "STATIC: String SimpleWithSideEffects.foo()",
-            "STATIC: String TrivialTestClass.next()",
-            "SimpleWithSideEffects SimpleWithSideEffects.INSTANCE"),
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithSideEffects", "void"));
 
     ClassSubject simpleWithSideEffects = inspector.clazz(SimpleWithSideEffects.class);
@@ -315,8 +314,7 @@ public class ClassStaticizerTest extends TestBase {
         Lists.newArrayList(
             "STATIC: String movetohost.CandidateOkSideEffects.bar(String)",
             "STATIC: String movetohost.CandidateOkSideEffects.foo()",
-            "STATIC: String movetohost.MoveToHostTestClass.next()",
-            "movetohost.CandidateOkSideEffects movetohost.HostOkSideEffects.INSTANCE"),
+            "STATIC: String movetohost.MoveToHostTestClass.next()"),
         references(clazz, "testOkSideEffects", "void"));
 
     assertThat(inspector.clazz(HostOkSideEffects.class), isPresent());

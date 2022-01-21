@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class IRCodeInstructionListIterator implements InstructionListIterator {
 
@@ -62,9 +63,13 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
-  public boolean replaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
-    return instructionIterator.replaceCurrentInstructionByInitClassIfPossible(appView, code, type);
+  public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      DexType type,
+      Consumer<InitClass> consumer) {
+    return instructionIterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+        appView, code, type, consumer);
   }
 
   @Override

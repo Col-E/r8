@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -34,6 +35,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.junit.Test;
 
 public class RegisterMoveSchedulerTest {
@@ -84,8 +86,11 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public boolean replaceCurrentInstructionByInitClassIfPossible(
-        AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
+    public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
+        AppView<AppInfoWithLiveness> appView,
+        IRCode code,
+        DexType type,
+        Consumer<InitClass> consumer) {
       throw new Unimplemented();
     }
 

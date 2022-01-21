@@ -401,11 +401,12 @@ public class LensCodeRewriter {
                               .toTypeElement(appView);
                         }
                       };
+                  prototypeChanges.verifyConstantReturnAccessibleInContext(
+                      appView.withLiveness(), method, graphLens);
                   constantReturnMaterializingInstruction =
                       prototypeChanges.getConstantReturn(
                           appView.withLiveness(),
                           code,
-                          method,
                           invoke.getPosition(),
                           typeAndLocalInfo);
                   if (invoke.outValue().hasLocalInfo()) {

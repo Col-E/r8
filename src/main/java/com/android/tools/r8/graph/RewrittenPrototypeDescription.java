@@ -790,16 +790,24 @@ public class RewrittenPrototypeDescription {
   public Instruction getConstantReturn(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
-      ProgramMethod method,
       Position position,
       TypeAndLocalInfoSupplier info) {
     assert rewrittenReturnInfo != null;
     assert rewrittenReturnInfo.hasSingleValue();
-    assert rewrittenReturnInfo.getSingleValue().isMaterializableInContext(appView, method);
     Instruction instruction =
         rewrittenReturnInfo.getSingleValue().createMaterializingInstruction(appView, code, info);
     instruction.setPosition(position);
     return instruction;
+  }
+
+  public boolean verifyConstantReturnAccessibleInContext(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod method, GraphLens codeLens) {
+    SingleValue rewrittenSingleValue =
+        rewrittenReturnInfo
+            .getSingleValue()
+            .rewrittenWithLens(appView, appView.graphLens(), codeLens);
+    assert rewrittenSingleValue.isMaterializableInContext(appView, method);
+    return true;
   }
 
   public DexMethod rewriteMethod(ProgramMethod method, DexItemFactory dexItemFactory) {

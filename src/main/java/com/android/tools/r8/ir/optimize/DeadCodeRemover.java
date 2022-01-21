@@ -14,11 +14,13 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
@@ -133,6 +135,23 @@ public class DeadCodeRemover {
         // Remove unused invoke results.
         if (current.isInvoke() && !current.outValue().isUsed()) {
           current.setOutValue(null);
+        }
+        if (current.isStaticGet() && !current.outValue().isUsed() && appView.hasLiveness()) {
+          Box<InitClass> initClass = new Box<>();
+          if (iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+              appView.withLiveness(),
+              code,
+              current.asStaticGet().getField().getHolderType(),
+              initClass::set)) {
+            if (initClass.isSet()) {
+              // Apply dead code remover to the new init-class instruction.
+              current = iterator.previous();
+              assert current == initClass.get();
+            } else {
+              // Instruction removed.
+              continue;
+            }
+          }
         }
       }
       DeadInstructionResult deadInstructionResult = current.canBeDeadCode(appView, code);

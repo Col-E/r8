@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class LinearFlowInstructionListIterator implements InstructionListIterator {
 
@@ -86,9 +87,13 @@ public class LinearFlowInstructionListIterator implements InstructionListIterato
   }
 
   @Override
-  public boolean replaceCurrentInstructionByInitClassIfPossible(
-      AppView<AppInfoWithLiveness> appView, IRCode code, DexType type) {
-    return currentBlockIterator.replaceCurrentInstructionByInitClassIfPossible(appView, code, type);
+  public boolean removeOrReplaceCurrentInstructionByInitClassIfPossible(
+      AppView<AppInfoWithLiveness> appView,
+      IRCode code,
+      DexType type,
+      Consumer<InitClass> consumer) {
+    return currentBlockIterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+        appView, code, type, consumer);
   }
 
   @Override

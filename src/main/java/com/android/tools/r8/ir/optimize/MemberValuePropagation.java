@@ -246,7 +246,7 @@ public class MemberValuePropagation {
         iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, code.context());
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
-        iterator.replaceCurrentInstructionByInitClassIfPossible(
+        iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
             appView, code, staticGet.getField().holder);
       }
       replacement.setPosition(position);
@@ -333,7 +333,7 @@ public class MemberValuePropagation {
         if (invoke.isInvokeMethodWithReceiver()) {
           iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
         } else if (invoke.isInvokeStatic() && singleTarget != null) {
-          iterator.replaceCurrentInstructionByInitClassIfPossible(
+          iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
               appView, code, singleTarget.getHolderType());
         }
 
@@ -440,7 +440,7 @@ public class MemberValuePropagation {
           iterator.replaceCurrentInstructionByNullCheckIfPossible(appView, context);
         } else {
           assert current.isStaticGet();
-          iterator.replaceCurrentInstructionByInitClassIfPossible(
+          iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
               appView, code, target.getHolderType());
         }
 
@@ -491,7 +491,8 @@ public class MemberValuePropagation {
       return;
     }
 
-    iterator.replaceCurrentInstructionByInitClassIfPossible(appView, code, field.getHolderType());
+    iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+        appView, code, field.getHolderType());
   }
 
   /**

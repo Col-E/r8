@@ -1099,7 +1099,7 @@ public class Inliner {
         return false;
       }
     } else if (invoke.isInvokeStatic()) {
-      if (!iterator.replaceCurrentInstructionByInitClassIfPossible(
+      if (!iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
           appView, code, resolvedMethod.getHolderType())) {
         return false;
       }
