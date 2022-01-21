@@ -933,7 +933,11 @@ public class ArgumentPropagatorProgramOptimizer {
           && ParameterRemovalUtils.canRemoveUnusedParametersFrom(appView, method)
           && ParameterRemovalUtils.canRemoveUnusedParameter(appView, method, 0)) {
         parameterChangesBuilder.addArgumentInfo(
-            0, RemovedArgumentInfo.builder().setType(method.getHolderType()).build());
+            0,
+            RemovedArgumentInfo.builder()
+                .setCheckNullOrZero(true)
+                .setType(method.getHolderType())
+                .build());
       }
 
       ConcreteCallSiteOptimizationInfo optimizationInfo =

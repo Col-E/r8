@@ -990,9 +990,18 @@ public class LensCodeRewriter {
       InvokeMethod invoke,
       MethodLookupResult lookup) {
     // If the invoke has been staticized, then synthesize a null check for the receiver.
-    if (!invoke.isInvokeMethodWithReceiver() || !lookup.getType().isStatic()) {
+    if (!invoke.isInvokeMethodWithReceiver()) {
       return iterator;
     }
+
+    ArgumentInfo receiverArgumentInfo =
+        lookup.getPrototypeChanges().getArgumentInfoCollection().getArgumentInfo(0);
+    if (!receiverArgumentInfo.isRemovedArgumentInfo()
+        || !receiverArgumentInfo.asRemovedArgumentInfo().isCheckNullOrZeroSet()) {
+      return iterator;
+    }
+
+    assert lookup.getType().isStatic();
 
     TypeElement receiverType = invoke.asInvokeMethodWithReceiver().getReceiver().getType();
     if (receiverType.isDefinitelyNotNull()) {

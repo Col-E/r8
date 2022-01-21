@@ -113,8 +113,14 @@ public class RewrittenPrototypeDescription {
 
     public static class Builder {
 
+      private boolean checkNullOrZero;
       private SingleValue singleValue;
       private DexType type;
+
+      public Builder setCheckNullOrZero(boolean checkNullOrZero) {
+        this.checkNullOrZero = checkNullOrZero;
+        return this;
+      }
 
       public Builder setSingleValue(SingleValue singleValue) {
         this.singleValue = singleValue;
@@ -128,14 +134,16 @@ public class RewrittenPrototypeDescription {
 
       public RemovedArgumentInfo build() {
         assert type != null;
-        return new RemovedArgumentInfo(singleValue, type);
+        return new RemovedArgumentInfo(checkNullOrZero, singleValue, type);
       }
     }
 
+    private final boolean checkNullOrZero;
     private final SingleValue singleValue;
     private final DexType type;
 
-    private RemovedArgumentInfo(SingleValue singleValue, DexType type) {
+    private RemovedArgumentInfo(boolean checkNullOrZero, SingleValue singleValue, DexType type) {
+      this.checkNullOrZero = checkNullOrZero;
       this.singleValue = singleValue;
       this.type = type;
     }
@@ -156,8 +164,8 @@ public class RewrittenPrototypeDescription {
       return type;
     }
 
-    public boolean isNeverUsed() {
-      return !hasSingleValue();
+    public boolean isCheckNullOrZeroSet() {
+      return checkNullOrZero;
     }
 
     @Override
@@ -183,7 +191,7 @@ public class RewrittenPrototypeDescription {
           hasSingleValue() ? singleValue.rewrittenWithLens(appView, graphLens) : null;
       DexType rewrittenType = graphLens.lookupType(type);
       if (rewrittenSingleValue != singleValue || rewrittenType != type) {
-        return new RemovedArgumentInfo(rewrittenSingleValue, rewrittenType);
+        return new RemovedArgumentInfo(checkNullOrZero, rewrittenSingleValue, rewrittenType);
       }
       return this;
     }
@@ -194,12 +202,14 @@ public class RewrittenPrototypeDescription {
         return false;
       }
       RemovedArgumentInfo other = (RemovedArgumentInfo) obj;
-      return type == other.type && Objects.equals(singleValue, other.singleValue);
+      return checkNullOrZero == other.checkNullOrZero
+          && type == other.type
+          && Objects.equals(singleValue, other.singleValue);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(singleValue, type);
+      return Objects.hash(checkNullOrZero, singleValue, type);
     }
   }
 
