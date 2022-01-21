@@ -1681,7 +1681,6 @@ public class OutlinerImpl extends Outliner {
           builder.addNonThisArgument(i, typeLattice);
         }
       }
-      builder.flushArgumentInstructions();
     }
 
     @Override

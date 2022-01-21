@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -44,7 +45,8 @@ public abstract class EnumUnboxer {
 
   public abstract void recordEnumState(DexProgramClass clazz, StaticFieldValues staticFieldValues);
 
-  public abstract Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor);
+  public abstract Set<Phi> rewriteCode(
+      IRCode code, MethodProcessor methodProcessor, RewrittenPrototypeDescription prototypeChanges);
 
   public abstract void rewriteNullCheck(InstructionListIterator iterator, InvokeMethod invoke);
 

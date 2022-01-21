@@ -144,6 +144,8 @@ public interface InstructionVisitor<T> {
 
   T visit(Throw instruction);
 
+  T visit(UnusedArgument instruction);
+
   T visit(Ushr instruction);
 
   T visit(Xor instruction);

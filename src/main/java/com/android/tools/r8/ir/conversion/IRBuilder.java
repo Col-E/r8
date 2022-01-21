@@ -45,7 +45,6 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.Argument;
@@ -114,7 +113,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
-import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -405,8 +403,6 @@ public class IRBuilder {
   private Value receiverValue;
   private List<Value> argumentValues;
 
-  private List<Instruction> pendingArgumentInstructions;
-
   // Source code to build IR from. Null if already built.
   private SourceCode source;
 
@@ -520,7 +516,6 @@ public class IRBuilder {
   }
 
   public List<Value> getArgumentValues() {
-    assert pendingArgumentInstructions == null || pendingArgumentInstructions.isEmpty();
     return argumentValues;
   }
 
@@ -570,7 +565,7 @@ public class IRBuilder {
         type =
             TypeElement.fromDexType(
                 removedArgumentInfo.getType(), Nullability.maybeNull(), appView);
-        addConstantOrUnusedArgument(register, removedArgumentInfo);
+        addNonThisArgument(register, type);
       } else {
         DexType argType;
         if (argumentInfo.isRewrittenTypeInfo()) {
@@ -603,14 +598,11 @@ public class IRBuilder {
       register += type.requiredRegisters();
       usedArgumentIndex++;
       if (extraParameter instanceof ExtraUnusedNullParameter) {
-        assert argType.isClassType();
-        addExtraUnusedNullArgument(register);
+        addExtraUnusedArgument(register, argType);
       } else {
         addNonThisArgument(register, type);
       }
     }
-
-    flushArgumentInstructions();
   }
 
   /**
@@ -996,11 +988,15 @@ public class IRBuilder {
     value.markAsThis();
   }
 
-  private void addExtraUnusedNullArgument(int register) {
+  private void addExtraUnusedArgument(int register, DexType type) {
     // Extra unused null arguments should bypass the register check, they may use registers
     // beyond the limit of what the method can use. They don't have debug information and are
     // always null.
-    Value value = new Value(valueNumberGenerator.next(), TypeElement.getNull(), null);
+    Value value =
+        new Value(
+            valueNumberGenerator.next(),
+            type.isReferenceType() ? TypeElement.getNull() : type.toTypeElement(appView),
+            null);
     addNonThisArgument(new Argument(value, currentBlock.size(), false));
   }
 
@@ -1022,46 +1018,6 @@ public class IRBuilder {
     }
     addInstruction(argument);
     argumentValues.add(argument.outValue());
-  }
-
-  public void addConstantOrUnusedArgument(int register, RemovedArgumentInfo info) {
-    handleConstantOrUnusedArgument(register, info);
-  }
-
-  private void handleConstantOrUnusedArgument(
-      int register, RemovedArgumentInfo removedArgumentInfo) {
-    assert removedArgumentInfo != null;
-    if (removedArgumentInfo.hasSingleValue()) {
-      if (pendingArgumentInstructions == null) {
-        pendingArgumentInstructions = new ArrayList<>();
-      }
-      DebugLocalInfo local = getOutgoingLocal(register);
-      SingleValue singleValue = removedArgumentInfo.getSingleValue();
-      TypeElement type =
-          removedArgumentInfo.getType().isReferenceType() && singleValue.isNull()
-              ? getNull()
-              : removedArgumentInfo.getType().toTypeElement(appView);
-      Instruction materializingInstruction =
-          singleValue.createMaterializingInstruction(
-              appView.withClassHierarchy(),
-              method,
-              valueNumberGenerator,
-              TypeAndLocalInfoSupplier.create(type, local));
-      writeRegister(
-          register,
-          materializingInstruction.outValue(),
-          ThrowingInfo.defaultForInstruction(materializingInstruction));
-      pendingArgumentInstructions.add(materializingInstruction);
-    } else {
-      assert removedArgumentInfo.isNeverUsed();
-    }
-  }
-
-  public void flushArgumentInstructions() {
-    if (pendingArgumentInstructions != null) {
-      pendingArgumentInstructions.forEach(this::addInstruction);
-      pendingArgumentInstructions.clear();
-    }
   }
 
   private static boolean isValidFor(Value value, DebugLocalInfo local) {

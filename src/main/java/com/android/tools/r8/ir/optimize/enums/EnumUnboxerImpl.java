@@ -42,6 +42,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues.EnumStaticFieldValues;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -1448,11 +1449,14 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   }
 
   @Override
-  public Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor) {
+  public Set<Phi> rewriteCode(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      RewrittenPrototypeDescription prototypeChanges) {
     // This has no effect during primary processing since the enumUnboxerRewriter is set
     // in between primary and post processing.
     if (enumUnboxerRewriter != null) {
-      return enumUnboxerRewriter.rewriteCode(code, methodProcessor);
+      return enumUnboxerRewriter.rewriteCode(code, methodProcessor, prototypeChanges);
     }
     return Sets.newIdentityHashSet();
   }

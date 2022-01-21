@@ -55,23 +55,19 @@ class EnumUnboxingLens extends NestedGraphLens {
     // Rewrite the single value of the given RewrittenPrototypeDescription if it is referring to an
     // unboxed enum field.
     if (prototypeChanges.hasRewrittenReturnInfo()) {
-      RewrittenTypeInfo rewrittenTypeInfo = prototypeChanges.getRewrittenReturnInfo();
-      if (rewrittenTypeInfo.hasSingleValue()) {
-        SingleValue singleValue = rewrittenTypeInfo.getSingleValue();
-        if (singleValue.isSingleFieldValue()) {
-          SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
-          if (unboxedEnums.hasUnboxedValueFor(singleFieldValue.getField())) {
-            prototypeChanges =
-                prototypeChanges.withRewrittenReturnInfo(
-                    RewrittenTypeInfo.builder()
-                        .setCastType(rewrittenTypeInfo.getCastType())
-                        .setOldType(rewrittenTypeInfo.getOldType())
-                        .setNewType(rewrittenTypeInfo.getNewType())
-                        .setSingleValue(
-                            abstractValueFactory.createSingleNumberValue(
-                                unboxedEnums.getUnboxedValue(singleFieldValue.getField())))
-                        .build());
-          }
+      RewrittenTypeInfo rewrittenReturnInfo = prototypeChanges.getRewrittenReturnInfo();
+      if (rewrittenReturnInfo.hasSingleValue()) {
+        SingleValue singleValue = rewrittenReturnInfo.getSingleValue();
+        SingleValue rewrittenSingleValue = rewriteSingleValue(singleValue);
+        if (rewrittenSingleValue != singleValue) {
+          prototypeChanges =
+              prototypeChanges.withRewrittenReturnInfo(
+                  RewrittenTypeInfo.builder()
+                      .setCastType(rewrittenReturnInfo.getCastType())
+                      .setOldType(rewrittenReturnInfo.getOldType())
+                      .setNewType(rewrittenReturnInfo.getNewType())
+                      .setSingleValue(rewrittenSingleValue)
+                      .build());
         }
       }
     }
@@ -82,6 +78,17 @@ class EnumUnboxingLens extends NestedGraphLens {
     RewrittenPrototypeDescription enumUnboxingPrototypeChanges =
         prototypeChangesPerMethod.getOrDefault(method, RewrittenPrototypeDescription.none());
     return prototypeChanges.combine(enumUnboxingPrototypeChanges);
+  }
+
+  private SingleValue rewriteSingleValue(SingleValue singleValue) {
+    if (singleValue.isSingleFieldValue()) {
+      SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
+      if (unboxedEnums.hasUnboxedValueFor(singleFieldValue.getField())) {
+        return abstractValueFactory.createSingleNumberValue(
+            unboxedEnums.getUnboxedValue(singleFieldValue.getField()));
+      }
+    }
+    return singleValue;
   }
 
   @Override

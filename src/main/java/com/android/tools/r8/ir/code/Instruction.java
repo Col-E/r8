@@ -748,6 +748,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
+  public boolean isUnusedArgument() {
+    return false;
+  }
+
+  public UnusedArgument asUnusedArgument() {
+    return null;
+  }
+
   public boolean isArithmeticBinop() {
     return false;
   }

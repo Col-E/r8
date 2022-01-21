@@ -13,6 +13,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayAccess;
@@ -42,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -83,7 +87,36 @@ public class EnumUnboxingRewriter {
     return utilityClasses.getSharedUtilityClass();
   }
 
-  Set<Phi> rewriteCode(IRCode code, MethodProcessor methodProcessor) {
+  private Map<Instruction, DexType> createInitialConvertedEnums(
+      IRCode code, RewrittenPrototypeDescription prototypeChanges) {
+    Map<Instruction, DexType> convertedEnums = new IdentityHashMap<>();
+    Iterator<Instruction> iterator = code.entryBlock().iterator();
+    int originalNumberOfArguments =
+        code.getNumberOfArguments()
+            + prototypeChanges.getArgumentInfoCollection().numberOfRemovedArguments();
+    for (int argumentIndex = 0; argumentIndex < originalNumberOfArguments; argumentIndex++) {
+      ArgumentInfo argumentInfo =
+          prototypeChanges.getArgumentInfoCollection().getArgumentInfo(argumentIndex);
+      if (argumentInfo.isRemovedArgumentInfo()) {
+        continue;
+      }
+      Instruction next = iterator.next();
+      assert next.isArgument();
+      if (argumentInfo.isRewrittenTypeInfo()) {
+        RewrittenTypeInfo rewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
+        DexType enumType = getEnumTypeOrNull(rewrittenTypeInfo.getOldType().toBaseType(factory));
+        if (enumType != null) {
+          convertedEnums.put(next, enumType);
+        }
+      }
+    }
+    return convertedEnums;
+  }
+
+  Set<Phi> rewriteCode(
+      IRCode code,
+      MethodProcessor methodProcessor,
+      RewrittenPrototypeDescription prototypeChanges) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.
     if (unboxedEnumsData.isEmpty()) {
@@ -91,7 +124,7 @@ public class EnumUnboxingRewriter {
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     ProgramMethod context = code.context();
-    Map<Instruction, DexType> convertedEnums = new IdentityHashMap<>();
+    Map<Instruction, DexType> convertedEnums = createInitialConvertedEnums(code, prototypeChanges);
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     Set<BasicBlock> seenBlocks = Sets.newIdentityHashSet();
@@ -269,14 +302,14 @@ public class EnumUnboxingRewriter {
         // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
         if (instruction.isArrayAccess()) {
           ArrayAccess arrayAccess = instruction.asArrayAccess();
-          DexType enumType = getEnumTypeOrNull(arrayAccess);
+          DexType enumType = getEnumTypeOrNull(arrayAccess, convertedEnums);
           if (enumType != null) {
             if (arrayAccess.hasOutValue()) {
               affectedPhis.addAll(arrayAccess.outValue().uniquePhiUsers());
             }
-            instruction = arrayAccess.withMemberType(MemberType.INT);
-            iterator.replaceCurrentInstruction(instruction);
-            convertedEnums.put(instruction, enumType);
+            arrayAccess = arrayAccess.withMemberType(MemberType.INT);
+            iterator.replaceCurrentInstruction(arrayAccess);
+            convertedEnums.put(arrayAccess, enumType);
           }
           assert validateArrayAccess(arrayAccess);
         }
@@ -526,8 +559,8 @@ public class EnumUnboxingRewriter {
 
   private DexType getEnumTypeOrNull(Value receiver, Map<Instruction, DexType> convertedEnums) {
     TypeElement type = receiver.getType();
-    if (type.isInt()) {
-      return convertedEnums.get(receiver.definition);
+    if (type.isInt() || (type.isArrayType() && type.asArrayType().getBaseType().isInt())) {
+      return receiver.isPhi() ? null : convertedEnums.get(receiver.getDefinition());
     }
     return getEnumTypeOrNull(type);
   }
@@ -536,11 +569,15 @@ public class EnumUnboxingRewriter {
     if (!type.isClassType()) {
       return null;
     }
-    DexType enumType = type.asClassType().getClassType();
-    return unboxedEnumsData.isUnboxedEnum(enumType) ? enumType : null;
+    return getEnumTypeOrNull(type.asClassType().getClassType());
   }
 
-  private DexType getEnumTypeOrNull(ArrayAccess arrayAccess) {
+  private DexType getEnumTypeOrNull(DexType type) {
+    return unboxedEnumsData.isUnboxedEnum(type) ? type : null;
+  }
+
+  private DexType getEnumTypeOrNull(
+      ArrayAccess arrayAccess, Map<Instruction, DexType> convertedEnums) {
     ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
     if (arrayType == null) {
       assert arrayAccess.array().getType().isNullType();
@@ -550,10 +587,10 @@ public class EnumUnboxingRewriter {
       return null;
     }
     TypeElement baseType = arrayType.getBaseType();
-    if (!baseType.isClassType()) {
-      return null;
+    if (baseType.isClassType()) {
+      DexType classType = baseType.asClassType().getClassType();
+      return unboxedEnumsData.isUnboxedEnum(classType) ? classType : null;
     }
-    DexType classType = baseType.asClassType().getClassType();
-    return unboxedEnumsData.isUnboxedEnum(classType) ? classType : null;
+    return getEnumTypeOrNull(arrayAccess.array(), convertedEnums);
   }
 }

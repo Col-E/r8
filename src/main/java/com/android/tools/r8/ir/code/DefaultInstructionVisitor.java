@@ -355,6 +355,11 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
+  public T visit(UnusedArgument instruction) {
+    return null;
+  }
+
+  @Override
   public T visit(Ushr instruction) {
     return null;
   }

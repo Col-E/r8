@@ -72,8 +72,9 @@ public interface Opcodes {
   int SUB = 63;
   int SWAP = 64;
   int THROW = 65;
-  int USHR = 66;
-  int XOR = 67;
-  int UNINITIALIZED_THIS_LOCAL_READ = 68;
-  int RECORD_FIELD_VALUES = 69;
+  int UNUSED_ARGUMENT = 66;
+  int USHR = 67;
+  int XOR = 68;
+  int UNINITIALIZED_THIS_LOCAL_READ = 69;
+  int RECORD_FIELD_VALUES = 70;
 }
