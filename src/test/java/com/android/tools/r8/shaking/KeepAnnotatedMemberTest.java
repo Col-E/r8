@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8FullTestBuilder;
@@ -19,6 +20,9 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -28,7 +32,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -269,7 +272,8 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
+    assertRetainedClassesEqual(
+        referenceInspector, ifHasMemberThenKeepClassInspector, true, true, true, true);
   }
 
   private void configureHorizontalClassMerging(R8FullTestBuilder testBuilder) {
@@ -289,14 +293,16 @@ public class KeepAnnotatedMemberTest extends TestBase {
 
   private void assertRetainedClassesEqual(
       GraphInspector referenceResult, GraphInspector conditionalResult) {
-    assertRetainedClassesEqual(referenceResult, conditionalResult, false, false);
+    assertRetainedClassesEqual(referenceResult, conditionalResult, false, false, false, false);
   }
 
   private void assertRetainedClassesEqual(
       GraphInspector referenceResult,
       GraphInspector conditionalResult,
       boolean expectReferenceIsLarger,
-      boolean expectConditionalIsLarger) {
+      boolean expectReferenceIsLargerOnlyBySynthetics,
+      boolean expectConditionalIsLarger,
+      boolean expectConditionalIsLargerOnlyBySynthetics) {
     Set<String> referenceClasses =
         new TreeSet<>(
             referenceResult.codeInspector().allClasses().stream()
@@ -308,9 +314,13 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .map(FoundClassSubject::getOriginalName)
             .collect(Collectors.toSet());
     {
-      SetView<String> notInReference = Sets.difference(conditionalClasses, referenceClasses);
+      Set<String> notInReference =
+          new TreeSet<>(Sets.difference(conditionalClasses, referenceClasses));
       if (expectConditionalIsLarger) {
         assertFalse("Expected classes in -if rule to retain more.", notInReference.isEmpty());
+        if (expectConditionalIsLargerOnlyBySynthetics) {
+          assertAllClassesAreSynthetics(notInReference);
+        }
       } else {
         assertEquals(
             "Classes in -if rule that are not in -keepclassmembers rule",
@@ -319,17 +329,28 @@ public class KeepAnnotatedMemberTest extends TestBase {
       }
     }
     {
-      SetView<String> notInConditional = Sets.difference(referenceClasses, conditionalClasses);
+      Set<String> notInConditional =
+          new TreeSet<>(Sets.difference(referenceClasses, conditionalClasses));
       if (expectReferenceIsLarger) {
         assertFalse(
             "Expected classes in -keepclassmembers rule to retain more.",
             notInConditional.isEmpty());
+        if (expectReferenceIsLargerOnlyBySynthetics) {
+          assertAllClassesAreSynthetics(notInConditional);
+        }
       } else {
         assertEquals(
             "Classes in -keepclassmembers rule that are not in -if rule",
             Collections.emptySet(),
-            new TreeSet<>(notInConditional));
+            notInConditional);
       }
+    }
+  }
+
+  private void assertAllClassesAreSynthetics(Set<String> classNames) {
+    for (String className : classNames) {
+      ClassReference classReference = Reference.classFromTypeName(className);
+      assertTrue(className, SyntheticItemsTestUtils.isExternalSynthetic(classReference));
     }
   }
 }

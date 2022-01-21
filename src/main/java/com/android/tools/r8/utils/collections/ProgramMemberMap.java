@@ -53,6 +53,11 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
     return backing.getOrDefault(wrap(member), defaultValue);
   }
 
+  public V getOrDefault(K member, Supplier<V> defaultValue) {
+    V value = backing.get(wrap(member));
+    return value != null ? value : defaultValue.get();
+  }
+
   public boolean isEmpty() {
     return backing.isEmpty();
   }

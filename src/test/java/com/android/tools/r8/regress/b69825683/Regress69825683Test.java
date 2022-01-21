@@ -4,9 +4,10 @@
 
 package com.android.tools.r8.regress.b69825683;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -62,19 +63,16 @@ public class Regress69825683Test extends TestBase {
             .inspector();
 
     List<FoundClassSubject> classes = inspector.allClasses();
-
-    // Check that the synthetic class is still present when generating class files.
-    assertEquals(parameters.isCfRuntime() ? 3 : 2, classes.size());
-    assertEquals(
-        parameters.isCfRuntime(),
-        classes.stream()
-            .map(FoundClassSubject::getOriginalName)
-            .anyMatch(name -> name.endsWith("$1")));
+    assertEquals(2, classes.size());
+    assertThat(inspector.clazz(inner), isPresent());
+    assertThat(inspector.clazz(outer), isPresent());
   }
 
   @Test
   public void innerConstructsOuter() throws Exception {
     Class<?> clazz = com.android.tools.r8.regress.b69825683.innerconstructsouter.Outer.class;
+    Class<?> innerClass =
+        com.android.tools.r8.regress.b69825683.innerconstructsouter.Outer.Inner.class;
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(clazz.getPackage()))
@@ -94,9 +92,7 @@ public class Regress69825683Test extends TestBase {
 
     List<FoundClassSubject> classes = inspector.allClasses();
     assertEquals(2, classes.size());
-    assertTrue(
-        classes.stream()
-            .map(FoundClassSubject::getOriginalName)
-            .noneMatch(name -> name.endsWith("$1")));
+    assertThat(inspector.clazz(clazz), isPresent());
+    assertThat(inspector.clazz(innerClass), isPresent());
   }
 }

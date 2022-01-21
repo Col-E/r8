@@ -109,8 +109,7 @@ abstract class SyntheticDefinition<
     }
     DexType thisType = getHolder().getType();
     DexType otherType = other.getHolder().getType();
-    if (getKind().isFixedSuffixSynthetic) {
-      // Fixed synthetics are non-shareable. Ordered by their unique type.
+    if (!getKind().isShareable()) {
       return thisType.compareTo(otherType);
     }
     if (includeContext) {

@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.classmerging.horizontal.testclasses;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 
 @NeverClassInline
 public class B {
+  @KeepConstantArguments
   protected B(String a) {
     System.out.println(a);
   }

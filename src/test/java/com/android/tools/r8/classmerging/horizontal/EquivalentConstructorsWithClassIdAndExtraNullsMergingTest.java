@@ -13,7 +13,6 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import org.junit.Test;
@@ -53,25 +52,10 @@ public class EquivalentConstructorsWithClassIdAndExtraNullsMergingTest extends T
               assertThat(aClassSubject, isPresent());
               assertEquals(
                   2, aClassSubject.allMethods(FoundMethodSubject::isInstanceInitializer).size());
-
-              ClassSubject nullArgumentClassSubject =
-                  inspector.allClasses().stream()
-                      .filter(
-                          clazz ->
-                              SyntheticItemsTestUtils.isHorizontalInitializerTypeArgument(
-                                  clazz.getOriginalReference()))
-                      .findFirst()
-                      .orElseThrow(RuntimeException::new);
-
               assertThat(
                   aClassSubject.method("void", "<init>", "java.lang.Object", "int"), isPresent());
               assertThat(
-                  aClassSubject.method(
-                      "void",
-                      "<init>",
-                      "java.lang.Object",
-                      "int",
-                      nullArgumentClassSubject.getFinalName()),
+                  aClassSubject.method("void", "<init>", "java.lang.Object", "int", "int"),
                   isPresent());
             })
         .run(parameters.getRuntime(), Main.class)

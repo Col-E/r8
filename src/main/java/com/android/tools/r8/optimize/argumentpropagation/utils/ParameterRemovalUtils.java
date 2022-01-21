@@ -19,6 +19,9 @@ public class ParameterRemovalUtils {
     if (!keepInfo.isParameterRemovalAllowed(options)) {
       return false;
     }
+    if (appView.appInfo().isKeepUnusedArgumentsMethod(method)) {
+      return false;
+    }
     return !appView.appInfoWithLiveness().isMethodTargetedByInvokeDynamic(method);
   }
 

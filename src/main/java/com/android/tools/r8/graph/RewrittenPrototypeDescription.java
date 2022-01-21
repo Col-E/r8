@@ -31,6 +31,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.ints.IntSortedSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -48,6 +49,11 @@ public class RewrittenPrototypeDescription {
           public ArgumentInfo combine(ArgumentInfo info) {
             assert false : "ArgumentInfo NO_INFO should not be combined";
             return info;
+          }
+
+          @Override
+          public boolean isNone() {
+            return true;
           }
 
           @Override
@@ -78,6 +84,10 @@ public class RewrittenPrototypeDescription {
         return arg1;
       }
       return arg1.combine(arg2);
+    }
+
+    public boolean isNone() {
+      return false;
     }
 
     public boolean isRemovedArgumentInfo() {
@@ -222,12 +232,6 @@ public class RewrittenPrototypeDescription {
 
     public static Builder builder() {
       return new Builder();
-    }
-
-    public static RewrittenTypeInfo toVoid(
-        DexType oldReturnType, DexItemFactory dexItemFactory, SingleValue singleValue) {
-      assert singleValue != null;
-      return new RewrittenTypeInfo(oldReturnType, dexItemFactory.voidType, null, singleValue);
     }
 
     public RewrittenTypeInfo(DexType oldType, DexType newType) {
@@ -458,9 +462,9 @@ public class RewrittenPrototypeDescription {
       return removed;
     }
 
-    public int numberOfRemovedNonReceiverArguments(DexEncodedMethod method) {
+    public int numberOfRemovedNonReceiverArguments(ProgramMethod method) {
       return numberOfRemovedArguments()
-          - BooleanUtils.intValue(method.isInstance() && isArgumentRemoved(0));
+          - BooleanUtils.intValue(method.getDefinition().isInstance() && isArgumentRemoved(0));
     }
 
     public boolean hasArgumentInfo(int argumentIndex) {
@@ -535,46 +539,6 @@ public class RewrittenPrototypeDescription {
         }
         return new ArgumentInfoCollection(argumentInfos);
       }
-    }
-
-    public DexMethod rewriteMethod(ProgramMethod method, DexItemFactory dexItemFactory) {
-      if (isEmpty()) {
-        return method.getReference();
-      }
-      DexProto rewrittenProto = rewriteProto(method, dexItemFactory);
-      return method.getReference().withProto(rewrittenProto, dexItemFactory);
-    }
-
-    public DexProto rewriteProto(ProgramMethod method, DexItemFactory dexItemFactory) {
-      return isEmpty()
-          ? method.getProto()
-          : dexItemFactory.createProto(method.getReturnType(), rewriteParameters(method));
-    }
-
-    public DexType[] rewriteParameters(ProgramMethod method) {
-      return rewriteParameters(method.getDefinition());
-    }
-
-    public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
-      DexType[] params = encodedMethod.getParameters().values;
-      if (isEmpty()) {
-        return params;
-      }
-      DexType[] newParams =
-          new DexType[params.length - numberOfRemovedNonReceiverArguments(encodedMethod)];
-      int offset = encodedMethod.getFirstNonReceiverArgumentIndex();
-      int newParamIndex = 0;
-      for (int oldParamIndex = 0; oldParamIndex < params.length; oldParamIndex++) {
-        ArgumentInfo argInfo = argumentInfos.get(oldParamIndex + offset);
-        if (argInfo == null) {
-          newParams[newParamIndex++] = params[oldParamIndex];
-        } else if (argInfo.isRewrittenTypeInfo()) {
-          RewrittenTypeInfo rewrittenTypeInfo = argInfo.asRewrittenTypeInfo();
-          assert params[oldParamIndex] == rewrittenTypeInfo.oldType;
-          newParams[newParamIndex++] = rewrittenTypeInfo.newType;
-        }
-      }
-      return newParams;
     }
 
     public ArgumentInfoCollection combine(ArgumentInfoCollection info) {
@@ -814,20 +778,46 @@ public class RewrittenPrototypeDescription {
     if (isEmpty()) {
       return method.getReference();
     }
-    DexProto rewrittenProto = rewriteProto(method.getDefinition(), dexItemFactory);
+    DexProto rewrittenProto = rewriteProto(method, dexItemFactory);
     return method.getReference().withProto(rewrittenProto, dexItemFactory);
   }
 
-  public DexProto rewriteProto(DexEncodedMethod encodedMethod, DexItemFactory dexItemFactory) {
+  public DexProto rewriteProto(ProgramMethod method, DexItemFactory dexItemFactory) {
     if (isEmpty()) {
-      return encodedMethod.getReference().proto;
+      return method.getProto();
     }
     DexType newReturnType =
-        rewrittenReturnInfo != null
-            ? rewrittenReturnInfo.newType
-            : encodedMethod.getReference().proto.returnType;
-    DexType[] newParameters = argumentInfoCollection.rewriteParameters(encodedMethod);
+        rewrittenReturnInfo != null ? rewrittenReturnInfo.getNewType() : method.getReturnType();
+    DexType[] newParameters = rewriteParameters(method, dexItemFactory);
     return dexItemFactory.createProto(newReturnType, newParameters);
+  }
+
+  public DexType[] rewriteParameters(ProgramMethod method, DexItemFactory dexItemFactory) {
+    DexType[] params = method.getParameters().values;
+    if (isEmpty()) {
+      return params;
+    }
+    DexType[] newParams =
+        new DexType
+            [params.length
+                - argumentInfoCollection.numberOfRemovedNonReceiverArguments(method)
+                + extraParameters.size()];
+    int offset = method.getDefinition().getFirstNonReceiverArgumentIndex();
+    int newParamIndex = 0;
+    for (int oldParamIndex = 0; oldParamIndex < params.length; oldParamIndex++) {
+      ArgumentInfo argInfo = argumentInfoCollection.getArgumentInfo(oldParamIndex + offset);
+      if (argInfo.isNone()) {
+        newParams[newParamIndex++] = params[oldParamIndex];
+      } else if (argInfo.isRewrittenTypeInfo()) {
+        RewrittenTypeInfo rewrittenTypeInfo = argInfo.asRewrittenTypeInfo();
+        assert params[oldParamIndex] == rewrittenTypeInfo.oldType;
+        newParams[newParamIndex++] = rewrittenTypeInfo.newType;
+      }
+    }
+    for (ExtraParameter extraParameter : extraParameters) {
+      newParams[newParamIndex++] = extraParameter.getType(dexItemFactory);
+    }
+    return newParams;
   }
 
   public RewrittenPrototypeDescription rewrittenWithLens(
@@ -860,6 +850,10 @@ public class RewrittenPrototypeDescription {
     List<ExtraParameter> parameters =
         Collections.nCopies(numberOfExtraUnusedNullParameters, new ExtraUnusedNullParameter());
     return withExtraParameters(parameters);
+  }
+
+  public RewrittenPrototypeDescription withExtraParameters(ExtraParameter... parameters) {
+    return withExtraParameters(Arrays.asList(parameters));
   }
 
   public RewrittenPrototypeDescription withExtraParameters(List<ExtraParameter> parameters) {

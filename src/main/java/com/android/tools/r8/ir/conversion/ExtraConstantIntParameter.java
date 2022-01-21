@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
@@ -15,6 +16,11 @@ public class ExtraConstantIntParameter extends ExtraParameter {
 
   public ExtraConstantIntParameter(long value) {
     this.value = value;
+  }
+
+  @Override
+  public DexType getType(DexItemFactory dexItemFactory) {
+    return dexItemFactory.intType;
   }
 
   @Override

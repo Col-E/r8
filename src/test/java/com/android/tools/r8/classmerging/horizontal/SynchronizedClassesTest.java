@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 
+import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
@@ -24,6 +25,13 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
+        .addHorizontallyMergedClassesInspector(
+            inspector ->
+                inspector
+                    .assertMergedInto(C.class, A.class)
+                    .assertMergedInto(D.class, B.class)
+                    .assertNoOtherClassesMerged())
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -34,14 +42,14 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
             codeInspector -> {
               assertThat(codeInspector.clazz(A.class), isPresent());
               assertThat(codeInspector.clazz(B.class), isPresent());
-                // C has been merged into A.
-                assertThat(codeInspector.clazz(C.class), not(isPresent()));
-                assertThat(codeInspector.clazz(A.class).init("long"), isPresent());
+              // C has been merged into A.
+              assertThat(codeInspector.clazz(C.class), not(isPresent()));
+              assertThat(codeInspector.clazz(A.class).init("long"), isPresent());
 
-                // D has been merged into B.
-                assertThat(codeInspector.clazz(D.class), not(isPresent()));
-                ClassSubject bClassSubject = codeInspector.clazz(B.class);
-                assertThat(bClassSubject.init("boolean"), isPresent());
+              // D has been merged into B.
+              assertThat(codeInspector.clazz(D.class), not(isPresent()));
+              ClassSubject bClassSubject = codeInspector.clazz(B.class);
+              assertThat(bClassSubject.init("boolean"), isPresent());
             });
   }
 
@@ -69,6 +77,7 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
 
   @NeverClassInline
   public static class C {
+    @KeepConstantArguments
     public C(long v) {
       System.out.println(v);
     }
@@ -76,6 +85,7 @@ public class SynchronizedClassesTest extends HorizontalClassMergingTestBase {
 
   @NeverClassInline
   public static class D {
+    @KeepConstantArguments
     public D(boolean v) {
       System.out.println(v);
     }

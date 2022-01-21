@@ -5,11 +5,14 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
 
 public abstract class ExtraParameter {
+
+  public abstract DexType getType(DexItemFactory dexItemFactory);
 
   public abstract TypeElement getTypeElement(AppView<?> appView, DexType argType);
 

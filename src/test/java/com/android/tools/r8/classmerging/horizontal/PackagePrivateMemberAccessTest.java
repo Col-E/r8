@@ -26,6 +26,7 @@ public class PackagePrivateMemberAccessTest extends HorizontalClassMergingTestBa
         .addInnerClasses(getClass())
         .addProgramClasses(A.class, B.class)
         .addKeepMainRule(Main.class)
+        .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

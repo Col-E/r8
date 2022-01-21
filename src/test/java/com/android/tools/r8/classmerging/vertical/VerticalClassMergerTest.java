@@ -1076,9 +1076,6 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.SimpleInterfaceAccessTest$OtherSimpleInterfaceImpl",
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
-    if (parameters.isCfRuntime()) {
-      preservedClassNames.add("classmerging.SimpleInterfaceAccessTest$1");
-    }
     runTest(
         testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))

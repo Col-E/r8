@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize.argumentpropagation;
 
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -29,12 +30,15 @@ import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorGraphLens.Builder;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
+import com.android.tools.r8.shaking.KeepMethodInfo;
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AccessUtils;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IntBox;
@@ -45,6 +49,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -160,11 +165,12 @@ public class ArgumentPropagatorProgramOptimizer {
       Timing timing)
       throws ExecutionException {
     timing.begin("Optimize components");
+    ProcessorContext processorContext = appView.createProcessorContext();
     Collection<Builder> partialGraphLensBuilders =
         ThreadUtils.processItemsWithResults(
             stronglyConnectedProgramComponents,
             classes ->
-                new StronglyConnectedComponentOptimizer()
+                new StronglyConnectedComponentOptimizer(processorContext)
                     .optimize(
                         classes,
                         interfaceDispatchOutsideProgram.getOrDefault(
@@ -208,8 +214,8 @@ public class ArgumentPropagatorProgramOptimizer {
 
   public class StronglyConnectedComponentOptimizer {
 
-    private final DexItemFactory dexItemFactory;
-    private final InternalOptions options;
+    private final DexItemFactory dexItemFactory = appView.dexItemFactory();
+    private final InternalOptions options = appView.options();
 
     private final Map<DexMethodSignature, AllowedPrototypeChanges>
         allowedPrototypeChangesForVirtualMethods = new HashMap<>();
@@ -231,9 +237,10 @@ public class ArgumentPropagatorProgramOptimizer {
     private final Map<DexMethodSignature, Pair<AllowedPrototypeChanges, DexMethodSignature>>
         occupiedMethodSignatures = new HashMap<>();
 
-    public StronglyConnectedComponentOptimizer() {
-      this.dexItemFactory = appView.dexItemFactory();
-      this.options = appView.options();
+    private final ProcessorContext processorContext;
+
+    public StronglyConnectedComponentOptimizer(ProcessorContext processorContext) {
+      this.processorContext = processorContext;
     }
 
     // TODO(b/190154391): Strengthen the static type of parameters.
@@ -287,7 +294,9 @@ public class ArgumentPropagatorProgramOptimizer {
         clazz.forEachProgramMethodMatching(
             method -> !method.isInstanceInitializer(),
             method -> {
-              if (!appView.getKeepInfo(method).isShrinkingAllowed(options)) {
+              KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+              if (!keepInfo.isOptimizationAllowed(options)
+                  || !keepInfo.isShrinkingAllowed(options)) {
                 pinnedMethodSignatures.add(method.getMethodSignature());
               }
             });
@@ -463,7 +472,7 @@ public class ArgumentPropagatorProgramOptimizer {
         }
         ProgramMethod method = methods.getFirst();
         return method.getOptimizationInfo().hasUnusedArguments()
-            && method.getOptimizationInfo().getUnusedArguments().get(0)
+            && method.getOptimizationInfo().getUnusedArguments().get(parameterIndex)
             && ParameterRemovalUtils.canRemoveUnusedParametersFrom(appView, method)
             && ParameterRemovalUtils.canRemoveUnusedParameter(appView, method, parameterIndex);
       }
@@ -550,14 +559,39 @@ public class ArgumentPropagatorProgramOptimizer {
             }
           });
       DexMethodSignatureSet instanceInitializerSignatures = DexMethodSignatureSet.create();
-      clazz.forEachProgramInstanceInitializer(instanceInitializerSignatures::add);
+      ProgramMethodMap<RewrittenPrototypeDescription> instanceInitializerPrototypeChanges =
+          ProgramMethodMap.create();
+      clazz.forEachProgramInstanceInitializer(
+          method -> {
+            RewrittenPrototypeDescription prototypeChanges =
+                computePrototypeChangesForDirectMethod(
+                    method, interfaceDispatchOutsideProgram, null);
+            if (prototypeChanges.isEmpty()) {
+              instanceInitializerSignatures.add(method);
+            }
+            instanceInitializerPrototypeChanges.put(method, prototypeChanges);
+          });
       clazz.forEachProgramMethod(
           method -> {
             RewrittenPrototypeDescription prototypeChanges =
-                method.getDefinition().belongsToDirectPool()
-                    ? computePrototypeChangesForDirectMethod(
-                        method, interfaceDispatchOutsideProgram, instanceInitializerSignatures)
-                    : computePrototypeChangesForVirtualMethod(method);
+                instanceInitializerPrototypeChanges.getOrDefault(
+                    method,
+                    () ->
+                        method.getDefinition().belongsToDirectPool()
+                            ? computePrototypeChangesForDirectMethod(
+                                method,
+                                interfaceDispatchOutsideProgram,
+                                instanceInitializerSignatures)
+                            : computePrototypeChangesForVirtualMethod(method));
+            if (method.getDefinition().isInstanceInitializer()) {
+              if (prototypeChanges.isEmpty()) {
+                assert instanceInitializerSignatures.contains(method);
+                return;
+              }
+              prototypeChanges =
+                  selectInitArgumentTypeForInstanceInitializer(
+                      method, prototypeChanges, instanceInitializerSignatures);
+            }
             DexMethod newMethodSignature = getNewMethodSignature(method, prototypeChanges);
             if (newMethodSignature != method.getReference()) {
               partialGraphLensBuilder.recordMove(
@@ -722,22 +756,50 @@ public class ArgumentPropagatorProgramOptimizer {
         DexMethodSignatureSet interfaceDispatchOutsideProgram,
         DexMethodSignatureSet instanceInitializerSignatures) {
       assert method.getDefinition().belongsToDirectPool();
-      if (!isPrototypeChangesAllowed(method, interfaceDispatchOutsideProgram)) {
-        return RewrittenPrototypeDescription.none();
-      }
-      RewrittenPrototypeDescription prototypeChanges = computePrototypeChangesForMethod(method);
-      if (prototypeChanges.isEmpty()) {
-        return prototypeChanges;
-      }
-      if (method.getDefinition().isInstanceInitializer()) {
-        DexMethod rewrittenMethod =
-            prototypeChanges.getArgumentInfoCollection().rewriteMethod(method, dexItemFactory);
-        assert rewrittenMethod != method.getReference();
-        if (!instanceInitializerSignatures.add(rewrittenMethod)) {
-          return RewrittenPrototypeDescription.none();
-        }
+      RewrittenPrototypeDescription prototypeChanges =
+          isPrototypeChangesAllowed(method, interfaceDispatchOutsideProgram)
+              ? computePrototypeChangesForMethod(method)
+              : RewrittenPrototypeDescription.none();
+      if (method.getDefinition().isInstanceInitializer() && instanceInitializerSignatures != null) {
+        prototypeChanges =
+            selectInitArgumentTypeForInstanceInitializer(
+                method, prototypeChanges, instanceInitializerSignatures);
       }
       return prototypeChanges;
+    }
+
+    private RewrittenPrototypeDescription selectInitArgumentTypeForInstanceInitializer(
+        ProgramMethod method,
+        RewrittenPrototypeDescription prototypeChanges,
+        DexMethodSignatureSet instanceInitializerSignatures) {
+      DexMethod rewrittenMethod = prototypeChanges.rewriteMethod(method, dexItemFactory);
+      if (instanceInitializerSignatures.add(rewrittenMethod)) {
+        return prototypeChanges;
+      }
+      for (DexType extraArgumentType :
+          ImmutableList.of(dexItemFactory.intType, dexItemFactory.objectType)) {
+        RewrittenPrototypeDescription candidatePrototypeChanges =
+            prototypeChanges.withExtraParameters(new ExtraUnusedNullParameter(extraArgumentType));
+        rewrittenMethod = candidatePrototypeChanges.rewriteMethod(method, dexItemFactory);
+        if (instanceInitializerSignatures.add(rewrittenMethod)) {
+          return candidatePrototypeChanges;
+        }
+      }
+      DexType extraArgumentType =
+          appView
+              .getSyntheticItems()
+              .createClass(
+                  SyntheticKind.NON_FIXED_INIT_TYPE_ARGUMENT,
+                  processorContext.createMethodProcessingContext(method).createUniqueContext(),
+                  appView)
+              .getType();
+      RewrittenPrototypeDescription finalPrototypeChanges =
+          prototypeChanges.withExtraParameters(new ExtraUnusedNullParameter(extraArgumentType));
+      boolean added =
+          instanceInitializerSignatures.add(
+              finalPrototypeChanges.rewriteMethod(method, dexItemFactory));
+      assert added;
+      return finalPrototypeChanges;
     }
 
     private RewrittenPrototypeDescription computePrototypeChangesForVirtualMethod(

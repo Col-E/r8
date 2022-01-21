@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.synthesis.SyntheticFinalization.Result;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -490,6 +491,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     SynthesizingContext synthesizingContext = SynthesizingContext.fromType(rewrittenContextType);
     DexType rewrittenType = contextToType.apply(synthesizingContext);
     appView.rewritePrefix.rewriteType(type, rewrittenType);
+  }
+
+  public DexProgramClass createClass(
+      SyntheticKind kind, UniqueContext context, AppView<?> appView) {
+    return createClass(kind, context, appView, ConsumerUtils.emptyConsumer());
   }
 
   public DexProgramClass createClass(
