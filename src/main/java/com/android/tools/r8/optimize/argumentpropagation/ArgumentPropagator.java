@@ -206,7 +206,6 @@ public class ArgumentPropagator {
             appView,
             immediateSubtypingInfo,
             codeScannerResult,
-            reprocessingCriteriaCollection,
             stronglyConnectedProgramComponents,
             interfaceDispatchOutsideProgram)
         .populateOptimizationInfo(converter, executorService, timing);

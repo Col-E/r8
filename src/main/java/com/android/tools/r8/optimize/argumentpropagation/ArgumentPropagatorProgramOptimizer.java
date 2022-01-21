@@ -484,6 +484,13 @@ public class ArgumentPropagatorProgramOptimizer {
           // OK, this parameter can be removed.
           continue;
         }
+        if (method.getOptimizationInfo().hasUnusedArguments()
+            && method.getOptimizationInfo().getUnusedArguments().get(parameterIndex)
+            && ParameterRemovalUtils.canRemoveUnusedParametersFrom(appView, method)
+            && ParameterRemovalUtils.canRemoveUnusedParameter(appView, method, parameterIndex)) {
+          // OK, this parameter is unused.
+          continue;
+        }
         CallSiteOptimizationInfo optimizationInfo = method.getOptimizationInfo().getArgumentInfos();
         if (optimizationInfo.isConcreteCallSiteOptimizationInfo()) {
           ConcreteCallSiteOptimizationInfo concreteOptimizationInfo =
@@ -1000,38 +1007,47 @@ public class ArgumentPropagatorProgramOptimizer {
                 .build());
       }
 
-      ConcreteCallSiteOptimizationInfo optimizationInfo =
-          method.getOptimizationInfo().getArgumentInfos().asConcreteCallSiteOptimizationInfo();
-      if (optimizationInfo != null) {
-        for (int argumentIndex = method.getDefinition().getFirstNonReceiverArgumentIndex();
-            argumentIndex < method.getDefinition().getNumberOfArguments();
-            argumentIndex++) {
-          if (removableParameterIndices.test(argumentIndex)) {
-            AbstractValue abstractValue = optimizationInfo.getAbstractArgumentValue(argumentIndex);
-            if (abstractValue.isSingleValue()
-                && abstractValue.asSingleValue().isMaterializableInContext(appView, method)) {
-              parameterChangesBuilder.addArgumentInfo(
-                  argumentIndex,
-                  RemovedArgumentInfo.builder()
-                      .setSingleValue(abstractValue.asSingleValue())
-                      .setType(method.getArgumentType(argumentIndex))
-                      .build());
-              continue;
-            }
-          }
-
-          DexType dynamicType = newParameterTypes.apply(argumentIndex);
-          if (dynamicType != null) {
-            DexType staticType = method.getArgumentType(argumentIndex);
-            assert dynamicType != staticType;
+      CallSiteOptimizationInfo optimizationInfo = method.getOptimizationInfo().getArgumentInfos();
+      for (int argumentIndex = method.getDefinition().getFirstNonReceiverArgumentIndex();
+          argumentIndex < method.getDefinition().getNumberOfArguments();
+          argumentIndex++) {
+        if (removableParameterIndices.test(argumentIndex)) {
+          if (method.getOptimizationInfo().hasUnusedArguments()
+              && method.getOptimizationInfo().getUnusedArguments().get(argumentIndex)
+              && ParameterRemovalUtils.canRemoveUnusedParametersFrom(appView, method)
+              && ParameterRemovalUtils.canRemoveUnusedParameter(appView, method, argumentIndex)) {
             parameterChangesBuilder.addArgumentInfo(
                 argumentIndex,
-                RewrittenTypeInfo.builder()
-                    .setCastType(dynamicType)
-                    .setOldType(staticType)
-                    .setNewType(dynamicType)
+                RemovedArgumentInfo.builder()
+                    .setType(method.getArgumentType(argumentIndex))
                     .build());
+            continue;
           }
+
+          AbstractValue abstractValue = optimizationInfo.getAbstractArgumentValue(argumentIndex);
+          if (abstractValue.isSingleValue()
+              && abstractValue.asSingleValue().isMaterializableInContext(appView, method)) {
+            parameterChangesBuilder.addArgumentInfo(
+                argumentIndex,
+                RemovedArgumentInfo.builder()
+                    .setSingleValue(abstractValue.asSingleValue())
+                    .setType(method.getArgumentType(argumentIndex))
+                    .build());
+            continue;
+          }
+        }
+
+        DexType dynamicType = newParameterTypes.apply(argumentIndex);
+        if (dynamicType != null) {
+          DexType staticType = method.getArgumentType(argumentIndex);
+          assert dynamicType != staticType;
+          parameterChangesBuilder.addArgumentInfo(
+              argumentIndex,
+              RewrittenTypeInfo.builder()
+                  .setCastType(dynamicType)
+                  .setOldType(staticType)
+                  .setNewType(dynamicType)
+                  .build());
         }
       }
       return parameterChangesBuilder.build();

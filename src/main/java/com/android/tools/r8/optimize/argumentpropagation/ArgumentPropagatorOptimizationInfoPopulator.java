@@ -33,14 +33,11 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.StateCloner
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InParameterFlowPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
-import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.ArgumentPropagatorReprocessingCriteriaCollection;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.Iterables;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -56,7 +53,6 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final MethodStateCollectionByReference methodStates;
-  private final ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection;
 
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
   private final List<Set<DexProgramClass>> stronglyConnectedProgramComponents;
@@ -68,13 +64,11 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
       AppView<AppInfoWithLiveness> appView,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       MethodStateCollectionByReference methodStates,
-      ArgumentPropagatorReprocessingCriteriaCollection reprocessingCriteriaCollection,
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram) {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.methodStates = methodStates;
-    this.reprocessingCriteriaCollection = reprocessingCriteriaCollection;
     this.stronglyConnectedProgramComponents = stronglyConnectedProgramComponents;
     this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
@@ -172,7 +166,6 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     }
 
     methodState = getMethodStateAfterUninstantiatedParameterRemoval(method, methodState);
-    methodState = getMethodStateAfterUnusedParameterRemoval(method, methodState);
 
     if (methodState.isUnknown()) {
       // Nothing is known about the arguments to this method.
@@ -252,57 +245,6 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     return narrowedParameterStates != null
         ? new ConcreteMonomorphicMethodState(narrowedParameterStates)
         : methodState;
-  }
-
-  private MethodState getMethodStateAfterUnusedParameterRemoval(
-      ProgramMethod method, MethodState methodState) {
-    assert methodState.isMonomorphic() || methodState.isUnknown();
-    if (!method.getOptimizationInfo().hasUnusedArguments()
-        || appView.appInfo().isKeepUnusedArgumentsMethod(method)) {
-      return methodState;
-    }
-
-    int numberOfArguments = method.getDefinition().getNumberOfArguments();
-    List<ParameterState> parameterStates =
-        methodState.isMonomorphic()
-            ? methodState.asMonomorphic().getParameterStates()
-            : ListUtils.newInitializedArrayList(numberOfArguments, ParameterState.unknown());
-
-    BitSet unusedArguments = method.getOptimizationInfo().getUnusedArguments();
-    for (int argumentIndex = method.getDefinition().getFirstNonReceiverArgumentIndex();
-        argumentIndex < numberOfArguments;
-        argumentIndex++) {
-      boolean isUnused = unusedArguments.get(argumentIndex);
-      if (isUnused) {
-        DexType argumentType = method.getArgumentType(argumentIndex);
-        parameterStates.set(argumentIndex, getUnusedParameterState(argumentType));
-      }
-    }
-
-    if (methodState.isUnknown()) {
-      if (!unusedArguments.get(0) || Iterables.any(parameterStates, ParameterState::isConcrete)) {
-        assert parameterStates.stream().anyMatch(ParameterState::isConcrete);
-        return new ConcreteMonomorphicMethodState(parameterStates);
-      }
-    }
-    return methodState;
-  }
-
-  private ParameterState getUnusedParameterState(DexType argumentType) {
-    if (argumentType.isArrayType()) {
-      // Ensure argument removal by simulating that this unused parameter is the constant null.
-      return new ConcreteArrayTypeParameterState(Nullability.definitelyNull());
-    } else if (argumentType.isClassType()) {
-      // Ensure argument removal by simulating that this unused parameter is the constant null.
-      return new ConcreteClassTypeParameterState(
-          appView.abstractValueFactory().createNullValue(), DynamicType.definitelyNull());
-    } else {
-      assert argumentType.isPrimitiveType();
-      // Ensure argument removal by simulating that this unused parameter is the constant zero.
-      // Note that the same zero value is used for all primitive types.
-      return new ConcretePrimitiveTypeParameterState(
-          appView.abstractValueFactory().createZeroValue());
-    }
   }
 
   private boolean widenDynamicTypes(
