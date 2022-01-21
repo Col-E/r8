@@ -43,6 +43,7 @@ import com.android.tools.r8.utils.AccessUtils;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.CallSiteOptimizationOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -216,6 +217,8 @@ public class ArgumentPropagatorProgramOptimizer {
 
     private final DexItemFactory dexItemFactory = appView.dexItemFactory();
     private final InternalOptions options = appView.options();
+    private final CallSiteOptimizationOptions callSiteOptimizationOptions =
+        appView.options().callSiteOptimizationOptions();
 
     private final Map<DexMethodSignature, AllowedPrototypeChanges>
         allowedPrototypeChangesForVirtualMethods = new HashMap<>();
@@ -776,13 +779,15 @@ public class ArgumentPropagatorProgramOptimizer {
       if (instanceInitializerSignatures.add(rewrittenMethod)) {
         return prototypeChanges;
       }
-      for (DexType extraArgumentType :
-          ImmutableList.of(dexItemFactory.intType, dexItemFactory.objectType)) {
-        RewrittenPrototypeDescription candidatePrototypeChanges =
-            prototypeChanges.withExtraParameters(new ExtraUnusedNullParameter(extraArgumentType));
-        rewrittenMethod = candidatePrototypeChanges.rewriteMethod(method, dexItemFactory);
-        if (instanceInitializerSignatures.add(rewrittenMethod)) {
-          return candidatePrototypeChanges;
+      if (!callSiteOptimizationOptions.isForceSyntheticsForInstanceInitializersEnabled()) {
+        for (DexType extraArgumentType :
+            ImmutableList.of(dexItemFactory.intType, dexItemFactory.objectType)) {
+          RewrittenPrototypeDescription candidatePrototypeChanges =
+              prototypeChanges.withExtraParameters(new ExtraUnusedNullParameter(extraArgumentType));
+          rewrittenMethod = candidatePrototypeChanges.rewriteMethod(method, dexItemFactory);
+          if (instanceInitializerSignatures.add(rewrittenMethod)) {
+            return candidatePrototypeChanges;
+          }
         }
       }
       DexType extraArgumentType =

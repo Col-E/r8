@@ -1275,6 +1275,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean enabled = true;
     private boolean enableMethodStaticizing = true;
 
+    private boolean forceSyntheticsForInstanceInitializers = false;
+
     public void disableOptimization() {
       enabled = false;
     }
@@ -1290,6 +1292,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return enabled;
     }
 
+    public boolean isForceSyntheticsForInstanceInitializersEnabled() {
+      return forceSyntheticsForInstanceInitializers;
+    }
+
     public boolean isMethodStaticizingEnabled() {
       return enableMethodStaticizing;
     }
@@ -1300,6 +1306,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       } else {
         disableOptimization();
       }
+      return this;
+    }
+
+    public CallSiteOptimizationOptions setForceSyntheticsForInstanceInitializers(
+        boolean forceSyntheticsForInstanceInitializers) {
+      this.forceSyntheticsForInstanceInitializers = forceSyntheticsForInstanceInitializers;
       return this;
     }
 

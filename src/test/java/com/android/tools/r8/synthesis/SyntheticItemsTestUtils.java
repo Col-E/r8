@@ -122,6 +122,11 @@ public class SyntheticItemsTestUtils {
     return SyntheticNaming.isSynthetic(reference, null, SyntheticKind.INIT_TYPE_ARGUMENT);
   }
 
+  public static boolean isExternalNonFixedInitializerTypeArgument(ClassReference reference) {
+    return SyntheticNaming.isSynthetic(
+        reference, Phase.EXTERNAL, SyntheticKind.NON_FIXED_INIT_TYPE_ARGUMENT);
+  }
+
   public static boolean isHorizontalInitializerTypeArgument(ClassReference reference) {
     return SyntheticNaming.isSynthetic(
             reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_1)
