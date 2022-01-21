@@ -120,6 +120,13 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return assertSuccessWithOutputThatMatches(is(expected));
   }
 
+  public RR assertSuccessWithOutputIf(boolean condition, String expected) {
+    if (condition) {
+      return assertSuccessWithOutput(expected);
+    }
+    return self();
+  }
+
   public RR assertSuccessWithEmptyOutput() {
     return assertSuccessWithOutput("");
   }
