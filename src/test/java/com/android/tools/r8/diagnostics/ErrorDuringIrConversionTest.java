@@ -71,8 +71,8 @@ public class ErrorDuringIrConversionTest extends TestBase {
     String restStackTrace = fullStackTrace.substring(topStackTraceEnd);
     // Check that top stack trace always has the version marker.
     assertThat(topStackTrace, containsString("fakeStackEntry"));
-    // Check that top stack has the D8 entry (from tests the non-renamed entry is ToolHelper.runD8).
-    assertThat(topStackTrace, containsString("com.android.tools.r8.ToolHelper.runD8("));
+    // Check that top stack has the D8 entry (from tests the non-renamed entry is ToolHelper.runX).
+    assertThat(topStackTrace, containsString("com.android.tools.r8.ToolHelper.run"));
     // Check that the stack trace always has the suppressed info.
     assertThat(restStackTrace, containsString(StringUtils.LINE_SEPARATOR + "\tSuppressed:"));
     // Custom test checks.
