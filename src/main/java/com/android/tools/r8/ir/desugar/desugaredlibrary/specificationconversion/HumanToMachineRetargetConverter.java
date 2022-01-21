@@ -33,7 +33,7 @@ public class HumanToMachineRetargetConverter {
 
   public void convertRetargetFlags(
       HumanRewritingFlags rewritingFlags, MachineRewritingFlags.Builder builder) {
-    subtypingInfo = new SubtypingInfo(appInfo);
+    subtypingInfo = SubtypingInfo.create(appInfo);
     rewritingFlags
         .getRetargetCoreLibMember()
         .forEach(
