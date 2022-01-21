@@ -139,13 +139,15 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MethodResolutionResult resolutionResult =
         appInfo.resolveMethod(invokedMethod, cfInvoke.isInterface());
-    if (!resolutionResult.isSingleResolution()) {
-      return NO_REWRITING;
-    }
-    DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
+    // We are required to use the invokedMethod if it does not resolve due to the rewriting of
+    // private methods absent from the library.
+    DexMethod singleTarget =
+        resolutionResult.isSingleResolution()
+            ? resolutionResult.getSingleTarget().getReference()
+            : invokedMethod;
     assert singleTarget != null;
     if (cfInvoke.isInvokeStatic()) {
-      DexMethod retarget = staticRetarget.get(singleTarget.getReference());
+      DexMethod retarget = staticRetarget.get(singleTarget);
       return retarget == null
           ? NO_REWRITING
           : InvokeRetargetingResult.createInvokeRetargetingResult(retarget);
@@ -163,10 +165,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     return retarget;
   }
 
-  private InvokeRetargetingResult computeNonStaticRetarget(DexEncodedMethod singleTarget) {
-    assert !singleTarget.isStatic();
-    DexMethod reference = singleTarget.getReference();
-    EmulatedDispatchMethodDescriptor descriptor = emulatedVirtualRetarget.get(reference);
+  private InvokeRetargetingResult computeNonStaticRetarget(DexMethod singleTarget) {
+    EmulatedDispatchMethodDescriptor descriptor = emulatedVirtualRetarget.get(singleTarget);
     if (descriptor != null) {
       return new InvokeRetargetingResult(
           true,
@@ -174,7 +174,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
               syntheticHelper.ensureEmulatedHolderDispatchMethod(descriptor, eventConsumer));
     }
     return InvokeRetargetingResult.createInvokeRetargetingResult(
-        nonEmulatedVirtualRetarget.get(reference));
+        nonEmulatedVirtualRetarget.get(singleTarget));
   }
 
   private InvokeRetargetingResult computeSuperRetarget(DexEncodedMethod singleTarget) {
