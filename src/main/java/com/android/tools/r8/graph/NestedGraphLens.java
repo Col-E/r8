@@ -228,10 +228,14 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(DexMethod method) {
+  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+      DexMethod method, GraphLens codeLens) {
+    if (this == codeLens) {
+      return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
+    }
     DexMethod previous = internalGetPreviousMethodSignature(method);
     RewrittenPrototypeDescription lookup =
-        getPrevious().lookupPrototypeChangesForMethodDefinition(previous);
+        getPrevious().lookupPrototypeChangesForMethodDefinition(previous, codeLens);
     return internalDescribePrototypeChanges(lookup, method);
   }
 
@@ -251,16 +255,6 @@ public class NestedGraphLens extends NonIdentityGraphLens {
 
   protected DexMethod internalGetNextMethodSignature(DexMethod method) {
     return newMethodSignatures.getRepresentativeValueOrDefault(method, method);
-  }
-
-  @Override
-  public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
-    return getPrevious().lookupGetFieldForMethod(field, context);
-  }
-
-  @Override
-  public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
-    return getPrevious().lookupPutFieldForMethod(field, context);
   }
 
   /**

@@ -2024,7 +2024,7 @@ public class VerticalClassMerger {
 
     @Override
     public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
-        DexMethod method) {
+        DexMethod method, GraphLens codeLens) {
       throw new Unreachable();
     }
 

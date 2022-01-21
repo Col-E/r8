@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
@@ -23,8 +24,11 @@ public class DestructivePhiTypeUpdater {
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Function<DexType, DexType> mapping;
 
-  public DestructivePhiTypeUpdater(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    this(appView, appView.graphLens()::lookupType);
+  public DestructivePhiTypeUpdater(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens graphLens,
+      GraphLens codeLens) {
+    this(appView, type -> graphLens.lookupType(type, codeLens));
   }
 
   public DestructivePhiTypeUpdater(

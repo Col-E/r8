@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -1032,13 +1033,13 @@ public class BasicBlock {
    *
    * @return true if any guards were renamed.
    */
-  public boolean renameGuardsInCatchHandlers(GraphLens graphLens) {
+  public boolean renameGuardsInCatchHandlers(NonIdentityGraphLens graphLens, GraphLens codeLens) {
     assert hasCatchHandlers();
     boolean anyGuardsRenamed = false;
     List<DexType> newGuards = new ArrayList<>(catchHandlers.getGuards().size());
     for (DexType guard : catchHandlers.getGuards()) {
       // The type may have changed due to class merging.
-      DexType renamed = graphLens.lookupType(guard);
+      DexType renamed = graphLens.lookupType(guard, codeLens);
       newGuards.add(renamed);
       anyGuardsRenamed |= renamed != guard;
     }

@@ -207,11 +207,11 @@ public class DynamicTypeWithUpperBound extends DynamicType {
       return this;
     }
     TypeElement rewrittenDynamicUpperBoundType =
-        dynamicUpperBoundType.rewrittenWithLens(appView, graphLens, prunedTypes);
+        dynamicUpperBoundType.rewrittenWithLens(appView, graphLens, null, prunedTypes);
     ClassTypeElement rewrittenDynamicLowerBoundClassType = null;
     if (hasDynamicLowerBoundType()) {
       TypeElement rewrittenDynamicLowerBoundType =
-          getDynamicLowerBoundType().rewrittenWithLens(appView, graphLens, prunedTypes);
+          getDynamicLowerBoundType().rewrittenWithLens(appView, graphLens, null, prunedTypes);
       if (rewrittenDynamicLowerBoundType.isClassType()) {
         rewrittenDynamicLowerBoundClassType = rewrittenDynamicLowerBoundType.asClassType();
       }

@@ -132,8 +132,9 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(DexMethod method) {
-    return GraphLens.getIdentityLens().lookupPrototypeChangesForMethodDefinition(method);
+  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+      DexMethod method, GraphLens codeLens) {
+    return GraphLens.getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
   }
 
   @Override

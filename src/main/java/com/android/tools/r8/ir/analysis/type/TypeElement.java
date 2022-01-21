@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.ir.code.Value;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -85,14 +86,23 @@ public abstract class TypeElement {
 
   public final TypeElement rewrittenWithLens(
       AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens graphLens) {
-    return rewrittenWithLens(appView, graphLens, emptySet());
+    return rewrittenWithLens(appView, graphLens, null);
   }
 
   public final TypeElement rewrittenWithLens(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       GraphLens graphLens,
+      GraphLens codeLens) {
+    return rewrittenWithLens(appView, graphLens, codeLens, Collections.emptySet());
+  }
+
+  public final TypeElement rewrittenWithLens(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      GraphLens graphLens,
+      GraphLens codeLens,
       Set<DexType> prunedTypes) {
-    return fixupClassTypeReferences(appView, graphLens::lookupType, prunedTypes);
+    return fixupClassTypeReferences(
+        appView, type -> graphLens.lookupType(type, codeLens), prunedTypes);
   }
 
   public boolean isNullable() {

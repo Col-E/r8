@@ -451,8 +451,13 @@ public abstract class GraphLens {
     MethodLookupResult lookupMethod(MethodLookupResult previous);
   }
 
+  public final RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+      DexMethod method) {
+    return lookupPrototypeChangesForMethodDefinition(method, null);
+  }
+
   public abstract RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
-      DexMethod method);
+      DexMethod method, GraphLens codeLens);
 
   public final DexField lookupField(DexField field) {
     return lookupField(field, null);
@@ -483,14 +488,6 @@ public abstract class GraphLens {
   interface LookupFieldContinuation {
 
     FieldLookupResult lookupField(FieldLookupResult previous);
-  }
-
-  public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
-    return null;
-  }
-
-  public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
-    return null;
   }
 
   public DexReference lookupReference(DexReference reference) {
@@ -600,7 +597,7 @@ public abstract class GraphLens {
   public Map<DexCallSite, ProgramMethodSet> rewriteCallSites(
       Map<DexCallSite, ProgramMethodSet> callSites, DexDefinitionSupplier definitions) {
     Map<DexCallSite, ProgramMethodSet> result = new IdentityHashMap<>();
-    LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(definitions, this);
+    LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(definitions, this, null);
     callSites.forEach(
         (callSite, contexts) -> {
           for (ProgramMethod context : contexts.rewrittenWithLens(definitions, this)) {
@@ -965,7 +962,7 @@ public abstract class GraphLens {
 
     @Override
     public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
-        DexMethod method) {
+        DexMethod method, GraphLens codeLens) {
       return RewrittenPrototypeDescription.none();
     }
 
@@ -1043,8 +1040,8 @@ public abstract class GraphLens {
 
     @Override
     public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
-        DexMethod method) {
-      return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method);
+        DexMethod method, GraphLens codeLens) {
+      return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
     }
 
     @Override

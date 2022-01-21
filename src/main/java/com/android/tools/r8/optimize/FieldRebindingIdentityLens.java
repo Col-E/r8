@@ -97,8 +97,12 @@ public class FieldRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(DexMethod method) {
-    return getPrevious().lookupPrototypeChangesForMethodDefinition(method);
+  public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
+      DexMethod method, GraphLens codeLens) {
+    if (this == codeLens) {
+      return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
+    }
+    return getPrevious().lookupPrototypeChangesForMethodDefinition(method, codeLens);
   }
 
   @Override

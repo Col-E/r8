@@ -45,7 +45,7 @@ public class ExactDynamicType extends DynamicTypeWithUpperBound {
   public DynamicType rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, Set<DexType> prunedTypes) {
     TypeElement rewrittenType =
-        getExactClassType().rewrittenWithLens(appView, graphLens, prunedTypes);
+        getExactClassType().rewrittenWithLens(appView, graphLens, null, prunedTypes);
     assert rewrittenType.isClassType() || rewrittenType.isPrimitiveType();
     return rewrittenType.isClassType()
         ? new ExactDynamicType(rewrittenType.asClassType())
