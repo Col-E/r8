@@ -4,6 +4,7 @@
 package com.android.tools.r8.internal;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -15,6 +16,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AssertionUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -122,6 +124,14 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
         .assertAllWarningMessagesMatch(
             anyOf(
                 containsString("Expected stack map table for method with non-linear control flow."),
-                containsString("Ignoring option: -outjars")));
+                containsString("Ignoring option: -outjars"),
+                equalTo(
+                    StringUtils.joinLines(
+                        "Rule matches the static final field `java.lang.String com.google.protobuf."
+                            + "GeneratedExtensionRegistryLoader.LITE_CLASS_NAME`, which may have "
+                            + "been inlined: -identifiernamestring class com.google.protobuf."
+                            + "GeneratedExtensionRegistryLoader {",
+                        "  private static final java.lang.String LITE_CLASS_NAME;",
+                        "}"))));
   }
 }
