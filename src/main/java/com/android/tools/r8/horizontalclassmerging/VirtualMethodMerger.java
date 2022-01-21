@@ -193,6 +193,11 @@ public class VirtualMethodMerger {
       representative = ListUtils.first(methods);
     }
 
+    if (representative.getAccessFlags().isAbstract() && superMethod != null) {
+      methods.forEach(method -> lensBuilder.mapMethod(method.getReference(), newMethodReference));
+      return;
+    }
+
     for (ProgramMethod method : methods) {
       if (method.getReference() == representative.getReference()) {
         lensBuilder.moveMethod(method.getReference(), newMethodReference);
