@@ -71,7 +71,10 @@ public class FieldRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexField getRenamedFieldSignature(DexField originalField) {
+  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
+    if (this == codeLens) {
+      return originalField;
+    }
     return getPrevious().getRenamedFieldSignature(originalField);
   }
 

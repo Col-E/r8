@@ -328,7 +328,11 @@ public abstract class GraphLens {
     return original;
   }
 
-  public abstract DexField getRenamedFieldSignature(DexField originalField);
+  public final DexField getRenamedFieldSignature(DexField originalField) {
+    return getRenamedFieldSignature(originalField, null);
+  }
+
+  public abstract DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens);
 
   public final DexMember<?, ?> getRenamedMemberSignature(DexMember<?, ?> originalMember) {
     return originalMember.isDexField()
@@ -624,9 +628,16 @@ public abstract class GraphLens {
 
   @SuppressWarnings("unchecked")
   public <T extends DexReference> T rewriteReference(T reference) {
+    return rewriteReference(reference, null);
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends DexReference> T rewriteReference(T reference, GraphLens codeLens) {
     return (T)
         reference.apply(
-            this::lookupType, this::getRenamedFieldSignature, this::getRenamedMethodSignature);
+            type -> lookupType(type, codeLens),
+            field -> getRenamedFieldSignature(field, codeLens),
+            method -> getRenamedMethodSignature(method, codeLens));
   }
 
   public <T extends DexReference> Set<T> rewriteReferences(Set<T> references) {
@@ -947,7 +958,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexField getRenamedFieldSignature(DexField originalField) {
+    public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
       return originalField;
     }
 
@@ -1041,8 +1052,10 @@ public abstract class GraphLens {
     }
 
     @Override
-    public DexField getRenamedFieldSignature(DexField originalField) {
-      return getPrevious().getRenamedFieldSignature(originalField);
+    public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
+      return this != codeLens
+          ? getPrevious().getRenamedFieldSignature(originalField)
+          : originalField;
     }
 
     @Override

@@ -1968,7 +1968,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    public DexField getRenamedFieldSignature(DexField originalField) {
+    public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
       throw new Unreachable();
     }
 

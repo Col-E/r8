@@ -130,7 +130,10 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexField getRenamedFieldSignature(DexField originalField) {
+  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
+    if (this == codeLens) {
+      return originalField;
+    }
     DexField renamedField = getPrevious().getRenamedFieldSignature(originalField);
     return internalGetNextFieldSignature(renamedField);
   }
