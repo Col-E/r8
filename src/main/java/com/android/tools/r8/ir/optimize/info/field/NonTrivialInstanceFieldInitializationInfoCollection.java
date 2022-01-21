@@ -80,12 +80,13 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
 
   @Override
   public InstanceFieldInitializationInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     Builder builder = InstanceFieldInitializationInfoCollection.builder();
     infos.forEach(
         (field, info) ->
             builder.recordInitializationInfo(
-                lens.lookupField(field), info.rewrittenWithLens(appView, lens)));
+                lens.lookupField(field, codeLens),
+                info.rewrittenWithLens(appView, lens, codeLens)));
     return builder.build();
   }
 

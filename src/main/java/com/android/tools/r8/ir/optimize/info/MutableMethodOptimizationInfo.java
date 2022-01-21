@@ -185,15 +185,18 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   public MutableMethodOptimizationInfo fixupAbstractReturnValue(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+    abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens, codeLens);
     return this;
   }
 
   public MutableMethodOptimizationInfo fixupInstanceInitializerInfo(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems) {
     instanceInitializerInfoCollection =
-        instanceInitializerInfoCollection.rewrittenWithLens(appView, lens, prunedItems);
+        instanceInitializerInfoCollection.rewrittenWithLens(appView, lens, codeLens, prunedItems);
     return this;
   }
 

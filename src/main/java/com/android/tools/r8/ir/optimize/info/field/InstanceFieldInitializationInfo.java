@@ -51,5 +51,5 @@ public interface InstanceFieldInitializationInfo {
       ArgumentInfoCollection argumentInfoCollection);
 
   InstanceFieldInitializationInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
 }

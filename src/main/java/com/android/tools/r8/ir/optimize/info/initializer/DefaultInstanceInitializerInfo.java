@@ -74,7 +74,10 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
 
   @Override
   public InstanceInitializerInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems) {
     return this;
   }
 

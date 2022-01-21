@@ -62,11 +62,14 @@ public class ContextSensitiveInstanceInitializerInfoCollection
 
   @Override
   public InstanceInitializerInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems) {
     Builder builder = builder();
     infos.forEach(
         (context, info) ->
-            builder.put(context, info.rewrittenWithLens(appView, lens, prunedItems)));
+            builder.put(context, info.rewrittenWithLens(appView, lens, codeLens, prunedItems)));
     return builder.build();
   }
 }

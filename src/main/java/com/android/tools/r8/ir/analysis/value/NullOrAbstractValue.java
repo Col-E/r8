@@ -44,8 +44,8 @@ public class NullOrAbstractValue extends AbstractValue {
 
   @Override
   public NullOrAbstractValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    return new NullOrAbstractValue(value.rewrittenWithLens(appView, lens));
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+    return new NullOrAbstractValue(value.rewrittenWithLens(appView, lens, codeLens));
   }
 
   @Override

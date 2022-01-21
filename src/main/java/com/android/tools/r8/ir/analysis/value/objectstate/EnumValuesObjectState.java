@@ -71,10 +71,11 @@ public class EnumValuesObjectState extends ObjectState {
   }
 
   @Override
-  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public ObjectState rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     ObjectState[] newState = new ObjectState[state.length];
     for (int i = 0; i < state.length; i++) {
-      newState[i] = state[i].rewrittenWithLens(appView, lens);
+      newState[i] = state[i].rewrittenWithLens(appView, lens, codeLens);
     }
     return new EnumValuesObjectState(newState);
   }

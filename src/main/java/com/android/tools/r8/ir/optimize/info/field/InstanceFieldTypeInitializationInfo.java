@@ -55,7 +55,7 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
 
   @Override
   public InstanceFieldInitializationInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     EnumDataMap enumDataMap = appView.unboxedEnums();
     if (dynamicLowerBoundType != null
         && enumDataMap.isUnboxedEnum(dynamicLowerBoundType.getClassType())) {
@@ -69,9 +69,9 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
     }
     return new InstanceFieldTypeInitializationInfo(
         dynamicLowerBoundType != null
-            ? dynamicLowerBoundType.rewrittenWithLens(appView, lens).asClassType()
+            ? dynamicLowerBoundType.rewrittenWithLens(appView, lens, codeLens).asClassType()
             : null,
-        dynamicUpperBoundType.rewrittenWithLens(appView, lens));
+        dynamicUpperBoundType.rewrittenWithLens(appView, lens, codeLens));
   }
 
   @Override

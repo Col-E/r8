@@ -47,7 +47,8 @@ public class KnownLengthArrayState extends ObjectState {
   }
 
   @Override
-  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public ObjectState rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     return this;
   }
 

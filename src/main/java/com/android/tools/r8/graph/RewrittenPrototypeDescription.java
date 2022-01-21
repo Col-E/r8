@@ -52,7 +52,7 @@ public class RewrittenPrototypeDescription {
 
           @Override
           public ArgumentInfo rewrittenWithLens(
-              AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+              AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
             return this;
           }
 
@@ -100,7 +100,7 @@ public class RewrittenPrototypeDescription {
     public abstract ArgumentInfo combine(ArgumentInfo info);
 
     public abstract ArgumentInfo rewrittenWithLens(
-        AppView<AppInfoWithLiveness> appView, GraphLens graphLens);
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens);
 
     @Override
     public abstract boolean equals(Object obj);
@@ -186,10 +186,10 @@ public class RewrittenPrototypeDescription {
 
     @Override
     public RemovedArgumentInfo rewrittenWithLens(
-        AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
       SingleValue rewrittenSingleValue =
-          hasSingleValue() ? singleValue.rewrittenWithLens(appView, graphLens) : null;
-      DexType rewrittenType = graphLens.lookupType(type);
+          hasSingleValue() ? singleValue.rewrittenWithLens(appView, graphLens, codeLens) : null;
+      DexType rewrittenType = graphLens.lookupType(type, codeLens);
       if (rewrittenSingleValue != singleValue || rewrittenType != type) {
         return new RemovedArgumentInfo(checkNullOrZero, rewrittenSingleValue, rewrittenType);
       }
@@ -303,11 +303,14 @@ public class RewrittenPrototypeDescription {
 
     @Override
     public RewrittenTypeInfo rewrittenWithLens(
-        AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
-      DexType rewrittenCastType = castType != null ? graphLens.lookupType(castType) : null;
-      DexType rewrittenNewType = graphLens.lookupType(newType);
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
+      DexType rewrittenCastType =
+          castType != null ? graphLens.lookupType(castType, codeLens) : null;
+      DexType rewrittenNewType = graphLens.lookupType(newType, codeLens);
       SingleValue rewrittenSingleValue =
-          hasSingleValue() ? getSingleValue().rewrittenWithLens(appView, graphLens) : null;
+          hasSingleValue()
+              ? getSingleValue().rewrittenWithLens(appView, graphLens, codeLens)
+              : null;
       if (rewrittenCastType != castType
           || rewrittenNewType != newType
           || rewrittenSingleValue != singleValue) {
@@ -332,12 +335,6 @@ public class RewrittenPrototypeDescription {
     @Override
     public int hashCode() {
       return Objects.hash(oldType, newType, singleValue);
-    }
-
-    public boolean verifyIsDueToUnboxing(DexItemFactory dexItemFactory) {
-      assert oldType.toBaseType(dexItemFactory).isClassType();
-      assert newType.toBaseType(dexItemFactory).isIntType();
-      return true;
     }
 
     public static class Builder {
@@ -479,11 +476,12 @@ public class RewrittenPrototypeDescription {
     }
 
     public ArgumentInfoCollection rewrittenWithLens(
-        AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+        AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
       Int2ObjectSortedMap<ArgumentInfo> rewrittenArgumentInfos = new Int2ObjectRBTreeMap<>();
       for (Int2ObjectMap.Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
         ArgumentInfo argumentInfo = entry.getValue();
-        ArgumentInfo rewrittenArgumentInfo = argumentInfo.rewrittenWithLens(appView, graphLens);
+        ArgumentInfo rewrittenArgumentInfo =
+            argumentInfo.rewrittenWithLens(appView, graphLens, codeLens);
         if (rewrittenArgumentInfo != argumentInfo) {
           rewrittenArgumentInfos.put(entry.getIntKey(), rewrittenArgumentInfo);
         }
@@ -825,11 +823,13 @@ public class RewrittenPrototypeDescription {
   }
 
   public RewrittenPrototypeDescription rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens graphLens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
     ArgumentInfoCollection newArgumentInfoCollection =
-        argumentInfoCollection.rewrittenWithLens(appView, graphLens);
+        argumentInfoCollection.rewrittenWithLens(appView, graphLens, codeLens);
     RewrittenTypeInfo newRewrittenReturnInfo =
-        hasRewrittenReturnInfo() ? rewrittenReturnInfo.rewrittenWithLens(appView, graphLens) : null;
+        hasRewrittenReturnInfo()
+            ? rewrittenReturnInfo.rewrittenWithLens(appView, graphLens, codeLens)
+            : null;
     if (newArgumentInfoCollection != argumentInfoCollection
         || newRewrittenReturnInfo != rewrittenReturnInfo) {
       return new RewrittenPrototypeDescription(

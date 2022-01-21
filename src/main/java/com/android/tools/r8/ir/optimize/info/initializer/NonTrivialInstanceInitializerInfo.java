@@ -111,12 +111,15 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
 
   @Override
   public NonTrivialInstanceInitializerInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems) {
     return new NonTrivialInstanceInitializerInfo(
         data,
-        fieldInitializationInfos.rewrittenWithLens(appView, lens),
-        readSet.rewrittenWithLens(appView, lens, prunedItems),
-        lens.getRenamedMethodSignature(parent));
+        fieldInitializationInfos.rewrittenWithLens(appView, lens, codeLens),
+        readSet.rewrittenWithLens(appView, lens, codeLens, prunedItems),
+        lens.getRenamedMethodSignature(parent, codeLens));
   }
 
   @Override

@@ -56,5 +56,5 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
 
   @Override
   public abstract SingleValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
 }

@@ -29,7 +29,8 @@ public class UnknownValue extends AbstractValue {
   }
 
   @Override
-  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public AbstractValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     return this;
   }
 

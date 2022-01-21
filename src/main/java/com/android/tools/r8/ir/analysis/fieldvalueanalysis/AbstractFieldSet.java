@@ -77,5 +77,5 @@ public abstract class AbstractFieldSet {
       AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection);
 
   public abstract AbstractFieldSet rewrittenWithLens(
-      AppView<?> appView, GraphLens lens, PrunedItems prunedItems);
+      AppView<?> appView, GraphLens lens, GraphLens codeLens, PrunedItems prunedItems);
 }

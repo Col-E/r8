@@ -244,7 +244,7 @@ public abstract class AbstractValue {
   }
 
   public abstract AbstractValue rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
 
   @Override
   public abstract boolean equals(Object o);

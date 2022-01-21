@@ -114,9 +114,11 @@ public class SingleDexItemBasedStringValue extends SingleConstValue {
   }
 
   @Override
-  public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public SingleValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     return appView
         .abstractValueFactory()
-        .createSingleDexItemBasedStringValue(lens.rewriteReference(item), nameComputationInfo);
+        .createSingleDexItemBasedStringValue(
+            lens.rewriteReference(item, codeLens), nameComputationInfo);
   }
 }

@@ -41,7 +41,10 @@ public abstract class InstanceInitializerInfoCollection {
       AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection);
 
   public abstract InstanceInitializerInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems);
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems);
 
   public static class Builder {
 

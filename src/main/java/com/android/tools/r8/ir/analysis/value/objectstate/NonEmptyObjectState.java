@@ -42,11 +42,14 @@ public class NonEmptyObjectState extends ObjectState {
   }
 
   @Override
-  public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public ObjectState rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     Map<DexField, AbstractValue> rewrittenState = new IdentityHashMap<>();
     state.forEach(
         (field, value) ->
-            rewrittenState.put(lens.lookupField(field), value.rewrittenWithLens(appView, lens)));
+            rewrittenState.put(
+                lens.lookupField(field, codeLens),
+                value.rewrittenWithLens(appView, lens, codeLens)));
     return new NonEmptyObjectState(rewrittenState);
   }
 

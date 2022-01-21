@@ -48,9 +48,12 @@ public class ContextInsensitiveInstanceInitializerInfoCollection
 
   @Override
   public ContextInsensitiveInstanceInitializerInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems) {
     NonTrivialInstanceInitializerInfo rewrittenInfo =
-        info.rewrittenWithLens(appView, lens, prunedItems);
+        info.rewrittenWithLens(appView, lens, codeLens, prunedItems);
     if (rewrittenInfo != info) {
       return new ContextInsensitiveInstanceInitializerInfoCollection(rewrittenInfo);
     }

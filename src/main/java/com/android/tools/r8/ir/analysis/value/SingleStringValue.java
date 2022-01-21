@@ -101,7 +101,8 @@ public class SingleStringValue extends SingleConstValue {
   }
 
   @Override
-  public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public SingleValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     return this;
   }
 }

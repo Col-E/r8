@@ -135,7 +135,8 @@ public abstract class SingleFieldValue extends SingleValue {
   }
 
   @Override
-  public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public SingleValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     AbstractValueFactory factory = appView.abstractValueFactory();
     if (field.holder == field.type) {
       EnumDataMap enumDataMap = appView.unboxedEnums();
@@ -143,8 +144,8 @@ public abstract class SingleFieldValue extends SingleValue {
         return factory.createSingleNumberValue(enumDataMap.getUnboxedValue(field));
       }
     }
-    DexField rewrittenField = lens.lookupField(field);
-    ObjectState rewrittenObjectState = getObjectState().rewrittenWithLens(appView, lens);
+    DexField rewrittenField = lens.lookupField(field, codeLens);
+    ObjectState rewrittenObjectState = getObjectState().rewrittenWithLens(appView, lens, codeLens);
     if (rewrittenField != field || rewrittenObjectState != getObjectState()) {
       return factory.createSingleFieldValue(rewrittenField, rewrittenObjectState);
     }

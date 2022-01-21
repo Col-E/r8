@@ -51,7 +51,7 @@ public abstract class ObjectState {
   public abstract boolean isEmpty();
 
   public abstract ObjectState rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
 
   @Override
   public abstract boolean equals(Object o);

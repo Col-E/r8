@@ -60,7 +60,7 @@ public class EmptyInstanceFieldInitializationInfoCollection
 
   @Override
   public InstanceFieldInitializationInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     return this;
   }
 

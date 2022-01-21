@@ -76,5 +76,8 @@ public abstract class InstanceInitializerInfo {
       AppView<AppInfoWithLiveness> appView, ArgumentInfoCollection argumentInfoCollection);
 
   public abstract InstanceInitializerInfo rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems);
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems);
 }

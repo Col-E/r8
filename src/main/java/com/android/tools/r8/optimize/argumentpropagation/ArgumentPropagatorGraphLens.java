@@ -177,7 +177,8 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
       for (Entry<DexMethod, RewrittenPrototypeDescription> entry : prototypeChanges.entrySet()) {
         RewrittenPrototypeDescription prototypeChangesForMethod = entry.getValue();
         RewrittenPrototypeDescription rewrittenPrototypeChangesForMethod =
-            prototypeChangesForMethod.rewrittenWithLens(appView, argumentPropagatorGraphLens);
+            prototypeChangesForMethod.rewrittenWithLens(
+                appView, argumentPropagatorGraphLens, argumentPropagatorGraphLens.getPrevious());
         if (rewrittenPrototypeChangesForMethod != prototypeChangesForMethod) {
           entry.setValue(rewrittenPrototypeChangesForMethod);
         }

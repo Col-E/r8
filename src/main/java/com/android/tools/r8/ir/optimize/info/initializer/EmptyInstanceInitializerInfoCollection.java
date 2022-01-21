@@ -45,7 +45,10 @@ public class EmptyInstanceInitializerInfoCollection extends InstanceInitializerI
 
   @Override
   public EmptyInstanceInitializerInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<AppInfoWithLiveness> appView,
+      GraphLens lens,
+      GraphLens codeLens,
+      PrunedItems prunedItems) {
     return this;
   }
 }

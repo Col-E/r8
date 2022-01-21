@@ -89,7 +89,7 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
 
   @Override
   public AbstractFieldSet rewrittenWithLens(
-      AppView<?> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<?> appView, GraphLens lens, GraphLens codeLens, PrunedItems prunedItems) {
     assert !isEmpty();
     ConcreteMutableFieldSet rewrittenSet = new ConcreteMutableFieldSet();
     for (DexEncodedField field : fields) {

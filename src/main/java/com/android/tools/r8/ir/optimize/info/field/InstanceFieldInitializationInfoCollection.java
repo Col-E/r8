@@ -48,7 +48,7 @@ public abstract class InstanceFieldInitializationInfoCollection {
       ArgumentInfoCollection argumentInfoCollection);
 
   public abstract InstanceFieldInitializationInfoCollection rewrittenWithLens(
-      AppView<AppInfoWithLiveness> appView, GraphLens lens);
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens);
 
   public static class Builder {
 

@@ -50,8 +50,9 @@ public class StatefulObjectValue extends AbstractValue {
   }
 
   @Override
-  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
-    return create(getObjectState().rewrittenWithLens(appView, lens));
+  public AbstractValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
+    return create(getObjectState().rewrittenWithLens(appView, lens, codeLens));
   }
 
   @Override

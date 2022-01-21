@@ -73,7 +73,7 @@ public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
   @Override
   public AbstractFieldSet rewrittenWithLens(
-      AppView<?> appView, GraphLens lens, PrunedItems prunedItems) {
+      AppView<?> appView, GraphLens lens, GraphLens codeLens, PrunedItems prunedItems) {
     return this;
   }
 

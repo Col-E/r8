@@ -73,7 +73,8 @@ public class NumberFromIntervalValue extends NonConstantNumberValue {
   }
 
   @Override
-  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLens lens) {
+  public AbstractValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLens lens, GraphLens codeLens) {
     return this;
   }
 
