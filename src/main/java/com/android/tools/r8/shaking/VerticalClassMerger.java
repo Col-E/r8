@@ -1983,7 +1983,7 @@ public class VerticalClassMerger {
     }
 
     @Override
-    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+    public DexMethod getPreviousMethodSignature(DexMethod method) {
       throw new Unreachable();
     }
 

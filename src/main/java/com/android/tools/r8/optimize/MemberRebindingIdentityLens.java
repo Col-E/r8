@@ -115,7 +115,7 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
-  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+  public DexMethod getPreviousMethodSignature(DexMethod method) {
     return method;
   }
 

@@ -86,6 +86,11 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
+  public boolean isVerticalClassMergerLens() {
+    return true;
+  }
+
+  @Override
   protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
     Collection<DexType> originalTypes = mergedClasses.getSourcesFor(previous);
     Iterable<DexType> currentType = IterableUtils.singleton(previous);
@@ -130,8 +135,8 @@ public class VerticalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
-  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
-    return super.internalGetPreviousMethodSignature(
+  public DexMethod getPreviousMethodSignature(DexMethod method) {
+    return super.getPreviousMethodSignature(
         originalMethodSignaturesForBridges.getOrDefault(method, method));
   }
 

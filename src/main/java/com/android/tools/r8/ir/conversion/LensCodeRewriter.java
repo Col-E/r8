@@ -104,9 +104,12 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.verticalclassmerging.InterfaceTypeToClassTypeLensCodeRewriterHelper;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -116,10 +119,34 @@ import java.util.function.BiFunction;
 
 public class LensCodeRewriter {
 
+  private static class GraphLensInterval {
+
+    private final NonIdentityGraphLens graphLens;
+    private final GraphLens codeLens;
+    private final DexMethod method;
+
+    GraphLensInterval(NonIdentityGraphLens graphLens, GraphLens codeLens, DexMethod method) {
+      this.graphLens = graphLens;
+      this.codeLens = codeLens;
+      this.method = method;
+    }
+
+    public NonIdentityGraphLens getGraphLens() {
+      return graphLens;
+    }
+
+    public GraphLens getCodeLens() {
+      return codeLens;
+    }
+
+    public DexMethod getMethod() {
+      return method;
+    }
+  }
+
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DexItemFactory factory;
   private final EnumUnboxer enumUnboxer;
-  private LensCodeRewriterUtils helper = null;
   private final InternalOptions options;
 
   LensCodeRewriter(AppView<? extends AppInfoWithClassHierarchy> appView, EnumUnboxer enumUnboxer) {
@@ -127,15 +154,6 @@ public class LensCodeRewriter {
     this.factory = appView.dexItemFactory();
     this.enumUnboxer = enumUnboxer;
     this.options = appView.options();
-  }
-
-  private LensCodeRewriterUtils getHelper(NonIdentityGraphLens graphLens, GraphLens codeLens) {
-    // The LensCodeRewriterUtils uses internal caches that are not valid if the graphLens changes.
-    if (helper != null && helper.hasGraphLens(graphLens, codeLens)) {
-      return helper;
-    }
-    helper = new LensCodeRewriterUtils(appView, graphLens, codeLens);
-    return helper;
   }
 
   private Value makeOutValue(
@@ -159,23 +177,25 @@ public class LensCodeRewriter {
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, ProgramMethod method, MethodProcessor methodProcessor) {
-    GraphLens graphLens = appView.graphLens();
-    if (graphLens.isIdentityLens()) {
-      return;
-    }
+    Deque<GraphLensInterval> unappliedLenses = getUnappliedLenses(method);
     DexMethod originalMethodReference =
         appView.graphLens().getOriginalMethodSignature(method.getReference());
-    RewrittenPrototypeDescription prototypeChanges =
-        graphLens.lookupPrototypeChangesForMethodDefinition(
-            method.getReference(), appView.codeLens());
-    rewritePartial(
-        code,
-        method,
-        originalMethodReference,
-        methodProcessor,
-        graphLens.asNonIdentityLens(),
-        appView.codeLens(),
-        prototypeChanges);
+    while (!unappliedLenses.isEmpty()) {
+      GraphLensInterval unappliedLens = unappliedLenses.removeLast();
+      RewrittenPrototypeDescription prototypeChanges =
+          unappliedLens
+              .getGraphLens()
+              .lookupPrototypeChangesForMethodDefinition(
+                  unappliedLens.getMethod(), unappliedLens.getCodeLens());
+      rewritePartial(
+          code,
+          method,
+          originalMethodReference,
+          methodProcessor,
+          unappliedLens.getGraphLens(),
+          unappliedLens.getCodeLens(),
+          prototypeChanges);
+    }
     assert code.hasNoMergedClasses(appView);
   }
 
@@ -187,35 +207,34 @@ public class LensCodeRewriter {
       NonIdentityGraphLens graphLens,
       GraphLens codeLens,
       RewrittenPrototypeDescription prototypeChanges) {
-    // TODO(b/199864962): Enum unboxing rewriting should not be part of default rewriting.
-    rewritePartialDefault(
-        code,
-        method,
-        originalMethodReference,
-        methodProcessor,
-        graphLens,
-        codeLens,
-        prototypeChanges);
-  }
-
-  private void rewritePartialDefault(
-      IRCode code,
-      ProgramMethod method,
-      DexMethod originalMethodReference,
-      MethodProcessor methodProcessor,
-      NonIdentityGraphLens graphLens,
-      GraphLens codeLens,
-      RewrittenPrototypeDescription prototypeChangesForMethod) {
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
     // we track all phi's that needs to be re-computed.
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     Set<UnusedArgument> unusedArguments = Sets.newIdentityHashSet();
     rewriteArguments(
-        code, originalMethodReference, prototypeChangesForMethod, affectedPhis, unusedArguments);
-    affectedPhis.addAll(enumUnboxer.rewriteCode(code, methodProcessor, prototypeChangesForMethod));
+        code, originalMethodReference, prototypeChanges, affectedPhis, unusedArguments);
+    if (graphLens.hasCustomCodeRewritings()) {
+      assert graphLens.isEnumUnboxerLens();
+      assert graphLens.getPrevious() == codeLens;
+      affectedPhis.addAll(enumUnboxer.rewriteCode(code, methodProcessor, prototypeChanges));
+    }
+    rewritePartialDefault(
+        code, method, graphLens, codeLens, prototypeChanges, affectedPhis, unusedArguments);
+  }
+
+  private void rewritePartialDefault(
+      IRCode code,
+      ProgramMethod method,
+      NonIdentityGraphLens graphLens,
+      GraphLens codeLens,
+      RewrittenPrototypeDescription prototypeChangesForMethod,
+      Set<Phi> affectedPhis,
+      Set<UnusedArgument> unusedArguments) {
     BasicBlockIterator blocks = code.listIterator();
+    LazyBox<LensCodeRewriterUtils> helper =
+        new LazyBox<>(() -> new LensCodeRewriterUtils(appView, graphLens, codeLens));
     InterfaceTypeToClassTypeLensCodeRewriterHelper interfaceTypeToClassTypeRewriterHelper =
-        InterfaceTypeToClassTypeLensCodeRewriterHelper.create(appView, code, methodProcessor);
+        InterfaceTypeToClassTypeLensCodeRewriterHelper.create(appView, code, graphLens, codeLens);
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -233,8 +252,7 @@ public class LensCodeRewriter {
             {
               InvokeCustom invokeCustom = current.asInvokeCustom();
               DexCallSite callSite = invokeCustom.getCallSite();
-              DexCallSite newCallSite =
-                  getHelper(graphLens, codeLens).rewriteCallSite(callSite, method);
+              DexCallSite newCallSite = helper.computeIfAbsent().rewriteCallSite(callSite, method);
               if (newCallSite != callSite) {
                 Value newOutValue = makeOutValue(invokeCustom, code, graphLens, codeLens);
                 InvokeCustom newInvokeCustom =
@@ -251,7 +269,8 @@ public class LensCodeRewriter {
             {
               DexMethodHandle handle = current.asConstMethodHandle().getValue();
               DexMethodHandle newHandle =
-                  getHelper(graphLens, codeLens)
+                  helper
+                      .computeIfAbsent()
                       .rewriteDexMethodHandle(handle, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY, method);
               if (newHandle != handle) {
                 Value newOutValue = makeOutValue(current, code, graphLens, codeLens);
@@ -712,7 +731,7 @@ public class LensCodeRewriter {
                 break;
               }
 
-              insertCastForReturnIfNeeded(code, blocks, iterator, ret, graphLens, codeLens);
+              insertCastForReturnIfNeeded(code, blocks, iterator, ret, prototypeChangesForMethod);
 
               DexType returnType = code.context().getReturnType();
               Value retValue = ret.returnValue();
@@ -748,7 +767,7 @@ public class LensCodeRewriter {
             if (current.hasOutValue()) {
               // For all other instructions, substitute any changed type.
               TypeElement type = current.getOutType();
-              TypeElement substituted = type.rewrittenWithLens(appView, graphLens);
+              TypeElement substituted = type.rewrittenWithLens(appView, graphLens, codeLens);
               if (substituted != type) {
                 current.outValue().setType(substituted);
                 affectedPhis.addAll(current.outValue().uniquePhiUsers());
@@ -902,6 +921,35 @@ public class LensCodeRewriter {
     }
   }
 
+  private Deque<GraphLensInterval> getUnappliedLenses(ProgramMethod method) {
+    Deque<GraphLensInterval> unappliedLenses = new ArrayDeque<>(8);
+    GraphLens codeLens = appView.codeLens();
+    GraphLens currentLens = appView.graphLens();
+    DexMethod currentMethod = method.getReference();
+    while (currentLens != codeLens) {
+      assert currentLens.isNonIdentityLens();
+      NonIdentityGraphLens currentNonIdentityLens = currentLens.asNonIdentityLens();
+      NonIdentityGraphLens fromInclusiveLens = currentNonIdentityLens;
+      if (!currentNonIdentityLens.hasCustomCodeRewritings()) {
+        GraphLens fromInclusiveLensPredecessor = fromInclusiveLens.getPrevious();
+        while (fromInclusiveLensPredecessor.isNonIdentityLens()
+            && !fromInclusiveLensPredecessor.hasCustomCodeRewritings()
+            && fromInclusiveLensPredecessor != codeLens) {
+          fromInclusiveLens = fromInclusiveLensPredecessor.asNonIdentityLens();
+          fromInclusiveLensPredecessor = fromInclusiveLens.getPrevious();
+        }
+      }
+      GraphLensInterval unappliedLens =
+          new GraphLensInterval(
+              currentNonIdentityLens, fromInclusiveLens.getPrevious(), currentMethod);
+      unappliedLenses.addLast(unappliedLens);
+      currentLens = unappliedLens.getCodeLens();
+      currentMethod = currentNonIdentityLens.getOriginalMethodSignature(currentMethod, currentLens);
+    }
+    assert unappliedLenses.size() <= 8;
+    return unappliedLenses;
+  }
+
   private InstructionListIterator insertCastForFieldAssignmentIfNeeded(
       IRCode code,
       BasicBlockIterator blocks,
@@ -1039,11 +1087,7 @@ public class LensCodeRewriter {
       BasicBlockIterator blocks,
       InstructionListIterator iterator,
       Return ret,
-      NonIdentityGraphLens graphLens,
-      GraphLens codeLens) {
-    RewrittenPrototypeDescription prototypeChanges =
-        graphLens.lookupPrototypeChangesForMethodDefinition(
-            code.context().getReference(), codeLens);
+      RewrittenPrototypeDescription prototypeChanges) {
     if (!prototypeChanges.hasRewrittenReturnInfo()
         || !prototypeChanges.getRewrittenReturnInfo().hasCastType()) {
       return iterator;

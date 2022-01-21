@@ -50,6 +50,16 @@ class EnumUnboxingLens extends NestedGraphLens {
   }
 
   @Override
+  public boolean hasCustomCodeRewritings() {
+    return true;
+  }
+
+  @Override
+  public boolean isEnumUnboxerLens() {
+    return true;
+  }
+
+  @Override
   protected RewrittenPrototypeDescription internalDescribePrototypeChanges(
       RewrittenPrototypeDescription prototypeChanges, DexMethod method) {
     // Rewrite the single value of the given RewrittenPrototypeDescription if it is referring to an

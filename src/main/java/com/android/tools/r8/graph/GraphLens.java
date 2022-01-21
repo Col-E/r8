@@ -321,7 +321,7 @@ public abstract class GraphLens {
     DexMethod original = method;
     while (current.isNonIdentityLens() && current != atGraphLens) {
       NonIdentityGraphLens nonIdentityLens = current.asNonIdentityLens();
-      original = nonIdentityLens.internalGetPreviousMethodSignature(original);
+      original = nonIdentityLens.getPreviousMethodSignature(original);
       current = nonIdentityLens.getPrevious();
     }
     assert atGraphLens == null ? current.isIdentityLens() : (current == atGraphLens);
@@ -518,11 +518,19 @@ public abstract class GraphLens {
     return true;
   }
 
+  public boolean hasCustomCodeRewritings() {
+    return false;
+  }
+
   public boolean isAppliedLens() {
     return false;
   }
 
   public boolean isClearCodeRewritingLens() {
+    return false;
+  }
+
+  public boolean isEnumUnboxerLens() {
     return false;
   }
 
@@ -548,6 +556,10 @@ public abstract class GraphLens {
 
   public NonIdentityGraphLens asNonIdentityLens() {
     return null;
+  }
+
+  public boolean isVerticalClassMergerLens() {
+    return false;
   }
 
   public GraphLens withCodeRewritingsApplied(DexItemFactory dexItemFactory) {
@@ -764,9 +776,9 @@ public abstract class GraphLens {
     }
 
     @SuppressWarnings("unchecked")
-    public final <T extends NonIdentityGraphLens> T findPrevious(
+    public final <T extends NonIdentityGraphLens> T find(
         Predicate<NonIdentityGraphLens> predicate) {
-      GraphLens current = getPrevious();
+      GraphLens current = this;
       while (current.isNonIdentityLens()) {
         NonIdentityGraphLens nonIdentityGraphLens = current.asNonIdentityLens();
         if (predicate.test(nonIdentityGraphLens)) {
@@ -775,6 +787,13 @@ public abstract class GraphLens {
         current = nonIdentityGraphLens.getPrevious();
       }
       return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public final <T extends NonIdentityGraphLens> T findPrevious(
+        Predicate<NonIdentityGraphLens> predicate) {
+      GraphLens previous = getPrevious();
+      return previous.isNonIdentityLens() ? previous.asNonIdentityLens().find(predicate) : null;
     }
 
     public final void withAlternativeParentLens(GraphLens lens, Action action) {
@@ -861,7 +880,7 @@ public abstract class GraphLens {
       }
       return previousLens.internalLookupMethod(
           reference,
-          internalGetPreviousMethodSignature(context),
+          getPreviousMethodSignature(context),
           type,
           codeLens,
           previous -> continuation.lookupMethod(internalDescribeLookupMethod(previous, context)));
@@ -874,7 +893,7 @@ public abstract class GraphLens {
 
     protected abstract DexType internalDescribeLookupClassType(DexType previous);
 
-    protected abstract DexMethod internalGetPreviousMethodSignature(DexMethod method);
+    public abstract DexMethod getPreviousMethodSignature(DexMethod method);
 
     @Override
     public final boolean isIdentityLens() {
@@ -1080,7 +1099,7 @@ public abstract class GraphLens {
     }
 
     @Override
-    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+    public DexMethod getPreviousMethodSignature(DexMethod method) {
       return method;
     }
 

@@ -20,7 +20,7 @@ import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -64,7 +64,7 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
       IRCode code,
       MethodProcessor methodProcessor,
       RewrittenPrototypeDescription prototypeChanges) {
-    return Sets.newIdentityHashSet();
+    return Collections.emptySet();
   }
 
   @Override

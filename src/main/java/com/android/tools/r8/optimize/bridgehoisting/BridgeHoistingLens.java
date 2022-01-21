@@ -33,7 +33,7 @@ class BridgeHoistingLens extends NonIdentityGraphLens {
   }
 
   @Override
-  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+  public DexMethod getPreviousMethodSignature(DexMethod method) {
     Set<DexMethod> bridges = bridgeToHoistedBridgeMap.getKeys(method);
     return bridges.isEmpty() ? method : bridges.iterator().next();
   }

@@ -154,7 +154,7 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+  public DexMethod getPreviousMethodSignature(DexMethod method) {
     if (extraOriginalMethodSignatures.containsKey(method)) {
       return extraOriginalMethodSignatures.get(method);
     }

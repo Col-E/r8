@@ -233,7 +233,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     if (this == codeLens) {
       return getIdentityLens().lookupPrototypeChangesForMethodDefinition(method, codeLens);
     }
-    DexMethod previous = internalGetPreviousMethodSignature(method);
+    DexMethod previous = getPreviousMethodSignature(method);
     RewrittenPrototypeDescription lookup =
         getPrevious().lookupPrototypeChangesForMethodDefinition(previous, codeLens);
     return internalDescribePrototypeChanges(lookup, method);
@@ -249,7 +249,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+  public DexMethod getPreviousMethodSignature(DexMethod method) {
     return newMethodSignatures.getRepresentativeKeyOrDefault(method, method);
   }
 

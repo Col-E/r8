@@ -414,7 +414,7 @@ public final class InterfaceProcessor {
     }
 
     @Override
-    protected DexMethod internalGetPreviousMethodSignature(DexMethod method) {
+    public DexMethod getPreviousMethodSignature(DexMethod method) {
       return extraNewMethodSignatures.getRepresentativeKeyOrDefault(
           method, newMethodSignatures.getRepresentativeKeyOrDefault(method, method));
     }

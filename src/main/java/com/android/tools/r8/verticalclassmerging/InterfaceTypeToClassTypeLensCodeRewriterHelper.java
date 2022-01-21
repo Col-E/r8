@@ -6,7 +6,9 @@ package com.android.tools.r8.verticalclassmerging;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.FieldPut;
@@ -15,7 +17,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Return;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 
 /**
  * Inserts check-cast instructions after vertical class merging when this is needed for the program
@@ -41,8 +42,13 @@ public abstract class InterfaceTypeToClassTypeLensCodeRewriterHelper {
   public static InterfaceTypeToClassTypeLensCodeRewriterHelper create(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,
-      MethodProcessor methodProcessor) {
-    if (methodProcessor.isPrimaryMethodProcessor() && appView.hasVerticallyMergedClasses()) {
+      NonIdentityGraphLens graphLens,
+      GraphLens codeLens) {
+    NonIdentityGraphLens previousLens =
+        graphLens.find(lens -> lens.isVerticalClassMergerLens() || lens == codeLens);
+    if (previousLens != null
+        && previousLens != codeLens
+        && previousLens.isVerticalClassMergerLens()) {
       return new InterfaceTypeToClassTypeLensCodeRewriterHelperImpl(appView, code);
     }
     return new EmptyInterfaceTypeToClassTypeLensCodeRewriterHelper();
