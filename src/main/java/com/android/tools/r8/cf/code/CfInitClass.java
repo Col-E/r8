@@ -117,6 +117,6 @@ public class CfInitClass extends CfInstruction {
       InitClassLens initClassLens) {
     // ..., →
     // ..., value
-    frameBuilder.push(clazz);
+    frameBuilder.push(factory.intType);
   }
 }
