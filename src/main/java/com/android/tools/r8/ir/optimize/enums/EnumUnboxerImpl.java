@@ -648,6 +648,13 @@ public class EnumUnboxerImpl extends EnumUnboxer {
         checkNotNullMethodsBuilder
             .rewrittenWithLens(appView, (enumClasses, appliedGraphLens) -> enumClasses)
             .build(appView, builder -> builder.build(appView));
+    checkNotNullMethods.removeIf(
+        (checkNotNullMethod, ignore) ->
+            !checkNotNullMethod
+                .getOptimizationInfo()
+                .getEnumUnboxerMethodClassification()
+                .isCheckNotNullClassification());
+
     EnumUnboxingTreeFixer.Result treeFixerResult =
         new EnumUnboxingTreeFixer(
                 appView, checkNotNullMethods, enumDataMap, enumClassesToUnbox, utilityClasses)

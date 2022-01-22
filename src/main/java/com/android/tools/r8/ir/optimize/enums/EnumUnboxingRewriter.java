@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.ArrayAccess;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -136,6 +137,27 @@ public class EnumUnboxingRewriter {
         if (instructionsToRemove.contains(instruction)) {
           iterator.removeOrReplaceByDebugLocalRead();
           continue;
+        }
+
+        if (instruction.isIf()) {
+          If ifInstruction = instruction.asIf();
+          if (!ifInstruction.isZeroTest()) {
+            for (int operandIndex = 0; operandIndex < 2; operandIndex++) {
+              Value operand = ifInstruction.getOperand(operandIndex);
+              DexType enumType = getEnumTypeOrNull(operand, convertedEnums);
+              if (enumType != null) {
+                int otherOperandIndex = 1 - operandIndex;
+                Value otherOperand = ifInstruction.getOperand(otherOperandIndex);
+                if (otherOperand.getType().isNullType()) {
+                  iterator.previous();
+                  ifInstruction.replaceValue(
+                      otherOperandIndex, iterator.insertConstIntInstruction(code, options, 0));
+                  iterator.next();
+                  break;
+                }
+              }
+            }
+          }
         }
 
         // Rewrites specific enum methods, such as ordinal, into their corresponding enum unboxed
