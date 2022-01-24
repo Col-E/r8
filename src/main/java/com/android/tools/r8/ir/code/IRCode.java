@@ -44,11 +44,13 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -1085,20 +1087,41 @@ public class IRCode implements ValueFactory {
         + BooleanUtils.intValue(!context().getDefinition().isStatic());
   }
 
+  public Iterator<Argument> argumentIterator() {
+    return new Iterator<Argument>() {
+
+      private final InstructionIterator instructionIterator = entryBlock().iterator();
+      private Argument next = instructionIterator.next().asArgument();
+
+      @Override
+      public boolean hasNext() {
+        return next != null;
+      }
+
+      @Override
+      public Argument next() {
+        if (next == null) {
+          throw new NoSuchElementException();
+        }
+        Argument previous = next;
+        next = instructionIterator.next().asArgument();
+        return previous;
+      }
+    };
+  }
+
   public List<Value> collectArguments() {
     return collectArguments(false);
   }
 
   public List<Value> collectArguments(boolean ignoreReceiver) {
     final List<Value> arguments = new ArrayList<>();
-    InstructionIterator iterator = entryBlock().iterator();
+    Iterator<Argument> iterator = argumentIterator();
     while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
-      if (instruction.isArgument()) {
-        Value out = instruction.asArgument().outValue();
-        if (!ignoreReceiver || !out.isThis()) {
-          arguments.add(out);
-        }
+      Argument argument = iterator.next();
+      Value out = argument.outValue();
+      if (!ignoreReceiver || !out.isThis()) {
+        arguments.add(out);
       }
     }
     assert arguments.size()

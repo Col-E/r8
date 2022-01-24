@@ -17,6 +17,7 @@ import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.VirtualRootMethodsAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.ArgumentPropagatorReprocessingCriteriaCollection;
+import com.android.tools.r8.optimize.argumentpropagation.unusedarguments.EffectivelyUnusedArgumentsAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ProgramClassesBidirectedGraph;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -44,6 +45,9 @@ public class ArgumentPropagator {
    */
   private ArgumentPropagatorCodeScanner codeScanner;
 
+  /** Collects and solves constraints for effectively unused argument removal. */
+  private EffectivelyUnusedArgumentsAnalysis effectivelyUnusedArgumentsAnalysis;
+
   /**
    * Analyzes the uses of arguments in methods to determine when reprocessing of methods will likely
    * not lead to any additional code optimizations.
@@ -70,6 +74,7 @@ public class ArgumentPropagator {
 
     reprocessingCriteriaCollection = new ArgumentPropagatorReprocessingCriteriaCollection(appView);
     codeScanner = new ArgumentPropagatorCodeScanner(appView, reprocessingCriteriaCollection);
+    effectivelyUnusedArgumentsAnalysis = new EffectivelyUnusedArgumentsAnalysis(appView);
 
     ImmediateProgramSubtypingInfo immediateSubtypingInfo =
         ImmediateProgramSubtypingInfo.create(appView);
@@ -83,12 +88,16 @@ public class ArgumentPropagator {
           // method state to unknown.
           new ArgumentPropagatorUnoptimizableMethods(
                   appView, immediateSubtypingInfo, codeScanner.getMethodStates())
-              .disableArgumentPropagationForUnoptimizableMethods(classes);
+              .initializeUnoptimizableMethodStates(classes);
 
           // Compute the mapping from virtual methods to their root virtual method and the set of
           // monomorphic virtual methods.
           new VirtualRootMethodsAnalysis(appView, immediateSubtypingInfo)
-              .extendVirtualRootMethods(classes, codeScanner);
+              .initializeVirtualRootMethods(classes, codeScanner);
+
+          // Find the virtual methods in the strongly connected component that only have monomorphic
+          // calls.
+          effectivelyUnusedArgumentsAnalysis.initializeOptimizableVirtualMethods(classes);
         },
         executorService);
 
@@ -103,10 +112,14 @@ public class ArgumentPropagator {
       assert methodProcessor.isPrimaryMethodProcessor();
       codeScanner.scan(method, code, timing);
 
+      assert effectivelyUnusedArgumentsAnalysis != null;
+      effectivelyUnusedArgumentsAnalysis.scan(method, code);
+
       assert reprocessingCriteriaCollection != null;
       reprocessingCriteriaCollection.analyzeArgumentUses(method, code);
     } else {
       assert !methodProcessor.isPrimaryMethodProcessor();
+      assert effectivelyUnusedArgumentsAnalysis == null;
       assert !methodProcessor.isPostMethodProcessor() || reprocessingCriteriaCollection == null;
     }
   }
@@ -210,6 +223,11 @@ public class ArgumentPropagator {
             interfaceDispatchOutsideProgram)
         .populateOptimizationInfo(converter, executorService, timing);
     timing.end();
+
+    timing.begin("Compute unused arguments");
+    // TODO(b/215690172): Solve effectively unused argument constraints.
+    effectivelyUnusedArgumentsAnalysis = null;
+    timing.end();
   }
 
   /**
@@ -226,6 +244,9 @@ public class ArgumentPropagator {
     assert codeScanner != null;
     MethodState methodState = codeScanner.getMethodStates().removeOrElse(method, null);
     assert methodState == null || method.getDefinition().belongsToDirectPool();
+
+    assert effectivelyUnusedArgumentsAnalysis != null;
+    effectivelyUnusedArgumentsAnalysis.onMethodPruned(method);
   }
 
   public void onMethodCodePruned(ProgramMethod method) {

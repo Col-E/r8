@@ -114,7 +114,7 @@ public class VirtualRootMethodsAnalysis extends DepthFirstTopDownClassHierarchyT
     super(appView, immediateSubtypingInfo);
   }
 
-  public void extendVirtualRootMethods(
+  public void initializeVirtualRootMethods(
       Collection<DexProgramClass> stronglyConnectedComponent,
       ArgumentPropagatorCodeScanner codeScanner) {
     // Find all the virtual root methods in the strongly connected component.

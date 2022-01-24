@@ -279,6 +279,21 @@ public class ListUtils {
     assert verifyComparatorOnSortedList(items, comparator);
   }
 
+  public static <T> int uniqueIndexMatching(List<T> list, Predicate<T> predicate) {
+    int result = -1;
+    for (int i = 0; i < list.size(); i++) {
+      T element = list.get(i);
+      if (predicate.test(element)) {
+        if (result == -1) {
+          result = i;
+        } else {
+          return -1;
+        }
+      }
+    }
+    return result;
+  }
+
   private static <T> boolean verifyComparatorOnSortedList(List<T> items, Comparator<T> comparator) {
     for (int i = 0; i < items.size(); i++) {
       boolean allowEqual = true;

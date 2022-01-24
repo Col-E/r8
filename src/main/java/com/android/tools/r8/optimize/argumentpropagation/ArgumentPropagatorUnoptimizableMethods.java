@@ -36,7 +36,7 @@ public class ArgumentPropagatorUnoptimizableMethods {
 
   // TODO(b/190154391): Consider if we should bail out for classes that inherit from a missing
   //  class.
-  public void disableArgumentPropagationForUnoptimizableMethods(
+  public void initializeUnoptimizableMethodStates(
       Collection<DexProgramClass> stronglyConnectedComponent) {
     ProgramMethodSet unoptimizableVirtualMethods =
         MethodOverridesCollector.findAllMethodsAndOverridesThatMatches(

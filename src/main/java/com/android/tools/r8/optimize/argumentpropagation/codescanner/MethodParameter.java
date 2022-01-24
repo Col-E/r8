@@ -38,4 +38,9 @@ public class MethodParameter {
   public int hashCode() {
     return Objects.hash(method, index);
   }
+
+  @Override
+  public String toString() {
+    return "MethodParameter(" + method + ", " + index + ")";
+  }
 }
