@@ -73,6 +73,25 @@ public class MemberRebindingAnalysis {
       return original;
     }
 
+    if (invokeType.isSuper() && options.canHaveSuperInvokeBug()) {
+      // To preserve semantics we should find the first library method on the boundary.
+      DexClass libraryHolder =
+          appView.definitionFor(
+              firstLibraryClassOrFirstInterfaceTarget(
+                  resolutionResult.getResolvedHolder(),
+                  appView,
+                  resolvedMethod.getReference(),
+                  original.getHolderType(),
+                  DexClass::lookupMethod));
+      if (libraryHolder == null) {
+        return original;
+      }
+      if (libraryHolder == resolvedMethod.getHolder()) {
+        return resolvedMethod.getReference();
+      }
+      return resolvedMethod.getReference().withHolder(libraryHolder, appView.dexItemFactory());
+    }
+
     LibraryMethod eligibleLibraryMethod = null;
     SingleResolutionResult currentResolutionResult = resolutionResult;
     while (currentResolutionResult != null) {
@@ -106,13 +125,12 @@ public class MemberRebindingAnalysis {
     }
 
     DexType newHolder =
-        resolvedMethod.getHolder().isInterface()
-            ? firstLibraryClassForInterfaceTarget(
-                appView,
-                resolvedMethod.getReference(),
-                original.getHolderType(),
-                DexClass::lookupMethod)
-            : firstLibraryClass(appView, original.getHolderType());
+        firstLibraryClassOrFirstInterfaceTarget(
+            resolvedMethod.getHolder(),
+            appView,
+            resolvedMethod.getReference(),
+            original.getHolderType(),
+            DexClass::lookupMethod);
     return newHolder != null ? original.withHolder(newHolder, appView.dexItemFactory()) : original;
   }
 
@@ -159,13 +177,26 @@ public class MemberRebindingAnalysis {
     }
     DexClass fieldHolder = field.getHolder();
     DexType newHolder =
-        fieldHolder.isInterface()
-            ? firstLibraryClassForInterfaceTarget(
-                definitions, field.getReference(), original.getHolderType(), DexClass::lookupField)
-            : firstLibraryClass(definitions, original.getHolderType());
+        firstLibraryClassOrFirstInterfaceTarget(
+            fieldHolder,
+            definitions,
+            field.getReference(),
+            original.getHolderType(),
+            DexClass::lookupField);
     return newHolder != null
         ? original.withHolder(newHolder, definitions.dexItemFactory())
         : original;
+  }
+
+  private static <T> DexType firstLibraryClassOrFirstInterfaceTarget(
+      DexClass holder,
+      DexDefinitionSupplier definitions,
+      T target,
+      DexType current,
+      BiFunction<DexClass, T, ?> lookup) {
+    return holder.isInterface()
+        ? firstLibraryClassForInterfaceTarget(definitions, target, current, lookup)
+        : firstLibraryClass(definitions, current);
   }
 
   private static <T> DexType firstLibraryClassForInterfaceTarget(

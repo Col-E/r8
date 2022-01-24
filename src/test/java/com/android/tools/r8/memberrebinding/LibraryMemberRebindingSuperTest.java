@@ -11,7 +11,6 @@ import static com.android.tools.r8.utils.AndroidApiLevel.B;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.apimodel.ApiModelingTestHelper;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -53,9 +52,6 @@ public class LibraryMemberRebindingSuperTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    boolean hasIncorrectSuperInvokeSemantics =
-        parameters.isDexRuntimeVersion(Version.V5_1_1)
-            || parameters.isDexRuntimeVersion(Version.V6_0_1);
     testForR8(parameters.getBackend())
         .addLibraryClasses(LIBRARY_CLASSES)
         .addDefaultRuntimeLibrary(parameters)
@@ -72,9 +68,7 @@ public class LibraryMemberRebindingSuperTest extends TestBase {
         .compile()
         .addRunClasspathClasses(LIBRARY_CLASSES)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputIf(!hasIncorrectSuperInvokeSemantics, EXPECTED)
-        // TODO(b/215573892): R8 should never produce the invalid result.
-        .assertSuccessWithOutputIf(hasIncorrectSuperInvokeSemantics, R8_INVALID);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   public static class LibraryBase {

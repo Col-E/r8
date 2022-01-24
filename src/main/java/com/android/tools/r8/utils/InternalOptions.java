@@ -2338,4 +2338,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canParseNumbersWithPlusPrefix() {
     return getMinApiLevel().isGreaterThan(AndroidApiLevel.K);
   }
+
+  // Lollipop and Marshmallow devices do not correctly handle invoke-super when the static holder
+  // is higher up in the hierarchy than the method that the invoke-super should resolve to.
+  //
+  // See b/215573892.
+  public boolean canHaveSuperInvokeBug() {
+    return getMinApiLevel().isLessThan(AndroidApiLevel.N);
+  }
 }
