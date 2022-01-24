@@ -181,7 +181,7 @@ final class InlineCandidateProcessor {
     DexEncodedField field = fieldResolutionResult.getResolvedField();
     FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
     DynamicType dynamicType = optimizationInfo.getDynamicType();
-    if (!dynamicType.isExactClassType()) {
+    if (!dynamicType.isExactClassType() || !dynamicType.getNullability().isDefinitelyNotNull()) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }
     eligibleClass =

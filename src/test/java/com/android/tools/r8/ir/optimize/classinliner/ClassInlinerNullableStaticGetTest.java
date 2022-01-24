@@ -34,8 +34,7 @@ public class ClassInlinerNullableStaticGetTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/215742573): Should fail with NPE.
-        .assertSuccessWithOutputLines("Hello!");
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
   static class Main {
