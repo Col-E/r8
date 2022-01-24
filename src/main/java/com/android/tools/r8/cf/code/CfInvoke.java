@@ -213,8 +213,17 @@ public class CfInvoke extends CfInstruction {
           // target less specific targets (up in the hierarchy).
           AppView<?> appView = builder.appView;
           ProgramMethod context = builder.getProgramMethod();
-          canonicalMethod = method;
           type = Invoke.Type.fromInvokeSpecial(method, context, appView, builder.getCodeLens());
+          if (type.isSuper()
+              && appView.options().isGeneratingDex()
+              && appView.options().canHaveSuperInvokeBug()
+              && appView.codeLens().isIdentityLens()
+              && method.getHolderType() != context.getHolder().superType) {
+            canonicalMethod =
+                method.withHolder(context.getHolder().superType, appView.dexItemFactory());
+          } else {
+            canonicalMethod = method;
+          }
           break;
         }
       case Opcodes.INVOKESTATIC:
