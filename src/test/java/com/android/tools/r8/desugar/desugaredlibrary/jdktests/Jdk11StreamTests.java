@@ -153,6 +153,15 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         "org/openjdk/tests/java/util/stream/FindAnyOpTest.java"
       };
 
+  private boolean streamCloseTestShouldSucceed() {
+    if (!isJDK11DesugaredLibrary()) {
+      return false;
+    }
+    // TODO(b/216047740): Investigate if this runs on Dalvik VMs.
+    // StreamCloseTest relies on suppressed exceptions which may not work on Dalvik VMs.
+    return parameters.getDexRuntimeVersion().isNewerThan(Version.V4_4_4);
+  }
+
   private Map<String, String> getSuccessfulTests() {
     Map<String, String> runnableTests = getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS);
     if (isJDK11DesugaredLibrary()) {
@@ -160,9 +169,9 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
       if (parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0)) {
         runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
       }
-      if (!parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)) {
-        runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
-      }
+    }
+    if (streamCloseTestShouldSucceed()) {
+      runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
     }
     return runnableTests;
   }
@@ -172,14 +181,11 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
     if (!isJDK11DesugaredLibrary()) {
       runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_ONLY));
       runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
+    } else if (!parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0)) {
+      runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
+    }
+    if (!streamCloseTestShouldSucceed()) {
       runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
-    } else {
-      if (parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.K)) {
-        runnableTests.putAll(getRunnableTests(STREAM_CLOSE_TESTS));
-      }
-      if (!parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0)) {
-        runnableTests.putAll(getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS_ON_JDK11_AND_V7));
-      }
     }
     return runnableTests;
   }
