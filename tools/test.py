@@ -118,7 +118,7 @@ def ParseOptions():
       help='Use a custom java version to run tests.')
   result.add_option('--java-max-memory-size', '--java_max_memory_size',
       help='Set memory for running tests, default 4G',
-      default='4G')
+      default=os.environ.get('R8_JAVA_MAX_MEMORY_SIZE', '4G'))
   result.add_option('--test-namespace', '--test_namespace',
       help='Only run tests in  this namespace. The namespace is relative to '
           'com/android/tools/r8, e.g., desugar/desugaredlibrary',
