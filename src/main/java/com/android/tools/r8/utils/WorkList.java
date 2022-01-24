@@ -117,6 +117,12 @@ public class WorkList<T> {
     return workingList.removeFirst();
   }
 
+  public T removeSeen() {
+    T next = next();
+    seen.remove(next);
+    return next;
+  }
+
   public Set<T> getSeenSet() {
     return Collections.unmodifiableSet(seen);
   }

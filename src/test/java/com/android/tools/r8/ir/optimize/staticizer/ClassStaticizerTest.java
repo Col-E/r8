@@ -170,9 +170,8 @@ public class ClassStaticizerTest extends TestBase {
     assertEquals(
         Lists.newArrayList(
             "STATIC: String SimpleWithParams.bar(String)",
-            "STATIC: String TrivialTestClass.next()",
-            "SimpleWithParams SimpleWithParams.INSTANCE",
-            "VIRTUAL: String SimpleWithParams.foo()"),
+            "STATIC: String SimpleWithParams.foo()",
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithParams", "void"));
 
     ClassSubject simpleWithParams = inspector.clazz(SimpleWithParams.class);
@@ -199,20 +198,18 @@ public class ClassStaticizerTest extends TestBase {
         references(clazz, "testSimpleWithGetter", "void"));
 
     ClassSubject simpleWithGetter = inspector.clazz(SimpleWithGetter.class);
-    assertTrue(instanceMethods(simpleWithGetter).isEmpty());
-    assertThat(simpleWithGetter.clinit(), not(isPresent()));
+    assertEquals(0, instanceMethods(simpleWithGetter).size());
+    assertThat(simpleWithGetter.clinit(), isAbsent());
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String SimpleWithThrowingGetter.bar(String)",
-            "STATIC: String TrivialTestClass.next()",
-            "SimpleWithThrowingGetter SimpleWithThrowingGetter.INSTANCE",
-            "VIRTUAL: String SimpleWithThrowingGetter.foo()"),
+            "STATIC: String SimpleWithLazyInit.bar$1(String)",
+            "STATIC: String SimpleWithLazyInit.foo$1()",
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithThrowingGetter", "void"));
 
     ClassSubject simpleWithThrowingGetter = inspector.clazz(SimpleWithThrowingGetter.class);
-    assertFalse(instanceMethods(simpleWithThrowingGetter).isEmpty());
-    assertThat(simpleWithThrowingGetter.clinit(), isPresent());
+    assertThat(simpleWithThrowingGetter, isAbsent());
 
     // TODO(b/143389508): add support for lazy init in singleton instance getter.
     assertEquals(
@@ -220,19 +217,19 @@ public class ClassStaticizerTest extends TestBase {
             "DIRECT: void SimpleWithLazyInit.<init>()",
             "DIRECT: void SimpleWithLazyInit.<init>()",
             "STATIC: String SimpleWithLazyInit.bar(String)",
+            "STATIC: String SimpleWithLazyInit.foo()",
             "STATIC: String TrivialTestClass.next()",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
             "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
-            "VIRTUAL: String SimpleWithLazyInit.foo()"),
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE"),
         references(clazz, "testSimpleWithLazyInit", "void"));
 
     ClassSubject simpleWithLazyInit = inspector.clazz(SimpleWithLazyInit.class);
     assertFalse(instanceMethods(simpleWithLazyInit).isEmpty());
-    assertThat(simpleWithLazyInit.clinit(), not(isPresent()));
+    assertThat(simpleWithLazyInit.clinit(), isPresent());
   }
 
   @Test

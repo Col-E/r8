@@ -5,6 +5,8 @@ package com.android.tools.r8.naming.retraceproguard;
 
 import static com.android.tools.r8.naming.retraceproguard.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retraceproguard.StackTrace.isSameExceptForFileNameAndLineNumber;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -12,11 +14,16 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.naming.retraceproguard.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -75,45 +82,54 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     return height;
   }
 
-  private boolean filterSynthesizedMethod(StackTraceLine retracedStackTraceLine) {
-    return retracedStackTraceLine.lineNumber > 0;
+  private boolean filterSynthesizedMethod(
+      StackTraceLine retracedStackTraceLine, MethodSubject syntheticMethod) {
+    if (syntheticMethod.isPresent()) {
+      String qualifiedMethodName =
+          retracedStackTraceLine.className + "." + retracedStackTraceLine.methodName;
+      return !qualifiedMethodName.equals(syntheticMethod.getOriginalName())
+          || retracedStackTraceLine.lineNumber > 0;
+    }
+    return true;
   }
 
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
+    Box<MethodSubject> syntheticMethod = new Box<>();
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           // Even when SourceFile is present retrace replaces the file name in the stack trace.
           StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG
-                  ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedMethod);
+              retracedStackTrace.filter(
+                  stackTraceLine -> filterSynthesizedMethod(stackTraceLine, syntheticMethod.get()));
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
               isSameExceptForFileName(
                   expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
-        });
+        },
+        compileResult -> setSyntheticMethod(compileResult, syntheticMethod));
   }
 
   @Test
   public void testLineNumberTableOnly() throws Exception {
     assumeTrue(compat);
     assumeTrue(parameters.isDexRuntime());
+    Box<MethodSubject> syntheticMethod = new Box<>();
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG
-                  ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedMethod);
+              retracedStackTrace.filter(
+                  stackTraceLine -> filterSynthesizedMethod(stackTraceLine, syntheticMethod.get()));
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
               isSameExceptForFileName(
                   expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
-        });
+        },
+        compileResult -> setSyntheticMethod(compileResult, syntheticMethod));
   }
 
   @Test
@@ -121,18 +137,32 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     assumeTrue(compat);
     assumeTrue(parameters.isDexRuntime());
     haveSeenLines.clear();
+    Box<MethodSubject> syntheticMethod = new Box<>();
     runTest(
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG
-                  ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedMethod);
+              retracedStackTrace.filter(
+                  stackTraceLine -> filterSynthesizedMethod(stackTraceLine, syntheticMethod.get()));
           assertThat(
               reprocessedStackTrace.filter(this::isNotDalvikNativeStartMethod),
               isSameExceptForFileNameAndLineNumber(
                   expectedStackTrace.filter(this::isNotDalvikNativeStartMethod)));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+        },
+        compileResult -> setSyntheticMethod(compileResult, syntheticMethod));
+  }
+
+  private void setSyntheticMethod(
+      R8TestCompileResult compileResult, Box<MethodSubject> syntheticMethod) throws IOException {
+    compileResult.inspect(
+        inspector -> {
+          ClassSubject tintResourcesClassSubject = inspector.clazz(TintResources.class);
+          MethodSubject uniqueSyntheticMethod =
+              tintResourcesClassSubject.uniqueMethodThatMatches(
+                  method -> method.getAccessFlags().isSynthetic());
+          assertThat(uniqueSyntheticMethod, onlyIf(mode == CompilationMode.RELEASE, isPresent()));
+          syntheticMethod.set(uniqueSyntheticMethod);
         });
   }
 }
