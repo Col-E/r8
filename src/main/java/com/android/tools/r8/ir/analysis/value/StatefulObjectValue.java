@@ -72,7 +72,10 @@ public class StatefulObjectValue extends AbstractValue {
 
   @Override
   public boolean equals(Object o) {
-    if (getClass() != o.getClass()) {
+    if (o == this) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     StatefulObjectValue statefulObjectValue = (StatefulObjectValue) o;
