@@ -91,7 +91,6 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
       o -> {
         o.enableClassInlining = false;
         o.enableVerticalClassMerging = false;
-        o.enableClassStaticizer = false;
       };
 
   @Parameterized.Parameters(name = "{0}, {1}, allowAccessModification: {2}")

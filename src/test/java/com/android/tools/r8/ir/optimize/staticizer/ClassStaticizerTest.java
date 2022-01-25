@@ -197,9 +197,11 @@ public class ClassStaticizerTest extends TestBase {
             "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithGetter", "void"));
 
+    // TODO(b/216254482): This can be optimized by pruning (always) simple caller inlined methods
+    //  after the primary optimization pass.
     ClassSubject simpleWithGetter = inspector.clazz(SimpleWithGetter.class);
-    assertEquals(0, instanceMethods(simpleWithGetter).size());
-    assertThat(simpleWithGetter.clinit(), isAbsent());
+    assertEquals(1, instanceMethods(simpleWithGetter).size());
+    assertThat(simpleWithGetter.clinit(), isPresent());
 
     assertEquals(
         Lists.newArrayList(

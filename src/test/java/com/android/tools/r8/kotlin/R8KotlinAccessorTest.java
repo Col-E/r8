@@ -11,7 +11,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -87,7 +86,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrimitiveProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
               if (allowAccessModification) {
@@ -107,9 +106,9 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               MemberNaming.MethodSignature setterAccessor =
                   testedClass.getSetterAccessorForProperty(
                       propertyName, AccessorKind.FROM_COMPANION);
-                assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-                checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+              assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+              checkMethodIsKept(outerClass, getterAccessor);
+              checkMethodIsRemoved(outerClass, setterAccessor);
             });
   }
 
@@ -118,7 +117,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePrivateProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
               if (allowAccessModification) {
@@ -139,10 +138,10 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
               MemberNaming.MethodSignature setterAccessor =
                   testedClass.getSetterAccessorForProperty(
                       propertyName, AccessorKind.FROM_COMPANION);
-                assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+              assertTrue(fieldSubject.getField().accessFlags.isPrivate());
 
-                checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+              checkMethodIsKept(outerClass, getterAccessor);
+              checkMethodIsRemoved(outerClass, setterAccessor);
             });
   }
 
@@ -151,7 +150,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_useInternalProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
               if (allowAccessModification) {
@@ -184,7 +183,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionPropertiesKt",
         "companionProperties_usePublicProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
               if (allowAccessModification) {
@@ -206,9 +205,9 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
                   testedClass.getSetterAccessorForProperty(
                       propertyName, AccessorKind.FROM_COMPANION);
 
-                assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-                checkMethodIsKept(outerClass, getterAccessor);
-                checkMethodIsRemoved(outerClass, setterAccessor);
+              assertTrue(fieldSubject.getField().accessFlags.isPrivate());
+              checkMethodIsKept(outerClass, getterAccessor);
+              checkMethodIsRemoved(outerClass, setterAccessor);
             });
   }
 
@@ -217,7 +216,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     final TestKotlinCompanionClass testedClass = COMPANION_LATE_INIT_PROPERTY_CLASS;
     String mainClass = addMainToClasspath("properties.CompanionLateInitPropertiesKt",
         "companionLateInitProperties_usePrivateLateInitProp");
-    runTest(PROPERTIES_PACKAGE_NAME, mainClass, R8TestBuilder::noClassStaticizing)
+    runTest(PROPERTIES_PACKAGE_NAME, mainClass)
         .inspect(
             inspector -> {
               if (allowAccessModification) {
@@ -270,10 +269,7 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
     runTest(
             "accessors",
             mainClass,
-            builder -> {
-              builder.addClasspathFiles(kotlinc.getKotlinAnnotationJar());
-              builder.noClassStaticizing();
-            })
+            builder -> builder.addClasspathFiles(kotlinc.getKotlinAnnotationJar()))
         .inspect(
             inspector -> {
               // The classes are removed entirely as a result of member value propagation, inlining,

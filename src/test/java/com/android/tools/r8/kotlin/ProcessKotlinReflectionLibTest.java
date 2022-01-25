@@ -73,22 +73,6 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
   }
 
   @Test
-  public void testDontShrinkAndDontOptimizeDifferently() throws Exception {
-    test(
-        builder ->
-            builder
-                .addKeepRules("-keep,allowobfuscation class **.*KClasses*")
-                .noTreeShaking()
-                .addOptionsModification(
-                    o -> {
-                      // Randomly choose a couple of optimizations.
-                      o.enableVerticalClassMerging = false;
-                      o.enableClassStaticizer = false;
-                      o.outline.enabled = false;
-                    }));
-  }
-
-  @Test
   public void testDontShrinkAndDontObfuscate() throws Exception {
     test(builder -> builder.noMinification().noTreeShaking());
   }

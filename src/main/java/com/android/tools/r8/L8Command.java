@@ -179,7 +179,6 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.inlinerOptions().enableInlining;
     assert !internal.enableClassInlining;
     assert !internal.enableVerticalClassMerging;
-    assert !internal.enableClassStaticizer;
     assert !internal.enableEnumValueOptimization;
     assert !internal.outline.enabled;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;

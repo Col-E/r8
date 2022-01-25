@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestParameters;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -43,21 +44,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
   public void testCompanionAndRegularObjects() throws Exception {
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_staticizer.MainKt";
-
-    // Without class staticizer.
-    runTest("class_staticizer", mainClassName, true)
-        .inspect(
-            inspector -> {
-              assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
-
-              // The Util class is there, but its instance methods have been inlined.
-              ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
-              assertThat(utilClass, isPresent());
-              assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
-            });
-
-    // With class staticizer.
-    runTest("class_staticizer", mainClassName, false)
+    runTest("class_staticizer", mainClassName)
         .inspect(
             inspector -> {
               assertThat(inspector.clazz("class_staticizer.Regular$Companion"), not(isPresent()));
@@ -68,14 +55,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
             });
   }
 
-  protected R8TestRunResult runTest(String folder, String mainClass, boolean noClassStaticizing)
-      throws Exception {
-    return runTest(
-        folder,
-        mainClass,
-        testBuilder ->
-            testBuilder
-                .noClassInlining()
-                .noClassStaticizing(noClassStaticizing));
+  protected R8TestRunResult runTest(String folder, String mainClass) throws Exception {
+    return runTest(folder, mainClass, R8TestBuilder::noClassInlining);
   }
 }

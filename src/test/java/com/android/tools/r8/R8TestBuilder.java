@@ -469,17 +469,6 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         options -> options.testing.allowClassInliningOfSynthetics = false);
   }
 
-  public T noClassStaticizing() {
-    return noClassStaticizing(true);
-  }
-
-  public T noClassStaticizing(boolean condition) {
-    if (condition) {
-      return addOptionsModification(options -> options.enableClassStaticizer = false);
-    }
-    return self();
-  }
-
   public T noHorizontalClassMerging() {
     return noHorizontalClassMerging(true);
   }

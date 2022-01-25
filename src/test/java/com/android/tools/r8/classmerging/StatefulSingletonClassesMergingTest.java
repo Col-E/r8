@@ -40,7 +40,6 @@ public class StatefulSingletonClassesMergingTest extends TestBase {
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
-        .noClassStaticizing()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B");

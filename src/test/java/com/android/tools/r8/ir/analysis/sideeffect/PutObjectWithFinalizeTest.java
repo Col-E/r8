@@ -45,8 +45,6 @@ public class PutObjectWithFinalizeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(PutObjectWithFinalizeTest.class)
         .addKeepMainRule(TestClass.class)
-        // The class staticizer does not consider the finalize() method.
-        .addOptionsModification(options -> options.enableClassStaticizer = false)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .enableNoVerticalClassMergingAnnotations()

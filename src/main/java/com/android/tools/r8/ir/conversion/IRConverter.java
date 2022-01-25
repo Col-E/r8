@@ -89,7 +89,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.outliner.Outliner;
-import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -104,7 +103,6 @@ import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -141,7 +139,6 @@ public class IRConverter {
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
   private final ClassInliner classInliner;
-  private final ClassStaticizer classStaticizer;
   private final InternalOptions options;
   private final CfgPrinter printer;
   public final CodeRewriter codeRewriter;
@@ -228,7 +225,6 @@ public class IRConverter {
       this.covariantReturnTypeAnnotationTransformer = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
-      this.classStaticizer = null;
       this.fieldAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
@@ -263,8 +259,6 @@ public class IRConverter {
           options.enableClassInlining && options.inlinerOptions().enableInlining
               ? new ClassInliner()
               : null;
-      this.classStaticizer =
-          options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.dynamicTypeOptimization = new DynamicTypeOptimization(appViewWithLiveness);
       this.fieldAccessAnalysis = new FieldAccessAnalysis(appViewWithLiveness);
       this.libraryMethodOverrideAnalysis =
@@ -295,7 +289,6 @@ public class IRConverter {
     } else {
       this.assumeInserter = null;
       this.classInliner = null;
-      this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
       this.fieldAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
@@ -348,13 +341,6 @@ public class IRConverter {
   private void clearNestAttributes() {
     instructionDesugaring.withD8NestBasedAccessDesugaring(
         D8NestBasedAccessDesugaring::clearNestAttributes);
-  }
-
-  private void staticizeClasses(OptimizationFeedback feedback, ExecutorService executorService)
-      throws ExecutionException {
-    if (classStaticizer != null) {
-      classStaticizer.staticizeCandidates(feedback, executorService);
-    }
   }
 
   private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
@@ -652,10 +638,6 @@ public class IRConverter {
     appView.withArgumentPropagator(
         argumentPropagator -> argumentPropagator.initializeCodeScanner(executorService, timing));
     enumUnboxer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
-    ConsumerUtils.acceptIfNotNull(
-        classStaticizer,
-        classStaticizer ->
-            classStaticizer.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass));
     outliner.prepareForPrimaryOptimizationPass(graphLensForPrimaryOptimizationPass);
 
     if (fieldAccessAnalysis != null) {
@@ -727,11 +709,6 @@ public class IRConverter {
 
     GraphLens graphLensForSecondaryOptimizationPass = appView.graphLens();
 
-    ConsumerUtils.acceptIfNotNull(
-        classStaticizer,
-        classStaticizer ->
-            classStaticizer.prepareForSecondaryOptimizationPass(
-                graphLensForSecondaryOptimizationPass));
     outliner.rewriteWithLens();
 
     timing.begin("IR conversion phase 2");
@@ -764,17 +741,6 @@ public class IRConverter {
     // have now been processed and rewritten, we clear code lens rewriting so that the class
     // staticizer and phase 3 does not perform again the rewriting.
     appView.clearCodeRewritings();
-
-    // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
-    if (!options.isGeneratingClassFiles()) {
-      printPhase("Class staticizer post processing");
-      // TODO(b/127694949): Adapt to PostOptimization.
-      staticizeClasses(feedback, executorService);
-      feedback.updateVisibleOptimizationInfo();
-      // The class staticizer lens shall not be applied through lens code rewriting or it breaks
-      // the lambda merger.
-      appView.clearCodeRewritings();
-    }
 
     // Commit synthetics before creating a builder (otherwise the builder will not include the
     // synthetics.)
@@ -1474,12 +1440,6 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after argument type logging (SSA)", previous);
 
-    if (classStaticizer != null) {
-      timing.begin("Identify staticizing candidates");
-      classStaticizer.examineMethodCode(code);
-      timing.end();
-    }
-
     assert code.verifyTypes(appView);
 
     deadCodeRemover.run(code, timing);
@@ -1972,9 +1932,6 @@ public class IRConverter {
     appView.withArgumentPropagator(argumentPropagator -> argumentPropagator.onMethodPruned(method));
     enumUnboxer.onMethodPruned(method);
     outliner.onMethodPruned(method);
-    if (classStaticizer != null) {
-      classStaticizer.onMethodPruned(method);
-    }
     if (inliner != null) {
       inliner.onMethodPruned(method);
     }
@@ -1992,9 +1949,6 @@ public class IRConverter {
         argumentPropagator -> argumentPropagator.onMethodCodePruned(method));
     enumUnboxer.onMethodCodePruned(method);
     outliner.onMethodCodePruned(method);
-    if (classStaticizer != null) {
-      classStaticizer.onMethodCodePruned(method);
-    }
     if (inliner != null) {
       inliner.onMethodCodePruned(method);
     }

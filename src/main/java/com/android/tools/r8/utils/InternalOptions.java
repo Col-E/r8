@@ -241,7 +241,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public void disableGlobalOptimizations() {
     inlinerOptions.enableInlining = false;
     enableClassInlining = false;
-    enableClassStaticizer = false;
     enableDevirtualization = false;
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
