@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -79,7 +80,7 @@ public abstract class TestCompilerBuilder<
   private PrintStream oldStderr = null;
   protected OutputMode outputMode = OutputMode.DexIndexed;
 
-  private boolean isAndroidBuildVersionAdded = false;
+  private Optional<Integer> isAndroidBuildVersionAdded = null;
 
   LibraryDesugaringTestConfiguration libraryDesugaringTestConfiguration =
       LibraryDesugaringTestConfiguration.DISABLED;
@@ -89,8 +90,13 @@ public abstract class TestCompilerBuilder<
   }
 
   public T addAndroidBuildVersion() {
+    return addAndroidBuildVersion(null);
+  }
+
+  public T addAndroidBuildVersion(AndroidApiLevel specifiedApiLevel) {
     addProgramClasses(AndroidBuildVersion.class);
-    isAndroidBuildVersionAdded = true;
+    isAndroidBuildVersionAdded =
+        Optional.ofNullable(specifiedApiLevel == null ? null : specifiedApiLevel.getLevel());
     return self();
   }
 
@@ -257,8 +263,10 @@ public abstract class TestCompilerBuilder<
       cr =
           internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build), benchmark)
               .addRunClasspathFiles(additionalRunClassPath);
-      if (isAndroidBuildVersionAdded) {
-        cr.setSystemProperty(AndroidBuildVersion.PROPERTY, "" + builder.getMinApiLevel());
+      if (isAndroidBuildVersionAdded != null) {
+        cr.setSystemProperty(
+            AndroidBuildVersion.PROPERTY,
+            "" + isAndroidBuildVersionAdded.orElse(builder.getMinApiLevel()));
       }
       return cr;
     } finally {
