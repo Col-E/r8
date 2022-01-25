@@ -119,8 +119,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       MethodResolutionResult methodResolutionResult =
           appView.appInfo().resolveMethod(cfInvoke.getMethod(), false);
       SingleResolutionResult singleResolutionResult = methodResolutionResult.asSingleResolution();
-      return singleResolutionResult != null
-              && !singleResolutionResult.getResolvedMethod().isPublic()
+      return singleResolutionResult != null && singleResolutionResult.getResolvedMethod().isPublic()
           ? methodApiLevel
           : appView.computedMinApiLevel();
     }
