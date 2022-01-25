@@ -14,7 +14,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,9 +54,8 @@ public class ApiModelOutlineMethodUnknownTest extends TestBase {
         .inspect(
             inspector -> {
               // Assert that we did not outline any methods.
-              // TODO(b/216297604): Ensure we do not outline.
               assertEquals(
-                  BooleanUtils.intValue(parameters.isDexRuntime()),
+                  0,
                   inspector.allClasses().stream()
                       .filter(FoundClassSubject::isCompilerSynthesized)
                       .count());

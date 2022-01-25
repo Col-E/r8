@@ -97,8 +97,10 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
         .inspect(
             inspector -> {
               // No need to check further on CF.
+              // TODO(b/216314378): If this changes then we will have more classes here at some
+              //  point.
+              assertEquals(3, inspector.allClasses().size());
               if (parameters.isCfRuntime()) {
-                assertEquals(3, inspector.allClasses().size());
                 return;
               }
               Method testMethod = TestClass.class.getDeclaredMethod("test");
@@ -115,13 +117,13 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                       .findFirst();
               assertFalse(synthesizedMissingNotReferenced.isPresent());
               verifyThat(inspector, parameters, addedOn23).isNotOutlinedFrom(testMethod);
-              verifyThat(inspector, parameters, addedOn27)
-                  .isOutlinedFromUntil(testMethod, AndroidApiLevel.O_MR1);
+              // TODO(b/216314378): We should consider if addedOn27 should not be inlined again.
+              verifyThat(inspector, parameters, addedOn27).isNotOutlinedFrom(testMethod);
               verifyThat(
                       inspector,
                       parameters,
                       LibraryClass.class.getDeclaredMethod("missingAndReferenced"))
-                  .isOutlinedFrom(testMethod);
+                  .isNotOutlinedFrom(testMethod);
               if (parameters.getApiLevel().isLessThan(AndroidApiLevel.O_MR1)) {
                 assertEquals(5, inspector.allClasses().size());
               } else {
