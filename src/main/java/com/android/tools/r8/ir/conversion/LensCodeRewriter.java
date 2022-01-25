@@ -788,12 +788,12 @@ public class LensCodeRewriter {
       new DestructivePhiTypeUpdater(appView, graphLens, codeLens)
           .recomputeAndPropagateTypes(code, affectedPhis);
     }
+    nullCheckInserter.processWorklist();
     code.removeAllDeadAndTrivialPhis();
     removeUnusedArguments(method, code, unusedArguments);
 
     // Finalize cast and null check insertion.
     interfaceTypeToClassTypeRewriterHelper.processWorklist();
-    nullCheckInserter.processWorklist();
 
     assert code.isConsistentSSABeforeTypesAreCorrect();
   }
