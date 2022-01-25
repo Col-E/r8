@@ -31,7 +31,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   static int UNKNOWN_RETURNED_ARGUMENT = -1;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
   static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
-  static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
   static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
@@ -164,11 +163,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   @Override
   public boolean forceInline() {
     return false;
-  }
-
-  @Override
-  public boolean checksNullReceiverBeforeAnySideEffect() {
-    return UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
   }
 
   @Override

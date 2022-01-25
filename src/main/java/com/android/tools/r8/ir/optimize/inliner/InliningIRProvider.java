@@ -43,14 +43,12 @@ public class InliningIRProvider {
   public static InliningIRProvider getThrowingInstance() {
     return new InliningIRProvider() {
       @Override
-      public IRCode getInliningIR(
-          InvokeMethod invoke, ProgramMethod method, boolean removeInnerFramesIfNpe) {
+      public IRCode getInliningIR(InvokeMethod invoke, ProgramMethod method) {
         throw new Unreachable();
       }
 
       @Override
-      public IRCode getAndCacheInliningIR(
-          InvokeMethod invoke, ProgramMethod method, boolean removeInnerFrameIfThrowingNpe) {
+      public IRCode getAndCacheInliningIR(InvokeMethod invoke, ProgramMethod method) {
         throw new Unreachable();
       }
 
@@ -76,24 +74,23 @@ public class InliningIRProvider {
     };
   }
 
-  public IRCode getInliningIR(
-      InvokeMethod invoke, ProgramMethod method, boolean removeInnerFramesIfNpe) {
+  public IRCode getInliningIR(InvokeMethod invoke, ProgramMethod method) {
     IRCode cached = cache.remove(invoke);
     if (cached != null) {
       return cached;
     }
-    Position position = Position.getPositionForInlining(appView, invoke, context);
-    if (removeInnerFramesIfNpe) {
-      position = position.builderWithCopy().setRemoveInnerFramesIfThrowingNpe(true).build();
-    }
     Origin origin = method.getOrigin();
     return method.buildInliningIR(
-        context, appView, valueNumberGenerator, position, origin, methodProcessor);
+        context,
+        appView,
+        valueNumberGenerator,
+        Position.getPositionForInlining(appView, invoke, context),
+        origin,
+        methodProcessor);
   }
 
-  public IRCode getAndCacheInliningIR(
-      InvokeMethod invoke, ProgramMethod method, boolean removeInnerFrameIfThrowingNpe) {
-    IRCode inliningIR = getInliningIR(invoke, method, removeInnerFrameIfThrowingNpe);
+  public IRCode getAndCacheInliningIR(InvokeMethod invoke, ProgramMethod method) {
+    IRCode inliningIR = getInliningIR(invoke, method);
     cacheInliningIR(invoke, inliningIR);
     return inliningIR;
   }

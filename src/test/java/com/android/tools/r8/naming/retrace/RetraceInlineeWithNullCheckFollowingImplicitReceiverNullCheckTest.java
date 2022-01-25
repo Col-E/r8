@@ -31,12 +31,10 @@ public class RetraceInlineeWithNullCheckFollowingImplicitReceiverNullCheckTest e
   }
 
   public StackTrace expectedStackTrace;
-  public StackTrace unexpectedStackTrace;
 
   @Before
   public void setup() throws Exception {
     expectedStackTrace = getStackTrace();
-    unexpectedStackTrace = getStackTrace("foo");
   }
 
   private StackTrace getStackTrace(String... args) throws Exception {
@@ -62,9 +60,8 @@ public class RetraceInlineeWithNullCheckFollowingImplicitReceiverNullCheckTest e
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Caller.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
-        // TODO(b/214377135): Should retrace to expectedStackTrace.
         .inspectStackTrace(
-            (stackTrace, codeInspector) -> assertThat(stackTrace, isSame(unexpectedStackTrace)));
+            (stackTrace, codeInspector) -> assertThat(stackTrace, isSame(expectedStackTrace)));
   }
 
   static class Foo {

@@ -31,6 +31,8 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
     S getState();
 
     void setState(S backtrackState);
+
+    boolean hasState();
   }
 
   enum ProcessingState {
@@ -92,6 +94,11 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
     @Override
     public void setState(S state) {
       this.state = state;
+    }
+
+    @Override
+    public boolean hasState() {
+      return state != null;
     }
   }
 

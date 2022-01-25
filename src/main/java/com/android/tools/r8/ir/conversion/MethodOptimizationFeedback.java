@@ -54,8 +54,6 @@ public interface MethodOptimizationFeedback {
 
   void markAsPropagated(DexEncodedMethod method);
 
-  void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
-
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
 
   void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo);
@@ -86,8 +84,6 @@ public interface MethodOptimizationFeedback {
   void unsetAbstractReturnValue(ProgramMethod method);
 
   void unsetBridgeInfo(DexEncodedMethod method);
-
-  void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method);
 
   void unsetClassInitializerMayBePostponed(ProgramMethod method);
 
@@ -131,7 +127,6 @@ public interface MethodOptimizationFeedback {
     if (method.getOptimizationInfo().isMutableOptimizationInfo()) {
       unsetAbstractReturnValue(method);
       unsetBridgeInfo(method.getDefinition());
-      unsetCheckNullReceiverBeforeAnySideEffect(method);
       unsetClassInitializerMayBePostponed(method);
       unsetClassInlinerMethodConstraint(method);
       unsetDynamicReturnType(method);
@@ -158,8 +153,5 @@ public interface MethodOptimizationFeedback {
     methodNeverReturnsNormally(method);
     setUnusedArguments(
         method, BitSetUtils.createFilled(true, method.getDefinition().getNumberOfArguments()));
-    if (method.getDefinition().isInstance()) {
-      markCheckNullReceiverBeforeAnySideEffect(method.getDefinition(), true);
-    }
   }
 }

@@ -88,8 +88,6 @@ public abstract class MethodOptimizationInfo
 
   public abstract boolean forceInline();
 
-  public abstract boolean checksNullReceiverBeforeAnySideEffect();
-
   public abstract boolean triggersClassInitBeforeAnySideEffect();
 
   public abstract boolean mayHaveSideEffects();

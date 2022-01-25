@@ -89,7 +89,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   private static final int UNUSED_FLAG_1 = 0x20;
   private static final int NEVER_RETURNS_NORMALLY_FLAG = 0x40;
   private static final int UNUSED_FLAG_2 = 0x80;
-  private static final int CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x100;
+  private static final int UNUSED_FLAG_3 = 0x100;
   private static final int TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x200;
   private static final int INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG = 0x400;
   private static final int REACHABILITY_SENSITIVE_FLAG = 0x800;
@@ -116,9 +116,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.neverReturnsNormally()) * NEVER_RETURNS_NORMALLY_FLAG;
     defaultFlags |= 0 * UNUSED_FLAG_2;
-    defaultFlags |=
-        BooleanUtils.intValue(defaultOptInfo.checksNullReceiverBeforeAnySideEffect())
-            * CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG;
+    defaultFlags |= 0 * UNUSED_FLAG_3;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.triggersClassInitBeforeAnySideEffect())
             * TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG;
@@ -488,11 +486,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
-  public boolean checksNullReceiverBeforeAnySideEffect() {
-    return isFlagSet(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG);
-  }
-
-  @Override
   public boolean triggersClassInitBeforeAnySideEffect() {
     return isFlagSet(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
@@ -669,14 +662,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     } else {
       assert inlining == InlinePreference.ForceInline;
     }
-  }
-
-  void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
-    setFlag(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
-  }
-
-  void unsetCheckNullReceiverBeforeAnySideEffect() {
-    clearFlag(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
 
   void markTriggerClassInitBeforeAnySideEffect(boolean mark) {

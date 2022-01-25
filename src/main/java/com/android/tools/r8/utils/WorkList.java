@@ -92,6 +92,18 @@ public class WorkList<T> {
     return false;
   }
 
+  public boolean addFirstIfNotSeen(T item) {
+    if (seen.add(item)) {
+      workingList.addFirst(item);
+      return true;
+    }
+    return false;
+  }
+
+  public void addFirstIgnoringSeenSet(T item) {
+    workingList.addFirst(item);
+  }
+
   public boolean hasNext() {
     return !workingList.isEmpty();
   }

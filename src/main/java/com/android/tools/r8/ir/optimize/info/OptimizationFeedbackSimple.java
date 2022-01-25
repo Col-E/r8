@@ -137,11 +137,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
-    method.getMutableOptimizationInfo().markCheckNullReceiverBeforeAnySideEffect(mark);
-  }
-
-  @Override
   public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
     // Ignored.
   }
@@ -231,12 +226,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void unsetBridgeInfo(DexEncodedMethod method) {
     withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetBridgeInfo);
-  }
-
-  @Override
-  public void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method) {
-    withMutableMethodOptimizationInfo(
-        method, MutableMethodOptimizationInfo::unsetCheckNullReceiverBeforeAnySideEffect);
   }
 
   @Override

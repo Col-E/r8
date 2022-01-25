@@ -94,9 +94,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {}
 
   @Override
-  public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
-
-  @Override
   public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
 
   @Override
@@ -141,9 +138,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void unsetBridgeInfo(DexEncodedMethod method) {}
-
-  @Override
-  public void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method) {}
 
   @Override
   public void unsetClassInitializerMayBePostponed(ProgramMethod method) {}

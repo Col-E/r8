@@ -229,12 +229,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void markCheckNullReceiverBeforeAnySideEffect(
-      DexEncodedMethod method, boolean mark) {
-    getMethodOptimizationInfoForUpdating(method).markCheckNullReceiverBeforeAnySideEffect(mark);
-  }
-
-  @Override
   public synchronized void markTriggerClassInitBeforeAnySideEffect(
       DexEncodedMethod method, boolean mark) {
     getMethodOptimizationInfoForUpdating(method).markTriggerClassInitBeforeAnySideEffect(mark);
@@ -308,11 +302,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   @Override
   public synchronized void unsetBridgeInfo(DexEncodedMethod method) {
     getMethodOptimizationInfoForUpdating(method).unsetBridgeInfo();
-  }
-
-  @Override
-  public synchronized void unsetCheckNullReceiverBeforeAnySideEffect(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetCheckNullReceiverBeforeAnySideEffect();
   }
 
   @Override

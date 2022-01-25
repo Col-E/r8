@@ -8,11 +8,7 @@ import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForLine
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -43,46 +39,36 @@ public class RetraceInlineeWithNullCheckTest extends TestBase {
 
   public StackTrace expectedStackTrace;
 
+  private String[] getArgs() {
+    return throwReceiverNpe ? new String[] {"foo"} : new String[0];
+  }
+
   @Before
   public void setup() throws Exception {
-    // Get the expected stack trace by running on the JVM.
-    TestBuilder<? extends SingleTestRunResult<?>, ?> testBuilder =
-        testForRuntime(parameters).addProgramClasses(Caller.class, Foo.class);
-    SingleTestRunResult<?> runResult;
-    if (throwReceiverNpe) {
-      runResult = testBuilder.run(parameters.getRuntime(), Caller.class, "foo");
-    } else {
-      runResult = testBuilder.run(parameters.getRuntime(), Caller.class);
-    }
-    if (parameters.isCfRuntime()) {
-      expectedStackTrace = runResult.map(StackTrace::extractFromJvm);
-    } else {
-      expectedStackTrace =
-          StackTrace.extractFromArt(runResult.getStdErr(), parameters.asDexRuntime().getVm());
-    }
+    // Get the expected stack trace by running on the JVM/ART.
+    expectedStackTrace =
+        testForRuntime(parameters)
+            .addProgramClasses(Caller.class, Foo.class)
+            .run(parameters.getRuntime(), Caller.class, getArgs())
+            .getStackTrace();
   }
 
   @Test
   public void testR8() throws Exception {
-    R8FullTestBuilder r8FullTestBuilder =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(getClass())
-            .addKeepMainRule(Caller.class)
-            .addKeepAttributeLineNumberTable()
-            .addKeepAttributeSourceFile()
-            .setMinApi(parameters.getApiLevel())
-            .enableInliningAnnotations()
-            .enableExperimentalMapFileVersion();
-    R8TestRunResult runResult;
-    if (throwReceiverNpe) {
-      runResult = r8FullTestBuilder.run(parameters.getRuntime(), Caller.class, "foo");
-    } else {
-      runResult = r8FullTestBuilder.run(parameters.getRuntime(), Caller.class);
-    }
-    runResult
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(Caller.class)
+        .addKeepAttributeLineNumberTable()
+        .addKeepAttributeSourceFile()
+        .setMinApi(parameters.getApiLevel())
+        .enableInliningAnnotations()
+        .enableExperimentalMapFileVersion()
+        .run(parameters.getRuntime(), Caller.class, getArgs())
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
+              // TODO(b/214377135): The stack traces should be the same (when 206427323) is
+              //  resolved.
               if (throwReceiverNpe && canUseJavaUtilObjectsRequireNonNull(parameters)) {
                 StackTrace requireNonNullFrame =
                     StackTrace.builder().add(stackTrace.get(0)).build();

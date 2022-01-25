@@ -374,15 +374,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
       // throw if the receiver is null before any other side effect, then we must synthesize a
       // null check.
-      if (!singleTarget
-          .getDefinition()
-          .getOptimizationInfo()
-          .checksNullReceiverBeforeAnySideEffect()) {
-        if (!inlinerOptions.enableInliningOfInvokesWithNullableReceivers) {
-          whyAreYouNotInliningReporter.reportReceiverMaybeNull();
-          return null;
-        }
-        action.setShouldSynthesizeNullCheckForReceiver();
+      if (!inlinerOptions.enableInliningOfInvokesWithNullableReceivers) {
+        whyAreYouNotInliningReporter.reportReceiverMaybeNull();
+        return null;
       }
     }
     return action;
@@ -484,9 +478,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ProgramMethod singleTarget,
       InliningIRProvider inliningIRProvider,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    boolean removeInnerFramesIfThrowingNpe = false;
-    IRCode inlinee =
-        inliningIRProvider.getInliningIR(invoke, singleTarget, removeInnerFramesIfThrowingNpe);
+    IRCode inlinee = inliningIRProvider.getInliningIR(invoke, singleTarget);
 
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
     // Newly Created Objects" it says:

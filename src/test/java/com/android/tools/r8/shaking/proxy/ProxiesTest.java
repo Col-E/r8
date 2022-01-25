@@ -65,7 +65,6 @@ public class ProxiesTest extends TestBase {
         .addOptionsModification(
             o -> {
               o.enableDevirtualization = false;
-              o.inlinerOptions().enableInliningOfInvokesWithNullableReceivers = false;
             })
         .enableAlwaysInliningAnnotations()
         .noMinification()

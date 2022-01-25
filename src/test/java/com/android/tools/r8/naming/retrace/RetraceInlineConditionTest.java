@@ -4,13 +4,16 @@
 
 package com.android.tools.r8.naming.retrace;
 
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import org.hamcrest.CoreMatchers;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,25 +25,39 @@ public class RetraceInlineConditionTest extends TestBase {
 
   @Parameter() public TestParameters parameters;
 
+  public StackTrace expectedStackTrace;
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  @Before
+  public void setup() throws Exception {
+    // Get the expected stack trace by running on the JVM.
+    TestBuilder<? extends SingleTestRunResult<?>, ?> testBuilder =
+        testForRuntime(parameters).addInnerClasses(getClass());
+    SingleTestRunResult<?> runResult = testBuilder.run(parameters.getRuntime(), Main.class);
+    if (parameters.isCfRuntime()) {
+      expectedStackTrace = runResult.map(StackTrace::extractFromJvm);
+    } else {
+      expectedStackTrace =
+          StackTrace.extractFromArt(runResult.getStdErr(), parameters.asDexRuntime().getVm());
+    }
+  }
+
   @Test
   public void testR8() throws Throwable {
-    R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(getClass())
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Main.class)
-            .compile()
-            .inspectProguardMap(
-                map -> {
-                  // TODO(b/215339687): We should not have a rewriteFrame in the mapping file since
-                  //  an explicit null check should be inserted.
-                  assertThat(map, CoreMatchers.containsString("com.android.tools.r8.rewriteFrame"));
-                });
+    testForR8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .compile()
+        .inspectProguardMap(
+            map -> {
+              assertThat(
+                  map, not(CoreMatchers.containsString("com.android.tools.r8.rewriteFrame")));
+            });
   }
 
   static class Foo {

@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.canInlineWithoutSynthesizingNullCheckForReceiver;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 import static com.google.common.base.Predicates.not;
 
@@ -51,6 +52,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
+import com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.SimpleEffectAnalysisResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
@@ -515,7 +517,6 @@ public class Inliner {
     final Reason reason;
 
     private boolean shouldSynthesizeInitClass;
-    private boolean shouldSynthesizeNullCheckForReceiver;
 
     private DexProgramClass downcastClass;
 
@@ -539,13 +540,7 @@ public class Inliner {
     }
 
     void setShouldSynthesizeInitClass() {
-      assert !shouldSynthesizeNullCheckForReceiver;
       shouldSynthesizeInitClass = true;
-    }
-
-    void setShouldSynthesizeNullCheckForReceiver() {
-      assert !shouldSynthesizeInitClass;
-      shouldSynthesizeNullCheckForReceiver = true;
     }
 
     InlineeWithReason buildInliningIR(
@@ -558,12 +553,7 @@ public class Inliner {
       InternalOptions options = appView.options();
 
       // Build the IR for a yet not processed method, and perform minimal IR processing.
-      boolean removeInnerFramesIfThrowingNpe =
-          invoke.isInvokeMethodWithReceiver()
-              && invoke.asInvokeMethodWithReceiver().getReceiver().isMaybeNull()
-              && !shouldSynthesizeNullCheckForReceiver;
-      IRCode code =
-          inliningIRProvider.getInliningIR(invoke, target, removeInnerFramesIfThrowingNpe);
+      IRCode code = inliningIRProvider.getInliningIR(invoke, target);
 
       // Insert a init class instruction if this is needed to preserve class initialization
       // semantics.
@@ -582,11 +572,24 @@ public class Inliner {
           target.getDefinition().isSynchronized() && options.isGeneratingClassFiles();
       boolean isSynthesizingNullCheckForReceiverUsingMonitorEnter =
           shouldSynthesizeMonitorEnterExit && !target.getDefinition().isStatic();
-      if (shouldSynthesizeNullCheckForReceiver
+      if (invoke.isInvokeMethodWithReceiver()
+          && invoke.asInvokeMethodWithReceiver().getReceiver().isMaybeNull()
           && !isSynthesizingNullCheckForReceiverUsingMonitorEnter) {
-        synthesizeNullCheckForReceiver(appView, code, invoke);
+        SimpleEffectAnalysisResult checksReceiverBeingNull =
+            canInlineWithoutSynthesizingNullCheckForReceiver(appView, code);
+        if (!checksReceiverBeingNull.hasResult()
+            || !checksReceiverBeingNull.isPartial()
+            || (checksReceiverBeingNull.isPartial()
+                && checksReceiverBeingNull.topMostNotSatisfiedBlockSize() > 1)) {
+          synthesizeNullCheckForReceiver(appView, code, invoke, code.entryBlock());
+        } else {
+          checksReceiverBeingNull.forEachSatisfyingInstruction(
+              this::setRemoveInnerFramePositionForReceiverUse);
+          // Also add a null check on failing paths
+          checksReceiverBeingNull.forEachTopMostNotSatisfiedBlock(
+              block -> synthesizeNullCheckForReceiver(appView, code, invoke, block));
+        }
       }
-
       // Insert monitor-enter and monitor-exit instructions if the method is synchronized.
       if (shouldSynthesizeMonitorEnterExit) {
         TypeElement throwableType =
@@ -727,18 +730,15 @@ public class Inliner {
     }
 
     private void synthesizeNullCheckForReceiver(
-        AppView<?> appView, IRCode code, InvokeMethod invoke) {
+        AppView<?> appView, IRCode code, InvokeMethod invoke, BasicBlock block) {
       List<Value> arguments = code.collectArguments();
       if (!arguments.isEmpty()) {
         Value receiver = arguments.get(0);
         assert receiver.isThis();
-
-        BasicBlock entryBlock = code.entryBlock();
-
         // Insert a new block between the last argument instruction and the first actual
         // instruction of the method.
         BasicBlock throwBlock =
-            entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
+            block.listIterator(code, block.isEntry() ? arguments.size() : 0).split(code, 0, null);
         assert !throwBlock.hasCatchHandlers();
 
         InstructionListIterator iterator = throwBlock.listIterator(code);
@@ -753,6 +753,21 @@ public class Inliner {
       } else {
         assert false : "Unable to synthesize a null check for the receiver";
       }
+    }
+
+    private void setRemoveInnerFramePositionForReceiverUse(Instruction instruction) {
+      Position position = instruction.getPosition();
+      if (position == null) {
+        assert false : "Expected position for inlinee call to receiver";
+        return;
+      }
+      Position removeInnerFrame =
+          position
+              .getOutermostCaller()
+              .builderWithCopy()
+              .setRemoveInnerFramesIfThrowingNpe(true)
+              .build();
+      instruction.forceOverwritePosition(position.replaceOutermostCallerPosition(removeInnerFrame));
     }
   }
 

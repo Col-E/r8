@@ -180,6 +180,16 @@ public abstract class Position implements StructuralItem<Position> {
         .build();
   }
 
+  public Position replaceOutermostCallerPosition(Position newOutermostCallerPosition) {
+    if (!hasCallerPosition()) {
+      return newOutermostCallerPosition;
+    }
+    return builderWithCopy()
+        .setCallerPosition(
+            getCallerPosition().replaceOutermostCallerPosition(newOutermostCallerPosition))
+        .build();
+  }
+
   @Override
   public final boolean equals(Object other) {
     return Equatable.equalsImpl(this, other);

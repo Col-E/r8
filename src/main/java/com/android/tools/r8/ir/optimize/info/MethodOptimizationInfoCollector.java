@@ -542,11 +542,6 @@ public class MethodOptimizationInfoCollector {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(
           method, triggersClassInitializationBeforeSideEffect(code));
-    } else {
-      // Identifies if the method preserves null check of the receiver after inlining.
-      Value receiver = code.getThis();
-      feedback.markCheckNullReceiverBeforeAnySideEffect(
-          method, receiver.isUsed() && checksNullBeforeSideEffect(code, receiver));
     }
   }
 
