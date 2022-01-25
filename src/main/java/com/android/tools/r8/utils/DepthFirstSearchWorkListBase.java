@@ -8,22 +8,17 @@ import static com.android.tools.r8.utils.DepthFirstSearchWorkListBase.Processing
 import static com.android.tools.r8.utils.DepthFirstSearchWorkListBase.ProcessingState.NOT_PROCESSED;
 import static com.android.tools.r8.utils.DepthFirstSearchWorkListBase.ProcessingState.WAITING;
 
-import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.DFSNode;
 import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.DFSNodeImpl;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-public abstract class DepthFirstSearchWorkListBase<
-    N, TExp extends DFSNode<N>, TImpl extends DFSNodeImpl<N>> {
+public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> {
 
   public interface DFSNode<N> {
     N getNode();
@@ -100,33 +95,22 @@ public abstract class DepthFirstSearchWorkListBase<
     }
   }
 
-  private final ArrayDeque<TImpl> workList = new ArrayDeque<>();
-  private final Map<N, TImpl> stateMap = new IdentityHashMap<>();
-  private final Map<TImpl, List<TExp>> childStateMap = new IdentityHashMap<>();
+  private final ArrayDeque<T> workList = new ArrayDeque<>();
 
-  abstract TImpl newNode(N node);
+  abstract T createDfsNode(N node);
 
-  abstract boolean isStateful();
+  /** The initial processing of a node during forward search */
+  abstract TraversalContinuation internalOnVisit(T node);
 
-  /**
-   * The initial processing of the node when visiting the first time during the depth first search.
-   *
-   * @param node The current node.
-   * @param childNodeConsumer A consumer for adding child nodes. If an element has been seen before
-   *     but not finished there is a cycle.
-   * @return A value describing if the DFS algorithm should continue to run.
-   */
-  protected abstract TraversalContinuation process(TExp node, Function<N, TExp> childNodeConsumer);
+  /** The joining of state during backtracking of the algorithm. */
+  abstract TraversalContinuation internalOnJoin(T node);
 
-  /**
-   * The joining of state during backtracking of the algorithm.
-   *
-   * @param node The current node
-   * @param childStates The already computed child states.
-   * @return A value describing if the DFS algorithm should continue to run.
-   */
-  TraversalContinuation joiner(TExp node, List<TExp> childStates) {
-    throw new Unreachable("Should not be called");
+  final T internalEnqueueNode(N value) {
+    T dfsNode = createDfsNode(value);
+    if (dfsNode.isNotProcessed()) {
+      workList.addLast(dfsNode);
+    }
+    return dfsNode;
   }
 
   @SafeVarargs
@@ -134,101 +118,118 @@ public abstract class DepthFirstSearchWorkListBase<
     return run(Arrays.asList(roots));
   }
 
-  @SuppressWarnings("unchecked")
   public final TraversalContinuation run(Collection<N> roots) {
-    for (N root : roots) {
-      TImpl newNode = newNode(root);
-      stateMap.put(root, newNode);
-      workList.addLast(newNode);
-    }
+    roots.forEach(this::internalEnqueueNode);
     TraversalContinuation continuation = TraversalContinuation.CONTINUE;
     while (!workList.isEmpty()) {
-      TImpl node = workList.removeLast();
+      T node = workList.removeLast();
       if (node.isFinished()) {
         continue;
       }
-      TExp exposed = (TExp) node;
       if (node.isNotProcessed()) {
         workList.addLast(node);
-        List<TExp> childStates =
-            isStateful()
-                ? childStateMap.computeIfAbsent(node, FunctionUtils.ignoreArgument(ArrayList::new))
-                : null;
         node.setWaiting();
-        continuation =
-            process(
-                exposed,
-                childNode -> {
-                  TImpl childImpl = stateMap.computeIfAbsent(childNode, this::newNode);
-                  if (childImpl.isNotProcessed()) {
-                    workList.addLast(childImpl);
-                  }
-                  TExp childExp = (TExp) childImpl;
-                  if (childStates != null) {
-                    childStates.add(childExp);
-                  }
-                  return (TExp) childImpl;
-                });
+        continuation = internalOnVisit(node);
       } else {
         assert node.seenAndNotProcessed();
-        if (isStateful()) {
-          continuation = joiner((TExp) node, childStateMap.get(node));
-        }
+        continuation = internalOnJoin(node);
         node.setFinished();
       }
       if (continuation.shouldBreak()) {
         return continuation;
       }
     }
-    assert continuation.shouldBreak() || stateMap.values().stream().allMatch(TImpl::isFinished);
     return continuation;
   }
 
-  @SuppressWarnings("unchecked")
-  public void unwindUntilInclusive(TExp exp, Consumer<TExp> nodesOnPathConsumer) {
-    assert !workList.isEmpty();
-    TImpl startOfLoop = (TImpl) exp;
-    Iterator<TImpl> descendingIterator = workList.descendingIterator();
-    while (descendingIterator.hasNext()) {
-      TImpl next = descendingIterator.next();
-      if (!next.seenAndNotProcessed()) {
-        nodesOnPathConsumer.accept((TExp) next);
-      }
-      if (next == startOfLoop) {
-        return;
-      }
-    }
-  }
-
   public abstract static class DepthFirstSearchWorkList<N>
-      extends DepthFirstSearchWorkListBase<N, DFSNode<N>, DFSNodeImpl<N>> {
+      extends DepthFirstSearchWorkListBase<N, DFSNodeImpl<N>> {
+
+    /**
+     * The initial processing of the node when visiting the first time during the depth first
+     * search.
+     *
+     * @param node The current node.
+     * @param childNodeConsumer A consumer for adding child nodes. If an element has been seen
+     *     before but not finished there is a cycle.
+     * @return A value describing if the DFS algorithm should continue to run.
+     */
+    protected abstract TraversalContinuation process(
+        DFSNode<N> node, Function<N, DFSNode<N>> childNodeConsumer);
 
     @Override
-    DFSNodeImpl<N> newNode(N node) {
+    DFSNodeImpl<N> createDfsNode(N node) {
       return new DFSNodeImpl<>(node);
     }
 
     @Override
-    boolean isStateful() {
-      return false;
+    TraversalContinuation internalOnVisit(DFSNodeImpl<N> node) {
+      return process(node, this::internalEnqueueNode);
+    }
+
+    @Override
+    protected TraversalContinuation internalOnJoin(DFSNodeImpl<N> node) {
+      return TraversalContinuation.CONTINUE;
     }
   }
 
-  public abstract static class StatefulDepthFirstSearchWorkListBase<N, S>
-      extends DepthFirstSearchWorkListBase<N, DFSNodeWithState<N, S>, DFSNodeWithStateImpl<N, S>> {
+  public abstract static class StatefulDepthFirstSearchWorkList<N, S>
+      extends DepthFirstSearchWorkListBase<N, DFSNodeWithStateImpl<N, S>> {
+
+    private final Map<DFSNodeWithStateImpl<N, S>, List<DFSNodeWithState<N, S>>> childStateMap =
+        new IdentityHashMap<>();
+
+    /**
+     * The initial processing of the node when visiting the first time during the depth first
+     * search.
+     *
+     * @param node The current node.
+     * @param childNodeConsumer A consumer for adding child nodes. If an element has been seen
+     *     before but not finished there is a cycle.
+     * @return A value describing if the DFS algorithm should continue to run.
+     */
+    protected abstract TraversalContinuation process(
+        DFSNodeWithState<N, S> node, Function<N, DFSNodeWithState<N, S>> childNodeConsumer);
+
+    /**
+     * The joining of state during backtracking of the algorithm.
+     *
+     * @param node The current node
+     * @param childStates The already computed child states.
+     * @return A value describing if the DFS algorithm should continue to run.
+     */
+    protected abstract TraversalContinuation joiner(
+        DFSNodeWithState<N, S> node, List<DFSNodeWithState<N, S>> childStates);
 
     @Override
-    DFSNodeWithStateImpl<N, S> newNode(N node) {
+    DFSNodeWithStateImpl<N, S> createDfsNode(N node) {
       return new DFSNodeWithStateImpl<>(node);
     }
 
     @Override
-    boolean isStateful() {
-      return true;
+    TraversalContinuation internalOnVisit(DFSNodeWithStateImpl<N, S> node) {
+      List<DFSNodeWithState<N, S>> childStates = new ArrayList<>();
+      List<DFSNodeWithState<N, S>> removedChildStates = childStateMap.put(node, childStates);
+      assert removedChildStates == null;
+      return process(
+          node,
+          successor -> {
+            DFSNodeWithStateImpl<N, S> successorNode = internalEnqueueNode(successor);
+            childStates.add(successorNode);
+            return successorNode;
+          });
     }
 
     @Override
-    public abstract TraversalContinuation joiner(
-        DFSNodeWithState<N, S> node, List<DFSNodeWithState<N, S>> childStates);
+    protected TraversalContinuation internalOnJoin(DFSNodeWithStateImpl<N, S> node) {
+      return joiner(
+          node,
+          childStateMap.computeIfAbsent(
+              node,
+              n -> {
+                assert false : "Unexpected joining of not visited node";
+                return new ArrayList<>();
+              }));
+    }
   }
 }
