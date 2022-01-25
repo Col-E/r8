@@ -7,9 +7,6 @@ package com.android.tools.r8.classmerging.horizontal;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -25,15 +22,5 @@ public abstract class HorizontalClassMergingTestBase extends TestBase {
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  protected ClassSubject getSynthesizedArgumentClassSubject(CodeInspector codeInspector) {
-    return codeInspector.allClasses().stream()
-        .filter(
-            clazz ->
-                SyntheticItemsTestUtils.isHorizontalInitializerTypeArgument(
-                    clazz.getOriginalReference()))
-        .findFirst()
-        .get();
   }
 }

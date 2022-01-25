@@ -175,8 +175,8 @@ public class ClassStaticizerTest extends TestBase {
         references(clazz, "testSimpleWithParams", "void"));
 
     ClassSubject simpleWithParams = inspector.clazz(SimpleWithParams.class);
-    assertFalse(instanceMethods(simpleWithParams).isEmpty());
-    assertThat(simpleWithParams.clinit(), isPresent());
+    assertTrue(instanceMethods(simpleWithParams).isEmpty());
+    assertThat(simpleWithParams.clinit(), isAbsent());
 
     assertEquals(
         Lists.newArrayList(

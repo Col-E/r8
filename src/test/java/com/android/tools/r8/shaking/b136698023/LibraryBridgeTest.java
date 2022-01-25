@@ -87,7 +87,7 @@ public class LibraryBridgeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public LibraryBridgeTest(TestParameters parameters) {
@@ -102,7 +102,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(ICloneable.class)
         .addKeepMainRule(MainWithOrdinaryClone.class)
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MainWithOrdinaryClone.class)
         .assertSuccessWithOutputThatMatches(containsString(BaseOrdinaryClone.class.getTypeName()));
   }
@@ -115,7 +115,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(XCloneable.class, Base.class)
         .addKeepMainRule(Main.class)
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputThatMatches(containsString(Model.class.getTypeName()));
   }
@@ -128,7 +128,7 @@ public class LibraryBridgeTest extends TestBase {
         .addKeepClassAndMembersRules(XCloneable.class, Base.class)
         .addKeepMainRule(MainImpl.class)
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MainImpl.class)
         .assertSuccessWithOutputThatMatches(containsString(Model.class.getTypeName()));
   }
@@ -140,15 +140,15 @@ public class LibraryBridgeTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Base.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(XCloneable.class, Model.class, Main.class)
         .addLibraryClasses(Base.class)
-        .addLibraryFiles(runtimeJar(parameters.getBackend()))
+        .addDefaultRuntimeLibrary(parameters)
         .addKeepClassAndMembersRules(XCloneable.class)
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .noMinification()
         .compile()
         .addRunClasspathFiles(library.writeToZip())

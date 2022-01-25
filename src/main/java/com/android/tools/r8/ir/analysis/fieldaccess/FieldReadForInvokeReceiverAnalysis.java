@@ -74,6 +74,7 @@ public class FieldReadForInvokeReceiverAnalysis {
         }
 
         methods.add(singleTarget.getReference());
+        continue;
       }
       return null;
     }

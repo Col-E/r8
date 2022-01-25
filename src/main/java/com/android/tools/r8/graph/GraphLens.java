@@ -530,6 +530,10 @@ public abstract class GraphLens {
     return false;
   }
 
+  public boolean isArgumentPropagatorGraphLens() {
+    return false;
+  }
+
   public boolean isClearCodeRewritingLens() {
     return false;
   }

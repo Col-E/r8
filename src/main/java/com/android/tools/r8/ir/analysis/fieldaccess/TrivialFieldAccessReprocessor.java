@@ -333,7 +333,7 @@ public class TrivialFieldAccessReprocessor {
       }
 
       if (metadata != null) {
-        if (isUnusedReadAfterMethodStaticizing(metadata)) {
+        if (isUnusedReadAfterMethodStaticizing(field, metadata)) {
           // Ignore this read.
           dependencies
               .computeIfAbsent(field.getDefinition(), ignoreKey(ProgramMethodSet::createConcurrent))
@@ -367,8 +367,10 @@ public class TrivialFieldAccessReprocessor {
       }
     }
 
-    private boolean isUnusedReadAfterMethodStaticizing(BytecodeInstructionMetadata metadata) {
-      if (!metadata.isReadForInvokeReceiver()) {
+    private boolean isUnusedReadAfterMethodStaticizing(
+        DexClassAndField field, BytecodeInstructionMetadata metadata) {
+      if (!metadata.isReadForInvokeReceiver()
+          || field.getOptimizationInfo().getDynamicType().getNullability().isMaybeNull()) {
         return false;
       }
       Set<DexMethod> readForInvokeReceiver = metadata.getReadForInvokeReceiver();

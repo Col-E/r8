@@ -35,6 +35,11 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     return new Builder(appView);
   }
 
+  @Override
+  public boolean isArgumentPropagatorGraphLens() {
+    return true;
+  }
+
   public boolean hasPrototypeChanges(DexMethod method) {
     return prototypeChanges.containsKey(method);
   }

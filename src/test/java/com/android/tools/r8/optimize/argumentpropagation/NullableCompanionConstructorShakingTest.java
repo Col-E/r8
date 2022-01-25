@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
+import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethodWithName;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
-import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -16,8 +16,7 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,7 +25,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class CompanionConstructorShakingTest extends TestBase {
+public class NullableCompanionConstructorShakingTest extends TestBase {
 
   @Parameter(0)
   public TestParameters parameters;
@@ -49,44 +48,40 @@ public class CompanionConstructorShakingTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              boolean isCf = parameters.isCfRuntime();
+              MethodSubject companionMethodSubject =
+                  inspector.clazz(Host.Companion.class).uniqueMethodWithName("greet");
+              assertThat(companionMethodSubject, isStatic());
 
-              ClassSubject hostClassSubject = inspector.clazz(Host.class);
-              assertThat(hostClassSubject, isPresent());
-              assertEquals(1 + BooleanUtils.intValue(isCf), hostClassSubject.allMethods().size());
-              assertThat(hostClassSubject.clinit(), onlyIf(isCf, isPresent()));
-              assertThat(hostClassSubject.uniqueMethodWithName("keepHost"), isPresent());
-
-              ClassSubject companionClassSubject = inspector.clazz(Host.Companion.class);
-              assertThat(companionClassSubject, isPresent());
+              MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
               assertEquals(
-                  1 + BooleanUtils.intValue(isCf), companionClassSubject.allMethods().size());
-              assertThat(companionClassSubject.init(), onlyIf(isCf, isPresent()));
-
-              MethodSubject greetMethodSubject =
-                  companionClassSubject.uniqueMethodWithName("greet");
-              assertThat(greetMethodSubject, isStatic());
+                  2,
+                  mainMethodSubject
+                      .streamInstructions()
+                      .filter(InstructionSubject::isInvoke)
+                      .count());
+              assertThat(
+                  mainMethodSubject,
+                  invokesMethodWithName(
+                      canUseJavaUtilObjectsRequireNonNull(parameters)
+                          ? "requireNonNull"
+                          : "getClass"));
+              assertThat(mainMethodSubject, invokesMethod(companionMethodSubject));
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello world!");
+        .assertFailureWithErrorThatThrows(NullPointerException.class);
   }
 
   static class Main {
 
     public static void main(String[] args) {
+      // This method call will be staticized and a null check should be inserted for Host.companion.
       Host.companion.greet();
-      Host.keepHost();
     }
   }
 
   static class Host {
 
-    static final Companion companion = new Companion();
-
-    @NeverInline
-    static void keepHost() {
-      System.out.println();
-    }
+    static final Companion companion = System.currentTimeMillis() >= 0 ? null : new Companion();
 
     @NeverClassInline
     @NoHorizontalClassMerging

@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import com.google.common.base.Predicates;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,10 +53,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
               // The Util class is there, but its instance methods have been inlined.
               ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
               assertThat(utilClass, isPresent());
-              assertTrue(
-                  utilClass.allMethods().stream()
-                      .filter(Predicates.not(FoundMethodSubject::isStatic))
-                      .allMatch(FoundMethodSubject::isInstanceInitializer));
+              assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
             });
 
     // With class staticizer.
@@ -68,10 +64,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
 
               ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
               assertThat(utilClass, isPresent());
-              // TODO(b/179951488): The <init> is not removed in CF
-              if (testParameters.isDexRuntime()) {
-                assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
-              }
+              assertTrue(utilClass.allMethods().stream().allMatch(FoundMethodSubject::isStatic));
             });
   }
 

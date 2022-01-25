@@ -103,6 +103,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
+import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.verticalclassmerging.InterfaceTypeToClassTypeLensCodeRewriterHelper;
@@ -235,6 +236,8 @@ public class LensCodeRewriter {
         new LazyBox<>(() -> new LensCodeRewriterUtils(appView, graphLens, codeLens));
     InterfaceTypeToClassTypeLensCodeRewriterHelper interfaceTypeToClassTypeRewriterHelper =
         InterfaceTypeToClassTypeLensCodeRewriterHelper.create(appView, code, graphLens, codeLens);
+    NullCheckInserter nullCheckInserter =
+        NullCheckInserter.create(appView, code, graphLens, codeLens);
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -335,9 +338,6 @@ public class LensCodeRewriter {
               DexMethod actualTarget = lensLookup.getReference();
               Invoke.Type actualInvokeType = lensLookup.getType();
 
-              iterator =
-                  insertNullCheckForInvokeReceiverIfNeeded(
-                      code, blocks, iterator, invoke, lensLookup);
               iterator =
                   insertCastsForInvokeArgumentsIfNeeded(code, blocks, iterator, invoke, lensLookup);
 
@@ -497,6 +497,9 @@ public class LensCodeRewriter {
                 // merged into their unique (non-interface) subclass. See also b/199561570.
                 interfaceTypeToClassTypeRewriterHelper.insertCastsForOperandsIfNeeded(
                     invoke, newInvoke, lensLookup, blocks, block, iterator);
+
+                nullCheckInserter.insertNullCheckForInvokeReceiverIfNeeded(
+                    invoke, newInvoke, lensLookup);
 
                 if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
                   affectedPhis.addAll(newOutValue.uniquePhiUsers());
@@ -788,8 +791,9 @@ public class LensCodeRewriter {
     code.removeAllDeadAndTrivialPhis();
     removeUnusedArguments(method, code, unusedArguments);
 
-    // Finalize cast insertion.
+    // Finalize cast and null check insertion.
     interfaceTypeToClassTypeRewriterHelper.processWorklist();
+    nullCheckInserter.processWorklist();
 
     assert code.isConsistentSSABeforeTypesAreCorrect();
   }
@@ -981,63 +985,6 @@ public class LensCodeRewriter {
       Instruction next = iterator.next();
       assert next == fieldPut;
     }
-    return iterator;
-  }
-
-  private InstructionListIterator insertNullCheckForInvokeReceiverIfNeeded(
-      IRCode code,
-      BasicBlockIterator blocks,
-      InstructionListIterator iterator,
-      InvokeMethod invoke,
-      MethodLookupResult lookup) {
-    // If the invoke has been staticized, then synthesize a null check for the receiver.
-    if (!invoke.isInvokeMethodWithReceiver()) {
-      return iterator;
-    }
-
-    ArgumentInfo receiverArgumentInfo =
-        lookup.getPrototypeChanges().getArgumentInfoCollection().getArgumentInfo(0);
-    if (!receiverArgumentInfo.isRemovedArgumentInfo()
-        || !receiverArgumentInfo.asRemovedArgumentInfo().isCheckNullOrZeroSet()) {
-      return iterator;
-    }
-
-    assert lookup.getType().isStatic();
-
-    Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-    TypeElement receiverType = receiver.getType();
-    if (receiverType.isDefinitelyNotNull()) {
-      return iterator;
-    }
-
-    // A parameter with users is only subject to effectively unused argument removal if it is
-    // guaranteed to be non-null.
-    if (receiver.isDefinedByInstructionSatisfying(Instruction::isUnusedArgument)) {
-      return iterator;
-    }
-
-    iterator.previous();
-
-    Position nullCheckPosition =
-        invoke
-            .getPosition()
-            .getOutermostCallerMatchingOrElse(
-                Position::isRemoveInnerFramesIfThrowingNpe, invoke.getPosition());
-    InvokeMethod nullCheck =
-        iterator.insertNullCheckInstruction(
-            appView, code, blocks, invoke.getFirstArgument(), nullCheckPosition);
-
-    // Reset the block iterator.
-    if (invoke.getBlock().hasCatchHandlers()) {
-      BasicBlock splitBlock = invoke.getBlock();
-      BasicBlock previousBlock = blocks.previousUntil(block -> block == splitBlock);
-      assert previousBlock == splitBlock;
-      blocks.next();
-      iterator = splitBlock.listIterator(code);
-    }
-
-    Instruction next = iterator.next();
-    assert next == invoke;
     return iterator;
   }
 

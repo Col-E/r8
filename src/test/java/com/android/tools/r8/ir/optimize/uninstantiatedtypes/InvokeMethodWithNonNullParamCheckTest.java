@@ -10,7 +10,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -22,6 +23,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
@@ -35,15 +37,12 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
 
-  private final Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
-  }
-
-  public InvokeMethodWithNonNullParamCheckTest(Backend backend) {
-    this.backend = backend;
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -72,7 +71,7 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(InvokeMethodWithNonNullParamCheckTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
@@ -82,7 +81,8 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
                   // CatchHandlers(new A()).
                   options.enableClassInlining = false;
                 })
-            .run(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
 
