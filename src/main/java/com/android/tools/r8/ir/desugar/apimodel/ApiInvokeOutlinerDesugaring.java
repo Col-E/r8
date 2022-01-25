@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -20,6 +21,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -38,10 +41,13 @@ import java.util.Collection;
  */
 public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final AndroidApiLevelCompute apiLevelCompute;
 
-  public ApiInvokeOutlinerDesugaring(AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
+  public ApiInvokeOutlinerDesugaring(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AndroidApiLevelCompute apiLevelCompute) {
+    // TODO(b/216277460) We should only need AppView<?>.
     this.appView = appView;
     this.apiLevelCompute = apiLevelCompute;
   }
@@ -89,8 +95,8 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (!holderType.isClassType()) {
       return appView.computedMinApiLevel();
     }
-    DexClass clazz = appView.definitionFor(holderType);
-    if (clazz == null || !clazz.isLibraryClass()) {
+    DexClass holder = appView.definitionFor(holderType);
+    if (holder == null || !holder.isLibraryClass()) {
       return appView.computedMinApiLevel();
     }
     ComputedApiLevel methodApiLevel =
@@ -103,9 +109,21 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     // Compute the api level of the holder to see if the method will be stubbed.
     ComputedApiLevel holderApiLevel =
         apiLevelCompute.computeApiLevelForLibraryReference(holderType, ComputedApiLevel.unknown());
-    return methodApiLevel.isGreaterThan(holderApiLevel)
-        ? methodApiLevel
-        : appView.computedMinApiLevel();
+    if (holderApiLevel.isGreaterThanOrEqualTo(methodApiLevel)) {
+      return appView.computedMinApiLevel();
+    }
+    // Check for protected or package private access flags before outlining.
+    if (holder.isInterface()) {
+      return methodApiLevel;
+    } else {
+      MethodResolutionResult methodResolutionResult =
+          appView.appInfo().resolveMethod(cfInvoke.getMethod(), false);
+      SingleResolutionResult singleResolutionResult = methodResolutionResult.asSingleResolution();
+      return singleResolutionResult != null
+              && !singleResolutionResult.getResolvedMethod().isPublic()
+          ? methodApiLevel
+          : appView.computedMinApiLevel();
+    }
   }
 
   private boolean isApiLevelLessThanOrEqualTo9(ComputedApiLevel apiLevel) {

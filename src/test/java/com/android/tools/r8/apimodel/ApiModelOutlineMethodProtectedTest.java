@@ -88,8 +88,14 @@ public class ApiModelOutlineMethodProtectedTest extends TestBase {
         .applyIf(willInvokeLibraryMethods, b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLinesIf(!willInvokeLibraryMethods, "Not calling API")
-        // TODO(b/216136762): We should ensure not oulining if calling protected.
-        .assertFailureWithErrorThatThrowsIf(willInvokeLibraryMethods, IllegalAccessError.class);
+        .assertSuccessWithOutputLinesIf(
+            willInvokeLibraryMethods,
+            "Could not access LibraryClass::addedOn27",
+            "LibraryClass::addedOn27",
+            "LibraryClass::addedOn27",
+            "LibraryCLass::alsoAddedOn27",
+            "TestClass::superInvokeOn27",
+            "LibraryCLass::superInvokeOn27");
   }
 
   // Only present from api level 23.
