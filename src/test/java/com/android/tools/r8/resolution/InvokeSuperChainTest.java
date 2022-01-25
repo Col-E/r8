@@ -7,6 +7,7 @@ package com.android.tools.r8.resolution;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -15,13 +16,8 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Opcodes;
 
-// This test shows that invoke super behaves differently on V5_1_1 and V6_0_1 based on the
-// static receiver on invoke-super, skipping the direct resolution target unless we rewrite it.
 @RunWith(Parameterized.class)
 public class InvokeSuperChainTest extends TestBase {
-
-  private static final String[] EXPECTED =
-      new String[] {"C::foo", "B::foo", "A::foo", "C::bar", "B::bar", "A::bar"};
 
   @Parameter() public TestParameters parameters;
 
@@ -32,24 +28,26 @@ public class InvokeSuperChainTest extends TestBase {
 
   @Test
   public void testRuntime() throws Exception {
+    // This tests shows that invoke super behaves differently on V5_1_1 and V6_0_1 based on the
+    // static receiver on invoke-super, skipping the direct resolution target.
+    boolean hasIncorrectSuperInvokeSemantics =
+        parameters.isDexRuntimeVersion(Version.V5_1_1)
+            || parameters.isDexRuntimeVersion(Version.V6_0_1);
     testForRuntime(parameters)
         .addProgramClasses(A.class, Main.class)
         .addProgramClassFileData(
             rewriteBarSuperInvokeToA(B.class), rewriteBarSuperInvokeToA(C.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
-  }
-
-  @Test
-  public void testR8() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, Main.class)
-        .addProgramClassFileData(
-            rewriteBarSuperInvokeToA(B.class), rewriteBarSuperInvokeToA(C.class))
-        .setMinApi(parameters.getApiLevel())
-        .addKeepAllClassesRule()
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertSuccessWithOutputLinesIf(
+            !hasIncorrectSuperInvokeSemantics,
+            "C::foo",
+            "B::foo",
+            "A::foo",
+            "C::bar",
+            "B::bar",
+            "A::bar")
+        .assertSuccessWithOutputLinesIf(
+            hasIncorrectSuperInvokeSemantics, "C::foo", "B::foo", "A::foo", "C::bar", "A::bar");
   }
 
   private byte[] rewriteBarSuperInvokeToA(Class<?> clazz) throws Exception {

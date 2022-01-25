@@ -85,6 +85,11 @@ public abstract class Invoke extends Instruction {
     }
 
     public static Type fromInvokeSpecial(
+        DexMethod invokedMethod, DexClassAndMethod context, AppView<?> appView) {
+      return fromInvokeSpecial(invokedMethod, context, appView, appView.codeLens());
+    }
+
+    public static Type fromInvokeSpecial(
         DexMethod invokedMethod,
         DexClassAndMethod context,
         AppView<?> appView,

@@ -75,17 +75,14 @@ public class MemberRebindingAnalysis {
 
     if (invokeType.isSuper() && options.canHaveSuperInvokeBug()) {
       // To preserve semantics we should find the first library method on the boundary.
-      DexType firstLibraryTarget =
-          firstLibraryClassOrFirstInterfaceTarget(
-              resolutionResult.getResolvedHolder(),
-              appView,
-              resolvedMethod.getReference(),
-              original.getHolderType(),
-              DexClass::lookupMethod);
-      if (firstLibraryTarget == null) {
-        return original;
-      }
-      DexClass libraryHolder = appView.definitionFor(firstLibraryTarget);
+      DexClass libraryHolder =
+          appView.definitionFor(
+              firstLibraryClassOrFirstInterfaceTarget(
+                  resolutionResult.getResolvedHolder(),
+                  appView,
+                  resolvedMethod.getReference(),
+                  original.getHolderType(),
+                  DexClass::lookupMethod));
       if (libraryHolder == null) {
         return original;
       }
