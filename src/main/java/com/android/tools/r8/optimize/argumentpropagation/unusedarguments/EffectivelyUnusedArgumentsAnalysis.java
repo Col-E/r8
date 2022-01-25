@@ -16,9 +16,11 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
+import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,8 +87,7 @@ public class EffectivelyUnusedArgumentsAnalysis {
     // Group all virtual methods in this strongly connected component by their signature.
     Map<DexMethodSignature, ProgramMethodSet> methodsBySignature = new HashMap<>();
     for (DexProgramClass clazz : stronglyConnectedComponent) {
-      clazz.forEachProgramVirtualMethodMatching(
-          method -> method.isLibraryMethodOverride().isFalse(),
+      clazz.forEachProgramVirtualMethod(
           method -> {
             ProgramMethodSet methodsWithSameSignature =
                 methodsBySignature.computeIfAbsent(
@@ -169,6 +170,40 @@ public class EffectivelyUnusedArgumentsAnalysis {
       }
     }
     return effectivelyUnusedConstraints;
+  }
+
+  public void computeEffectivelyUnusedArguments(MethodStateCollectionByReference methodStates) {
+    // Build a graph where nodes are method parameters and there is an edge from method parameter p0
+    // to method parameter p1 if the removal of p0 depends on the removal of p1.
+    EffectivelyUnusedArgumentsGraph dependenceGraph =
+        EffectivelyUnusedArgumentsGraph.create(appView, constraints, methodStates);
+
+    // Remove all unoptimizable method parameters from the graph, as well as all nodes that depend
+    // on a node that is unoptimable.
+    dependenceGraph.removeUnoptimizableNodes();
+
+    // Repeatedly mark method parameters with no outgoing edges (i.e., no dependencies) as being
+    // unused.
+    WorkList<EffectivelyUnusedArgumentsGraphNode> worklist =
+        WorkList.newIdentityWorkList(dependenceGraph.getNodes());
+    while (!worklist.isEmpty()) {
+      while (!worklist.isEmpty()) {
+        EffectivelyUnusedArgumentsGraphNode node = worklist.removeSeen();
+        assert dependenceGraph.verifyContains(node);
+        node.removeUnusedSuccessors();
+        if (node.getSuccessors().isEmpty()) {
+          node.setUnused();
+          node.getPredecessors().forEach(worklist::addIfNotSeen);
+          node.cleanForRemoval();
+          dependenceGraph.remove(node);
+        }
+      }
+
+      // Handle mutually recursive methods. If there is a cycle p0 -> p1 -> ... -> pn -> p0 and each
+      // of the method parameters p0 ... pn has a unique successor, then remove the edge pn -> p0
+      // from the graph.
+      dependenceGraph.removeClosedCycles(worklist::addIfNotSeen);
+    }
   }
 
   private boolean isUnoptimizable(ProgramMethod method) {

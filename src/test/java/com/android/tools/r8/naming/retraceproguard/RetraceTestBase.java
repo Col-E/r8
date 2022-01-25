@@ -6,9 +6,11 @@ package com.android.tools.r8.naming.retraceproguard;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.naming.retraceproguard.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -51,6 +53,14 @@ public abstract class RetraceTestBase extends TestBase {
 
   public void runTest(List<String> keepRules, BiConsumer<StackTrace, StackTrace> checker)
       throws Exception {
+    runTest(keepRules, checker, ThrowableConsumer.empty());
+  }
+
+  public void runTest(
+      List<String> keepRules,
+      BiConsumer<StackTrace, StackTrace> checker,
+      ThrowableConsumer<R8TestCompileResult> compileResultConsumer)
+      throws Exception {
     R8TestRunResult result =
         (compat ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
             .setMode(mode)
@@ -60,6 +70,8 @@ public abstract class RetraceTestBase extends TestBase {
             .addKeepRules(keepRules)
             .setMinApi(parameters.getApiLevel())
             .apply(this::configure)
+            .compile()
+            .apply(compileResultConsumer)
             .run(parameters.getRuntime(), getMainClass())
             .assertFailure();
 
