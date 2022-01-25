@@ -1004,15 +1004,8 @@ public class LensCodeRewriter {
 
     assert lookup.getType().isStatic();
 
-    Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-    TypeElement receiverType = receiver.getType();
+    TypeElement receiverType = invoke.asInvokeMethodWithReceiver().getReceiver().getType();
     if (receiverType.isDefinitelyNotNull()) {
-      return iterator;
-    }
-
-    // A parameter with users is only subject to effectively unused argument removal if it is
-    // guaranteed to be non-null.
-    if (receiver.isDefinedByInstructionSatisfying(Instruction::isUnusedArgument)) {
       return iterator;
     }
 

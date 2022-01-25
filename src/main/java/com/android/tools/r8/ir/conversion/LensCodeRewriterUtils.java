@@ -236,4 +236,8 @@ public class LensCodeRewriterUtils {
     DexMethodHandle newHandle = rewriteDexMethodHandle(oldHandle, use, context);
     return newHandle != oldHandle ? new DexValueMethodHandle(newHandle) : methodHandle;
   }
+
+  public boolean hasGraphLens(GraphLens graphLens, GraphLens codeLens) {
+    return this.graphLens == graphLens && this.codeLens == codeLens;
+  }
 }
