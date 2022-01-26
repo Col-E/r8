@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestParameters;
 import org.junit.Test;
 
@@ -27,6 +28,7 @@ public class InheritInterfaceWithDefaultTest extends HorizontalClassMergingTestB
         .allowStdoutMessages()
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addHorizontallyMergedClassesInspector(
             inspector -> inspector.assertMergedInto(B.class, A.class))
@@ -42,6 +44,7 @@ public class InheritInterfaceWithDefaultTest extends HorizontalClassMergingTestB
 
   public interface Interface {
     @NeverInline
+    @NoMethodStaticizing
     default void print() {
       System.out.println("print interface");
     }

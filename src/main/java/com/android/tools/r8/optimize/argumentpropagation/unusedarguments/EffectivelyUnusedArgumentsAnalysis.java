@@ -16,7 +16,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
@@ -172,11 +171,11 @@ public class EffectivelyUnusedArgumentsAnalysis {
     return effectivelyUnusedConstraints;
   }
 
-  public void computeEffectivelyUnusedArguments(MethodStateCollectionByReference methodStates) {
+  public void computeEffectivelyUnusedArguments() {
     // Build a graph where nodes are method parameters and there is an edge from method parameter p0
     // to method parameter p1 if the removal of p0 depends on the removal of p1.
     EffectivelyUnusedArgumentsGraph dependenceGraph =
-        EffectivelyUnusedArgumentsGraph.create(appView, constraints, methodStates);
+        EffectivelyUnusedArgumentsGraph.create(appView, constraints);
 
     // Remove all unoptimizable method parameters from the graph, as well as all nodes that depend
     // on a node that is unoptimable.

@@ -9,6 +9,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -68,13 +69,19 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
             "Caught NullPointerException from testRewriteInvokeVirtualToThrowNull"
                 + "WithDeadCatchHandler");
 
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expected);
+    }
 
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(InvokeMethodWithNonNullParamCheckTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
+            .enableNoMethodStaticizingAnnotations()
             .addOptionsModification(
                 options -> {
                   // Avoid that the class inliner inlines testRewriteInvokeVirtualToThrowNullWith-
@@ -371,6 +378,7 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
   static class Virtual {
 
     @NeverInline
+    @NoMethodStaticizing
     public String throwIfFirstIsNull(Object first) {
       if (first == null) {
         throw new NullPointerException();
@@ -379,6 +387,7 @@ public class InvokeMethodWithNonNullParamCheckTest extends TestBase {
     }
 
     @NeverInline
+    @NoMethodStaticizing
     public String throwIfSecondIsNull(Object first, Object second, Object third) {
       if (second == null) {
         throw new NullPointerException();

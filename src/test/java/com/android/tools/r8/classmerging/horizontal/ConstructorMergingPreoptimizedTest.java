@@ -13,6 +13,7 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoHorizontalClassMerging;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.horizontalclassmerging.ClassMerger;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -36,6 +37,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
+        .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("changed", "0", "42", "foo", "7", "foo", "print a", "print b")
@@ -71,6 +73,7 @@ public class ConstructorMergingPreoptimizedTest extends HorizontalClassMergingTe
   @NoHorizontalClassMerging
   public static class Parent {
     @NeverInline
+    @NoMethodStaticizing
     public void foo() {
       System.out.println("foo");
     }

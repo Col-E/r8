@@ -225,7 +225,7 @@ public class ArgumentPropagator {
     timing.end();
 
     timing.begin("Compute unused arguments");
-    effectivelyUnusedArgumentsAnalysis.computeEffectivelyUnusedArguments(codeScannerResult);
+    effectivelyUnusedArgumentsAnalysis.computeEffectivelyUnusedArguments();
     effectivelyUnusedArgumentsAnalysis = null;
     timing.end();
   }

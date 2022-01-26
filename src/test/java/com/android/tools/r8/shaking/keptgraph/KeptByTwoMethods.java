@@ -7,6 +7,7 @@ import static com.android.tools.r8.references.Reference.methodFromMethod;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -27,6 +28,7 @@ public class KeptByTwoMethods extends TestBase {
   public static class A {
 
     @NeverInline
+    @NoMethodStaticizing
     void foo() {
       System.out.println("A.foo!");
     }
@@ -75,6 +77,7 @@ public class KeptByTwoMethods extends TestBase {
         testForR8(parameters.getBackend())
             .enableGraphInspector()
             .enableNeverClassInliningAnnotations()
+            .enableNoMethodStaticizingAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .enableInliningAnnotations()
             .addKeepMainRule(TestClass.class)

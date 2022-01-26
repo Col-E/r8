@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodParameter;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.dfs.DFSStack;
@@ -38,14 +37,13 @@ class EffectivelyUnusedArgumentsGraph {
 
   public static EffectivelyUnusedArgumentsGraph create(
       AppView<AppInfoWithLiveness> appView,
-      Map<MethodParameter, Set<MethodParameter>> constraints,
-      MethodStateCollectionByReference methodStates) {
+      Map<MethodParameter, Set<MethodParameter>> constraints) {
     EffectivelyUnusedArgumentsGraph graph = new EffectivelyUnusedArgumentsGraph(appView);
     constraints.forEach(
         (methodParameter, constraintsForMethodParameter) -> {
           EffectivelyUnusedArgumentsGraphNode node = graph.getOrCreateNode(methodParameter);
           for (MethodParameter constraint : constraintsForMethodParameter) {
-            graph.addConstraintEdge(node, constraint, constraints, methodStates);
+            graph.addConstraintEdge(node, constraint, constraints);
           }
         });
     return graph;
@@ -54,8 +52,7 @@ class EffectivelyUnusedArgumentsGraph {
   void addConstraintEdge(
       EffectivelyUnusedArgumentsGraphNode node,
       MethodParameter constraint,
-      Map<MethodParameter, Set<MethodParameter>> constraints,
-      MethodStateCollectionByReference methodStates) {
+      Map<MethodParameter, Set<MethodParameter>> constraints) {
     ProgramMethod dependencyMethod =
         asProgramMethodOrNull(appView.definitionFor(constraint.getMethod()));
     if (dependencyMethod == null) {
@@ -68,7 +65,7 @@ class EffectivelyUnusedArgumentsGraph {
     // invoke (or we cannot preserve NPE semantics).
     if (dependencyMethod.getDefinition().isInstance()
         && constraint.getIndex() == 0
-        && node.isNullable(methodStates)) {
+        && node.isNullable()) {
       node.setUnoptimizable();
       return;
     }

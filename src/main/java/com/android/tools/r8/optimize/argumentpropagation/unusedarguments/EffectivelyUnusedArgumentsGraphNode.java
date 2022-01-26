@@ -7,10 +7,7 @@ package com.android.tools.r8.optimize.argumentpropagation.unusedarguments;
 import static com.android.tools.r8.ir.optimize.info.OptimizationFeedback.getSimpleFeedback;
 
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ConcreteMonomorphicMethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodState;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.MethodStateCollectionByReference;
-import com.android.tools.r8.optimize.argumentpropagation.codescanner.ParameterState;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
 import java.util.Set;
@@ -75,28 +72,13 @@ class EffectivelyUnusedArgumentsGraphNode {
     return successors;
   }
 
-  boolean isNullable(MethodStateCollectionByReference methodStates) {
+  boolean isNullable() {
     if (method.getDefinition().isInstance() && argumentIndex == 0) {
       return false;
     }
-    MethodState methodState = methodStates.get(method);
-    if (methodState.isBottom()) {
-      // TODO: this means the method is unreachable? what to do in this case?
-      return true;
-    }
-    assert !methodState.isBottom();
-    if (methodState.isUnknown()) {
-      return true;
-    }
-    assert methodState.isMonomorphic();
-    ConcreteMonomorphicMethodState monomorphicMethodState = methodState.asMonomorphic();
-    ParameterState parameterState = monomorphicMethodState.getParameterState(argumentIndex);
-    if (parameterState.isUnknown()) {
-      return true;
-    }
-    assert parameterState.isConcrete();
-    assert parameterState.asConcrete().isReferenceParameter();
-    return parameterState.asConcrete().asReferenceParameter().getNullability().isMaybeNull();
+    DynamicType dynamicType =
+        method.getOptimizationInfo().getArgumentInfos().getDynamicType(argumentIndex);
+    return dynamicType.getNullability().isNullable();
   }
 
   boolean isUnoptimizable() {
