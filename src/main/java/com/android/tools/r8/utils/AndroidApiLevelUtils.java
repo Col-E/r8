@@ -22,6 +22,10 @@ public class AndroidApiLevelUtils {
     if (caller.getHolderType() == inlinee.getHolderType()) {
       return true;
     }
+    ComputedApiLevel apiLevelForCode = caller.getDefinition().getApiLevelForCode();
+    if (apiLevelForCode.isUnknownApiLevel()) {
+      return false;
+    }
     // For inlining we only measure if the code has invokes into the library.
     return caller
         .getDefinition()
