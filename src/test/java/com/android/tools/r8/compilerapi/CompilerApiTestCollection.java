@@ -26,10 +26,13 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
       Paths.get(ToolHelper.THIRD_PARTY_DIR, "binary_compatibility_tests", DIRNAME, "tests.jar");
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_FOR_BINARY_COMPATIBILITY =
-      ImmutableList.of(ApiTestingSetUpTest.ApiTest.class);
+      ImmutableList.of(
+          ApiTestingSetUpTest.ApiTest.class,
+          CustomMapIdTest.ApiTest.class,
+          CustomSourceFileTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(CustomMapIdTest.ApiTest.class, CustomSourceFileTest.ApiTest.class);
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 
