@@ -75,7 +75,7 @@ public class InterfaceAlsoImplementedByMissingClassTest extends TestBase {
     assertThat(iClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
     // A.notKept() is present because the caller has an invoke to an unknown method giving it api
     // level unknown.
-    assertThat(aClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithName("notKept"), isPresent());
   }
 
   static class TestClass {
