@@ -760,13 +760,11 @@ public class Inliner {
         assert false : "Expected position for inlinee call to receiver";
         return;
       }
+      Position outermostCaller = position.getOutermostCaller();
       Position removeInnerFrame =
-          position
-              .getOutermostCaller()
-              .builderWithCopy()
-              .setRemoveInnerFramesIfThrowingNpe(true)
-              .build();
-      instruction.forceOverwritePosition(position.replaceOutermostCallerPosition(removeInnerFrame));
+          outermostCaller.builderWithCopy().setRemoveInnerFramesIfThrowingNpe(true).build();
+      instruction.forceOverwritePosition(
+          position.replacePosition(outermostCaller, removeInnerFrame));
     }
   }
 

@@ -130,9 +130,30 @@ public abstract class NullCheckInserter {
                   .getPosition()
                   .getOutermostCallerMatchingOrElse(
                       Position::isRemoveInnerFramesIfThrowingNpe, invoke.getPosition());
+          if (nullCheckPosition.isRemoveInnerFramesIfThrowingNpe()) {
+            // We've found an outermost removeInnerFrames for an invoke with receiver. Assume we
+            // have call chain: inline -> callerInline -> callerCallerInline
+            // where callerInline.isRemoveInnerFramesIfThrowingNpe() == true.
+            // inline must therefore have an immediate use of the receiver which is tracked in
+            // callerInline such that the frame can be removed when retracing.
+            // When synthesizing a nullCheck for the receiver on inline, the check should actually
+            // fail in the callerInline. We therefore use this as the new position.
+            // Since the exception is now moved out to callerInline, we should no longer strip the
+            // topmost frame if we see an NPE in inline, so we update the position on this invoke to
+            // inline -> callerInline' -> callerCallerInline
+            // where callerInline.isRemoveInnerFramesIfThrowingNpe() == false;
+            Position newCallerPositionTail =
+                nullCheckPosition
+                    .builderWithCopy()
+                    .setRemoveInnerFramesIfThrowingNpe(false)
+                    .build();
+            invoke.forceOverwritePosition(
+                invoke.getPosition().replacePosition(nullCheckPosition, newCallerPositionTail));
+            // We can then use pos2 (newCallerPositionTail) as the new null-check position.
+            nullCheckPosition = newCallerPositionTail;
+          }
           instructionIterator.insertNullCheckInstruction(
               appView, code, blockIterator, receiver, nullCheckPosition);
-
           // Reset the block iterator.
           if (invoke.getBlock().hasCatchHandlers()) {
             BasicBlock splitBlock = invoke.getBlock();

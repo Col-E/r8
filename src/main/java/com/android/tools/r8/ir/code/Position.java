@@ -153,14 +153,14 @@ public abstract class Position implements StructuralItem<Position> {
 
   public Position getOutermostCallerMatchingOrElse(
       Predicate<Position> predicate, Position defaultValue) {
-    return getOutermostCallerMatchingOrElse(predicate, defaultValue, false);
+    Position outerMostMatching = getOutermostCallerMatching(predicate, false);
+    return outerMostMatching == null ? defaultValue : outerMostMatching;
   }
 
-  private Position getOutermostCallerMatchingOrElse(
-      Predicate<Position> predicate, Position defaultValue, boolean isCallerPosition) {
+  private Position getOutermostCallerMatching(
+      Predicate<Position> predicate, boolean isCallerPosition) {
     if (hasCallerPosition()) {
-      Position position =
-          getCallerPosition().getOutermostCallerMatchingOrElse(predicate, defaultValue, true);
+      Position position = getCallerPosition().getOutermostCallerMatching(predicate, true);
       if (position != null) {
         return position;
       }
@@ -168,7 +168,7 @@ public abstract class Position implements StructuralItem<Position> {
     if (isCallerPosition && predicate.test(this)) {
       return this;
     }
-    return defaultValue;
+    return null;
   }
 
   public Position withOutermostCallerPosition(Position newOutermostCallerPosition) {
@@ -180,14 +180,15 @@ public abstract class Position implements StructuralItem<Position> {
         .build();
   }
 
-  public Position replaceOutermostCallerPosition(Position newOutermostCallerPosition) {
-    if (!hasCallerPosition()) {
-      return newOutermostCallerPosition;
+  public Position replacePosition(Position originalPosition, Position newPosition) {
+    if (this == originalPosition) {
+      return newPosition;
     }
-    return builderWithCopy()
-        .setCallerPosition(
-            getCallerPosition().replaceOutermostCallerPosition(newOutermostCallerPosition))
-        .build();
+    return hasCallerPosition()
+        ? builderWithCopy()
+            .setCallerPosition(callerPosition.replacePosition(originalPosition, newPosition))
+            .build()
+        : this;
   }
 
   @Override
@@ -324,7 +325,8 @@ public abstract class Position implements StructuralItem<Position> {
           .setLine(line)
           .setFile(file)
           .setMethod(method)
-          .setCallerPosition(callerPosition);
+          .setCallerPosition(callerPosition)
+          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
     }
 
     @Override
@@ -389,7 +391,11 @@ public abstract class Position implements StructuralItem<Position> {
 
     @Override
     public PositionBuilder<?, ?> builderWithCopy() {
-      return builder().setLine(line).setMethod(method).setCallerPosition(callerPosition);
+      return builder()
+          .setLine(line)
+          .setMethod(method)
+          .setCallerPosition(callerPosition)
+          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
     }
 
     @Override
@@ -442,7 +448,11 @@ public abstract class Position implements StructuralItem<Position> {
 
     @Override
     public PositionBuilder<?, ?> builderWithCopy() {
-      return builder().setLine(line).setMethod(method).setCallerPosition(callerPosition);
+      return builder()
+          .setLine(line)
+          .setMethod(method)
+          .setCallerPosition(callerPosition)
+          .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
     }
 
     @Override
@@ -516,7 +526,8 @@ public abstract class Position implements StructuralItem<Position> {
               .setMethod(method)
               .setCallerPosition(callerPosition)
               .setOutlineCallee(outlineCallee)
-              .setIsOutline(isOutline);
+              .setIsOutline(isOutline)
+              .setRemoveInnerFramesIfThrowingNpe(isRemoveInnerFramesIfThrowingNpe());
       outlinePositions.forEach(outlineCallerPositionBuilder::addOutlinePosition);
       return outlineCallerPositionBuilder;
     }

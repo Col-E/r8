@@ -68,9 +68,9 @@ public class RetraceInlineeWithNullCheckInlinedTest extends TestBase {
             (stackTrace, inspector) -> {
               ClassSubject callerClass = inspector.clazz(Caller.class);
               assertThat(callerClass, isPresent());
-              MethodSubject staticized = callerClass.uniqueMethodWithName("outerCaller");
-              assertThat(staticized, isPresentAndRenamed());
-              // TODO(b/216464180): This should be fixed by maintaining the bit on positions.
+              MethodSubject outerCaller = callerClass.uniqueMethodWithName("outerCaller");
+              assertThat(outerCaller, isPresentAndRenamed());
+              // TODO(b/216473070): This should be fixed in retrace.
               assertThat(stackTrace, notIf(isSame(expectedStackTrace), throwReceiverNpe));
             });
   }
@@ -96,7 +96,7 @@ public class RetraceInlineeWithNullCheckInlinedTest extends TestBase {
 
     static void caller(Foo f) {
       Object inlinable = f.inlinable();
-      System.out.println(inlinable);
+      System.out.println(inlinable == null ? "null" : "some");
     }
 
     @NeverInline
