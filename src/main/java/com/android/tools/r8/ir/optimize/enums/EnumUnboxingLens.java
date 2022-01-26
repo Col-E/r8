@@ -167,23 +167,27 @@ class EnumUnboxingLens extends NestedGraphLens {
         offsetDiff = 1;
         builder.addArgumentInfo(
             0,
-            new RewrittenPrototypeDescription.RewrittenTypeInfo(
-                from.holder, to.proto.parameters.values[0]));
+            RewrittenTypeInfo.builder()
+                .setOldType(from.getHolderType())
+                .setNewType(to.getParameter(0))
+                .build());
       }
-      for (int i = 0; i < from.proto.parameters.size(); i++) {
-        DexType fromType = from.proto.parameters.values[i];
-        DexType toType = to.proto.parameters.values[i + offsetDiff];
+      for (int i = 0; i < from.getParameters().size(); i++) {
+        DexType fromType = from.getParameter(i);
+        DexType toType = to.getParameter(i + offsetDiff);
         if (fromType != toType) {
           builder.addArgumentInfo(
               i + offsetDiff + toOffset,
-              new RewrittenPrototypeDescription.RewrittenTypeInfo(fromType, toType));
+              RewrittenTypeInfo.builder().setOldType(fromType).setNewType(toType).build());
         }
       }
-      RewrittenPrototypeDescription.RewrittenTypeInfo returnInfo =
-          from.proto.returnType == to.proto.returnType
+      RewrittenTypeInfo returnInfo =
+          from.getReturnType() == to.getReturnType()
               ? null
-              : new RewrittenPrototypeDescription.RewrittenTypeInfo(
-                  from.proto.returnType, to.proto.returnType);
+              : RewrittenTypeInfo.builder()
+                  .setOldType(from.getReturnType())
+                  .setNewType(to.getReturnType())
+                  .build();
       RewrittenPrototypeDescription prototypeChanges =
           RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
               .withExtraUnusedNullParameters(numberOfExtraNullParameters);

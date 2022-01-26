@@ -22,13 +22,33 @@ public class ArgumentInfoCollectionTest extends TestBase {
   public void testCombineRewritten() {
     DexItemFactory factory = new DexItemFactory();
     ArgumentInfoCollection.Builder builder1 = ArgumentInfoCollection.builder();
-    builder1.addArgumentInfo(1, new RewrittenTypeInfo(factory.intType, factory.longType));
-    builder1.addArgumentInfo(3, new RewrittenTypeInfo(factory.intType, factory.longType));
+    builder1.addArgumentInfo(
+        1,
+        RewrittenTypeInfo.builder()
+            .setOldType(factory.intType)
+            .setNewType(factory.longType)
+            .build());
+    builder1.addArgumentInfo(
+        3,
+        RewrittenTypeInfo.builder()
+            .setOldType(factory.intType)
+            .setNewType(factory.longType)
+            .build());
     ArgumentInfoCollection arguments1 = builder1.build();
 
     ArgumentInfoCollection.Builder builder2 = ArgumentInfoCollection.builder();
-    builder2.addArgumentInfo(2, new RewrittenTypeInfo(factory.floatType, factory.doubleType));
-    builder2.addArgumentInfo(4, new RewrittenTypeInfo(factory.floatType, factory.doubleType));
+    builder2.addArgumentInfo(
+        2,
+        RewrittenTypeInfo.builder()
+            .setOldType(factory.floatType)
+            .setNewType(factory.doubleType)
+            .build());
+    builder2.addArgumentInfo(
+        4,
+        RewrittenTypeInfo.builder()
+            .setOldType(factory.floatType)
+            .setNewType(factory.doubleType)
+            .build());
     ArgumentInfoCollection arguments2 = builder2.build();
 
     ArgumentInfoCollection combine = arguments1.combine(arguments2);
@@ -112,8 +132,18 @@ public class ArgumentInfoCollectionTest extends TestBase {
     ArgumentInfoCollection arguments1 = builder1.build();
 
     ArgumentInfoCollection.Builder builder2 = ArgumentInfoCollection.builder();
-    builder2.addArgumentInfo(1, new RewrittenTypeInfo(factory.floatType, factory.doubleType));
-    builder2.addArgumentInfo(2, new RewrittenTypeInfo(factory.floatType, factory.doubleType));
+    builder2.addArgumentInfo(
+        1,
+        RewrittenTypeInfo.builder()
+            .setOldType(factory.floatType)
+            .setNewType(factory.doubleType)
+            .build());
+    builder2.addArgumentInfo(
+        2,
+        RewrittenTypeInfo.builder()
+            .setOldType(factory.floatType)
+            .setNewType(factory.doubleType)
+            .build());
     ArgumentInfoCollection arguments2 = builder2.build();
 
     ArgumentInfoCollection combine = arguments1.combine(arguments2);

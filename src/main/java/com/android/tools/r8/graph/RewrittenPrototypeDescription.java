@@ -234,11 +234,7 @@ public class RewrittenPrototypeDescription {
       return new Builder();
     }
 
-    public RewrittenTypeInfo(DexType oldType, DexType newType) {
-      this(oldType, newType, null, null);
-    }
-
-    public RewrittenTypeInfo(
+    private RewrittenTypeInfo(
         DexType oldType, DexType newType, DexType castType, SingleValue singleValue) {
       this.castType = castType;
       this.oldType = oldType;
