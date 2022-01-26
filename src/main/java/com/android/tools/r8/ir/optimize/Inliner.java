@@ -577,8 +577,7 @@ public class Inliner {
           && !isSynthesizingNullCheckForReceiverUsingMonitorEnter) {
         SimpleEffectAnalysisResult checksReceiverBeingNull =
             canInlineWithoutSynthesizingNullCheckForReceiver(appView, code);
-        if (!checksReceiverBeingNull.hasResult()
-            || !checksReceiverBeingNull.isPartial()
+        if (checksReceiverBeingNull.isNotSatisfied()
             || (checksReceiverBeingNull.isPartial()
                 && checksReceiverBeingNull.topMostNotSatisfiedBlockSize() > 1)) {
           synthesizeNullCheckForReceiver(appView, code, invoke, code.entryBlock());

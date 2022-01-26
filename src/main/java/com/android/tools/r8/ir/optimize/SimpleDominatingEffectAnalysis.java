@@ -166,18 +166,19 @@ public class SimpleDominatingEffectAnalysis {
 
   public static class SimpleEffectAnalysisResult {
 
+    private final ResultState result;
     private final List<Instruction> satisfyingInstructions;
     private final List<BasicBlock> topmostNotSatisfiedBlocks;
 
     private SimpleEffectAnalysisResult(
-        List<Instruction> satisfyingInstructions, List<BasicBlock> topmostNotSatisfiedBlocks) {
-
+        ResultState result,
+        List<Instruction> satisfyingInstructions,
+        List<BasicBlock> topmostNotSatisfiedBlocks) {
+      this.result = result;
       this.satisfyingInstructions = satisfyingInstructions;
       this.topmostNotSatisfiedBlocks = topmostNotSatisfiedBlocks;
-    }
-
-    public boolean hasResult() {
-      return true;
+      assert !result.isPartial()
+          || (!satisfyingInstructions.isEmpty() && !topmostNotSatisfiedBlocks.isEmpty());
     }
 
     public void forEachSatisfyingInstruction(Consumer<Instruction> instructionConsumer) {
@@ -196,8 +197,12 @@ public class SimpleDominatingEffectAnalysis {
       return new SimpleEffectAnalysisResultBuilder();
     }
 
+    public boolean isNotSatisfied() {
+      return result.isNotSatisfied();
+    }
+
     public boolean isPartial() {
-      return !satisfyingInstructions.isEmpty() && !topmostNotSatisfiedBlocks.isEmpty();
+      return result.isPartial();
     }
   }
 
@@ -205,10 +210,10 @@ public class SimpleDominatingEffectAnalysis {
 
     List<Instruction> satisfyingInstructions = new ArrayList<>();
     List<BasicBlock> failingBlocksForPartialResults = ImmutableList.of();
-    private boolean isFailed;
+    private ResultState result;
 
     public void fail() {
-      isFailed = true;
+      result = ResultState.NOT_SATISFIED;
     }
 
     public void addSatisfyingInstruction(Instruction instruction) {
@@ -219,20 +224,21 @@ public class SimpleDominatingEffectAnalysis {
       this.failingBlocksForPartialResults = basicBlocks;
     }
 
+    public void setResult(ResultState result) {
+      this.result = result;
+    }
+
     public SimpleEffectAnalysisResult build() {
-      return isFailed
+      return result.isNotComputed()
           ? NO_RESULT
-          : new SimpleEffectAnalysisResult(satisfyingInstructions, failingBlocksForPartialResults);
+          : new SimpleEffectAnalysisResult(
+              result, satisfyingInstructions, failingBlocksForPartialResults);
     }
   }
 
   private static final SimpleEffectAnalysisResult NO_RESULT =
-      new SimpleEffectAnalysisResult(ImmutableList.of(), ImmutableList.of()) {
-        @Override
-        public boolean hasResult() {
-          return false;
-        }
-      };
+      new SimpleEffectAnalysisResult(
+          ResultState.NOT_SATISFIED, ImmutableList.of(), ImmutableList.of());
 
   public static SimpleEffectAnalysisResult run(IRCode code, InstructionAnalysis analysis) {
     SimpleEffectAnalysisResultBuilder builder = SimpleEffectAnalysisResult.builder();
@@ -288,6 +294,7 @@ public class SimpleDominatingEffectAnalysis {
         }
         node.setState(resultState);
         if (node.getNode().isEntry()) {
+          builder.setResult(resultState.state);
           builder.setFailingBlocksForPartialResults(resultState.failingBlocks);
         }
         return CONTINUE;
