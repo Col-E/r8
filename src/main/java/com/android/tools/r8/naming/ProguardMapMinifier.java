@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.DexApplication.classesWithDeterministic
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.getInterfaceClassType;
 import static com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper.isCompanionClassType;
-import static com.android.tools.r8.utils.IterableUtils.fromMethod;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -35,6 +34,7 @@ import com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -93,24 +93,34 @@ public class ProguardMapMinifier {
   }
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    SubtypingInfo subtypingInfo = appInfo.computeSubtypingInfo();
-
     ArrayDeque<Map<DexReference, MemberNaming>> nonPrivateMembers = new ArrayDeque<>();
     Set<DexReference> notMappedReferences = new HashSet<>();
-
+    timing.begin("MappingInterfaces");
+    Set<DexClass> classesToBuildSubtypeInformationFor =
+        SetUtils.newIdentityHashSet(appView.app().classes());
+    appView
+        .appInfo()
+        .getObjectAllocationInfoCollection()
+        .forEachInstantiatedLambdaInterfaces(
+            type -> {
+              DexClass lambdaInterface = appView.contextIndependentDefinitionFor(type);
+              if (lambdaInterface != null) {
+                classesToBuildSubtypeInformationFor.add(lambdaInterface);
+              }
+            });
+    appView.appInfo().forEachReferencedClasspathClass(classesToBuildSubtypeInformationFor::add);
+    SubtypingInfo subtypingInfo =
+        SubtypingInfo.create(classesToBuildSubtypeInformationFor, appView);
     timing.begin("MappingInterfaces");
     Set<DexClass> interfaces = new TreeSet<>(Comparator.comparing(DexClass::getType));
-    // For union-find of interface methods we also need to add the library types above live types.
-    appInfo.forEachReachableInterface(
+    subtypingInfo.forAllInterfaceRoots(
         iFace -> {
-          assert iFace.isInterface();
-          interfaces.add(iFace);
-          if (iFace.interfaces.isEmpty()) {
-            computeMapping(iFace.type, nonPrivateMembers, notMappedReferences, subtypingInfo);
+          DexClass iFaceDefinition = appView.definitionFor(iFace);
+          if (iFaceDefinition != null) {
+            interfaces.add(iFaceDefinition);
+            computeMapping(iFace, nonPrivateMembers, notMappedReferences, subtypingInfo);
           }
-        },
-        fromMethod(appInfo::forEachReferencedClasspathClass, DexClass::getType));
+        });
 
     assert nonPrivateMembers.isEmpty();
     timing.end();

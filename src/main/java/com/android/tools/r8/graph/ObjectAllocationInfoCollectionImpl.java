@@ -242,6 +242,11 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
     return instantiatedLambdas.keySet();
   }
 
+  @Override
+  public void forEachInstantiatedLambdaInterfaces(Consumer<DexType> consumer) {
+    getInstantiatedLambdaInterfaces().forEach(consumer);
+  }
+
   public void removeAllocationsForPrunedItems(PrunedItems prunedItems) {
     Set<DexType> removedClasses = prunedItems.getRemovedClasses();
     if (removedClasses.isEmpty()) {

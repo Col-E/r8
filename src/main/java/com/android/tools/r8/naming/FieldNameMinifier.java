@@ -174,7 +174,11 @@ class FieldNameMinifier {
             clazz,
             (superType, superClass, isInterface) -> {
               if (isInterface && superClass.isNotProgramClass()) {
-                frontierStatesForInterfaces.get(superType).add(reservationState);
+                Set<ReservedFieldNamingState> reservedNamingState =
+                    frontierStatesForInterfaces.get(superType);
+                if (reservedNamingState != null) {
+                  reservedNamingState.add(reservationState);
+                }
               }
               return TraversalContinuation.CONTINUE;
             });

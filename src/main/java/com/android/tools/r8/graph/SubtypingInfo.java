@@ -33,9 +33,15 @@ public class SubtypingInfo {
 
   private final Map<DexType, TypeInfo> typeInfo;
 
-  private SubtypingInfo(Map<DexType, TypeInfo> typeInfo, Map<DexType, Set<DexType>> subtypeMap) {
+  private final DexItemFactory factory;
+
+  private SubtypingInfo(
+      Map<DexType, TypeInfo> typeInfo,
+      Map<DexType, Set<DexType>> subtypeMap,
+      DexItemFactory factory) {
     this.typeInfo = typeInfo;
     this.subtypeMap = subtypeMap;
+    this.factory = factory;
   }
 
   public static SubtypingInfo create(AppView<? extends AppInfoWithClassHierarchy> appView) {
@@ -46,12 +52,12 @@ public class SubtypingInfo {
     return create(appInfo.app().asDirect().allClasses(), appInfo);
   }
 
-  private static SubtypingInfo create(
-      Collection<DexClass> classes, DexDefinitionSupplier definitions) {
+  public static SubtypingInfo create(
+      Collection<? extends DexClass> classes, DexDefinitionSupplier definitions) {
     Map<DexType, TypeInfo> typeInfo = new ConcurrentHashMap<>();
     Map<DexType, Set<DexType>> subtypeMap = new IdentityHashMap<>();
     populateSubtypeMap(classes, subtypeMap, typeInfo, definitions);
-    return new SubtypingInfo(typeInfo, subtypeMap);
+    return new SubtypingInfo(typeInfo, subtypeMap, definitions.dexItemFactory());
   }
 
   private static void populateSuperType(
@@ -111,7 +117,7 @@ public class SubtypingInfo {
   }
 
   private static void populateSubtypeMap(
-      Collection<DexClass> classes,
+      Collection<? extends DexClass> classes,
       Map<DexType, Set<DexType>> map,
       Map<DexType, TypeInfo> typeInfo,
       DexDefinitionSupplier definitionSupplier) {
@@ -223,6 +229,13 @@ public class SubtypingInfo {
       return Iterables.filter(info.directSubtypes, subtype -> !getTypeInfo(subtype).isInterface());
     }
     return ImmutableList.of();
+  }
+
+  public void forAllInterfaceRoots(Consumer<DexType> fn) {
+    Iterables.filter(
+            getTypeInfo(factory.objectType).directSubtypes,
+            subtype -> getTypeInfo(subtype).isInterface())
+        .forEach(fn);
   }
 
   private static class TypeInfo {

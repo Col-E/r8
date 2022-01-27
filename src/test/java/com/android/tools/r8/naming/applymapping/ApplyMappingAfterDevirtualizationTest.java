@@ -98,7 +98,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
   public void runOnJvm() throws Throwable {
     Assume.assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addProgramClasses(CLASSPATH_CLASSES)
+        .addClasspathClasses(CLASSPATH_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);

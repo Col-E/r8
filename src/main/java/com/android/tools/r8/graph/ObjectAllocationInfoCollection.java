@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Provides immutable access to {@link ObjectAllocationInfoCollectionImpl}, which stores the set of
@@ -27,6 +28,8 @@ public interface ObjectAllocationInfoCollection {
   boolean isInterfaceWithUnknownSubtypeHierarchy(DexProgramClass clazz);
 
   boolean isImmediateInterfaceOfInstantiatedLambda(DexProgramClass clazz);
+
+  void forEachInstantiatedLambdaInterfaces(Consumer<DexType> consumer);
 
   ObjectAllocationInfoCollection rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLens lens);

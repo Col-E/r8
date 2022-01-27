@@ -60,7 +60,7 @@ public class SetUtils {
     return result;
   }
 
-  public static <T> Set<T> newIdentityHashSet(Iterable<T> c) {
+  public static <T> Set<T> newIdentityHashSet(Iterable<? extends T> c) {
     Set<T> result = Sets.newIdentityHashSet();
     c.forEach(result::add);
     return result;

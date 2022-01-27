@@ -199,7 +199,8 @@ public class ApplyMappingTest extends TestBase {
   private R8Command.Builder getCommandForInstrumentation(
       Path out, Path flag, Path mainApp, Path instrApp) throws IOException {
     return R8Command.builder()
-        .addLibraryFiles(runtimeJar(backend), mainApp)
+        .addLibraryFiles(runtimeJar(backend))
+        .addClasspathFiles(mainApp)
         .addProgramFiles(instrApp)
         .setOutput(out, outputMode(backend))
         .addProguardConfigurationFiles(flag);
