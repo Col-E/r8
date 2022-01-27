@@ -693,9 +693,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                   DexClassAndMethod companionMethod =
                       helper.ensureDefaultAsMethodOfCompanionClassStub(method);
                   acceptCompanionMethod(method, companionMethod, eventConsumer);
-                  return getInvokeStaticInstructions(
-                      InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass(
-                          amendedMethod, appView.dexItemFactory()));
+                  return getInvokeStaticInstructions(companionMethod.getReference());
                 })
             .build();
       }

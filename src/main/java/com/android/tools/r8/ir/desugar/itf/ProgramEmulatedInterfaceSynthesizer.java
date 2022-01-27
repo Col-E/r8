@@ -227,8 +227,9 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
                         .resolveMethod(derivedMethod.getMethod(), true)
                         .getResolvedProgramMethod();
                 caseMethod =
-                    InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass(
-                        resolvedProgramMethod.getReference(), appView.dexItemFactory());
+                    helper
+                        .ensureDefaultAsMethodOfProgramCompanionClassStub(resolvedProgramMethod)
+                        .getReference();
               }
               extraDispatchCases.put(type, caseMethod);
             });
@@ -276,10 +277,12 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
         DexEncodedMethod result = subInterfaceClass.lookupVirtualMethod(method.getReference());
         if (result != null && !result.isAbstract()) {
           assert result.isDefaultMethod();
-          extraDispatchCases.put(
-              subInterfaceClass.type,
-              InterfaceDesugaringSyntheticHelper.defaultAsMethodOfCompanionClass(
-                  result.getReference(), appView.dexItemFactory()));
+          DexMethod forward =
+              helper
+                  .ensureDefaultAsMethodOfProgramCompanionClassStub(
+                      new ProgramMethod(subInterfaceClass.asProgramClass(), result))
+                  .getReference();
+          extraDispatchCases.put(subInterfaceClass.type, forward);
         }
       }
     } else {
