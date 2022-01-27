@@ -5,6 +5,7 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.KOTLINC_1_5_0;
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
@@ -248,11 +249,14 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
     assertThat(familyName, not(isPresent()));
 
+    FieldSubject ageField = person.uniqueFieldWithName("age");
+    assertThat(ageField, isAbsent());
+
     KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
     assertThat(age, isPresent());
     assertThat(age, not(isExtensionProperty()));
-    assertEquals(age.fieldSignature().asString(), "a:I");
-    assertEquals(age.getterSignature().asString(), "getAge()I");
-    assertEquals(age.setterSignature().asString(), "setAge(I)V");
+    assertEquals("age:I", age.fieldSignature().asString());
+    assertEquals("getAge()I", age.getterSignature().asString());
+    assertEquals("setAge(I)V", age.setterSignature().asString());
   }
 }

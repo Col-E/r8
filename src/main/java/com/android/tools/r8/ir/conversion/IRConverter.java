@@ -1594,7 +1594,7 @@ public class IRConverter {
       Timing timing) {
     code.traceBlocks();
     if (options.isGeneratingClassFiles()) {
-      finalizeToCf(code, feedback, conversionOptions);
+      finalizeToCf(code, feedback, conversionOptions, bytecodeMetadataProvider);
     } else {
       assert options.isGeneratingDex();
       finalizeToDex(code, feedback, conversionOptions, bytecodeMetadataProvider, timing);
@@ -1602,10 +1602,13 @@ public class IRConverter {
   }
 
   private void finalizeToCf(
-      IRCode code, OptimizationFeedback feedback, MethodConversionOptions conversionOptions) {
+      IRCode code,
+      OptimizationFeedback feedback,
+      MethodConversionOptions conversionOptions,
+      BytecodeMetadataProvider bytecodeMetadataProvider) {
     DexEncodedMethod method = code.method();
     assert !method.getCode().isDexCode();
-    CfBuilder builder = new CfBuilder(appView, method, code);
+    CfBuilder builder = new CfBuilder(appView, method, code, bytecodeMetadataProvider);
     CfCode result = builder.build(deadCodeRemover, conversionOptions);
     method.setCode(result, appView);
     markProcessed(code, feedback);

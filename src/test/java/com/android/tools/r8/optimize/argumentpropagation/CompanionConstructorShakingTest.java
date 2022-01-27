@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.optimize.argumentpropagation;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
-import static com.android.tools.r8.utils.codeinspector.Matchers.onlyIf;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -16,7 +16,6 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
@@ -48,19 +47,16 @@ public class CompanionConstructorShakingTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              boolean isCf = parameters.isCfRuntime();
-
               ClassSubject hostClassSubject = inspector.clazz(Host.class);
               assertThat(hostClassSubject, isPresent());
-              assertEquals(1 + BooleanUtils.intValue(isCf), hostClassSubject.allMethods().size());
-              assertThat(hostClassSubject.clinit(), onlyIf(isCf, isPresent()));
+              assertEquals(1, hostClassSubject.allMethods().size());
+              assertThat(hostClassSubject.clinit(), isAbsent());
               assertThat(hostClassSubject.uniqueMethodWithName("keepHost"), isPresent());
 
               ClassSubject companionClassSubject = inspector.clazz(Host.Companion.class);
               assertThat(companionClassSubject, isPresent());
-              assertEquals(
-                  1 + BooleanUtils.intValue(isCf), companionClassSubject.allMethods().size());
-              assertThat(companionClassSubject.init(), onlyIf(isCf, isPresent()));
+              assertEquals(1, companionClassSubject.allMethods().size());
+              assertThat(companionClassSubject.init(), isAbsent());
 
               MethodSubject greetMethodSubject =
                   companionClassSubject.uniqueMethodWithName("greet");

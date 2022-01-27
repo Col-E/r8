@@ -29,6 +29,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -102,6 +104,9 @@ public class CfBuilder {
   private List<InvokeDirect> thisInitializers;
   private Map<NewInstance, CfLabel> newInstanceLabels;
 
+  // Extra information that should be attached to the bytecode instructions.
+  private final BytecodeMetadata.Builder<CfInstruction> bytecodeMetadataBuilder;
+
   // Internal structure maintaining the stack height.
   private static class StackHeightTracker {
     int maxHeight = 0;
@@ -128,10 +133,15 @@ public class CfBuilder {
     }
   }
 
-  public CfBuilder(AppView<?> appView, DexEncodedMethod method, IRCode code) {
+  public CfBuilder(
+      AppView<?> appView,
+      DexEncodedMethod method,
+      IRCode code,
+      BytecodeMetadataProvider bytecodeMetadataProvider) {
     this.appView = appView;
     this.method = method;
     this.code = code;
+    this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
   }
 
   public CfCode build(DeadCodeRemover deadCodeRemover, MethodConversionOptions conversionOptions) {
@@ -383,7 +393,8 @@ public class CfBuilder {
         instructions,
         tryCatchRanges,
         localVariablesTable,
-        diagnosticPosition);
+        diagnosticPosition,
+        bytecodeMetadataBuilder.build());
   }
 
   private static boolean isNopInstruction(Instruction instruction, BasicBlock nextBlock) {
@@ -686,6 +697,11 @@ public class CfBuilder {
 
   public void add(CfInstruction instruction) {
     instructions.add(instruction);
+  }
+
+  public void add(CfInstruction instruction, Instruction origin) {
+    bytecodeMetadataBuilder.setMetadata(origin, instruction);
+    add(instruction);
   }
 
   public void addArgument(Argument argument) {

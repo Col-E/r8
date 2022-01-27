@@ -19,11 +19,14 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.code.Base5Format;
+import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumberGenerator;
@@ -150,6 +153,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   private final List<LocalVariableInfo> localVariables;
   private StackMapStatus stackMapStatus = StackMapStatus.NOT_VERIFIED;
   private final com.android.tools.r8.position.Position diagnosticPosition;
+  private final BytecodeMetadata<CfInstruction> metadata;
 
   public CfCode(
       DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
@@ -187,6 +191,26 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       List<CfTryCatch> tryCatchRanges,
       List<LocalVariableInfo> localVariables,
       com.android.tools.r8.position.Position diagnosticPosition) {
+    this(
+        originalHolder,
+        maxStack,
+        maxLocals,
+        instructions,
+        tryCatchRanges,
+        localVariables,
+        diagnosticPosition,
+        BytecodeMetadata.empty());
+  }
+
+  public CfCode(
+      DexType originalHolder,
+      int maxStack,
+      int maxLocals,
+      List<CfInstruction> instructions,
+      List<CfTryCatch> tryCatchRanges,
+      List<LocalVariableInfo> localVariables,
+      com.android.tools.r8.position.Position diagnosticPosition,
+      BytecodeMetadata<CfInstruction> metadata) {
     this.originalHolder = originalHolder;
     this.maxStack = maxStack;
     this.maxLocals = maxLocals;
@@ -194,6 +218,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     this.tryCatchRanges = tryCatchRanges;
     this.localVariables = localVariables;
     this.diagnosticPosition = diagnosticPosition;
+    this.metadata = metadata;
   }
 
   @Override
@@ -204,6 +229,15 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   @Override
   public CfWritableCodeKind getCfWritableCodeKind() {
     return CfWritableCodeKind.DEFAULT;
+  }
+
+  @Override
+  public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {
+    return getMetadata(instruction.asCfInstruction());
+  }
+
+  public BytecodeInstructionMetadata getMetadata(CfInstruction instruction) {
+    return metadata.getMetadata(instruction);
   }
 
   @Override

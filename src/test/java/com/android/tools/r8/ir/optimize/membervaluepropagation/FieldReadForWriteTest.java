@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NoHorizontalClassMerging;
@@ -13,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.optimize.membervaluepropagation.FieldReadForWriteTest.R.anim;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,16 +40,7 @@ public class FieldReadForWriteTest extends TestBase {
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(
-            inspector -> {
-              ClassSubject animClassSubject = inspector.clazz(anim.class);
-              if (parameters.isCfRuntime()) {
-                assertThat(animClassSubject, isPresent());
-                assertThat(animClassSubject.uniqueFieldWithName("abc_fade_in"), isPresent());
-              } else {
-                assertThat(animClassSubject, isAbsent());
-              }
-            });
+        .inspect(inspector -> assertThat(inspector.clazz(anim.class), isAbsent()));
   }
 
   static class Main {
