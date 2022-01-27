@@ -11,10 +11,12 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class MachineRewritingFlags {
 
@@ -94,8 +96,22 @@ public class MachineRewritingFlags {
     return emulatedVirtualRetarget;
   }
 
+  public void forEachRetargetHolder(Consumer<DexType> consumer) {
+    staticRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
+    nonEmulatedVirtualRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
+    emulatedVirtualRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
+  }
+
   public Map<DexType, EmulatedInterfaceDescriptor> getEmulatedInterfaces() {
     return emulatedInterfaces;
+  }
+
+  public Set<DexType> getEmulatedInterfaceRewrittenTypes() {
+    Set<DexType> rewrittenTypes = Sets.newIdentityHashSet();
+    emulatedInterfaces
+        .values()
+        .forEach(descriptor -> rewrittenTypes.add(descriptor.getRewrittenType()));
+    return rewrittenTypes;
   }
 
   public Map<DexType, List<DexMethod>> getWrappers() {
@@ -112,6 +128,16 @@ public class MachineRewritingFlags {
 
   public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
     return customConversions;
+  }
+
+  public boolean hasRetargeting() {
+    return !staticRetarget.isEmpty()
+        || !nonEmulatedVirtualRetarget.isEmpty()
+        || !emulatedVirtualRetarget.isEmpty();
+  }
+
+  public boolean hasEmulatedInterfaces() {
+    return !emulatedInterfaces.isEmpty();
   }
 
   public static class Builder {

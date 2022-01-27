@@ -65,7 +65,6 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
         appView
             .options()
             .machineDesugaredLibrarySpecification
-            .getRewritingFlags()
             .getEmulatedInterfaces()
             .get(emulatedInterface.type);
     emulatedInterface.forEachProgramVirtualMethodMatching(
