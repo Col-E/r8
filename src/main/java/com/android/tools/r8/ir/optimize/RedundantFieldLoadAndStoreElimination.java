@@ -19,6 +19,8 @@ import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
+import com.android.tools.r8.ir.code.ArrayGet;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldGet;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -30,6 +32,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -47,6 +50,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -88,7 +92,9 @@ public class RedundantFieldLoadAndStoreElimination {
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
     return appView.options().enableRedundantFieldLoadElimination
-        && (code.metadata().mayHaveFieldInstruction() || code.metadata().mayHaveInitClass());
+        && (code.metadata().mayHaveArrayGet()
+            || code.metadata().mayHaveFieldInstruction()
+            || code.metadata().mayHaveInitClass());
   }
 
   private interface FieldValue {
@@ -97,7 +103,7 @@ public class RedundantFieldLoadAndStoreElimination {
       return null;
     }
 
-    void eliminateRedundantRead(InstructionListIterator it, FieldInstruction redundant);
+    void eliminateRedundantRead(InstructionListIterator it, Instruction redundant);
   }
 
   private class ExistingValue implements FieldValue {
@@ -114,9 +120,9 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     @Override
-    public void eliminateRedundantRead(InstructionListIterator it, FieldInstruction redundant) {
-      affectedValues.addAll(redundant.value().affectedValues());
-      redundant.value().replaceUsers(value);
+    public void eliminateRedundantRead(InstructionListIterator it, Instruction redundant) {
+      affectedValues.addAll(redundant.outValue().affectedValues());
+      redundant.outValue().replaceUsers(value);
       it.removeOrReplaceByDebugLocalRead();
       value.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
     }
@@ -141,10 +147,103 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     @Override
-    public void eliminateRedundantRead(InstructionListIterator it, FieldInstruction redundant) {
-      affectedValues.addAll(redundant.value().affectedValues());
+    public void eliminateRedundantRead(InstructionListIterator it, Instruction redundant) {
+      affectedValues.addAll(redundant.outValue().affectedValues());
       it.replaceCurrentInstruction(
           value.createMaterializingInstruction(appView.withClassHierarchy(), code, redundant));
+    }
+  }
+
+  private abstract static class ArraySlot {
+
+    protected final Value array;
+    protected final MemberType memberType;
+
+    private ArraySlot(Value array, MemberType memberType) {
+      this.array = array;
+      this.memberType = memberType;
+    }
+
+    public static ArraySlot create(Value array, Value index, MemberType memberType) {
+      if (index.isDefinedByInstructionSatisfying(Instruction::isConstNumber)) {
+        return new ArraySlotWithConstantIndex(
+            array, index.getDefinition().asConstNumber().getIntValue(), memberType);
+      }
+      return new ArraySlotWithValueIndex(array, index, memberType);
+    }
+
+    public MemberType getMemberType() {
+      return memberType;
+    }
+
+    public abstract boolean maybeHasIndex(int i);
+
+    boolean baseEquals(ArraySlot arraySlot) {
+      return array == arraySlot.array && memberType == arraySlot.memberType;
+    }
+  }
+
+  private static class ArraySlotWithConstantIndex extends ArraySlot {
+
+    private final int index;
+
+    private ArraySlotWithConstantIndex(Value array, int index, MemberType memberType) {
+      super(array, memberType);
+      this.index = index;
+    }
+
+    @Override
+    public boolean maybeHasIndex(int i) {
+      return index == i;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(array, index, memberType);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (this == other) {
+        return true;
+      }
+      if (other == null || getClass() != other.getClass()) {
+        return false;
+      }
+      ArraySlotWithConstantIndex arraySlot = (ArraySlotWithConstantIndex) other;
+      return index == arraySlot.index && baseEquals(arraySlot);
+    }
+  }
+
+  private static class ArraySlotWithValueIndex extends ArraySlot {
+
+    private final Value index;
+
+    private ArraySlotWithValueIndex(Value array, Value index, MemberType memberType) {
+      super(array, memberType);
+      this.index = index;
+    }
+
+    @Override
+    public boolean maybeHasIndex(int i) {
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(array, index, memberType);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (this == other) {
+        return true;
+      }
+      if (other == null || getClass() != other.getClass()) {
+        return false;
+      }
+      ArraySlotWithValueIndex arraySlot = (ArraySlotWithValueIndex) other;
+      return index == arraySlot.index && baseEquals(arraySlot);
     }
   }
 
@@ -217,7 +316,14 @@ public class RedundantFieldLoadAndStoreElimination {
         InstructionListIterator it = block.listIterator(code);
         while (it.hasNext()) {
           Instruction instruction = it.next();
-          if (instruction.isFieldInstruction()) {
+          if (instruction.isArrayAccess()) {
+            if (instruction.isArrayGet()) {
+              handleArrayGet(it, instruction.asArrayGet());
+            } else {
+              assert instruction.isArrayPut();
+              handleArrayPut(instruction.asArrayPut());
+            }
+          } else if (instruction.isFieldInstruction()) {
             DexField reference = instruction.asFieldInstruction().getField();
             DexClassAndField field = resolveField(reference);
             if (field == null || field.getDefinition().isVolatile()) {
@@ -446,6 +552,43 @@ public class RedundantFieldLoadAndStoreElimination {
     }
   }
 
+  private void handleArrayGet(InstructionListIterator it, ArrayGet arrayGet) {
+    if (arrayGet.outValue().hasLocalInfo()) {
+      return;
+    }
+
+    Value array = arrayGet.array().getAliasedValue();
+    Value index = arrayGet.index().getAliasedValue();
+    ArraySlot arraySlot = ArraySlot.create(array, index, arrayGet.getMemberType());
+    FieldValue replacement = activeState.getArraySlotValue(arraySlot);
+    if (replacement != null) {
+      replacement.eliminateRedundantRead(it, arrayGet);
+      return;
+    }
+
+    activeState.putArraySlotValue(arraySlot, new ExistingValue(arrayGet.outValue()));
+  }
+
+  private void handleArrayPut(ArrayPut arrayPut) {
+    int index = arrayPut.getIndexOrDefault(-1);
+    MemberType memberType = arrayPut.getMemberType();
+
+    // An array-put instruction can potentially write the given array slot on all arrays because of
+    // aliases.
+    if (index < 0) {
+      activeState.removeArraySlotValues(memberType);
+    } else {
+      activeState.removeArraySlotValues(memberType, index);
+    }
+
+    // Update the value of the field to allow redundant load elimination.
+    Value array = arrayPut.array().getAliasedValue();
+    Value indexValue = arrayPut.index().getAliasedValue();
+    ArraySlot arraySlot = ArraySlot.create(array, indexValue, memberType);
+    ExistingValue value = new ExistingValue(arrayPut.value());
+    activeState.putArraySlotValue(arraySlot, value);
+  }
+
   private void handleInstanceGet(
       InstructionListIterator it,
       InstanceGet instanceGet,
@@ -646,6 +789,7 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void killAllNonFinalActiveFields() {
+    activeState.clearArraySlotValues();
     activeState.clearNonFinalInstanceFields();
     activeState.clearNonFinalStaticFields();
     activeState.clearMostRecentFieldWrites();
@@ -801,6 +945,8 @@ public class RedundantFieldLoadAndStoreElimination {
 
   static class BlockState {
 
+    private LinkedHashMap<ArraySlot, FieldValue> arraySlotValues;
+
     private LinkedHashMap<FieldAndObject, FieldValue> finalInstanceFieldValues;
 
     private LinkedHashMap<DexField, FieldValue> finalStaticFieldValues;
@@ -826,6 +972,10 @@ public class RedundantFieldLoadAndStoreElimination {
     public BlockState(int maxCapacity, BlockState state) {
       this(maxCapacity);
       if (state != null) {
+        if (state.arraySlotValues != null && !state.arraySlotValues.isEmpty()) {
+          arraySlotValues = new LinkedHashMap<>();
+          arraySlotValues.putAll(state.arraySlotValues);
+        }
         if (state.finalInstanceFieldValues != null && !state.finalInstanceFieldValues.isEmpty()) {
           finalInstanceFieldValues = new LinkedHashMap<>();
           finalInstanceFieldValues.putAll(state.finalInstanceFieldValues);
@@ -859,6 +1009,10 @@ public class RedundantFieldLoadAndStoreElimination {
           mostRecentStaticFieldWrites.putAll(state.mostRecentStaticFieldWrites);
         }
       }
+    }
+
+    public void clearArraySlotValues() {
+      arraySlotValues = null;
     }
 
     public void clearMostRecentFieldWrites() {
@@ -902,6 +1056,10 @@ public class RedundantFieldLoadAndStoreElimination {
       }
     }
 
+    public FieldValue getArraySlotValue(ArraySlot arraySlot) {
+      return arraySlotValues != null ? arraySlotValues.get(arraySlot) : null;
+    }
+
     public FieldValue getInstanceFieldValue(FieldAndObject field) {
       FieldValue value =
           nonFinalInstanceFieldValues != null ? nonFinalInstanceFieldValues.get(field) : null;
@@ -921,6 +1079,11 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     public void intersect(BlockState state) {
+      if (arraySlotValues != null && state.arraySlotValues != null) {
+        intersectFieldValues(arraySlotValues, state.arraySlotValues);
+      } else {
+        arraySlotValues = null;
+      }
       if (finalInstanceFieldValues != null && state.finalInstanceFieldValues != null) {
         intersectFieldValues(finalInstanceFieldValues, state.finalInstanceFieldValues);
       } else {
@@ -962,7 +1125,9 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     public boolean isEmpty() {
-      return isEmpty(finalInstanceFieldValues)
+      return isEmpty(arraySlotValues)
+          && isEmpty(initializedClasses)
+          && isEmpty(finalInstanceFieldValues)
           && isEmpty(finalStaticFieldValues)
           && isEmpty(initializedClasses)
           && isEmpty(nonFinalInstanceFieldValues)
@@ -1008,6 +1173,7 @@ public class RedundantFieldLoadAndStoreElimination {
     public void reduceSize(int numberOfItemsToRemove) {
       assert numberOfItemsToRemove > 0;
       assert numberOfItemsToRemove < size();
+      numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, arraySlotValues);
       numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, initializedClasses);
       numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, nonFinalInstanceFieldValues);
       numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, nonFinalStaticFieldValues);
@@ -1033,6 +1199,22 @@ public class RedundantFieldLoadAndStoreElimination {
 
     private static int reduceSize(int numberOfItemsToRemove, Map<?, ?> map) {
       return reduceSize(numberOfItemsToRemove, map != null ? map.keySet() : null);
+    }
+
+    public void removeArraySlotValues(MemberType memberType) {
+      if (arraySlotValues != null) {
+        arraySlotValues.keySet().removeIf(arraySlot -> arraySlot.getMemberType() == memberType);
+      }
+    }
+
+    public void removeArraySlotValues(MemberType memberType, int index) {
+      if (arraySlotValues != null) {
+        arraySlotValues
+            .keySet()
+            .removeIf(
+                arraySlot ->
+                    arraySlot.getMemberType() == memberType && arraySlot.maybeHasIndex(index));
+      }
     }
 
     public void removeInstanceField(FieldAndObject field) {
@@ -1087,6 +1269,14 @@ public class RedundantFieldLoadAndStoreElimination {
       if (mostRecentStaticFieldWrites != null) {
         mostRecentStaticFieldWrites.remove(field);
       }
+    }
+
+    public void putArraySlotValue(ArraySlot arraySlot, FieldValue value) {
+      ensureCapacityForNewElement();
+      if (arraySlotValues == null) {
+        arraySlotValues = new LinkedHashMap<>();
+      }
+      arraySlotValues.put(arraySlot, value);
     }
 
     public void putFinalInstanceField(FieldAndObject field, FieldValue value) {
@@ -1155,7 +1345,8 @@ public class RedundantFieldLoadAndStoreElimination {
     }
 
     public int size() {
-      return size(finalInstanceFieldValues)
+      return size(arraySlotValues)
+          + size(finalInstanceFieldValues)
           + size(finalStaticFieldValues)
           + size(initializedClasses)
           + size(nonFinalInstanceFieldValues)

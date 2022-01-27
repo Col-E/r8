@@ -65,6 +65,10 @@ public class IRMetadata {
     return get(Opcodes.AND);
   }
 
+  public boolean mayHaveArrayGet() {
+    return get(Opcodes.ARRAY_GET);
+  }
+
   public boolean mayHaveArrayLength() {
     return get(Opcodes.ARRAY_LENGTH);
   }

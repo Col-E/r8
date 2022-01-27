@@ -4,6 +4,13 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.code.Aget;
+import com.android.tools.r8.code.AgetBoolean;
+import com.android.tools.r8.code.AgetByte;
+import com.android.tools.r8.code.AgetChar;
+import com.android.tools.r8.code.AgetObject;
+import com.android.tools.r8.code.AgetShort;
+import com.android.tools.r8.code.AgetWide;
 import com.android.tools.r8.code.Aput;
 import com.android.tools.r8.code.AputBoolean;
 import com.android.tools.r8.code.AputByte;
@@ -455,6 +462,17 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isArrayLength() {
     return instruction instanceof ArrayLength;
+  }
+
+  @Override
+  public boolean isArrayGet() {
+    return instruction instanceof Aget
+        || instruction instanceof AgetBoolean
+        || instruction instanceof AgetByte
+        || instruction instanceof AgetChar
+        || instruction instanceof AgetObject
+        || instruction instanceof AgetShort
+        || instruction instanceof AgetWide;
   }
 
   @Override

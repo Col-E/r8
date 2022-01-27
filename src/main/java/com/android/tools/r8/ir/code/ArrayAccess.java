@@ -24,6 +24,12 @@ public abstract class ArrayAccess extends Instruction implements ImpreciseMember
     return inValues.get(INDEX_INDEX);
   }
 
+  public int getIndexOrDefault(int defaultValue) {
+    return index().isConstant()
+        ? index().getConstInstruction().asConstInstruction().asConstNumber().getIntValue()
+        : defaultValue;
+  }
+
   @Override
   public boolean isArrayAccess() {
     return true;

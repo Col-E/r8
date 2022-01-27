@@ -144,6 +144,8 @@ public interface InstructionSubject {
 
   boolean isArrayLength();
 
+  boolean isArrayGet();
+
   boolean isArrayPut();
 
   boolean isMonitorEnter();
