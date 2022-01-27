@@ -1540,57 +1540,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     app().asDirect().classpathClasses().forEach(fn);
   }
 
-  /**
-   * Visits all class definitions that are a live program type or a type above it in the hierarchy.
-   *
-   * <p>Any given definition will be visited at most once. No guarantees are places on the order.
-   */
-  public void forEachTypeInHierarchyOfLiveProgramClasses(Consumer<DexClass> fn) {
-    forEachTypeInHierarchyOfLiveProgramClasses(
-        fn,
-        ListUtils.map(liveTypes, t -> definitionFor(t).asProgramClass()),
-        objectAllocationInfoCollection.getInstantiatedLambdaInterfaces(),
-        this);
-  }
-
-  // Split in a static method so it can be used during construction.
-  static void forEachTypeInHierarchyOfLiveProgramClasses(
-      Consumer<DexClass> fn,
-      Collection<DexProgramClass> liveProgramClasses,
-      Set<DexType> lambdaInterfaces,
-      AppInfoWithClassHierarchy appInfo) {
-    Set<DexType> seen = Sets.newIdentityHashSet();
-    liveProgramClasses.forEach(c -> seen.add(c.type));
-    Deque<DexType> worklist = new ArrayDeque<>(lambdaInterfaces);
-    for (DexProgramClass liveProgramClass : liveProgramClasses) {
-      fn.accept(liveProgramClass);
-      DexType superType = liveProgramClass.superType;
-      if (superType != null && seen.add(superType)) {
-        worklist.add(superType);
-      }
-      for (DexType iface : liveProgramClass.interfaces.values) {
-        if (seen.add(iface)) {
-          worklist.add(iface);
-        }
-      }
-    }
-    while (!worklist.isEmpty()) {
-      DexType type = worklist.pop();
-      DexClass clazz = appInfo.definitionFor(type);
-      if (clazz != null) {
-        fn.accept(clazz);
-        if (clazz.superType != null && seen.add(clazz.superType)) {
-          worklist.add(clazz.superType);
-        }
-        for (DexType iface : clazz.interfaces.values) {
-          if (seen.add(iface)) {
-            worklist.add(iface);
-          }
-        }
-      }
-    }
-  }
-
   @Override
   public void forEachInstantiatedSubType(
       DexType type,

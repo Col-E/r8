@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.naming.MethodNameMinifier.State;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -360,6 +361,7 @@ class InterfaceMethodNameMinifier {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final SubtypingInfo subtypingInfo;
   private final Equivalence<DexMethod> equivalence;
   private final Equivalence<DexEncodedMethod> definitionEquivalence;
   private final MethodNameMinifier.State minifierState;
@@ -371,9 +373,11 @@ class InterfaceMethodNameMinifier {
   /** A map for caching all interface states. */
   private final Map<DexType, InterfaceReservationState> interfaceStateMap = new HashMap<>();
 
-  InterfaceMethodNameMinifier(AppView<AppInfoWithLiveness> appView, State minifierState) {
+  InterfaceMethodNameMinifier(
+      AppView<AppInfoWithLiveness> appView, State minifierState, SubtypingInfo subtypingInfo) {
     this.appView = appView;
     this.minifierState = minifierState;
+    this.subtypingInfo = subtypingInfo;
     this.equivalence =
         appView.options().getProguardConfiguration().isOverloadAggressively()
             ? MethodSignatureEquivalence.get()
@@ -420,7 +424,7 @@ class InterfaceMethodNameMinifier {
     // frontier states of classes that implement them. We add the frontier states so that we can
     // reserve the names for later method naming.
     timing.begin("Compute map");
-    computeReservationFrontiersForAllImplementingClasses();
+    computeReservationFrontiersForAllImplementingClasses(interfaces);
     for (DexClass iface : interfaces) {
       InterfaceReservationState inheritanceState = interfaceStateMap.get(iface.type);
       assert inheritanceState != null;
@@ -454,9 +458,6 @@ class InterfaceMethodNameMinifier {
           // refer to interfaces which has been removed.
           Set<DexEncodedMethod> implementedMethods =
               appView.appInfo().lookupLambdaImplementedMethods(callSite);
-          if (implementedMethods.isEmpty()) {
-            return;
-          }
           for (DexEncodedMethod method : implementedMethods) {
             Wrapper<DexEncodedMethod> wrapped = definitionEquivalence.wrap(method);
             InterfaceMethodGroupState groupState = globalStateMap.get(wrapped);
@@ -636,34 +637,29 @@ class InterfaceMethodNameMinifier {
     }
   }
 
-  private void computeReservationFrontiersForAllImplementingClasses() {
-    appView
-        .appInfo()
-        .forEachTypeInHierarchyOfLiveProgramClasses(
-            clazz -> {
-              // TODO(b/133091438): Extend the if check to test for !clazz.isLibrary().
-              if (!clazz.isInterface()) {
-                appView
-                    .appInfo()
-                    .implementedInterfaces(clazz.type)
-                    .forEach(
-                        (directlyImplemented, ignoreIsKnownAndReserveInAllCases) -> {
-                          InterfaceReservationState iState =
-                              interfaceStateMap.get(directlyImplemented);
-                          if (iState != null) {
-                            DexType frontierType = minifierState.getFrontier(clazz.type);
-                            iState.addReservationType(frontierType);
-                            // The reservation state should already be added, but if a class is
-                            // extending an interface, we will not visit the class during the
-                            // sub-type traversel.
-                            if (minifierState.getReservationState(clazz.type) == null) {
-                              minifierState.allocateReservationStateAndReserve(
-                                  clazz.type, frontierType);
-                            }
-                          }
-                        });
-              }
-            });
+  private void computeReservationFrontiersForAllImplementingClasses(Iterable<DexClass> interfaces) {
+    interfaces.forEach(
+        iface ->
+            subtypingInfo
+                .subtypes(iface.getType())
+                .forEach(
+                    subType -> {
+                      DexClass subClass = appView.contextIndependentDefinitionFor(subType);
+                      if (subClass == null || subClass.isInterface()) {
+                        return;
+                      }
+                      DexType frontierType = minifierState.getFrontier(subType);
+                      if (minifierState.getReservationState(frontierType) == null) {
+                        // The reservation state should already be added. If it does not exist
+                        // it is because it is not reachable from the type hierarchy of program
+                        // classes and we can therefore disregard this interface.
+                        return;
+                      }
+                      InterfaceReservationState iState = interfaceStateMap.get(iface.getType());
+                      if (iState != null) {
+                        iState.addReservationType(frontierType);
+                      }
+                    }));
   }
 
   private boolean verifyAllCallSitesAreRepresentedIn(List<Wrapper<DexEncodedMethod>> groups) {

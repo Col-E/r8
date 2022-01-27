@@ -47,7 +47,7 @@ public class Minifier {
     assert appView.options().isMinifying();
     SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     timing.begin("ComputeInterfaces");
-    List<DexClass> interfaces = computeReachableInterfacesWithDeterministicOrder();
+    List<DexClass> interfaces = computeReachableInterfacesWithDeterministicOrder(subtypingInfo);
     timing.end();
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
@@ -67,7 +67,7 @@ public class Minifier {
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, minifyMembers)
-            .computeRenaming(interfaces, executorService, timing);
+            .computeRenaming(interfaces, subtypingInfo, executorService, timing);
     timing.end();
 
     assert new MinifiedRenaming(appView, classRenaming, methodRenaming, FieldRenaming.empty())
@@ -89,9 +89,16 @@ public class Minifier {
     return lens;
   }
 
-  private List<DexClass> computeReachableInterfacesWithDeterministicOrder() {
+  private List<DexClass> computeReachableInterfacesWithDeterministicOrder(
+      SubtypingInfo subtypingInfo) {
     List<DexClass> interfaces = new ArrayList<>();
-    appView.appInfo().forEachReachableInterface(interfaces::add);
+    subtypingInfo.forAllInterfaceRoots(
+        type -> {
+          DexClass clazz = appView.contextIndependentDefinitionFor(type);
+          if (clazz != null) {
+            interfaces.add(clazz);
+          }
+        });
     return classesWithDeterministicOrder(interfaces);
   }
 

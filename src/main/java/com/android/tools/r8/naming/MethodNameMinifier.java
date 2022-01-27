@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -181,7 +182,10 @@ class MethodNameMinifier {
   }
 
   MethodRenaming computeRenaming(
-      Iterable<DexClass> interfaces, ExecutorService executorService, Timing timing)
+      Iterable<DexClass> interfaces,
+      SubtypingInfo subtypingInfo,
+      ExecutorService executorService,
+      Timing timing)
       throws ExecutionException {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
@@ -193,7 +197,7 @@ class MethodNameMinifier {
     //          states that may hold an implementation.
     timing.begin("Phase 2");
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
-        new InterfaceMethodNameMinifier(appView, minifierState);
+        new InterfaceMethodNameMinifier(appView, minifierState, subtypingInfo);
     timing.end();
     timing.begin("Phase 3");
     interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing, interfaces);
