@@ -202,7 +202,11 @@ public final class L8Command extends BaseCompilerCommand {
     assert internal.assertionsConfiguration == null;
     internal.assertionsConfiguration =
         new AssertionConfigurationWithDefault(
-            AssertionTransformation.DISABLE, getAssertionsConfiguration());
+            AssertionsConfiguration.builder(getReporter())
+                .setTransformation(AssertionTransformation.DISABLE)
+                .setScopeAll()
+                .build(),
+            getAssertionsConfiguration());
 
     if (!DETERMINISTIC_DEBUGGING) {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;

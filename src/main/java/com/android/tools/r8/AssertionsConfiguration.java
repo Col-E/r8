@@ -4,12 +4,19 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 
 @Keep
 public class AssertionsConfiguration {
 
-  /** The possible transformations of the javac generated assertion code during compilation. */
+  /**
+   * The simple transformations of the javac generated assertion code during compilation (see {@link
+   * AssertionsConfiguration.Builder#setTransformation(AssertionTransformation)}). For configuring
+   * the transformation to invoke an assertion handler use {@link
+   * AssertionsConfiguration.Builder#setAssertionHandler(MethodReference)}.
+   */
   @Keep
   public enum AssertionTransformation {
     /** Unconditionally enable the javac generated assertion code. */
@@ -30,18 +37,28 @@ public class AssertionsConfiguration {
   }
 
   private final AssertionTransformation transformation;
+  private final MethodReference assertionHandler;
   private final AssertionTransformationScope scope;
   private final String value;
 
   AssertionsConfiguration(
-      AssertionTransformation transformation, AssertionTransformationScope scope, String value) {
+      AssertionTransformation transformation,
+      MethodReference assertionHandler,
+      AssertionTransformationScope scope,
+      String value) {
     this.transformation = transformation;
+    this.assertionHandler = assertionHandler;
     this.scope = scope;
     this.value = value;
+    assert BooleanUtils.xor(transformation != null, assertionHandler != null);
   }
 
   public AssertionTransformation getTransformation() {
     return transformation;
+  }
+
+  public MethodReference getAssertionHandler() {
+    return assertionHandler;
   }
 
   public AssertionTransformationScope getScope() {
@@ -66,6 +83,7 @@ public class AssertionsConfiguration {
   public static class Builder {
     Reporter reporter;
     private AssertionTransformation transformation;
+    private MethodReference assertionHandler;
     private AssertionTransformationScope scope;
     private String value;
 
@@ -77,6 +95,7 @@ public class AssertionsConfiguration {
     public AssertionsConfiguration.Builder setTransformation(
         AssertionTransformation transformation) {
       this.transformation = transformation;
+      this.assertionHandler = null;
       return this;
     }
 
@@ -101,6 +120,18 @@ public class AssertionsConfiguration {
     /** Passthrough of the javac generated assertion code in all packages and classes. */
     public AssertionsConfiguration.Builder setPassthrough() {
       setTransformation(AssertionTransformation.PASSTHROUGH);
+      return this;
+    }
+
+    /**
+     * Rewrite the throwing of <code>java.lang.AssertionError</code> to call the supplied method
+     * <code>assertionHandler</code>. The method must be a reference to a static method taking one
+     * argument of type <code>java.lang.AssertionError</code>. After the assertion handler as been
+     * called, the code continues as if assertions where disabled.
+     */
+    public AssertionsConfiguration.Builder setAssertionHandler(MethodReference assertionHandler) {
+      this.transformation = null;
+      this.assertionHandler = assertionHandler;
       return this;
     }
 
@@ -144,19 +175,20 @@ public class AssertionsConfiguration {
 
     /** Build and return the {@link AssertionsConfiguration}. */
     public AssertionsConfiguration build() {
-      if (transformation == null) {
-        reporter.error("No transformation specified for building AccertionConfiguration");
+      if (transformation == null && assertionHandler == null) {
+        reporter.error(
+            "No transformation or assertion handler specified for building AssertionConfiguration");
       }
       if (scope == null) {
-        reporter.error("No scope specified for building AccertionConfiguration");
+        reporter.error("No scope specified for building AssertionConfiguration");
       }
       if (scope == AssertionTransformationScope.PACKAGE && value == null) {
-        reporter.error("No package name specified for building AccertionConfiguration");
+        reporter.error("No package name specified for building AssertionConfiguration");
       }
       if (scope == AssertionTransformationScope.CLASS && value == null) {
-        reporter.error("No class name specified for building AccertionConfiguration");
+        reporter.error("No class name specified for building AssertionConfiguration");
       }
-      return new AssertionsConfiguration(transformation, scope, value);
+      return new AssertionsConfiguration(transformation, assertionHandler, scope, value);
     }
 
     /**

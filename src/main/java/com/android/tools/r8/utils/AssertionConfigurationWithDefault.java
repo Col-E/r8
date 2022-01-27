@@ -11,20 +11,20 @@ import java.util.List;
 
 public class AssertionConfigurationWithDefault {
 
-  public final AssertionTransformation defautlTransformation;
+  public final AssertionsConfiguration defaultConfiguration;
   public final List<AssertionsConfiguration> assertionsConfigurations;
 
   public AssertionConfigurationWithDefault(
-      AssertionTransformation defautlTransformation,
+      AssertionsConfiguration defautlTransformation,
       List<AssertionsConfiguration> assertionsConfigurations) {
-    this.defautlTransformation = defautlTransformation;
+    this.defaultConfiguration = defautlTransformation;
     assert assertionsConfigurations != null;
     this.assertionsConfigurations = assertionsConfigurations;
   }
 
   public boolean isPassthroughAll() {
     if (assertionsConfigurations.size() == 0) {
-      return defautlTransformation == AssertionTransformation.PASSTHROUGH;
+      return defaultConfiguration.getTransformation() == AssertionTransformation.PASSTHROUGH;
     }
     return assertionsConfigurations.size() == 1
         && assertionsConfigurations.get(0).getScope() == AssertionTransformationScope.ALL

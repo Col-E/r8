@@ -92,7 +92,8 @@ public class AssertionsRewriter {
       return;
     }
     // Convert the assertion transformation to the representation used for this rewriter.
-    this.defaultTransformation = appView.options().assertionsConfiguration.defautlTransformation;
+    this.defaultTransformation =
+        appView.options().assertionsConfiguration.defaultConfiguration.getTransformation();
     this.configuration =
         appView.options().assertionsConfiguration.assertionsConfigurations.stream()
             .map(entry -> new ConfigurationEntryWithDexString(entry, appView.dexItemFactory()))

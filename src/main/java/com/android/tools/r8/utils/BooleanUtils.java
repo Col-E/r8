@@ -28,4 +28,8 @@ public class BooleanUtils {
   public static Boolean[] falseValues() {
     return FALSE_VALUES;
   }
+
+  public static boolean xor(boolean x, boolean y) {
+    return (x && !y) || (!x && y);
+  }
 }

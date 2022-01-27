@@ -921,9 +921,13 @@ public final class R8Command extends BaseCompilerCommand {
     assert internal.assertionsConfiguration == null;
     internal.assertionsConfiguration =
         new AssertionConfigurationWithDefault(
-            getProgramConsumer() instanceof ClassFileConsumer
-                ? AssertionTransformation.PASSTHROUGH
-                : AssertionTransformation.DISABLE,
+            AssertionsConfiguration.builder(getReporter())
+                .setTransformation(
+                    getProgramConsumer() instanceof ClassFileConsumer
+                        ? AssertionTransformation.PASSTHROUGH
+                        : AssertionTransformation.DISABLE)
+                .setScopeAll()
+                .build(),
             getAssertionsConfiguration());
 
     // TODO(b/171552739): Enable class merging for CF. When compiling libraries, we need to be
