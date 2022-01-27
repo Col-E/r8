@@ -695,7 +695,7 @@ public class CfBuilder {
     return registerAllocator.getRegisterForValue(value);
   }
 
-  public void add(CfInstruction instruction) {
+  private void add(CfInstruction instruction) {
     instructions.add(instruction);
   }
 
@@ -704,7 +704,16 @@ public class CfBuilder {
     add(instruction);
   }
 
+  public void add(CfInstruction... instructions) {
+    Collections.addAll(this.instructions, instructions);
+  }
+
   public void addArgument(Argument argument) {
     // Nothing so far.
+  }
+
+  public boolean verifyNoMetadata(Instruction instruction) {
+    assert bytecodeMetadataBuilder.verifyNoMetadata(instruction);
+    return true;
   }
 }

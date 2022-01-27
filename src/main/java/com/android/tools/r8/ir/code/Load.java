@@ -76,7 +76,7 @@ public class Load extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     Value value = src();
-    builder.add(new CfLoad(value.outType(), builder.getLocalRegister(value)));
+    builder.add(new CfLoad(value.outType(), builder.getLocalRegister(value)), this);
   }
 
   @Override

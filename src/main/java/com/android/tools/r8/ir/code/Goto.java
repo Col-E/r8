@@ -118,7 +118,7 @@ public class Goto extends JumpInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfGoto(builder.getLabel(getTarget())));
+    builder.add(new CfGoto(builder.getLabel(getTarget())), this);
   }
 
   @Override

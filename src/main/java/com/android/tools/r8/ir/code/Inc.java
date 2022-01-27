@@ -83,17 +83,21 @@ public class Inc extends Unop {
 
   @Override
   public void buildCf(CfBuilder builder) {
+    // Check that this instruction does not have any metadata attached, as it might not materialize
+    // as an iinc in CfCode.
+    assert builder.verifyNoMetadata(this);
     Value inValue = inValues.get(0);
     int inRegister = builder.getLocalRegister(inValue);
     int outRegister = builder.getLocalRegister(outValue);
     if (inRegister == outRegister) {
-      builder.add(new CfIinc(inRegister, increment));
+      builder.add(new CfIinc(inRegister, increment), this);
     } else {
       assert inValue.outType() == ValueType.INT;
-      builder.add(new CfLoad(ValueType.INT, inRegister));
-      builder.add(new CfConstNumber(increment, ValueType.INT));
-      builder.add(new CfArithmeticBinop(Opcode.Add, NumericType.INT));
-      builder.add(new CfStore(ValueType.INT, outRegister));
+      builder.add(
+          new CfLoad(ValueType.INT, inRegister),
+          new CfConstNumber(increment, ValueType.INT),
+          new CfArithmeticBinop(Opcode.Add, NumericType.INT),
+          new CfStore(ValueType.INT, outRegister));
     }
   }
 

@@ -264,7 +264,7 @@ public class CheckCast extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfCheckCast(type));
+    builder.add(new CfCheckCast(type), this);
   }
 
   @Override

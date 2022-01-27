@@ -108,6 +108,6 @@ public class Neg extends Unop {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfNeg(type));
+    builder.add(new CfNeg(type), this);
   }
 }

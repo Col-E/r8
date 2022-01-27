@@ -213,7 +213,7 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfArrayStore(type));
+    builder.add(new CfArrayStore(type), this);
   }
 
   @Override

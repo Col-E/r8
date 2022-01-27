@@ -76,7 +76,7 @@ public class InitClass extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInitClass(clazz));
+    builder.add(new CfInitClass(clazz), this);
   }
 
   @Override

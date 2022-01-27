@@ -132,7 +132,7 @@ public class NewUnboxedEnumInstance extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfNewUnboxedEnum(clazz, ordinal));
+    builder.add(new CfNewUnboxedEnum(clazz, ordinal), this);
   }
 
   @Override

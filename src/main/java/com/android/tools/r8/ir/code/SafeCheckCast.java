@@ -22,7 +22,7 @@ public class SafeCheckCast extends CheckCast {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfSafeCheckCast(getType()));
+    builder.add(new CfSafeCheckCast(getType()), this);
   }
 
   @Override

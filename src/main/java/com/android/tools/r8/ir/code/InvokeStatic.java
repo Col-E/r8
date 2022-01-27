@@ -155,7 +155,8 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESTATIC, getInvokedMethod(), isInterface));
+        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESTATIC, getInvokedMethod(), isInterface),
+        this);
   }
 
   @Override

@@ -197,7 +197,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstClass(clazz));
+    builder.add(new CfConstClass(clazz), this);
   }
 
   @Override

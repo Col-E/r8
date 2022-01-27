@@ -165,6 +165,6 @@ public abstract class ArithmeticBinop extends Binop {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfArithmeticBinop(getCfOpcode(), type));
+    builder.add(new CfArithmeticBinop(getCfOpcode(), type), this);
   }
 }

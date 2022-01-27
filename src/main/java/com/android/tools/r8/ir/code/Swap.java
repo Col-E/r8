@@ -67,7 +67,7 @@ public class Swap extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfStackInstruction(Opcode.Swap));
+    builder.add(new CfStackInstruction(Opcode.Swap), this);
   }
 
   @Override

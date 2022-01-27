@@ -42,7 +42,7 @@ public class AlwaysMaterializingNop extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfNop());
+    builder.add(new CfNop(), this);
   }
 
   @Override

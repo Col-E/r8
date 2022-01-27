@@ -73,7 +73,7 @@ public class RecordFieldValues extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfRecordFieldValues(fields));
+    builder.add(new CfRecordFieldValues(fields), this);
   }
 
   @Override

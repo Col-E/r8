@@ -141,6 +141,6 @@ public abstract class LogicalBinop extends Binop {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfLogicalBinop(getCfOpcode(), type));
+    builder.add(new CfLogicalBinop(getCfOpcode(), type), this);
   }
 }

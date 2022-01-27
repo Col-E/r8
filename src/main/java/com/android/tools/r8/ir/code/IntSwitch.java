@@ -311,12 +311,12 @@ public class IntSwitch extends Switch {
         }
       }
       assert index == numberOfKeys();
-      builder.add(new CfSwitch(Kind.TABLE, fallthroughLabel, new int[] {min}, labels));
+      builder.add(new CfSwitch(Kind.TABLE, fallthroughLabel, new int[] {min}, labels), this);
     } else {
       for (int index : targetBlockIndices()) {
         labels.add(builder.getLabel(successors.get(index)));
       }
-      builder.add(new CfSwitch(Kind.LOOKUP, fallthroughLabel, this.keys, labels));
+      builder.add(new CfSwitch(Kind.LOOKUP, fallthroughLabel, this.keys, labels), this);
     }
   }
 }

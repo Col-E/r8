@@ -152,7 +152,7 @@ public class NewArrayEmpty extends Instruction {
   @Override
   public void buildCf(CfBuilder builder) {
     assert type.isArrayType();
-    builder.add(new CfNewArray(type));
+    builder.add(new CfNewArray(type), this);
   }
 
   @Override

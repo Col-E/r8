@@ -139,7 +139,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfDexItemBasedConstString(item, nameComputationInfo));
+    builder.add(new CfDexItemBasedConstString(item, nameComputationInfo), this);
   }
 
   @Override

@@ -86,7 +86,7 @@ public class DebugPosition extends Instruction {
   public void buildCf(CfBuilder builder) {
     assert getPosition().isSome() && !getPosition().isSyntheticPosition();
     // All redundant debug positions are removed. Remaining ones must force a pc advance.
-    builder.add(new CfNop());
+    builder.add(new CfNop(), this);
   }
 
   @Override

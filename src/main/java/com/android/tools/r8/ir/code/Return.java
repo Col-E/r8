@@ -132,7 +132,8 @@ public class Return extends JumpInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        isReturnVoid() ? new CfReturnVoid() : new CfReturn(ValueType.fromType(getReturnType())));
+        isReturnVoid() ? new CfReturnVoid() : new CfReturn(ValueType.fromType(getReturnType())),
+        this);
   }
 
   public static class Builder extends BuilderBase<Builder, Return> {

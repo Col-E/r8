@@ -109,7 +109,7 @@ public class InstanceOf extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInstanceOf(type));
+    builder.add(new CfInstanceOf(type), this);
   }
 
   @Override

@@ -123,6 +123,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   @Override
+  public BytecodeMetadata<Instruction> getMetadata() {
+    return metadata;
+  }
+
+  @Override
   public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {
     return getMetadata(instruction.asDexInstruction());
   }

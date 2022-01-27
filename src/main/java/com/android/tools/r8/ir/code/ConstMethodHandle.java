@@ -63,7 +63,7 @@ public class ConstMethodHandle extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstMethodHandle(methodHandle));
+    builder.add(new CfConstMethodHandle(methodHandle), this);
   }
 
   @Override

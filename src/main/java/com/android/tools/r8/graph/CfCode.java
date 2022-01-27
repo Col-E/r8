@@ -232,6 +232,11 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   @Override
+  public BytecodeMetadata<CfInstruction> getMetadata() {
+    return metadata;
+  }
+
+  @Override
   public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {
     return getMetadata(instruction.asCfInstruction());
   }

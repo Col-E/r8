@@ -176,7 +176,7 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfArrayLoad(type));
+    builder.add(new CfArrayLoad(type), this);
   }
 
   @Override

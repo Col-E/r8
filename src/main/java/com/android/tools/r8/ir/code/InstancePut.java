@@ -241,7 +241,7 @@ public class InstancePut extends FieldInstruction implements FieldPut, InstanceF
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInstanceFieldWrite(getField(), builder.resolveField(getField())));
+    builder.add(new CfInstanceFieldWrite(getField(), builder.resolveField(getField())), this);
   }
 
   @Override

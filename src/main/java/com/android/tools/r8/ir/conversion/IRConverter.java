@@ -1486,7 +1486,13 @@ public class IRConverter {
 
     printMethod(code, "Optimized IR (SSA)", previous);
     timing.begin("Finalize IR");
-    finalizeIR(code, feedback, conversionOptions, bytecodeMetadataProviderBuilder.build(), timing);
+    finalizeIR(
+        context,
+        code,
+        feedback,
+        conversionOptions,
+        bytecodeMetadataProviderBuilder.build(),
+        timing);
     timing.end();
     return timing;
   }
@@ -1579,6 +1585,7 @@ public class IRConverter {
     }
     deadCodeRemover.run(code, timing);
     finalizeIR(
+        code.context(),
         code,
         feedback,
         DefaultMethodConversionOptions.getInstance(),
@@ -1587,6 +1594,7 @@ public class IRConverter {
   }
 
   public void finalizeIR(
+      ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
       MethodConversionOptions conversionOptions,

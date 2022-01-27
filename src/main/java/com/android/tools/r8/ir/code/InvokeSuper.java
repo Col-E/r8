@@ -84,7 +84,8 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), isInterface));
+        new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), isInterface),
+        this);
   }
 
   @Override

@@ -63,7 +63,7 @@ public class ConstMethodType extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstMethodType(methodType));
+    builder.add(new CfConstMethodType(methodType), this);
   }
 
   @Override

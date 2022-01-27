@@ -86,7 +86,7 @@ public class Dup2 extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfStackInstruction(Opcode.Dup2));
+    builder.add(new CfStackInstruction(Opcode.Dup2), this);
   }
 
   @Override

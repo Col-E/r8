@@ -104,7 +104,7 @@ public class InvokeMultiNewArray extends Invoke {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfMultiANewArray(type, arguments().size()));
+    builder.add(new CfMultiANewArray(type, arguments().size()), this);
   }
 
   @Override

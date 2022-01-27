@@ -79,7 +79,7 @@ public class Pop extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(CfStackInstruction.popType(inValues.get(0).outType()));
+    builder.add(CfStackInstruction.popType(inValues.get(0).outType()), this);
   }
 
   @Override

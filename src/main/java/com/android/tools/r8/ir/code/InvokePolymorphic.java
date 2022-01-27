@@ -104,7 +104,7 @@ public class InvokePolymorphic extends InvokeMethod {
     // To translate InvokePolymorphic back into InvokeVirtual, use the original prototype
     // that is stored in getProto().
     DexMethod method = factory.createMethod(dexMethod.holder, getProto(), dexMethod.name);
-    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, method, false));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, method, false), this);
   }
 
   @Override

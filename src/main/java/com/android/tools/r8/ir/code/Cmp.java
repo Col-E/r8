@@ -231,7 +231,7 @@ public class Cmp extends Binop {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfCmp(bias, type));
+    builder.add(new CfCmp(bias, type), this);
   }
 
   @Override

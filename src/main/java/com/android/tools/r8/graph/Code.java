@@ -7,6 +7,7 @@ import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
@@ -29,6 +30,10 @@ public abstract class Code extends CachedHashValueDexItem {
       RewrittenPrototypeDescription protoChanges) {
     throw new Unreachable("Unexpected attempt to build IR graph for inlining from: "
         + getClass().getCanonicalName());
+  }
+
+  public BytecodeMetadata<? extends CfOrDexInstruction> getMetadata() {
+    return null;
   }
 
   public BytecodeInstructionMetadata getMetadata(CfOrDexInstruction instruction) {

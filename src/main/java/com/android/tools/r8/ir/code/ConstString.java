@@ -144,7 +144,7 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfConstString(value));
+    builder.add(new CfConstString(value), this);
   }
 
   @Override

@@ -60,5 +60,10 @@ public class BytecodeMetadata<I> {
     public BytecodeMetadata<I> build() {
       return backing.isEmpty() ? empty() : new BytecodeMetadata<>(backing);
     }
+
+    public boolean verifyNoMetadata(Instruction irInstruction) {
+      assert bytecodeMetadataProvider.getMetadata(irInstruction) == null;
+      return true;
+    }
   }
 }

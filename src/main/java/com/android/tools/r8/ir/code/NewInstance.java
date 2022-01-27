@@ -125,7 +125,7 @@ public class NewInstance extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfNew(clazz));
+    builder.add(new CfNew(clazz), this);
   }
 
   @Override

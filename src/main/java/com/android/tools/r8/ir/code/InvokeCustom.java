@@ -147,7 +147,7 @@ public final class InvokeCustom extends Invoke {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvokeDynamic(getCallSite()));
+    builder.add(new CfInvokeDynamic(getCallSite()), this);
   }
 
   @Override
