@@ -291,17 +291,16 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
     assert code.getDebugInfo().isPcBasedInfo();
     PcBasedDebugInfo pcBasedDebugInfo = code.getDebugInfo().asPcBasedInfo();
     // Generate a line event at each throwing instruction.
-    List<DexDebugEvent> events = new ArrayList<>(code.instructions.length + 1);
-    events.add(factory.zeroChangeDefaultEvent);
+    List<DexDebugEvent> events = new ArrayList<>(code.instructions.length);
     int pc = 0;
     int delta = 0;
     for (Instruction instruction : code.instructions) {
-      delta += instruction.getSize();
       if (instruction.canThrow()) {
         DexDebugEventBuilder.addDefaultEventWithAdvancePcIfNecessary(delta, delta, events, factory);
         pc += delta;
         delta = 0;
       }
+      delta += instruction.getSize();
     }
     assert pc + delta - ArrayUtils.last(code.instructions).getSize() <= pcBasedDebugInfo.maxPc;
     return new EventBasedDebugInfo(
