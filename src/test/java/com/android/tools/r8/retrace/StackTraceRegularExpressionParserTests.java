@@ -945,8 +945,7 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
   }
 
   /* This is a regression test for b/216359244 */
-  // TODO(b/216359244): Should not fail with an NPE.
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testMissingSourceFile() {
     runRetraceTest(
         ".*FOO\\s+:\\s+\\[\\d+\\]\\s+%c\\.%m\\(%l\\):.*",

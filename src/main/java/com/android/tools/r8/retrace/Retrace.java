@@ -602,7 +602,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
         RetraceStackTraceElementProxy<T, ST> other,
         Function<RetraceStackTraceElementProxy<T, ST>, Boolean> predicate,
         Function<RetraceStackTraceElementProxy<T, ST>, V> getter) {
-      return Comparator.comparing(predicate).thenComparing(getter).compare(one, other) != 0;
+      return Comparator.comparing(predicate)
+              .thenComparing(getter, Comparator.nullsFirst(V::compareTo))
+              .compare(one, other)
+          != 0;
     }
 
     public static <T, ST extends StackTraceElementProxy<T, ST>>
