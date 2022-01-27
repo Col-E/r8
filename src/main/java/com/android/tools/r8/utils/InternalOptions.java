@@ -779,10 +779,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return desugarSpecificOptions;
   }
 
-  public static boolean shouldEnableKeepRuleSynthesisForRecompilation() {
-    return System.getProperty("com.android.tools.r8.keepRuleSynthesisForRecompilation") != null;
-  }
-
   private static Set<String> getExtensiveLoggingFilter() {
     String property = System.getProperty("com.android.tools.r8.extensiveLoggingFilter");
     if (property != null) {

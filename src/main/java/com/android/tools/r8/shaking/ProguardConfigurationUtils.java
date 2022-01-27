@@ -181,21 +181,4 @@ public class ProguardConfigurationUtils {
     }
     return false;
   }
-
-  public static void synthesizeKeepRulesForRecompilation(
-      ProguardConfigurationRule rule, List<ProguardConfigurationRule> synthesizedKeepRules) {
-    if (rule.hasInheritanceClassName()) {
-      ProguardTypeMatcher inheritanceClassName = rule.getInheritanceClassName();
-      synthesizedKeepRules.add(
-          ProguardKeepRule.builder()
-              .setOrigin(synthesizedRecompilationOrigin)
-              .setType(ProguardKeepRuleType.KEEP)
-              .setClassType(
-                  rule.getInheritanceIsExtends()
-                      ? ProguardClassType.CLASS
-                      : ProguardClassType.INTERFACE)
-              .setClassNames(ProguardClassNameList.singletonList(inheritanceClassName))
-              .build());
-    }
-  }
 }

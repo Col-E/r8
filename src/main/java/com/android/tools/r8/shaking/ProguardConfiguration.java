@@ -10,7 +10,6 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -68,12 +67,10 @@ public class ProguardConfiguration {
         ProguardPathFilter.builder().disable();
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
-    private boolean keepRuleSynthesisForRecompilation = false;
     private boolean configurationDebugging = false;
     private boolean dontUseMixedCaseClassnames = false;
     private boolean protoShrinking = false;
     private int maxRemovedAndroidLogLevel = 1;
-    private ProguardKeepRule keepAllRule;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -281,10 +278,6 @@ public class ProguardConfiguration {
       this.overloadAggressively = overloadAggressively;
     }
 
-    public void enableKeepRuleSynthesisForRecompilation() {
-      this.keepRuleSynthesisForRecompilation = true;
-    }
-
     public void setConfigurationDebugging(boolean configurationDebugging) {
       this.configurationDebugging = configurationDebugging;
     }
@@ -307,24 +300,6 @@ public class ProguardConfiguration {
 
     public void setMaxRemovedAndroidLogLevel(int maxRemovedAndroidLogLevel) {
       this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
-    }
-
-    /**
-     * This synthesizes a set of keep rules that are necessary in order to be able to successfully
-     * recompile the generated dex files with the same keep rules.
-     */
-    public void synthesizeKeepRulesForRecompilation() {
-      List<ProguardConfigurationRule> synthesizedKeepRules = new ArrayList<>();
-      for (ProguardConfigurationRule rule : rules) {
-        ProguardConfigurationUtils.synthesizeKeepRulesForRecompilation(rule, synthesizedKeepRules);
-      }
-      if (rules.addAll(synthesizedKeepRules)) {
-        parsedConfiguration.add(
-            StringUtils.lines(
-                synthesizedKeepRules.stream()
-                    .map(ProguardClassSpecification::toString)
-                    .toArray(String[]::new)));
-      }
     }
 
     public ProguardConfiguration buildRaw() {
@@ -369,8 +344,7 @@ public class ProguardConfiguration {
               configurationDebugging,
               dontUseMixedCaseClassnames,
               protoShrinking,
-              maxRemovedAndroidLogLevel,
-              keepAllRule);
+              maxRemovedAndroidLogLevel);
 
       reporter.failIfPendingErrors();
 
@@ -381,31 +355,6 @@ public class ProguardConfiguration {
       if (forceProguardCompatibility && !isObfuscating()) {
         // For Proguard -keepattributes are only applicable when obfuscating.
         keepAttributePatterns.addAll(ProguardKeepAttributes.KEEP_ALL);
-      }
-      // If either of the flags -dontshrink or -dontobfuscate, or shrinking or minification is
-      // turned off through the API, then add a match all rule which will apply that.
-      if (!isObfuscating() || !isOptimizing() || !isShrinking()) {
-        ProguardKeepRule rule =
-            ProguardKeepRule.defaultKeepAllRule(
-                modifiers -> {
-                  modifiers
-                      .setAllowsAccessModification(isAccessModificationEnabled())
-                      .setAllowsObfuscation(isObfuscating())
-                      .setAllowsOptimization(isOptimizing())
-                      .setAllowsShrinking(isShrinking());
-
-                  // In non-compatibility mode, adding -dontoptimize does not cause all annotations
-                  // to be retained.
-                  if (!forceProguardCompatibility && isShrinking()) {
-                    modifiers.setAllowsAnnotationRemoval(true);
-                  }
-                });
-        addRule(rule);
-        this.keepAllRule = rule;
-      }
-
-      if (keepRuleSynthesisForRecompilation) {
-        synthesizeKeepRulesForRecompilation();
       }
 
       if (packageObfuscationMode == PackageObfuscationMode.NONE && obfuscating) {
@@ -456,7 +405,6 @@ public class ProguardConfiguration {
   private final boolean dontUseMixedCaseClassnames;
   private final boolean protoShrinking;
   private final int maxRemovedAndroidLogLevel;
-  private final ProguardKeepRule keepAllRule;
 
   private ProguardConfiguration(
       String parsedConfiguration,
@@ -498,8 +446,7 @@ public class ProguardConfiguration {
       boolean configurationDebugging,
       boolean dontUseMixedCaseClassnames,
       boolean protoShrinking,
-      int maxRemovedAndroidLogLevel,
-      ProguardKeepRule keepAllRule) {
+      int maxRemovedAndroidLogLevel) {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
@@ -540,7 +487,6 @@ public class ProguardConfiguration {
     this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
     this.protoShrinking = protoShrinking;
     this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
-    this.keepAllRule = keepAllRule;
   }
 
   /**
@@ -718,10 +664,6 @@ public class ProguardConfiguration {
 
   public int getMaxRemovedAndroidLogLevel() {
     return maxRemovedAndroidLogLevel;
-  }
-
-  public ProguardKeepRule getKeepAllRule() {
-    return keepAllRule;
   }
 
   @Override

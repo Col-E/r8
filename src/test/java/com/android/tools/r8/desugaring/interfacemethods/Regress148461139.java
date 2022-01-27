@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugaring.interfacemethods;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -36,9 +35,6 @@ public class Regress148461139 extends TestBase {
         .addProgramClasses(Condition.class)
         .noTreeShaking()
         .compile()
-        .inspectProguardConfiguration(p -> {
-          assertNotNull(p.getKeepAllRule());
-        })
         .inspect(i -> assertTrue(i.clazz(Condition.class).isAbstract()));
   }
 

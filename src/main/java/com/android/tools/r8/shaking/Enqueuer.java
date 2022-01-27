@@ -209,10 +209,6 @@ public class Enqueuer {
       return this == FINAL_TREE_SHAKING;
     }
 
-    public boolean isInitialOrFinalTreeShaking() {
-      return isInitialTreeShaking() || isFinalTreeShaking();
-    }
-
     public boolean isInitialMainDexTracing() {
       return this == INITIAL_MAIN_DEX_TRACING;
     }
@@ -480,7 +476,7 @@ public class Enqueuer {
             ? ProguardCompatibilityActions.builder()
             : null;
 
-    if (mode.isInitialOrFinalTreeShaking()) {
+    if (mode.isTreeShaking()) {
       GetArrayOfMissingTypeVerifyErrorWorkaround.register(appView, this);
       InvokeVirtualToInterfaceVerifyErrorWorkaround.register(appView, this);
       if (options.protoShrinking().enableGeneratedMessageLiteShrinking) {
@@ -817,15 +813,9 @@ public class Enqueuer {
       return;
     }
     // Add everything if we are not shrinking.
-    assert appView.options().getProguardConfiguration().getKeepAllRule() != null;
-    ProguardKeepRuleBase keepAllRule =
-        appView.options().getProguardConfiguration().getKeepAllRule();
-    KeepClassInfo.Joiner keepClassInfo =
-        KeepClassInfo.newEmptyJoiner().addRule(keepAllRule).disallowShrinking();
-    KeepFieldInfo.Joiner keepFieldInfo =
-        KeepFieldInfo.newEmptyJoiner().addRule(keepAllRule).disallowShrinking();
-    KeepMethodInfo.Joiner keepMethodInfo =
-        KeepMethodInfo.newEmptyJoiner().addRule(keepAllRule).disallowShrinking();
+    KeepClassInfo.Joiner keepClassInfo = KeepClassInfo.newEmptyJoiner().disallowShrinking();
+    KeepFieldInfo.Joiner keepFieldInfo = KeepFieldInfo.newEmptyJoiner().disallowShrinking();
+    KeepMethodInfo.Joiner keepMethodInfo = KeepMethodInfo.newEmptyJoiner().disallowShrinking();
     EnqueuerEvent preconditionEvent = UnconditionalKeepInfoEvent.get();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (appView.getSyntheticItems().isSyntheticClass(clazz)
@@ -845,8 +835,7 @@ public class Enqueuer {
       DexProgramClass clazz,
       KeepClassInfo.Joiner minimumKeepInfo,
       EnqueuerEvent preconditionEvent) {
-    assert !minimumKeepInfo.isShrinkingAllowed();
-    assert !minimumKeepInfo.getRules().isEmpty();
+    assert minimumKeepInfo.verifyShrinkingDisallowedWithRule(options);
     DexDefinition precondition = preconditionEvent.getDefinition(appInfo());
     enqueueKeepRuleInstantiatedType(clazz, minimumKeepInfo.getRules(), precondition);
   }
@@ -876,8 +865,7 @@ public class Enqueuer {
 
   private void enqueueFieldDueToNoShrinkingRule(
       ProgramField field, KeepFieldInfo.Joiner minimumKeepInfo, EnqueuerEvent preconditionEvent) {
-    assert !minimumKeepInfo.isShrinkingAllowed();
-    assert !minimumKeepInfo.getRules().isEmpty();
+    assert minimumKeepInfo.verifyShrinkingDisallowedWithRule(options);
     DexDefinition precondition = preconditionEvent.getDefinition(appInfo());
     workList.enqueueMarkFieldKeptAction(
         field,
@@ -889,8 +877,7 @@ public class Enqueuer {
       ProgramMethod method,
       KeepMethodInfo.Joiner minimumKeepInfo,
       EnqueuerEvent preconditionEvent) {
-    assert !minimumKeepInfo.isShrinkingAllowed();
-    assert !minimumKeepInfo.getRules().isEmpty();
+    assert minimumKeepInfo.verifyShrinkingDisallowedWithRule(options);
     DexDefinition precondition = preconditionEvent.getDefinition(appInfo());
     workList.enqueueMarkMethodKeptAction(
         method,
@@ -3308,7 +3295,7 @@ public class Enqueuer {
       KeepClassInfo.Joiner minimumKeepInfo) {
     if ((options.isShrinking() || mode.isMainDexTracing())
         && !minimumKeepInfo.isShrinkingAllowed()) {
-      assert !minimumKeepInfo.getRules().isEmpty();
+      assert minimumKeepInfo.verifyShrinkingDisallowedWithRule(options);
       enqueueClassDueToNoShrinkingRule(clazz, minimumKeepInfo, preconditionEvent);
     }
   }
@@ -3355,7 +3342,7 @@ public class Enqueuer {
       ProgramField field, EnqueuerEvent preconditionEvent, KeepFieldInfo.Joiner minimumKeepInfo) {
     if ((options.isShrinking() || mode.isMainDexTracing())
         && !minimumKeepInfo.isShrinkingAllowed()) {
-      assert !minimumKeepInfo.getRules().isEmpty();
+      assert minimumKeepInfo.verifyShrinkingDisallowedWithRule(options);
       enqueueFieldDueToNoShrinkingRule(field, minimumKeepInfo, preconditionEvent);
     }
   }
@@ -3404,7 +3391,7 @@ public class Enqueuer {
       KeepMethodInfo.Joiner minimumKeepInfo) {
     if ((options.isShrinking() || mode.isMainDexTracing())
         && !minimumKeepInfo.isShrinkingAllowed()) {
-      assert !minimumKeepInfo.getRules().isEmpty();
+      assert minimumKeepInfo.verifyShrinkingDisallowedWithRule(options);
       enqueueMethodDueToNoShrinkingRule(method, minimumKeepInfo, preconditionEvent);
 
       if (method.getDefinition().isInstanceInitializer()) {

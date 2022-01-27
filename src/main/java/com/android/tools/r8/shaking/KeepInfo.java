@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.shaking.KeepInfo.Builder;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -559,6 +560,12 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
       K original = builder.original;
       assert original.isLessThanOrEquals(joined);
       return joined;
+    }
+
+    public boolean verifyShrinkingDisallowedWithRule(InternalOptions options) {
+      assert !isShrinkingAllowed();
+      assert !getRules().isEmpty() || !options.isShrinking();
+      return true;
     }
   }
 }

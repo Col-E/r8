@@ -485,9 +485,6 @@ public final class R8Command extends BaseCompilerCommand {
       }
       ProguardConfiguration.Builder configurationBuilder = parser.getConfigurationBuilder();
       configurationBuilder.setForceProguardCompatibility(forceProguardCompatibility);
-      if (InternalOptions.shouldEnableKeepRuleSynthesisForRecompilation()) {
-        configurationBuilder.enableKeepRuleSynthesisForRecompilation();
-      }
 
       if (proguardConfigurationConsumerForTesting != null) {
         proguardConfigurationConsumerForTesting.accept(configurationBuilder);

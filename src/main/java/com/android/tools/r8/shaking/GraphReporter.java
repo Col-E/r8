@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.DequeUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Sets;
@@ -45,6 +46,7 @@ import java.util.Set;
 public class GraphReporter {
 
   private final AppView<?> appView;
+  private final InternalOptions options;
   private final GraphConsumer keptGraphConsumer;
   private final CollectingGraphConsumer verificationGraphConsumer;
 
@@ -58,6 +60,7 @@ public class GraphReporter {
 
   GraphReporter(AppView<?> appView, GraphConsumer keptGraphConsumer) {
     this.appView = appView;
+    this.options = appView.options();
     if (appView.options().testing.verifyKeptGraphInfo) {
       this.verificationGraphConsumer = new CollectingGraphConsumer(keptGraphConsumer);
       this.keptGraphConsumer = verificationGraphConsumer;
@@ -108,17 +111,17 @@ public class GraphReporter {
 
   KeepReasonWitness reportKeepClass(
       DexDefinition precondition, ProguardKeepRuleBase rule, DexProgramClass clazz) {
-    if (keptGraphConsumer == null) {
-      return KeepReasonWitness.INSTANCE;
+    if (keptGraphConsumer != null) {
+      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
+      EdgeKind edgeKind = reportPrecondition(ruleNode);
+      return reportEdge(ruleNode, getClassGraphNode(clazz.type), edgeKind);
     }
-    KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
-    EdgeKind edgeKind = reportPrecondition(ruleNode);
-    return reportEdge(ruleNode, getClassGraphNode(clazz.type), edgeKind);
+    return KeepReasonWitness.INSTANCE;
   }
 
   KeepReasonWitness reportKeepClass(
       DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexProgramClass clazz) {
-    assert !rules.isEmpty();
+    assert !rules.isEmpty() || !options.isShrinking();
     if (keptGraphConsumer != null) {
       for (ProguardKeepRuleBase rule : rules) {
         reportKeepClass(precondition, rule, clazz);
@@ -129,17 +132,17 @@ public class GraphReporter {
 
   KeepReasonWitness reportKeepMethod(
       DexDefinition precondition, ProguardKeepRuleBase rule, DexEncodedMethod method) {
-    if (keptGraphConsumer == null) {
-      return KeepReasonWitness.INSTANCE;
+    if (keptGraphConsumer != null) {
+      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
+      EdgeKind edgeKind = reportPrecondition(ruleNode);
+      return reportEdge(ruleNode, getMethodGraphNode(method.getReference()), edgeKind);
     }
-    KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
-    EdgeKind edgeKind = reportPrecondition(ruleNode);
-    return reportEdge(ruleNode, getMethodGraphNode(method.getReference()), edgeKind);
+    return KeepReasonWitness.INSTANCE;
   }
 
   KeepReasonWitness reportKeepMethod(
       DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexEncodedMethod method) {
-    assert !rules.isEmpty();
+    assert !rules.isEmpty() || !options.isShrinking();
     if (keptGraphConsumer != null) {
       for (ProguardKeepRuleBase rule : rules) {
         reportKeepMethod(precondition, rule, method);
@@ -150,17 +153,17 @@ public class GraphReporter {
 
   KeepReasonWitness reportKeepField(
       DexDefinition precondition, ProguardKeepRuleBase rule, DexEncodedField field) {
-    if (keptGraphConsumer == null) {
-      return KeepReasonWitness.INSTANCE;
+    if (keptGraphConsumer != null) {
+      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
+      EdgeKind edgeKind = reportPrecondition(ruleNode);
+      return reportEdge(ruleNode, getFieldGraphNode(field.getReference()), edgeKind);
     }
-    KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
-    EdgeKind edgeKind = reportPrecondition(ruleNode);
-    return reportEdge(ruleNode, getFieldGraphNode(field.getReference()), edgeKind);
+    return KeepReasonWitness.INSTANCE;
   }
 
   KeepReasonWitness reportKeepField(
       DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexEncodedField field) {
-    assert !rules.isEmpty();
+    assert !rules.isEmpty() || !options.isShrinking();
     if (keptGraphConsumer != null) {
       for (ProguardKeepRuleBase rule : rules) {
         reportKeepField(precondition, rule, field);
