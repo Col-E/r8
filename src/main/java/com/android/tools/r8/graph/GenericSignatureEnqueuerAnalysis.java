@@ -25,22 +25,24 @@ public class GenericSignatureEnqueuerAnalysis extends EnqueuerAnalysis {
   }
 
   @Override
-  public void notifyMarkFieldAsReachable(ProgramField field) {
+  public void notifyMarkFieldAsReachable(ProgramField field, EnqueuerWorklist worklist) {
     processSignature(field, field.getContext());
   }
 
   @Override
-  public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {
+  public void processNewlyLiveField(
+      ProgramField field, ProgramDefinition context, EnqueuerWorklist worklist) {
     processSignature(field, context);
   }
 
   @Override
-  public void notifyMarkMethodAsTargeted(ProgramMethod method) {
+  public void notifyMarkMethodAsTargeted(ProgramMethod method, EnqueuerWorklist worklist) {
     processSignature(method, method.getContext());
   }
 
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
+  public void processNewlyLiveMethod(
+      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
     processSignature(method, context);
   }
 

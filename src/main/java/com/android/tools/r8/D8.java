@@ -210,7 +210,7 @@ public final class D8 {
             clazz -> {
               ProgramMethod classInitializer = clazz.getProgramClassInitializer();
               if (classInitializer != null) {
-                analysis.processNewlyLiveMethod(classInitializer, clazz);
+                analysis.processNewlyLiveMethod(classInitializer, clazz, null);
               }
             },
             executor);

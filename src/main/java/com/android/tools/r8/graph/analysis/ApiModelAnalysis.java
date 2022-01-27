@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
+import com.android.tools.r8.shaking.EnqueuerWorklist;
 
 public class ApiModelAnalysis extends EnqueuerAnalysis {
 
@@ -28,17 +29,20 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   }
 
   @Override
-  public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {
+  public void processNewlyLiveField(
+      ProgramField field, ProgramDefinition context, EnqueuerWorklist worklist) {
     computeAndSetApiLevelForDefinition(field);
   }
 
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
+  public void processNewlyLiveMethod(
+      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
     computeAndSetApiLevelForDefinition(method);
   }
 
   @Override
-  public void processTracedCode(ProgramMethod method, DefaultEnqueuerUseRegistry registry) {
+  public void processTracedCode(
+      ProgramMethod method, DefaultEnqueuerUseRegistry registry, EnqueuerWorklist worklist) {
     assert registry.getMaxApiReferenceLevel().isGreaterThanOrEqualTo(minApiLevel);
     if (appView.options().apiModelingOptions().tracedMethodApiLevelCallback != null) {
       appView
@@ -52,17 +56,18 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   }
 
   @Override
-  public void notifyMarkMethodAsTargeted(ProgramMethod method) {
+  public void notifyMarkMethodAsTargeted(ProgramMethod method, EnqueuerWorklist worklist) {
     computeAndSetApiLevelForDefinition(method);
   }
 
   @Override
-  public void notifyMarkFieldAsReachable(ProgramField field) {
+  public void notifyMarkFieldAsReachable(ProgramField field, EnqueuerWorklist worklist) {
     computeAndSetApiLevelForDefinition(field);
   }
 
   @Override
-  public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {
+  public void notifyMarkVirtualDispatchTargetAsLive(
+      LookupTarget target, EnqueuerWorklist worklist) {
     target.accept(
         this::computeAndSetApiLevelForDefinition,
         lookupLambdaTarget -> {
@@ -71,7 +76,8 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
   }
 
   @Override
-  public void notifyFailedMethodResolutionTarget(DexEncodedMethod method) {
+  public void notifyFailedMethodResolutionTarget(
+      DexEncodedMethod method, EnqueuerWorklist worklist) {
     // We may not trace into failed resolution targets.
     method.setApiLevelForCode(ComputedApiLevel.unknown());
   }

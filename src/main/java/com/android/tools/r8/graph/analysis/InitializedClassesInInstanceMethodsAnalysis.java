@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.EnqueuerWorklist;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -63,7 +64,8 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
   }
 
   @Override
-  public void processNewlyInstantiatedClass(DexProgramClass clazz, ProgramMethod context) {
+  public void processNewlyInstantiatedClass(
+      DexProgramClass clazz, ProgramMethod context, EnqueuerWorklist worklist) {
     DexType key = clazz.type;
     DexType objectType = appView.dexItemFactory().objectType;
     if (context == null) {

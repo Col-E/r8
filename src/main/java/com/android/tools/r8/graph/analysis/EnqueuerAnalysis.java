@@ -18,27 +18,33 @@ import com.android.tools.r8.utils.Timing;
 public abstract class EnqueuerAnalysis {
 
   /** Called when a class is found to be instantiated. */
-  public void processNewlyInstantiatedClass(DexProgramClass clazz, ProgramMethod context) {}
+  public void processNewlyInstantiatedClass(
+      DexProgramClass clazz, ProgramMethod context, EnqueuerWorklist worklist) {}
 
   /** Called when a class is found to be live. */
   public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {}
 
   /** Called when a field is found to be live. */
-  public void processNewlyLiveField(ProgramField field, ProgramDefinition context) {}
+  public void processNewlyLiveField(
+      ProgramField field, ProgramDefinition context, EnqueuerWorklist worklist) {}
 
   /** Called when a method is found to be live. */
-  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {}
+  public void processNewlyLiveMethod(
+      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {}
 
   /** Called when a method's code has been processed by the registry. */
-  public void processTracedCode(ProgramMethod method, DefaultEnqueuerUseRegistry registry) {}
+  public void processTracedCode(
+      ProgramMethod method, DefaultEnqueuerUseRegistry registry, EnqueuerWorklist worklist) {}
 
-  public void notifyMarkMethodAsTargeted(ProgramMethod method) {}
+  public void notifyMarkMethodAsTargeted(ProgramMethod method, EnqueuerWorklist worklist) {}
 
-  public void notifyMarkFieldAsReachable(ProgramField field) {}
+  public void notifyMarkFieldAsReachable(ProgramField field, EnqueuerWorklist worklist) {}
 
-  public void notifyMarkVirtualDispatchTargetAsLive(LookupTarget target) {}
+  public void notifyMarkVirtualDispatchTargetAsLive(
+      LookupTarget target, EnqueuerWorklist worklist) {}
 
-  public void notifyFailedMethodResolutionTarget(DexEncodedMethod method) {}
+  public void notifyFailedMethodResolutionTarget(
+      DexEncodedMethod method, EnqueuerWorklist worklist) {}
 
   /**
    * Called when the Enqueuer reaches a fixpoint. This may happen multiple times, since each

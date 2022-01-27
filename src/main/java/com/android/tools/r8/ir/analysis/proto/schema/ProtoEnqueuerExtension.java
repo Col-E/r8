@@ -132,7 +132,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    * ProtoMessageInfo} object, and create a mapping from the holder to it.
    */
   @Override
-  public void processNewlyLiveMethod(ProgramMethod method, ProgramDefinition context) {
+  public void processNewlyLiveMethod(
+      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
     if (references.isFindLiteExtensionByNumberMethod(method.getReference())) {
       findLiteExtensionByNumberMethods.add(method);
       return;

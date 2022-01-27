@@ -2433,7 +2433,8 @@ public class Enqueuer {
     // because each analysis may depend on seeing all the (clazz, reason) pairs. Thus, not doing so
     // could lead to nondeterminism.
     analyses.forEach(
-        analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), context));
+        analysis ->
+            analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), context, workList));
 
     if (!markInstantiatedClass(clazz, context, instantiationReason, keepReason)) {
       return;
@@ -2813,7 +2814,7 @@ public class Enqueuer {
     applyMinimumKeepInfo(field);
 
     // Notify analyses.
-    analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context));
+    analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context, workList));
   }
 
   // Package protected due to entry point from worklist.
@@ -2839,7 +2840,7 @@ public class Enqueuer {
 
     traceFieldDefinition(field);
 
-    analyses.forEach(analysis -> analysis.notifyMarkFieldAsReachable(field));
+    analyses.forEach(analysis -> analysis.notifyMarkFieldAsReachable(field, workList));
   }
 
   private void traceFieldDefinition(ProgramField field) {
@@ -3090,7 +3091,7 @@ public class Enqueuer {
     target.accept(
         method -> markVirtualDispatchTargetAsLive(method, reason),
         lambda -> markVirtualDispatchTargetAsLive(lambda, reason));
-    analyses.forEach(analysis -> analysis.notifyMarkVirtualDispatchTargetAsLive(target));
+    analyses.forEach(analysis -> analysis.notifyMarkVirtualDispatchTargetAsLive(target, workList));
   }
 
   private void markVirtualDispatchTargetAsLive(
@@ -3170,7 +3171,9 @@ public class Enqueuer {
     if (target == null) {
       failedMethodResolutionTargets.add(resolution.getResolvedMethod().getReference());
       analyses.forEach(
-          analyses -> analyses.notifyFailedMethodResolutionTarget(resolution.getResolvedMethod()));
+          analyses ->
+              analyses.notifyFailedMethodResolutionTarget(
+                  resolution.getResolvedMethod(), workList));
       return;
     }
 
@@ -4336,7 +4339,7 @@ public class Enqueuer {
     }
 
     // Notify analyses.
-    analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method, context));
+    analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method, context, workList));
   }
 
   private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {
@@ -4356,7 +4359,7 @@ public class Enqueuer {
         markMethodAsLiveWithCompatRule(method);
       }
     }
-    analyses.forEach(analysis -> analysis.notifyMarkMethodAsTargeted(method));
+    analyses.forEach(analysis -> analysis.notifyMarkMethodAsTargeted(method, workList));
   }
 
   void traceMethodDefinitionExcludingCode(ProgramMethod method) {
@@ -4387,7 +4390,7 @@ public class Enqueuer {
         useRegistryFactory.create(appView, method, this, appView.apiLevelCompute());
     method.registerCodeReferences(registry);
     // Notify analyses.
-    analyses.forEach(analysis -> analysis.processTracedCode(method, registry));
+    analyses.forEach(analysis -> analysis.processTracedCode(method, registry, workList));
   }
 
   private void markReferencedTypesAsLive(ProgramMethod method) {
