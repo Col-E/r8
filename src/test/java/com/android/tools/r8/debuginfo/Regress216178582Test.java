@@ -4,6 +4,7 @@
 package com.android.tools.r8.debuginfo;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -53,6 +54,12 @@ public class Regress216178582Test extends TestBase {
                   DexEncodedMethod method =
                       inspector.clazz(TestClass.class).mainMethod().getMethod();
                   DexCode code = method.getCode().asDexCode();
+                  if (parameters
+                      .getApiLevel()
+                      .isGreaterThanOrEqualTo(apiLevelWithPcAsLineNumberSupport())) {
+                    assertNull(code.getDebugInfo());
+                    return;
+                  }
                   assertTrue(code.getDebugInfo().isPcBasedInfo());
                   // Force convert the PC info to events.
                   code.setDebugInfo(DexDebugInfo.convertToEventBased(code, inspector.getFactory()));
