@@ -61,6 +61,11 @@ def parse_arguments():
       default=None,
       action='store_true',
       help='Enables verbose retracing.')
+  parser.add_argument(
+      '--disable-map-validation',
+      default=None,
+      action='store_true',
+      help='Disable validation of map hash.')
   return parser.parse_args()
 
 
@@ -108,7 +113,7 @@ def get_map_file(args, temp):
       print(e)
       print('WARNING: Falling back to using local mapping file.')
 
-    if map_path:
+    if map_path and not args.disable_map_validation:
       check_maphash(map_path, maphash)
       return map_path
 

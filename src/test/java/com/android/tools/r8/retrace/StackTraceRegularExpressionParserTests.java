@@ -944,6 +944,48 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
         });
   }
 
+  /* This is a regression test for b/216359244 */
+  // TODO(b/216359244): Should not fail with an NPE.
+  @Test(expected = NullPointerException.class)
+  public void testMissingSourceFile() {
+    runRetraceTest(
+        ".*FOO\\s+:\\s+\\[\\d+\\]\\s+%c\\.%m\\(%l\\):.*",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of(
+                "12-24 19:53:19.052 10197 30302 30302 I FOO : [2] huk.g(1): getDownloads()");
+          }
+
+          @Override
+          public String mapping() {
+            return "foo.Bar -> huk:\n" + "  void baz():13:13 -> g\n" + "  void qux():12:12 -> g\n";
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(
+                "12-24 19:53:19.052 10197 30302 30302 I FOO : [2] foo.Bar.baz(13): getDownloads()",
+                "<OR> 12-24 19:53:19.052 10197 30302 30302 I FOO : [2] foo.Bar.qux(12):"
+                    + " getDownloads()");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "12-24 19:53:19.052 10197 30302 30302 I FOO : [2] foo.Bar.void baz()(13):"
+                    + " getDownloads()",
+                "<OR> 12-24 19:53:19.052 10197 30302 30302 I FOO : [2] foo.Bar.void qux()(12):"
+                    + " getDownloads()");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
   private TestDiagnosticMessagesImpl runRetraceTest(
       String regularExpression, StackTraceForTest stackTraceForTest) {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
