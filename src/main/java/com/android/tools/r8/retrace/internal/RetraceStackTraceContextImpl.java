@@ -10,7 +10,6 @@ import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInforma
 import com.android.tools.r8.naming.mappinginformation.RewriteFrameMappingInformation.RewriteAction;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
-import com.android.tools.r8.utils.ListUtils;
 import java.util.List;
 import java.util.OptionalInt;
 
@@ -36,12 +35,13 @@ public class RetraceStackTraceContextImpl implements RetraceStackTraceContext {
     }
     RetraceStackTraceCurrentEvaluationInformation.Builder builder =
         RetraceStackTraceCurrentEvaluationInformation.builder();
-    MappedRange last = ListUtils.last(mappedRanges);
-    for (RewriteFrameMappingInformation rewriteInformation :
-        last.getRewriteFrameMappingInformation()) {
-      if (evaluateConditions(rewriteInformation.getConditions())) {
-        for (RewriteAction action : rewriteInformation.getActions()) {
-          action.evaluate(builder);
+    for (MappedRange mappedRange : mappedRanges) {
+      for (RewriteFrameMappingInformation rewriteInformation :
+          mappedRange.getRewriteFrameMappingInformation()) {
+        if (evaluateConditions(rewriteInformation.getConditions())) {
+          for (RewriteAction action : rewriteInformation.getActions()) {
+            action.evaluate(builder);
+          }
         }
       }
     }

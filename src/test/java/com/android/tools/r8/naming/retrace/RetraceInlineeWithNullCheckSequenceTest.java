@@ -8,7 +8,6 @@ import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForLine
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
@@ -37,17 +36,12 @@ public class RetraceInlineeWithNullCheckSequenceTest extends TestBase {
   @Before
   public void setup() throws Exception {
     // Get the expected stack trace by running on the JVM.
-    SingleTestRunResult<?> runResult =
+    expectedStackTrace =
         testForRuntime(parameters)
             .addProgramClasses(Caller.class, Foo.class)
             .run(parameters.getRuntime(), Caller.class)
-            .assertFailureWithErrorThatThrows(NullPointerException.class);
-    if (parameters.isCfRuntime()) {
-      expectedStackTrace = runResult.map(StackTrace::extractFromJvm);
-    } else {
-      expectedStackTrace =
-          StackTrace.extractFromArt(runResult.getStdErr(), parameters.asDexRuntime().getVm());
-    }
+            .assertFailureWithErrorThatThrows(NullPointerException.class)
+            .getStackTrace();
   }
 
   @Test

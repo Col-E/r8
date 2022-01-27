@@ -6,7 +6,6 @@ package com.android.tools.r8.naming.retrace;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
-import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -70,8 +69,7 @@ public class RetraceInlineeWithNullCheckInlinedTest extends TestBase {
               assertThat(callerClass, isPresent());
               MethodSubject outerCaller = callerClass.uniqueMethodWithName("outerCaller");
               assertThat(outerCaller, isPresentAndRenamed());
-              // TODO(b/216473070): This should be fixed in retrace.
-              assertThat(stackTrace, notIf(isSame(expectedStackTrace), throwReceiverNpe));
+              assertThat(stackTrace, isSame(expectedStackTrace));
             });
   }
 
