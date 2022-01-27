@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -541,10 +542,9 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private Iterable<DexMethod> allImplementedMethods(DexClass clazz) {
-    if (appView.options().testing.machineDesugaredLibrarySpecification != null) {
+    if (appView.options().machineDesugaredLibrarySpecification != null) {
       return appView
           .options()
-          .testing
           .machineDesugaredLibrarySpecification
           .getRewritingFlags()
           .getWrappers()
@@ -553,7 +553,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     List<DexEncodedMethod> dexEncodedMethods =
         allImplementedMethodsCache.computeIfAbsent(
             clazz.type, type -> internalAllImplementedMethods(clazz));
-    return Iterables.transform(dexEncodedMethods, m -> m.getReference());
+    return Iterables.transform(dexEncodedMethods, DexEncodedMember::getReference);
   }
 
   private List<DexEncodedMethod> internalAllImplementedMethods(DexClass libraryClass) {

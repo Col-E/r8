@@ -236,12 +236,26 @@ public abstract class PrefixRewritingMapper {
 
     @Override
     public DexType rewrittenType(DexType type, AppView<?> appView) {
-      assert mapper.rewrittenType(type, appView) == rewriteType.get(type);
+      if (type.isArrayType()) {
+        DexType rewrittenBaseType =
+            rewrittenType(type.toBaseType(appView.dexItemFactory()), appView);
+        if (rewrittenBaseType == null) {
+          return null;
+        }
+        return appView
+            .dexItemFactory()
+            .createArrayType(type.getNumberOfLeadingSquareBrackets(), rewrittenBaseType);
+      }
+      assert mapper.rewrittenType(type, appView) == rewriteType.get(type)
+          || appView.definitionFor(type) == null
+          || (appView.definitionFor(type).isProgramClass()
+              && !appView.options().isDesugaredLibraryCompilation());
       return rewriteType.get(type);
     }
 
     @Override
     public DexType rewrittenContextType(DexType context, AppView<?> appView) {
+      assert !context.isArrayType();
       if (rewriteType.containsKey(context)) {
         return rewriteType.get(context);
       }

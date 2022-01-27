@@ -137,6 +137,7 @@ public class MachineRewritingFlags {
     public void rewriteType(DexType src, DexType target) {
       assert src != null;
       assert target != null;
+      assert src != target;
       rewriteType.put(src, target);
     }
 
