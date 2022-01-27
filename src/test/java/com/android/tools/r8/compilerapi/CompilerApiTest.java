@@ -6,6 +6,7 @@ package com.android.tools.r8.compilerapi;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
+import com.android.tools.r8.compilerapi.mockdata.MockClassWithAssertion;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,6 +69,10 @@ public abstract class CompilerApiTest {
 
   public Class<?> getMockClass() {
     return MockClass.class;
+  }
+
+  public Class<?> getMockClassWithAssertion() {
+    return MockClassWithAssertion.class;
   }
 
   public Path getJava8RuntimeJar() {
