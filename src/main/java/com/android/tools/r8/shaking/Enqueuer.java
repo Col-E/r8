@@ -318,8 +318,6 @@ public class Enqueuer {
    */
   private final Set<ClasspathOrLibraryClass> liveNonProgramTypes = Sets.newIdentityHashSet();
 
-  private final Set<ClasspathOrLibraryClass> referencedNonProgramTypes = Sets.newIdentityHashSet();
-
   /** Set of reachable proto types that will be dead code eliminated. */
   private final Set<DexProgramClass> deadProtoTypeCandidates = Sets.newIdentityHashSet();
 
@@ -605,7 +603,7 @@ public class Enqueuer {
       ignoreMissingClass(type);
     } else if (clazz.isNotProgramClass()) {
       addLiveNonProgramType(
-          clazz.asClasspathOrLibraryClass(), true, this::ignoreMissingClasspathOrLibraryClass);
+          clazz.asClasspathOrLibraryClass(), this::ignoreMissingClasspathOrLibraryClass);
     }
   }
 
@@ -700,62 +698,51 @@ public class Enqueuer {
 
   private void addLiveNonProgramType(
       ClasspathOrLibraryClass clazz,
-      // TODO(b/216576191): Remove when tracking live library members.
-      boolean visitMembers,
       BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
     WorkList<ClasspathOrLibraryClass> worklist =
         WorkList.newIdentityWorkList(clazz, liveNonProgramTypes);
     while (worklist.hasNext()) {
       ClasspathOrLibraryClass definition = worklist.next();
-      processNewLiveNonProgramType(definition, worklist, missingClassConsumer, visitMembers);
+      processNewLiveNonProgramType(definition, worklist, missingClassConsumer);
     }
   }
 
   private void processNewLiveNonProgramType(
       ClasspathOrLibraryClass clazz,
       WorkList<ClasspathOrLibraryClass> worklist,
-      BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer,
-      boolean visitMembers) {
-    ensureMethodsContinueToWidenAccess(clazz);
+      BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
     if (clazz.isLibraryClass()) {
+      // TODO(b/149201735): This likely needs to apply to classpath too.
+      ensureMethodsContinueToWidenAccess(clazz);
       // Only libraries must not derive program. Classpath classes can, assuming correct keep rules.
       warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
     }
-    if (visitMembers) {
-      clazz.forEachClassField(
-          field ->
-              addNonProgramClassToWorklist(
-                  field.getType(),
-                  field.asClasspathOrLibraryDefinition(),
-                  referencedNonProgramTypes::add,
-                  missingClassConsumer));
-      clazz.forEachClassMethod(
-          method -> {
-            ClasspathOrLibraryDefinition derivedContext = method.asClasspathOrLibraryDefinition();
+    clazz.forEachClassField(
+        field ->
             addNonProgramClassToWorklist(
-                method.getReturnType(),
-                derivedContext,
-                referencedNonProgramTypes::add,
-                missingClassConsumer);
-            for (DexType parameter : method.getParameters()) {
-              addNonProgramClassToWorklist(
-                  parameter, derivedContext, referencedNonProgramTypes::add, missingClassConsumer);
-            }
-          });
-    }
+                field.getType(),
+                field.asClasspathOrLibraryDefinition(),
+                worklist,
+                missingClassConsumer));
+    clazz.forEachClassMethod(
+        method -> {
+          ClasspathOrLibraryDefinition derivedContext = method.asClasspathOrLibraryDefinition();
+          addNonProgramClassToWorklist(
+              method.getReturnType(), derivedContext, worklist, missingClassConsumer);
+          for (DexType parameter : method.getParameters()) {
+            addNonProgramClassToWorklist(parameter, derivedContext, worklist, missingClassConsumer);
+          }
+        });
     for (DexType supertype : clazz.allImmediateSupertypes()) {
       addNonProgramClassToWorklist(
-          supertype,
-          clazz.asClasspathOrLibraryDefinition(),
-          worklist::addIfNotSeen,
-          missingClassConsumer);
+          supertype, clazz.asClasspathOrLibraryDefinition(), worklist, missingClassConsumer);
     }
   }
 
   private void addNonProgramClassToWorklist(
       DexType type,
       ClasspathOrLibraryDefinition context,
-      Consumer<ClasspathOrLibraryClass> classAdder,
+      WorkList<ClasspathOrLibraryClass> worklist,
       BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
     if (type.isArrayType()) {
       type = type.toBaseType(appView.dexItemFactory());
@@ -767,7 +754,7 @@ public class Enqueuer {
     if (clazz == null) {
       missingClassConsumer.accept(type, context);
     } else if (!clazz.isProgramClass()) {
-      classAdder.accept(clazz.asClasspathOrLibraryClass());
+      worklist.addIfNotSeen(clazz.asClasspathOrLibraryClass());
     }
   }
 
@@ -2366,7 +2353,6 @@ public class Enqueuer {
     if (!clazz.isProgramClass()) {
       addLiveNonProgramType(
           clazz.asClasspathOrLibraryClass(),
-          true,
           (missingType, derivedContext) ->
               reportMissingClass(missingType, derivedContext.asProgramDerivedContext(context)));
     }
@@ -3775,9 +3761,6 @@ public class Enqueuer {
     // Rebuild a new app only containing referenced types.
     Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();
     Set<DexClasspathClass> classpathClasses = Sets.newIdentityHashSet();
-    // Ensure all referenced non program types have their hierarchy built as live.
-    referencedNonProgramTypes.forEach(
-        clazz -> addLiveNonProgramType(clazz, false, this::ignoreMissingClasspathOrLibraryClass));
     for (ClasspathOrLibraryClass clazz : liveNonProgramTypes) {
       if (clazz.isLibraryClass()) {
         libraryClasses.add(clazz.asLibraryClass());
@@ -3938,16 +3921,14 @@ public class Enqueuer {
     }
     assert clazz.isProgramClass() || liveNonProgramTypes.contains(clazz)
         : "Expected type to be in live non-program types: " + clazz;
-    if (clazz.isProgramClass()) {
-      for (DexEncodedField field : clazz.fields()) {
-        if (isFieldReferenced(field)) {
-          assert verifyReferencedType(field.getReference().type, worklist, app);
-        }
+    for (DexEncodedField field : clazz.fields()) {
+      if (clazz.isNotProgramClass() || isFieldReferenced(field)) {
+        assert verifyReferencedType(field.getReference().type, worklist, app);
       }
-      for (DexEncodedMethod method : clazz.methods()) {
-        if (isMethodTargeted(method)) {
-          assert verifyReferencedMethod(method, worklist, app);
-        }
+    }
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (clazz.isNotProgramClass() || isMethodTargeted(method)) {
+        assert verifyReferencedMethod(method, worklist, app);
       }
     }
     return true;
