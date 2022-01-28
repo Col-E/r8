@@ -11,8 +11,10 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 public class AndroidApiReferenceLevelCache {
 
@@ -25,7 +27,7 @@ public class AndroidApiReferenceLevelCache {
   private AndroidApiReferenceLevelCache(
       AppView<?> appView,
       AndroidApiLevelCompute apiLevelCompute,
-      List<AndroidApiForHashingClass> predefinedApiTypeLookupForHashing) {
+      List<AndroidApiForHashingReference> predefinedApiTypeLookupForHashing) {
     this.appView = appView;
     this.apiLevelCompute = apiLevelCompute;
     factory = appView.dexItemFactory();
@@ -37,11 +39,15 @@ public class AndroidApiReferenceLevelCache {
   public static AndroidApiReferenceLevelCache create(
       AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
     assert appView.options().apiModelingOptions().enableApiCallerIdentification;
-    ImmutableList.Builder<AndroidApiForHashingClass> builder = ImmutableList.builder();
+    ImmutableList.Builder<AndroidApiForHashingReference> builder = ImmutableList.builder();
+    BiConsumer<DexReference, AndroidApiLevel> addItemToList =
+        ConsumerUtils.andThen(AndroidApiForHashingReference::create, builder::add);
+    AndroidApiLevelDatabaseHelper.visitAdditionalKnownApiReferences(
+        appView.dexItemFactory(), addItemToList);
     appView
         .options()
         .apiModelingOptions()
-        .visitMockedApiLevelsForReferences(appView.dexItemFactory(), builder::add);
+        .visitMockedApiLevelsForReferences(appView.dexItemFactory(), addItemToList);
     return new AndroidApiReferenceLevelCache(appView, apiLevelCompute, builder.build());
   }
 

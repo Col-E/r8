@@ -41,24 +41,21 @@ public class AndroidApiLevelHashingDatabaseImpl implements AndroidApiLevelDataba
   private final Map<DexReference, AndroidApiLevel> ambiguousCache = new IdentityHashMap<>();
 
   public AndroidApiLevelHashingDatabaseImpl(
-      List<AndroidApiForHashingClass> predefinedApiTypeLookup) {
+      List<AndroidApiForHashingReference> predefinedApiTypeLookup) {
     loadData();
     predefinedApiTypeLookup.forEach(
-        apiClass -> {
-          DexType type = apiClass.getType();
-          lookupNonAmbiguousCache.put(type.hashCode(), null);
-          ambiguousCache.put(type, apiClass.getApiLevel());
-          apiClass.visitMethodsWithApiLevels(
-              (method, apiLevel) -> {
-                lookupNonAmbiguousCache.put(method.hashCode(), null);
-                ambiguousCache.put(method, apiLevel);
-              });
-          apiClass.visitFieldsWithApiLevels(
-              (field, apiLevel) -> {
-                lookupNonAmbiguousCache.put(field.hashCode(), null);
-                ambiguousCache.put(field, apiLevel);
-              });
+        predefinedApiReference -> {
+          int hashCode = predefinedApiReference.getReference().hashCode();
+          // Do not use computeIfAbsent since a return value of null implies the key should not be
+          // inserted.
+          if (!lookupNonAmbiguousCache.containsKey(hashCode)) {
+            lookupNonAmbiguousCache.put(hashCode, null);
+            ambiguousCache.put(
+                predefinedApiReference.getReference(), predefinedApiReference.getApiLevel());
+          }
         });
+    assert predefinedApiTypeLookup.stream()
+        .allMatch(added -> added.getApiLevel().isEqualTo(lookupApiLevel(added.getReference())));
   }
 
   private void loadData() {

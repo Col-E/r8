@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -31,6 +32,11 @@ public class ConsumerUtils {
         consumer.accept(element);
       }
     };
+  }
+
+  public static <S, T, R> BiConsumer<S, T> andThen(
+      BiFunction<S, T, R> function, Consumer<R> consumer) {
+    return (s, t) -> consumer.accept(function.apply(s, t));
   }
 
   public static <T> Consumer<T> emptyConsumer() {

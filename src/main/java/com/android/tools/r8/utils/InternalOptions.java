@@ -18,7 +18,6 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.SourceFileProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
-import com.android.tools.r8.androidapi.AndroidApiForHashingClass;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.dex.Marker;
@@ -39,12 +38,12 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -1489,12 +1488,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public static class ApiModelTestingOptions {
 
-    // A mapping from references to the api-level introducing them.
-    public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
-    public Map<FieldReference, AndroidApiLevel> fieldApiMapping = new HashMap<>();
-    public Map<ClassReference, AndroidApiLevel> classApiMapping = new HashMap<>();
-    public BiConsumer<MethodReference, ComputedApiLevel> tracedMethodApiLevelCallback = null;
-
     public boolean enableApiCallerIdentification =
         System.getProperty("com.android.tools.r8.disableApiModeling") == null;
     public boolean checkAllApiReferencesAreSet =
@@ -1504,54 +1497,28 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableOutliningOfMethods =
         System.getProperty("com.android.tools.r8.disableApiModeling") == null;
 
+    // A mapping from references to the api-level introducing them.
+    public Map<MethodReference, AndroidApiLevel> methodApiMapping = new HashMap<>();
+    public Map<FieldReference, AndroidApiLevel> fieldApiMapping = new HashMap<>();
+    public Map<ClassReference, AndroidApiLevel> classApiMapping = new HashMap<>();
+    public BiConsumer<MethodReference, ComputedApiLevel> tracedMethodApiLevelCallback = null;
+
     public void visitMockedApiLevelsForReferences(
-        DexItemFactory factory, Consumer<AndroidApiForHashingClass> consumer) {
+        DexItemFactory factory, BiConsumer<DexReference, AndroidApiLevel> apiLevelConsumer) {
       if (methodApiMapping.isEmpty() && fieldApiMapping.isEmpty() && classApiMapping.isEmpty()) {
         return;
       }
-      Set<ClassReference> classReferences = new HashSet<>(classApiMapping.keySet());
-      methodApiMapping
-          .keySet()
-          .forEach(methodReference -> classReferences.add(methodReference.getHolderClass()));
-      fieldApiMapping
-          .keySet()
-          .forEach(methodReference -> classReferences.add(methodReference.getHolderClass()));
-      classReferences.forEach(
-          classReference -> {
-            consumer.accept(
-                new AndroidApiForHashingClass() {
-                  @Override
-                  public DexType getType() {
-                    return factory.createType(classReference.getDescriptor());
-                  }
-
-                  @Override
-                  public AndroidApiLevel getApiLevel() {
-                    return classApiMapping.getOrDefault(classReference, ANDROID_PLATFORM);
-                  }
-
-                  @Override
-                  public void visitMethodsWithApiLevels(
-                      BiConsumer<DexMethod, AndroidApiLevel> consumer) {
-                    methodApiMapping.forEach(
-                        (methodReference, apiLevel) -> {
-                          if (methodReference.getHolderClass().equals(classReference)) {
-                            consumer.accept(factory.createMethod(methodReference), apiLevel);
-                          }
-                        });
-                  }
-
-                  @Override
-                  public void visitFieldsWithApiLevels(
-                      BiConsumer<DexField, AndroidApiLevel> consumer) {
-                    fieldApiMapping.forEach(
-                        (fieldReference, apiLevel) -> {
-                          if (fieldReference.getHolderClass().equals(classReference)) {
-                            consumer.accept(factory.createField(fieldReference), apiLevel);
-                          }
-                        });
-                  }
-                });
+      classApiMapping.forEach(
+          (classReference, apiLevel) -> {
+            apiLevelConsumer.accept(factory.createType(classReference.getDescriptor()), apiLevel);
+          });
+      fieldApiMapping.forEach(
+          (fieldReference, apiLevel) -> {
+            apiLevelConsumer.accept(factory.createField(fieldReference), apiLevel);
+          });
+      methodApiMapping.forEach(
+          (methodReference, apiLevel) -> {
+            apiLevelConsumer.accept(factory.createMethod(methodReference), apiLevel);
           });
     }
 

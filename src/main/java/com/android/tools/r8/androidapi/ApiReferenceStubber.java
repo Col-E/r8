@@ -116,7 +116,7 @@ public class ApiReferenceStubber {
 
   public ApiReferenceStubber(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
-    apiLevelCompute = AndroidApiLevelCompute.create(appView);
+    apiLevelCompute = appView.apiLevelCompute();
     desugaredLibraryConfiguration = appView.options().desugaredLibrarySpecification;
   }
 
