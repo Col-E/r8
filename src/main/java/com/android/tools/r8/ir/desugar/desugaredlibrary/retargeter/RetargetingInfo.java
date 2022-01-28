@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import java.util.Map;
 
 public class RetargetingInfo {
@@ -25,12 +25,12 @@ public class RetargetingInfo {
   }
 
   public static RetargetingInfo get(AppView<?> appView) {
-    MachineDesugaredLibrarySpecification specification =
-        appView.options().machineDesugaredLibrarySpecification;
-    return new RetargetingInfo(
-        specification.getStaticRetarget(),
-        specification.getNonEmulatedVirtualRetarget(),
-        specification.getEmulatedVirtualRetarget());
+    MachineRewritingFlags rewritingFlags =
+        appView.options().machineDesugaredLibrarySpecification.getRewritingFlags();
+      return new RetargetingInfo(
+          rewritingFlags.getStaticRetarget(),
+          rewritingFlags.getNonEmulatedVirtualRetarget(),
+          rewritingFlags.getEmulatedVirtualRetarget());
   }
 
   public Map<DexMethod, DexMethod> getStaticRetarget() {

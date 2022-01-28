@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -228,10 +228,10 @@ public abstract class PrefixRewritingMapper {
     private final Map<DexType, DexType> rewriteDerivedTypeOnly;
 
     public MachineDesugarPrefixRewritingMapper(
-        PrefixRewritingMapper mapper, MachineDesugaredLibrarySpecification specification) {
+        PrefixRewritingMapper mapper, MachineRewritingFlags flags) {
       this.mapper = mapper;
-      this.rewriteType = new ConcurrentHashMap<>(specification.getRewriteType());
-      rewriteDerivedTypeOnly = specification.getRewriteDerivedTypeOnly();
+      this.rewriteType = new ConcurrentHashMap<>(flags.getRewriteType());
+      rewriteDerivedTypeOnly = flags.getRewriteDerivedTypeOnly();
     }
 
     @Override

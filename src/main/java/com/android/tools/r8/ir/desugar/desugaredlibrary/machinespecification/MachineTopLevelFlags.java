@@ -60,7 +60,7 @@ public class MachineTopLevelFlags {
     return jsonSource;
   }
 
-  public boolean supportAllCallbacksFromLibrary() {
+  public boolean isSupportAllCallbacksFromLibrary() {
     return supportAllCallbacksFromLibrary;
   }
 

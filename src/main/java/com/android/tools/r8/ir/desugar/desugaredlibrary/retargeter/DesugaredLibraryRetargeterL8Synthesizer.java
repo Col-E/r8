@@ -20,7 +20,7 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesiz
       AppView<?> appView, RetargetingInfo retargetingInfo) {
     assert appView.options().isDesugaredLibraryCompilation();
     if (retargetingInfo == null || retargetingInfo.getEmulatedVirtualRetarget().isEmpty()) {
-      assert !appView.options().machineDesugaredLibrarySpecification.hasRetargeting();
+      assert appView.options().desugaredLibrarySpecification.getRetargetCoreLibMember().isEmpty();
       return null;
     }
     return new DesugaredLibraryRetargeterL8Synthesizer(appView, retargetingInfo);

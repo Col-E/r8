@@ -397,8 +397,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (isGeneratingDex() || desugarState == DesugarState.ON) {
       marker.setMinApi(getMinApiLevel().getLevel());
     }
-    if (machineDesugaredLibrarySpecification.getIdentifier() != null) {
-      marker.setDesugaredLibraryIdentifiers(machineDesugaredLibrarySpecification.getIdentifier());
+    if (desugaredLibrarySpecification.getIdentifier() != null) {
+      marker.setDesugaredLibraryIdentifiers(desugaredLibrarySpecification.getIdentifier());
     }
     if (Version.isDevelopmentVersion()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
@@ -445,7 +445,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean isDesugaredLibraryCompilation() {
-    return machineDesugaredLibrarySpecification.isLibraryCompilation();
+    return desugaredLibrarySpecification.isLibraryCompilation();
   }
 
   public boolean isRelocatorCompilation() {
@@ -934,20 +934,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   // Meant to replace desugaredLibrarySpecification, set only from tests at the moment.
-  public MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification =
-      MachineDesugaredLibrarySpecification.empty();
+  public MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification;
 
   public PrefixRewritingMapper getPrefixRewritingMapper() {
     if (machineDesugaredLibrarySpecification != null) {
       if (desugaredLibrarySpecification.getRewritePrefix().isEmpty()) {
-        assert machineDesugaredLibrarySpecification.getRewriteType().isEmpty();
+        assert machineDesugaredLibrarySpecification.getRewritingFlags().getRewriteType().isEmpty();
         return PrefixRewritingMapper.empty();
       }
       return new MachineDesugarPrefixRewritingMapper(
           // This mapper is used for assertions only (prior behavior is identical to the new one).
           new DesugarPrefixRewritingMapper(
               desugaredLibrarySpecification.getRewritePrefix(), dexItemFactory(), true),
-          machineDesugaredLibrarySpecification);
+          machineDesugaredLibrarySpecification.getRewritingFlags());
     }
     return desugaredLibrarySpecification.getPrefixRewritingMapper();
   }

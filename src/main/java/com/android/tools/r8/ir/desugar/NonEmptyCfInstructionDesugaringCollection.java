@@ -82,9 +82,9 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     this.nestBasedAccessDesugaring = NestBasedAccessDesugaring.create(appView);
     BackportedMethodRewriter backportedMethodRewriter = null;
     desugaredLibraryRetargeter =
-        appView.options().machineDesugaredLibrarySpecification.hasRetargeting()
-            ? new DesugaredLibraryRetargeter(appView)
-            : null;
+        appView.options().desugaredLibrarySpecification.getRetargetCoreLibMember().isEmpty()
+            ? null
+            : new DesugaredLibraryRetargeter(appView);
     if (desugaredLibraryRetargeter != null) {
       desugarings.add(desugaredLibraryRetargeter);
     }

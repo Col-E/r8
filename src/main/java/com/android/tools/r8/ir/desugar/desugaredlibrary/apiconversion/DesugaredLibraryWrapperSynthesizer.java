@@ -185,11 +185,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private boolean canConvert(DexType type) {
-    return appView
-            .options()
-            .machineDesugaredLibrarySpecification
-            .getCustomConversions()
-            .containsKey(type)
+    return appView.options().desugaredLibrarySpecification.getCustomConversions().containsKey(type)
         || canGenerateWrapper(type);
   }
 
@@ -550,6 +546,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       return appView
           .options()
           .machineDesugaredLibrarySpecification
+          .getRewritingFlags()
           .getWrappers()
           .get(clazz.type);
     }
