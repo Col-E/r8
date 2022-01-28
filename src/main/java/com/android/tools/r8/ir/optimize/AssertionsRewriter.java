@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.AssertionsConfiguration;
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -32,7 +31,7 @@ public class AssertionsRewriter {
 
   private static class ConfigurationEntryWithDexString {
 
-    private AssertionsConfiguration entry;
+    private final AssertionsConfiguration entry;
     private final DexString value;
 
     private ConfigurationEntryWithDexString(
@@ -72,13 +71,29 @@ public class AssertionsRewriter {
           throw new Unreachable();
       }
     }
+
+    public boolean isEnabled() {
+      return entry.isCompileTimeEnabled();
+    }
+
+    public boolean isDisabled() {
+      return entry.isCompileTimeDisabled();
+    }
+
+    public boolean isPassthrough() {
+      return entry.isPassthrough();
+    }
+
+    public boolean isAssertionHandler() {
+      return entry.isAssertionHandler();
+    }
   }
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
-  private final AssertionTransformation defaultTransformation;
+  private final ConfigurationEntryWithDexString defaultConfiguration;
   private final List<ConfigurationEntryWithDexString> configuration;
-  private final AssertionsConfiguration.AssertionTransformation kotlinTransformation;
+  private final ConfigurationEntryWithDexString kotlinTransformation;
   private final boolean enabled;
 
   public AssertionsRewriter(AppView<?> appView) {
@@ -86,14 +101,15 @@ public class AssertionsRewriter {
     this.dexItemFactory = appView.dexItemFactory();
     this.enabled = isEnabled(appView.options());
     if (!enabled) {
-      defaultTransformation = null;
+      defaultConfiguration = null;
       configuration = null;
       kotlinTransformation = null;
       return;
     }
-    // Convert the assertion transformation to the representation used for this rewriter.
-    this.defaultTransformation =
-        appView.options().assertionsConfiguration.defaultConfiguration.getTransformation();
+    // Convert the assertion configuration to the representation used for this rewriter.
+    this.defaultConfiguration =
+        new ConfigurationEntryWithDexString(
+            appView.options().assertionsConfiguration.defaultConfiguration, dexItemFactory);
     this.configuration =
         appView.options().assertionsConfiguration.assertionsConfigurations.stream()
             .map(entry -> new ConfigurationEntryWithDexString(entry, appView.dexItemFactory()))
@@ -109,40 +125,40 @@ public class AssertionsRewriter {
     return configuration != null && !configuration.isPassthroughAll();
   }
 
-  private AssertionTransformation getTransformationForMethod(DexEncodedMethod method) {
+  private ConfigurationEntryWithDexString getTransformationForMethod(DexEncodedMethod method) {
     return getTransformationForType(method.getHolderType());
   }
 
-  private AssertionTransformation getTransformationForType(DexType type) {
-    AssertionTransformation transformation = defaultTransformation;
+  private ConfigurationEntryWithDexString getTransformationForType(DexType type) {
+    ConfigurationEntryWithDexString result = defaultConfiguration;
     for (ConfigurationEntryWithDexString entry : configuration) {
       switch (entry.entry.getScope()) {
         case ALL:
-          transformation = entry.entry.getTransformation();
+          result = entry;
           break;
         case PACKAGE:
           if (entry.value.size == 0) {
             if (!type.descriptor.contains(dexItemFactory.descriptorSeparator)) {
-              transformation = entry.entry.getTransformation();
+              result = entry;
             }
           } else if (type.descriptor.startsWith(entry.value)) {
-            transformation = entry.entry.getTransformation();
+            result = entry;
           }
           break;
         case CLASS:
           if (type.descriptor.equals(entry.value)) {
-            transformation = entry.entry.getTransformation();
+            result = entry;
           }
           if (isDescriptorForClassOrInnerClass(entry.value, type.descriptor)) {
-            transformation = entry.entry.getTransformation();
+            result = entry;
           }
           break;
         default:
           throw new Unreachable();
       }
     }
-    assert transformation != null;
-    return transformation;
+    assert result != null;
+    return result;
   }
 
   private boolean isDescriptorForClassOrInnerClass(
@@ -311,8 +327,8 @@ public class AssertionsRewriter {
   }
 
   private void runInternal(DexEncodedMethod method, IRCode code) {
-    AssertionTransformation transformation = getTransformationForMethod(method);
-    if (transformation == AssertionTransformation.PASSTHROUGH) {
+    ConfigurationEntryWithDexString configuration = getTransformationForMethod(method);
+    if (configuration.isPassthrough()) {
       return;
     }
     DexEncodedMethod clinit;
@@ -339,7 +355,7 @@ public class AssertionsRewriter {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
           if (method.getHolderType() == dexItemFactory.kotlin.assertions.type) {
-            rewriteKotlinAssertionEnable(code, transformation, iterator, invoke);
+            rewriteKotlinAssertionEnable(code, configuration, iterator, invoke);
           } else {
             iterator.replaceCurrentInstruction(code.createIntConstant(0, current.getLocalInfo()));
           }
@@ -356,16 +372,13 @@ public class AssertionsRewriter {
         if (isInitializerEnablingJavaVmAssertions
             && staticGet.getField().name == dexItemFactory.assertionsDisabled) {
           iterator.replaceCurrentInstruction(
-              code.createIntConstant(
-                  transformation == AssertionTransformation.DISABLE ? 1 : 0,
-                  current.getLocalInfo()));
+              code.createIntConstant(configuration.isDisabled() ? 1 : 0, current.getLocalInfo()));
         }
         // Rewrite kotlin._Assertions.ENABLED getter.
         if (staticGet.getField() == dexItemFactory.kotlin.assertions.enabledField) {
           iterator.replaceCurrentInstruction(
               code.createIntConstant(
-                  kotlinTransformation == AssertionTransformation.DISABLE ? 0 : 1,
-                  current.getLocalInfo()));
+                  kotlinTransformation.isDisabled() ? 0 : 1, current.getLocalInfo()));
         }
       }
     }
@@ -373,10 +386,10 @@ public class AssertionsRewriter {
 
   private void rewriteKotlinAssertionEnable(
       IRCode code,
-      AssertionTransformation transformation,
+      ConfigurationEntryWithDexString configuration,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
-    if (iterator.hasNext() && transformation == AssertionTransformation.DISABLE) {
+    if (iterator.hasNext() && configuration.isDisabled()) {
       // Check if the invocation of Class.desiredAssertionStatus() is followed by a static
       // put to kotlin._Assertions.ENABLED, and if so remove both instructions.
       // See comment in ClassInitializerAssertionEnablingAnalysis for the expected instruction
@@ -403,8 +416,7 @@ public class AssertionsRewriter {
         iterator.replaceCurrentInstruction(code.createIntConstant(0));
       }
     } else {
-      iterator.replaceCurrentInstruction(
-          code.createIntConstant(transformation == AssertionTransformation.ENABLE ? 1 : 0));
+      iterator.replaceCurrentInstruction(code.createIntConstant(configuration.isEnabled() ? 1 : 0));
     }
   }
 }

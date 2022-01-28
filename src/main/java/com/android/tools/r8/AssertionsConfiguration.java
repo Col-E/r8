@@ -16,7 +16,10 @@ public class AssertionsConfiguration {
    * AssertionsConfiguration.Builder#setTransformation(AssertionTransformation)}). For configuring
    * the transformation to invoke an assertion handler use {@link
    * AssertionsConfiguration.Builder#setAssertionHandler(MethodReference)}.
+   *
+   * @deprecated As of version 3.3 this enum should not be used.
    */
+  @Deprecated
   @Keep
   public enum AssertionTransformation {
     /** Unconditionally enable the javac generated assertion code. */
@@ -53,6 +56,27 @@ public class AssertionsConfiguration {
     assert BooleanUtils.xor(transformation != null, assertionHandler != null);
   }
 
+  public boolean isCompileTimeEnabled() {
+    return transformation == AssertionTransformation.ENABLE;
+  }
+
+  public boolean isCompileTimeDisabled() {
+    return transformation == AssertionTransformation.DISABLE;
+  }
+
+  public boolean isPassthrough() {
+    return transformation == AssertionTransformation.PASSTHROUGH;
+  }
+
+  public boolean isAssertionHandler() {
+    return assertionHandler != null;
+  }
+
+  /**
+   * @deprecated As of version 3.3, use one of {@link #isCompileTimeEnabled()} ()}, {@link
+   *     #isCompileTimeDisabled()} ()} or {@link #isPassthrough()} ()}.
+   */
+  @Deprecated
   public AssertionTransformation getTransformation() {
     return transformation;
   }
@@ -91,7 +115,13 @@ public class AssertionsConfiguration {
       this.reporter = reporter;
     }
 
-    /** Set how to handle javac generated assertion code. */
+    /**
+     * Set how to handle javac generated assertion code.
+     *
+     * @deprecated As of version 3.3, use one of {@link #setCompileTimeDisable()}, {@link
+     *     #setCompileTimeDisable()} or {@link #setPassthrough()} ()}.
+     */
+    @Deprecated
     public AssertionsConfiguration.Builder setTransformation(
         AssertionTransformation transformation) {
       this.transformation = transformation;
@@ -103,6 +133,13 @@ public class AssertionsConfiguration {
      * Unconditionally enable javac generated assertion code in all packages and classes. This
      * corresponds to passing <code>-enableassertions</code> or <code>-ea</code> to the java CLI.
      */
+    public AssertionsConfiguration.Builder setCompileTimeEnable() {
+      setTransformation(AssertionTransformation.ENABLE);
+      return this;
+    }
+
+    /** @deprecated As of version 3.3, replaced by {@link #setCompileTimeEnable()} ()} */
+    @Deprecated
     public AssertionsConfiguration.Builder setEnable() {
       setTransformation(AssertionTransformation.ENABLE);
       return this;
@@ -112,6 +149,13 @@ public class AssertionsConfiguration {
      * Disable the javac generated assertion code in all packages and classes. This corresponds to
      * passing <code>-disableassertions</code> or <code>-da</code> to the java CLI.
      */
+    public AssertionsConfiguration.Builder setCompileTimeDisable() {
+      setTransformation(AssertionTransformation.DISABLE);
+      return this;
+    }
+
+    /** @deprecated As of version 3.3, replaced by {@link #setCompileTimeDisable()} */
+    @Deprecated
     public AssertionsConfiguration.Builder setDisable() {
       setTransformation(AssertionTransformation.DISABLE);
       return this;
@@ -206,14 +250,25 @@ public class AssertionsConfiguration {
      *
      * <pre>
      *   D8Command command = D8Command.builder()
-     *     .addAssertionsConfiguration(builder -> builder.setEnabled().setScopeAll().build())
+     *     .addAssertionsConfiguration(
+     *         builder -> builder.setCompileTimeEnable().setScopeAll().build())
      *     ...
      *     .build();
      * </pre>
      */
+    public static AssertionsConfiguration compileTimeEnableAllAssertions(
+        AssertionsConfiguration.Builder builder) {
+      return builder.setCompileTimeEnable().setScopeAll().build();
+    }
+
+    /**
+     * @deprecated As of version 3.3, replaced by {@link #compileTimeEnableAllAssertions(Builder)}
+     *     ()}
+     */
+    @Deprecated
     public static AssertionsConfiguration enableAllAssertions(
         AssertionsConfiguration.Builder builder) {
-      return builder.setEnable().setScopeAll().build();
+      return compileTimeEnableAllAssertions(builder);
     }
 
     /**
@@ -222,7 +277,8 @@ public class AssertionsConfiguration {
      *
      * <pre>
      *   D8Command command = D8Command.builder()
-     *     .addAssertionsConfiguration(AssertionsConfiguration.Builder::disableAllAssertions)
+     *     .addAssertionsConfiguration(
+     *         AssertionsConfiguration.Builder::compileTimeDisableAllAssertions)
      *     ...
      *     .build();
      * </pre>
@@ -231,14 +287,25 @@ public class AssertionsConfiguration {
      *
      * <pre>
      *   D8Command command = D8Command.builder()
-     *     .addAssertionsConfiguration(builder -> builder.setDisabled().setScopeAll().build())
+     *     .addAssertionsConfiguration(
+     *         builder -> builder.setCompileTimeDisabled().setScopeAll().build())
      *     ...
      *     .build();
      * </pre>
      */
+    public static AssertionsConfiguration compileTimeDisableAllAssertions(
+        AssertionsConfiguration.Builder builder) {
+      return builder.setCompileTimeDisable().setScopeAll().build();
+    }
+
+    /**
+     * @deprecated As of version 3.3, replaced by {@link #compileTimeDisableAllAssertions(Builder)}
+     *     ()}
+     */
+    @Deprecated
     public static AssertionsConfiguration disableAllAssertions(
         AssertionsConfiguration.Builder builder) {
-      return builder.setDisable().setScopeAll().build();
+      return compileTimeDisableAllAssertions(builder);
     }
 
     /**

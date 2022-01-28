@@ -5,7 +5,10 @@ package com.android.tools.r8.compilerapi.assertionconfiguration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -86,14 +89,24 @@ public class AssertionConfigurationTest extends CompilerApiTestRunner {
       super(parameters);
     }
 
+    AssertionsConfiguration buildWithAssertionHandler(AssertionsConfiguration.Builder builder) {
+      AssertionsConfiguration configuration =
+          builder.setAssertionHandler(assertionHandler).setScopeAll().build();
+      assertFalse(configuration.isCompileTimeEnabled());
+      assertFalse(configuration.isCompileTimeDisabled());
+      assertFalse(configuration.isPassthrough());
+      assertTrue(configuration.isAssertionHandler());
+      assertSame(assertionHandler, configuration.getAssertionHandler());
+      return configuration;
+    }
+
     public void runD8(ProgramConsumer programConsumer, MethodReference assertionHandler)
         throws Exception {
       D8.run(
           D8Command.builder()
               .addClassProgramData(getBytesForClass(getMockClassWithAssertion()), Origin.unknown())
               .addLibraryFiles(getJava8RuntimeJar())
-              .addAssertionsConfiguration(
-                  builder -> builder.setAssertionHandler(assertionHandler).setScopeAll().build())
+              .addAssertionsConfiguration(this::buildWithAssertionHandler)
               .setProgramConsumer(programConsumer)
               .build());
     }
