@@ -194,7 +194,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = false;
 
     assert desugaredLibrarySpecification != null;
-    internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification, getInputApp());
+    internal.desugaredLibrarySpecification = desugaredLibrarySpecification;
     internal.synthesizedClassPrefix =
         desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix();
 

@@ -54,13 +54,9 @@ import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.MachineDesugarPrefixRewritingMapper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -90,9 +86,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -899,54 +893,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
       LegacyDesugaredLibrarySpecification.empty();
 
-  public void setDesugaredLibrarySpecification(
-      LegacyDesugaredLibrarySpecification specification, AndroidApp app) {
-    desugaredLibrarySpecification = specification;
-    try {
-      HumanDesugaredLibrarySpecification human =
-          new LegacyToHumanSpecificationConverter()
-              .convert(specification, app.getLibraryResourceProviders(), this);
-      machineDesugaredLibrarySpecification =
-          new HumanToMachineSpecificationConverter()
-              .convert(
-                  human,
-                  specification.isLibraryCompilation() ? app.getProgramResourceProviders() : null,
-                  app.getLibraryResourceProviders(),
-                  this);
-    } catch (IOException e) {
-      reporter.error(new ExceptionDiagnostic(e, Origin.unknown()));
-    }
-  }
-
-  public void setDesugaredLibrarySpecificationForTesting(
-      LegacyDesugaredLibrarySpecification specification, Path desugaredJDKLib, Path library)
-      throws IOException {
-    desugaredLibrarySpecification = specification;
-    HumanDesugaredLibrarySpecification human =
-        new LegacyToHumanSpecificationConverter().convert(specification, library, this);
-    machineDesugaredLibrarySpecification =
-        new HumanToMachineSpecificationConverter()
-            .convert(
-                human,
-                specification.isLibraryCompilation() ? desugaredJDKLib : null,
-                library,
-                this);
-  }
-
-  // Meant to replace desugaredLibrarySpecification, set only from tests at the moment.
-  public MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification;
-
   public PrefixRewritingMapper getPrefixRewritingMapper() {
-    if (machineDesugaredLibrarySpecification != null) {
-      if (desugaredLibrarySpecification.getRewritePrefix().isEmpty()) {
-        assert machineDesugaredLibrarySpecification.getRewritingFlags().getRewriteType().isEmpty();
-        return PrefixRewritingMapper.empty();
-      }
+    if (testing.machineDesugaredLibrarySpecification != null) {
       return new MachineDesugarPrefixRewritingMapper(
-          // This mapper is used for assertions only (prior behavior is identical to the new one).
-          new DesugarPrefixRewritingMapper(
-              desugaredLibrarySpecification.getRewritePrefix(), dexItemFactory(), true),
-          machineDesugaredLibrarySpecification.getRewritingFlags());
+          desugaredLibrarySpecification.getPrefixRewritingMapper(),
+          testing.machineDesugaredLibrarySpecification.getRewritingFlags());
     }
     return desugaredLibrarySpecification.getPrefixRewritingMapper();
   }
@@ -1684,6 +1635,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
         ConsumerUtils.emptyBiConsumer();
 
     public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
+
+    // Meant to replace desugaredLibrarySpecification, set only from tests at the moment.
+    public MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification = null;
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

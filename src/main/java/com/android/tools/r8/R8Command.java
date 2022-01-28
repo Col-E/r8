@@ -942,7 +942,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
-    internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification, getInputApp());
+    internal.desugaredLibrarySpecification = desugaredLibrarySpecification;
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 

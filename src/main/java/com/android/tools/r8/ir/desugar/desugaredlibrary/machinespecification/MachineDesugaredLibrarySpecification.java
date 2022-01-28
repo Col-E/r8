@@ -4,22 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
-import com.android.tools.r8.graph.DexType;
-import java.util.Map;
-
 public class MachineDesugaredLibrarySpecification {
 
   private final boolean libraryCompilation;
   private final MachineTopLevelFlags topLevelFlags;
   private final MachineRewritingFlags rewritingFlags;
-
-  public static MachineDesugaredLibrarySpecification withOnlyRewriteTypeForTesting(
-      Map<DexType, DexType> rewriteTypeForTesting) {
-    MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
-    rewriteTypeForTesting.forEach(builder::rewriteType);
-    return new MachineDesugaredLibrarySpecification(
-        true, MachineTopLevelFlags.empty(), builder.build());
-  }
 
   public MachineDesugaredLibrarySpecification(
       boolean libraryCompilation,

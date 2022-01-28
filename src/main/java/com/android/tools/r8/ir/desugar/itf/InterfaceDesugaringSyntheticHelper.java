@@ -209,7 +209,6 @@ public class InterfaceDesugaringSyntheticHelper {
                   SyntheticKind.EMULATED_INTERFACE_CLASS,
                   method.asProgramMethod().getHolder(),
                   appView);
-      assert emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod) != null;
       return emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod);
     }
     return appView

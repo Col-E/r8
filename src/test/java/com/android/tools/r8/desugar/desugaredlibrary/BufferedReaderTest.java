@@ -73,13 +73,11 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, configurationAlternative3(options, false, parameters));
+    options.desugaredLibrarySpecification = configurationAlternative3(options, false, parameters);
   }
 
   private void configurationForLibraryCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, configurationAlternative3(options, true, parameters));
+    options.desugaredLibrarySpecification = configurationAlternative3(options, true, parameters);
   }
 
   @Test
@@ -143,7 +141,10 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addLibraryFiles(getLibraryFile())
-        .addOptionsModification(this::configurationForProgramCompilation)
+        .addOptionsModification(
+            options ->
+                options.desugaredLibrarySpecification =
+                    configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -169,7 +170,10 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
-        .addOptionsModification(this::configurationForProgramCompilation)
+        .addOptionsModification(
+            options ->
+                options.desugaredLibrarySpecification =
+                    configurationAlternative3(options, false, parameters))
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
