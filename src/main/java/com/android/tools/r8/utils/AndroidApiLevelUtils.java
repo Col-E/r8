@@ -11,26 +11,44 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 
 public class AndroidApiLevelUtils {
 
   public static boolean isApiSafeForInlining(
       ProgramMethod caller, ProgramMethod inlinee, InternalOptions options) {
+    return isApiSafeForInlining(
+        caller, inlinee, options, NopWhyAreYouNotInliningReporter.getInstance());
+  }
+
+  public static boolean isApiSafeForInlining(
+      ProgramMethod caller,
+      ProgramMethod inlinee,
+      InternalOptions options,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (!options.apiModelingOptions().enableApiCallerIdentification) {
       return true;
     }
     if (caller.getHolderType() == inlinee.getHolderType()) {
       return true;
     }
-    ComputedApiLevel apiLevelForCode = caller.getDefinition().getApiLevelForCode();
-    if (apiLevelForCode.isUnknownApiLevel()) {
+    ComputedApiLevel callerApiLevelForCode = caller.getDefinition().getApiLevelForCode();
+    if (callerApiLevelForCode.isUnknownApiLevel()) {
+      whyAreYouNotInliningReporter.reportCallerHasUnknownApiLevel();
       return false;
     }
     // For inlining we only measure if the code has invokes into the library.
-    return caller
+    ComputedApiLevel inlineeApiLevelForCode = inlinee.getDefinition().getApiLevelForCode();
+    if (!caller
         .getDefinition()
         .getApiLevelForCode()
-        .isGreaterThanOrEqualTo(inlinee.getDefinition().getApiLevelForCode());
+        .isGreaterThanOrEqualTo(inlineeApiLevelForCode)) {
+      whyAreYouNotInliningReporter.reportInlineeHigherApiCall(
+          callerApiLevelForCode, inlineeApiLevelForCode);
+      return false;
+    }
+    return true;
   }
 
   public static ComputedApiLevel getApiReferenceLevelForMerging(

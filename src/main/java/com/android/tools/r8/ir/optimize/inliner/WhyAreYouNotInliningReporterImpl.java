@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -73,6 +74,11 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportCallerHasUnknownApiLevel() {
+    print("computed API level for caller is unknown");
+  }
+
+  @Override
   public void reportClasspathMethod() {
     print("inlinee is on the classpath.");
   }
@@ -115,8 +121,20 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public void reportInlineeHigherApiCall() {
-    print("inlinee having a higher api call than caller context.");
+  public void reportInlineeHigherApiCall(
+      ComputedApiLevel callerApiLevel, ComputedApiLevel inlineeApiLevel) {
+    assert callerApiLevel.isKnownApiLevel();
+    if (inlineeApiLevel.isUnknownApiLevel()) {
+      print("computed API level for inlinee is unknown");
+    } else {
+      assert inlineeApiLevel.isKnownApiLevel();
+      print(
+          "computed API level for inlinee ("
+              + inlineeApiLevel.asKnownApiLevel().getApiLevel()
+              + ") is higher than caller's ("
+              + callerApiLevel.asKnownApiLevel().getApiLevel()
+              + ")");
+    }
   }
 
   @Override

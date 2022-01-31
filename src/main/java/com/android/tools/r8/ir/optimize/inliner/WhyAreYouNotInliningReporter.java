@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -53,6 +54,8 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportCallerNotSubtype();
 
+  public abstract void reportCallerHasUnknownApiLevel();
+
   public abstract void reportClasspathMethod();
 
   public abstract void reportInaccessible();
@@ -67,7 +70,8 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportInlineeNotSimple();
 
-  public abstract void reportInlineeHigherApiCall();
+  public abstract void reportInlineeHigherApiCall(
+      ComputedApiLevel callerApiLevel, ComputedApiLevel inlineeApiLevel);
 
   public abstract void reportInlineeRefersToClassesNotInMainDex();
 
