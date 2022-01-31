@@ -64,10 +64,9 @@ public class ProguardMapSupplier {
   private ProguardMapSupplier(ClassNameMapper classNameMapper, InternalOptions options) {
     assert classNameMapper != null;
     this.classNameMapper = classNameMapper.sorted();
-    this.consumer =
-        InternalOptions.assertionsEnabled()
-            ? new ProguardMapChecker(options.proguardMapConsumer)
-            : options.proguardMapConsumer;
+    // TODO(b/217111432): Validate Proguard using ProguardMapChecker without building the entire
+    //  Proguard map in memory.
+    this.consumer = options.proguardMapConsumer;
     this.options = options;
     this.reporter = options.reporter;
   }
