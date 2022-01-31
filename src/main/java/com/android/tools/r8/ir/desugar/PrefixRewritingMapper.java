@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -228,34 +228,20 @@ public abstract class PrefixRewritingMapper {
     private final Map<DexType, DexType> rewriteDerivedTypeOnly;
 
     public MachineDesugarPrefixRewritingMapper(
-        PrefixRewritingMapper mapper, MachineDesugaredLibrarySpecification specification) {
+        PrefixRewritingMapper mapper, MachineRewritingFlags flags) {
       this.mapper = mapper;
-      this.rewriteType = new ConcurrentHashMap<>(specification.getRewriteType());
-      rewriteDerivedTypeOnly = specification.getRewriteDerivedTypeOnly();
+      this.rewriteType = new ConcurrentHashMap<>(flags.getRewriteType());
+      rewriteDerivedTypeOnly = flags.getRewriteDerivedTypeOnly();
     }
 
     @Override
     public DexType rewrittenType(DexType type, AppView<?> appView) {
-      if (type.isArrayType()) {
-        DexType rewrittenBaseType =
-            rewrittenType(type.toBaseType(appView.dexItemFactory()), appView);
-        if (rewrittenBaseType == null) {
-          return null;
-        }
-        return appView
-            .dexItemFactory()
-            .createArrayType(type.getNumberOfLeadingSquareBrackets(), rewrittenBaseType);
-      }
-      assert mapper.rewrittenType(type, appView) == rewriteType.get(type)
-          || appView.definitionFor(type) == null
-          || (appView.definitionFor(type).isProgramClass()
-              && !appView.options().isDesugaredLibraryCompilation());
+      assert mapper.rewrittenType(type, appView) == rewriteType.get(type);
       return rewriteType.get(type);
     }
 
     @Override
     public DexType rewrittenContextType(DexType context, AppView<?> appView) {
-      assert !context.isArrayType();
       if (rewriteType.containsKey(context)) {
         return rewriteType.get(context);
       }

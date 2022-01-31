@@ -71,7 +71,7 @@ public class DesugaredLibraryKeepRuleGenerator {
       return false;
     }
     return namingLens.hasPrefixRewritingLogic()
-        || options.machineDesugaredLibrarySpecification.hasEmulatedInterfaces();
+        || options.desugaredLibrarySpecification.hasEmulatedLibraryInterfaces();
   }
 
   private void run() {

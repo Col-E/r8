@@ -118,8 +118,8 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
     L8.run(
         L8Command.builder()
             .addLibraryFiles(getLibraryFile())
-            .addLibraryFiles(ToolHelper.getDesugarJDKLibs())
             .addProgramFiles(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES)
+            .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())

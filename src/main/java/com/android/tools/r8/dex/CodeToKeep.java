@@ -25,7 +25,7 @@ public abstract class CodeToKeep {
 
   static CodeToKeep createCodeToKeep(InternalOptions options, NamingLens namingLens) {
     if ((!namingLens.hasPrefixRewritingLogic()
-            && !options.machineDesugaredLibrarySpecification.hasEmulatedInterfaces())
+            && !options.desugaredLibrarySpecification.hasEmulatedLibraryInterfaces())
         || options.isDesugaredLibraryCompilation()
         || options.testing.enableExperimentalDesugaredLibraryKeepRuleGenerator) {
       return new NopCodeToKeep();
@@ -65,7 +65,7 @@ public abstract class CodeToKeep {
       this.namingLens = namingLens;
       this.options = options;
       potentialTypesToKeep.addAll(
-          options.machineDesugaredLibrarySpecification.getEmulatedInterfaceRewrittenTypes());
+          options.desugaredLibrarySpecification.getEmulateLibraryInterface().values());
       potentialTypesToKeep.addAll(
           options.desugaredLibrarySpecification.getCustomConversions().values());
     }
@@ -77,7 +77,7 @@ public abstract class CodeToKeep {
           || type.toDescriptorString()
               .startsWith(
                   "L"
-                      + options.machineDesugaredLibrarySpecification
+                      + options.desugaredLibrarySpecification
                           .getSynthesizedLibraryClassesPackagePrefix());
     }
 

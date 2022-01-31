@@ -58,7 +58,6 @@ public class APIConversionFinalClassTest extends DesugaredLibraryTestBase {
         .setMinApi(AndroidApiLevel.B)
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .addLibraryFiles(getLibraryFile())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .addDesugaredCoreLibraryRunClassPath(

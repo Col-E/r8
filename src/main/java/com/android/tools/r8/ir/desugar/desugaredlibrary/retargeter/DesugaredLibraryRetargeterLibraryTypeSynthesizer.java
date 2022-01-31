@@ -39,16 +39,16 @@ import java.util.TreeSet;
 public class DesugaredLibraryRetargeterLibraryTypeSynthesizer {
 
   public static void checkForAssumedLibraryTypes(AppView<?> appView) {
-    appView
-        .options()
-        .machineDesugaredLibrarySpecification
-        .forEachRetargetHolder(
-            inType -> {
-              DexClass typeClass = appView.definitionFor(inType);
-              if (typeClass == null) {
-                warnMissingRetargetCoreLibraryMember(inType, appView);
-              }
-            });
+    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+        appView.options().desugaredLibrarySpecification.getRetargetCoreLibMember();
+    for (DexString methodName : retargetCoreLibMember.keySet()) {
+      for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
+        DexClass typeClass = appView.definitionFor(inType);
+        if (typeClass == null) {
+          warnMissingRetargetCoreLibraryMember(inType, appView);
+        }
+      }
+    }
   }
 
   public static void amendLibraryWithRetargetedMembers(AppView<AppInfoWithClassHierarchy> appView) {

@@ -12,13 +12,10 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.memberrebinding.b135627418.library.Drawable;
 import com.android.tools.r8.memberrebinding.b135627418.library.DrawableWrapper;
 import com.android.tools.r8.memberrebinding.b135627418.library.InsetDrawable;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -78,27 +75,11 @@ public class B135627418 extends TestBase {
                 com.android.tools.r8.memberrebinding.b135627418.runtime.InsetDrawable.class)
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(
-                options -> {
-                  options.desugaredLibrarySpecification =
-                      LegacyDesugaredLibrarySpecification.withOnlyRewritePrefixForTesting(
-                          ImmutableMap.of(packageName + ".runtime", packageName + ".library"),
-                          options);
-                  DexType type =
-                      options
-                          .dexItemFactory()
-                          .createType(
-                              DescriptorUtils.javaTypeToDescriptor(
-                                  packageName + ".runtime.InsetDrawable"));
-                  DexType rewrittenType =
-                      options
-                          .dexItemFactory()
-                          .createType(
-                              DescriptorUtils.javaTypeToDescriptor(
-                                  packageName + ".library.InsetDrawable"));
-                  options.machineDesugaredLibrarySpecification =
-                      MachineDesugaredLibrarySpecification.withOnlyRewriteTypeForTesting(
-                          ImmutableMap.of(type, rewrittenType));
-                })
+                options ->
+                    options.desugaredLibrarySpecification =
+                        LegacyDesugaredLibrarySpecification.withOnlyRewritePrefixForTesting(
+                            ImmutableMap.of(packageName + ".runtime", packageName + ".library"),
+                            options))
             .compile();
 
     testForR8(parameters.getBackend())

@@ -99,13 +99,13 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, desugaredLibrarySpecification(options, false, parameters));
+    options.desugaredLibrarySpecification =
+        desugaredLibrarySpecification(options, false, parameters);
   }
 
   private void configurationForLibraryCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, desugaredLibrarySpecification(options, true, parameters));
+    options.desugaredLibrarySpecification =
+        desugaredLibrarySpecification(options, true, parameters);
   }
 
   private Matcher<MethodSubject> invokesObjectsCompare(String holder) {

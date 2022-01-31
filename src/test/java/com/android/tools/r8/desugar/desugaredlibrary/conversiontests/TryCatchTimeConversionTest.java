@@ -58,7 +58,6 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(BaselineExecutor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .addLibraryFiles(getLibraryFile())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
@@ -99,7 +98,6 @@ public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TryCatchExecutor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .addLibraryFiles(getLibraryFile())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .addDesugaredCoreLibraryRunClassPath(

@@ -67,7 +67,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
     LegacyDesugaredLibrarySpecification specification =
         new LegacyDesugaredLibrarySpecification(
             LegacyTopLevelFlags.testing(), rewritingFlags, l8Compilation, options.itemFactory);
-    setDesugaredLibrarySpecificationForTesting(options, specification);
+    options.desugaredLibrarySpecification = specification;
   }
 
   @Test

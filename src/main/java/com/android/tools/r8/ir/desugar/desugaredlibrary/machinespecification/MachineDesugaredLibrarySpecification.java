@@ -4,34 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.Pair;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-
 public class MachineDesugaredLibrarySpecification {
 
   private final boolean libraryCompilation;
   private final MachineTopLevelFlags topLevelFlags;
   private final MachineRewritingFlags rewritingFlags;
-
-  public static MachineDesugaredLibrarySpecification empty() {
-    return new MachineDesugaredLibrarySpecification(
-        false, MachineTopLevelFlags.empty(), MachineRewritingFlags.builder().build());
-  }
-
-  public static MachineDesugaredLibrarySpecification withOnlyRewriteTypeForTesting(
-      Map<DexType, DexType> rewriteTypeForTesting) {
-    MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
-    rewriteTypeForTesting.forEach(builder::rewriteType);
-    return new MachineDesugaredLibrarySpecification(
-        true, MachineTopLevelFlags.empty(), builder.build());
-  }
 
   public MachineDesugaredLibrarySpecification(
       boolean libraryCompilation,
@@ -46,83 +23,11 @@ public class MachineDesugaredLibrarySpecification {
     return libraryCompilation;
   }
 
-  public AndroidApiLevel getRequiredCompilationAPILevel() {
-    return topLevelFlags.getRequiredCompilationAPILevel();
+  public MachineTopLevelFlags getTopLevelFlags() {
+    return topLevelFlags;
   }
 
-  public String getSynthesizedLibraryClassesPackagePrefix() {
-    return topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
-  }
-
-  public String getIdentifier() {
-    return topLevelFlags.getIdentifier();
-  }
-
-  public String getJsonSource() {
-    return topLevelFlags.getJsonSource();
-  }
-
-  public boolean supportAllCallbacksFromLibrary() {
-    return topLevelFlags.supportAllCallbacksFromLibrary();
-  }
-
-  public List<String> getExtraKeepRules() {
-    return topLevelFlags.getExtraKeepRules();
-  }
-
-  public Map<DexType, DexType> getRewriteType() {
-    return rewritingFlags.getRewriteType();
-  }
-
-  public Map<DexType, DexType> getRewriteDerivedTypeOnly() {
-    return rewritingFlags.getRewriteDerivedTypeOnly();
-  }
-
-  public Map<DexMethod, DexMethod> getStaticRetarget() {
-    return rewritingFlags.getStaticRetarget();
-  }
-
-  public Map<DexMethod, DexMethod> getNonEmulatedVirtualRetarget() {
-    return rewritingFlags.getNonEmulatedVirtualRetarget();
-  }
-
-  public Map<DexMethod, EmulatedDispatchMethodDescriptor> getEmulatedVirtualRetarget() {
-    return rewritingFlags.getEmulatedVirtualRetarget();
-  }
-
-  public void forEachRetargetHolder(Consumer<DexType> consumer) {
-    rewritingFlags.forEachRetargetHolder(consumer);
-  }
-
-  public Map<DexType, EmulatedInterfaceDescriptor> getEmulatedInterfaces() {
-    return rewritingFlags.getEmulatedInterfaces();
-  }
-
-  public Set<DexType> getEmulatedInterfaceRewrittenTypes() {
-    return rewritingFlags.getEmulatedInterfaceRewrittenTypes();
-  }
-
-  public Map<DexType, List<DexMethod>> getWrappers() {
-    return rewritingFlags.getWrappers();
-  }
-
-  public Map<DexType, DexType> getLegacyBackport() {
-    return rewritingFlags.getLegacyBackport();
-  }
-
-  public Set<DexType> getDontRetarget() {
-    return rewritingFlags.getDontRetarget();
-  }
-
-  public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
-    return rewritingFlags.getCustomConversions();
-  }
-
-  public boolean hasRetargeting() {
-    return rewritingFlags.hasRetargeting();
-  }
-
-  public boolean hasEmulatedInterfaces() {
-    return rewritingFlags.hasEmulatedInterfaces();
+  public MachineRewritingFlags getRewritingFlags() {
+    return rewritingFlags;
   }
 }
