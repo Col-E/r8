@@ -59,6 +59,14 @@ public class NoIndirectRuntimeTypeChecks extends MultiClassSameReferencePolicy<D
       cache.put(type, true);
       return true;
     }
+    if (clazz.hasClassInitializer()
+        && clazz.getClassInitializer().getOptimizationInfo().mayHaveSideEffects()
+        && clazz.getMethodCollection().hasVirtualMethods(method -> !method.isAbstract())) {
+      // Require interfaces that trigger class initialization side effects to be implement by all
+      // group members.
+      cache.put(type, true);
+      return true;
+    }
     for (DexType parentType : clazz.getInterfaces()) {
       if (computeInterfaceHasDirectOrIndirectRuntimeTypeCheck(parentType)) {
         cache.put(type, true);

@@ -8,7 +8,6 @@ import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,16 +32,19 @@ public class NonTrivialClassInitializationAfterMergingTest extends TestBase {
         .addKeepMainRule(Main.class)
         .addKeepClassAndMembersRules(I.class)
         .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertIsCompleteMergeGroup(A.class, B.class))
+            inspector ->
+                inspector
+                    .applyIf(
+                        !parameters.canUseDefaultAndStaticInterfaceMethods(),
+                        i -> i.assertIsCompleteMergeGroup(A.class, B.class))
+                    .assertNoOtherClassesMerged())
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .applyIf(
             parameters.canUseDefaultAndStaticInterfaceMethods(),
-            // TODO(b/216801769): Should print "Hello world!".
-            runResult ->
-                runResult.assertSuccessWithOutput(StringUtils.joinLines(" world!", "Hello")),
+            runResult -> runResult.assertSuccessWithOutputLines("Hello world!"),
             runResult -> runResult.assertSuccessWithOutput("Hello"));
   }
 
