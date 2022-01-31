@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+
 public class InterfaceDesugaringForTesting {
 
   public static String getEmulateLibraryClassNameSuffix() {
-    return InterfaceDesugaringSyntheticHelper.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
+    return SyntheticKind.EMULATED_INTERFACE_CLASS.descriptor;
   }
 
   public static String getCompanionClassNameSuffix() {

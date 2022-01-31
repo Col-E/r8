@@ -35,7 +35,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.DesugarDescription;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.icce.AlwaysThrowingInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesugaring;
@@ -53,7 +53,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 //
@@ -119,18 +118,31 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   public static void checkForAssumedLibraryTypes(AppInfo appInfo, InternalOptions options) {
-    LegacyDesugaredLibrarySpecification spec = options.desugaredLibrarySpecification;
-    BiConsumer<DexType, DexType> registerEntry = registerMapEntry(appInfo);
-    spec.getEmulateLibraryInterface().forEach(registerEntry);
-    spec.getCustomConversions().forEach(registerEntry);
-    spec.getRetargetCoreLibMember().forEach((method, types) -> types.forEach(registerEntry));
-  }
-
-  private static BiConsumer<DexType, DexType> registerMapEntry(AppInfo appInfo) {
-    return (key, value) -> {
-      registerType(appInfo, key);
-      registerType(appInfo, value);
-    };
+    MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification =
+        options.machineDesugaredLibrarySpecification;
+    machineDesugaredLibrarySpecification
+        .getEmulatedInterfaces()
+        .forEach(
+            (ei, descriptor) -> {
+              registerType(appInfo, ei);
+              registerType(appInfo, descriptor.getRewrittenType());
+              descriptor
+                  .getEmulatedMethods()
+                  .forEach(
+                      (method, methodDescriptor) -> {
+                        methodDescriptor
+                            .getDispatchCases()
+                            .keySet()
+                            .forEach(t -> registerType(appInfo, t));
+                      });
+            });
+    machineDesugaredLibrarySpecification
+        .getCustomConversions()
+        .forEach(
+            (type, conversionPair) -> {
+              registerType(appInfo, type);
+              registerType(appInfo, conversionPair.getFirst());
+            });
   }
 
   private static void registerType(AppInfo appInfo, DexType type) {

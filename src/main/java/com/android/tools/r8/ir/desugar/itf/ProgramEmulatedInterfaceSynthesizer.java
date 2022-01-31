@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.desugar.itf;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -24,7 +23,6 @@ import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.Iterables;
 import java.util.LinkedHashMap;
 
 public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthesizerDesugaring {
@@ -34,7 +32,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
 
   public static ProgramEmulatedInterfaceSynthesizer create(AppView<?> appView) {
     if (!appView.options().isDesugaredLibraryCompilation()
-        || appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface().isEmpty()) {
+        || !appView.options().machineDesugaredLibrarySpecification.hasEmulatedInterfaces()) {
       return null;
     }
     return new ProgramEmulatedInterfaceSynthesizer(appView);
@@ -47,6 +45,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
 
   DexProgramClass synthesizeProgramEmulatedInterface(
       DexProgramClass emulatedInterface,
+      EmulatedInterfaceDescriptor emulatedInterfaceDescriptor,
       L8ProgramEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
     return appView
         .getSyntheticItems()
@@ -54,19 +53,16 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
             SyntheticNaming.SyntheticKind.EMULATED_INTERFACE_CLASS,
             emulatedInterface,
             appView,
-            builder -> synthesizeEmulateInterfaceMethods(emulatedInterface, builder),
+            builder ->
+                synthesizeEmulateInterfaceMethods(
+                    emulatedInterface, emulatedInterfaceDescriptor, builder),
             eventConsumer::acceptProgramEmulatedInterface);
   }
 
   private void synthesizeEmulateInterfaceMethods(
-      DexProgramClass emulatedInterface, SyntheticProgramClassBuilder builder) {
-    assert helper.isEmulatedInterface(emulatedInterface.type);
-    EmulatedInterfaceDescriptor emulatedInterfaceDescriptor =
-        appView
-            .options()
-            .machineDesugaredLibrarySpecification
-            .getEmulatedInterfaces()
-            .get(emulatedInterface.type);
+      DexProgramClass emulatedInterface,
+      EmulatedInterfaceDescriptor emulatedInterfaceDescriptor,
+      SyntheticProgramClassBuilder builder) {
     emulatedInterface.forEachProgramVirtualMethodMatching(
         m -> emulatedInterfaceDescriptor.getEmulatedMethods().containsKey(m.getReference()),
         method ->
@@ -96,14 +92,12 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
       DexType dispatchType,
       SyntheticMethodBuilder methodBuilder) {
     assert !method.getDefinition().isStatic();
-    DexMethod emulatedMethod = emulatedMethod(descriptor.getEmulatedDispatchMethod(), dispatchType);
-    DexMethod itfMethod = interfaceMethod(descriptor.getInterfaceMethod());
-    // TODO(b/184026720): Adapt to use the forwarding method.
-    DerivedMethod forwardingMethod = descriptor.getForwardingMethod();
-    assert forwardingMethod.getHolderKind() == SyntheticKind.COMPANION_CLASS;
-    assert forwardingMethod.getMethod() == method.getReference();
+    DexMethod emulatedMethod =
+        helper.emulatedInterfaceDispatchMethod(
+            descriptor.getEmulatedDispatchMethod(), dispatchType);
+    DexMethod itfMethod = helper.emulatedInterfaceInterfaceMethod(descriptor.getInterfaceMethod());
     DexMethod companionMethod =
-        helper.ensureDefaultAsMethodOfProgramCompanionClassStub(method).getReference();
+        helper.ensureEmulatedInterfaceForwardingMethod(descriptor.getForwardingMethod());
     LinkedHashMap<DexType, DexMethod> extraDispatchCases = resolveDispatchCases(descriptor);
     methodBuilder
         .setName(emulatedMethod.getName())
@@ -126,47 +120,34 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
     descriptor
         .getDispatchCases()
         .forEach(
-            (type, derivedMethod) -> {
-              DexMethod caseMethod;
-              if (derivedMethod.getHolderKind() == null) {
-                caseMethod = derivedMethod.getMethod();
-              } else {
-                assert derivedMethod.getHolderKind() == SyntheticKind.COMPANION_CLASS;
-                ProgramMethod resolvedProgramMethod =
-                    appView
-                        .appInfoForDesugaring()
-                        .resolveMethod(derivedMethod.getMethod(), true)
-                        .getResolvedProgramMethod();
-                caseMethod =
-                    helper
-                        .ensureDefaultAsMethodOfProgramCompanionClassStub(resolvedProgramMethod)
-                        .getReference();
-              }
-              extraDispatchCases.put(type, caseMethod);
-            });
+            (type, derivedMethod) ->
+                extraDispatchCases.put(
+                    type, helper.ensureEmulatedInterfaceForwardingMethod(derivedMethod)));
     return extraDispatchCases;
   }
 
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     assert appView.options().isDesugaredLibraryCompilation();
-    for (DexType emulatedInterfaceType : helper.getEmulatedInterfaces()) {
-      DexClass emulatedInterfaceClazz = appView.definitionFor(emulatedInterfaceType);
-      if (emulatedInterfaceClazz == null || !emulatedInterfaceClazz.isProgramClass()) {
-        warnMissingEmulatedInterface(emulatedInterfaceType);
-        continue;
-      }
-      DexProgramClass emulatedInterface = emulatedInterfaceClazz.asProgramClass();
-      assert emulatedInterface != null;
-      if (!appView.isAlreadyLibraryDesugared(emulatedInterface)
-          && needsEmulateInterfaceLibrary(emulatedInterface)) {
-        synthesizeProgramEmulatedInterface(emulatedInterface, eventConsumer);
-      }
-    }
-  }
-
-  private boolean needsEmulateInterfaceLibrary(DexClass emulatedInterface) {
-    return Iterables.any(emulatedInterface.methods(), DexEncodedMethod::isDefaultMethod);
+    appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getEmulatedInterfaces()
+        .forEach(
+            (emulatedInterfaceType, emulatedInterfaceDescriptor) -> {
+              DexClass emulatedInterfaceClazz = appView.definitionFor(emulatedInterfaceType);
+              if (emulatedInterfaceClazz == null || !emulatedInterfaceClazz.isProgramClass()) {
+                warnMissingEmulatedInterface(emulatedInterfaceType);
+                return;
+              }
+              DexProgramClass emulatedInterface = emulatedInterfaceClazz.asProgramClass();
+              assert emulatedInterface != null;
+              if (!appView.isAlreadyLibraryDesugared(emulatedInterface)
+                  && !emulatedInterfaceDescriptor.getEmulatedMethods().isEmpty()) {
+                synthesizeProgramEmulatedInterface(
+                    emulatedInterface, emulatedInterfaceDescriptor, eventConsumer);
+              }
+            });
   }
 
   private void warnMissingEmulatedInterface(DexType interfaceType) {

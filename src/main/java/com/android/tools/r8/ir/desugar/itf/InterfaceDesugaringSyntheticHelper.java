@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
@@ -34,6 +35,8 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowNullCode;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
@@ -42,6 +45,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -57,7 +61,6 @@ public class InterfaceDesugaringSyntheticHelper {
   }
 
   // Use InterfaceDesugaringForTesting for public accesses in tests.
-  static final String EMULATE_LIBRARY_CLASS_NAME_SUFFIX = "$-EL";
   static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
   static final String DEFAULT_METHOD_PREFIX = "$default$";
   static final String PRIVATE_METHOD_PREFIX = "$private$";
@@ -68,9 +71,15 @@ public class InterfaceDesugaringSyntheticHelper {
 
   public InterfaceDesugaringSyntheticHelper(AppView<?> appView) {
     this.appView = appView;
-    emulatedInterfaces =
-        appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface();
-
+    emulatedInterfaces = new IdentityHashMap<>();
+    appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getEmulatedInterfaces()
+        .forEach(
+            (ei, descriptor) -> {
+              emulatedInterfaces.put(ei, descriptor.getRewrittenType());
+            });
     this.shouldIgnoreFromReportsPredicate = getShouldIgnoreFromReportsPredicate(appView);
   }
 
@@ -129,25 +138,25 @@ public class InterfaceDesugaringSyntheticHelper {
     return true;
   }
 
-  public DexMethod emulateInterfaceLibraryMethod(DexClassAndMethod method) {
-    DexItemFactory factory = appView.dexItemFactory();
-    return factory.createMethod(
-        getEmulateLibraryInterfaceClassType(method.getHolderType(), factory),
-        factory.prependTypeToProto(method.getHolderType(), method.getProto()),
-        method.getName());
+  DexMethod emulatedInterfaceDispatchMethod(DerivedMethod method, DexType holder) {
+    assert method.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
+    DexProto newProto = appView.dexItemFactory().prependHolderToProto(method.getMethod());
+    return appView.dexItemFactory().createMethod(holder, newProto, method.getName());
   }
 
-  private static String getEmulateLibraryInterfaceClassDescriptor(String descriptor) {
-    return descriptor.substring(0, descriptor.length() - 1)
-        + EMULATE_LIBRARY_CLASS_NAME_SUFFIX
-        + ";";
+  DexMethod emulatedInterfaceInterfaceMethod(DerivedMethod method) {
+    assert method.getHolderKind() == null;
+    return method.getMethod();
   }
 
-  public static DexType getEmulateLibraryInterfaceClassType(DexType type, DexItemFactory factory) {
-    assert type.isClassType();
-    String descriptor = type.descriptor.toString();
-    String elTypeDescriptor = getEmulateLibraryInterfaceClassDescriptor(descriptor);
-    return factory.createSynthesizedType(elTypeDescriptor);
+  DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {
+    if (method.getHolderKind() == null) {
+      return method.getMethod();
+    }
+    assert method.getHolderKind() == SyntheticKind.COMPANION_CLASS;
+    DexClassAndMethod resolvedMethod =
+        appView.appInfoForDesugaring().resolveMethod(method.getMethod(), true).getResolutionPair();
+    return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
   }
 
   public static String getCompanionClassDescriptor(String descriptor) {
@@ -165,10 +174,6 @@ public class InterfaceDesugaringSyntheticHelper {
   // Checks if `type` is a companion class.
   public static boolean isCompanionClassType(DexType type) {
     return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
-  }
-
-  public static boolean isEmulatedLibraryClassType(DexType type) {
-    return type.descriptor.toString().endsWith(EMULATE_LIBRARY_CLASS_NAME_SUFFIX + ";");
   }
 
   // Gets the interface class for a companion class `type`.
@@ -199,7 +204,14 @@ public class InterfaceDesugaringSyntheticHelper {
 
   DexClassAndMethod ensureEmulatedInterfaceMethod(
       DexClassAndMethod method, ClasspathEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
-    DexMethod emulatedInterfaceMethod = emulateInterfaceLibraryMethod(method);
+    EmulatedDispatchMethodDescriptor descriptor =
+        appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(method.getReference());
+    assert descriptor != null;
+    DerivedMethod derivedMethod = descriptor.getEmulatedDispatchMethod();
+    assert derivedMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
     if (method.isProgramMethod()) {
       assert appView.options().isDesugaredLibraryCompilation();
       DexProgramClass emulatedInterface =
@@ -209,9 +221,14 @@ public class InterfaceDesugaringSyntheticHelper {
                   SyntheticKind.EMULATED_INTERFACE_CLASS,
                   method.asProgramMethod().getHolder(),
                   appView);
+      DexMethod emulatedInterfaceMethod =
+          emulatedInterfaceDispatchMethod(derivedMethod, emulatedInterface.type);
       assert emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod) != null;
       return emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod);
     }
+    // The holder is not used.
+    DexMethod emulatedInterfaceMethod =
+        emulatedInterfaceDispatchMethod(derivedMethod, appView.dexItemFactory().objectType);
     return appView
         .getSyntheticItems()
         .ensureFixedClasspathClassMethod(

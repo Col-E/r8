@@ -140,6 +140,14 @@ public class MachineRewritingFlags {
     return !emulatedInterfaces.isEmpty();
   }
 
+  EmulatedDispatchMethodDescriptor getEmulatedInterfaceEmulatedDispatchMethodDescriptor(
+      DexMethod method) {
+    if (!emulatedInterfaces.containsKey(method.getHolderType())) {
+      return null;
+    }
+    return emulatedInterfaces.get(method.getHolderType()).getEmulatedMethods().get(method);
+  }
+
   public static class Builder {
 
     Builder() {}

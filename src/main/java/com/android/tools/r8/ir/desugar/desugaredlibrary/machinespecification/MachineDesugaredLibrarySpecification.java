@@ -98,6 +98,11 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getEmulatedInterfaces();
   }
 
+  public EmulatedDispatchMethodDescriptor getEmulatedInterfaceEmulatedDispatchMethodDescriptor(
+      DexMethod method) {
+    return rewritingFlags.getEmulatedInterfaceEmulatedDispatchMethodDescriptor(method);
+  }
+
   public Set<DexType> getEmulatedInterfaceRewrittenTypes() {
     return rewritingFlags.getEmulatedInterfaceRewrittenTypes();
   }

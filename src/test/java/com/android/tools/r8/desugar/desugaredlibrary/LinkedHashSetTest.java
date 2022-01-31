@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -165,6 +166,14 @@ public class LinkedHashSetTest extends DesugaredLibraryTestBase {
       System.out.println("true");
       System.out.println(spliterator.hasCharacteristics(Spliterator.IMMUTABLE));
       System.out.println("false");
+
+      spliterator = ((Set<String>) new CustomLinkedHashSetForceForwarding<String>()).spliterator();
+      System.out.println(spliterator.hasCharacteristics(Spliterator.DISTINCT));
+      System.out.println("true");
+      System.out.println(spliterator.hasCharacteristics(Spliterator.ORDERED));
+      System.out.println("true");
+      System.out.println(spliterator.hasCharacteristics(Spliterator.IMMUTABLE));
+      System.out.println("false");
     }
   }
 
@@ -196,6 +205,15 @@ public class LinkedHashSetTest extends DesugaredLibraryTestBase {
 
     public Spliterator<E> superSpliterator() {
       return super.spliterator();
+    }
+  }
+
+  // The over method force the forwarding methods to be installed.
+  static class CustomLinkedHashSetForceForwarding<E> extends LinkedHashSet<E> {
+
+    @Override
+    public boolean removeIf(Predicate<? super E> filter) {
+      return super.removeIf(filter);
     }
   }
 }
