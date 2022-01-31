@@ -205,7 +205,7 @@
         "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
       },
       "retarget_lib_member": {
-        "java.lang.Character#isBmpCodePoint": "j$.lang.DesugarCharacter"
+        "java.lang.Character#isBmpCodePoint": "java.lang.DesugarCharacter"
       }
     }
   ],

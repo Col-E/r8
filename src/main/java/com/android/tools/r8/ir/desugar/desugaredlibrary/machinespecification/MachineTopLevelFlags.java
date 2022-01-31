@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class MachineTopLevelFlags {
@@ -22,6 +23,11 @@ public class MachineTopLevelFlags {
   // example the method forEach in Iterable may be executed over a concrete implementation.
   private final boolean supportAllCallbacksFromLibrary;
   private final List<String> extraKeepRules;
+
+  public static MachineTopLevelFlags empty() {
+    return new MachineTopLevelFlags(
+        AndroidApiLevel.B, "unused", null, null, false, ImmutableList.of());
+  }
 
   public MachineTopLevelFlags(
       AndroidApiLevel requiredCompilationAPILevel,
@@ -54,7 +60,7 @@ public class MachineTopLevelFlags {
     return jsonSource;
   }
 
-  public boolean isSupportAllCallbacksFromLibrary() {
+  public boolean supportAllCallbacksFromLibrary() {
     return supportAllCallbacksFromLibrary;
   }
 
