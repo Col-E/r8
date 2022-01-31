@@ -985,6 +985,67 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
         });
   }
 
+  @Test
+  public void testBigLine() {
+    runRetraceTest(
+        RetraceOptions.defaultRegularExpression(),
+        new StackTraceForTest() {
+
+          private final String LINE =
+              "12-16 19:29:11.111 media 453 490 D WVCdm : [for_bar.cpp(334):AddKey] key_data ="
+                  + " (1401)"
+                  + " CAISvgYKmgIKIEIzMkU1QkU3RjlGMThCNzYzQjAwMDAwMDAwMDAwMDAwEuMBeyJ2ZXJzaW9uIjoiM"
+                  + "S4wIiwiZXNuIjoiTkZBTkRST0lEMi1QUlYtQk9SRUFMLUdPT0dMQ0hST01FQ0FTVD1IRC0yMTc5My0"
+                  + "1Nzk0RDMyRTQxRUI5QTc2QzZFQzIyNTdEQzVGNTQ2MTNDNzdBQTdCNzAwNzcyMkREQjVCRDYzRUFER"
+                  + "TZBRUUyIiwic2FsdCI6IjQ5OTI3MDU0ODMyNzI0NjIxMDc0MDM4Nzg3MDkxMjAyNCIsImlzc3VlVGl"
+                  + "tZSI6MTYzOTY2MzE1MDAwMCwibW92aWVJZCI6IjgxMTg0NDE3In0gASgAOMDRAkDA0QJIroztjQYSF"
+                  + "AgBEAAYACDA0QIowNECWABgAXgBGmYSEBnHXFI_ttc_1lja-bpjqHkaUN_81aKusLLERz_xX0vPIR1"
+                  + "I8yu9u9zQndpy1aEFJYtQiB0sed6wAC3c6aeH4oLsGFPiuVgGweP1MGc3yxunqusDpoGe03JGD1VSE"
+                  + "9aB0jSKIAEahgEKEAAAAAAGmcHCAAAAAAAAAAASEN4b9_2XH75TnxdBkpJ4YhoaIOdhQxec7DpUs0D"
+                  + "ixSQXTlvjbXqX3PIOg9DiQLCa4vbzIAIoBToECAEQKkI0CiDuiCOCIxvTlCqkYTKBWzMOfeh9BpKc5"
+                  + "RDdE2omMbOfaRIQRWVqtbR8Qg4JEY0u0CAFRBqGAQoQAAAAAAaZwcMAAAAAAAAAABIQ7iP9449yr2F"
+                  + "_97v4QHerRxognKGBtw2cwGpxKltxU7A_1asVTS0aPaw8dr5e2rP2SW4gAigFOgQIARAqQjQKIB-50"
+                  + "Ou_RGn8rzRDr76FeWpBLYSt99zHVSZK0xnd_anREhC4eACukLOUwL5TQ8w1oOAVGoYBChAAAAAABpn"
+                  + "BwQAAAAAAAAAAEhDsGE2bR6VgRM85PY3YU9qIGiAhD3h7I8Cv5Irr315yecWo0YA1t9_sr0g2z0zsa"
+                  + "6Dq0yACKAE6BAgBECpCNAogQoIDcKUGMhCA-HetsARASXxXJUazkIIaSwCKE9asAEwSEMW4TIMZZkc"
+                  + "r3LYIITelMlIgroztjQY4ABogzw-SGqQ1AYy8EopI2zSvXX_hkFpOoWxCvFQuQEj5oQwigAIRzNhvB"
+                  + "9-YMOy2Muentb574WJKnVqXfEor5mFDIQ3vDELdjbkibaS4THyK2DlUQyp0M3C8n5bQ1JApslsfh5w"
+                  + "SEMvA8Y0sXE9H6xnAKnMJTioZJOTElqPrbbRM5APhI3ohL8rp7u8ydBm9aWqkprDngrU3b1KdHd6J9"
+                  + "YiJRJ4Y55M4qqCdwbCqr57xYAu_IIH_p8erfnhfNgUE2svtZBiLMP37vOMSQAP08_zkMf87VRHBxuI"
+                  + "2rlnGcdgLoJyPgLp2ZBbdLw-b4Nq6uIZQfNABQ1SuM3OZ6uD6eq-NH9FawWvN0EmzWZ88DGiHtgM7h"
+                  + "zqvIb8JNmLInt28us-vw6KQOggKBjE2LjUuMEABSoACAAAAAgAAAQAABAAQZrvQTwAAABMAAAE3AAA"
+                  + "AEAAAAUkAAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAAAAAAAAAKjAA"
+                  + "AAAAAAAqMAAAAAAAAAAAAAAAAMAAAGgAAAAEAAAAbIAAAAQAAABxAAAABAAAAIUAAAAEAAAAfIAAAA"
+                  + "gAAACKQAAABAAAAI7AAAAEAAAAk0AAAAQAAACnQAAABAAAAJ7AAAAIAAAArIAAAAQAAACxAAAABAAA"
+                  + "ALWAAAAEAAAAyYAAAAQAAADBAAAACC8nuR7W9i8AuG9xF3K__n1kk9F_G1i25QRKR9YXyssdsadWT";
+
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of(LINE);
+          }
+
+          @Override
+          public String mapping() {
+            return "foo.Bar -> huk:\n" + "  void baz():13:13 -> g\n" + "  void qux():12:12 -> g\n";
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of(LINE);
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(LINE);
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
   private TestDiagnosticMessagesImpl runRetraceTest(
       String regularExpression, StackTraceForTest stackTraceForTest) {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
