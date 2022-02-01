@@ -204,7 +204,7 @@ public final class D8 {
         // enabling code.
         ClassInitializerAssertionEnablingAnalysis analysis =
             new ClassInitializerAssertionEnablingAnalysis(
-                appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance());
+                appView, OptimizationFeedbackSimple.getInstance());
         ThreadUtils.processItems(
             appView.appInfo().classes(),
             clazz -> {

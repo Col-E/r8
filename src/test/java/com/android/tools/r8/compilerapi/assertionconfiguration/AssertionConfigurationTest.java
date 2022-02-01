@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import java.nio.file.Path;
+import java.util.Collections;
 import org.junit.Test;
 
 public class AssertionConfigurationTest extends CompilerApiTestRunner {
@@ -71,7 +72,7 @@ public class AssertionConfigurationTest extends CompilerApiTestRunner {
     test.accept(new DexIndexedConsumer.ArchiveConsumer(output), assertionHandler);
 
     // TODO(b/209445989): This should be true when the assertion handler support is implemented.
-    assertFalse(
+    assertTrue(
         new CodeInspector(output)
             .clazz(MockClassWithAssertion.class)
             .uniqueMethodWithName("main")
@@ -118,6 +119,8 @@ public class AssertionConfigurationTest extends CompilerApiTestRunner {
               .addClassProgramData(getBytesForClass(getMockClassWithAssertion()), Origin.unknown())
               .addProguardConfiguration(
                   getKeepMainRules(getMockClassWithAssertion()), Origin.unknown())
+              .addProguardConfiguration(
+                  Collections.singletonList("-dontwarn com.example.SomeClass"), Origin.unknown())
               .addLibraryFiles(getJava8RuntimeJar())
               .addAssertionsConfiguration(
                   builder -> builder.setAssertionHandler(assertionHandler).setScopeAll().build())

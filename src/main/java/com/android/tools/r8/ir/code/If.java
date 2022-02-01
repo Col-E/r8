@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOutputMode;
 import java.util.List;
@@ -203,6 +204,19 @@ public class If extends JumpInstruction {
     return o.getTrueTarget() == getTrueTarget()
         && o.fallthroughBlock() == fallthroughBlock()
         && o.type == type;
+  }
+
+  public BasicBlock targetFromTrue() {
+    return targetFromBoolean(true);
+  }
+
+  public BasicBlock targetFromFalse() {
+    return targetFromBoolean(false);
+  }
+
+  public BasicBlock targetFromBoolean(boolean cond) {
+    assert isZeroTest();
+    return targetFromCondition(BooleanUtils.intValue(cond));
   }
 
   public BasicBlock targetFromCondition(ConstNumber value) {

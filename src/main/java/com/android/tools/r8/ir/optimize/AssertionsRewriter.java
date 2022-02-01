@@ -12,19 +12,34 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.DominatorTree;
+import com.android.tools.r8.ir.code.FieldInstruction;
+import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.Throw;
+import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.ThrowingCharIterator;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.WorkList;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.io.UTFDataFormatException;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AssertionsRewriter {
@@ -72,11 +87,11 @@ public class AssertionsRewriter {
       }
     }
 
-    public boolean isEnabled() {
+    public boolean isCompileTimeEnabled() {
       return entry.isCompileTimeEnabled();
     }
 
-    public boolean isDisabled() {
+    public boolean isCompileTimeDisabled() {
       return entry.isCompileTimeDisabled();
     }
 
@@ -86,6 +101,11 @@ public class AssertionsRewriter {
 
     public boolean isAssertionHandler() {
       return entry.isAssertionHandler();
+    }
+
+    public MethodReference getAssertionHandler() {
+      assert isAssertionHandler();
+      return entry.getAssertionHandler();
     }
   }
 
@@ -322,6 +342,7 @@ public class AssertionsRewriter {
     if (enabled) {
       timing.begin("Rewrite assertions");
       runInternal(method, code);
+      assert code.isConsistentSSA();
       timing.end();
     }
   }
@@ -343,6 +364,32 @@ public class AssertionsRewriter {
       }
       clinit = clazz.getClassInitializer();
     }
+    // For the transformation to rewrite the throw with a callback collect information on the
+    // blocks covered by the if (!$assertionsDisabled) condition.
+    Set<If> assertionEntryIfs = Sets.newIdentityHashSet();
+    Map<Throw, BasicBlock> throwSuccessorAfterHandler = new IdentityHashMap<>();
+    if (configuration.isAssertionHandler() && method != clinit) {
+      LazyBox<DominatorTree> dominatorTree = new LazyBox<>(() -> new DominatorTree(code));
+      code.getBlocks()
+          .forEach(
+              basicBlock -> {
+                If theIf = isCheckAssertionsEnabledBlock(basicBlock);
+                if (theIf != null) {
+                  // All blocks dominated by the if is the assertion code (check is negation of
+                  // field read).
+                  BasicBlock assertionBlockEntry = theIf.targetFromFalse();
+                  List<BasicBlock> blocks =
+                      dominatorTree.computeIfAbsent().dominatedBlocks(assertionBlockEntry);
+                  Throw throwInstruction = isAlwaysThrowingEntry(assertionBlockEntry, blocks);
+                  if (throwInstruction != null) {
+                    assertionEntryIfs.add(theIf);
+                    throwSuccessorAfterHandler.put(throwInstruction, theIf.targetFromTrue());
+                  }
+                }
+              });
+    }
+    assert assertionEntryIfs.size() == throwSuccessorAfterHandler.size();
+
     // For javac generated code it is assumed that the code in <clinit> will tell if the code
     // in other methods of the class can have assertion checks.
     boolean isInitializerEnablingJavaVmAssertions =
@@ -362,23 +409,51 @@ public class AssertionsRewriter {
         }
       } else if (current.isStaticPut()) {
         StaticPut staticPut = current.asStaticPut();
-        if (isInitializerEnablingJavaVmAssertions
-            && staticPut.getField().name == dexItemFactory.assertionsDisabled) {
+        if (isInitializerEnablingJavaVmAssertions && isUsingAssertionsDisabledField(staticPut)) {
           iterator.remove();
         }
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         // Rewrite $assertionsDisabled getter (only if the initializer enabled assertions).
-        if (isInitializerEnablingJavaVmAssertions
-            && staticGet.getField().name == dexItemFactory.assertionsDisabled) {
-          iterator.replaceCurrentInstruction(
-              code.createIntConstant(configuration.isDisabled() ? 1 : 0, current.getLocalInfo()));
+        if (isInitializerEnablingJavaVmAssertions && isUsingAssertionsDisabledField(staticGet)) {
+          // For assertion handler rewrite just leave the static get, as it will become dead code.
+          if (!configuration.isAssertionHandler()) {
+            iterator.replaceCurrentInstruction(
+                code.createIntConstant(
+                    configuration.isCompileTimeDisabled() ? 1 : 0, current.getLocalInfo()));
+          }
         }
         // Rewrite kotlin._Assertions.ENABLED getter.
         if (staticGet.getField() == dexItemFactory.kotlin.assertions.enabledField) {
           iterator.replaceCurrentInstruction(
               code.createIntConstant(
-                  kotlinTransformation.isDisabled() ? 0 : 1, current.getLocalInfo()));
+                  kotlinTransformation.isCompileTimeDisabled() ? 0 : 1, current.getLocalInfo()));
+        }
+      }
+
+      // Rewriting of if and throw to replace throw with invoke of the assertion handler.
+      if (configuration.isAssertionHandler()) {
+        if (current.isIf()) {
+          If ifInstruction = current.asIf();
+          if (assertionEntryIfs.contains(ifInstruction)) {
+            ifInstruction.targetFromTrue().unlinkSinglePredecessorSiblingsAllowed();
+            ifInstruction.lhs().removeUser(ifInstruction);
+            iterator.replaceCurrentInstruction(new Goto());
+          }
+        } else if (current.isThrow()) {
+          Throw throwInstruction = current.asThrow();
+          if (throwSuccessorAfterHandler.containsKey(throwInstruction)) {
+            BasicBlock throwingBlock = throwInstruction.getBlock();
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(
+                    dexItemFactory.createMethod(configuration.getAssertionHandler()),
+                    null,
+                    ImmutableList.of(throwInstruction.exception())));
+            Goto gotoBlockAfterAssertion = new Goto(throwingBlock);
+            gotoBlockAfterAssertion.setPosition(throwInstruction.getPosition());
+            throwingBlock.link(throwSuccessorAfterHandler.get(throwInstruction));
+            iterator.add(gotoBlockAfterAssertion);
+          }
         }
       }
     }
@@ -389,7 +464,7 @@ public class AssertionsRewriter {
       ConfigurationEntryWithDexString configuration,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
-    if (iterator.hasNext() && configuration.isDisabled()) {
+    if (iterator.hasNext() && configuration.isCompileTimeDisabled()) {
       // Check if the invocation of Class.desiredAssertionStatus() is followed by a static
       // put to kotlin._Assertions.ENABLED, and if so remove both instructions.
       // See comment in ClassInitializerAssertionEnablingAnalysis for the expected instruction
@@ -416,7 +491,54 @@ public class AssertionsRewriter {
         iterator.replaceCurrentInstruction(code.createIntConstant(0));
       }
     } else {
-      iterator.replaceCurrentInstruction(code.createIntConstant(configuration.isEnabled() ? 1 : 0));
+      iterator.replaceCurrentInstruction(
+          code.createIntConstant(configuration.isCompileTimeEnabled() ? 1 : 0));
     }
+  }
+
+  private boolean isUsingAssertionsDisabledField(FieldInstruction instruction) {
+    // This does not check the holder, as for inner classe the field is read from the outer class
+    // and not the class itself.
+    return instruction.getField().getName() == dexItemFactory.assertionsDisabled
+        && instruction.getField().getType() == dexItemFactory.booleanType;
+  }
+
+  private If isCheckAssertionsEnabledBlock(BasicBlock basicBlock) {
+    if (!basicBlock.exit().isIf()) {
+      return null;
+    }
+    If theIf = basicBlock.exit().asIf();
+    if (!theIf.isZeroTest()
+        || !theIf.lhs().isDefinedByInstructionSatisfying(Instruction::isStaticGet)) {
+      return null;
+    }
+    StaticGet staticGet = theIf.lhs().getDefinition().asStaticGet();
+    return isUsingAssertionsDisabledField(staticGet)
+            && staticGet.value().hasSingleUniqueUser()
+            && !staticGet.value().hasPhiUsers()
+        ? theIf
+        : null;
+  }
+
+  private Throw isAlwaysThrowingEntry(BasicBlock block, List<BasicBlock> blocks) {
+    WorkList<BasicBlock> workList = WorkList.newIdentityWorkList(block);
+    Throw theThrow = null;
+    while (workList.hasNext()) {
+      BasicBlock current = workList.next();
+      workList.addIfNotSeen(current.getNormalSuccessors());
+      if (!blocks.containsAll(current.getNormalSuccessors())) {
+        return null;
+      }
+      if (current.exit().isReturn()) {
+        return null;
+      }
+      if (current.exit().isThrow()) {
+        if (theThrow != null) {
+          return null;
+        }
+        theThrow = current.exit().asThrow();
+      }
+    }
+    return theThrow;
   }
 }

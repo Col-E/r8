@@ -14,29 +14,40 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfStaticFieldWrite;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
 public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis {
   private final DexItemFactory dexItemFactory;
   private final OptimizationFeedback feedback;
   private final DexString kotlinAssertionsEnabled;
+  private final AssertionConfigurationWithDefault assertionsConfiguration;
+  private final List<DexMethod> assertionHandlers;
 
   public ClassInitializerAssertionEnablingAnalysis(
-      DexItemFactory dexItemFactory, OptimizationFeedback feedback) {
-    this.dexItemFactory = dexItemFactory;
+      AppView<?> appView, OptimizationFeedback feedback) {
+    this.dexItemFactory = appView.dexItemFactory();
     this.feedback = feedback;
     this.kotlinAssertionsEnabled = dexItemFactory.createString("ENABLED");
+    this.assertionsConfiguration = appView.options().assertionsConfiguration;
+    this.assertionHandlers =
+        assertionsConfiguration.getAllAssertionHandlers().stream()
+            .map(dexItemFactory::createMethod)
+            .collect(Collectors.toList());
   }
 
   @Override
@@ -48,6 +59,13 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
       if (code.isCfCode()) {
         if (hasJavacClinitAssertionCode(code.asCfCode()) || hasKotlincClinitAssertionCode(method)) {
           feedback.setInitializerEnablingJavaVmAssertions(definition);
+          // In R8 this might be rewritten to calling an assertion handler if any are required.
+          // Conservatively mark them all as invoked.
+          if (worklist != null) {
+            assertionHandlers.forEach(
+                assertionHandler ->
+                    worklist.enqueueTraceInvokeStaticAction(assertionHandler, method));
+          }
         }
       }
     }

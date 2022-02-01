@@ -1007,7 +1007,7 @@ public class R8 {
     if (AssertionsRewriter.isEnabled(appView.options())) {
       enqueuer.registerAnalysis(
           new ClassInitializerAssertionEnablingAnalysis(
-              appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));
+              appView, OptimizationFeedbackSimple.getInstance()));
     }
 
     if (options.isClassMergingExtensionRequired(enqueuer.getMode())) {

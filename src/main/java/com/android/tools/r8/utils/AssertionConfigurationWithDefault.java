@@ -7,12 +7,16 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
+import com.android.tools.r8.references.MethodReference;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AssertionConfigurationWithDefault {
 
   public final AssertionsConfiguration defaultConfiguration;
   public final List<AssertionsConfiguration> assertionsConfigurations;
+  private final List<MethodReference> allAssertionHandlers;
 
   public AssertionConfigurationWithDefault(
       AssertionsConfiguration defautlTransformation,
@@ -20,6 +24,7 @@ public class AssertionConfigurationWithDefault {
     this.defaultConfiguration = defautlTransformation;
     assert assertionsConfigurations != null;
     this.assertionsConfigurations = assertionsConfigurations;
+    this.allAssertionHandlers = computeAllAssertionHandlers();
   }
 
   public boolean isPassthroughAll() {
@@ -30,5 +35,25 @@ public class AssertionConfigurationWithDefault {
         && assertionsConfigurations.get(0).getScope() == AssertionTransformationScope.ALL
         && assertionsConfigurations.get(0).getTransformation()
             == AssertionTransformation.PASSTHROUGH;
+  }
+
+  public List<MethodReference> getAllAssertionHandlers() {
+    return allAssertionHandlers;
+  }
+
+  private List<MethodReference> computeAllAssertionHandlers() {
+    assert !defaultConfiguration.isAssertionHandler();
+    if (assertionsConfigurations.isEmpty()) {
+      return ImmutableList.of();
+    }
+    List<MethodReference> result = new ArrayList<>();
+    assertionsConfigurations.forEach(
+        assertionsConfiguration -> {
+          if (assertionsConfiguration.isAssertionHandler()
+              && !result.contains(assertionsConfiguration.getAssertionHandler())) {
+            result.add(assertionsConfiguration.getAssertionHandler());
+          }
+        });
+    return result;
   }
 }

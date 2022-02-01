@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -469,6 +470,7 @@ public class DexItemFactory {
   public final DexType retentionType =
       createStaticallyKnownType("Ljava/lang/annotation/Retention;");
   public final DexType runtimeExceptionType = createStaticallyKnownType(runtimeExceptionDescriptor);
+  public final DexType assertionErrorType = createStaticallyKnownType(assertionErrorDescriptor);
   public final DexType throwableType = createStaticallyKnownType(throwableDescriptor);
   public final DexType illegalAccessErrorType =
       createStaticallyKnownType(illegalAccessErrorDescriptor);
@@ -2528,6 +2530,10 @@ public class DexItemFactory {
 
   public DexType createType(String descriptor) {
     return createType(createString(descriptor));
+  }
+
+  public DexType createType(ClassReference clazz) {
+    return createType(clazz.getDescriptor());
   }
 
   public DexType lookupType(DexString descriptor) {
