@@ -5,10 +5,10 @@
 package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
+import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Instruction;

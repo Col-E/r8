@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.enums.classification;
 
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 
 public final class UnknownEnumUnboxerMethodClassification extends EnumUnboxerMethodClassification {
 

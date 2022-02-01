@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneMap;
 import java.util.Set;
 

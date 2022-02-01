@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfo;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlockIterator;

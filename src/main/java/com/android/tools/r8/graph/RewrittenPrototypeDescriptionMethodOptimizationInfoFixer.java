@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.ArgumentInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraint;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintFactory;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;

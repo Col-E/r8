@@ -10,9 +10,9 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
+import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import org.junit.Test;
 

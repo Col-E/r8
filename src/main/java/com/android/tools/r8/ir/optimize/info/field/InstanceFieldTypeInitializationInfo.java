@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.info.field;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;

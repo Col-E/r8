@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 

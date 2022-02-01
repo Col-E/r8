@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.analysis.inlining;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;

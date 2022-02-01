@@ -11,8 +11,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -160,8 +161,7 @@ class EnumUnboxingLens extends NestedGraphLens {
       newMethodSignatures.put(from, to);
       int offsetDiff = 0;
       int toOffset = BooleanUtils.intValue(!toStatic);
-      RewrittenPrototypeDescription.ArgumentInfoCollection.Builder builder =
-          RewrittenPrototypeDescription.ArgumentInfoCollection.builder();
+      ArgumentInfoCollection.Builder builder = ArgumentInfoCollection.builder();
       if (fromStatic != toStatic) {
         assert toStatic;
         offsetDiff = 1;
