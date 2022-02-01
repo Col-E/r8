@@ -224,8 +224,8 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
   static class A implements I {
     public void foo() {
       // Rewritten to invoke-special A.bar or I.bar which resolves to private method A.bar
-      // When targeting B.bar => throws NoSuchMethodError.
-      // When targeting A.bar:
+      // When targeting A.bar => throws NoSuchMethodError.
+      // When targeting I.bar:
       //   - in same nest => success.
       //   - not in nest => throws IllegalAccessError.
       bar();

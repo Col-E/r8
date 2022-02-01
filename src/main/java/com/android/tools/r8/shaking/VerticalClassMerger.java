@@ -14,6 +14,7 @@ import com.android.tools.r8.androidapi.AndroidApiLevelCompute;
 import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.CfVersion;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -990,25 +991,42 @@ public class VerticalClassMerger {
                 && !virtualMethods.containsKey(wrapped);
           };
 
-      for (DexEncodedMethod directMethod : source.directMethods()) {
-        if (directMethod.isInstanceInitializer()) {
-          DexEncodedMethod resultingConstructor =
-              renameConstructor(directMethod, availableMethodSignatures);
-          add(directMethods, resultingConstructor, MethodSignatureEquivalence.get());
-          blockRedirectionOfSuperCalls(resultingConstructor.getReference());
-        } else {
-          DexEncodedMethod resultingDirectMethod =
-              renameMethod(
-                  directMethod,
-                  availableMethodSignatures,
-                  directMethod.isClassInitializer() ? Rename.NEVER : Rename.IF_NEEDED);
-          add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
-          deferredRenamings.map(directMethod.getReference(), resultingDirectMethod.getReference());
-          deferredRenamings.recordMove(
-              directMethod.getReference(), resultingDirectMethod.getReference());
-          blockRedirectionOfSuperCalls(resultingDirectMethod.getReference());
-        }
-      }
+      source.forEachProgramDirectMethod(
+          directMethod -> {
+            DexEncodedMethod definition = directMethod.getDefinition();
+            if (definition.isInstanceInitializer()) {
+              DexEncodedMethod resultingConstructor =
+                  renameConstructor(definition, availableMethodSignatures);
+              add(directMethods, resultingConstructor, MethodSignatureEquivalence.get());
+              blockRedirectionOfSuperCalls(resultingConstructor.getReference());
+            } else {
+              DexEncodedMethod resultingDirectMethod =
+                  renameMethod(
+                      definition,
+                      availableMethodSignatures,
+                      definition.isClassInitializer() ? Rename.NEVER : Rename.IF_NEEDED);
+              add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
+              deferredRenamings.map(
+                  directMethod.getReference(), resultingDirectMethod.getReference());
+              deferredRenamings.recordMove(
+                  directMethod.getReference(), resultingDirectMethod.getReference());
+              blockRedirectionOfSuperCalls(resultingDirectMethod.getReference());
+
+              // Private methods in the parent class may be targeted with invoke-super if the two
+              // classes are in the same nest. Ensure such calls are mapped to invoke-direct.
+              if (definition.isInstance()
+                  && definition.isPrivate()
+                  && AccessControl.isMemberAccessible(directMethod, source, target, appView)
+                      .isTrue()) {
+                deferredRenamings.mapVirtualMethodToDirectInType(
+                    directMethod.getReference(),
+                    prototypeChanges ->
+                        new MethodLookupResult(
+                            resultingDirectMethod.getReference(), null, DIRECT, prototypeChanges),
+                    target.getType());
+              }
+            }
+          });
 
       for (DexEncodedMethod virtualMethod : source.virtualMethods()) {
         DexEncodedMethod shadowedBy = findMethodInTarget(virtualMethod);

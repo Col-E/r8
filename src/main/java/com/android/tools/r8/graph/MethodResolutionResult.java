@@ -361,6 +361,10 @@ public abstract class MethodResolutionResult
         return null;
       }
 
+      if (getResolvedHolder().isInterface() && getResolvedMethod().isPrivate()) {
+        return getResolutionPair();
+      }
+
       // The symbolic reference is the holder type that resolution was initiated at.
       DexClass symbolicReference = initialResolutionHolder;
 
