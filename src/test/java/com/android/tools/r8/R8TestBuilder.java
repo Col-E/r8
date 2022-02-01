@@ -17,6 +17,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
+import com.android.tools.r8.shaking.KeepUnusedReturnValueRule;
 import com.android.tools.r8.shaking.NoFieldTypeStrengtheningRule;
 import com.android.tools.r8.shaking.NoHorizontalClassMergingRule;
 import com.android.tools.r8.shaking.NoMethodStaticizingRule;
@@ -496,6 +497,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T noInliningOfSynthetics() {
     return addOptionsModification(options -> options.testing.allowInliningOfSynthetics = false);
+  }
+
+  public T enableKeepUnusedReturnValueAnnotations() {
+    return addKeepUnusedReturnValueAnnotation()
+        .addInternalMatchAnnotationOnMethodRule(
+            KeepUnusedReturnValueRule.RULE_NAME, KeepUnusedReturnValue.class);
   }
 
   public T enableNoFieldTypeStrengtheningAnnotations() {

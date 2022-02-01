@@ -438,6 +438,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(Keep.class);
   }
 
+  public final T addKeepUnusedReturnValueAnnotation() {
+    return addTestingAnnotation(KeepUnusedReturnValue.class);
+  }
+
   public final T addMemberValuePropagationAnnotations() {
     return addTestingAnnotation(NeverPropagateValue.class);
   }

@@ -7,10 +7,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
-public class ConstantArgumentRule extends ProguardConfigurationRule {
+public class KeepUnusedArgumentRule extends NoOptimizationBaseRule<KeepUnusedArgumentRule> {
+
+  public static final String RULE_NAME = "keepunusedarguments";
 
   public static class Builder
-      extends ProguardConfigurationRule.Builder<ConstantArgumentRule, Builder> {
+      extends NoOptimizationBaseRule.Builder<KeepUnusedArgumentRule, Builder> {
 
     private Builder() {
       super();
@@ -22,8 +24,8 @@ public class ConstantArgumentRule extends ProguardConfigurationRule {
     }
 
     @Override
-    public ConstantArgumentRule build() {
-      return new ConstantArgumentRule(
+    public KeepUnusedArgumentRule build() {
+      return new KeepUnusedArgumentRule(
           origin,
           getPosition(),
           source,
@@ -40,7 +42,7 @@ public class ConstantArgumentRule extends ProguardConfigurationRule {
     }
   }
 
-  private ConstantArgumentRule(
+  private KeepUnusedArgumentRule(
       Origin origin,
       Position position,
       String source,
@@ -76,6 +78,6 @@ public class ConstantArgumentRule extends ProguardConfigurationRule {
 
   @Override
   String typeString() {
-    return "keepconstantarguments";
+    return RULE_NAME;
   }
 }

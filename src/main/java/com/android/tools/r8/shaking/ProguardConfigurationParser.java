@@ -450,13 +450,21 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
-        if (acceptString("keepconstantarguments")) {
-          ConstantArgumentRule rule = parseConstantArgumentRule(optionStart);
+        if (acceptString(KeepConstantArgumentRule.RULE_NAME)) {
+          KeepConstantArgumentRule rule =
+              parseNoOptimizationRule(optionStart, KeepConstantArgumentRule.builder());
           configurationBuilder.addRule(rule);
           return true;
         }
-        if (acceptString("keepunusedarguments")) {
-          UnusedArgumentRule rule = parseUnusedArgumentRule(optionStart);
+        if (acceptString(KeepUnusedArgumentRule.RULE_NAME)) {
+          KeepUnusedArgumentRule rule =
+              parseNoOptimizationRule(optionStart, KeepUnusedArgumentRule.builder());
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString(KeepUnusedReturnValueRule.RULE_NAME)) {
+          KeepUnusedReturnValueRule rule =
+              parseNoOptimizationRule(optionStart, KeepUnusedReturnValueRule.builder());
           configurationBuilder.addRule(rule);
           return true;
         }
@@ -918,10 +926,10 @@ public class ProguardConfigurationParser {
           "Expecting '-keep' option after '-if' option.", origin, getPosition(optionStart)));
     }
 
-    private ConstantArgumentRule parseConstantArgumentRule(Position start)
+    private KeepConstantArgumentRule parseConstantArgumentRule(Position start)
         throws ProguardRuleParserException {
-      ConstantArgumentRule.Builder keepRuleBuilder =
-          ConstantArgumentRule.builder().setOrigin(origin).setStart(start);
+      KeepConstantArgumentRule.Builder keepRuleBuilder =
+          KeepConstantArgumentRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
@@ -929,10 +937,10 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private UnusedArgumentRule parseUnusedArgumentRule(Position start)
+    private KeepUnusedArgumentRule parseUnusedArgumentRule(Position start)
         throws ProguardRuleParserException {
-      UnusedArgumentRule.Builder keepRuleBuilder =
-          UnusedArgumentRule.builder().setOrigin(origin).setStart(start);
+      KeepUnusedArgumentRule.Builder keepRuleBuilder =
+          KeepUnusedArgumentRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));

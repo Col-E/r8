@@ -32,6 +32,7 @@ import com.android.tools.r8.optimize.argumentpropagation.propagation.InterfaceMe
 import com.android.tools.r8.optimize.argumentpropagation.propagation.VirtualDispatchMethodArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -50,6 +51,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final MethodStateCollectionByReference methodStates;
+  private final InternalOptions options;
 
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
   private final List<Set<DexProgramClass>> stronglyConnectedProgramComponents;
@@ -66,6 +68,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     this.appView = appView;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.methodStates = methodStates;
+    this.options = appView.options();
     this.stronglyConnectedProgramComponents = stronglyConnectedProgramComponents;
     this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
@@ -158,7 +161,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     }
 
     // Do not optimize @KeepConstantArgument methods.
-    if (appView.appInfo().isKeepConstantArgumentsMethod(method)) {
+    if (!appView.getKeepInfo(method).isConstantArgumentOptimizationAllowed(options)) {
       methodState = MethodState.unknown();
     }
 
@@ -215,7 +218,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
   private MethodState getMethodStateAfterUninstantiatedParameterRemoval(
       ProgramMethod method, MethodState methodState) {
     assert methodState.isMonomorphic() || methodState.isUnknown();
-    if (appView.appInfo().isKeepConstantArgumentsMethod(method)) {
+    if (!appView.getKeepInfo(method).isConstantArgumentOptimizationAllowed(options)) {
       return methodState;
     }
 

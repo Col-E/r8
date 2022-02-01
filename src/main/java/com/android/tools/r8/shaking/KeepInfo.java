@@ -83,12 +83,6 @@ public abstract class KeepInfo<B extends Builder<B, K>, K extends KeepInfo<B, K>
     return checkDiscarded;
   }
 
-  public boolean isParameterRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
-        && isShrinkingAllowed(configuration)
-        && !isCheckDiscardedEnabled(configuration);
-  }
-
   /**
    * True if an item must be present in the output.
    *

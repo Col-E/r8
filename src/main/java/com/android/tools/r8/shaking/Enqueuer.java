@@ -3806,8 +3806,6 @@ public class Enqueuer {
             amendWithCompanionMethods(rootSet.alwaysInline),
             amendWithCompanionMethods(rootSet.neverInlineDueToSingleCaller),
             amendWithCompanionMethods(rootSet.whyAreYouNotInlining),
-            amendWithCompanionMethods(rootSet.keepConstantArguments),
-            amendWithCompanionMethods(rootSet.keepUnusedArguments),
             amendWithCompanionMethods(rootSet.reprocess),
             amendWithCompanionMethods(rootSet.neverReprocess),
             rootSet.alwaysClassInline,

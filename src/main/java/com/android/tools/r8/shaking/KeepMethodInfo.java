@@ -25,18 +25,24 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   private final boolean allowClassInlining;
+  private final boolean allowConstantArgumentOptimization;
   private final boolean allowInlining;
   private final boolean allowMethodStaticizing;
   private final boolean allowParameterTypeStrengthening;
   private final boolean allowReturnTypeStrengthening;
+  private final boolean allowUnusedArgumentOptimization;
+  private final boolean allowUnusedReturnValueOptimization;
 
   private KeepMethodInfo(Builder builder) {
     super(builder);
     this.allowClassInlining = builder.isClassInliningAllowed();
+    this.allowConstantArgumentOptimization = builder.isConstantArgumentOptimizationAllowed();
     this.allowInlining = builder.isInliningAllowed();
     this.allowMethodStaticizing = builder.isMethodStaticizingAllowed();
     this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
     this.allowReturnTypeStrengthening = builder.isReturnTypeStrengtheningAllowed();
+    this.allowUnusedArgumentOptimization = builder.isUnusedArgumentOptimizationAllowed();
+    this.allowUnusedReturnValueOptimization = builder.isUnusedReturnValueOptimizationAllowed();
   }
 
   // This builder is not private as there are known instances where it is safe to modify keep info
@@ -50,12 +56,26 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return isParameterRemovalAllowed(configuration);
   }
 
+  public boolean isParameterRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && !isCheckDiscardedEnabled(configuration);
+  }
+
   public boolean isClassInliningAllowed(GlobalKeepInfoConfiguration configuration) {
     return isOptimizationAllowed(configuration) && internalIsClassInliningAllowed();
   }
 
   boolean internalIsClassInliningAllowed() {
     return allowClassInlining;
+  }
+
+  public boolean isConstantArgumentOptimizationAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration) && internalIsConstantArgumentOptimizationAllowed();
+  }
+
+  boolean internalIsConstantArgumentOptimizationAllowed() {
+    return allowConstantArgumentOptimization;
   }
 
   public boolean isInliningAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -97,6 +117,26 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     return allowReturnTypeStrengthening;
   }
 
+  public boolean isUnusedArgumentOptimizationAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && internalIsUnusedArgumentOptimizationAllowed();
+  }
+
+  boolean internalIsUnusedArgumentOptimizationAllowed() {
+    return allowUnusedArgumentOptimization;
+  }
+
+  public boolean isUnusedReturnValueOptimizationAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && internalIsUnusedReturnValueOptimizationAllowed();
+  }
+
+  boolean internalIsUnusedReturnValueOptimizationAllowed() {
+    return allowUnusedReturnValueOptimization;
+  }
+
   public Joiner joiner() {
     assert !isTop();
     return new Joiner(this);
@@ -115,10 +155,13 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
 
     private boolean allowClassInlining;
+    private boolean allowConstantArgumentOptimization;
     private boolean allowInlining;
     private boolean allowMethodStaticizing;
     private boolean allowParameterTypeStrengthening;
     private boolean allowReturnTypeStrengthening;
+    private boolean allowUnusedArgumentOptimization;
+    private boolean allowUnusedReturnValueOptimization;
 
     private Builder() {
       super();
@@ -127,11 +170,17 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     private Builder(KeepMethodInfo original) {
       super(original);
       allowClassInlining = original.internalIsClassInliningAllowed();
+      allowConstantArgumentOptimization = original.internalIsConstantArgumentOptimizationAllowed();
       allowInlining = original.internalIsInliningAllowed();
       allowMethodStaticizing = original.internalIsMethodStaticizingAllowed();
       allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
       allowReturnTypeStrengthening = original.internalIsReturnTypeStrengtheningAllowed();
+      allowUnusedArgumentOptimization = original.internalIsUnusedArgumentOptimizationAllowed();
+      allowUnusedReturnValueOptimization =
+          original.internalIsUnusedReturnValueOptimizationAllowed();
     }
+
+    // Class inlining.
 
     public boolean isClassInliningAllowed() {
       return allowClassInlining;
@@ -150,6 +199,27 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return setAllowClassInlining(false);
     }
 
+    // Constant argument optimization.
+
+    public boolean isConstantArgumentOptimizationAllowed() {
+      return allowConstantArgumentOptimization;
+    }
+
+    public Builder setAllowConstantArgumentOptimization(boolean allowConstantArgumentOptimization) {
+      this.allowConstantArgumentOptimization = allowConstantArgumentOptimization;
+      return self();
+    }
+
+    public Builder allowConstantArgumentOptimization() {
+      return setAllowConstantArgumentOptimization(true);
+    }
+
+    public Builder disallowConstantArgumentOptimization() {
+      return setAllowConstantArgumentOptimization(false);
+    }
+
+    // Inlining.
+
     public boolean isInliningAllowed() {
       return allowInlining;
     }
@@ -166,6 +236,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     public Builder disallowInlining() {
       return setAllowInlining(false);
     }
+
+    // Method staticizing.
 
     public boolean isMethodStaticizingAllowed() {
       return allowMethodStaticizing;
@@ -184,6 +256,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return setAllowMethodStaticizing(false);
     }
 
+    // Parameter type strengthening.
+
     public boolean isParameterTypeStrengtheningAllowed() {
       return allowParameterTypeStrengthening;
     }
@@ -201,6 +275,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return setAllowParameterTypeStrengthening(false);
     }
 
+    // Return type strengthening.
+
     public boolean isReturnTypeStrengtheningAllowed() {
       return allowReturnTypeStrengthening;
     }
@@ -216,6 +292,45 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Builder disallowReturnTypeStrengthening() {
       return setAllowReturnTypeStrengthening(false);
+    }
+
+    // Unused argument optimization.
+
+    public boolean isUnusedArgumentOptimizationAllowed() {
+      return allowUnusedArgumentOptimization;
+    }
+
+    public Builder setAllowUnusedArgumentOptimization(boolean allowUnusedArgumentOptimization) {
+      this.allowUnusedArgumentOptimization = allowUnusedArgumentOptimization;
+      return self();
+    }
+
+    public Builder allowUnusedArgumentOptimization() {
+      return setAllowUnusedArgumentOptimization(true);
+    }
+
+    public Builder disallowUnusedArgumentOptimization() {
+      return setAllowUnusedArgumentOptimization(false);
+    }
+
+    // Unused return value optimization.
+
+    public boolean isUnusedReturnValueOptimizationAllowed() {
+      return allowUnusedReturnValueOptimization;
+    }
+
+    public Builder setAllowUnusedReturnValueOptimization(
+        boolean allowUnusedReturnValueOptimization) {
+      this.allowUnusedReturnValueOptimization = allowUnusedReturnValueOptimization;
+      return self();
+    }
+
+    public Builder allowUnusedReturnValueOptimization() {
+      return setAllowUnusedReturnValueOptimization(true);
+    }
+
+    public Builder disallowUnusedReturnValueOptimization() {
+      return setAllowUnusedReturnValueOptimization(false);
     }
 
     @Override
@@ -242,11 +357,17 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     boolean internalIsEqualTo(KeepMethodInfo other) {
       return super.internalIsEqualTo(other)
           && isClassInliningAllowed() == other.internalIsClassInliningAllowed()
+          && isConstantArgumentOptimizationAllowed()
+              == other.internalIsConstantArgumentOptimizationAllowed()
           && isInliningAllowed() == other.internalIsInliningAllowed()
           && isMethodStaticizingAllowed() == other.internalIsMethodStaticizingAllowed()
           && isParameterTypeStrengtheningAllowed()
               == other.internalIsParameterTypeStrengtheningAllowed()
-          && isReturnTypeStrengtheningAllowed() == other.internalIsReturnTypeStrengtheningAllowed();
+          && isReturnTypeStrengtheningAllowed() == other.internalIsReturnTypeStrengtheningAllowed()
+          && isUnusedArgumentOptimizationAllowed()
+              == other.internalIsUnusedArgumentOptimizationAllowed()
+          && isUnusedReturnValueOptimizationAllowed()
+              == other.internalIsUnusedReturnValueOptimizationAllowed();
     }
 
     @Override
@@ -258,20 +379,26 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     public Builder makeTop() {
       return super.makeTop()
           .disallowClassInlining()
+          .disallowConstantArgumentOptimization()
           .disallowInlining()
           .disallowMethodStaticizing()
           .disallowParameterTypeStrengthening()
-          .disallowReturnTypeStrengthening();
+          .disallowReturnTypeStrengthening()
+          .disallowUnusedArgumentOptimization()
+          .disallowUnusedReturnValueOptimization();
     }
 
     @Override
     public Builder makeBottom() {
       return super.makeBottom()
           .allowClassInlining()
+          .allowConstantArgumentOptimization()
           .allowInlining()
           .allowMethodStaticizing()
           .allowParameterTypeStrengthening()
-          .allowReturnTypeStrengthening();
+          .allowReturnTypeStrengthening()
+          .allowUnusedArgumentOptimization()
+          .allowUnusedReturnValueOptimization();
     }
   }
 
@@ -283,6 +410,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner disallowClassInlining() {
       builder.disallowClassInlining();
+      return self();
+    }
+
+    public Joiner disallowConstantArgumentOptimization() {
+      builder.disallowConstantArgumentOptimization();
       return self();
     }
 
@@ -306,6 +438,16 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       return self();
     }
 
+    public Joiner disallowUnusedArgumentOptimization() {
+      builder.disallowUnusedArgumentOptimization();
+      return self();
+    }
+
+    public Joiner disallowUnusedReturnValueOptimization() {
+      builder.disallowUnusedReturnValueOptimization();
+      return self();
+    }
+
     @Override
     public Joiner asMethodJoiner() {
       return this;
@@ -316,6 +458,9 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       // Should be extended to merge the fields of this class in case any are added.
       return super.merge(joiner)
           .applyIf(!joiner.builder.isClassInliningAllowed(), Joiner::disallowClassInlining)
+          .applyIf(
+              !joiner.builder.isConstantArgumentOptimizationAllowed(),
+              Joiner::disallowConstantArgumentOptimization)
           .applyIf(!joiner.builder.isInliningAllowed(), Joiner::disallowInlining)
           .applyIf(!joiner.builder.isMethodStaticizingAllowed(), Joiner::disallowMethodStaticizing)
           .applyIf(
@@ -323,7 +468,13 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
               Joiner::disallowParameterTypeStrengthening)
           .applyIf(
               !joiner.builder.isReturnTypeStrengtheningAllowed(),
-              Joiner::disallowReturnTypeStrengthening);
+              Joiner::disallowReturnTypeStrengthening)
+          .applyIf(
+              !joiner.builder.isUnusedArgumentOptimizationAllowed(),
+              Joiner::disallowUnusedArgumentOptimization)
+          .applyIf(
+              !joiner.builder.isUnusedReturnValueOptimizationAllowed(),
+              Joiner::disallowUnusedReturnValueOptimization);
     }
 
     @Override

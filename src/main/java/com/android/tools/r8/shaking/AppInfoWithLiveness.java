@@ -153,10 +153,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private final Set<DexMethod> neverInlineDueToSingleCaller;
   /** Items for which to print inlining decisions for (testing only). */
   private final Set<DexMethod> whyAreYouNotInlining;
-  /** All methods that may not have any parameters with a constant value removed. */
-  private final Set<DexMethod> keepConstantArguments;
-  /** All methods that may not have any unused arguments removed. */
-  private final Set<DexMethod> keepUnusedArguments;
   /** All methods that must be reprocessed (testing only). */
   private final Set<DexMethod> reprocess;
   /** All methods that must not be reprocessed (testing only). */
@@ -228,8 +224,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> alwaysInline,
       Set<DexMethod> neverInlineDueToSingleCaller,
       Set<DexMethod> whyAreYouNotInlining,
-      Set<DexMethod> keepConstantArguments,
-      Set<DexMethod> keepUnusedArguments,
       Set<DexMethod> reprocess,
       Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
@@ -265,8 +259,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.alwaysInline = alwaysInline;
     this.neverInlineDueToSingleCaller = neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = whyAreYouNotInlining;
-    this.keepConstantArguments = keepConstantArguments;
-    this.keepUnusedArguments = keepUnusedArguments;
     this.reprocess = reprocess;
     this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
@@ -310,8 +302,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.alwaysInline,
         previous.neverInlineDueToSingleCaller,
         previous.whyAreYouNotInlining,
-        previous.keepConstantArguments,
-        previous.keepUnusedArguments,
         previous.reprocess,
         previous.neverReprocess,
         previous.alwaysClassInline,
@@ -360,8 +350,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         pruneMethods(previous.alwaysInline, prunedItems, executorService, futures),
         pruneMethods(previous.neverInlineDueToSingleCaller, prunedItems, executorService, futures),
         pruneMethods(previous.whyAreYouNotInlining, prunedItems, executorService, futures),
-        pruneMethods(previous.keepConstantArguments, prunedItems, executorService, futures),
-        pruneMethods(previous.keepUnusedArguments, prunedItems, executorService, futures),
         pruneMethods(previous.reprocess, prunedItems, executorService, futures),
         pruneMethods(previous.neverReprocess, prunedItems, executorService, futures),
         previous.alwaysClassInline,
@@ -567,8 +555,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         alwaysInline,
         neverInlineDueToSingleCaller,
         whyAreYouNotInlining,
-        keepConstantArguments,
-        keepUnusedArguments,
         reprocess,
         neverReprocess,
         alwaysClassInline,
@@ -649,8 +635,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.alwaysInline = previous.alwaysInline;
     this.neverInlineDueToSingleCaller = previous.neverInlineDueToSingleCaller;
     this.whyAreYouNotInlining = previous.whyAreYouNotInlining;
-    this.keepConstantArguments = previous.keepConstantArguments;
-    this.keepUnusedArguments = previous.keepUnusedArguments;
     this.reprocess = previous.reprocess;
     this.neverReprocess = previous.neverReprocess;
     this.alwaysClassInline = previous.alwaysClassInline;
@@ -812,22 +796,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean hasNoWhyAreYouNotInliningMethods() {
     return whyAreYouNotInlining.isEmpty();
-  }
-
-  public boolean isKeepConstantArgumentsMethod(ProgramMethod method) {
-    return isKeepConstantArgumentsMethod(method.getReference());
-  }
-
-  public boolean isKeepConstantArgumentsMethod(DexMethod method) {
-    return keepConstantArguments.contains(method);
-  }
-
-  public boolean isKeepUnusedArgumentsMethod(ProgramMethod method) {
-    return isKeepUnusedArgumentsMethod(method.getReference());
-  }
-
-  public boolean isKeepUnusedArgumentsMethod(DexMethod method) {
-    return keepUnusedArguments.contains(method);
   }
 
   public boolean isNeverReprocessMethod(ProgramMethod method) {
@@ -1285,8 +1253,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferences(alwaysInline),
         lens.rewriteReferences(neverInlineDueToSingleCaller),
         lens.rewriteReferences(whyAreYouNotInlining),
-        lens.rewriteReferences(keepConstantArguments),
-        lens.rewriteReferences(keepUnusedArguments),
         lens.rewriteReferences(reprocess),
         lens.rewriteReferences(neverReprocess),
         alwaysClassInline.rewriteItems(lens::lookupType),

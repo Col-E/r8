@@ -19,7 +19,7 @@ public class ParameterRemovalUtils {
     if (!keepInfo.isParameterRemovalAllowed(options)) {
       return false;
     }
-    if (appView.appInfo().isKeepUnusedArgumentsMethod(method)) {
+    if (!appView.getKeepInfo(method).isUnusedArgumentOptimizationAllowed(options)) {
       return false;
     }
     return method.getDefinition().isLibraryMethodOverride().isFalse()
