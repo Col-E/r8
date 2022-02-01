@@ -147,7 +147,6 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
 
                   ProgramMethod resolvedMethod = resolutionResult.getResolvedProgramMethod();
                   if (resolvedMethod == null
-                      || resolvedMethod.getHolder().isInterface()
                       || resolvedMethod.getHolder() == subclass) {
                     return;
                   }
