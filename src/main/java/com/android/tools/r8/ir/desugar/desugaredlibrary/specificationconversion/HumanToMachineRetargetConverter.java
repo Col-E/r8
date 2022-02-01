@@ -92,10 +92,14 @@ public class HumanToMachineRetargetConverter {
       DexClass subclass = appInfo.definitionFor(subtype);
       MethodResolutionResult resolutionResult =
           appInfo.resolveMethodOn(subclass, src.getReference());
-      if (resolutionResult.isSuccessfulMemberResolutionResult()
-          && resolutionResult.getResolvedMethod().getReference() != src.getReference()) {
-        assert false; // Unsupported.
-      }
+      // The resolution is not successful when compiling to dex if the method rewritten is missing
+      // in Android.jar.
+      assert !resolutionResult.isSuccessfulMemberResolutionResult()
+          || resolutionResult.getResolvedMethod().getReference() == src.getReference()
+          // There is a difference in the sql library between Android.jar and the JDK which leads
+          // to this resolution when compiling Cf to Cf while the methods do not exist in Android.
+          || (resolutionResult.getResolvedMethod().getHolderType().toString().contains("java.sql")
+              && resolutionResult.getResolvedMethod().getName().toString().equals("toInstant"));
     }
     return true;
   }

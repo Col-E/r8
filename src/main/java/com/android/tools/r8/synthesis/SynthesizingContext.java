@@ -130,11 +130,7 @@ class SynthesizingContext implements Comparable<SynthesizingContext> {
     }
     assert hygienicType.toSourceString().startsWith(synthesizingContextType.toSourceString());
     DexType rewrittenContext =
-        appView
-            .options()
-            .desugaredLibrarySpecification
-            .getEmulateLibraryInterface()
-            .get(synthesizingContextType);
+        appView.rewritePrefix.rewrittenContextType(synthesizingContextType, appView);
     if (rewrittenContext == null) {
       return;
     }

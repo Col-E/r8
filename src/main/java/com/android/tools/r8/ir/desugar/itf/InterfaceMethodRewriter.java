@@ -156,9 +156,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private void initializeEmulatedInterfaceVariables() {
-    Map<DexType, DexType> emulateLibraryInterface =
-        options.desugaredLibrarySpecification.getEmulateLibraryInterface();
-    for (DexType interfaceType : emulateLibraryInterface.keySet()) {
+    Set<DexType> emulateLibraryInterface =
+        options.machineDesugaredLibrarySpecification.getEmulatedInterfaces().keySet();
+    for (DexType interfaceType : emulateLibraryInterface) {
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :

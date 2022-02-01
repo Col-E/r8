@@ -57,7 +57,7 @@ public abstract class CfPostProcessingDesugaringCollection {
         InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
         RetargetingInfo retargetingInfo) {
       ArrayList<CfPostProcessingDesugaring> desugarings = new ArrayList<>();
-      if (!appView.options().desugaredLibrarySpecification.getRetargetCoreLibMember().isEmpty()
+      if (appView.options().machineDesugaredLibrarySpecification.hasRetargeting()
           && !appView.options().isDesugaredLibraryCompilation()) {
         desugarings.add(new DesugaredLibraryRetargeterPostProcessor(appView, retargetingInfo));
       }

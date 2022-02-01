@@ -108,6 +108,10 @@ public class L8TestBuilder {
     return this;
   }
 
+  public TestDiagnosticMessages getDiagnosticMessages() {
+    return state.getDiagnosticsMessages();
+  }
+
   public L8TestBuilder setDebug() {
     this.mode = CompilationMode.DEBUG;
     return this;

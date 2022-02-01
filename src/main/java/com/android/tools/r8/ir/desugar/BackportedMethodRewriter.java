@@ -128,24 +128,16 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     DexMethod original = appView.graphLens().getOriginalMethodSignature(method);
     assert original != null;
     MethodProvider provider = rewritableMethods.getProvider(original);
-    // TODO(b/150693139): Since the DesugarLibraryRetargeter is run during IR processing while the
-    // backported method rewriter is run in cf to cf, we need here to compute if the method is
-    // actually going to be retargeted through desugared library backports, and compute the
-    // corresponding backported method if so. This can be removed once the DesugarLibraryRetargeter
-    // has been moved as a cf to cf transformation.
+    // Old versions of desugared library have in the jar file pre-desugared code. This is used
+    // to undesugar pre-desugared code, then the code is re-desugared with D8/R8. This is
+    // maintained for legacy only, recent desugared library should not be shipped with
+    // pre-desugared code.
+    Map<DexType, DexType> legacyBackport =
+        appView.options().machineDesugaredLibrarySpecification.getLegacyBackport();
     if (provider == null
         && appView.options().isDesugaredLibraryCompilation()
-        && appView
-            .options()
-            .desugaredLibrarySpecification
-            .getBackportCoreLibraryMember()
-            .containsKey(method.holder)) {
-      DexType newHolder =
-          appView
-              .options()
-              .desugaredLibrarySpecification
-              .getBackportCoreLibraryMember()
-              .get(method.holder);
+        && legacyBackport.containsKey(method.holder)) {
+      DexType newHolder = legacyBackport.get(method.holder);
       DexMethod backportedMethod =
           appView.dexItemFactory().createMethod(newHolder, method.proto, method.name);
       provider = rewritableMethods.getProvider(backportedMethod);

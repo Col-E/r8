@@ -71,9 +71,10 @@ public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
                         this.buildDesugaredLibrary(
                             api,
                             opt ->
-                                opt.desugaredLibrarySpecification =
+                                setDesugaredLibrarySpecificationForTesting(
+                                    opt,
                                     configurationWithSupportAllCallbacksFromLibrary(
-                                        opt, true, parameters, supportAllCallbacksFromLibrary)));
+                                        opt, true, parameters, supportAllCallbacksFromLibrary))));
                     return desugaredLibBox.get();
                   },
                   AndroidApiLevel.B)
