@@ -15,6 +15,7 @@ import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.KeepUnusedReturnValue;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -184,9 +185,12 @@ public class VerticalClassMergerTest extends TestBase {
         "return");
 
     // Add two methods with the same name that have return types A[] and B[], respectively.
+    classBuilder.addRuntimeInvisibleAnnotation(KeepUnusedReturnValue.class.getTypeName());
     classBuilder.addStaticMethod(
         "method", ImmutableList.of(), "[Lclassmerging/A;",
         ".limit stack 1", ".limit locals 1", "iconst_0", "anewarray classmerging/A", "areturn");
+
+    classBuilder.addRuntimeInvisibleAnnotation(KeepUnusedReturnValue.class.getTypeName());
     classBuilder.addStaticMethod(
         "method", ImmutableList.of(), "[Lclassmerging/B;",
         ".limit stack 1", ".limit locals 1", "iconst_0", "anewarray classmerging/B", "areturn");
@@ -209,7 +213,8 @@ public class VerticalClassMergerTest extends TestBase {
                 "-neverinline class " + main + " {",
                 "  static classmerging.A[] method(...);",
                 "  static classmerging.B[] method(...);",
-                "}"),
+                "}")
+            .enableKeepUnusedReturnValueAnnotations(),
         main,
         jasminBuilder.build(),
         preservedClassNames::contains);

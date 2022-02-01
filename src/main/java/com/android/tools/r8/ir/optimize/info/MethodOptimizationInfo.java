@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodCl
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
 import java.util.Set;
 
@@ -85,6 +86,8 @@ public abstract class MethodOptimizationInfo
   public abstract BitSet getUnusedArguments();
 
   public abstract boolean isMultiCallerMethod();
+
+  public abstract OptionalBool isReturnValueUsed();
 
   public abstract boolean forceInline();
 

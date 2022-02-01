@@ -45,7 +45,12 @@ public class VoidReturnTypeRewritingTest extends TestBase {
             "SubFactory.createVirtual() -> null",
             "SubSubFactory.createVirtual() -> null");
 
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expected);
+    }
 
     CodeInspector inspector =
         testForR8(parameters.getBackend())
@@ -55,8 +60,8 @@ public class VoidReturnTypeRewritingTest extends TestBase {
             .enableNoMethodStaticizingAnnotations()
             .enableNoVerticalClassMergingAnnotations()
             .enableNoHorizontalClassMergingAnnotations()
-            .addKeepRules("-dontobfuscate")
             .addOptionsModification(options -> options.enableClassInlining = false)
+            .noMinification()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
@@ -66,16 +71,16 @@ public class VoidReturnTypeRewritingTest extends TestBase {
     MethodSubject createStaticMethodSubject =
         factoryClassSubject.uniqueMethodWithName("createStatic");
     assertThat(createStaticMethodSubject, isPresent());
-    assertTrue(createStaticMethodSubject.getMethod().getReference().proto.returnType.isVoidType());
+    assertTrue(createStaticMethodSubject.getMethod().getReturnType().isVoidType());
     MethodSubject createVirtualMethodSubject =
         factoryClassSubject.uniqueMethodWithName("createVirtual");
     assertThat(createVirtualMethodSubject, isPresent());
-    assertTrue(createVirtualMethodSubject.getMethod().getReference().proto.returnType.isVoidType());
+    assertTrue(createVirtualMethodSubject.getMethod().getReturnType().isVoidType());
 
     createVirtualMethodSubject =
         inspector.clazz(SubFactory.class).uniqueMethodWithName("createVirtual");
     assertThat(createVirtualMethodSubject, isPresent());
-    assertTrue(createVirtualMethodSubject.getMethod().getReference().proto.returnType.isVoidType());
+    assertTrue(createVirtualMethodSubject.getMethod().getReturnType().isVoidType());
 
     ClassSubject subSubFactoryClassSubject = inspector.clazz(SubSubFactory.class);
     assertThat(subSubFactoryClassSubject.method("void", "createVirtual"), isPresent());

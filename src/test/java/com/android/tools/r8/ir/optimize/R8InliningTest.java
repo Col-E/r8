@@ -328,7 +328,7 @@ public class R8InliningTest extends TestBase {
 
     m =
         clazz.method(
-            "int",
+            allowAccessModification ? "void" : "int",
             "notInlinable",
             ImmutableList.of("inlining." + (allowAccessModification ? "B" : "A")));
     assertCounters(INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
@@ -344,12 +344,12 @@ public class R8InliningTest extends TestBase {
 
     m =
         clazz.method(
-            "int", "notInlinableOnThrow", ImmutableList.of("java.lang.IllegalArgumentException"));
+            "void", "notInlinableOnThrow", ImmutableList.of("java.lang.IllegalArgumentException"));
     assertCounters(ALWAYS_INLINABLE, NEVER_INLINABLE, countInvokes(inspector, m));
 
     m =
         clazz.method(
-            "int",
+            "void",
             "notInlinableDueToMissingNpeBeforeThrow",
             ImmutableList.of("java.lang.IllegalArgumentException"));
     assertCounters(ALWAYS_INLINABLE, NEVER_INLINABLE * 2, countInvokes(inspector, m));

@@ -152,10 +152,14 @@ public class DependentMinimumKeepInfoCollection {
     DependentMinimumKeepInfoCollection rewrittenDependentMinimumKeepInfo =
         new DependentMinimumKeepInfoCollection();
     forEach(
-        (preconditionEvent, minimumKeepInfo) ->
+        (preconditionEvent, minimumKeepInfo) -> {
+          EnqueuerEvent rewrittenPreconditionEvent = preconditionEvent.rewrittenWithLens(graphLens);
+          if (!rewrittenPreconditionEvent.isNoSuchEvent()) {
             rewrittenDependentMinimumKeepInfo
-                .getOrCreateMinimumKeepInfoFor(preconditionEvent.rewrittenWithLens(graphLens))
-                .merge(minimumKeepInfo.rewrittenWithLens(graphLens)));
+                .getOrCreateMinimumKeepInfoFor(rewrittenPreconditionEvent)
+                .merge(minimumKeepInfo.rewrittenWithLens(graphLens));
+          }
+        });
     return rewrittenDependentMinimumKeepInfo;
   }
 }

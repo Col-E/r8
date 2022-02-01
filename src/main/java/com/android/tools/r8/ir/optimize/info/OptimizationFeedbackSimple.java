@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodCl
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -177,6 +178,10 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   @Override
   public void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method) {
     method.getMutableOptimizationInfo().setInitializerEnablingJavaAssertions();
+  }
+
+  public void setIsReturnValueUsed(OptionalBool isReturnValueUsed, ProgramMethod method) {
+    method.getDefinition().getMutableOptimizationInfo().setIsReturnValueUsed(isReturnValueUsed);
   }
 
   @Override

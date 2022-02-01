@@ -1823,6 +1823,35 @@ public class RootSetUtils {
       }
     }
 
+    public RootSet rewrittenWithLens(GraphLens graphLens) {
+      if (graphLens.isIdentityLens()) {
+        return this;
+      }
+      return new RootSet(
+          getDependentMinimumKeepInfo().rewrittenWithLens(graphLens),
+          reasonAsked,
+          alwaysInline,
+          neverInlineDueToSingleCaller,
+          bypassClinitForInlining,
+          whyAreYouNotInlining,
+          reprocess,
+          neverReprocess,
+          alwaysClassInline,
+          neverClassInline,
+          noUnusedInterfaceRemoval,
+          noVerticalClassMerging,
+          noHorizontalClassMerging,
+          neverPropagateValue,
+          mayHaveSideEffects,
+          noSideEffects,
+          assumedValues,
+          dependentKeepClassCompatRule,
+          identifierNameStrings,
+          ifRules,
+          delayedRootSetActionItems,
+          pendingMethodMoveInverse);
+    }
+
     void shouldNotBeMinified(ProgramDefinition definition) {
       getDependentMinimumKeepInfo()
           .getOrCreateUnconditionalMinimumKeepInfoFor(definition.getReference())
@@ -2133,6 +2162,7 @@ public class RootSetUtils {
       // Do nothing.
     }
 
+    @Override
     public MainDexRootSet rewrittenWithLens(GraphLens graphLens) {
       if (graphLens.isIdentityLens()) {
         return this;

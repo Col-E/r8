@@ -34,6 +34,7 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.util.List;
@@ -197,11 +198,17 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
         .map(ParameterState::asConcrete)
         .noneMatch(ConcreteParameterState::hasInParameters);
 
-    getSimpleFeedback()
-        .setArgumentInfos(
-            method,
-            ConcreteCallSiteOptimizationInfo.fromMethodState(
-                appView, method, monomorphicMethodState));
+    if (monomorphicMethodState.size() > 0) {
+      getSimpleFeedback()
+          .setArgumentInfos(
+              method,
+              ConcreteCallSiteOptimizationInfo.fromMethodState(
+                  appView, method, monomorphicMethodState));
+    }
+
+    if (!monomorphicMethodState.isReturnValueUsed()) {
+      getSimpleFeedback().setIsReturnValueUsed(OptionalBool.FALSE, method);
+    }
 
     // Strengthen the return value of the method if the method is known to return one of the
     // arguments.
@@ -223,10 +230,18 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
     }
 
     int numberOfArguments = method.getDefinition().getNumberOfArguments();
-    List<ParameterState> parameterStates =
-        methodState.isMonomorphic()
-            ? methodState.asMonomorphic().getParameterStates()
-            : ListUtils.newInitializedArrayList(numberOfArguments, ParameterState.unknown());
+    boolean isReturnValueUsed;
+    List<ParameterState> parameterStates;
+    if (methodState.isMonomorphic()) {
+      ConcreteMonomorphicMethodState monomorphicMethodState = methodState.asMonomorphic();
+      isReturnValueUsed = monomorphicMethodState.isReturnValueUsed();
+      parameterStates = monomorphicMethodState.getParameterStates();
+    } else {
+      assert methodState.isUnknown();
+      isReturnValueUsed = true;
+      parameterStates =
+          ListUtils.newInitializedArrayList(numberOfArguments, ParameterState.unknown());
+    }
     List<ParameterState> narrowedParameterStates =
         ListUtils.mapOrElse(
             parameterStates,
@@ -243,7 +258,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
             },
             null);
     return narrowedParameterStates != null
-        ? new ConcreteMonomorphicMethodState(narrowedParameterStates)
+        ? new ConcreteMonomorphicMethodState(isReturnValueUsed, narrowedParameterStates)
         : methodState;
   }
 

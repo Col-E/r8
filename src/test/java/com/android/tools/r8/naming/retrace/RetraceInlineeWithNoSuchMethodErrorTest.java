@@ -7,6 +7,7 @@ import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepUnusedReturnValue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
@@ -78,6 +79,7 @@ public class RetraceInlineeWithNoSuchMethodErrorTest extends TestBase {
             .addKeepAttributeSourceFile()
             .setMinApi(parameters.getApiLevel())
             .enableInliningAnnotations()
+            .enableKeepUnusedReturnValueAnnotations()
             .enableExperimentalMapFileVersion();
     R8TestRunResult runResult;
     if (throwReceiverNpe) {
@@ -112,6 +114,7 @@ public class RetraceInlineeWithNoSuchMethodErrorTest extends TestBase {
       throw new RuntimeException("Will be removed");
     }
 
+    @KeepUnusedReturnValue
     Object inlinable() {
       return foo();
     }

@@ -13,7 +13,6 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -201,11 +200,7 @@ public class NeverReturnsNormallyTest extends TestBase {
           insn instanceof DexInstructionSubject && ((DexInstructionSubject) insn).isConst4());
     } else {
       assertTrue(insn instanceof CfInstructionSubject);
-      assertTrue(((CfInstructionSubject) insn).isStackInstruction(Opcode.Pop));
-      assertTrue(instructions.hasNext());
-      insn = instructions.next();
-      assertTrue(insn instanceof CfInstructionSubject);
-      assertTrue(((CfInstructionSubject) insn).isConstNull());
+      assertTrue(insn.isConstNull());
     }
     assertTrue(nextInstruction(instructions).isThrow());
     assertFalse(instructions.hasNext());

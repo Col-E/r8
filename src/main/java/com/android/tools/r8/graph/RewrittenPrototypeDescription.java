@@ -240,7 +240,6 @@ public class RewrittenPrototypeDescription {
       this.oldType = oldType;
       this.newType = newType;
       this.singleValue = singleValue;
-      assert !newType.isVoidType() || singleValue != null;
     }
 
     public RewrittenTypeInfo combine(RewrittenPrototypeDescription other) {

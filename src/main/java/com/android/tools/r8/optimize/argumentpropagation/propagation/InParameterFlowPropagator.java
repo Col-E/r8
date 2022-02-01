@@ -133,18 +133,10 @@ public class InParameterFlowPropagator {
       return;
     }
     assert methodState.isMonomorphic();
-    boolean allUnknown = true;
-    for (ParameterState parameterState : methodState.asMonomorphic().getParameterStates()) {
-      if (parameterState.isBottom()) {
-        methodStates.set(method, MethodState.bottom());
-        return;
-      }
-      if (!parameterState.isUnknown()) {
-        assert parameterState.isConcrete();
-        allUnknown = false;
-      }
-    }
-    if (allUnknown) {
+    ConcreteMonomorphicMethodState monomorphicMethodState = methodState.asMonomorphic();
+    if (monomorphicMethodState.isEffectivelyBottom()) {
+      methodStates.set(method, MethodState.bottom());
+    } else if (monomorphicMethodState.isEffectivelyUnknown()) {
       methodStates.set(method, MethodState.unknown());
     }
   }

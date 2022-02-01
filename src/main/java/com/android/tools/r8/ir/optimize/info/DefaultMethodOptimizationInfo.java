@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.ImmutableSet;
 import java.util.BitSet;
 import java.util.Set;
@@ -158,6 +159,11 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   @Override
   public boolean isMultiCallerMethod() {
     return false;
+  }
+
+  @Override
+  public OptionalBool isReturnValueUsed() {
+    return OptionalBool.unknown();
   }
 
   @Override

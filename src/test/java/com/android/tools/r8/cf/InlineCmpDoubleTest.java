@@ -5,6 +5,7 @@ package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepUnusedReturnValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -42,6 +43,7 @@ public class InlineCmpDoubleTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.inlinerOptions().enableInlining = enableInlining)
+        .enableKeepUnusedReturnValueAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -66,6 +68,7 @@ public class InlineCmpDoubleTest extends TestBase {
       inlineMe(x + 41);
     }
 
+    @KeepUnusedReturnValue
     public static int inlineMe(int x) {
       // Side effect to ensure that the invocation is not removed simply because the method does not
       // have any side effects.

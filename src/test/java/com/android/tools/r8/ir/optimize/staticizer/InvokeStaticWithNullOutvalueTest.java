@@ -8,6 +8,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KeepUnusedReturnValue;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
@@ -46,6 +47,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
         .addInnerClasses(InvokeStaticWithNullOutvalueTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
+        .enableKeepUnusedReturnValueAnnotations()
         .enableMemberValuePropagationAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -85,6 +87,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
 
     @NoHorizontalClassMerging
     static class Companion {
+      @KeepUnusedReturnValue
       @NeverInline
       @NeverPropagateValue
       private static Object boo() {

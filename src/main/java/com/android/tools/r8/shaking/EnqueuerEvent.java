@@ -16,6 +16,10 @@ public abstract class EnqueuerEvent {
     return null;
   }
 
+  public boolean isNoSuchEvent() {
+    return false;
+  }
+
   public boolean isClassEvent() {
     return false;
   }
@@ -45,6 +49,27 @@ public abstract class EnqueuerEvent {
   }
 
   public abstract EnqueuerEvent rewrittenWithLens(GraphLens lens);
+
+  public static class NoSuchEnqueuerEvent extends EnqueuerEvent {
+
+    private static final NoSuchEnqueuerEvent INSTANCE = new NoSuchEnqueuerEvent();
+
+    private NoSuchEnqueuerEvent() {}
+
+    public static NoSuchEnqueuerEvent get() {
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isNoSuchEvent() {
+      return true;
+    }
+
+    @Override
+    public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
+      return this;
+    }
+  }
 
   public abstract static class ClassEnqueuerEvent extends EnqueuerEvent {
 
@@ -96,7 +121,11 @@ public abstract class EnqueuerEvent {
 
     @Override
     public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
-      return new LiveClassEnqueuerEvent(lens.lookupType(getType()));
+      DexType rewrittenType = lens.lookupType(getType());
+      if (rewrittenType.isIntType()) {
+        return NoSuchEnqueuerEvent.get();
+      }
+      return new LiveClassEnqueuerEvent(rewrittenType);
     }
 
     @Override
@@ -139,7 +168,11 @@ public abstract class EnqueuerEvent {
 
     @Override
     public EnqueuerEvent rewrittenWithLens(GraphLens lens) {
-      return new InstantiatedClassEnqueuerEvent(lens.lookupType(getType()));
+      DexType rewrittenType = lens.lookupType(getType());
+      if (rewrittenType.isIntType()) {
+        return NoSuchEnqueuerEvent.get();
+      }
+      return new InstantiatedClassEnqueuerEvent(rewrittenType);
     }
 
     @Override

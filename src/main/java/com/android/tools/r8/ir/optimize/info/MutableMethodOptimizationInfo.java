@@ -28,6 +28,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BitSetUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Set;
@@ -47,6 +48,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
       EnumUnboxerMethodClassification.unknown();
   private DynamicType dynamicType = DynamicType.unknown();
   private InlinePreference inlining = InlinePreference.Default;
+  private OptionalBool isReturnValueUsed = OptionalBool.unknown();
   // Stores information about instance methods and constructors for
   // class inliner, null value indicates that the method is not eligible.
   private BridgeInfo bridgeInfo = null;
@@ -478,6 +480,15 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   @Override
   public boolean isMultiCallerMethod() {
     return inlining == InlinePreference.MultiCallerInline;
+  }
+
+  @Override
+  public OptionalBool isReturnValueUsed() {
+    return isReturnValueUsed;
+  }
+
+  void setIsReturnValueUsed(OptionalBool isReturnValueUsed) {
+    this.isReturnValueUsed = isReturnValueUsed;
   }
 
   @Override

@@ -47,7 +47,6 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Pa
 import com.android.tools.r8.optimize.argumentpropagation.utils.WideningUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -152,12 +151,6 @@ public class ArgumentPropagatorCodeScanner {
   }
 
   private void scan(InvokeMethod invoke, ProgramMethod context, Timing timing) {
-    List<Value> arguments = invoke.arguments();
-    if (arguments.isEmpty()) {
-      // Nothing to propagate.
-      return;
-    }
-
     DexMethod invokedMethod = invoke.getInvokedMethod();
     if (invokedMethod.getHolderType().isArrayType()) {
       // Nothing to propagate; the targeted method is not a program method.
@@ -191,7 +184,7 @@ public class ArgumentPropagatorCodeScanner {
       return;
     }
 
-    if (arguments.size() != resolvedMethod.getDefinition().getNumberOfArguments()
+    if (invoke.arguments().size() != resolvedMethod.getDefinition().getNumberOfArguments()
         || invoke.isInvokeStatic() != resolvedMethod.getAccessFlags().isStatic()) {
       // Nothing to propagate; the invoke instruction fails.
       return;
@@ -410,13 +403,10 @@ public class ArgumentPropagatorCodeScanner {
               methodReprocessingCriteria.getParameterReprocessingCriteria(argumentIndex)));
     }
 
-    // If all parameter states are unknown, then return a canonicalized unknown method state that
-    // has this property.
-    if (Iterables.all(parameterStates, ParameterState::isUnknown)) {
-      return MethodState.unknown();
-    }
-
-    return new ConcreteMonomorphicMethodState(parameterStates);
+    // We simulate that the return value is used for methods with void return type. This ensures
+    // that we will widen the method state to unknown if/when all parameter states become unknown.
+    boolean isReturnValueUsed = invoke.getReturnType().isVoidType() || invoke.hasUsedOutValue();
+    return ConcreteMonomorphicMethodState.create(isReturnValueUsed, parameterStates);
   }
 
   // For receivers there is not much point in trying to track an abstract value. Therefore we only

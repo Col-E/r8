@@ -515,7 +515,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public void setRootSet(RootSet rootSet) {
-    assert this.rootSet == null : "Root set should never be recomputed";
     this.rootSet = rootSet;
   }
 
@@ -806,8 +805,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
             appView.setProguardCompatibilityActions(
                 appView.getProguardCompatibilityActions().rewrittenWithLens(lens));
           }
-          if (appView.getMainDexRootSet() != null) {
+          if (appView.hasMainDexRootSet()) {
             appView.setMainDexRootSet(appView.getMainDexRootSet().rewrittenWithLens(lens));
+          }
+          if (appView.hasRootSet()) {
+            appView.setRootSet(appView.rootSet().rewrittenWithLens(lens));
           }
         });
   }

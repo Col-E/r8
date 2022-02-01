@@ -83,7 +83,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
 
     @NeverInline
     public String greeting(String used) {
-      return used;
+      return System.currentTimeMillis() >= 0 ? used : null;
     }
   }
 

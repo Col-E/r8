@@ -11,6 +11,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRena
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.KeepUnusedReturnValue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -53,6 +54,7 @@ public class KeepDisallowAnnotationRemovalAllowOptimizationTest extends TestBase
         // In compatibility mode the rule above is a no-op.
         .allowUnusedProguardConfigurationRules(enableCompatibilityMode)
         .enableInliningAnnotations()
+        .enableKeepUnusedReturnValueAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -83,6 +85,7 @@ public class KeepDisallowAnnotationRemovalAllowOptimizationTest extends TestBase
       }
     }
 
+    @KeepUnusedReturnValue
     @NeverInline
     static Object getNonNull() {
       System.out.println("getNonNull()");

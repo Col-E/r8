@@ -386,38 +386,42 @@ public class LensCodeRewriter {
                 }
 
                 Instruction constantReturnMaterializingInstruction = null;
-                if (prototypeChanges.hasBeenChangedToReturnVoid() && invoke.hasOutValue()) {
-                  TypeAndLocalInfoSupplier typeAndLocalInfo =
-                      new TypeAndLocalInfoSupplier() {
-                        @Override
-                        public DebugLocalInfo getLocalInfo() {
-                          return invoke.getLocalInfo();
-                        }
+                if (invoke.hasOutValue()) {
+                  if (invoke.hasUnusedOutValue()) {
+                    invoke.clearOutValue();
+                  } else if (prototypeChanges.hasBeenChangedToReturnVoid()) {
+                    TypeAndLocalInfoSupplier typeAndLocalInfo =
+                        new TypeAndLocalInfoSupplier() {
+                          @Override
+                          public DebugLocalInfo getLocalInfo() {
+                            return invoke.getLocalInfo();
+                          }
 
-                        @Override
-                        public TypeElement getOutType() {
-                          return graphLens
-                              .lookupType(invokedMethod.getReturnType(), codeLens)
-                              .toTypeElement(appView);
-                        }
-                      };
-                  prototypeChanges.verifyConstantReturnAccessibleInContext(
-                      appView.withLiveness(), method, graphLens);
-                  constantReturnMaterializingInstruction =
-                      prototypeChanges.getConstantReturn(
-                          appView.withLiveness(),
-                          code,
-                          invoke.getPosition(),
-                          typeAndLocalInfo);
-                  if (invoke.outValue().hasLocalInfo()) {
-                    constantReturnMaterializingInstruction
+                          @Override
+                          public TypeElement getOutType() {
+                            return graphLens
+                                .lookupType(invokedMethod.getReturnType(), codeLens)
+                                .toTypeElement(appView);
+                          }
+                        };
+                    assert prototypeChanges.verifyConstantReturnAccessibleInContext(
+                        appView.withLiveness(), method, graphLens);
+                    constantReturnMaterializingInstruction =
+                        prototypeChanges.getConstantReturn(
+                            appView.withLiveness(), code, invoke.getPosition(), typeAndLocalInfo);
+                    if (invoke.outValue().hasLocalInfo()) {
+                      constantReturnMaterializingInstruction
+                          .outValue()
+                          .setLocalInfo(invoke.outValue().getLocalInfo());
+                    }
+                    invoke
                         .outValue()
-                        .setLocalInfo(invoke.outValue().getLocalInfo());
-                  }
-                  invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
-                  if (invoke.getOutType() != constantReturnMaterializingInstruction.getOutType()) {
-                    affectedPhis.addAll(
-                        constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
+                        .replaceUsers(constantReturnMaterializingInstruction.outValue());
+                    if (invoke.getOutType()
+                        != constantReturnMaterializingInstruction.getOutType()) {
+                      affectedPhis.addAll(
+                          constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
+                    }
                   }
                 }
 

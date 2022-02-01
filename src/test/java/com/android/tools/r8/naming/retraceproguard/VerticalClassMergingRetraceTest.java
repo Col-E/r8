@@ -25,8 +25,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,7 +32,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class VerticalClassMergingRetraceTest extends RetraceTestBase {
-  private Set<StackTraceLine> haveSeenLines = new HashSet<>();
 
   @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
@@ -136,7 +133,6 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   public void testNoLineNumberTable() throws Exception {
     assumeTrue(compat);
     assumeTrue(parameters.isDexRuntime());
-    haveSeenLines.clear();
     Box<MethodSubject> syntheticMethod = new Box<>();
     runTest(
         ImmutableList.of(),
@@ -171,8 +167,11 @@ class ResourceWrapper {
   // Will be merged down, and represented as:
   //     java.lang.String ...ResourceWrapper.foo() -> a
   @NeverInline
-  String foo() {
-    throw null;
+  String foo(boolean doThrow) {
+    if (doThrow) {
+      throw null;
+    }
+    return System.currentTimeMillis() > 0 ? "arg" : null;
   }
 }
 
@@ -181,6 +180,7 @@ class TintResources extends ResourceWrapper {}
 class MainApp {
   public static void main(String[] args) {
     TintResources t = new TintResources();
-    System.out.println(t.foo());
+    boolean doThrow = System.currentTimeMillis() > 0;
+    System.out.println(t.foo(doThrow));
   }
 }
