@@ -1286,7 +1286,6 @@ public class Inliner {
       Timing timing)
       throws ExecutionException {
     postMethodProcessorBuilder
-        .getMethodsToReprocessBuilder()
         .rewrittenWithLens(appView)
         .merge(
             singleInlineCallers

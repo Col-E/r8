@@ -667,7 +667,6 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     // the builders with the methods removed by the tree fixer (since these methods references are
     // already fully lens rewritten).
     postMethodProcessorBuilder
-        .getMethodsToReprocessBuilder()
         .rewrittenWithLens(appView)
         .removeAll(treeFixerResult.getPrunedItems().getRemovedMethods())
         .merge(

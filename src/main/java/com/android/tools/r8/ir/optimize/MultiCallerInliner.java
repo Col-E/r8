@@ -199,7 +199,6 @@ public class MultiCallerInliner {
     LongLivedProgramMethodSetBuilder<ProgramMethodSet> multiInlineCallers =
         timing.time("Needs inlining analysis", () -> computeMultiInlineCallerMethods(callGraph));
     postMethodProcessorBuilder
-        .getMethodsToReprocessBuilder()
         .rewrittenWithLens(appView)
         .merge(multiInlineCallers);
     timing.end();

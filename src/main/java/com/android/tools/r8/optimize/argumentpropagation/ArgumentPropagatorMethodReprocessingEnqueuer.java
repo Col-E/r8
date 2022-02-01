@@ -23,8 +23,6 @@ import com.android.tools.r8.optimize.argumentpropagation.reprocessingcriteria.Ar
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -59,19 +57,16 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
     // Bring the methods to reprocess set up-to-date with the current graph lens (i.e., the one
     // prior to the argument propagator lens, which has not yet been installed!).
     timing.begin("Rewrite methods to reprocess");
-    LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder =
-        postMethodProcessorBuilder
-            .getMethodsToReprocessBuilder()
-            .rewrittenWithLens(appView.graphLens());
+    postMethodProcessorBuilder.rewrittenWithLens(appView);
     timing.end();
 
     timing.begin("Enqueue methods with non-trivial info");
-    enqueueAffectedCallees(graphLens, methodsToReprocessBuilder);
+    enqueueAffectedCallees(graphLens, postMethodProcessorBuilder);
     timing.end();
 
     timing.begin("Enqueue affected methods");
     if (graphLens != null) {
-      enqueueAffectedCallers(graphLens, methodsToReprocessBuilder, executorService);
+      enqueueAffectedCallers(graphLens, postMethodProcessorBuilder, executorService);
     }
     timing.end();
 
@@ -80,7 +75,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
 
   private void enqueueAffectedCallees(
       ArgumentPropagatorGraphLens graphLens,
-      LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder) {
+      PostMethodProcessor.Builder postMethodProcessorBuilder) {
     GraphLens currentGraphLens = appView.graphLens();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethodMatching(
@@ -95,7 +90,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                   graphLens.internalGetNextMethodSignature(method.getReference());
               if (graphLens.hasPrototypeChanges(rewrittenMethodSignature)) {
                 assert !appView.appInfo().isNeverReprocessMethod(method);
-                methodsToReprocessBuilder.add(method, currentGraphLens);
+                postMethodProcessorBuilder.add(method, currentGraphLens);
                 appView.testing().callSiteOptimizationInfoInspector.accept(method);
                 return;
               }
@@ -107,7 +102,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
                     .getReprocessingCriteria(method)
                     .shouldReprocess(appView, method, callSiteOptimizationInfo)
                 && !appView.appInfo().isNeverReprocessMethod(method)) {
-              methodsToReprocessBuilder.add(method, currentGraphLens);
+              postMethodProcessorBuilder.add(method, currentGraphLens);
               appView.testing().callSiteOptimizationInfoInspector.accept(method);
             }
           });
@@ -119,7 +114,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
   //  methods as unoptimizable prior to removing parameters from the application.
   private void enqueueAffectedCallers(
       ArgumentPropagatorGraphLens graphLens,
-      LongLivedProgramMethodSetBuilder<ProgramMethodSet> methodsToReprocessBuilder,
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
       ExecutorService executorService)
       throws ExecutionException {
     GraphLens currentGraphLens = appView.graphLens();
@@ -131,7 +126,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
               clazz.forEachProgramMethodMatching(
                   DexEncodedMethod::hasCode,
                   method -> {
-                    if (!methodsToReprocessBuilder.contains(method, currentGraphLens)) {
+                    if (!postMethodProcessorBuilder.contains(method, currentGraphLens)) {
                       AffectedMethodUseRegistry registry =
                           new AffectedMethodUseRegistry(appView, method, graphLens);
                       if (method.registerCodeReferencesWithResult(registry)) {
@@ -145,7 +140,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
             executorService);
     methodsToReprocess.forEach(
         methodsToReprocessInClass ->
-            methodsToReprocessBuilder.addAll(methodsToReprocessInClass, currentGraphLens));
+            postMethodProcessorBuilder.addAll(methodsToReprocessInClass, currentGraphLens));
   }
 
   static class AffectedMethodUseRegistry extends UseRegistryWithResult<Boolean, ProgramMethod> {

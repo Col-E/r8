@@ -73,19 +73,48 @@ public class PostMethodProcessor extends MethodProcessorWithWave {
       methodsToReprocessBuilder.add(method);
     }
 
-    public LongLivedProgramMethodSetBuilder<ProgramMethodSet> getMethodsToReprocessBuilder() {
-      return methodsToReprocessBuilder;
+    public void add(ProgramMethod method, GraphLens currentGraphLens) {
+      methodsToReprocessBuilder.add(method, currentGraphLens);
+    }
+
+    public void addAll(Collection<ProgramMethod> methods, GraphLens currentGraphLens) {
+      methods.forEach(method -> add(method, currentGraphLens));
+    }
+
+    public boolean contains(ProgramMethod method, GraphLens currentGraphLens) {
+      return methodsToReprocessBuilder.contains(method, currentGraphLens);
+    }
+
+    public PostMethodProcessor.Builder merge(
+        LongLivedProgramMethodSetBuilder<ProgramMethodSet> otherMethodsToReprocessBuilder) {
+      methodsToReprocessBuilder.merge(otherMethodsToReprocessBuilder);
+      return this;
     }
 
     public void put(ProgramMethodSet methodsToRevisit) {
       methodsToRevisit.forEach(this::add);
     }
 
+    public void remove(ProgramMethod method, GraphLens graphLens) {
+      methodsToReprocessBuilder.remove(method.getReference(), graphLens);
+    }
+
+    public PostMethodProcessor.Builder removeAll(Collection<DexMethod> methods) {
+      methodsToReprocessBuilder.removeAll(methods);
+      return this;
+    }
+
     // Some optimizations may change methods, creating new instances of the encoded methods with a
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.
-    public void rewrittenWithLens(AppView<AppInfoWithLiveness> appView) {
+    public PostMethodProcessor.Builder rewrittenWithLens(AppView<AppInfoWithLiveness> appView) {
       methodsToReprocessBuilder.rewrittenWithLens(appView);
+      return this;
+    }
+
+    public PostMethodProcessor.Builder rewrittenWithLens(GraphLens graphLens) {
+      methodsToReprocessBuilder.rewrittenWithLens(graphLens);
+      return this;
     }
 
     PostMethodProcessor build(
