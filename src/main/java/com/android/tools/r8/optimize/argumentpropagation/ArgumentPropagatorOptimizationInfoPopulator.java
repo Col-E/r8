@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -51,8 +52,10 @@ import java.util.function.BiConsumer;
 public class ArgumentPropagatorOptimizationInfoPopulator {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final IRConverter converter;
   private final MethodStateCollectionByReference methodStates;
   private final InternalOptions options;
+  private final PostMethodProcessor.Builder postMethodProcessorBuilder;
 
   private final ImmediateProgramSubtypingInfo immediateSubtypingInfo;
   private final List<Set<DexProgramClass>> stronglyConnectedProgramComponents;
@@ -62,14 +65,18 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
 
   ArgumentPropagatorOptimizationInfoPopulator(
       AppView<AppInfoWithLiveness> appView,
+      IRConverter converter,
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       MethodStateCollectionByReference methodStates,
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram) {
     this.appView = appView;
+    this.converter = converter;
     this.immediateSubtypingInfo = immediateSubtypingInfo;
     this.methodStates = methodStates;
     this.options = appView.options();
+    this.postMethodProcessorBuilder = postMethodProcessorBuilder;
     this.stronglyConnectedProgramComponents = stronglyConnectedProgramComponents;
     this.interfaceDispatchOutsideProgram = interfaceDispatchOutsideProgram;
   }
@@ -78,8 +85,7 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
    * Computes an over-approximation of each parameter's value and type and stores the result in
    * {@link com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo}.
    */
-  void populateOptimizationInfo(
-      IRConverter converter, ExecutorService executorService, Timing timing)
+  void populateOptimizationInfo(ExecutorService executorService, Timing timing)
       throws ExecutionException {
     // TODO(b/190154391): Propagate argument information to handle virtual dispatch.
     // TODO(b/190154391): To deal with arguments that are themselves passed as arguments to invoke
@@ -151,13 +157,13 @@ public class ArgumentPropagatorOptimizationInfoPopulator {
   }
 
   private void setOptimizationInfo(ProgramMethod method) {
-    MethodState methodState = methodStates.removeOrElse(method, null);
-    if (methodState == null) {
-      return;
-    }
-
+    MethodState methodState = methodStates.remove(method);
     if (methodState.isBottom()) {
-      method.convertToAbstractOrThrowNullMethod(appView);
+      if (method.getDefinition().hasCode() && !method.getDefinition().isClassInitializer()) {
+        method.convertToAbstractOrThrowNullMethod(appView);
+        converter.onMethodCodePruned(method);
+        postMethodProcessorBuilder.remove(method, appView.graphLens());
+      }
       return;
     }
 

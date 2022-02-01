@@ -690,6 +690,9 @@ public class IRConverter {
 
     // Analyze the data collected by the argument propagator, use the analysis result to update
     // the parameter optimization infos, and rewrite the application.
+    // TODO(b/199237357): Automatically rewrite state when lens changes.
+    enumUnboxer.rewriteWithLens();
+    outliner.rewriteWithLens();
     appView.withArgumentPropagator(
         argumentPropagator ->
             argumentPropagator.tearDownCodeScanner(

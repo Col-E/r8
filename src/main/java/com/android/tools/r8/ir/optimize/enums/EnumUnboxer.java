@@ -46,6 +46,7 @@ public abstract class EnumUnboxer {
   public abstract Set<Phi> rewriteCode(
       IRCode code, MethodProcessor methodProcessor, RewrittenPrototypeDescription prototypeChanges);
 
+  public abstract void rewriteWithLens();
 
   public abstract void unboxEnums(
       AppView<AppInfoWithLiveness> appView,

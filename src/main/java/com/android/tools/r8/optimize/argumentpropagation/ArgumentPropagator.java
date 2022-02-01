@@ -171,6 +171,7 @@ public class ArgumentPropagator {
                   stronglyConnectedProgramComponent, (unused) -> DexMethodSignatureSet.create())
               .add(signature);
         },
+        postMethodProcessorBuilder,
         executorService,
         timing);
 
@@ -205,6 +206,7 @@ public class ArgumentPropagator {
       ImmediateProgramSubtypingInfo immediateSubtypingInfo,
       List<Set<DexProgramClass>> stronglyConnectedProgramComponents,
       BiConsumer<Set<DexProgramClass>, DexMethodSignature> interfaceDispatchOutsideProgram,
+      PostMethodProcessor.Builder postMethodProcessorBuilder,
       ExecutorService executorService,
       Timing timing)
       throws ExecutionException {
@@ -214,14 +216,18 @@ public class ArgumentPropagator {
     appView.testing().argumentPropagatorEventConsumer.acceptCodeScannerResult(codeScannerResult);
     codeScanner = null;
 
+    postMethodProcessorBuilder.rewrittenWithLens(appView);
+
     timing.begin("Compute optimization info");
     new ArgumentPropagatorOptimizationInfoPopulator(
             appView,
+            converter,
             immediateSubtypingInfo,
             codeScannerResult,
+            postMethodProcessorBuilder,
             stronglyConnectedProgramComponents,
             interfaceDispatchOutsideProgram)
-        .populateOptimizationInfo(converter, executorService, timing);
+        .populateOptimizationInfo(executorService, timing);
     timing.end();
 
     timing.begin("Compute unused arguments");

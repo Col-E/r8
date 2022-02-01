@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 public class EnumUnboxingCandidateInfoCollection {
 
   private final Map<DexType, EnumUnboxingCandidateInfo> enumTypeToInfo = new ConcurrentHashMap<>();
-  private final Set<DexMethod> prunedMethods = Sets.newIdentityHashSet();
+  private final Set<DexMethod> prunedMethods = Sets.newConcurrentHashSet();
 
   public void addCandidate(
       AppView<AppInfoWithLiveness> appView,

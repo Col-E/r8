@@ -29,7 +29,7 @@ public class ReflectiveNewInstanceTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ReflectiveNewInstanceTest(TestParameters parameters) {
@@ -57,7 +57,7 @@ public class ReflectiveNewInstanceTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableGraphInspector()
             .enableUnusedArgumentAnnotations()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutputAfterR8)
             .graphInspector();

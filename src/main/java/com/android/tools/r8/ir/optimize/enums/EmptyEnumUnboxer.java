@@ -66,6 +66,11 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
   }
 
   @Override
+  public void rewriteWithLens() {
+    // Intentionally empty.
+  }
+
+  @Override
   public void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,

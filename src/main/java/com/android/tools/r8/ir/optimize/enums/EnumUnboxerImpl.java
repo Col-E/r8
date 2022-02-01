@@ -605,6 +605,12 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   }
 
   @Override
+  public void rewriteWithLens() {
+    methodsDependingOnLibraryModelisation =
+        methodsDependingOnLibraryModelisation.rewrittenWithLens(appView.graphLens());
+  }
+
+  @Override
   public void unboxEnums(
       AppView<AppInfoWithLiveness> appView,
       IRConverter converter,
