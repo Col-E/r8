@@ -7,8 +7,6 @@ package com.android.tools.r8.shaking.clinit;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -59,13 +57,9 @@ public class ClassInitializationTriggersIndirectInterfaceInitializationTest exte
                 assertThat(iClassSubject, isPresent());
                 assertThat(iClassSubject.clinit(), isPresent());
 
-                // Verify that J is still there.
-                assertThat(jClassSubject, isPresent());
-
-                // Verify that A still implements J.
-                assertThat(aClassSubject, isPresent());
-                assertEquals(1, aClassSubject.getDexProgramClass().getInterfaces().size());
-                assertTrue(aClassSubject.isImplementing(jClassSubject));
+                // Verify that J and A are pruned.
+                assertThat(jClassSubject, isAbsent());
+                assertThat(aClassSubject, isAbsent());
               } else {
                 // All interfaces are gone and the default methods companion call is inlined.
                 assertThat(iClassSubject, isAbsent());
