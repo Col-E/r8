@@ -11,6 +11,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.KeepUnusedReturnValue;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -53,40 +55,53 @@ public class B124357885Test extends TestBase {
   public void test() throws Exception {
     R8TestCompileResult compileResult =
         testForR8Compat(parameters.getBackend())
-            .addProgramClasses(Main.class, Service.class, Foo.class, FooImpl.class)
+            .addProgramClasses(Main.class, Foo.class, FooImpl.class)
             .addKeepMainRule(Main.class)
             .addKeepAttributes(
                 ProguardKeepAttributes.SIGNATURE,
                 ProguardKeepAttributes.INNER_CLASSES,
                 ProguardKeepAttributes.ENCLOSING_METHOD)
+            .applyIf(
+                minification,
+                testBuilder ->
+                    testBuilder.addKeepRules(
+                        "-keep,allowoptimization,allowshrinking class "
+                            + Main.class.getTypeName()
+                            + " { *** test(); }"))
+            .enableInliningAnnotations()
+            .enableKeepUnusedReturnValueAnnotations()
             .minification(minification)
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(
                 inspector -> {
-                  assertThat(inspector.clazz(Main.class), isPresentAndNotRenamed());
+                  ClassSubject mainClass = inspector.clazz(Main.class);
+                  assertThat(mainClass, isPresentAndNotRenamed());
                   assertThat(inspector.clazz(Foo.class), not(isPresent()));
                   assertThat(inspector.clazz(FooImpl.class), isPresentAndRenamed(minification));
-                  ClassSubject serviceClass = inspector.clazz(Service.class);
-                  assertThat(serviceClass, isPresentAndRenamed(minification));
-                  // TODO(124477502): Using uniqueMethodWithName("fooList") does not work.
-                  assertEquals(1, serviceClass.allMethods().size());
-                  MethodSubject fooList = serviceClass.allMethods().get(0);
-                  assertThat(fooList, isPresent());
+                  // TODO(124477502): Using uniqueMethodWithName("test") does not work.
+                  MethodSubject testMethod =
+                      mainClass.uniqueMethodThatMatches(
+                          method ->
+                              method.isStatic()
+                                  && !method.getMethod().getName().toString().equals("main"));
+                  assertThat(testMethod, isPresent());
                   checkSignature(
-                      inspector, fooList.asFoundMethodSubject().getFinalSignatureAttribute());
+                      inspector, testMethod.asFoundMethodSubject().getFinalSignatureAttribute());
                 });
 
     String fooImplFinalName = compileResult.inspector().clazz(FooImpl.class).getFinalName();
 
     compileResult
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(StringUtils.lines(fooImplFinalName, fooImplFinalName));
+        .assertSuccessWithOutput(
+            StringUtils.lines(fooImplFinalName, fooImplFinalName, "Hello world!"));
   }
 
   public static class Main {
     public static void main(String... args) throws Exception {
-      Method method = Service.class.getMethod("fooList");
+      String methodName = System.currentTimeMillis() >= 0 ? "test" : null;
+      Method method = Main.class.getDeclaredMethod(methodName);
 
       try {
         ParameterizedType type = (ParameterizedType) method.getGenericReturnType();
@@ -99,11 +114,17 @@ public class B124357885Test extends TestBase {
       // Convince R8 we only use subtypes to get class merging of Foo into FooImpl.
       Foo<String> foo = new FooImpl<>();
       System.out.println(foo.getClass().getCanonicalName());
-    }
-  }
 
-  interface Service {
-    Foo<String> fooList();
+      // Ensure test() remains in output.
+      test();
+    }
+
+    @NeverInline
+    @KeepUnusedReturnValue
+    static Foo<String> test() {
+      System.out.println("Hello world!");
+      return new FooImpl<>();
+    }
   }
 
   interface Foo<T> {}

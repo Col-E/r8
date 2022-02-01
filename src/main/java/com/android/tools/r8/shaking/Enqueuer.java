@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
@@ -48,6 +49,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
@@ -142,6 +144,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.android.tools.r8.utils.collections.ProgramFieldSet;
 import com.android.tools.r8.utils.collections.ProgramMethodMap;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -764,12 +767,14 @@ public class Enqueuer {
     return getProgramClassOrNull(member.getHolderType(), context);
   }
 
+  private DexClass getClassOrNullFromReflectiveAccess(DexType type, ProgramDefinition context) {
+    // To avoid that we report reflectively accessed types as missing.
+    return definitionFor(type, context, this::recordNonProgramClass, this::ignoreMissingClass);
+  }
+
   private DexProgramClass getProgramClassOrNullFromReflectiveAccess(
       DexType type, ProgramDefinition context) {
-    // To avoid that we report reflectively accessed types as missing.
-    DexClass clazz =
-        definitionFor(type, context, this::recordNonProgramClass, this::ignoreMissingClass);
-    return clazz != null && clazz.isProgramClass() ? clazz.asProgramClass() : null;
+    return asProgramClassOrNull(getClassOrNullFromReflectiveAccess(type, context));
   }
 
   private void warnIfLibraryTypeInheritsFromProgramType(DexLibraryClass clazz) {
@@ -858,6 +863,8 @@ public class Enqueuer {
         }
         if (clazz.isExternalizable(appView)) {
           workList.enqueueMarkMethodLiveAction(defaultInitializer, defaultInitializer, witness);
+          applyMinimumKeepInfoWhenLiveOrTargeted(
+              defaultInitializer, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
         }
       }
     }
@@ -899,6 +906,9 @@ public class Enqueuer {
     }
     if (clazz.hasDefaultInitializer()) {
       workList.enqueueMarkMethodLiveAction(clazz.getProgramDefaultInitializer(), clazz, reason);
+      applyMinimumKeepInfoWhenLiveOrTargeted(
+          clazz.getProgramDefaultInitializer(),
+          KeepMethodInfo.newEmptyJoiner().disallowOptimization());
     }
   }
 
@@ -3232,9 +3242,7 @@ public class Enqueuer {
                   applyMinimumKeepInfoWhenLive(clazz, preconditionEvent, minimumKeepInfo),
               (field, minimumKeepInfo) ->
                   applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfo),
-              (method, minimumKeepInfo) ->
-                  applyMinimumKeepInfoWhenLiveOrTargeted(
-                      method, preconditionEvent, minimumKeepInfo));
+              this::applyMinimumKeepInfoWhenLiveOrTargeted);
     }
     enqueueAllIfNotShrinking();
     trace(executorService, timing);
@@ -3373,8 +3381,14 @@ public class Enqueuer {
 
   private void applyMinimumKeepInfoWhenLiveOrTargeted(
       ProgramMethod method,
-      EnqueuerEvent preconditionEvent,
       KeepMethodInfo.Joiner minimumKeepInfo) {
+    applyMinimumKeepInfoWhenLiveOrTargeted(method, minimumKeepInfo, EnqueuerEvent.unconditional());
+  }
+
+  private void applyMinimumKeepInfoWhenLiveOrTargeted(
+      ProgramMethod method,
+      KeepMethodInfo.Joiner minimumKeepInfo,
+      EnqueuerEvent preconditionEvent) {
     if (liveMethods.contains(method) || targetedMethods.contains(method)) {
       keepInfo.joinMethod(method, info -> info.merge(minimumKeepInfo));
     } else {
@@ -3405,7 +3419,7 @@ public class Enqueuer {
       ProgramMethod method,
       KeepMethodInfo.Joiner minimumKeepInfo) {
     if (isPreconditionForMinimumKeepInfoSatisfied(preconditionEvent)) {
-      applyMinimumKeepInfoWhenLiveOrTargeted(method, preconditionEvent, minimumKeepInfo);
+      applyMinimumKeepInfoWhenLiveOrTargeted(method, minimumKeepInfo, preconditionEvent);
     } else {
       dependentMinimumKeepInfo
           .getOrCreateMinimumKeepInfoFor(preconditionEvent)
@@ -3429,7 +3443,7 @@ public class Enqueuer {
               applyMinimumKeepInfoWhenLive(field, preconditionEvent, minimumKeepInfoForField),
           (method, minimumKeepInfoForMethod) ->
               applyMinimumKeepInfoWhenLiveOrTargeted(
-                  method, preconditionEvent, minimumKeepInfoForMethod));
+                  method, minimumKeepInfoForMethod, preconditionEvent));
     }
   }
 
@@ -3480,10 +3494,6 @@ public class Enqueuer {
       assert old == null || old == clazz;
     }
 
-    public void addLiveMethods(Iterable<ProgramMethod> methods) {
-      methods.forEach(this::addLiveMethod);
-    }
-
     public void addLiveMethod(ProgramMethod method) {
       DexMethod signature = method.getDefinition().getReference();
       ProgramMethod old = liveMethods.put(signature, method);
@@ -3498,18 +3508,6 @@ public class Enqueuer {
       Set<DexClass> newInterfaces =
           injectedInterfaces.computeIfAbsent(clazz, ignored -> Sets.newConcurrentHashSet());
       newInterfaces.add(newInterface);
-    }
-
-    void addLiveMethodWithKeepAction(
-        ProgramMethod method, Consumer<KeepMethodInfo.Joiner> keepAction) {
-      addLiveMethod(method);
-      liveMethodsWithKeepActions.add(new Pair<>(method, keepAction));
-    }
-
-    public ProgramMethodSet getLiveMethods() {
-      ProgramMethodSet set = ProgramMethodSet.create();
-      liveMethods.values().forEach(set::add);
-      return set;
     }
 
     public void addMinimumKeepInfo(ProgramMethod method, Consumer<KeepMethodInfo.Joiner> consumer) {
@@ -3543,8 +3541,7 @@ public class Enqueuer {
 
       minimumKeepInfo.forEach(
           (method, minimumKeepInfoForMethod) ->
-              enqueuer.applyMinimumKeepInfoWhenLiveOrTargeted(
-                  method, UnconditionalKeepInfoEvent.get(), minimumKeepInfoForMethod));
+              enqueuer.applyMinimumKeepInfoWhenLiveOrTargeted(method, minimumKeepInfoForMethod));
     }
   }
 
@@ -4531,18 +4528,19 @@ public class Enqueuer {
       if (clazz == null) {
         return;
       }
-      DexEncodedMethod targetedMethodDefinition = clazz.lookupMethod(targetedMethodReference);
-      if (targetedMethodDefinition == null) {
+      ProgramMethod targetedMethod = clazz.lookupProgramMethod(targetedMethodReference);
+      if (targetedMethod == null) {
         return;
       }
-      ProgramMethod targetedMethod = new ProgramMethod(clazz, targetedMethodDefinition);
       KeepReason reason = KeepReason.reflectiveUseIn(method);
-      if (targetedMethodDefinition.isStatic() || targetedMethodDefinition.isInstanceInitializer()) {
+      if (targetedMethod.getDefinition().belongsToDirectPool()) {
         markMethodAsTargeted(targetedMethod, reason);
         markDirectStaticOrConstructorMethodAsLive(targetedMethod, reason);
       } else {
         markVirtualMethodAsLive(targetedMethod, reason);
       }
+      applyMinimumKeepInfoWhenLiveOrTargeted(
+          targetedMethod, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
     }
   }
 
@@ -4572,6 +4570,8 @@ public class Enqueuer {
       markClassAsInstantiatedWithReason(clazz, reason);
       markMethodAsTargeted(defaultInitializer, reason);
       markDirectStaticOrConstructorMethodAsLive(defaultInitializer, reason);
+      applyMinimumKeepInfoWhenLiveOrTargeted(
+          defaultInitializer, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
     }
   }
 
@@ -4673,6 +4673,8 @@ public class Enqueuer {
       markClassAsInstantiatedWithReason(clazz, reason);
       markMethodAsTargeted(initializer, reason);
       markDirectStaticOrConstructorMethodAsLive(initializer, reason);
+      applyMinimumKeepInfoWhenLiveOrTargeted(
+          initializer, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
     }
   }
 
@@ -4795,6 +4797,7 @@ public class Enqueuer {
       DexType serviceType, ProgramMethod context, KeepReason reason) {
     List<DexType> serviceImplementationTypes =
         appView.appServices().serviceImplementationsFor(serviceType);
+    DexMethodSignatureSet serviceMethods = getServiceMethods(serviceType, context);
     for (DexType serviceImplementationType : serviceImplementationTypes) {
       if (!serviceImplementationType.isClassType()) {
         // Should never happen.
@@ -4803,10 +4806,44 @@ public class Enqueuer {
 
       DexProgramClass serviceImplementationClass =
           getProgramClassOrNull(serviceImplementationType, context);
-      if (serviceImplementationClass != null && serviceImplementationClass.isProgramClass()) {
-        markClassAsInstantiatedWithReason(serviceImplementationClass, reason);
+      if (serviceImplementationClass == null) {
+        continue;
+      }
+
+      markClassAsInstantiatedWithReason(serviceImplementationClass, reason);
+
+      ProgramMethod defaultInitializer = serviceImplementationClass.getProgramDefaultInitializer();
+      if (defaultInitializer != null) {
+        applyMinimumKeepInfoWhenLiveOrTargeted(
+            defaultInitializer, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
+      }
+
+      for (DexMethodSignature serviceMethod : serviceMethods) {
+        ProgramMethod serviceImplementationMethod =
+            asProgramMethodOrNull(
+                serviceImplementationClass.getMethodCollection().getMethod(serviceMethod),
+                serviceImplementationClass);
+        if (serviceImplementationMethod != null) {
+          applyMinimumKeepInfoWhenLiveOrTargeted(
+              serviceImplementationMethod, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
+        }
       }
     }
+  }
+
+  private DexMethodSignatureSet getServiceMethods(DexType serviceType, ProgramMethod context) {
+    DexMethodSignatureSet serviceMethods = DexMethodSignatureSet.create();
+    WorkList<DexType> serviceTypes = WorkList.newIdentityWorkList(serviceType);
+    while (serviceTypes.hasNext()) {
+      DexType current = serviceTypes.next();
+      DexClass clazz = getClassOrNullFromReflectiveAccess(current, context);
+      if (clazz == null) {
+        continue;
+      }
+      clazz.forEachClassMethodMatching(DexEncodedMethod::belongsToVirtualPool, serviceMethods::add);
+      serviceTypes.addIfNotSeen(clazz.getInterfaces());
+    }
+    return serviceMethods;
   }
 
   private static class SetWithReportedReason<T> {

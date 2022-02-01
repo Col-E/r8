@@ -12,6 +12,10 @@ import com.android.tools.r8.graph.GraphLens;
 
 public abstract class EnqueuerEvent {
 
+  public static UnconditionalKeepInfoEvent unconditional() {
+    return UnconditionalKeepInfoEvent.get();
+  }
+
   public DexDefinition getDefinition(DexDefinitionSupplier definitions) {
     return null;
   }

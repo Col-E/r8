@@ -167,6 +167,10 @@ public class MethodCollection {
     return backing.getMethod(methodProto, methodName);
   }
 
+  public final DexEncodedMethod getMethod(DexMethodSignature method) {
+    return getMethod(method.getProto(), method.getName());
+  }
+
   public DexEncodedMethod getMethod(Predicate<DexEncodedMethod> predicate) {
     DexEncodedMethod result = backing.getDirectMethod(predicate);
     return result != null ? result : backing.getVirtualMethod(predicate);

@@ -411,6 +411,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public static ProgramMethod asProgramMethodOrNull(
+      DexEncodedMethod method, DexProgramClass holder) {
+    return method != null ? method.asProgramMethod(holder) : null;
+  }
+
+  public static ProgramMethod asProgramMethodOrNull(
       DexEncodedMethod method, DexDefinitionSupplier definitions) {
     return method != null ? method.asProgramMethod(definitions) : null;
   }
