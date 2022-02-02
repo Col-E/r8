@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.InstructionEffect.NO_EFFECT;
 import static com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.InstructionEffect.OTHER_EFFECT;
 import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
@@ -11,10 +12,12 @@ import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.DFSNodeWithState;
 import com.android.tools.r8.utils.DepthFirstSearchWorkListBase.StatefulDepthFirstSearchWorkList;
 import com.android.tools.r8.utils.IntBox;
@@ -201,6 +204,10 @@ public class SimpleDominatingEffectAnalysis {
       return result.isNotSatisfied();
     }
 
+    public boolean isSatisfied() {
+      return result.isSatisfied();
+    }
+
     public boolean isPartial() {
       return result.isPartial();
     }
@@ -324,6 +331,37 @@ public class SimpleDominatingEffectAnalysis {
             return InstructionEffect.fromBoolean(!instruction.getBlock().hasCatchHandlers());
           }
           return instruction.instructionMayHaveSideEffects(appView, context)
+              ? OTHER_EFFECT
+              : NO_EFFECT;
+        });
+  }
+
+  public static SimpleEffectAnalysisResult triggersClassInitializationBeforeAnyStaticRead(
+      AppView<AppInfoWithLiveness> appView, IRCode code) {
+    assert code.context().getDefinition().isStatic();
+    ProgramMethod context = code.context();
+    return run(
+        code,
+        instruction -> {
+          if (instruction.definitelyTriggersClassInitialization(
+              context.getHolderType(),
+              context,
+              appView,
+              DIRECTLY,
+              AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
+            // In order to preserve class initialization semantic, the exception must not be caught
+            // by any handler. Therefore, we must ignore this instruction if it is covered by a
+            // catch handler.
+            // Note: this is a conservative approach where we consider that any catch handler could
+            // catch the exception, even if it cannot catch an ExceptionInInitializerError.
+            return InstructionEffect.fromBoolean(!instruction.getBlock().hasCatchHandlers());
+          }
+          // A static field can be updated by a static initializer and then accessed by an instance
+          // method. This is a problem if we later see DESIRED_EFFECT. The check for any instance
+          // method is quite conservative.
+          // TODO(b/217530538): Track if instance methods is accessing static fields.
+          return instruction.isInvokeMethodWithReceiver()
+                  || instruction.instructionMayHaveSideEffects(appView, context)
               ? OTHER_EFFECT
               : NO_EFFECT;
         });

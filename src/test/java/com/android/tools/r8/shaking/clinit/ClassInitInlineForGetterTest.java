@@ -19,7 +19,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class ClassInitInlineForGetterTest extends TestBase {
 
   private static final String EXPECTED = "Hello World";
-  private static final String R8_RESULT = "Goodbye World";
 
   @Parameter() public TestParameters parameters;
 
@@ -46,7 +45,7 @@ public class ClassInitInlineForGetterTest extends TestBase {
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(R8_RESULT);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @NeverClassInline

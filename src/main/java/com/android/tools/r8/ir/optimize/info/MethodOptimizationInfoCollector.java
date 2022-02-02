@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.info;
 
-import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 import static com.android.tools.r8.ir.code.Opcodes.ADD;
 import static com.android.tools.r8.ir.code.Opcodes.AND;
@@ -55,7 +54,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.inlining.SimpleInliningConstraintAnalysis;
@@ -89,6 +87,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
+import com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis;
+import com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.SimpleEffectAnalysisResult;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.ClassInlinerMethodConstraintAnalysis;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
@@ -540,43 +540,12 @@ public class MethodOptimizationInfoCollector {
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
+      SimpleEffectAnalysisResult simpleEffectAnalysisResult =
+          SimpleDominatingEffectAnalysis.triggersClassInitializationBeforeAnyStaticRead(
+              appView, code);
       feedback.markTriggerClassInitBeforeAnySideEffect(
-          method, triggersClassInitializationBeforeSideEffect(code));
+          method, simpleEffectAnalysisResult.isSatisfied());
     }
-  }
-
-  /**
-   * Returns true if the given code unconditionally triggers class initialization before any other
-   * side effecting instruction.
-   *
-   * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
-   */
-  private boolean triggersClassInitializationBeforeSideEffect(IRCode code) {
-    return alwaysTriggerExpectedEffectBeforeAnythingElse(
-        code,
-        (instruction, it) -> {
-          ProgramMethod context = code.context();
-          if (instruction.definitelyTriggersClassInitialization(
-              context.getHolderType(),
-              context,
-              appView,
-              DIRECTLY,
-              AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
-            // In order to preserve class initialization semantic, the exception must not be caught
-            // by any handler. Therefore, we must ignore this instruction if it is covered by a
-            // catch handler.
-            // Note: this is a conservative approach where we consider that any catch handler could
-            // catch the exception, even if it cannot catch an ExceptionInInitializerError.
-            if (!instruction.getBlock().hasCatchHandlers()) {
-              // We found an instruction that preserves initialization of the class.
-              return InstructionEffect.DESIRED_EFFECT;
-            }
-          } else if (instruction.instructionMayHaveSideEffects(appView, context)) {
-            // We found a side effect before class initialization.
-            return InstructionEffect.OTHER_EFFECT;
-          }
-          return InstructionEffect.NO_EFFECT;
-        });
   }
 
   /**

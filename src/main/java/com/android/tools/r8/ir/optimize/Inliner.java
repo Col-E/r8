@@ -10,7 +10,6 @@ import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.androidapi.AvailableApiExceptions;
 import com.android.tools.r8.graph.AccessFlags;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -544,9 +543,8 @@ public class Inliner {
     }
 
     InlineeWithReason buildInliningIR(
-        AppView<? extends AppInfoWithClassHierarchy> appView,
+        AppView<AppInfoWithLiveness> appView,
         InvokeMethod invoke,
-        ProgramMethod context,
         InliningIRProvider inliningIRProvider,
         LensCodeRewriter lensCodeRewriter) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -715,12 +713,10 @@ public class Inliner {
 
     private void synthesizeInitClass(IRCode code) {
       List<Value> arguments = code.collectArguments();
-      BasicBlock entryBlock = code.entryBlock();
-
+      BasicBlock block = code.entryBlock();
       // Insert a new block between the last argument instruction and the first actual instruction
       // of the method.
-      BasicBlock initClassBlock =
-          entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
+      BasicBlock initClassBlock = block.listIterator(code, arguments.size()).split(code, 0, null);
       assert !initClassBlock.hasCatchHandlers();
 
       InstructionListIterator iterator = initClassBlock.listIterator(code);
@@ -1018,8 +1014,7 @@ public class Inliner {
           }
 
           InlineeWithReason inlinee =
-              action.buildInliningIR(
-                  appView, invoke, context, inliningIRProvider, lensCodeRewriter);
+              action.buildInliningIR(appView, invoke, inliningIRProvider, lensCodeRewriter);
           if (strategy.willExceedBudget(
               code, invoke, inlinee, block, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
