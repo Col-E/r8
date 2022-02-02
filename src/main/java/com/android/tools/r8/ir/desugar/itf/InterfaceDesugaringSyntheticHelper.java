@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowNullCode;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
@@ -42,7 +43,6 @@ import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
@@ -107,17 +107,6 @@ public class InterfaceDesugaringSyntheticHelper {
     return appView.rewritePrefix.hasRewrittenType(clazz.type, appView);
   }
 
-  boolean dontRewrite(DexClassAndMethod method) {
-    for (Pair<DexType, DexString> dontRewrite :
-        appView.options().desugaredLibrarySpecification.getDontRewriteInvocation()) {
-      if (method.getHolderType() == dontRewrite.getFirst()
-          && method.getName() == dontRewrite.getSecond()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   final boolean isCompatibleDefaultMethod(DexEncodedMethod method) {
     assert !method.accessFlags.isConstructor();
     assert !method.accessFlags.isStatic();
@@ -147,16 +136,6 @@ public class InterfaceDesugaringSyntheticHelper {
   DexMethod emulatedInterfaceInterfaceMethod(DerivedMethod method) {
     assert method.getHolderKind() == null;
     return method.getMethod();
-  }
-
-  DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {
-    if (method.getHolderKind() == null) {
-      return method.getMethod();
-    }
-    assert method.getHolderKind() == SyntheticKind.COMPANION_CLASS;
-    DexClassAndMethod resolvedMethod =
-        appView.appInfoForDesugaring().resolveMethod(method.getMethod(), true).getResolutionPair();
-    return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
   }
 
   public static String getCompanionClassDescriptor(String descriptor) {
@@ -202,16 +181,92 @@ public class InterfaceDesugaringSyntheticHelper {
             SyntheticClassBuilder::setInterface);
   }
 
-  DexClassAndMethod ensureEmulatedInterfaceMethod(
-      DexClassAndMethod method, ClasspathEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
+  DexClassAndMethod lookupMaximallySpecificIncludingSelf(
+      DexClass initialResolutionHolder, DexClassAndMethod method) {
+    assert method.getHolderType().isClassType();
+    if (method.getHolder().isInterface()) {
+      return method;
+    }
+    return appView
+        .appInfoForDesugaring()
+        .lookupMaximallySpecificMethod(initialResolutionHolder, method.getReference());
+  }
+
+  EmulatedDispatchMethodDescriptor getEmulatedDispatchDescriptor(
+      DexClass initialResolutionHolder, DexClassAndMethod method) {
+    if (method == null) {
+      return null;
+    }
+    assert initialResolutionHolder != null;
+    // Outside L8 compilation, only library methods can lead to emulated interface dispatch.
+    if (!method.isLibraryMethod() && !appView.options().isDesugaredLibraryCompilation()) {
+      return null;
+    }
+    DexClassAndMethod maximallySpecificMethod =
+        lookupMaximallySpecificIncludingSelf(initialResolutionHolder, method);
+    if (maximallySpecificMethod == null) {
+      return null;
+    }
     EmulatedDispatchMethodDescriptor descriptor =
         appView
             .options()
             .machineDesugaredLibrarySpecification
-            .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(method.getReference());
-    assert descriptor != null;
-    DerivedMethod derivedMethod = descriptor.getEmulatedDispatchMethod();
-    assert derivedMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
+            .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(
+                maximallySpecificMethod.getReference());
+    if (!appView.options().isDesugaredLibraryCompilation()) {
+      return descriptor;
+    }
+    return requiresEmulatedDispatchInL8(method, descriptor) ? descriptor : null;
+  }
+
+  private boolean requiresEmulatedDispatchInL8(
+      DexClassAndMethod method, EmulatedDispatchMethodDescriptor descriptor) {
+    return method.isLibraryMethod()
+        || isEmulatedInterface(method.getHolderType())
+        || (descriptor != null
+            && descriptor.getDispatchCases().containsKey(method.getHolderType()));
+  }
+
+  DerivedMethod computeEmulatedInterfaceDispatchMethod(MethodResolutionResult resolutionResult) {
+    EmulatedDispatchMethodDescriptor descriptor =
+        getEmulatedDispatchDescriptor(
+            resolutionResult.getInitialResolutionHolder(), resolutionResult.getResolutionPair());
+    return descriptor == null ? null : descriptor.getEmulatedDispatchMethod();
+  }
+
+  DerivedMethod computeEmulatedInterfaceForwardingMethod(
+      DexClass initialResolutionHolder, DexClassAndMethod method) {
+    EmulatedDispatchMethodDescriptor descriptor =
+        getEmulatedDispatchDescriptor(initialResolutionHolder, method);
+    if (descriptor == null) {
+      return null;
+    }
+    DerivedMethod forwardingMethod = descriptor.getDispatchCases().get(method.getHolderType());
+    return forwardingMethod != null ? forwardingMethod : descriptor.getForwardingMethod();
+  }
+
+  DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {
+    if (method.getHolderKind() == null) {
+      return method.getMethod();
+    }
+    assert method.getHolderKind() == SyntheticKind.COMPANION_CLASS;
+    DexClassAndMethod resolvedMethod =
+        appView.appInfoForDesugaring().resolveMethod(method.getMethod(), true).getResolutionPair();
+    assert resolvedMethod != null;
+    return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
+  }
+
+  DexClassAndMethod ensureEmulatedInterfaceDispatchMethod(
+      DerivedMethod emulatedDispatchMethod,
+      ClasspathEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
+    assert emulatedDispatchMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
+    DexClassAndMethod method =
+        appView
+            .appInfoForDesugaring()
+            .resolveMethod(emulatedDispatchMethod.getMethod(), true)
+            .getResolutionPair();
+    assert method != null;
+    assert emulatedDispatchMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
     if (method.isProgramMethod()) {
       assert appView.options().isDesugaredLibraryCompilation();
       DexProgramClass emulatedInterface =
@@ -222,13 +277,14 @@ public class InterfaceDesugaringSyntheticHelper {
                   method.asProgramMethod().getHolder(),
                   appView);
       DexMethod emulatedInterfaceMethod =
-          emulatedInterfaceDispatchMethod(derivedMethod, emulatedInterface.type);
+          emulatedInterfaceDispatchMethod(emulatedDispatchMethod, emulatedInterface.type);
       assert emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod) != null;
       return emulatedInterface.lookupProgramMethod(emulatedInterfaceMethod);
     }
     // The holder is not used.
     DexMethod emulatedInterfaceMethod =
-        emulatedInterfaceDispatchMethod(derivedMethod, appView.dexItemFactory().objectType);
+        emulatedInterfaceDispatchMethod(
+            emulatedDispatchMethod, appView.dexItemFactory().objectType);
     return appView
         .getSyntheticItems()
         .ensureFixedClasspathClassMethod(
