@@ -60,7 +60,11 @@ public class AndroidApiVersionsXmlParser {
       String type = DescriptorUtils.getJavaTypeFromBinaryName(getName(node));
       ClassSubject clazz = inspector.clazz(type);
       if (!clazz.isPresent()) {
-        // TODO(b/190326408): Investigate why the class is not present.
+        if (!clazz.getOriginalName().startsWith("android.test")
+            && !clazz.getOriginalName().startsWith("junit")) {
+          assert hasRemoved(node);
+          assert getRemoved(node).isLessThanOrEqualTo(maxApiLevel);
+        }
         continue;
       }
       ClassReference originalReference = clazz.getOriginalReference();
@@ -77,7 +81,6 @@ public class AndroidApiVersionsXmlParser {
               Reference.classFromBinaryName(getName(memberNode)),
               hasSince(memberNode) ? getSince(memberNode) : apiLevel);
         } else if (isMethod(memberNode)) {
-          // TODO(b/190326408): Check for existence.
           parsedApiClass.register(
               getMethodReference(originalReference, memberNode),
               getMaxAndroidApiLevelFromNode(memberNode, apiLevel));
@@ -85,7 +88,8 @@ public class AndroidApiVersionsXmlParser {
           // The field do not have descriptors and are supposed to be unique.
           FieldSubject fieldSubject = clazz.uniqueFieldWithName(getName(memberNode));
           if (!fieldSubject.isPresent()) {
-            // TODO(b/190326408): Investigate why the member is not present.
+            assert hasRemoved(memberNode);
+            assert getRemoved(memberNode).isLessThanOrEqualTo(maxApiLevel);
             continue;
           }
           parsedApiClass.register(
@@ -131,10 +135,20 @@ public class AndroidApiVersionsXmlParser {
     return node.getAttributes().getNamedItem("since") != null;
   }
 
+  private boolean hasRemoved(Node node) {
+    return node.getAttributes().getNamedItem("removed") != null;
+  }
+
   private AndroidApiLevel getSince(Node node) {
     assert hasSince(node);
     Node since = node.getAttributes().getNamedItem("since");
     return AndroidApiLevel.getAndroidApiLevel(Integer.parseInt(since.getNodeValue()));
+  }
+
+  private AndroidApiLevel getRemoved(Node node) {
+    assert hasRemoved(node);
+    Node removed = node.getAttributes().getNamedItem("removed");
+    return AndroidApiLevel.getAndroidApiLevel(Integer.parseInt(removed.getNodeValue()));
   }
 
   private AndroidApiLevel getMaxAndroidApiLevelFromNode(Node node, AndroidApiLevel defaultValue) {

@@ -5,16 +5,21 @@
 package com.android.tools.r8.apimodel;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.androidapi.AndroidApiLevelHashingDatabaseImpl;
 import com.android.tools.r8.apimodel.AndroidApiVersionsXmlParser.ParsedApiClass;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.LibraryClass;
 import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.structural.DefaultHashingVisitor;
 import com.android.tools.r8.utils.structural.HasherWrapper;
@@ -30,6 +35,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
@@ -48,12 +54,16 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
       List<ParsedApiClass> apiClasses,
       Path pathToIndices,
       Path pathToApiLevels,
-      Path ambiguousDefinitions)
+      Path ambiguousDefinitions,
+      AndroidApiLevel androidJarApiLevel)
       throws Exception {
     Map<ClassReference, Map<DexMethod, AndroidApiLevel>> methodMap = new HashMap<>();
     Map<ClassReference, Map<DexField, AndroidApiLevel>> fieldMap = new HashMap<>();
     Map<ClassReference, ParsedApiClass> lookupMap = new HashMap<>();
-    DexItemFactory factory = new DexItemFactory();
+    Path androidJar = ToolHelper.getAndroidJar(androidJarApiLevel);
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(AndroidApp.builder().addLibraryFile(androidJar).build());
+    DexItemFactory factory = appView.dexItemFactory();
 
     Map<Integer, AndroidApiLevel> apiLevelMap = new HashMap<>();
     Map<Integer, Pair<DexReference, AndroidApiLevel>> reverseMap = new HashMap<>();
@@ -97,13 +107,58 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
           .forEach(addConsumer);
     }
 
+    Map<DexType, String> missingMemberInformation = new IdentityHashMap<>();
+    for (LibraryClass clazz : appView.app().asDirect().libraryClasses()) {
+      ParsedApiClass parsedApiClass = lookupMap.get(clazz.getClassReference());
+      if (parsedApiClass == null) {
+        missingMemberInformation.put(clazz.getType(), "Could not be found in " + androidJar);
+        continue;
+      }
+      StringBuilder classBuilder = new StringBuilder();
+      Map<DexField, AndroidApiLevel> fieldMapForClass = fieldMap.get(clazz.getClassReference());
+      assert fieldMapForClass != null;
+      clazz.forEachClassField(
+          field -> {
+            if (field.getAccessFlags().isPublic()
+                && getApiLevelFromReference(field.getReference(), apiLevelMap, ambiguousMap) == null
+                && field.toSourceString().contains("this$0")) {
+              classBuilder.append("  ").append(field).append(" is missing\n");
+            }
+          });
+      Map<DexMethod, AndroidApiLevel> methodMapForClass = methodMap.get(clazz.getClassReference());
+      assert methodMapForClass != null;
+      clazz.forEachClassMethod(
+          method -> {
+            if (method.getAccessFlags().isPublic()
+                && getApiLevelFromReference(method.getReference(), apiLevelMap, ambiguousMap)
+                    == null
+                && !factory.objectMembers.isObjectMember(method.getReference())) {
+              classBuilder.append("  ").append(method).append(" is missing\n");
+            }
+          });
+      if (classBuilder.length() > 0) {
+        missingMemberInformation.put(clazz.getType(), classBuilder.toString());
+      }
+    }
+
+    // api-versions.xml do not encode all members of StringBuffers and StringBuilders, check that we
+    // only have missing definitions for those two classes.
+    assert missingMemberInformation.size() == 2;
+    assert missingMemberInformation.containsKey(factory.stringBufferType);
+    assert missingMemberInformation.containsKey(factory.stringBuilderType);
+
     int[] indices = new int[apiLevelMap.size()];
     byte[] apiLevel = new byte[apiLevelMap.size()];
     ArrayList<Integer> integers = new ArrayList<>(apiLevelMap.keySet());
     for (int i = 0; i < integers.size(); i++) {
       indices[i] = integers.get(i);
       AndroidApiLevel androidApiLevel = apiLevelMap.get(integers.get(i));
-      apiLevel[i] = (byte) (androidApiLevel == null ? -1 : androidApiLevel.getLevel());
+      assert androidApiLevel != null;
+      apiLevel[i] =
+          (byte)
+              (androidApiLevel == AndroidApiLevel.ANDROID_PLATFORM
+                  ? -1
+                  : androidApiLevel.getLevel());
     }
 
     try (FileOutputStream fileOutputStream = new FileOutputStream(pathToIndices.toFile());
@@ -152,14 +207,37 @@ public class AndroidApiHashingDatabaseBuilderGenerator extends TestBase {
     return sb.toString();
   }
 
+  private static AndroidApiLevel getApiLevelFromReference(
+      DexReference reference,
+      Map<Integer, AndroidApiLevel> apiLevelMap,
+      Map<AndroidApiLevel, Set<DexReference>> ambiguousMap) {
+    int hashCode = reference.hashCode();
+    AndroidApiLevel androidApiLevel = apiLevelMap.get(hashCode);
+    if (androidApiLevel == null) {
+      return null;
+    }
+    if (androidApiLevel == AndroidApiLevel.ANDROID_PLATFORM) {
+      for (Entry<AndroidApiLevel, Set<DexReference>> apiAmbiguousSet : ambiguousMap.entrySet()) {
+        if (apiAmbiguousSet.getValue().contains(reference)) {
+          return apiAmbiguousSet.getKey();
+        }
+      }
+      return null;
+    } else {
+      return androidApiLevel;
+    }
+  }
+
   private static BiConsumer<DexReference, AndroidApiLevel> addReferenceToMaps(
       Map<Integer, AndroidApiLevel> apiLevelMap,
       Map<Integer, Pair<DexReference, AndroidApiLevel>> reverseMap,
       Map<AndroidApiLevel, Set<DexReference>> ambiguousMap) {
     return ((reference, apiLevel) -> {
       AndroidApiLevel existingMethod = apiLevelMap.put(reference.hashCode(), apiLevel);
-      if (existingMethod != null) {
-        apiLevelMap.put(reference.hashCode(), null);
+      if (existingMethod == AndroidApiLevel.ANDROID_PLATFORM) {
+        addAmbiguousEntry(apiLevel, reference, ambiguousMap);
+      } else if (existingMethod != null) {
+        apiLevelMap.put(reference.hashCode(), AndroidApiLevel.ANDROID_PLATFORM);
         Pair<DexReference, AndroidApiLevel> existingPair = reverseMap.get(reference.hashCode());
         addAmbiguousEntry(existingPair.getSecond(), existingPair.getFirst(), ambiguousMap);
         addAmbiguousEntry(apiLevel, reference, ambiguousMap);

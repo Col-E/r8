@@ -144,6 +144,8 @@ public class ToolHelper {
   public static final String RHINO_JAR = "third_party/rhino-1.7.10/rhino-1.7.10.jar";
   public static final String K2JVMCompiler = "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
+  private static final String ANDROID_API_VERSIONS_XML_PATTERN =
+      "third_party/android_jar/lib-v%d/api-versions.xml";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 
   public static final String JDK_11_TESTS_DIR = "third_party/openjdk/jdk-11-test/";
@@ -835,6 +837,12 @@ public class ToolHelper {
 
   public static Path getAndroidJar(int apiLevel) {
     return getAndroidJar(AndroidApiLevel.getAndroidApiLevel(apiLevel));
+  }
+
+  public static Path getApiVersionsXmlFile(AndroidApiLevel apiLevel) {
+    // We only store api-versions.xml from S and up.
+    assert apiLevel.isGreaterThanOrEqualTo(AndroidApiLevel.S);
+    return Paths.get(String.format(ANDROID_API_VERSIONS_XML_PATTERN, apiLevel.getLevel()));
   }
 
   private static Path getAndroidJarPath(AndroidApiLevel apiLevel) {

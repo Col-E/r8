@@ -39,14 +39,14 @@ import org.junit.runners.Parameterized.Parameters;
 public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
 
   protected final TestParameters parameters;
-  private static final Path API_VERSIONS_XML =
-      Paths.get(ToolHelper.THIRD_PARTY_DIR, "android_jar", "api-versions", "api-versions.xml");
   private static final Path API_DATABASE_HASH_LOOKUP =
       Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_hash_lookup.ser");
   private static final Path API_DATABASE_API_LEVEL =
       Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_api_level.ser");
   private static final Path API_DATABASE_AMBIGUOUS =
       Paths.get(ToolHelper.RESOURCES_DIR, "api_database", "api_database_ambiguous.txt");
+
+  // Update the API_LEVEL below to have the database generated for a new api level.
   private static final AndroidApiLevel API_LEVEL = AndroidApiLevel.S;
 
   @Parameters(name = "{0}")
@@ -73,17 +73,20 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
 
   private static GenerateDatabaseResourceFilesResult generateResourcesFiles() throws Exception {
     return generateResourcesFiles(
-        AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL));
+        AndroidApiVersionsXmlParser.getParsedApiClasses(
+            ToolHelper.getApiVersionsXmlFile(API_LEVEL).toFile(), API_LEVEL),
+        API_LEVEL);
   }
 
   private static GenerateDatabaseResourceFilesResult generateResourcesFiles(
-      List<ParsedApiClass> apiClasses) throws Exception {
+      List<ParsedApiClass> apiClasses, AndroidApiLevel androidJarApiLevel) throws Exception {
     TemporaryFolder temp = new TemporaryFolder();
     temp.create();
     Path indices = temp.newFile("indices.ser").toPath();
     Path apiLevels = temp.newFile("apiLevels.ser").toPath();
     Path ambiguous = temp.newFile("ambiguous.ser").toPath();
-    AndroidApiHashingDatabaseBuilderGenerator.generate(apiClasses, indices, apiLevels, ambiguous);
+    AndroidApiHashingDatabaseBuilderGenerator.generate(
+        apiClasses, indices, apiLevels, ambiguous, androidJarApiLevel);
     return new GenerateDatabaseResourceFilesResult(indices, apiLevels, ambiguous);
   }
 
@@ -92,7 +95,8 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
     // This tests makes a rudimentary check on the number of classes, fields and methods in
     // api-versions.xml to ensure that the runtime tests do not vacuously succeed.
     List<ParsedApiClass> parsedApiClasses =
-        AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL);
+        AndroidApiVersionsXmlParser.getParsedApiClasses(
+            ToolHelper.getApiVersionsXmlFile(API_LEVEL).toFile(), API_LEVEL);
     IntBox numberOfFields = new IntBox(0);
     IntBox numberOfMethods = new IntBox(0);
     parsedApiClasses.forEach(
@@ -107,9 +111,9 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
               }));
         });
     // These numbers will change when updating api-versions.xml
-    assertEquals(5037, parsedApiClasses.size());
-    assertEquals(26362, numberOfFields.get());
-    assertEquals(40416, numberOfMethods.get());
+    assertEquals(5065, parsedApiClasses.size());
+    assertEquals(26492, numberOfFields.get());
+    assertEquals(40475, numberOfMethods.get());
   }
 
   @Test
@@ -123,7 +127,8 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
   @Test
   public void testCanLookUpAllParsedApiClassesAndMembers() throws Exception {
     List<ParsedApiClass> parsedApiClasses =
-        AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL);
+        AndroidApiVersionsXmlParser.getParsedApiClasses(
+            ToolHelper.getApiVersionsXmlFile(API_LEVEL).toFile(), API_LEVEL);
     DexItemFactory factory = new DexItemFactory();
     AndroidApiLevelHashingDatabaseImpl androidApiLevelDatabase =
         new AndroidApiLevelHashingDatabaseImpl(ImmutableList.of());
@@ -168,9 +173,7 @@ public class AndroidApiHashingDatabaseBuilderGeneratorTest extends TestBase {
    * and override the current file in there.
    */
   public static void main(String[] args) throws Exception {
-    List<ParsedApiClass> parsedApiClasses =
-        AndroidApiVersionsXmlParser.getParsedApiClasses(API_VERSIONS_XML.toFile(), API_LEVEL);
-    GenerateDatabaseResourceFilesResult result = generateResourcesFiles(parsedApiClasses);
+    GenerateDatabaseResourceFilesResult result = generateResourcesFiles();
     verifyNoDuplicateHashes(result.indices);
     Files.move(result.indices, API_DATABASE_HASH_LOOKUP, REPLACE_EXISTING);
     Files.move(result.apiLevels, API_DATABASE_API_LEVEL, REPLACE_EXISTING);
