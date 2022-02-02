@@ -106,13 +106,24 @@ public class EnumValueOptimizer {
         FieldOptimizationInfo optimizationInfo = definition.getOptimizationInfo();
         AbstractValue abstractValue = optimizationInfo.getAbstractValue();
 
+        if (methodWithReceiver.hasUnusedOutValue()) {
+          // Remove the invoke if it is a call to Enum.name() or Enum.ordinal() as they don't have
+          // any side effects. Enum.toString() can be overridden and calls to it could therefore
+          // have arbitrary side effects.
+          if (methodWithReceiver.getReceiver().getType().isDefinitelyNotNull()
+              && !isToStringInvoke) {
+            assert isNameInvoke || isOrdinalInvoke;
+            iterator.removeOrReplaceByDebugLocalRead();
+          }
+          continue;
+        }
+
         Value outValue = methodWithReceiver.outValue();
         if (isOrdinalInvoke) {
           SingleNumberValue ordinalValue =
               getOrdinalValue(code, abstractValue, methodWithReceiver.getReceiver().isNeverNull());
-            if (ordinalValue != null) {
-              iterator.replaceCurrentInstruction(
-                  new ConstNumber(outValue, ordinalValue.getValue()));
+          if (ordinalValue != null) {
+            iterator.replaceCurrentInstruction(new ConstNumber(outValue, ordinalValue.getValue()));
           }
           continue;
         }
