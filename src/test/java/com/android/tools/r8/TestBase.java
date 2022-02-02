@@ -815,6 +815,7 @@ public class TestBase {
     EnqueuerResult enqueuerResult =
         EnqueuerFactory.createForInitialTreeShaking(appView, executor, subtypingInfo)
             .traceApplication(rootSet, executor, Timing.empty());
+    executor.shutdown();
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
     return appView.setAppInfo(enqueuerResult.getAppInfo());
