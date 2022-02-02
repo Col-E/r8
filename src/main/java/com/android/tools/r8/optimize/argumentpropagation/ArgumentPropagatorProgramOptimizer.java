@@ -861,7 +861,8 @@ public class ArgumentPropagatorProgramOptimizer {
         IntSet removableParameterIndices) {
       // Treat the parameters as unused.
       ArgumentInfoCollection.Builder argumentInfoCollectionBuilder =
-          ArgumentInfoCollection.builder();
+          ArgumentInfoCollection.builder()
+              .setArgumentInfosSize(method.getDefinition().getNumberOfArguments());
       for (int argumentIndex = 0;
           argumentIndex < method.getDefinition().getNumberOfArguments();
           argumentIndex++) {
@@ -1011,7 +1012,9 @@ public class ArgumentPropagatorProgramOptimizer {
         ProgramMethod method,
         IntFunction<DexType> newParameterTypes,
         IntPredicate removableParameterIndices) {
-      ArgumentInfoCollection.Builder parameterChangesBuilder = ArgumentInfoCollection.builder();
+      ArgumentInfoCollection.Builder parameterChangesBuilder =
+          ArgumentInfoCollection.builder()
+              .setArgumentInfosSize(method.getDefinition().getNumberOfArguments());
       if (method.getDefinition().isInstance()
           && removableParameterIndices.test(0)
           && method.getOptimizationInfo().hasUnusedArguments()

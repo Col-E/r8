@@ -13,36 +13,48 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IntObjConsumer;
-import com.android.tools.r8.utils.IteratorUtils;
-import com.google.common.collect.Ordering;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.ints.IntSortedSet;
+import it.unimi.dsi.fastutil.objects.ObjectBidirectionalIterator;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class ArgumentInfoCollection {
 
+  private static final Int2ObjectRBTreeMap<ArgumentInfo> EMPTY_MAP = new Int2ObjectRBTreeMap<>();
   private static final ArgumentInfoCollection EMPTY = new ArgumentInfoCollection();
 
   private final Int2ObjectSortedMap<ArgumentInfo> argumentInfos;
+  private final int argumentInfosSize;
+  private final ArgumentPermutation argumentPermutation;
 
   // Specific constructor for empty.
   private ArgumentInfoCollection() {
-    this.argumentInfos = new Int2ObjectRBTreeMap<>();
+    this.argumentInfos = EMPTY_MAP;
+    this.argumentInfosSize = -1;
+    this.argumentPermutation = ArgumentPermutation.getDefault();
   }
 
-  private ArgumentInfoCollection(Int2ObjectSortedMap<ArgumentInfo> argumentInfos) {
-    assert argumentInfos != null : "should use empty.";
-    assert !argumentInfos.isEmpty() : "should use empty.";
+  private ArgumentInfoCollection(
+      Int2ObjectSortedMap<ArgumentInfo> argumentInfos,
+      int argumentInfosSize,
+      ArgumentPermutation argumentPermutation) {
+    assert argumentInfos != null;
+    assert argumentPermutation != null;
+    assert !argumentInfos.isEmpty() || argumentInfos == EMPTY_MAP;
+    assert !argumentInfos.isEmpty() || !argumentPermutation.isDefault() : "should use empty.";
+    assert argumentInfosSize >= 0;
     this.argumentInfos = argumentInfos;
+    this.argumentInfosSize = argumentInfosSize;
+    this.argumentPermutation = argumentPermutation;
   }
 
   public static ArgumentInfoCollection empty() {
@@ -100,9 +112,24 @@ public class ArgumentInfoCollection {
   }
 
   public int numberOfRemovedArguments() {
+    return getNumberOfRemovedArgumentsBefore(Integer.MAX_VALUE, argumentInfos);
+  }
+
+  public int getNumberOfRemovedArgumentsBefore(int index) {
+    return getNumberOfRemovedArgumentsBefore(index, argumentInfos);
+  }
+
+  private static int getNumberOfRemovedArgumentsBefore(
+      int index, Int2ObjectSortedMap<ArgumentInfo> argumentInfos) {
     int removed = 0;
-    for (ArgumentInfo value : argumentInfos.values()) {
-      if (value.isRemovedArgumentInfo()) {
+    for (Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
+      int argumentIndex = entry.getIntKey();
+      ArgumentInfo argumentInfo = entry.getValue();
+      if (argumentIndex >= index) {
+        assert argumentIndex > index || !argumentInfo.isRemovedArgumentInfo();
+        break;
+      }
+      if (argumentInfo.isRemovedArgumentInfo()) {
         removed++;
       }
     }
@@ -122,45 +149,60 @@ public class ArgumentInfoCollection {
     return argumentInfos.getOrDefault(argumentIndex, ArgumentInfo.NO_INFO);
   }
 
+  public int getNewArgumentIndex(int argumentIndex) {
+    int intermediateArgumentIndex =
+        argumentIndex - getNumberOfRemovedArgumentsBefore(argumentIndex);
+    return argumentPermutation.getNewArgumentIndex(intermediateArgumentIndex);
+  }
+
   public int size() {
-    return argumentInfos.size();
+    assert !isEmpty();
+    return argumentInfosSize;
   }
 
   public ArgumentInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLens graphLens, GraphLens codeLens) {
-    Int2ObjectSortedMap<ArgumentInfo> rewrittenArgumentInfos = new Int2ObjectRBTreeMap<>();
-    for (Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
-      ArgumentInfo argumentInfo = entry.getValue();
-      ArgumentInfo rewrittenArgumentInfo =
-          argumentInfo.rewrittenWithLens(appView, graphLens, codeLens);
-      if (rewrittenArgumentInfo != argumentInfo) {
-        rewrittenArgumentInfos.put(entry.getIntKey(), rewrittenArgumentInfo);
-      }
+    if (isEmpty()) {
+      return this;
     }
-    if (!rewrittenArgumentInfos.isEmpty()) {
-      for (Entry<ArgumentInfo> entry : argumentInfos.int2ObjectEntrySet()) {
-        int key = entry.getIntKey();
-        if (!rewrittenArgumentInfos.containsKey(key)) {
-          rewrittenArgumentInfos.put(key, entry.getValue());
-        }
-      }
-      return new ArgumentInfoCollection(rewrittenArgumentInfos);
+    Builder builder = builder();
+    forEach(
+        (argumentIndex, argumentInfo) -> {
+          ArgumentInfo rewrittenArgumentInfo =
+              argumentInfo.rewrittenWithLens(appView, graphLens, codeLens);
+          if (rewrittenArgumentInfo != argumentInfo) {
+            builder.addArgumentInfo(argumentIndex, rewrittenArgumentInfo);
+          }
+        });
+    if (!builder.isEmpty()) {
+      forEach(
+          (argumentIndex, argumentInfo) -> {
+            if (!builder.hasArgumentInfo(argumentIndex)) {
+              builder.addArgumentInfo(argumentIndex, argumentInfo);
+            }
+          });
+      return builder.setArgumentInfosSize(argumentInfosSize).build();
     }
     return this;
   }
 
   @Override
   public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     ArgumentInfoCollection other = (ArgumentInfoCollection) obj;
-    return argumentInfos.equals(other.argumentInfos);
+    return argumentInfos.equals(other.argumentInfos)
+        && argumentPermutation.equals(other.argumentPermutation)
+        && argumentInfosSize == other.argumentInfosSize;
   }
 
   @Override
   public int hashCode() {
-    return argumentInfos.hashCode();
+    return Objects.hash(argumentInfos, argumentPermutation, argumentInfosSize);
   }
 
   public static Builder builder() {
@@ -169,67 +211,113 @@ public class ArgumentInfoCollection {
 
   public static class Builder {
 
-    private Int2ObjectSortedMap<ArgumentInfo> argumentInfos;
+    private Int2ObjectSortedMap<ArgumentInfo> argumentInfos = new Int2ObjectRBTreeMap<>();
+    private int argumentInfosSize = -1;
+    private final ArgumentPermutation.Builder argumentPermutationBuilder =
+        ArgumentPermutation.builder();
 
-    public Builder addArgumentInfo(int argIndex, ArgumentInfo argInfo) {
-      if (argumentInfos == null) {
-        argumentInfos = new Int2ObjectRBTreeMap<>();
-      }
-      assert !argumentInfos.containsKey(argIndex);
-      argumentInfos.put(argIndex, argInfo);
+    public Builder addArgumentInfo(int argumentIndex, ArgumentInfo argInfo) {
+      argumentInfos.put(argumentIndex, argInfo);
+      return this;
+    }
+
+    public Builder addArgumentInfos(ArgumentInfoCollection argumentInfoCollection) {
+      argumentInfoCollection.forEach(this::addArgumentInfo);
+      return this;
+    }
+
+    public int getNumberOfRemovedArgumentsBefore(int index) {
+      return ArgumentInfoCollection.getNumberOfRemovedArgumentsBefore(index, argumentInfos);
+    }
+
+    public boolean hasArgumentInfo(int argumentIndex) {
+      return argumentInfos.containsKey(argumentIndex);
+    }
+
+    public boolean isEmpty() {
+      return argumentInfos.isEmpty() && argumentPermutationBuilder.isDefault();
+    }
+
+    public Builder setArgumentInfosSize(int argumentInfosSize) {
+      this.argumentInfosSize = argumentInfosSize;
+      return this;
+    }
+
+    public Builder setNewArgumentIndex(int argumentIndex, int newArgumentIndex) {
+      argumentPermutationBuilder.setNewArgumentIndex(argumentIndex, newArgumentIndex);
       return this;
     }
 
     public ArgumentInfoCollection build() {
-      if (argumentInfos == null || argumentInfos.isEmpty()) {
-        return EMPTY;
+      if (isEmpty()) {
+        return empty();
       }
-      return new ArgumentInfoCollection(argumentInfos);
+      Int2ObjectSortedMap<ArgumentInfo> argumentInfosOrEmpty =
+          argumentInfos.isEmpty() ? EMPTY_MAP : argumentInfos;
+      ArgumentPermutation argumentPermutation = argumentPermutationBuilder.build();
+      return new ArgumentInfoCollection(
+          argumentInfosOrEmpty, argumentInfosSize, argumentPermutation);
     }
   }
 
-  public ArgumentInfoCollection combine(ArgumentInfoCollection info) {
+  public ArgumentInfoCollection combine(ArgumentInfoCollection other) {
     if (isEmpty()) {
-      return info;
-    } else {
-      if (info.isEmpty()) {
-        return this;
-      }
+      return other;
     }
-
-    Int2ObjectSortedMap<ArgumentInfo> newArgInfos = new Int2ObjectRBTreeMap<>();
-    newArgInfos.putAll(argumentInfos);
-    IntBidirectionalIterator iterator = argumentInfos.keySet().iterator();
+    if (other.isEmpty()) {
+      return this;
+    }
+    Builder builder = builder().addArgumentInfos(this);
+    ObjectBidirectionalIterator<Entry<ArgumentInfo>> iterator =
+        argumentInfos.int2ObjectEntrySet().iterator();
     int offset = 0;
-    int nextArgIndex;
-    for (int pendingArgIndex : info.argumentInfos.keySet()) {
-      nextArgIndex = peekNextOrMax(iterator);
-      while (nextArgIndex <= pendingArgIndex + offset) {
-        iterator.nextInt();
-        ArgumentInfo argumentInfo = argumentInfos.get(nextArgIndex);
-        nextArgIndex = peekNextOrMax(iterator);
-        if (argumentInfo.isRemovedArgumentInfo()) {
+    for (Entry<ArgumentInfo> entry : other.argumentInfos.int2ObjectEntrySet()) {
+      int pendingArgumentIndex = entry.getIntKey();
+      ArgumentInfo pendingArgumentInfo = entry.getValue();
+      Entry<ArgumentInfo> nextCommittedEntry = peekNext(iterator);
+      while (nextCommittedEntry != null
+          && nextCommittedEntry.getIntKey() <= pendingArgumentIndex + offset) {
+        Entry<ArgumentInfo> committedEntry = iterator.next();
+        ArgumentInfo committedArgumentInfo = committedEntry.getValue();
+        if (committedArgumentInfo.isRemovedArgumentInfo()) {
           offset++;
         }
+        nextCommittedEntry = peekNext(iterator);
       }
-      ArgumentInfo newArgInfo =
-          nextArgIndex == pendingArgIndex + offset
-              ? ArgumentInfo.combine(
-                  argumentInfos.get(nextArgIndex), info.argumentInfos.get(pendingArgIndex))
-              : info.argumentInfos.get(pendingArgIndex);
-      newArgInfos.put(pendingArgIndex + offset, newArgInfo);
+      if (nextCommittedEntry != null
+          && nextCommittedEntry.getIntKey() == pendingArgumentIndex + offset) {
+        ArgumentInfo committedArgumentInfo = nextCommittedEntry.getValue();
+        assert !committedArgumentInfo.isRemovedArgumentInfo();
+        pendingArgumentInfo = committedArgumentInfo.combine(pendingArgumentInfo);
+      }
+      builder.addArgumentInfo(pendingArgumentIndex + offset, pendingArgumentInfo);
     }
-    assert Ordering.natural().isOrdered(newArgInfos.keySet());
-    return new ArgumentInfoCollection(newArgInfos);
+    for (int argumentIndex = 0; argumentIndex < argumentInfosSize; argumentIndex++) {
+      if (isArgumentRemoved(argumentIndex)) {
+        continue;
+      }
+      int intermediateArgumentIndex = getNewArgumentIndex(argumentIndex);
+      if (other.isArgumentRemoved(intermediateArgumentIndex)) {
+        continue;
+      }
+      int newArgumentIndex = other.getNewArgumentIndex(intermediateArgumentIndex);
+      int defaultNewArgumentIndex =
+          argumentIndex - builder.getNumberOfRemovedArgumentsBefore(argumentIndex);
+      if (newArgumentIndex != defaultNewArgumentIndex) {
+        builder.setNewArgumentIndex(argumentIndex, newArgumentIndex);
+      }
+    }
+    return builder.setArgumentInfosSize(argumentInfosSize).build();
   }
 
-  static int peekNextOrMax(IntBidirectionalIterator iterator) {
+  private static Entry<ArgumentInfo> peekNext(
+      ObjectBidirectionalIterator<Entry<ArgumentInfo>> iterator) {
     if (iterator.hasNext()) {
-      int i = iterator.nextInt();
-      iterator.previousInt();
-      return i;
+      Entry<ArgumentInfo> entry = iterator.next();
+      iterator.previous();
+      return entry;
     }
-    return Integer.MAX_VALUE;
+    return null;
   }
 
   public MethodOptimizationInfoFixer createMethodOptimizationInfoFixer() {
@@ -252,24 +340,5 @@ public class ArgumentInfoCollection {
       };
     }
     return ConsumerUtils.emptyConsumer();
-  }
-
-  public int getNewArgumentIndex(int argumentIndex) {
-    int numberOfArgumentsRemovedBeforeArgument = 0;
-    Iterator<Entry<ArgumentInfo>> iterator = iterator();
-    while (iterator.hasNext()) {
-      Entry<ArgumentInfo> entry = iterator.next();
-      int argumentIndexForInfo = entry.getIntKey();
-      if (argumentIndexForInfo >= argumentIndex) {
-        break;
-      }
-      ArgumentInfo argumentInfo = entry.getValue();
-      if (argumentInfo.isRemovedArgumentInfo()) {
-        numberOfArgumentsRemovedBeforeArgument++;
-      }
-    }
-    assert IteratorUtils.allRemainingMatchDestructive(
-        iterator, entry -> entry.getIntKey() >= argumentIndex);
-    return argumentIndex - numberOfArgumentsRemovedBeforeArgument;
   }
 }

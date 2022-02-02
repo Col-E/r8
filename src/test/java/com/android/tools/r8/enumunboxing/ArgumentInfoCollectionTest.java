@@ -9,14 +9,29 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class ArgumentInfoCollectionTest extends TestBase {
+
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
 
   @Test
   public void testCombineRewritten() {
@@ -34,7 +49,7 @@ public class ArgumentInfoCollectionTest extends TestBase {
             .setOldType(factory.intType)
             .setNewType(factory.longType)
             .build());
-    ArgumentInfoCollection arguments1 = builder1.build();
+    ArgumentInfoCollection arguments1 = builder1.setArgumentInfosSize(5).build();
 
     ArgumentInfoCollection.Builder builder2 = ArgumentInfoCollection.builder();
     builder2.addArgumentInfo(
@@ -49,9 +64,10 @@ public class ArgumentInfoCollectionTest extends TestBase {
             .setOldType(factory.floatType)
             .setNewType(factory.doubleType)
             .build());
-    ArgumentInfoCollection arguments2 = builder2.build();
+    ArgumentInfoCollection arguments2 = builder2.setArgumentInfosSize(5).build();
 
     ArgumentInfoCollection combine = arguments1.combine(arguments2);
+    assertEquals(5, combine.size());
 
     RewrittenTypeInfo arg1 = combine.getArgumentInfo(1).asRewrittenTypeInfo();
     assertEquals(arg1.getOldType(), factory.intType);
@@ -70,7 +86,6 @@ public class ArgumentInfoCollectionTest extends TestBase {
   @Test
   public void testCombineRemoved() {
     DexItemFactory factory = new DexItemFactory();
-    AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
 
     // Arguments removed: 0 1 2 3 4 -> 0 2 4.
     ArgumentInfoCollection.Builder builder1 = ArgumentInfoCollection.builder();
@@ -78,34 +93,33 @@ public class ArgumentInfoCollectionTest extends TestBase {
         1,
         RemovedArgumentInfo.builder()
             .setType(factory.intType)
-            .setSingleValue(abstractValueFactory.createNullValue())
             .build());
     builder1.addArgumentInfo(
         3,
         RemovedArgumentInfo.builder()
             .setType(factory.intType)
-            .setSingleValue(abstractValueFactory.createNullValue())
             .build());
-    ArgumentInfoCollection arguments1 = builder1.build();
+    ArgumentInfoCollection arguments1 = builder1.setArgumentInfosSize(5).build();
 
     // Arguments removed: 0 2 4 -> 0. Arguments 2 and 4 are at position 1 and 2 after first removal.
     ArgumentInfoCollection.Builder builder2 = ArgumentInfoCollection.builder();
     builder2.addArgumentInfo(1, RemovedArgumentInfo.builder().setType(factory.doubleType).build());
     builder2.addArgumentInfo(2, RemovedArgumentInfo.builder().setType(factory.doubleType).build());
-    ArgumentInfoCollection arguments2 = builder2.build();
+    ArgumentInfoCollection arguments2 = builder2.setArgumentInfosSize(3).build();
 
     // Arguments removed: 0 1 2 3 4 -> 0.
     ArgumentInfoCollection combine = arguments1.combine(arguments2);
+    assertEquals(5, combine.size());
 
     RemovedArgumentInfo arg1 = combine.getArgumentInfo(1).asRemovedArgumentInfo();
     assertEquals(arg1.getType(), factory.intType);
-    assertTrue(arg1.hasSingleValue());
+    assertFalse(arg1.hasSingleValue());
     RemovedArgumentInfo arg2 = combine.getArgumentInfo(2).asRemovedArgumentInfo();
     assertEquals(arg2.getType(), factory.doubleType);
     assertFalse(arg2.hasSingleValue());
     RemovedArgumentInfo arg3 = combine.getArgumentInfo(3).asRemovedArgumentInfo();
     assertEquals(arg3.getType(), factory.intType);
-    assertTrue(arg3.hasSingleValue());
+    assertFalse(arg3.hasSingleValue());
     RemovedArgumentInfo arg4 = combine.getArgumentInfo(4).asRemovedArgumentInfo();
     assertEquals(arg4.getType(), factory.doubleType);
     assertFalse(arg4.hasSingleValue());
@@ -129,7 +143,7 @@ public class ArgumentInfoCollectionTest extends TestBase {
             .setType(factory.intType)
             .setSingleValue(abstractValueFactory.createNullValue())
             .build());
-    ArgumentInfoCollection arguments1 = builder1.build();
+    ArgumentInfoCollection arguments1 = builder1.setArgumentInfosSize(5).build();
 
     ArgumentInfoCollection.Builder builder2 = ArgumentInfoCollection.builder();
     builder2.addArgumentInfo(
@@ -144,9 +158,10 @@ public class ArgumentInfoCollectionTest extends TestBase {
             .setOldType(factory.floatType)
             .setNewType(factory.doubleType)
             .build());
-    ArgumentInfoCollection arguments2 = builder2.build();
+    ArgumentInfoCollection arguments2 = builder2.setArgumentInfosSize(3).build();
 
     ArgumentInfoCollection combine = arguments1.combine(arguments2);
+    assertEquals(5, combine.size());
 
     RemovedArgumentInfo arg1 = combine.getArgumentInfo(1).asRemovedArgumentInfo();
     assertEquals(arg1.getType(), factory.intType);

@@ -161,7 +161,9 @@ class EnumUnboxingLens extends NestedGraphLens {
       newMethodSignatures.put(from, to);
       int offsetDiff = 0;
       int toOffset = BooleanUtils.intValue(!toStatic);
-      ArgumentInfoCollection.Builder builder = ArgumentInfoCollection.builder();
+      ArgumentInfoCollection.Builder builder =
+          ArgumentInfoCollection.builder()
+              .setArgumentInfosSize(from.getNumberOfArguments(fromStatic));
       if (fromStatic != toStatic) {
         assert toStatic;
         offsetDiff = 1;

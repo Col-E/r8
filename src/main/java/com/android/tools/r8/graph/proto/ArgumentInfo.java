@@ -15,7 +15,6 @@ public abstract class ArgumentInfo {
 
         @Override
         public ArgumentInfo combine(ArgumentInfo info) {
-          assert false : "ArgumentInfo NO_INFO should not be combined";
           return info;
         }
 
@@ -40,19 +39,6 @@ public abstract class ArgumentInfo {
           return System.identityHashCode(this);
         }
       };
-
-  @SuppressWarnings("ConstantConditions")
-  public static ArgumentInfo combine(ArgumentInfo arg1, ArgumentInfo arg2) {
-    if (arg1 == null) {
-      assert arg2 != null;
-      return arg2;
-    }
-    if (arg2 == null) {
-      assert arg1 != null;
-      return arg1;
-    }
-    return arg1.combine(arg2);
-  }
 
   public boolean isNone() {
     return false;
