@@ -178,7 +178,7 @@ public class TrivialFieldAccessReprocessor {
         executorService);
     processFieldsNeverRead(appInfo);
     processFieldsNeverWritten(appInfo);
-    postMethodProcessorBuilder.put(methodsToReprocess);
+    postMethodProcessorBuilder.rewrittenWithLens(appView.graphLens()).put(methodsToReprocess);
   }
 
   private void processClass(DexProgramClass clazz) {
