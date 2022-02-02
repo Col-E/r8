@@ -1936,7 +1936,6 @@ public class RootSetUtils {
 
     public boolean verifyKeptItemsAreKept(AppView<? extends AppInfoWithClassHierarchy> appView) {
       AppInfoWithClassHierarchy appInfo = appView.appInfo();
-      GraphLens lens = appView.graphLens();
       // Create a mapping from each required type to the set of required members on that type.
       Map<DexType, Set<DexMember<?, ?>>> requiredMembersPerType = new IdentityHashMap<>();
       getDependentMinimumKeepInfo()
@@ -1946,21 +1945,16 @@ public class RootSetUtils {
               (reference, minimumKeepInfo) -> {
                 if (reference.isDexType()) {
                   DexType type = reference.asDexType();
-                  DexType rewrittenType = lens.lookupType(type);
-                  assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(rewrittenType)
-                      : "Expected reference `" + rewrittenType.toSourceString() + "` to be pinned";
-                  requiredMembersPerType.computeIfAbsent(
-                      rewrittenType, key -> Sets.newIdentityHashSet());
+                  assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(type)
+                      : "Expected reference `" + type.toSourceString() + "` to be pinned";
+                  requiredMembersPerType.computeIfAbsent(type, key -> Sets.newIdentityHashSet());
                 } else {
                   DexMember<?, ?> member = reference.asDexMember();
-                  DexMember<?, ?> rewrittenMember = lens.getRenamedMemberSignature(member);
-                  assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(rewrittenMember)
-                      : "Expected reference `"
-                          + rewrittenMember.toSourceString()
-                          + "` to be pinned";
+                  assert !appInfo.hasLiveness() || appInfo.withLiveness().isPinned(member)
+                      : "Expected reference `" + member.toSourceString() + "` to be pinned";
                   requiredMembersPerType
-                      .computeIfAbsent(rewrittenMember.holder, key -> Sets.newIdentityHashSet())
-                      .add(rewrittenMember);
+                      .computeIfAbsent(member.holder, key -> Sets.newIdentityHashSet())
+                      .add(member);
                 }
               });
 
