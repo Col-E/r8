@@ -119,13 +119,6 @@ public class BenchmarkCollectionPrinter {
     printSemi("final name = " + quote(benchmarkName));
     printSemi("final metrics = " + StringUtils.join(", ", metrics, BraceType.SQUARE));
     printSemi("final group = new GroupBenchmark(name + \"Group\", metrics)");
-    printSemi("group.addBenchmark(name, metrics)");
-    printSemi(suite + ".addBenchmark(name)");
-    if (hasWarmup) {
-      printSemi("final warmupName = name + \"Warmup\"");
-      printSemi("group.addBenchmark(warmupName, [Metric.RunTimeRaw])");
-      printSemi(suite + ".addBenchmark(warmupName)");
-    }
     for (BenchmarkConfig benchmark : benchmarkVariants) {
       scopeBraces(
           () -> {
@@ -147,6 +140,13 @@ public class BenchmarkCollectionPrinter {
                                 + benchmark.getName())));
             printSemi("options.resources.add(openjdk)");
           });
+    }
+    printSemi("group.addBenchmark(name, metrics)");
+    printSemi(suite + ".addBenchmark(name)");
+    if (hasWarmup) {
+      printSemi("final warmupName = name + \"Warmup\"");
+      printSemi("group.addBenchmark(warmupName, [Metric.RunTimeRaw])");
+      printSemi(suite + ".addBenchmark(warmupName)");
     }
   }
 
