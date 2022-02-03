@@ -60,7 +60,7 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
     try {
       options.setDesugaredLibrarySpecificationForTesting(
           new LegacyDesugaredLibrarySpecification(
-              LegacyTopLevelFlags.testing(), rewritingFlags, true, options.itemFactory),
+              LegacyTopLevelFlags.testing(), rewritingFlags, true),
           ToolHelper.getDesugarJDKLibs(),
           ToolHelper.getAndroidJar(AndroidApiLevel.R));
     } catch (IOException e) {

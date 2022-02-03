@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
@@ -112,12 +111,10 @@ public class ApiReferenceStubber {
       new ConcurrentHashMap<>();
   private final Set<DexType> seenTypes = Sets.newConcurrentHashSet();
   private final AndroidApiLevelCompute apiLevelCompute;
-  private final LegacyDesugaredLibrarySpecification desugaredLibraryConfiguration;
 
   public ApiReferenceStubber(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
     apiLevelCompute = appView.apiLevelCompute();
-    desugaredLibraryConfiguration = appView.options().desugaredLibrarySpecification;
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
@@ -220,7 +217,10 @@ public class ApiReferenceStubber {
         || libraryClass.getType().toDescriptorString().startsWith("Ljava/")) {
       return;
     }
-    if (desugaredLibraryConfiguration.isSupported(libraryClass.getType(), appView)) {
+    if (appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .isSupported(libraryClass.getType())) {
       return;
     }
     appView

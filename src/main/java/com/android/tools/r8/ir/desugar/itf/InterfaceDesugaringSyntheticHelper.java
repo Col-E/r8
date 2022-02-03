@@ -241,8 +241,9 @@ public class InterfaceDesugaringSyntheticHelper {
     if (descriptor == null) {
       return null;
     }
-    DerivedMethod forwardingMethod = descriptor.getDispatchCases().get(method.getHolderType());
-    return forwardingMethod != null ? forwardingMethod : descriptor.getForwardingMethod();
+    return descriptor.getDispatchCases().containsKey(method.getHolderType())
+        ? descriptor.getDispatchCases().get(method.getHolderType())
+        : descriptor.getForwardingMethod();
   }
 
   DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {
@@ -252,7 +253,6 @@ public class InterfaceDesugaringSyntheticHelper {
     assert method.getHolderKind() == SyntheticKind.COMPANION_CLASS;
     DexClassAndMethod resolvedMethod =
         appView.appInfoForDesugaring().resolveMethod(method.getMethod(), true).getResolutionPair();
-    assert resolvedMethod != null;
     return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
   }
 
@@ -265,7 +265,6 @@ public class InterfaceDesugaringSyntheticHelper {
             .appInfoForDesugaring()
             .resolveMethod(emulatedDispatchMethod.getMethod(), true)
             .getResolutionPair();
-    assert method != null;
     assert emulatedDispatchMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
     if (method.isProgramMethod()) {
       assert appView.options().isDesugaredLibraryCompilation();

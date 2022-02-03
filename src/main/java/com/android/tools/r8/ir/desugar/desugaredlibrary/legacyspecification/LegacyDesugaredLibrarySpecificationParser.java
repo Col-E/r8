@@ -110,7 +110,7 @@ public class LegacyDesugaredLibrarySpecificationParser {
 
     LegacyDesugaredLibrarySpecification config =
         new LegacyDesugaredLibrarySpecification(
-            topLevelFlags, legacyRewritingFlags, libraryCompilation, dexItemFactory);
+            topLevelFlags, legacyRewritingFlags, libraryCompilation);
     origin = null;
     return config;
   }

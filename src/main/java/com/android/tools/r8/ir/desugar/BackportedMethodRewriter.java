@@ -1404,7 +1404,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private void addProvider(MethodProvider generator) {
-      if (appView.options().desugaredLibrarySpecification.isSupported(generator.method, appView)) {
+      if (appView.options().machineDesugaredLibrarySpecification.isSupported(generator.method)) {
         // TODO(b/174453232): Remove this after the configuration file format has bee updated
         // with the "rewrite_method" section.
         if (generator.method.getHolderType() == appView.dexItemFactory().objectsType) {

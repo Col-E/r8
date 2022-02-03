@@ -467,7 +467,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     DerivedMethod emulatedDispatchMethod =
         helper.computeEmulatedInterfaceDispatchMethod(resolutionResult);
     if (emulatedDispatchMethod == null) {
-      return DesugarDescription.nothing();
+      return null;
     }
     return DesugarDescription.builder()
         .setDesugarRewrite(

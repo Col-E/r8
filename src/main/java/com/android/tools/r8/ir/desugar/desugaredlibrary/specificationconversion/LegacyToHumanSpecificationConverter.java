@@ -117,10 +117,7 @@ public class LegacyToHumanSpecificationConverter {
     HumanRewritingFlags humanRewritingFlags =
         convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
     return new HumanDesugaredLibrarySpecification(
-        humanTopLevelFlags,
-        humanRewritingFlags,
-        legacySpec.isLibraryCompilation(),
-        app.dexItemFactory());
+        humanTopLevelFlags, humanRewritingFlags, legacySpec.isLibraryCompilation());
   }
 
   private void legacyLibraryFlagHacks(

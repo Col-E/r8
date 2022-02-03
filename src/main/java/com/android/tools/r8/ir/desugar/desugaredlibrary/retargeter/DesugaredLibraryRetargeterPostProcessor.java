@@ -127,8 +127,8 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
       }
       if (appView
           .options()
-          .desugaredLibrarySpecification
-          .getDontRetargetLibMember()
+          .machineDesugaredLibrarySpecification
+          .getDontRetarget()
           .contains(clazz.getType())) {
         continue;
       }

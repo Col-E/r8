@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -22,7 +23,12 @@ public class MachineDesugaredLibrarySpecification {
 
   public static MachineDesugaredLibrarySpecification empty() {
     return new MachineDesugaredLibrarySpecification(
-        false, MachineTopLevelFlags.empty(), MachineRewritingFlags.builder().build());
+        false, MachineTopLevelFlags.empty(), MachineRewritingFlags.builder().build()) {
+      @Override
+      public boolean isSupported(DexReference reference) {
+        return false;
+      }
+    };
   }
 
   public static MachineDesugaredLibrarySpecification withOnlyRewriteTypeForTesting(
@@ -129,5 +135,29 @@ public class MachineDesugaredLibrarySpecification {
 
   public boolean hasEmulatedInterfaces() {
     return rewritingFlags.hasEmulatedInterfaces();
+  }
+
+  public boolean isSupported(DexReference reference) {
+    // Support through type rewriting.
+    if (rewritingFlags.getRewriteType().containsKey(reference.getContextType())) {
+      return true;
+    }
+    if (!reference.isDexMethod()) {
+      return false;
+    }
+    // Support through retargeting.
+    DexMethod dexMethod = reference.asDexMethod();
+    if (getStaticRetarget().containsKey(dexMethod)
+        || getNonEmulatedVirtualRetarget().containsKey(dexMethod)
+        || getEmulatedVirtualRetarget().containsKey(dexMethod)) {
+      return true;
+    }
+    // Support through emulated interface.
+    for (EmulatedInterfaceDescriptor descriptor : getEmulatedInterfaces().values()) {
+      if (descriptor.getEmulatedMethods().containsKey(dexMethod)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

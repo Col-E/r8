@@ -53,7 +53,6 @@ import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.MachineDesugarPrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
@@ -936,18 +935,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       MachineDesugaredLibrarySpecification.empty();
 
   public PrefixRewritingMapper getPrefixRewritingMapper() {
-    if (machineDesugaredLibrarySpecification != null) {
-      if (desugaredLibrarySpecification.getRewritePrefix().isEmpty()) {
-        assert machineDesugaredLibrarySpecification.getRewriteType().isEmpty();
-        return PrefixRewritingMapper.empty();
-      }
-      return new MachineDesugarPrefixRewritingMapper(
-          // This mapper is used for assertions only (prior behavior is identical to the new one).
-          new DesugarPrefixRewritingMapper(
-              desugaredLibrarySpecification.getRewritePrefix(), dexItemFactory(), true),
-          machineDesugaredLibrarySpecification);
-    }
-    return desugaredLibrarySpecification.getPrefixRewritingMapper();
+    return machineDesugaredLibrarySpecification.getRewriteType().isEmpty()
+        ? PrefixRewritingMapper.empty()
+        : new MachineDesugarPrefixRewritingMapper(machineDesugaredLibrarySpecification);
   }
 
   public boolean relocatorCompilation = false;

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.utils.IterableUtils;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,8 +26,15 @@ public final class EmulatedInterfaceApplicationRewriter {
 
   public EmulatedInterfaceApplicationRewriter(AppView<?> appView) {
     this.appView = appView;
-    this.emulatedInterfaces =
-        appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface();
+    emulatedInterfaces = new IdentityHashMap<>();
+    appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getEmulatedInterfaces()
+        .forEach(
+            (ei, descriptor) -> {
+              emulatedInterfaces.put(ei, descriptor.getRewrittenType());
+            });
   }
 
   public void rewriteApplication(DexApplication.Builder<?> builder) {
