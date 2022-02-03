@@ -1359,7 +1359,8 @@ public class RootSetUtils {
       }
     }
 
-    private void evaluateCheckDiscardRule(DexProgramClass clazz, ProguardCheckDiscardRule rule) {
+    private synchronized void evaluateCheckDiscardRule(
+        DexProgramClass clazz, ProguardCheckDiscardRule rule) {
       if (rule.getMemberRules().isEmpty()) {
         evaluateCheckDiscardClassAndAllMembersRule(clazz, rule);
       } else if (clazz.hasFields() || clazz.hasMethods()) {
