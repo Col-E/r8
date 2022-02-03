@@ -88,6 +88,10 @@ public abstract class CfFieldInstruction extends CfInstruction {
     return opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC;
   }
 
+  public boolean isStaticFieldGet() {
+    return opcode == Opcodes.GETSTATIC;
+  }
+
   @Override
   public CfFieldInstruction asFieldInstruction() {
     return this;

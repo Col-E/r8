@@ -34,12 +34,10 @@ import com.android.tools.r8.utils.ThrowingCharIterator;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import java.io.UTFDataFormatException;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AssertionsRewriter {
@@ -365,25 +363,32 @@ public class AssertionsRewriter {
       clinit = clazz.getClassInitializer();
     }
     // For the transformation to rewrite the throw with a callback collect information on the
-    // blocks covered by the if (!$assertionsDisabled) condition.
-    Set<If> assertionEntryIfs = Sets.newIdentityHashSet();
+    // blocks covered by the if (!$assertionsDisabled or ENABLED) condition together with weather
+    // the assertion handling is on the true or false branch.
+    Map<If, Boolean> assertionEntryIfs = new IdentityHashMap<>();
     Map<Throw, BasicBlock> throwSuccessorAfterHandler = new IdentityHashMap<>();
-    if (configuration.isAssertionHandler() && method != clinit) {
+    if (configuration.isAssertionHandler()) {
       LazyBox<DominatorTree> dominatorTree = new LazyBox<>(() -> new DominatorTree(code));
       code.getBlocks()
           .forEach(
               basicBlock -> {
                 If theIf = isCheckAssertionsEnabledBlock(basicBlock);
                 if (theIf != null) {
-                  // All blocks dominated by the if is the assertion code (check is negation of
-                  // field read).
-                  BasicBlock assertionBlockEntry = theIf.targetFromFalse();
+                  // All blocks dominated by the if is the assertion code. For Java it is on the
+                  // false branch and for Kotlin on the true branch (for Java it is negated
+                  // $assertionsDisabled field and for Kotlin it is the ENABLED field).
+                  boolean conditionForAssertionBlock =
+                      !isUsingJavaAssertionsDisabledField(
+                          theIf.lhs().getDefinition().asStaticGet());
+                  BasicBlock assertionBlockEntry =
+                      theIf.targetFromBoolean(conditionForAssertionBlock);
                   List<BasicBlock> blocks =
                       dominatorTree.computeIfAbsent().dominatedBlocks(assertionBlockEntry);
                   Throw throwInstruction = isAlwaysThrowingEntry(assertionBlockEntry, blocks);
                   if (throwInstruction != null) {
-                    assertionEntryIfs.add(theIf);
-                    throwSuccessorAfterHandler.put(throwInstruction, theIf.targetFromTrue());
+                    assertionEntryIfs.put(theIf, conditionForAssertionBlock);
+                    throwSuccessorAfterHandler.put(
+                        throwInstruction, theIf.targetFromBoolean(!conditionForAssertionBlock));
                   }
                 }
               });
@@ -409,13 +414,15 @@ public class AssertionsRewriter {
         }
       } else if (current.isStaticPut()) {
         StaticPut staticPut = current.asStaticPut();
-        if (isInitializerEnablingJavaVmAssertions && isUsingAssertionsDisabledField(staticPut)) {
+        if (isInitializerEnablingJavaVmAssertions
+            && isUsingJavaAssertionsDisabledField(staticPut)) {
           iterator.remove();
         }
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         // Rewrite $assertionsDisabled getter (only if the initializer enabled assertions).
-        if (isInitializerEnablingJavaVmAssertions && isUsingAssertionsDisabledField(staticGet)) {
+        if (isInitializerEnablingJavaVmAssertions
+            && isUsingJavaAssertionsDisabledField(staticGet)) {
           // For assertion handler rewrite just leave the static get, as it will become dead code.
           if (!configuration.isAssertionHandler()) {
             iterator.replaceCurrentInstruction(
@@ -425,9 +432,12 @@ public class AssertionsRewriter {
         }
         // Rewrite kotlin._Assertions.ENABLED getter.
         if (staticGet.getField() == dexItemFactory.kotlin.assertions.enabledField) {
-          iterator.replaceCurrentInstruction(
-              code.createIntConstant(
-                  kotlinTransformation.isCompileTimeDisabled() ? 0 : 1, current.getLocalInfo()));
+          // For assertion handler rewrite just leave the static get, as it will become dead code.
+          if (!configuration.isAssertionHandler()) {
+            iterator.replaceCurrentInstruction(
+                code.createIntConstant(
+                    kotlinTransformation.isCompileTimeDisabled() ? 0 : 1, current.getLocalInfo()));
+          }
         }
       }
 
@@ -435,8 +445,10 @@ public class AssertionsRewriter {
       if (configuration.isAssertionHandler()) {
         if (current.isIf()) {
           If ifInstruction = current.asIf();
-          if (assertionEntryIfs.contains(ifInstruction)) {
-            ifInstruction.targetFromTrue().unlinkSinglePredecessorSiblingsAllowed();
+          if (assertionEntryIfs.containsKey(ifInstruction)) {
+            ifInstruction
+                .targetFromBoolean(!assertionEntryIfs.get(ifInstruction))
+                .unlinkSinglePredecessorSiblingsAllowed();
             ifInstruction.lhs().removeUser(ifInstruction);
             iterator.replaceCurrentInstruction(new Goto());
           }
@@ -496,11 +508,20 @@ public class AssertionsRewriter {
     }
   }
 
-  private boolean isUsingAssertionsDisabledField(FieldInstruction instruction) {
+  private boolean isUsingAssertionsControlField(FieldInstruction instruction) {
+    return isUsingJavaAssertionsDisabledField(instruction)
+        || isUsingKotlinAssertionsEnabledField(instruction);
+  }
+
+  private boolean isUsingJavaAssertionsDisabledField(FieldInstruction instruction) {
     // This does not check the holder, as for inner classe the field is read from the outer class
     // and not the class itself.
     return instruction.getField().getName() == dexItemFactory.assertionsDisabled
         && instruction.getField().getType() == dexItemFactory.booleanType;
+  }
+
+  private boolean isUsingKotlinAssertionsEnabledField(FieldInstruction instruction) {
+    return instruction.getField() == dexItemFactory.kotlin.assertions.enabledField;
   }
 
   private If isCheckAssertionsEnabledBlock(BasicBlock basicBlock) {
@@ -513,7 +534,7 @@ public class AssertionsRewriter {
       return null;
     }
     StaticGet staticGet = theIf.lhs().getDefinition().asStaticGet();
-    return isUsingAssertionsDisabledField(staticGet)
+    return isUsingAssertionsControlField(staticGet)
             && staticGet.value().hasSingleUniqueUser()
             && !staticGet.value().hasPhiUsers()
         ? theIf

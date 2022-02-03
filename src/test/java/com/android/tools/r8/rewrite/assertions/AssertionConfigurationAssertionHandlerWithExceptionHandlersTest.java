@@ -6,8 +6,8 @@ package com.android.tools.r8.rewrite.assertions;
 
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionHandlers;
 import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionsWithExceptionHandlers;
-import com.android.tools.r8.rewrite.assertions.assertionhandler.Shared;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -32,7 +32,7 @@ public class AssertionConfigurationAssertionHandlerWithExceptionHandlersTest
   @Override
   MethodReference getAssertionHandler() throws Exception {
     return Reference.methodFromMethod(
-        Shared.class.getMethod("assertionHandler", AssertionError.class));
+        AssertionHandlers.class.getMethod("assertionHandler", Throwable.class));
   }
 
   @Override

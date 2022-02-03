@@ -1005,9 +1005,11 @@ public class R8 {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
     }
     if (AssertionsRewriter.isEnabled(appView.options())) {
-      enqueuer.registerAnalysis(
+      ClassInitializerAssertionEnablingAnalysis analysis =
           new ClassInitializerAssertionEnablingAnalysis(
-              appView, OptimizationFeedbackSimple.getInstance()));
+              appView, OptimizationFeedbackSimple.getInstance());
+      enqueuer.registerAnalysis(analysis);
+      enqueuer.registerFieldAccessAnalysis(analysis);
     }
 
     if (options.isClassMergingExtensionRequired(enqueuer.getMode())) {

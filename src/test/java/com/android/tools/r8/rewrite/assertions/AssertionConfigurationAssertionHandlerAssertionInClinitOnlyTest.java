@@ -7,7 +7,7 @@ package com.android.tools.r8.rewrite.assertions;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionHandlers;
-import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionsSimple;
+import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionsInClinit;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -15,14 +15,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class AssertionConfigurationAssertionHandlerSimpleTest
+public class AssertionConfigurationAssertionHandlerAssertionInClinitOnlyTest
     extends AssertionConfigurationAssertionHandlerTestBase {
 
-  private static final String EXPECTED_OUTPUT =
-      StringUtils.lines(
-          "assertionHandler: simpleAssertion",
-          "assertionHandler: multipleAssertions",
-          "assertionHandler: multipleAssertions");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("assertionHandler: <clinit>");
 
   @Override
   String getExpectedOutput() {
@@ -37,6 +33,6 @@ public class AssertionConfigurationAssertionHandlerSimpleTest
 
   @Override
   List<Class<?>> getTestClasses() {
-    return ImmutableList.of(AssertionsSimple.class);
+    return ImmutableList.of(AssertionsInClinit.class);
   }
 }

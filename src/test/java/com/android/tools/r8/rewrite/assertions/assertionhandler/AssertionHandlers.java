@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.rewrite.assertions.assertionhandler;
 
-public class Shared {
-  static String methodWithAssertionError(AssertionError assertion) {
+public class AssertionHandlers {
+  static String methodWithAssertionError(Throwable assertion) {
     return assertion.getStackTrace()[0].getMethodName();
   }
 
-  public static void assertionHandler(AssertionError assertion) {
+  public static void assertionHandler(Throwable assertion) {
     System.out.println(
         "assertionHandler: "
             + (assertion.getMessage() != null
@@ -17,7 +17,7 @@ public class Shared {
                 : methodWithAssertionError(assertion)));
   }
 
-  public static void assertionHandlerRethrowing(AssertionError assertion) {
+  public static void assertionHandlerRethrowing(Throwable assertion) throws Throwable {
     System.out.println(
         "assertionHandlerRethrowing: "
             + (assertion.getMessage() != null

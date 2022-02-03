@@ -16,11 +16,12 @@ import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.cf.code.CfStaticFieldWrite;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -31,7 +32,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
-public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis {
+public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
+    implements EnqueuerFieldAccessAnalysis {
   private final DexItemFactory dexItemFactory;
   private final OptimizationFeedback feedback;
   private final DexString kotlinAssertionsEnabled;
@@ -50,24 +52,40 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
             .collect(Collectors.toList());
   }
 
+  private boolean isUsingJavaAssertionsDisabledField(DexField field) {
+    // This does not check the holder, as for inner classes the field is read from the outer class
+    // and not the class itself.
+    return field.getName() == dexItemFactory.assertionsDisabled
+        && field.getType() == dexItemFactory.booleanType;
+  }
+
+  private boolean isUsingKotlinAssertionsEnabledField(DexField field) {
+    return field == dexItemFactory.kotlin.assertions.enabledField;
+  }
+
+  @Override
+  public void traceStaticFieldRead(
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {
+    if (isUsingJavaAssertionsDisabledField(field) || isUsingKotlinAssertionsEnabledField(field)) {
+      assertionHandlers.forEach(
+          assertionHandler -> worklist.enqueueTraceInvokeStaticAction(assertionHandler, context));
+    }
+  }
+
   @Override
   public void processNewlyLiveMethod(
       ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
     DexEncodedMethod definition = method.getDefinition();
-    if (definition.isClassInitializer()) {
-      Code code = definition.getCode();
-      if (code.isCfCode()) {
-        if (hasJavacClinitAssertionCode(code.asCfCode()) || hasKotlincClinitAssertionCode(method)) {
-          feedback.setInitializerEnablingJavaVmAssertions(definition);
-          // In R8 this might be rewritten to calling an assertion handler if any are required.
-          // Conservatively mark them all as invoked.
-          if (worklist != null) {
-            assertionHandlers.forEach(
-                assertionHandler ->
-                    worklist.enqueueTraceInvokeStaticAction(assertionHandler, method));
-          }
-        }
-      }
+    if (!definition.hasCode() || !definition.getCode().isCfCode()) {
+      return;
+    }
+    CfCode code = definition.getCode().asCfCode();
+    if (definition.isClassInitializer()
+        && (hasJavacClinitAssertionCode(code) || hasKotlincClinitAssertionCode(method))) {
+      feedback.setInitializerEnablingJavaVmAssertions(definition);
     }
   }
 

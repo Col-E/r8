@@ -42,11 +42,11 @@ public class AssertionsWithExceptionHandlers {
     try {
       assert false : "Fourth assertion";
     } catch (AssertionError e1) {
-      System.out.println("Caught from: " + Shared.methodWithAssertionError(e1));
+      System.out.println("Caught from: " + AssertionHandlers.methodWithAssertionError(e1));
       try {
         simpleAssertion();
       } catch (AssertionError e2) {
-        System.out.println("Caught from: " + Shared.methodWithAssertionError(e2));
+        System.out.println("Caught from: " + AssertionHandlers.methodWithAssertionError(e2));
       }
     }
   }

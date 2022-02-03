@@ -9,7 +9,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.MethodReference;
-import com.android.tools.r8.rewrite.assertions.assertionhandler.Shared;
+import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionHandlers;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,7 +46,7 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
-        .addProgramClasses(Shared.class)
+        .addProgramClasses(AssertionHandlers.class)
         .addProgramClasses(getTestClasses())
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(o -> o.testing.forceIRForCfToCfDesugar = true)
@@ -63,7 +63,7 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(Shared.class)
+        .addProgramClasses(AssertionHandlers.class)
         .addProgramClasses(getTestClasses())
         .addKeepMainRule(getTestClasses().get(0))
         .addKeepAnnotation()
