@@ -1151,6 +1151,7 @@ def main(argv):
   with utils.TempDir() as temp_dir:
     if options.temp:
       temp_dir = options.temp
+      os.makedirs(temp_dir, exist_ok=True)
     if options.hash:
       # Download r8-<hash>.jar from
       # https://storage.googleapis.com/r8-releases/raw/.
