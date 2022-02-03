@@ -770,7 +770,11 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
     assertFalse(
-        r8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
+        r8Command
+            .getInternalOptions()
+            .machineDesugaredLibrarySpecification
+            .getRewriteType()
+            .isEmpty());
   }
 
   @Test
@@ -785,7 +789,11 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
             "--desugared-lib-pg-conf-output",
             pgout.toString());
     assertFalse(
-        r8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
+        r8Command
+            .getInternalOptions()
+            .machineDesugaredLibrarySpecification
+            .getRewriteType()
+            .isEmpty());
   }
 
   @Test

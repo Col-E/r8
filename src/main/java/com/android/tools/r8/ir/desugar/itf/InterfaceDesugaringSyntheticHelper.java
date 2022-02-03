@@ -38,6 +38,7 @@ import com.android.tools.r8.graph.ThrowNullCode;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
@@ -45,9 +46,6 @@ import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Predicate;
 
 public class InterfaceDesugaringSyntheticHelper {
@@ -66,37 +64,32 @@ public class InterfaceDesugaringSyntheticHelper {
   static final String PRIVATE_METHOD_PREFIX = "$private$";
 
   private final AppView<?> appView;
-  private final Map<DexType, DexType> emulatedInterfaces;
   private final Predicate<DexType> shouldIgnoreFromReportsPredicate;
 
   public InterfaceDesugaringSyntheticHelper(AppView<?> appView) {
     this.appView = appView;
-    emulatedInterfaces = new IdentityHashMap<>();
-    appView
-        .options()
-        .machineDesugaredLibrarySpecification
-        .getEmulatedInterfaces()
-        .forEach(
-            (ei, descriptor) -> {
-              emulatedInterfaces.put(ei, descriptor.getRewrittenType());
-            });
     this.shouldIgnoreFromReportsPredicate = getShouldIgnoreFromReportsPredicate(appView);
   }
 
   boolean isEmulatedInterface(DexType itf) {
-    return emulatedInterfaces.containsKey(itf);
+    return appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getEmulatedInterfaces()
+        .containsKey(itf);
   }
 
   boolean isRewrittenEmulatedInterface(DexType itf) {
-    return emulatedInterfaces.containsValue(itf);
-  }
-
-  Set<DexType> getEmulatedInterfaces() {
-    return emulatedInterfaces.keySet();
+    return appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .isEmulatedInterfaceRewrittenType(itf);
   }
 
   DexType getEmulatedInterface(DexType type) {
-    return emulatedInterfaces.get(type);
+    EmulatedInterfaceDescriptor interfaceDescriptor =
+        appView.options().machineDesugaredLibrarySpecification.getEmulatedInterfaces().get(type);
+    return interfaceDescriptor == null ? null : interfaceDescriptor.getRewrittenType();
   }
 
   boolean isInDesugaredLibrary(DexClass clazz) {
@@ -584,7 +577,7 @@ public class InterfaceDesugaringSyntheticHelper {
       return appView.rewritePrefix.hasRewrittenType(type, appView)
           || descriptor.endsWith(companionClassNameDescriptorSuffix)
           || isRewrittenEmulatedInterface(type)
-          || options.desugaredLibrarySpecification.getCustomConversions().containsValue(type)
+          || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(type)
           || appView.getDontWarnConfiguration().matches(type);
     };
   }

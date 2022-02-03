@@ -639,7 +639,11 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
     assertFalse(
-        d8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
+        d8Command
+            .getInternalOptions()
+            .machineDesugaredLibrarySpecification
+            .getRewriteType()
+            .isEmpty());
   }
 
   @Test

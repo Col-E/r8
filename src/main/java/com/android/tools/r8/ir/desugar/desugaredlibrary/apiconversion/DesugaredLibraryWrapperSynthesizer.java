@@ -465,9 +465,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       if (holderClass == null) {
         assert appView
             .options()
-            .desugaredLibrarySpecification
-            .getEmulateLibraryInterface()
-            .containsValue(method.getHolderType());
+            .machineDesugaredLibrarySpecification
+            .isEmulatedInterfaceRewrittenType(method.getHolderType());
         isInterface = true;
       } else {
         isInterface = holderClass.isInterface();

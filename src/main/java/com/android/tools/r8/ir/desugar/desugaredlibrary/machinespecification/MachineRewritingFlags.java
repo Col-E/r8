@@ -11,7 +11,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Iterables;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,14 +106,6 @@ public class MachineRewritingFlags {
     return emulatedInterfaces;
   }
 
-  public Set<DexType> getEmulatedInterfaceRewrittenTypes() {
-    Set<DexType> rewrittenTypes = Sets.newIdentityHashSet();
-    emulatedInterfaces
-        .values()
-        .forEach(descriptor -> rewrittenTypes.add(descriptor.getRewrittenType()));
-    return rewrittenTypes;
-  }
-
   public Map<DexType, List<DexMethod>> getWrappers() {
     return wrappers;
   }
@@ -126,6 +118,10 @@ public class MachineRewritingFlags {
     return dontRetarget;
   }
 
+  public boolean isCustomConversionRewrittenType(DexType type) {
+    return Iterables.any(customConversions.values(), pair -> pair.getFirst() == type);
+  }
+
   public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
     return customConversions;
   }
@@ -134,6 +130,11 @@ public class MachineRewritingFlags {
     return !staticRetarget.isEmpty()
         || !nonEmulatedVirtualRetarget.isEmpty()
         || !emulatedVirtualRetarget.isEmpty();
+  }
+
+  public boolean isEmulatedInterfaceRewrittenType(DexType type) {
+    return Iterables.any(
+        emulatedInterfaces.values(), descriptor -> descriptor.getRewrittenType() == type);
   }
 
   public boolean hasEmulatedInterfaces() {

@@ -109,8 +109,12 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getEmulatedInterfaceEmulatedDispatchMethodDescriptor(method);
   }
 
-  public Set<DexType> getEmulatedInterfaceRewrittenTypes() {
-    return rewritingFlags.getEmulatedInterfaceRewrittenTypes();
+  public boolean isCustomConversionRewrittenType(DexType type) {
+    return rewritingFlags.isCustomConversionRewrittenType(type);
+  }
+
+  public boolean isEmulatedInterfaceRewrittenType(DexType type) {
+    return rewritingFlags.isEmulatedInterfaceRewrittenType(type);
   }
 
   public Map<DexType, List<DexMethod>> getWrappers() {

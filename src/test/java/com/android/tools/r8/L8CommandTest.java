@@ -361,7 +361,11 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
             "--lib",
             ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
     assertFalse(
-        l8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
+        l8Command
+            .getInternalOptions()
+            .machineDesugaredLibrarySpecification
+            .getRewriteType()
+            .isEmpty());
   }
 
   private void checkSingleForceAllAssertion(

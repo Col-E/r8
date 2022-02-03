@@ -57,22 +57,18 @@ public abstract class CodeToKeep {
     }
 
     private final NamingLens namingLens;
-    private final Set<DexType> potentialTypesToKeep = Sets.newIdentityHashSet();
     private final Map<DexType, KeepStruct> toKeep = new ConcurrentHashMap<>();
     private final InternalOptions options;
 
     public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
       this.namingLens = namingLens;
       this.options = options;
-      potentialTypesToKeep.addAll(
-          options.machineDesugaredLibrarySpecification.getEmulatedInterfaceRewrittenTypes());
-      potentialTypesToKeep.addAll(
-          options.desugaredLibrarySpecification.getCustomConversions().values());
     }
 
     private boolean shouldKeep(DexType type) {
       return namingLens.prefixRewrittenType(type) != null
-          || potentialTypesToKeep.contains(type)
+          || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(type)
+          || options.machineDesugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(type)
           // TODO(b/158632510): This should prefix match on DexString.
           || type.toDescriptorString()
               .startsWith(
