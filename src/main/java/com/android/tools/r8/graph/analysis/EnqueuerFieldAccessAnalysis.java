@@ -7,18 +7,35 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.EnqueuerWorklist;
 
 public interface EnqueuerFieldAccessAnalysis {
 
-  void traceInstanceFieldRead(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context);
+  default void traceInstanceFieldRead(
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {}
+  ;
 
-  void traceInstanceFieldWrite(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context);
+  default void traceInstanceFieldWrite(
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {}
+  ;
 
-  void traceStaticFieldRead(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context);
+  default void traceStaticFieldRead(
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {}
+  ;
 
-  void traceStaticFieldWrite(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context);
+  default void traceStaticFieldWrite(
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {}
+  ;
 }

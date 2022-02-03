@@ -1463,7 +1463,8 @@ public class Enqueuer {
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     fieldAccessAnalyses.forEach(
         analysis ->
-            analysis.traceInstanceFieldRead(fieldReference, resolutionResult, currentMethod));
+            analysis.traceInstanceFieldRead(
+                fieldReference, resolutionResult, currentMethod, workList));
 
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must trace the types from the field reference even if it does not exist.
@@ -1521,7 +1522,8 @@ public class Enqueuer {
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     fieldAccessAnalyses.forEach(
         analysis ->
-            analysis.traceInstanceFieldWrite(fieldReference, resolutionResult, currentMethod));
+            analysis.traceInstanceFieldWrite(
+                fieldReference, resolutionResult, currentMethod, workList));
 
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must trace the types from the field reference even if it does not exist.
@@ -1576,7 +1578,9 @@ public class Enqueuer {
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     fieldAccessAnalyses.forEach(
-        analysis -> analysis.traceStaticFieldRead(fieldReference, resolutionResult, currentMethod));
+        analysis ->
+            analysis.traceStaticFieldRead(
+                fieldReference, resolutionResult, currentMethod, workList));
 
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must trace the types from the field reference even if it does not exist.
@@ -1648,7 +1652,8 @@ public class Enqueuer {
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     fieldAccessAnalyses.forEach(
         analysis ->
-            analysis.traceStaticFieldWrite(fieldReference, resolutionResult, currentMethod));
+            analysis.traceStaticFieldWrite(
+                fieldReference, resolutionResult, currentMethod, workList));
 
     if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must trace the types from the field reference even if it does not exist.

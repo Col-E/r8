@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.shaking.KeepInfo.Joiner;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -61,7 +62,10 @@ public class GetArrayOfMissingTypeVerifyErrorWorkaround implements EnqueuerField
 
   @Override
   public void traceInstanceFieldRead(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context) {
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {
     if (isUnsafeToUseFieldOnDalvik(field)) {
       enqueuer.getKeepInfo().joinMethod(context, Joiner::disallowOptimization);
     }
@@ -69,7 +73,10 @@ public class GetArrayOfMissingTypeVerifyErrorWorkaround implements EnqueuerField
 
   @Override
   public void traceStaticFieldRead(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context) {
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {
     if (isUnsafeToUseFieldOnDalvik(field)) {
       enqueuer.getKeepInfo().joinMethod(context, Joiner::disallowOptimization);
     }
@@ -95,13 +102,19 @@ public class GetArrayOfMissingTypeVerifyErrorWorkaround implements EnqueuerField
 
   @Override
   public void traceInstanceFieldWrite(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context) {
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {
     // Intentionally empty.
   }
 
   @Override
   public void traceStaticFieldWrite(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context) {
+      DexField field,
+      FieldResolutionResult resolutionResult,
+      ProgramMethod context,
+      EnqueuerWorklist worklist) {
     // Intentionally empty.
   }
 }
