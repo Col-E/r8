@@ -1103,6 +1103,39 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                 type));
       }
 
+      // java.util.concurrent.atomic.AtomicReference
+      {
+        // compareAndSet(Object expect, Object update)
+        DexType type = factory.createType("Ljava/util/concurrent/atomic/AtomicReference;");
+        DexString name = factory.createString("compareAndSet");
+        DexProto proto =
+            factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodWithForwardingGenerator(
+                method,
+                BackportedMethods::AtomicReferenceMethods_compareAndSet,
+                "compareAndSet",
+                type));
+      }
+
+      // java.util.concurrent.atomic.AtomicReferenceArray
+      {
+        // compareAndSet(int index, Object expect, Object update)
+        DexType type = factory.createType("Ljava/util/concurrent/atomic/AtomicReferenceArray;");
+        DexString name = factory.createString("compareAndSet");
+        DexProto proto =
+            factory.createProto(
+                factory.booleanType, factory.intType, factory.objectType, factory.objectType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodWithForwardingGenerator(
+                method,
+                BackportedMethods::AtomicReferenceArrayMethods_compareAndSet,
+                "compareAndSet",
+                type));
+      }
+
       // java.util.concurrent.atomic.AtomicReferenceFieldUpdater
       {
         // compareAndSet(Object object, Object expect, Object update)
