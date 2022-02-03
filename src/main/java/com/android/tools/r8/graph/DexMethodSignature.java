@@ -33,6 +33,10 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
     return getProto().getParameter(index);
   }
 
+  public DexTypeList getParameters() {
+    return getProto().getParameters();
+  }
+
   public DexType getReturnType() {
     return getProto().getReturnType();
   }

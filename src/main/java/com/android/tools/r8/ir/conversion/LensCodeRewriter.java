@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
@@ -101,7 +100,6 @@ import com.android.tools.r8.ir.code.UnusedArgument;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.argumentpropagation.lenscoderewriter.NullCheckInserter;
 import com.android.tools.r8.utils.InternalOptions;
@@ -110,10 +108,13 @@ import com.android.tools.r8.verticalclassmerging.InterfaceTypeToClassTypeLensCod
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -337,6 +338,8 @@ public class LensCodeRewriter {
                       invokedMethod, method.getReference(), invoke.getType(), codeLens);
               DexMethod actualTarget = lensLookup.getReference();
               Invoke.Type actualInvokeType = lensLookup.getType();
+              int numberOfArguments =
+                  actualTarget.getNumberOfArguments(actualInvokeType.isStatic());
 
               iterator =
                   insertCastsForInvokeArgumentsIfNeeded(code, blocks, iterator, invoke, lensLookup);
@@ -350,38 +353,41 @@ public class LensCodeRewriter {
                     prototypeChanges.getArgumentInfoCollection();
                 if (argumentInfoCollection.isEmpty()) {
                   if (prototypeChanges.hasExtraParameters()) {
-                    newInValues = new ArrayList<>(invoke.inValues());
+                    newInValues = new ArrayList<>(numberOfArguments);
+                    newInValues.addAll(invoke.arguments());
+                    prototypeChanges.getExtraParameters().forEach(ignore -> newInValues.add(null));
                   } else {
-                    newInValues = invoke.inValues();
+                    newInValues = invoke.arguments();
                   }
                 } else {
-                  if (argumentInfoCollection.hasRemovedArguments()) {
-                    if (Log.ENABLED) {
-                      Log.info(
-                          getClass(),
-                          "Invoked method "
-                              + invokedMethod.toSourceString()
-                              + " with "
-                              + argumentInfoCollection.numberOfRemovedArguments()
-                              + " arguments removed");
+                  newInValues = Arrays.asList(new Value[numberOfArguments]);
+                  int numberOfRemovedArguments = 0;
+                  for (int argumentIndex = 0;
+                      argumentIndex < invoke.arguments().size();
+                      argumentIndex++) {
+                    ArgumentInfo argumentInfo =
+                        argumentInfoCollection.getArgumentInfo(argumentIndex);
+                    if (argumentInfo.isRemovedArgumentInfo()) {
+                      numberOfRemovedArguments++;
+                      continue;
                     }
-                  }
-                  newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
-                  for (int i = 0; i < invoke.inValues().size(); i++) {
-                    ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(i);
+                    int newArgumentIndex =
+                        argumentInfoCollection.getNewArgumentIndex(
+                            argumentIndex, numberOfRemovedArguments);
+                    Value newArgument;
                     if (argumentInfo.isRewrittenTypeInfo()) {
                       RewrittenTypeInfo argInfo = argumentInfo.asRewrittenTypeInfo();
-                      Value rewrittenValue =
+                      newArgument =
                           rewriteValueIfDefault(
                               code,
                               iterator,
                               argInfo.getOldType(),
                               argInfo.getNewType(),
-                              invoke.inValues().get(i));
-                      newInValues.add(rewrittenValue);
-                    } else if (!argumentInfo.isRemovedArgumentInfo()) {
-                      newInValues.add(invoke.inValues().get(i));
+                              invoke.getArgument(argumentIndex));
+                    } else {
+                      newArgument = invoke.getArgument(argumentIndex);
                     }
+                    newInValues.set(newArgumentIndex, newArgument);
                   }
                 }
 
@@ -444,9 +450,14 @@ public class LensCodeRewriter {
 
                 Map<SingleNumberValue, Map<DexType, Value>> parameterMap = new IdentityHashMap<>();
 
-                int parameterIndex = newInValues.size() - (actualInvokeType == STATIC ? 0 : 1);
+                int extraArgumentIndex =
+                    numberOfArguments - prototypeChanges.getExtraParameters().size();
                 for (ExtraParameter parameter : prototypeChanges.getExtraParameters()) {
-                  DexType type = actualTarget.proto.getParameter(parameterIndex++);
+                  int newExtraArgumentIndex =
+                      argumentInfoCollection.getNewArgumentIndex(extraArgumentIndex, 0);
+                  DexType extraArgumentType =
+                      actualTarget.getArgumentType(
+                          newExtraArgumentIndex, actualInvokeType.isStatic());
 
                   SingleNumberValue numberValue = parameter.getValue(appView);
 
@@ -456,7 +467,7 @@ public class LensCodeRewriter {
                       parameterMap
                           .computeIfAbsent(numberValue, ignore -> new IdentityHashMap<>())
                           .computeIfAbsent(
-                              type,
+                              extraArgumentType,
                               ignore -> {
                                 finalIterator.previous();
                                 Instruction instruction =
@@ -464,7 +475,8 @@ public class LensCodeRewriter {
                                         appView,
                                         code,
                                         TypeAndLocalInfoSupplier.create(
-                                            parameter.getTypeElement(appView, type), null));
+                                            parameter.getTypeElement(appView, extraArgumentType),
+                                            null));
                                 assert !instruction.instructionTypeCanThrow();
                                 instruction.setPosition(
                                     options.debug ? invoke.getPosition() : Position.none());
@@ -472,8 +484,7 @@ public class LensCodeRewriter {
                                 finalIterator.next();
                                 return instruction.outValue();
                               });
-
-                  newInValues.add(value);
+                  newInValues.set(newExtraArgumentIndex, value);
 
                   // TODO(b/164901008): Fix when the number of arguments overflows.
                   if (newInValues.size() > 255) {
@@ -482,10 +493,9 @@ public class LensCodeRewriter {
                             + " the number of arguments of the method "
                             + actualTarget);
                   }
-                }
 
-                assert newInValues.size()
-                    == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
+                  extraArgumentIndex++;
+                }
 
                 // TODO(b/157111832): This bit should be part of the graph lens lookup result.
                 boolean isInterface =
@@ -813,9 +823,11 @@ public class LensCodeRewriter {
       RewrittenPrototypeDescription prototypeChanges,
       Set<Phi> affectedPhis,
       Set<UnusedArgument> unusedArguments) {
-    List<Instruction> argumentPostlude = new ArrayList<>();
+    ArgumentInfoCollection argumentInfoCollection = prototypeChanges.getArgumentInfoCollection();
+    List<Instruction> argumentPostlude = new LinkedList<>();
     int oldArgumentIndex = 0;
-    int newArgumentIndex = 0;
+    int nextArgumentIndex = 0;
+    int numberOfRemovedArguments = 0;
     InstructionListIterator instructionIterator = code.entryBlock().listIterator(code);
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
@@ -824,8 +836,7 @@ public class LensCodeRewriter {
       }
 
       Argument argument = instruction.asArgument();
-      ArgumentInfo argumentInfo =
-          prototypeChanges.getArgumentInfoCollection().getArgumentInfo(oldArgumentIndex);
+      ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(oldArgumentIndex);
       if (argumentInfo.isRemovedArgumentInfo()) {
         rewriteRemovedArgument(
             code,
@@ -836,24 +847,51 @@ public class LensCodeRewriter {
             affectedPhis,
             argumentPostlude,
             unusedArguments);
+        numberOfRemovedArguments++;
       } else {
+        int newArgumentIndex =
+            argumentInfoCollection.getNewArgumentIndex(oldArgumentIndex, numberOfRemovedArguments);
+        Argument replacement;
         if (argumentInfo.isRewrittenTypeInfo()) {
-          rewriteArgumentType(
-              code,
-              instructionIterator,
-              argument,
-              argumentInfo.asRewrittenTypeInfo(),
-              affectedPhis,
-              newArgumentIndex);
+          replacement =
+              rewriteArgumentType(
+                  code,
+                  argument,
+                  argumentInfo.asRewrittenTypeInfo(),
+                  affectedPhis,
+                  newArgumentIndex);
+          argument.outValue().replaceUsers(replacement.outValue());
         } else if (newArgumentIndex != oldArgumentIndex) {
-          instructionIterator.replaceCurrentInstruction(
+          replacement =
               Argument.builder()
                   .setIndex(newArgumentIndex)
                   .setFreshOutValue(code, argument.getOutType(), argument.getLocalInfo())
                   .setPosition(argument.getPosition())
-                  .build());
+                  .build();
+          argument.outValue().replaceUsers(replacement.outValue());
+        } else {
+          replacement = argument;
         }
-        newArgumentIndex++;
+        if (newArgumentIndex == nextArgumentIndex) {
+          // This is the right position for the argument. Insert it into the code at this position.
+          if (replacement != argument) {
+            instructionIterator.replaceCurrentInstruction(replacement);
+          }
+          nextArgumentIndex++;
+        } else {
+          // Due the a permutation of the argument order, this argument needs to be inserted at a
+          // later point. Enqueue the argument into the argument postlude.
+          instructionIterator.removeInstructionIgnoreOutValue();
+          ListIterator<Instruction> argumentPostludeIterator = argumentPostlude.listIterator();
+          while (argumentPostludeIterator.hasNext()) {
+            Instruction current = argumentPostludeIterator.next();
+            if (!current.isArgument() || replacement.getIndex() < current.asArgument().getIndex()) {
+              argumentPostludeIterator.previous();
+              break;
+            }
+          }
+          argumentPostludeIterator.add(replacement);
+        }
       }
       oldArgumentIndex++;
     }
@@ -900,9 +938,8 @@ public class LensCodeRewriter {
     instructionIterator.removeOrReplaceByDebugLocalRead();
   }
 
-  private void rewriteArgumentType(
+  private Argument rewriteArgumentType(
       IRCode code,
-      InstructionListIterator instructionIterator,
       Argument argument,
       RewrittenTypeInfo rewrittenTypeInfo,
       Set<Phi> affectedPhis,
@@ -914,8 +951,8 @@ public class LensCodeRewriter {
             .setFreshOutValue(code, rewrittenType, argument.getLocalInfo())
             .setPosition(argument.getPosition())
             .build();
-    instructionIterator.replaceCurrentInstruction(replacement);
-    affectedPhis.addAll(replacement.outValue().uniquePhiUsers());
+    affectedPhis.addAll(argument.outValue().uniquePhiUsers());
+    return replacement;
   }
 
   private void removeUnusedArguments(

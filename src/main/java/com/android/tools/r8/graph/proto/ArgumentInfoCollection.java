@@ -145,13 +145,20 @@ public class ArgumentInfoCollection {
     return argumentInfos.containsKey(argumentIndex);
   }
 
+  public boolean hasArgumentPermutation() {
+    return !argumentPermutation.isDefault();
+  }
+
   public ArgumentInfo getArgumentInfo(int argumentIndex) {
     return argumentInfos.getOrDefault(argumentIndex, ArgumentInfo.NO_INFO);
   }
 
   public int getNewArgumentIndex(int argumentIndex) {
-    int intermediateArgumentIndex =
-        argumentIndex - getNumberOfRemovedArgumentsBefore(argumentIndex);
+    return getNewArgumentIndex(argumentIndex, getNumberOfRemovedArgumentsBefore(argumentIndex));
+  }
+
+  public int getNewArgumentIndex(int argumentIndex, int numberOfRemovedArgumentsBefore) {
+    int intermediateArgumentIndex = argumentIndex - numberOfRemovedArgumentsBefore;
     return argumentPermutation.getNewArgumentIndex(intermediateArgumentIndex);
   }
 
@@ -213,8 +220,7 @@ public class ArgumentInfoCollection {
 
     private Int2ObjectSortedMap<ArgumentInfo> argumentInfos = new Int2ObjectRBTreeMap<>();
     private int argumentInfosSize = -1;
-    private final ArgumentPermutation.Builder argumentPermutationBuilder =
-        ArgumentPermutation.builder();
+    private ArgumentPermutation argumentPermutation = ArgumentPermutation.getDefault();
 
     public Builder addArgumentInfo(int argumentIndex, ArgumentInfo argInfo) {
       argumentInfos.put(argumentIndex, argInfo);
@@ -235,7 +241,7 @@ public class ArgumentInfoCollection {
     }
 
     public boolean isEmpty() {
-      return argumentInfos.isEmpty() && argumentPermutationBuilder.isDefault();
+      return argumentInfos.isEmpty() && argumentPermutation.isDefault();
     }
 
     public Builder setArgumentInfosSize(int argumentInfosSize) {
@@ -243,8 +249,8 @@ public class ArgumentInfoCollection {
       return this;
     }
 
-    public Builder setNewArgumentIndex(int argumentIndex, int newArgumentIndex) {
-      argumentPermutationBuilder.setNewArgumentIndex(argumentIndex, newArgumentIndex);
+    public Builder setArgumentPermutation(ArgumentPermutation argumentPermutation) {
+      this.argumentPermutation = argumentPermutation;
       return this;
     }
 
@@ -254,7 +260,6 @@ public class ArgumentInfoCollection {
       }
       Int2ObjectSortedMap<ArgumentInfo> argumentInfosOrEmpty =
           argumentInfos.isEmpty() ? EMPTY_MAP : argumentInfos;
-      ArgumentPermutation argumentPermutation = argumentPermutationBuilder.build();
       return new ArgumentInfoCollection(
           argumentInfosOrEmpty, argumentInfosSize, argumentPermutation);
     }
@@ -292,6 +297,10 @@ public class ArgumentInfoCollection {
       }
       builder.addArgumentInfo(pendingArgumentIndex + offset, pendingArgumentInfo);
     }
+    // TODO(b/195112263): Double-check the size of the permutation in presence of extra and removed
+    //  arguments.
+    ArgumentPermutation.Builder argumentPermutationBuilder =
+        ArgumentPermutation.builder(argumentInfosSize);
     for (int argumentIndex = 0; argumentIndex < argumentInfosSize; argumentIndex++) {
       if (isArgumentRemoved(argumentIndex)) {
         continue;
@@ -304,10 +313,13 @@ public class ArgumentInfoCollection {
       int defaultNewArgumentIndex =
           argumentIndex - builder.getNumberOfRemovedArgumentsBefore(argumentIndex);
       if (newArgumentIndex != defaultNewArgumentIndex) {
-        builder.setNewArgumentIndex(argumentIndex, newArgumentIndex);
+        argumentPermutationBuilder.setNewArgumentIndex(argumentIndex, newArgumentIndex);
       }
     }
-    return builder.setArgumentInfosSize(argumentInfosSize).build();
+    return builder
+        .setArgumentInfosSize(argumentInfosSize)
+        .setArgumentPermutation(argumentPermutationBuilder.build())
+        .build();
   }
 
   private static Entry<ArgumentInfo> peekNext(

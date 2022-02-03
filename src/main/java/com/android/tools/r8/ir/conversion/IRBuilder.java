@@ -543,6 +543,7 @@ public class IRBuilder {
     int argumentIndex = 0;
 
     if (!method.isStatic()) {
+      assert argumentsInfo.getNewArgumentIndex(0) == 0;
       writeCallback.accept(register, method.getHolderType());
       addThisArgument(register);
       argumentIndex++;
@@ -550,12 +551,12 @@ public class IRBuilder {
     }
 
     int originalNumberOfArguments =
-        method.getReference().proto.parameters.values.length
+        method.getParameters().size()
             + argumentsInfo.numberOfRemovedArguments()
             + method.getFirstNonReceiverArgumentIndex()
             - prototypeChanges.numberOfExtraParameters();
 
-    int usedArgumentIndex = 0;
+    int numberOfRemovedArguments = 0;
     while (argumentIndex < originalNumberOfArguments) {
       TypeElement type;
       ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(argumentIndex);
@@ -566,20 +567,21 @@ public class IRBuilder {
             TypeElement.fromDexType(
                 removedArgumentInfo.getType(), Nullability.maybeNull(), appView);
         addNonThisArgument(register, type);
+        numberOfRemovedArguments++;
       } else {
         DexType argType;
+        int newArgumentIndex =
+            argumentsInfo.getNewArgumentIndex(argumentIndex, numberOfRemovedArguments);
         if (argumentInfo.isRewrittenTypeInfo()) {
           RewrittenTypeInfo argumentRewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
-          assert method.getReference().proto.getParameter(usedArgumentIndex)
-              == argumentRewrittenTypeInfo.getNewType();
+          assert method.getArgumentType(newArgumentIndex) == argumentRewrittenTypeInfo.getNewType();
           // The old type is used to prevent that a changed value from reference to primitive
           // type breaks IR building. Rewriting from the old to the new type will be done in the
           // IRConverter (typically through the lensCodeRewriter).
           argType = argumentRewrittenTypeInfo.getOldType();
         } else {
-          argType = method.getReference().proto.getParameter(usedArgumentIndex);
+          argType = method.getArgumentType(newArgumentIndex);
         }
-        usedArgumentIndex++;
         writeCallback.accept(register, argType);
         type = TypeElement.fromDexType(argType, Nullability.maybeNull(), appView);
         if (argType.isBooleanType()) {
@@ -588,20 +590,21 @@ public class IRBuilder {
           addNonThisArgument(register, type);
         }
       }
-      register += type.requiredRegisters();
       argumentIndex++;
+      register += type.requiredRegisters();
     }
 
     for (ExtraParameter extraParameter : prototypeChanges.getExtraParameters()) {
-      DexType argType = method.getReference().proto.getParameter(usedArgumentIndex);
-      TypeElement type = extraParameter.getTypeElement(appView, argType);
-      register += type.requiredRegisters();
-      usedArgumentIndex++;
+      int newArgumentIndex =
+          argumentsInfo.getNewArgumentIndex(argumentIndex, numberOfRemovedArguments);
+      DexType extraArgumentType = method.getArgumentType(newArgumentIndex);
       if (extraParameter instanceof ExtraUnusedNullParameter) {
-        addExtraUnusedArgument(register, argType);
+        addExtraUnusedArgument(extraArgumentType);
       } else {
-        addNonThisArgument(register, type);
+        addNonThisArgument(register, extraParameter.getTypeElement(appView, extraArgumentType));
       }
+      argumentIndex++;
+      register += extraArgumentType.getRequiredRegisters();
     }
   }
 
@@ -988,7 +991,7 @@ public class IRBuilder {
     value.markAsThis();
   }
 
-  private void addExtraUnusedArgument(int register, DexType type) {
+  private void addExtraUnusedArgument(DexType type) {
     // Extra unused null arguments should bypass the register check, they may use registers
     // beyond the limit of what the method can use. They don't have debug information and are
     // always null.

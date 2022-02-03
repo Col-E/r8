@@ -75,6 +75,7 @@ import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
+import com.android.tools.r8.optimize.proto.ProtoNormalizer;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.repackaging.Repackaging;
 import com.android.tools.r8.repackaging.RepackagingLens;
@@ -516,6 +517,8 @@ public class R8 {
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
             .runIfNecessary(runtimeTypeCheckInfo, executorService, timing);
       }
+
+      new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
 
       // Clear traced methods roots to not hold on to the main dex live method set.
       appView.appInfo().getMainDexInfo().clearTracedMethodRoots();

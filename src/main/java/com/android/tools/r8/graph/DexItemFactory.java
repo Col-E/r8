@@ -2562,6 +2562,10 @@ public class DexItemFactory {
         fieldReference.getFieldName());
   }
 
+  public DexProto createProto(DexType returnType, DexTypeList parameters) {
+    return createProto(returnType, parameters, createShorty(returnType, parameters.getBacking()));
+  }
+
   public DexProto createProto(DexType returnType, DexTypeList parameters, DexString shorty) {
     assert !sorted;
     DexProto proto = new DexProto(shorty, returnType, parameters);

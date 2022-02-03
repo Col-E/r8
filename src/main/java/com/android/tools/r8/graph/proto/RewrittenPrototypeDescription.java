@@ -141,6 +141,7 @@ public class RewrittenPrototypeDescription {
   public boolean requiresRewritingAtCallSite() {
     return hasRewrittenReturnInfo()
         || numberOfExtraParameters() > 0
+        || argumentInfoCollection.hasArgumentPermutation()
         || argumentInfoCollection.numberOfRemovedArguments() > 0;
   }
 
