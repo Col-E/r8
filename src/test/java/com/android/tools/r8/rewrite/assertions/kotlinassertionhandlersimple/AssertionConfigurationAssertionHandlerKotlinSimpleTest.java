@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite.assertions.kotlinassertionhandlersimple;
 
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
@@ -58,7 +59,9 @@ public class AssertionConfigurationAssertionHandlerKotlinSimpleTest
   @Override
   protected void configureR8(R8FullTestBuilder builder) {
     builder.applyIf(
-        !kotlinStdlibAsLibrary && !useJvmAssertions,
+        !kotlinStdlibAsLibrary
+            && !useJvmAssertions
+            && !kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_3_72),
         b -> b.addDontWarn("org.jetbrains.annotations.NotNull"));
   }
 }
