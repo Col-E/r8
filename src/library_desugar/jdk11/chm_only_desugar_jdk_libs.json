@@ -3,7 +3,7 @@
   "group_id" : "com.tools.android",
   "artifact_id" : "chm_only_desugar_jdk_libs",
   "version": "1.0.12",
-  "required_compilation_api_level": 31,
+  "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
   "common_flags": [

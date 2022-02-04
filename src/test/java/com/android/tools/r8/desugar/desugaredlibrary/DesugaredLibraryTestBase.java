@@ -101,7 +101,7 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected Path getLibraryFile() {
     return isJDK11DesugaredLibrary()
-        ? ToolHelper.getAndroidJar(AndroidApiLevel.S)
+        ? ToolHelper.getAndroidJar(AndroidApiLevel.R)
         : ToolHelper.getAndroidJar(AndroidApiLevel.P);
   }
 
