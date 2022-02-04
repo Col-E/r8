@@ -553,7 +553,14 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void handleArrayGet(InstructionListIterator it, ArrayGet arrayGet) {
+    if (arrayGet.array().hasLocalInfo()) {
+      // The array may be modified through the debugger. Therefore subsequent reads of the same
+      // array slot may not read this local.
+      return;
+    }
     if (arrayGet.outValue().hasLocalInfo()) {
+      // This local may be modified through the debugger. Therefore subsequent reads of the same
+      // array slot may not read this local.
       return;
     }
 
