@@ -34,9 +34,9 @@ public class GenerateBackportMethods extends MethodGenerationBase {
       factory.createType("Lcom/android/tools/r8/ir/desugar/backports/BackportedMethods;");
   private final List<Class<?>> METHOD_TEMPLATE_CLASSES =
       ImmutableList.of(
-          AtomicReferenceMethods.class,
           AtomicReferenceArrayMethods.class,
           AtomicReferenceFieldUpdaterMethods.class,
+          AtomicReferenceMethods.class,
           BooleanMethods.class,
           ByteMethods.class,
           CharSequenceMethods.class,

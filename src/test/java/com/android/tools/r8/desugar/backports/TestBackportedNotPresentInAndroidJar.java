@@ -29,6 +29,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -49,12 +51,29 @@ public class TestBackportedNotPresentInAndroidJar extends TestBase {
 
   private Set<DexMethod> expectedToAlwaysBePresentInAndroidJar(DexItemFactory factory)
       throws Exception {
-    MethodReference compareAndSet =
+    MethodReference AtomicReferenceFieldUpdater_compareAndSet =
         Reference.methodFromMethod(
             AtomicReferenceFieldUpdater.class.getDeclaredMethod(
                 "compareAndSet", Object.class, Object.class, Object.class));
-    assert compareAndSet.getReturnType().getTypeName().equals("boolean");
-    return ImmutableSet.of(factory.createMethod(compareAndSet));
+    assert AtomicReferenceFieldUpdater_compareAndSet.getReturnType()
+        .getTypeName()
+        .equals("boolean");
+
+    MethodReference AtomicReference_compareAndSet =
+        Reference.methodFromMethod(
+            AtomicReference.class.getDeclaredMethod("compareAndSet", Object.class, Object.class));
+    assert AtomicReference_compareAndSet.getReturnType().getTypeName().equals("boolean");
+
+    MethodReference AtomicReferenceArray_compareAndSet =
+        Reference.methodFromMethod(
+            AtomicReferenceArray.class.getDeclaredMethod(
+                "compareAndSet", int.class, Object.class, Object.class));
+    assert AtomicReference_compareAndSet.getReturnType().getTypeName().equals("boolean");
+
+    return ImmutableSet.of(
+        factory.createMethod(AtomicReferenceFieldUpdater_compareAndSet),
+        factory.createMethod(AtomicReference_compareAndSet),
+        factory.createMethod(AtomicReferenceArray_compareAndSet));
   }
 
   @Test

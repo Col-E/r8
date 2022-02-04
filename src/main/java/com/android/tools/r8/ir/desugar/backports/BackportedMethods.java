@@ -117,77 +117,6 @@ public final class BackportedMethods {
     factory.createSynthesizedType("[Ljava/util/Map$Entry;");
   }
 
-  public static CfCode AtomicReferenceMethods_compareAndSet(
-      InternalOptions options, DexMethod method) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    CfLabel label2 = new CfLabel();
-    CfLabel label3 = new CfLabel();
-    CfLabel label4 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        3,
-        3,
-        ImmutableList.of(
-            label0,
-            new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2},
-                    new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Ljava/util/concurrent/atomic/AtomicReference;")),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
-                    }),
-                new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfLoad(ValueType.OBJECT, 2),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.booleanType,
-                        options.itemFactory.objectType,
-                        options.itemFactory.objectType),
-                    options.itemFactory.createString("compareAndSet")),
-                false),
-            new CfIf(If.Type.EQ, ValueType.INT, label2),
-            label1,
-            new CfConstNumber(1, ValueType.INT),
-            new CfReturn(ValueType.INT),
-            label2,
-            new CfFrame(
-                new Int2ReferenceAVLTreeMap<>(
-                    new int[] {0, 1, 2},
-                    new FrameType[] {
-                      FrameType.initialized(
-                          options.itemFactory.createType(
-                              "Ljava/util/concurrent/atomic/AtomicReference;")),
-                      FrameType.initialized(options.itemFactory.objectType),
-                      FrameType.initialized(options.itemFactory.objectType)
-                    }),
-                new ArrayDeque<>(Arrays.asList())),
-            new CfLoad(ValueType.OBJECT, 0),
-            new CfInvoke(
-                182,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
-                    options.itemFactory.createProto(options.itemFactory.objectType),
-                    options.itemFactory.createString("get")),
-                false),
-            new CfLoad(ValueType.OBJECT, 1),
-            new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
-            label3,
-            new CfConstNumber(0, ValueType.INT),
-            new CfReturn(ValueType.INT),
-            label4),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
   public static CfCode AtomicReferenceArrayMethods_compareAndSet(
       InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
@@ -337,6 +266,77 @@ public final class BackportedMethods {
                     options.itemFactory.createString("get")),
                 false),
             new CfLoad(ValueType.OBJECT, 2),
+            new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
+            label3,
+            new CfConstNumber(0, ValueType.INT),
+            new CfReturn(ValueType.INT),
+            label4),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode AtomicReferenceMethods_compareAndSet(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        3,
+        ImmutableList.of(
+            label0,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2},
+                    new FrameType[] {
+                      FrameType.initialized(
+                          options.itemFactory.createType(
+                              "Ljava/util/concurrent/atomic/AtomicReference;")),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.objectType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.booleanType,
+                        options.itemFactory.objectType,
+                        options.itemFactory.objectType),
+                    options.itemFactory.createString("compareAndSet")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfConstNumber(1, ValueType.INT),
+            new CfReturn(ValueType.INT),
+            label2,
+            new CfFrame(
+                new Int2ReferenceAVLTreeMap<>(
+                    new int[] {0, 1, 2},
+                    new FrameType[] {
+                      FrameType.initialized(
+                          options.itemFactory.createType(
+                              "Ljava/util/concurrent/atomic/AtomicReference;")),
+                      FrameType.initialized(options.itemFactory.objectType),
+                      FrameType.initialized(options.itemFactory.objectType)
+                    }),
+                new ArrayDeque<>(Arrays.asList())),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/concurrent/atomic/AtomicReference;"),
+                    options.itemFactory.createProto(options.itemFactory.objectType),
+                    options.itemFactory.createString("get")),
+                false),
+            new CfLoad(ValueType.OBJECT, 1),
             new CfIfCmp(If.Type.EQ, ValueType.OBJECT, label0),
             label3,
             new CfConstNumber(0, ValueType.INT),
