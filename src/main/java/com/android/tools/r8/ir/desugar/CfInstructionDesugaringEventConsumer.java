@@ -32,10 +32,12 @@ import com.android.tools.r8.shaking.KeepMethodInfo.Joiner;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -236,6 +238,9 @@ public abstract class CfInstructionDesugaringEventConsumer
     private void finalizeLambdaDesugaring(
         ClassConverterResult.Builder classConverterResultBuilder,
         Consumer<ProgramMethod> needsProcessing) {
+      // Sort synthesized lambda classes to ensure deterministic insertion of the synthesized
+      // $r8$lambda$ target methods.
+      synthesizedLambdaClasses.sort(Comparator.comparing(LambdaClass::getType));
       for (LambdaClass lambdaClass : synthesizedLambdaClasses) {
         lambdaClass.target.ensureAccessibilityIfNeeded(
             classConverterResultBuilder, needsProcessing);
@@ -423,9 +428,18 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     private void finalizeLambdaDesugaring() {
+      // Sort synthesized lambda classes to ensure deterministic insertion of the synthesized
+      // $r8$lambda$ target methods.
+      List<Entry<LambdaClass, ProgramMethod>> sortedSynthesizedLambdaClasses =
+          new ArrayList<>(synthesizedLambdaClasses.entrySet());
+      sortedSynthesizedLambdaClasses.sort(Comparator.comparing(entry -> entry.getKey().getType()));
+
       Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
-      synthesizedLambdaClasses.forEach(
-          (lambdaClass, context) -> {
+      sortedSynthesizedLambdaClasses.forEach(
+          entry -> {
+            LambdaClass lambdaClass = entry.getKey();
+            ProgramMethod context = entry.getValue();
+
             lambdaClass.target.ensureAccessibilityIfNeeded();
 
             // Populate set of types with serialized lambda method for removal.
