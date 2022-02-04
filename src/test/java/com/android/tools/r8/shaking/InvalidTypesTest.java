@@ -78,6 +78,7 @@ public class InvalidTypesTest extends JasminTestBase {
                 return StringUtils.joinLines("Hello!", "Goodbye!", "");
 
               case V7_0_0:
+              case V13_MASTER:
                 return StringUtils.joinLines(
                     "Hello!",
                     "Unexpected outcome of checkcast",

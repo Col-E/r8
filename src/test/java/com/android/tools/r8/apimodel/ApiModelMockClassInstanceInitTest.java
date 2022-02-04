@@ -37,9 +37,10 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/197078995): Make this work on 12.
+    // TODO(b/197078995): Make this work on 12+.
     assumeFalse(
-        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0));
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
     boolean isMockApiLevel =
         parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(mockLevel);
     testForR8(parameters.getBackend())

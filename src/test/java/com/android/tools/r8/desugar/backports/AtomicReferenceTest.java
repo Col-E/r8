@@ -8,7 +8,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -25,7 +24,9 @@ public class AtomicReferenceTest extends AbstractBackportTest {
   }
 
   public AtomicReferenceTest(TestParameters parameters) {
-    super(parameters, AtomicReferenceFieldUpdater.class, Main.class);
+    super(parameters, AtomicReference.class, Main.class);
+
+    ignoreInvokes("<init>");
 
     // java.util.concurrent.atomic.AtomicReference issue is on API 31, see b/211646483.
     registerTarget(AndroidApiLevel.Sv2, 3);

@@ -41,8 +41,10 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
     assumeFalse(
-        parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V12_0_0));
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
     boolean isLibraryApiLevel =
         parameters.isDexRuntime()
             && parameters.getApiLevel().isGreaterThanOrEqualTo(libraryApiLevel);

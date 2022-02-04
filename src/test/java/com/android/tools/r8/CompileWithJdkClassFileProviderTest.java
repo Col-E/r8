@@ -9,6 +9,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
@@ -109,23 +110,28 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
         // java.util.concurrent.Flow$Subscriber is not present on Android.
         testBuilder
             .run(parameters.getRuntime(), "MySubscriber")
-            .assertFailureWithErrorThatMatches(
-                anyOf(
-                    // Dalvik 4.0.4
-                    containsString("java.lang.NoClassDefFoundError: MySubscriber"),
-                    // Other Dalviks.
-                    containsString(
-                        "java.lang.ClassNotFoundException: Didn't find class \"MySubscriber\""),
-                    // Art.
-                    containsString(
-                        "java.lang.NoClassDefFoundError: "
-                            + "Failed resolution of: Ljava/util/concurrent/Flow$Subscriber;"),
-                    // Art 10.
-                    containsString("java.lang.ClassNotFoundException: MySubscriber"),
-                    // Art 11+.
-                    containsString(
-                        "java.lang.ClassNotFoundException: "
-                            + "java.util.concurrent.SubmissionPublisher")));
+            .applyIf(
+                parameters.asDexRuntime().getVersion().isOlderThan(DexVm.Version.V13_MASTER),
+                b ->
+                    b.assertFailureWithErrorThatMatches(
+                        anyOf(
+                            // Dalvik 4.0.4
+                            containsString("java.lang.NoClassDefFoundError: MySubscriber"),
+                            // Other Dalviks.
+                            containsString(
+                                "java.lang.ClassNotFoundException: Didn't find class"
+                                    + " \"MySubscriber\""),
+                            // Art.
+                            containsString(
+                                "java.lang.NoClassDefFoundError: Failed resolution of:"
+                                    + " Ljava/util/concurrent/Flow$Subscriber;"),
+                            // Art 10.
+                            containsString("java.lang.ClassNotFoundException: MySubscriber"),
+                            // Art 11+.
+                            containsString(
+                                "java.lang.ClassNotFoundException: "
+                                    + "java.util.concurrent.SubmissionPublisher"))),
+                b -> b.assertSuccessWithOutputLines("Got : 1", "Got : 2", "Got : 3", "Done"));
       } else {
         if (parameters.getRuntime().asCf().getVm() == CfVm.JDK8) {
           // java.util.concurrent.Flow$Subscriber not present in JDK8.

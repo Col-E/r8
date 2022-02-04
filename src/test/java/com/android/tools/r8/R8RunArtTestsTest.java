@@ -107,7 +107,8 @@ public abstract class R8RunArtTestsTest {
           DexVm.Version.V8_1_0,
           DexVm.Version.V9_0_0,
           DexVm.Version.V10_0_0,
-          DexVm.Version.V12_0_0);
+          DexVm.Version.V12_0_0,
+          DexVm.Version.V13_MASTER);
 
   // Input jar for jctf tests.
   private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
@@ -195,12 +196,16 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.runtimes(DexVm.Version.V12_0_0)))
           // TODO(b/197078746): Triage - fails with "java.lang.NoSuchMethodException:
           //  org.apache.harmony.dalvik.ddmc.DdmVmInternal.enableRecentAllocations [boolean]"
-          .put("098-ddmc", TestCondition.match(TestCondition.runtimes(DexVm.Version.V12_0_0)))
+          .put(
+              "098-ddmc",
+              TestCondition.match(
+                  TestCondition.runtimes(DexVm.Version.V12_0_0, DexVm.Version.V13_MASTER)))
           // TODO(b/197079442): Triage - fails with "java.lang.NoSuchMethodException:
           //  org.apache.harmony.dalvik.ddmc.DdmVmInternal.enableRecentAllocations [boolean]"
           .put(
               "145-alloc-tracking-stress",
-              TestCondition.match(TestCondition.runtimes(DexVm.Version.V12_0_0)))
+              TestCondition.match(
+                  TestCondition.runtimes(DexVm.Version.V12_0_0, DexVm.Version.V13_MASTER)))
           .build();
 
   // Tests that are flaky with the Art version we currently use.
@@ -506,6 +511,9 @@ public abstract class R8RunArtTestsTest {
   static {
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
+        .put(
+            DexVm.Version.V13_MASTER,
+            ImmutableList.of("454-get-vreg", "457-regs", "543-env-long-ref", "518-null-array-get"))
         .put(
             DexVm.Version.V12_0_0,
             ImmutableList.of("454-get-vreg", "457-regs", "543-env-long-ref", "518-null-array-get"))
@@ -852,7 +860,8 @@ public abstract class R8RunArtTestsTest {
                           DexVm.Version.V4_4_4,
                           DexVm.Version.V5_1_1,
                           DexVm.Version.V6_0_1,
-                          DexVm.Version.V7_0_0)),
+                          DexVm.Version.V7_0_0,
+                          DexVm.Version.V13_MASTER)),
                   TestCondition.match(
                       TestCondition.compilers(
                           CompilerUnderTest.R8,
