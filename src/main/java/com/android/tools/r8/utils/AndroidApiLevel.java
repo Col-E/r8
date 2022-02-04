@@ -42,12 +42,13 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
   R(30),
   S(31),
   Sv2(32),
+  T(33),
   ANDROID_PLATFORM(10000);
 
   // When updating LATEST and a new version goes stable, add a new api-versions.xml to third_party
   // and update the version and generated jar in AndroidApiDatabaseBuilderGeneratorTest.
-  // TODO(b/204738868): Update API database for Sv2.
-  public static final AndroidApiLevel LATEST = Sv2;
+  // TODO(b/204738868): Update API database for Sv2 / T when they are ready.
+  public static final AndroidApiLevel LATEST = T;
 
   private final int level;
 
@@ -96,6 +97,7 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
 
   public static AndroidApiLevel getAndroidApiLevel(int apiLevel) {
     assert apiLevel > 0;
+    assert T == LATEST; // This has to be updated when we add new api levels.
     assert ANDROID_PLATFORM.isGreaterThan(LATEST);
     switch (apiLevel) {
       case 1:
@@ -162,11 +164,11 @@ public enum AndroidApiLevel implements Ordered<AndroidApiLevel> {
         return S;
       case 32:
         return Sv2;
+      case 33:
+        return T;
       case 10000:
         return ANDROID_PLATFORM;
       default:
-        // This has to be updated when we add new api levels.
-        assert Sv2 == LATEST;
         return LATEST;
     }
   }
