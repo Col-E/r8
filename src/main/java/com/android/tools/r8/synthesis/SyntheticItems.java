@@ -723,7 +723,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
               buildMethodCallback.accept(methodBuilder.disableAndroidApiLevelCheck());
             },
             emptyConsumer());
-    return ClasspathMethod.create(clazz, methodDefinition);
+    return new ClasspathMethod(clazz, methodDefinition);
   }
 
   @SuppressWarnings("unchecked")
