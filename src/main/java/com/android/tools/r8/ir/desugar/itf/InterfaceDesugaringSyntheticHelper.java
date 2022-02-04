@@ -171,7 +171,8 @@ public class InterfaceDesugaringSyntheticHelper {
             SyntheticKind.EMULATED_INTERFACE_MARKER_CLASS,
             type,
             appView,
-            SyntheticClassBuilder::setInterface);
+            SyntheticClassBuilder::setInterface,
+            ignored -> {});
   }
 
   DexClassAndMethod lookupMaximallySpecificIncludingSelf(

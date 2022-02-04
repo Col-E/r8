@@ -10,6 +10,7 @@ import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -649,10 +650,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       SyntheticKind kind,
       DexType contextType,
       AppView<?> appView,
-      Consumer<SyntheticClasspathClassBuilder> classConsumer) {
+      Consumer<SyntheticClasspathClassBuilder> classConsumer,
+      Consumer<DexClasspathClass> onCreationConsumer) {
     SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
     return internalEnsureFixedClasspathClass(
-        kind, classConsumer, ignored -> {}, outerContext, appView);
+        kind, classConsumer, onCreationConsumer, outerContext, appView);
   }
 
   public DexClasspathClass ensureFixedClasspathClass(
@@ -668,7 +670,23 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         kind, classConsumer, onCreationConsumer, outerContext, appView);
   }
 
-  public DexClassAndMethod ensureFixedClasspathClassMethod(
+  public ClasspathMethod ensureFixedClasspathMethodFromType(
+      DexString methodName,
+      DexProto methodProto,
+      SyntheticKind kind,
+      DexType contextType,
+      AppView<?> appView,
+      Consumer<SyntheticClasspathClassBuilder> classConsumer,
+      Consumer<DexClasspathClass> onCreationConsumer,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback) {
+    DexClasspathClass clazz =
+        ensureFixedClasspathClassFromType(
+            kind, contextType, appView, classConsumer, onCreationConsumer);
+    return internalEnsureFixedClasspathMethod(
+        methodName, methodProto, kind, appView, buildMethodCallback, clazz);
+  }
+
+  public ClasspathMethod ensureFixedClasspathClassMethod(
       DexString methodName,
       DexProto methodProto,
       SyntheticKind kind,
@@ -680,6 +698,17 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     DexClasspathClass clazz =
         ensureFixedClasspathClass(
             kind, context, appView, buildClassCallback, onClassCreationCallback);
+    return internalEnsureFixedClasspathMethod(
+        methodName, methodProto, kind, appView, buildMethodCallback, clazz);
+  }
+
+  private ClasspathMethod internalEnsureFixedClasspathMethod(
+      DexString methodName,
+      DexProto methodProto,
+      SyntheticKind kind,
+      AppView<?> appView,
+      Consumer<SyntheticMethodBuilder> buildMethodCallback,
+      DexClasspathClass clazz) {
     DexMethod methodReference =
         appView.dexItemFactory().createMethod(clazz.getType(), methodProto, methodName);
     DexEncodedMethod methodDefinition =
@@ -694,7 +723,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
               buildMethodCallback.accept(methodBuilder.disableAndroidApiLevelCheck());
             },
             emptyConsumer());
-    return DexClassAndMethod.create(clazz, methodDefinition);
+    return ClasspathMethod.create(clazz, methodDefinition);
   }
 
   @SuppressWarnings("unchecked")
