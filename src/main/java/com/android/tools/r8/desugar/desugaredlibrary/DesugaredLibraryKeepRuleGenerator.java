@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.references.ArrayReference;
 import com.android.tools.r8.references.ClassReference;
@@ -32,11 +32,13 @@ import com.android.tools.r8.utils.ClassReferenceUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.NopDiagnosticsHandler;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TypeReferenceUtils;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
@@ -69,7 +71,7 @@ public class DesugaredLibraryKeepRuleGenerator {
       return false;
     }
     return namingLens.hasPrefixRewritingLogic()
-        || options.machineDesugaredLibrarySpecification.hasEmulatedInterfaces();
+        || options.desugaredLibrarySpecification.hasEmulatedLibraryInterfaces();
   }
 
   private void run() {
@@ -78,15 +80,18 @@ public class DesugaredLibraryKeepRuleGenerator {
   }
 
   private Predicate<DexType> createTargetPredicate() {
-    MachineDesugaredLibrarySpecification desugaredLibrarySpecification =
-        options.machineDesugaredLibrarySpecification;
+    LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+        options.desugaredLibrarySpecification;
+    Set<DexType> potentialTypesToKeep =
+        SetUtils.newIdentityHashSet(
+            desugaredLibrarySpecification.getCustomConversions().values(),
+            desugaredLibrarySpecification.getEmulateLibraryInterface().values());
     byte[] synthesizedLibraryClassesPackageDescriptorPrefix =
         DexString.encodeToMutf8(
             "L" + desugaredLibrarySpecification.getSynthesizedLibraryClassesPackagePrefix());
     return type ->
         namingLens.prefixRewrittenType(type) != null
-            || desugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(type)
-            || desugaredLibrarySpecification.isCustomConversionRewrittenType(type)
+            || potentialTypesToKeep.contains(type)
             || type.getDescriptor().startsWith(synthesizedLibraryClassesPackageDescriptorPrefix);
   }
 

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion;
 
-import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -66,9 +65,7 @@ public class LegacyToHumanSpecificationConverter {
       InternalOptions options)
       throws IOException {
     Origin origin = legacySpec.getOrigin();
-    AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
-    DexApplication app = readApp(androidApp, options);
-    LibraryValidator.validate(app, legacySpec.getTopLevelFlags().getRequiredCompilationAPILevel());
+    DexApplication app = readApp(androidLib, options);
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
     Int2ObjectArrayMap<HumanRewritingFlags> commonFlags =
         convertRewritingFlagMap(legacySpec.getCommonFlags(), app, origin);
@@ -84,30 +81,11 @@ public class LegacyToHumanSpecificationConverter {
   }
 
   public HumanDesugaredLibrarySpecification convert(
-      LegacyDesugaredLibrarySpecification legacySpec,
-      List<ClassFileResourceProvider> library,
-      InternalOptions options)
-      throws IOException {
-    AndroidApp.Builder builder = AndroidApp.builder();
-    for (ClassFileResourceProvider classFileResourceProvider : library) {
-      builder.addLibraryResourceProvider(classFileResourceProvider);
-    }
-    return internalConvert(legacySpec, builder.build(), options);
-  }
-
-  public HumanDesugaredLibrarySpecification convert(
       LegacyDesugaredLibrarySpecification legacySpec, Path androidLib, InternalOptions options)
       throws IOException {
-    AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
-    return internalConvert(legacySpec, androidApp, options);
-  }
-
-  public HumanDesugaredLibrarySpecification internalConvert(
-      LegacyDesugaredLibrarySpecification legacySpec, AndroidApp inputApp, InternalOptions options)
-      throws IOException {
-    DexApplication app = readApp(inputApp, options);
-    LibraryValidator.validate(app, legacySpec.getTopLevelFlags().getRequiredCompilationAPILevel());
+    DexApplication app = readApp(androidLib, options);
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
+
     // The origin is not maintained in non multi-level specifications.
     // It should not matter since the origin is used to report invalid specifications, and
     // converting non multi-level specifications should be performed only with *valid*
@@ -117,7 +95,10 @@ public class LegacyToHumanSpecificationConverter {
     HumanRewritingFlags humanRewritingFlags =
         convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
     return new HumanDesugaredLibrarySpecification(
-        humanTopLevelFlags, humanRewritingFlags, legacySpec.isLibraryCompilation());
+        humanTopLevelFlags,
+        humanRewritingFlags,
+        legacySpec.isLibraryCompilation(),
+        app.dexItemFactory());
   }
 
   private void legacyLibraryFlagHacks(
@@ -153,8 +134,10 @@ public class LegacyToHumanSpecificationConverter {
     libraryFlags.put(level, builder.build());
   }
 
-  private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {
-    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
+  private DexApplication readApp(Path androidLib, InternalOptions options) throws IOException {
+    AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
+    ApplicationReader applicationReader =
+        new ApplicationReader(androidApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     return applicationReader.read(executorService).toDirect();
   }

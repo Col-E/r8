@@ -355,17 +355,9 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   @Test
   public void desugaredLibrary() throws CompilationFailedException {
     L8Command l8Command =
-        parse(
-            "--desugared-lib",
-            ToolHelper.getDesugarLibJsonForTesting().toString(),
-            "--lib",
-            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
+        parse("--desugared-lib", ToolHelper.getDesugarLibJsonForTesting().toString());
     assertFalse(
-        l8Command
-            .getInternalOptions()
-            .machineDesugaredLibrarySpecification
-            .getRewriteType()
-            .isEmpty());
+        l8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
   }
 
   private void checkSingleForceAllAssertion(

@@ -43,9 +43,10 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
             "",
             false,
             Collections.emptyList(),
-            options ->
-                setDesugaredLibrarySpecificationForTesting(
-                    options, chmOnlyConfiguration(options, true, parameters)));
+            options -> {
+              options.desugaredLibrarySpecification =
+                  chmOnlyConfiguration(options, true, parameters);
+            });
     CodeInspector inspector = new CodeInspector(desugaredLib);
     assert inspector.clazz("j$.util.concurrent.ConcurrentHashMap").isPresent();
   }
@@ -60,9 +61,10 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
             "-keep class * { *; }",
             true,
             Collections.emptyList(),
-            options ->
-                setDesugaredLibrarySpecificationForTesting(
-                    options, chmOnlyConfiguration(options, true, parameters)));
+            options -> {
+              options.desugaredLibrarySpecification =
+                  chmOnlyConfiguration(options, true, parameters);
+            });
     CodeInspector inspector = new CodeInspector(desugaredLib);
     assert inspector.clazz("j$.util.concurrent.ConcurrentHashMap").isPresent();
   }

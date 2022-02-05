@@ -11,12 +11,10 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class MachineRewritingFlags {
 
@@ -96,12 +94,6 @@ public class MachineRewritingFlags {
     return emulatedVirtualRetarget;
   }
 
-  public void forEachRetargetHolder(Consumer<DexType> consumer) {
-    staticRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
-    nonEmulatedVirtualRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
-    emulatedVirtualRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
-  }
-
   public Map<DexType, EmulatedInterfaceDescriptor> getEmulatedInterfaces() {
     return emulatedInterfaces;
   }
@@ -118,35 +110,8 @@ public class MachineRewritingFlags {
     return dontRetarget;
   }
 
-  public boolean isCustomConversionRewrittenType(DexType type) {
-    return Iterables.any(customConversions.values(), pair -> pair.getFirst() == type);
-  }
-
   public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
     return customConversions;
-  }
-
-  public boolean hasRetargeting() {
-    return !staticRetarget.isEmpty()
-        || !nonEmulatedVirtualRetarget.isEmpty()
-        || !emulatedVirtualRetarget.isEmpty();
-  }
-
-  public boolean isEmulatedInterfaceRewrittenType(DexType type) {
-    return Iterables.any(
-        emulatedInterfaces.values(), descriptor -> descriptor.getRewrittenType() == type);
-  }
-
-  public boolean hasEmulatedInterfaces() {
-    return !emulatedInterfaces.isEmpty();
-  }
-
-  EmulatedDispatchMethodDescriptor getEmulatedInterfaceEmulatedDispatchMethodDescriptor(
-      DexMethod method) {
-    if (!emulatedInterfaces.containsKey(method.getHolderType())) {
-      return null;
-    }
-    return emulatedInterfaces.get(method.getHolderType()).getEmulatedMethods().get(method);
   }
 
   public static class Builder {
@@ -172,7 +137,6 @@ public class MachineRewritingFlags {
     public void rewriteType(DexType src, DexType target) {
       assert src != null;
       assert target != null;
-      assert src != target;
       rewriteType.put(src, target);
     }
 

@@ -311,7 +311,7 @@ public class R8 {
       if (!options.mainDexKeepRules.isEmpty()) {
         MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());
       }
-      if (options.machineDesugaredLibrarySpecification.hasRetargeting()) {
+      if (!options.desugaredLibrarySpecification.getRetargetCoreLibMember().isEmpty()) {
         DesugaredLibraryRetargeterLibraryTypeSynthesizer.checkForAssumedLibraryTypes(appView);
         DesugaredLibraryRetargeterLibraryTypeSynthesizer.amendLibraryWithRetargetedMembers(appView);
       }

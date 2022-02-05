@@ -155,8 +155,8 @@ public class BackportedMethodListTest {
               .setConsumer(new ListStringConsumer())
               .build());
       fail("Expected failure");
-    } catch (Throwable e) {
-      // This should throw a CompilationFailedException but an assertion is failing first.
+    } catch (CompilationFailedException e) {
+      // Expected.
     }
   }
 }

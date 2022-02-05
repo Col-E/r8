@@ -665,6 +665,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             || getMissingClasses().contains(type)
             // TODO(b/150693139): Remove these exceptions once fixed.
             || InterfaceDesugaringSyntheticHelper.isCompanionClassType(type)
+            || InterfaceDesugaringSyntheticHelper.isEmulatedLibraryClassType(type)
             // TODO(b/150736225): Not sure how to remove these.
             || DesugaredLibraryAPIConverter.isVivifiedType(type)
         : "Failed lookup of non-missing type: " + type;

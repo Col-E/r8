@@ -3,15 +3,23 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
-import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import java.util.function.Consumer;
@@ -25,15 +33,19 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
 
   private static final String EXPECTED = StringUtils.lines("Y", "89");
 
-  @Parameterized.Parameters(name = "{0}")
+  @Parameterized.Parameters(name = "{0}, old-rt:{1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimesAndApiLevels().build());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   private final TestParameters parameters;
+  private final boolean rtWithoutConsumer;
 
-  public InvokeSuperToRewrittenDefaultMethodTest(TestParameters parameters) {
+  public InvokeSuperToRewrittenDefaultMethodTest(
+      TestParameters parameters, boolean rtWithoutConsumer) {
     this.parameters = parameters;
+    this.rtWithoutConsumer = rtWithoutConsumer;
   }
 
   private boolean needsDefaultInterfaceMethodDesugaring() {
@@ -53,15 +65,35 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
   @Test
   public void testDesugaring() throws Exception {
     assumeTrue(needsDefaultInterfaceMethodDesugaring());
-    testForD8()
-        .addInnerClasses(InvokeSuperToRewrittenDefaultMethodTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .enableCoreLibraryDesugaring(
-            LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED);
+    try {
+      testForD8()
+          .addInnerClasses(InvokeSuperToRewrittenDefaultMethodTest.class)
+          .setMinApi(parameters.getApiLevel())
+          .addLibraryFiles(
+              rtWithoutConsumer
+                  ? ToolHelper.getAndroidJar(AndroidApiLevel.B)
+                  : ToolHelper.getAndroidJar(AndroidApiLevel.P))
+          .enableCoreLibraryDesugaring(
+              LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                if (rtWithoutConsumer) {
+                  diagnostics.assertOnlyErrors();
+                  // TODO(b/158543011): Should fail with a nice user error for invalid library.
+                  diagnostics.assertErrorsMatch(
+                      allOf(
+                          diagnosticType(ExceptionDiagnostic.class),
+                          diagnosticMessage(containsString("AssertionError"))));
+                } else {
+                  diagnostics.assertNoMessages();
+                }
+              })
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(EXPECTED);
+      assertFalse(rtWithoutConsumer);
+    } catch (CompilationFailedException e) {
+      assertTrue(rtWithoutConsumer);
+    }
   }
 
   public interface CharConsumer extends Consumer<Character>, IntConsumer {

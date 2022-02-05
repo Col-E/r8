@@ -103,7 +103,7 @@ public class HumanDesugaredLibrarySpecificationParser {
 
     HumanDesugaredLibrarySpecification config =
         new HumanDesugaredLibrarySpecification(
-            topLevelFlags, legacyRewritingFlags, libraryCompilation);
+            topLevelFlags, legacyRewritingFlags, libraryCompilation, dexItemFactory);
     origin = null;
     return config;
   }

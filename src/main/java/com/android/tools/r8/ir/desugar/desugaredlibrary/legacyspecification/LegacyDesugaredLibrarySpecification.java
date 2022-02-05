@@ -6,9 +6,13 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -22,18 +26,25 @@ public class LegacyDesugaredLibrarySpecification {
   private final boolean libraryCompilation;
   private final LegacyTopLevelFlags topLevelFlags;
   private final LegacyRewritingFlags rewritingFlags;
+  private final PrefixRewritingMapper prefixRewritingMapper;
 
   public static LegacyDesugaredLibrarySpecification withOnlyRewritePrefixForTesting(
       Map<String, String> prefix, InternalOptions options) {
     return new LegacyDesugaredLibrarySpecification(
         LegacyTopLevelFlags.empty(),
         LegacyRewritingFlags.withOnlyRewritePrefixForTesting(prefix, options),
-        true);
+        true,
+        options.itemFactory);
   }
 
   public static LegacyDesugaredLibrarySpecification empty() {
     return new LegacyDesugaredLibrarySpecification(
-        LegacyTopLevelFlags.empty(), LegacyRewritingFlags.empty(), false) {
+        LegacyTopLevelFlags.empty(), LegacyRewritingFlags.empty(), false, null) {
+
+      @Override
+      public boolean isSupported(DexReference reference, AppView<?> appView) {
+        return false;
+      }
 
       @Override
       public boolean isEmptyConfiguration() {
@@ -45,10 +56,16 @@ public class LegacyDesugaredLibrarySpecification {
   public LegacyDesugaredLibrarySpecification(
       LegacyTopLevelFlags topLevelFlags,
       LegacyRewritingFlags rewritingFlags,
-      boolean libraryCompilation) {
+      boolean libraryCompilation,
+      DexItemFactory factory) {
     this.libraryCompilation = libraryCompilation;
     this.topLevelFlags = topLevelFlags;
     this.rewritingFlags = rewritingFlags;
+    this.prefixRewritingMapper =
+        rewritingFlags.getRewritePrefix().isEmpty()
+            ? PrefixRewritingMapper.empty()
+            : new DesugarPrefixRewritingMapper(
+                rewritingFlags.getRewritePrefix(), factory, libraryCompilation);
   }
 
   public LegacyTopLevelFlags getTopLevelFlags() {
@@ -61,6 +78,10 @@ public class LegacyDesugaredLibrarySpecification {
 
   public boolean supportAllCallbacksFromLibrary() {
     return topLevelFlags.supportAllCallbacksFromLibrary();
+  }
+
+  public PrefixRewritingMapper getPrefixRewritingMapper() {
+    return prefixRewritingMapper;
   }
 
   public AndroidApiLevel getRequiredCompilationApiLevel() {
@@ -100,6 +121,10 @@ public class LegacyDesugaredLibrarySpecification {
 
   public Map<DexType, DexType> getEmulateLibraryInterface() {
     return rewritingFlags.getEmulateLibraryInterface();
+  }
+
+  public boolean isSupported(DexReference reference, AppView<?> appView) {
+    return prefixRewritingMapper.hasRewrittenType(reference.getContextType(), appView);
   }
 
   // If the method is retargeted, answers the retargeted method, else null.
