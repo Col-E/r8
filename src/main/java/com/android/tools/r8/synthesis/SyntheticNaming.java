@@ -31,6 +31,7 @@ public class SyntheticNaming {
     COMPANION_CLASS("$-CC", 2, false, true),
     EMULATED_INTERFACE_CLASS("$-EL", 3, false, true),
     RETARGET_CLASS("RetargetClass", 20, false, true),
+    RETARGET_STUB("", 36, false, true),
     RETARGET_INTERFACE("RetargetInterface", 21, false, true),
     WRAPPER("$Wrapper", 22, false, true),
     VIVIFIED_WRAPPER("$VivifiedWrapper", 23, false, true),

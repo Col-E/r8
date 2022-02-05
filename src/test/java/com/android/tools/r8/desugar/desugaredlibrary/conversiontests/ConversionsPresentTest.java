@@ -46,6 +46,7 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
         L8Command.builder(diagnosticsHandler)
             .addLibraryFiles(getLibraryFile())
             .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
+            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
             .setMinApiLevel(parameters.getApiLevel().getLevel())

@@ -12,7 +12,6 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -87,6 +86,18 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     return computeNewInvokeTarget(instruction, context).hasNewInvokeTarget();
   }
 
+  InvokeRetargetingResult ensureInvokeRetargetingResult(DexMethod retarget) {
+    if (retarget == null) {
+      return NO_REWRITING;
+    }
+    return new InvokeRetargetingResult(
+        true,
+        eventConsumer -> {
+          syntheticHelper.ensureRetargetMethod(retarget, eventConsumer);
+          return retarget;
+        });
+  }
+
   static class InvokeRetargetingResult {
 
     static InvokeRetargetingResult NO_REWRITING =
@@ -95,13 +106,6 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     private final boolean hasNewInvokeTarget;
     private final Function<DesugaredLibraryRetargeterInstructionEventConsumer, DexMethod>
         newInvokeTargetSupplier;
-
-    static InvokeRetargetingResult createInvokeRetargetingResult(DexMethod retarget) {
-      if (retarget == null) {
-        return NO_REWRITING;
-      }
-      return new InvokeRetargetingResult(true, ignored -> retarget);
-    }
 
     private InvokeRetargetingResult(
         boolean hasNewInvokeTarget,
@@ -148,44 +152,33 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     assert singleTarget != null;
     if (cfInvoke.isInvokeStatic()) {
       DexMethod retarget = staticRetarget.get(singleTarget);
-      return retarget == null
-          ? NO_REWRITING
-          : InvokeRetargetingResult.createInvokeRetargetingResult(retarget);
+      return retarget == null ? NO_REWRITING : ensureInvokeRetargetingResult(retarget);
     }
-    InvokeRetargetingResult retarget = computeNonStaticRetarget(singleTarget);
+    InvokeRetargetingResult retarget = computeNonStaticRetarget(singleTarget, false);
     if (!retarget.hasNewInvokeTarget()) {
       return NO_REWRITING;
     }
     if (cfInvoke.isInvokeSuper(context.getHolderType())) {
       DexClassAndMethod superTarget = appInfo.lookupSuperTarget(invokedMethod, context);
       if (superTarget != null) {
-        return computeSuperRetarget(superTarget.getDefinition());
+        assert !superTarget.getDefinition().isStatic();
+        return computeNonStaticRetarget(superTarget.getReference(), true);
       }
     }
     return retarget;
   }
 
-  private InvokeRetargetingResult computeNonStaticRetarget(DexMethod singleTarget) {
+  private InvokeRetargetingResult computeNonStaticRetarget(
+      DexMethod singleTarget, boolean superInvoke) {
     EmulatedDispatchMethodDescriptor descriptor = emulatedVirtualRetarget.get(singleTarget);
     if (descriptor != null) {
       return new InvokeRetargetingResult(
           true,
           eventConsumer ->
-              syntheticHelper.ensureEmulatedHolderDispatchMethod(descriptor, eventConsumer));
+              superInvoke
+                  ? syntheticHelper.ensureForwardingMethod(descriptor, eventConsumer)
+                  : syntheticHelper.ensureEmulatedHolderDispatchMethod(descriptor, eventConsumer));
     }
-    return InvokeRetargetingResult.createInvokeRetargetingResult(
-        nonEmulatedVirtualRetarget.get(singleTarget));
-  }
-
-  private InvokeRetargetingResult computeSuperRetarget(DexEncodedMethod singleTarget) {
-    assert !singleTarget.isStatic();
-    DexMethod reference = singleTarget.getReference();
-    EmulatedDispatchMethodDescriptor descriptor = emulatedVirtualRetarget.get(reference);
-    if (descriptor != null) {
-      return InvokeRetargetingResult.createInvokeRetargetingResult(
-          syntheticHelper.ensureForwardingMethod(descriptor));
-    }
-    return InvokeRetargetingResult.createInvokeRetargetingResult(
-        nonEmulatedVirtualRetarget.get(reference));
+    return ensureInvokeRetargetingResult(nonEmulatedVirtualRetarget.get(singleTarget));
   }
 }

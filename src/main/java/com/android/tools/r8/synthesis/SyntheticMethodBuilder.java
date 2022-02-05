@@ -180,6 +180,10 @@ public class SyntheticMethodBuilder {
   }
 
   private Code getCodeObject(DexMethod methodSignature) {
+    if (codeGenerator == null) {
+      // If the method is on the classpath then no code is needed.
+      return null;
+    }
     return codeGenerator.generate(methodSignature);
   }
 }

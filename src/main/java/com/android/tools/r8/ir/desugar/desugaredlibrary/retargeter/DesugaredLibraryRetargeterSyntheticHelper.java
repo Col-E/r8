@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
@@ -29,10 +30,44 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     this.appView = appView;
   }
 
-  public DexMethod ensureForwardingMethod(EmulatedDispatchMethodDescriptor descriptor) {
-    // TODO(b/184026720): We may synthesize a stub on the classpath if absent.
+  public DexMethod ensureRetargetMethod(
+      DexMethod retarget, DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+    DexClass holderClass = appView.definitionFor(retarget.getHolderType());
+    if (holderClass != null && !holderClass.isClasspathClass()) {
+      // The holder class is a library class in orthodox set-ups where the L8 compilation
+      // is done in multiple steps, this is only partially supported (most notably for tests).
+      assert holderClass.lookupMethod(retarget) != null;
+      return retarget;
+    }
+    assert eventConsumer != null;
+    ClasspathMethod ensuredMethod =
+        appView
+            .getSyntheticItems()
+            .ensureFixedClasspathMethodFromType(
+                retarget.getName(),
+                retarget.getProto(),
+                SyntheticKind.RETARGET_STUB,
+                retarget.getHolderType(),
+                appView,
+                ignored -> {},
+                eventConsumer::acceptDesugaredLibraryRetargeterDispatchClasspathClass,
+                methodBuilder ->
+                    methodBuilder
+                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        .setCode(null));
+    assert ensuredMethod.getReference() == retarget;
+    return retarget;
+  }
+
+  DexMethod forwardingMethod(EmulatedDispatchMethodDescriptor descriptor) {
     assert descriptor.getForwardingMethod().getHolderKind() == null;
     return descriptor.getForwardingMethod().getMethod();
+  }
+
+  public DexMethod ensureForwardingMethod(
+      EmulatedDispatchMethodDescriptor descriptor,
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+    return ensureRetargetMethod(forwardingMethod(descriptor), eventConsumer);
   }
 
   private DexMethod emulatedHolderDispatchMethod(DexType holder, DerivedMethod method) {
@@ -46,7 +81,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
     return appView.dexItemFactory().createMethod(holder, method.getProto(), method.getName());
   }
 
-  public DexMethod getEmulatedInterfaceDispatchMethod(
+  public DexMethod emulatedInterfaceDispatchMethod(
       DexClass newInterface, EmulatedDispatchMethodDescriptor descriptor) {
     DexMethod method =
         emulatedInterfaceDispatchMethod(newInterface.type, descriptor.getInterfaceMethod());
@@ -83,7 +118,8 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
                   SyntheticKind.RETARGET_CLASS,
                   context,
                   appView,
-                  classBuilder -> buildHolderDispatchMethod(classBuilder, itfClass, descriptor),
+                  classBuilder ->
+                      buildHolderDispatchMethod(classBuilder, itfClass, descriptor, eventConsumer),
                   eventConsumer::acceptDesugaredLibraryRetargeterDispatchClasspathClass);
     }
     DexMethod dispatchMethod =
@@ -107,7 +143,7 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
             emulatedDispatchMethod.getHolderKind(),
             holderContext,
             appView,
-            classBuilder -> buildHolderDispatchMethod(classBuilder, itfClass, descriptor),
+            classBuilder -> buildHolderDispatchMethod(classBuilder, itfClass, descriptor, null),
             eventConsumer::acceptDesugaredLibraryRetargeterDispatchProgramClass);
   }
 
@@ -174,7 +210,10 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
   }
 
   private <SCB extends SyntheticClassBuilder<?, ?>> void buildHolderDispatchMethod(
-      SCB classBuilder, DexClass itfClass, EmulatedDispatchMethodDescriptor descriptor) {
+      SCB classBuilder,
+      DexClass itfClass,
+      EmulatedDispatchMethodDescriptor descriptor,
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
     classBuilder.addMethod(
         methodBuilder -> {
           DexMethod dispatchMethod =
@@ -189,15 +228,19 @@ public class DesugaredLibraryRetargeterSyntheticHelper {
               .setCode(
                   methodSig ->
                       appView.options().isDesugaredLibraryCompilation()
-                          ? generateEmulatedDispatchCfCode(descriptor, itfClass, methodSig)
+                          ? generateEmulatedDispatchCfCode(
+                              descriptor, itfClass, methodSig, eventConsumer)
                           : null);
         });
   }
 
   private CfCode generateEmulatedDispatchCfCode(
-      EmulatedDispatchMethodDescriptor descriptor, DexClass itfClass, DexMethod methodSig) {
-    DexMethod forwardingMethod = ensureForwardingMethod(descriptor);
-    DexMethod itfMethod = getEmulatedInterfaceDispatchMethod(itfClass, descriptor);
+      EmulatedDispatchMethodDescriptor descriptor,
+      DexClass itfClass,
+      DexMethod methodSig,
+      DesugaredLibraryRetargeterInstructionEventConsumer eventConsumer) {
+    DexMethod forwardingMethod = ensureForwardingMethod(descriptor, eventConsumer);
+    DexMethod itfMethod = emulatedInterfaceDispatchMethod(itfClass, descriptor);
     assert descriptor.getDispatchCases().isEmpty();
     return new EmulateDispatchSyntheticCfCodeProvider(
             methodSig.getHolderType(), forwardingMethod, itfMethod, new LinkedHashMap<>(), appView)
