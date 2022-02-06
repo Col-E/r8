@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion;
 
+import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -22,15 +24,51 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 
 public class HumanToMachineSpecificationConverter {
 
   public MachineDesugaredLibrarySpecification convert(
-      HumanDesugaredLibrarySpecification humanSpec, Path androidLib, InternalOptions options)
+      HumanDesugaredLibrarySpecification humanSpec,
+      List<ProgramResourceProvider> desugaredJDKLib,
+      List<ClassFileResourceProvider> library,
+      InternalOptions options)
       throws IOException {
-    DexApplication app = readApp(androidLib, options);
+    assert !humanSpec.isLibraryCompilation() || desugaredJDKLib != null;
+    AndroidApp.Builder builder = AndroidApp.builder();
+    for (ClassFileResourceProvider classFileResourceProvider : library) {
+      builder.addLibraryResourceProvider(classFileResourceProvider);
+    }
+    if (humanSpec.isLibraryCompilation()) {
+      for (ProgramResourceProvider programResourceProvider : desugaredJDKLib) {
+        builder.addProgramResourceProvider(programResourceProvider);
+      }
+    }
+    return internalConvert(humanSpec, builder.build(), options);
+  }
+
+  public MachineDesugaredLibrarySpecification convert(
+      HumanDesugaredLibrarySpecification humanSpec,
+      Path desugaredJDKLib,
+      Path androidLib,
+      InternalOptions options)
+      throws IOException {
+    assert !humanSpec.isLibraryCompilation() || desugaredJDKLib != null;
+    AndroidApp.Builder builder = AndroidApp.builder();
+    if (humanSpec.isLibraryCompilation()) {
+      builder.addProgramFile(desugaredJDKLib);
+    }
+    AndroidApp inputApp = builder.addLibraryFile(androidLib).build();
+    return internalConvert(humanSpec, inputApp, options);
+  }
+
+  public MachineDesugaredLibrarySpecification internalConvert(
+      HumanDesugaredLibrarySpecification humanSpec, AndroidApp inputApp, InternalOptions options)
+      throws IOException {
+    DexApplication app = readApp(inputApp, options);
     AppView<?> appView = AppView.createForD8(AppInfo.createInitialAppInfo(app));
+    LibraryValidator.validate(app, humanSpec.getTopLevelFlags().getRequiredCompilationAPILevel());
     MachineRewritingFlags machineRewritingFlags =
         convertRewritingFlags(
             humanSpec.getSynthesizedLibraryClassesPackagePrefix(),
@@ -59,8 +97,8 @@ public class HumanToMachineSpecificationConverter {
     new HumanToMachineRetargetConverter(appInfo).convertRetargetFlags(rewritingFlags, builder);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)
         .convertEmulatedInterfaces(rewritingFlags, appInfo, builder);
-    new HumanToMachinePrefixConverter(appInfo)
-        .convertPrefixFlags(rewritingFlags, builder, synthesizedPrefix);
+    new HumanToMachinePrefixConverter(appInfo, builder, synthesizedPrefix)
+        .convertPrefixFlags(rewritingFlags);
     new HumanToMachineWrapperConverter(appInfo).convertWrappers(rewritingFlags, builder);
     rewritingFlags
         .getCustomConversions()
@@ -75,10 +113,8 @@ public class HumanToMachineSpecificationConverter {
     return builder.build();
   }
 
-  private DexApplication readApp(Path androidLib, InternalOptions options) throws IOException {
-    AndroidApp androidApp = AndroidApp.builder().addProgramFile(androidLib).build();
-    ApplicationReader applicationReader =
-        new ApplicationReader(androidApp, options, Timing.empty());
+  private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {
+    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     return applicationReader.read(executorService).toDirect();
   }

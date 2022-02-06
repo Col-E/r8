@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
@@ -18,7 +17,6 @@ import java.util.function.BiConsumer;
 
 public class AndroidApiReferenceLevelCache {
 
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final AndroidApiLevelCompute apiLevelCompute;
   private final AndroidApiLevelDatabase androidApiLevelDatabase;
   private final AppView<?> appView;
@@ -33,7 +31,6 @@ public class AndroidApiReferenceLevelCache {
     factory = appView.dexItemFactory();
     androidApiLevelDatabase =
         new AndroidApiLevelHashingDatabaseImpl(predefinedApiTypeLookupForHashing);
-    desugaredLibrarySpecification = appView.options().desugaredLibrarySpecification;
   }
 
   public static AndroidApiReferenceLevelCache create(
@@ -75,7 +72,7 @@ public class AndroidApiReferenceLevelCache {
     if (reference.getContextType() == factory.objectType) {
       return appView.computedMinApiLevel();
     }
-    if (desugaredLibrarySpecification.isSupported(reference, appView)) {
+    if (appView.options().machineDesugaredLibrarySpecification.isSupported(reference)) {
       // If we end up desugaring the reference, the library classes is bridged by j$ which is part
       // of the program.
       return appView.computedMinApiLevel();

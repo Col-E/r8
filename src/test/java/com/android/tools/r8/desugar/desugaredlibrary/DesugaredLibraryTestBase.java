@@ -67,6 +67,18 @@ public class DesugaredLibraryTestBase extends TestBase {
     return property.contains("jdk11");
   }
 
+  public void setDesugaredLibrarySpecificationForTesting(
+      InternalOptions options, LegacyDesugaredLibrarySpecification specification) {
+    try {
+      options.setDesugaredLibrarySpecificationForTesting(
+          specification,
+          ToolHelper.getDesugarJDKLibs(),
+          ToolHelper.getAndroidJar(AndroidApiLevel.R));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes
   // above N and O depending if Stream or Time APIs are used), but we need to compile the program
   // with a minAPI below to force the use of conversions.
@@ -89,7 +101,7 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   protected Path getLibraryFile() {
     return isJDK11DesugaredLibrary()
-        ? ToolHelper.getAndroidJar(AndroidApiLevel.S)
+        ? ToolHelper.getAndroidJar(AndroidApiLevel.R)
         : ToolHelper.getAndroidJar(AndroidApiLevel.P);
   }
 

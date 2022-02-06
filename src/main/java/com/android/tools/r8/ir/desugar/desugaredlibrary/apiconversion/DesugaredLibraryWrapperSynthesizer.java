@@ -13,12 +13,14 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -38,6 +40,7 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -174,17 +177,21 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   private DexMethod getCustomConversion(DexType type, DexType srcType, DexType destType) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
-    DexType conversionHolder =
-        appView.options().desugaredLibrarySpecification.getCustomConversions().get(type);
-    if (conversionHolder != null) {
+    Pair<DexType, DexString> pair =
+        appView.options().machineDesugaredLibrarySpecification.getCustomConversions().get(type);
+    if (pair != null) {
       return factory.createMethod(
-          conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
+          pair.getFirst(), factory.createProto(destType, srcType), pair.getSecond());
     }
     return null;
   }
 
   private boolean canConvert(DexType type) {
-    return appView.options().desugaredLibrarySpecification.getCustomConversions().containsKey(type)
+    return appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .getCustomConversions()
+            .containsKey(type)
         || canGenerateWrapper(type);
   }
 
@@ -212,7 +219,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private boolean canGenerateWrapper(DexType type) {
-    return appView.options().desugaredLibrarySpecification.getWrapperConversions().contains(type);
+    return appView.options().machineDesugaredLibrarySpecification.getWrappers().containsKey(type);
   }
 
   private DexClass getValidClassToWrap(DexType type) {
@@ -458,9 +465,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       if (holderClass == null) {
         assert appView
             .options()
-            .desugaredLibrarySpecification
-            .getEmulateLibraryInterface()
-            .containsValue(method.getHolderType());
+            .machineDesugaredLibrarySpecification
+            .isEmulatedInterfaceRewrittenType(method.getHolderType());
         isInterface = true;
       } else {
         isInterface = holderClass.isInterface();
@@ -541,19 +547,17 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private Iterable<DexMethod> allImplementedMethods(DexClass clazz) {
-    if (appView.options().testing.machineDesugaredLibrarySpecification != null) {
+    if (appView.options().machineDesugaredLibrarySpecification != null) {
       return appView
           .options()
-          .testing
           .machineDesugaredLibrarySpecification
-          .getRewritingFlags()
           .getWrappers()
           .get(clazz.type);
     }
     List<DexEncodedMethod> dexEncodedMethods =
         allImplementedMethodsCache.computeIfAbsent(
             clazz.type, type -> internalAllImplementedMethods(clazz));
-    return Iterables.transform(dexEncodedMethods, m -> m.getReference());
+    return Iterables.transform(dexEncodedMethods, DexEncodedMember::getReference);
   }
 
   private List<DexEncodedMethod> internalAllImplementedMethods(DexClass libraryClass) {

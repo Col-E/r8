@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
@@ -14,6 +15,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,9 +57,15 @@ public class RetargetAndBackportTest extends DesugaredLibraryTestBase implements
             .putBackportCoreLibraryMember("java.lang.DesugarMath", "java.lang.Math")
             .putRetargetCoreLibMember("java.util.Date#toInstant", "java.util.DesugarDate")
             .build();
-    options.desugaredLibrarySpecification =
-        new LegacyDesugaredLibrarySpecification(
-            LegacyTopLevelFlags.testing(), rewritingFlags, true, options.itemFactory);
+    try {
+      options.setDesugaredLibrarySpecificationForTesting(
+          new LegacyDesugaredLibrarySpecification(
+              LegacyTopLevelFlags.testing(), rewritingFlags, true),
+          ToolHelper.getDesugarJDKLibs(),
+          ToolHelper.getAndroidJar(AndroidApiLevel.R));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test

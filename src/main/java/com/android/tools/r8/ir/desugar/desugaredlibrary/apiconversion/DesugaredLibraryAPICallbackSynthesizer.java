@@ -20,13 +20,13 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APICallbackWrapperCfCodeProvider;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -109,8 +109,8 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
     if (!appView.rewritePrefix.hasRewrittenTypeInSignature(definition.getProto(), appView)
         || appView
             .options()
-            .desugaredLibrarySpecification
-            .getEmulateLibraryInterface()
+            .machineDesugaredLibrarySpecification
+            .getEmulatedInterfaces()
             .containsKey(method.getHolderType())) {
       return false;
     }
@@ -127,7 +127,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         return false;
       }
     }
-    if (!appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary()
+    if (!appView.options().machineDesugaredLibrarySpecification.supportAllCallbacksFromLibrary()
         && appView.options().isDesugaredLibraryCompilation()) {
       return false;
     }
@@ -178,13 +178,13 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
   }
 
   private boolean shouldGenerateCallbacksForEmulateInterfaceAPIs(DexClass dexClass) {
-    if (appView.options().desugaredLibrarySpecification.supportAllCallbacksFromLibrary()) {
+    if (appView.options().machineDesugaredLibrarySpecification.supportAllCallbacksFromLibrary()) {
       return true;
     }
-    Map<DexType, DexType> emulateLibraryInterfaces =
-        appView.options().desugaredLibrarySpecification.getEmulateLibraryInterface();
-    return !(emulateLibraryInterfaces.containsKey(dexClass.type)
-        || emulateLibraryInterfaces.containsValue(dexClass.type));
+    MachineDesugaredLibrarySpecification specification =
+        appView.options().machineDesugaredLibrarySpecification;
+    return !(specification.getEmulatedInterfaces().containsKey(dexClass.type)
+        || specification.isEmulatedInterfaceRewrittenType(dexClass.type));
   }
 
   private ProgramMethod generateCallbackMethod(

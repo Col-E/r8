@@ -129,8 +129,8 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     }
     if (appView
         .options()
-        .desugaredLibrarySpecification
-        .getDontRetargetLibMember()
+        .machineDesugaredLibrarySpecification
+        .getDontRetarget()
         .contains(context.getContextType())) {
       return NO_REWRITING;
     }

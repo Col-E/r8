@@ -3,7 +3,7 @@
   "group_id" : "com.tools.android",
   "artifact_id" : "desugar_jdk_libs",
   "version": "2.0.0",
-  "required_compilation_api_level": 31,
+  "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
   "common_flags": [
@@ -205,7 +205,7 @@
         "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
       },
       "retarget_lib_member": {
-        "java.lang.Character#isBmpCodePoint": "j$.lang.DesugarCharacter"
+        "java.lang.Character#isBmpCodePoint": "java.lang.DesugarCharacter"
       }
     }
   ],

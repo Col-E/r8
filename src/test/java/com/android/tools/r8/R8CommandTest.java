@@ -763,9 +763,18 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
 
   @Test
   public void desugaredLibrary() throws CompilationFailedException {
-    R8Command r8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
+    R8Command r8Command =
+        parse(
+            "--desugared-lib",
+            "src/library_desugar/desugar_jdk_libs.json",
+            "--lib",
+            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
     assertFalse(
-        r8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
+        r8Command
+            .getInternalOptions()
+            .machineDesugaredLibrarySpecification
+            .getRewriteType()
+            .isEmpty());
   }
 
   @Test
@@ -775,10 +784,16 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
         parse(
             "--desugared-lib",
             "src/library_desugar/desugar_jdk_libs.json",
+            "--lib",
+            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
             "--desugared-lib-pg-conf-output",
             pgout.toString());
     assertFalse(
-        r8Command.getInternalOptions().desugaredLibrarySpecification.getRewritePrefix().isEmpty());
+        r8Command
+            .getInternalOptions()
+            .machineDesugaredLibrarySpecification
+            .getRewriteType()
+            .isEmpty());
   }
 
   @Test

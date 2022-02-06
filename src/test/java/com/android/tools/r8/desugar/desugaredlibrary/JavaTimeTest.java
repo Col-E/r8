@@ -144,16 +144,22 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
             .map(TypeSubject::toString)
             .collect(Collectors.toSet());
     assertEquals(expectedCatchGuards, foundCatchGuards);
-
-    if (isR8) {
-      assertThat(
-          inspector.clazz(TemporalAccessorImpl.class).uniqueMethodWithFinalName("query"),
-          not(isPresent()));
-    } else {
+    if (!(parameters
+            .getApiLevel()
+            .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport())
+        && isR8)) {
       assertThat(
           inspector.clazz(TemporalAccessorImplSub.class).uniqueMethodWithFinalName("query"),
           CodeMatchers.invokesMethod(
-              null, TemporalAccessorImpl.class.getTypeName(), "query", null));
+              null, inspector.clazz(TemporalAccessorImpl.class).getFinalName(), "query", null));
+    } else {
+      String holder =
+          requiresTimeDesugaring(parameters)
+              ? "j$.time.temporal.TemporalAccessor"
+              : "java.time.temporal.TemporalAccessor";
+      assertThat(
+          inspector.clazz(TemporalAccessorImplSub.class).uniqueMethodWithFinalName("query"),
+          CodeMatchers.invokesMethod(null, holder, "query", null));
     }
     if (parameters
         .getApiLevel()
@@ -163,9 +169,7 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
           not(isPresent()));
     } else {
       assertThat(
-          inspector
-              .clazz(isR8 ? TemporalAccessorImplSub.class : TemporalAccessorImpl.class)
-              .uniqueMethodWithFinalName("query"),
+          inspector.clazz(TemporalAccessorImpl.class).uniqueMethodWithFinalName("query"),
           CodeMatchers.invokesMethod(
               null, "j$.time.temporal.TemporalAccessor$-CC", "$default$query", null));
     }

@@ -5,15 +5,12 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static junit.framework.TestCase.assertTrue;
-import static junit.framework.TestCase.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.BooleanUtils;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -31,7 +28,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class J$ExtensionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
 
   private static final String MAIN_CLASS_NAME = "Main";
   private static final String MAIN_CLASS =
@@ -55,14 +51,12 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
           + "}";
   private static Path[] compiledClasses = new Path[2];
 
-  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimes().withAllApiLevels().build());
+    return buildParameters(getTestParameters().withAllRuntimes().withAllApiLevels().build());
   }
 
-  public J$ExtensionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+  public J$ExtensionTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -92,7 +86,6 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testJ$ExtensionNoDesugaring() throws Exception {
-    Assume.assumeFalse(shrinkDesugaredLibrary);
     String stderr;
     if (parameters.isCfRuntime()) {
       stderr =
@@ -110,24 +103,31 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
               .assertFailure()
               .getStdErr();
     }
-    assertError(stderr);
+    assertError(stderr, false);
   }
 
-  private void assertError(String stderr) {
-    if (parameters.isCfRuntime() && parameters.getRuntime().asCf().getVm() == CfVm.JDK8) {
-      assertTrue(
-          stderr.contains("java.lang.SecurityException: Prohibited package name: java.time"));
-    } else if (parameters.isCfRuntime()) {
-      assertTrue(stderr.contains("java.lang.ClassNotFoundException: java.time.LocalTimeAccess"));
-    } else if (parameters
-        .getRuntime()
-        .asDex()
-        .getVm()
-        .getVersion()
-        .isOlderThanOrEqual(Version.V6_0_1)) {
-      assertTrue(stderr.contains("java.lang.NoClassDefFoundError"));
-    } else if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0) {
-      assertTrue(stderr.contains("java.lang.ClassNotFoundException"));
+  private void assertError(String stderr, boolean desugaring) {
+    if (parameters.isCfRuntime()) {
+      if (parameters.getRuntime().asCf().getVm() == CfVm.JDK8) {
+        assertTrue(
+            stderr.contains("java.lang.SecurityException: Prohibited package name: java.time"));
+      } else {
+        assertTrue(stderr.contains("java.lang.ClassNotFoundException: java.time.LocalTimeAccess"));
+      }
+      return;
+    }
+    assert !parameters.isCfRuntime();
+    if (!desugaring) {
+      if (parameters.getDexRuntimeVersion().isOlderThanOrEqual(Version.V6_0_1)) {
+        assertTrue(stderr.contains("java.lang.NoClassDefFoundError"));
+      } else if (parameters.getDexRuntimeVersion() == Version.V7_0_0) {
+        assertTrue(stderr.contains("java.lang.ClassNotFoundException"));
+      }
+      return;
+    }
+    if (parameters.getDexRuntimeVersion() == Version.V8_1_0) {
+      // On Android 8 the library package private method is accessible.
+      assertTrue(stderr.contains("java.lang.NullPointerException"));
     } else {
       assertTrue(stderr.contains("java.lang.IllegalAccessError"));
     }
@@ -140,19 +140,18 @@ public class J$ExtensionTest extends DesugaredLibraryTestBase {
     Assume.assumeTrue(requiresTimeDesugaring(parameters));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
 
-    try {
-      testForD8()
-          .addLibraryFiles(getLibraryFile())
-          .addProgramFiles(compiledClasses)
-          .setMinApi(parameters.getApiLevel())
-          .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-          .compile();
-      fail();
-    } catch (CompilationFailedException e) {
-      assertTrue(
-          e.getCause()
-              .getMessage()
-              .contains("Cannot compile program class java.time.LocalTimeAccess"));
-    }
+    String stdErr =
+        testForD8()
+            .addLibraryFiles(getLibraryFile())
+            .addProgramFiles(compiledClasses)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary, parameters.getApiLevel())
+            .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+            .assertFailure()
+            .getStdErr();
+    assertError(stdErr, true);
   }
 }

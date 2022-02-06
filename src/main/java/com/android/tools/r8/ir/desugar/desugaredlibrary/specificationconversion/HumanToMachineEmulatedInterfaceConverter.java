@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
@@ -44,10 +43,10 @@ public class HumanToMachineEmulatedInterfaceConverter {
     Set<DexMethod> dontRewriteInvocation = rewritingFlags.getDontRewriteInvocation();
     emulatedInterfaceHierarchy = processEmulatedInterfaceHierarchy(appInfo, emulateInterfaces);
     for (DexType itf : emulateInterfaces.keySet()) {
-      DexProgramClass itfClass = appInfo.contextIndependentDefinitionFor(itf).asProgramClass();
+      DexClass itfClass = appInfo.contextIndependentDefinitionFor(itf);
       assert itfClass != null;
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedMethods = new IdentityHashMap<>();
-      itfClass.forEachProgramVirtualMethodMatching(
+      itfClass.forEachClassMethodMatching(
           m -> m.isDefaultMethod() && !dontRewriteInvocation.contains(m.getReference()),
           method ->
               emulatedMethods.put(
@@ -104,7 +103,6 @@ public class HumanToMachineEmulatedInterfaceConverter {
       for (int i = subInterfaces.size() - 1; i >= 0; i--) {
         DexClass subInterfaceClass = appInfo.definitionFor(subInterfaces.get(i));
         assert subInterfaceClass != null;
-        assert subInterfaceClass.isProgramClass();
         // Else computation of subInterface would have failed.
         // if the method is implemented, extra dispatch is required.
         DexEncodedMethod result = subInterfaceClass.lookupVirtualMethod(method);
