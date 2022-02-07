@@ -17,7 +17,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.naming.retrace.StackTrace;
-import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -111,25 +110,15 @@ public class InlineWithoutNullCheckTest extends TestBase {
         .addKeepMainRule(TestClassForInlineMethod.class)
         .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
-        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkSomething)
         .run(parameters.getRuntime(), TestClassForInlineMethod.class)
         .assertFailure()
-        // TODO(b/143607166): The stack trace has one more frame on the top than expected.
         .inspectStackTrace(
-            stackTrace -> assertThat(expectedStackTraceForInlineMethod, not(isSame(stackTrace))))
-        .inspectStackTrace(
-            stackTrace ->
-                assertThat(
-                    stackTrace,
-                    isSameExceptForFileNameAndLineNumber(
-                        createStackTraceBuilder()
-                            .addWithoutFileNameAndLineNumber(
-                                A.class, "inlineMethodWhichAccessInstanceMethod")
-                            .addWithoutFileNameAndLineNumber(TestClassForInlineMethod.class, "main")
-                            .build())));
+            stackTrace -> assertThat(expectedStackTraceForInlineMethod, isSame(stackTrace)));
   }
 
   @Test
@@ -139,25 +128,15 @@ public class InlineWithoutNullCheckTest extends TestBase {
         .addKeepMainRule(TestClassForInlineField.class)
         .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
-        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkSomething)
         .run(parameters.getRuntime(), TestClassForInlineField.class)
         .assertFailure()
-        // TODO(b/143607166): The stack trace has one more frame on the top than expected.
         .inspectStackTrace(
-            stackTrace -> assertThat(expectedStackTraceForInlineField, not(isSame(stackTrace))))
-        .inspectStackTrace(
-            stackTrace ->
-                assertThat(
-                    stackTrace,
-                    isSameExceptForFileNameAndLineNumber(
-                        createStackTraceBuilder()
-                            .addWithoutFileNameAndLineNumber(
-                                A.class, "inlineMethodWhichAccessInstanceField")
-                            .addWithoutFileNameAndLineNumber(TestClassForInlineField.class, "main")
-                            .build())));
+            stackTrace -> assertThat(expectedStackTraceForInlineField, isSame(stackTrace)));
   }
 
   @Test
@@ -168,27 +147,15 @@ public class InlineWithoutNullCheckTest extends TestBase {
         .addKeepMainRule(TestClassForInlineStaticField.class)
         .enableAlwaysInliningAnnotations()
         .enableInliningAnnotations()
-        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
+        .addKeepAttributeSourceFile()
+        .addKeepAttributeLineNumberTable()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkSomething)
         .run(parameters.getRuntime(), TestClassForInlineStaticField.class)
         .assertFailure()
-        // TODO(b/143607166): The stack trace has one more frame on the top than expected.
         .inspectStackTrace(
-            stackTrace ->
-                assertThat(expectedStackTraceForInlineStaticField, not(isSame(stackTrace))))
-        .inspectStackTrace(
-            stackTrace ->
-                assertThat(
-                    stackTrace,
-                    isSameExceptForFileNameAndLineNumber(
-                        createStackTraceBuilder()
-                            .addWithoutFileNameAndLineNumber(
-                                A.class, "inlineMethodWhichAccessStaticField")
-                            .addWithoutFileNameAndLineNumber(
-                                TestClassForInlineStaticField.class, "main")
-                            .build())));
+            stackTrace -> assertThat(expectedStackTraceForInlineStaticField, isSame(stackTrace)));
   }
 
   private StackTrace.Builder createStackTraceBuilder() {

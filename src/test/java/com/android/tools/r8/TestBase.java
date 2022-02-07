@@ -1807,11 +1807,6 @@ public class TestBase {
         && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
   }
 
-  public static boolean canUseJavaUtilObjectsRequireNonNull(TestParameters parameters) {
-    return parameters.isDexRuntime()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
-  }
-
   public Path compileToZip(
       TestParameters parameters, Collection<Class<?>> classPath, Class<?>... compilationUnit)
       throws Exception {

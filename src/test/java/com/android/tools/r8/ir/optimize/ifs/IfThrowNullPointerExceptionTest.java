@@ -17,7 +17,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -80,7 +79,7 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     inspectMethod(inspector, classSubject, "testThrowNPE", false, true);
-    inspectMethod(inspector, classSubject, "testThrowNPEWithMessage", true, canUseRequireNonNull());
+    inspectMethod(inspector, classSubject, "testThrowNPEWithMessage", true, false);
     inspectMethod(inspector, classSubject, "testThrowNull", false, true);
   }
 
@@ -105,31 +104,18 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
 
       Instruction nullCheckInstruction =
           entryBlock.getInstructions().get(1 + BooleanUtils.intValue(isNPEWithMessage));
-      if (canUseRequireNonNull()) {
-        assertTrue(nullCheckInstruction.isInvokeStatic());
-        if (isNPEWithMessage) {
-          assertEquals(
-              inspector.getFactory().objectsMethods.requireNonNullWithMessage,
-              nullCheckInstruction.asInvokeStatic().getInvokedMethod());
-        } else {
-          assertEquals(
-              inspector.getFactory().objectsMethods.requireNonNull,
-              nullCheckInstruction.asInvokeStatic().getInvokedMethod());
-        }
-      } else {
-        assertFalse(isNPEWithMessage);
-        assertTrue(nullCheckInstruction.isInvokeVirtual());
-        assertEquals(
-            inspector.getFactory().objectMembers.getClass,
-            nullCheckInstruction.asInvokeVirtual().getInvokedMethod());
-      }
+      assertFalse(isNPEWithMessage);
+      assertTrue(nullCheckInstruction.isInvokeVirtual());
+      assertEquals(
+          inspector.getFactory().objectMembers.getClass,
+          nullCheckInstruction.asInvokeVirtual().getInvokedMethod());
     } else {
       assertEquals(3, code.blocks.size());
     }
   }
 
   private String getExpectedStdout() {
-    if (parameters.isCfRuntime() || canUseRequireNonNull() || isDalvik()) {
+    if (parameters.isCfRuntime() || isDalvik()) {
       return StringUtils.lines("Caught NPE: null", "Caught NPE: x was null", "Caught NPE: null");
     }
     return StringUtils.lines(
@@ -138,11 +124,6 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
         "Caught NPE: x was null",
         "Caught NPE: Attempt to invoke virtual method 'java.lang.Class java.lang.Object.getClass()'"
             + " on a null object reference");
-  }
-
-  private boolean canUseRequireNonNull() {
-    return parameters.isDexRuntime()
-        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }
 
   private boolean isDalvik() {

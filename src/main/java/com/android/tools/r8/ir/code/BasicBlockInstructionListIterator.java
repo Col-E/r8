@@ -283,25 +283,13 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       Value value,
       Position position) {
     InternalOptions options = appView.options();
-
-    InvokeMethod invoke;
-    if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
-      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-      invoke =
-          InvokeStatic.builder()
-              .setMethod(requireNonNullMethod)
-              .setSingleArgument(value)
-              .setPosition(position)
-              .build();
-    } else {
-      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
-      invoke =
-          InvokeVirtual.builder()
-              .setMethod(getClassMethod)
-              .setSingleArgument(value)
-              .setPosition(position)
-              .build();
-    }
+    DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+    InvokeMethod invoke =
+        InvokeVirtual.builder()
+            .setMethod(getClassMethod)
+            .setSingleArgument(value)
+            .setPosition(position)
+            .build();
     add(invoke);
     if (block.hasCatchHandlers()) {
       splitCopyCatchHandlers(code, blockIterator, options);
@@ -338,15 +326,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       removeOrReplaceByDebugLocalRead();
       return true;
     }
-    InvokeMethod replacement;
-    if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
-      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-      replacement = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver));
-    } else {
-      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
-      replacement = new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver));
-    }
-    replaceCurrentInstruction(replacement);
+    DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+    replaceCurrentInstruction(new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver)));
     return true;
   }
 

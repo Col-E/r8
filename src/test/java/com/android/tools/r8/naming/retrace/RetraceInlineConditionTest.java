@@ -4,15 +4,20 @@
 
 package com.android.tools.r8.naming.retrace;
 
+import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import org.hamcrest.CoreMatchers;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,16 +53,26 @@ public class RetraceInlineConditionTest extends TestBase {
 
   @Test
   public void testR8() throws Throwable {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(Main.class)
-        .compile()
-        .inspectProguardMap(
-            map -> {
-              assertThat(
-                  map, not(CoreMatchers.containsString("com.android.tools.r8.rewriteFrame")));
-            });
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(getClass())
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(Main.class)
+            .addKeepAttributeLineNumberTable()
+            .compile()
+            .inspectProguardMap(map -> not(containsString("com.android.tools.r8.rewriteFrame")))
+            .inspect(
+                inspector -> {
+                  ClassSubject fooClass = inspector.clazz(Foo.class);
+                  assertThat(fooClass, isPresent());
+                  MethodSubject inlineable = fooClass.uniqueMethodWithName("inlineable");
+                  assertThat(inlineable, not(isPresent()));
+                });
+    compileResult
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(NullPointerException.class)
+        .inspectStackTrace(
+            (stackTrace, codeInspector) -> assertThat(stackTrace, isSame(expectedStackTrace)));
   }
 
   static class Foo {

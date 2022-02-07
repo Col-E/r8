@@ -68,20 +68,16 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
     assertThat(methodSubject, isPresent());
 
     // A `throw` instruction should have been synthesized into main().
-    if (canUseRequireNonNull()) {
-      assertTrue(methodSubject.streamInstructions().anyMatch(InstructionSubject::isInvokeStatic));
-    } else {
-      assertTrue(
-          methodSubject
-              .streamInstructions()
-              .filter(InstructionSubject::isInvokeVirtual)
-              .anyMatch(
-                  method ->
-                      method
-                          .getMethod()
-                          .toSourceString()
-                          .equals("java.lang.Class java.lang.Object.getClass()")));
-    }
+    assertTrue(
+        methodSubject
+            .streamInstructions()
+            .filter(InstructionSubject::isInvokeVirtual)
+            .anyMatch(
+                method ->
+                    method
+                        .getMethod()
+                        .toSourceString()
+                        .equals("java.lang.Class java.lang.Object.getClass()")));
 
     // Class A is still present because the instance flows into a phi that has a null-check.
     ClassSubject otherClassSubject = inspector.clazz(A.class);

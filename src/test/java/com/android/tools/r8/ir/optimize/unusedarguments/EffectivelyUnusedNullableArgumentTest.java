@@ -55,12 +55,7 @@ public class EffectivelyUnusedNullableArgumentTest extends TestBase {
               assertEquals(
                   aClassSubject.getDexProgramClass().getType(),
                   fooMethodSubject.getProgramMethod().getParameter(0));
-              assertThat(
-                  fooMethodSubject,
-                  invokesMethodWithName(
-                      canUseJavaUtilObjectsRequireNonNull(parameters)
-                          ? "requireNonNull"
-                          : "getClass"));
+              assertThat(fooMethodSubject, invokesMethodWithName("getClass"));
 
               MethodSubject barMethodSubject = aClassSubject.uniqueMethodWithName("bar");
               assertThat(barMethodSubject, isStatic());

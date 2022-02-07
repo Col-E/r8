@@ -70,11 +70,7 @@ public class AssumeInstanceFieldValueTest extends TestBase {
 
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    if (canUseJavaUtilObjectsRequireNonNull(parameters)) {
-      assertThat(mainMethodSubject, invokesMethodWithName("requireNonNull"));
-    } else {
-      assertThat(mainMethodSubject, invokesMethodWithName("getClass"));
-    }
+    assertThat(mainMethodSubject, invokesMethodWithName("getClass"));
   }
 
   static class TestClass {

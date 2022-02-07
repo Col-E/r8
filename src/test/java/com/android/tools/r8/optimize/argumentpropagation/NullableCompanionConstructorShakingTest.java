@@ -59,12 +59,7 @@ public class NullableCompanionConstructorShakingTest extends TestBase {
                       .streamInstructions()
                       .filter(InstructionSubject::isInvoke)
                       .count());
-              assertThat(
-                  mainMethodSubject,
-                  invokesMethodWithName(
-                      canUseJavaUtilObjectsRequireNonNull(parameters)
-                          ? "requireNonNull"
-                          : "getClass"));
+              assertThat(mainMethodSubject, invokesMethodWithName("getClass"));
               assertThat(mainMethodSubject, invokesMethod(companionMethodSubject));
             })
         .run(parameters.getRuntime(), Main.class)

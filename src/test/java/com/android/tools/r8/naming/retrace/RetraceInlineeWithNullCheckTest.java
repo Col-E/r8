@@ -4,16 +4,13 @@
 package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForLineNumbers;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
-import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,31 +63,7 @@ public class RetraceInlineeWithNullCheckTest extends TestBase {
         .run(parameters.getRuntime(), Caller.class, getArgs())
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(
-            (stackTrace, codeInspector) -> {
-              // TODO(b/214377135): The stack traces should be the same (when 206427323) is
-              //  resolved.
-              if (throwReceiverNpe && canUseJavaUtilObjectsRequireNonNull(parameters)) {
-                StackTrace requireNonNullFrame =
-                    StackTrace.builder().add(stackTrace.get(0)).build();
-                assertThat(
-                    requireNonNullFrame,
-                    isSameExceptForLineNumbers(
-                        StackTrace.builder()
-                            .add(
-                                StackTraceLine.builder()
-                                    .setClassName(Objects.class.getTypeName())
-                                    .setMethodName("requireNonNull")
-                                    .setFileName("Objects.java")
-                                    .build())
-                            .build()));
-
-                StackTrace stackTraceWithoutRequireNonNull =
-                    StackTrace.builder().add(stackTrace).remove(0).build();
-                assertThat(stackTraceWithoutRequireNonNull, isSame(expectedStackTrace));
-              } else {
-                assertThat(stackTrace, isSame(expectedStackTrace));
-              }
-            });
+            (stackTrace, codeInspector) -> assertThat(stackTrace, isSame(expectedStackTrace)));
   }
 
   static class Foo {

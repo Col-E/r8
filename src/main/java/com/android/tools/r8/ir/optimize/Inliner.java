@@ -39,7 +39,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MoveException;
@@ -738,13 +737,8 @@ public class Inliner {
 
         InstructionListIterator iterator = throwBlock.listIterator(code);
         iterator.setInsertionPosition(invoke.getPosition());
-        if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
-          DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-          iterator.add(new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver)));
-        } else {
-          DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
-          iterator.add(new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver)));
-        }
+        DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+        iterator.add(new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver)));
       } else {
         assert false : "Unable to synthesize a null check for the receiver";
       }

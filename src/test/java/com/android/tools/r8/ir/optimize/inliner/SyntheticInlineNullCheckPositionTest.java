@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForSpecificLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -70,16 +69,7 @@ public class SyntheticInlineNullCheckPositionTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class)
         .inspectStackTrace(
-            stackTrace -> {
-              if (canUseJavaUtilObjectsRequireNonNull(parameters)) {
-                assertThat(
-                    stackTrace,
-                    isSameExceptForSpecificLineNumber(
-                        expectedStackTraceWithRequireNonNull, REQUIRE_NON_NULL_LINE));
-              } else {
-                assertThat(stackTrace, isSame(expectedStackTraceWithGetClass));
-              }
-            });
+            stackTrace -> assertThat(stackTrace, isSame(expectedStackTraceWithGetClass)));
   }
 
   static class Main {

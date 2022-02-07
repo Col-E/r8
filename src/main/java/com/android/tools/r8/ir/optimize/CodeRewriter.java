@@ -286,10 +286,8 @@ public class CodeRewriter {
 
           Throw throwInstruction = valueIsNullTarget.exit().asThrow();
           Value exceptionValue = throwInstruction.exception().getAliasedValue();
-          Value message;
-          if (exceptionValue.isConstZero()) {
-            message = null;
-          } else if (exceptionValue.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+          if (!exceptionValue.isConstZero()
+              && exceptionValue.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
             NewInstance newInstance = exceptionValue.definition.asNewInstance();
             if (newInstance.clazz != dexItemFactory.npeType) {
               continue;
@@ -301,18 +299,10 @@ public class CodeRewriter {
             if (constructorCall == null) {
               continue;
             }
-            DexMethod invokedMethod = constructorCall.getInvokedMethod();
-            if (invokedMethod == dexItemFactory.npeMethods.init) {
-              message = null;
-            } else if (invokedMethod == dexItemFactory.npeMethods.initWithMessage) {
-              if (!appView.options().canUseJavaUtilObjectsRequireNonNull()) {
-                continue;
-              }
-              message = constructorCall.getArgument(1);
-            } else {
+            if (constructorCall.getInvokedMethod() != dexItemFactory.npeMethods.init) {
               continue;
             }
-          } else {
+          } else if (!exceptionValue.isConstZero()) {
             continue;
           }
 
@@ -327,26 +317,12 @@ public class CodeRewriter {
             continue;
           }
 
-          if (message != null) {
-            Instruction definition = message.definition;
-            if (message.definition.getBlock() == valueIsNullTarget) {
-              it.previous();
-              Instruction entry;
-              do {
-                entry = valueIsNullTarget.getInstructions().removeFirst();
-                it.add(entry);
-              } while (entry != definition);
-              it.next();
-            }
-          }
-
-          rewriteIfToRequireNonNull(
+          insertNotNullCheck(
               block,
               it,
               ifInstruction,
               ifInstruction.targetFromCondition(1),
               valueIsNullTarget,
-              message,
               throwInstruction.getPosition());
           shouldRemoveUnreachableBlocks = true;
         }
@@ -3363,33 +3339,19 @@ public class CodeRewriter {
     assert block.exit().asGoto().getTarget() == target;
   }
 
-  private void rewriteIfToRequireNonNull(
+  private void insertNotNullCheck(
       BasicBlock block,
       InstructionListIterator iterator,
       If theIf,
       BasicBlock target,
       BasicBlock deadTarget,
-      Value message,
       Position position) {
     deadTarget.unlinkSinglePredecessorSiblingsAllowed();
     assert theIf == block.exit();
     iterator.previous();
     Instruction instruction;
-    if (appView.options().canUseJavaUtilObjectsRequireNonNull()) {
-      if (message != null) {
-        DexMethod requireNonNullMethod =
-            appView.dexItemFactory().objectsMethods.requireNonNullWithMessage;
-        instruction =
-            new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs(), message));
-      } else {
-        DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-        instruction = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs()));
-      }
-    } else {
-      assert message == null;
-      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
-      instruction = new InvokeVirtual(getClassMethod, null, ImmutableList.of(theIf.lhs()));
-    }
+    DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+    instruction = new InvokeVirtual(getClassMethod, null, ImmutableList.of(theIf.lhs()));
     instruction.setPosition(position);
     iterator.add(instruction);
     iterator.next();

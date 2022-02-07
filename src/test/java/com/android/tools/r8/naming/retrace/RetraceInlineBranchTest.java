@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
-import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForLineNumbers;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -16,11 +15,9 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Before;
@@ -64,50 +61,30 @@ public class RetraceInlineBranchTest extends TestBase {
         .run(parameters.getRuntime(), Main.class)
         .inspectStackTrace(
             (stackTrace, inspector) -> {
-              if (canUseJavaUtilObjectsRequireNonNull(parameters)) {
-                StackTrace requireNonNullFrame =
-                    StackTrace.builder().add(stackTrace.get(0)).build();
-                assertThat(
-                    requireNonNullFrame,
-                    isSameExceptForLineNumbers(
-                        StackTrace.builder()
-                            .add(
-                                StackTraceLine.builder()
-                                    .setClassName(Objects.class.getTypeName())
-                                    .setMethodName("requireNonNull")
-                                    .setFileName("Objects.java")
-                                    .build())
-                            .build()));
-
-                StackTrace stackTraceWithoutRequireNonNull =
-                    StackTrace.builder().add(stackTrace).remove(0).build();
-                assertThat(stackTraceWithoutRequireNonNull, isSame(expectedStackTrace));
-              } else {
-                // To check that we inserted the check in the branch correctly we use a rudimentary
-                // line check by comparing that the getClass method comes later than the first if.
-                MethodSubject methodSubject =
-                    inspector.clazz(Main.class).uniqueMethodWithName("call");
-                assertThat(methodSubject, isPresent());
-                List<InstructionSubject> getClassCalls =
-                    methodSubject
-                        .streamInstructions()
-                        .filter(
-                            instructionSubject ->
-                                instructionSubject.isInvoke()
-                                    && instructionSubject
-                                        .getMethod()
-                                        .qualifiedName()
-                                        .contains("getClass"))
-                        .collect(Collectors.toList());
-                assertEquals(1, getClassCalls.size());
-                Optional<InstructionSubject> firstIf =
-                    methodSubject.streamInstructions().filter(InstructionSubject::isIf).findFirst();
-                assertTrue(firstIf.isPresent());
+              MethodSubject methodSubject =
+                  inspector.clazz(Main.class).uniqueMethodWithName("call");
+              assertThat(methodSubject, isPresent());
+              List<InstructionSubject> getClassCalls =
+                  methodSubject
+                      .streamInstructions()
+                      .filter(
+                          instructionSubject ->
+                              instructionSubject.isInvoke()
+                                  && instructionSubject
+                                      .getMethod()
+                                      .qualifiedName()
+                                      .contains("getClass"))
+                      .collect(Collectors.toList());
+              assertEquals(1, getClassCalls.size());
+              Optional<InstructionSubject> firstIf =
+                  methodSubject.streamInstructions().filter(InstructionSubject::isIf).findFirst();
+              assertTrue(firstIf.isPresent());
+              if (methodSubject.hasLineNumberTable()) {
                 assertTrue(
                     methodSubject.getLineNumberForInstruction(getClassCalls.get(0))
                         > methodSubject.getLineNumberForInstruction(firstIf.get()));
-                assertThat(stackTrace, isSame(expectedStackTrace));
               }
+              assertThat(stackTrace, isSame(expectedStackTrace));
             });
   }
 

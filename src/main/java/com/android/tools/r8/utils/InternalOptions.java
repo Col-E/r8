@@ -1936,10 +1936,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return isGeneratingDex() && hasMinApi(AndroidApiLevel.N);
   }
 
-  public boolean canUseJavaUtilObjectsRequireNonNull() {
-    return isGeneratingDex() && hasMinApi(AndroidApiLevel.K);
-  }
-
   public boolean canUseSuppressedExceptions() {
     // TODO(b/214239152): Suppressed exceptions are @hide from at least 4.0.1 / Android I / API 14.
     return !isDesugaring() || hasMinApi(AndroidApiLevel.K);
