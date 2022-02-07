@@ -229,12 +229,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void markTriggerClassInitBeforeAnySideEffect(
-      DexEncodedMethod method, boolean mark) {
-    getMethodOptimizationInfoForUpdating(method).markTriggerClassInitBeforeAnySideEffect(mark);
-  }
-
-  @Override
   public synchronized void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {
     getMethodOptimizationInfoForUpdating(method).setBridgeInfo(bridgeInfo);
   }
@@ -387,11 +381,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   @Override
   public synchronized void unsetSimpleInliningConstraint(ProgramMethod method) {
     getMethodOptimizationInfoForUpdating(method).unsetSimpleInliningConstraint();
-  }
-
-  @Override
-  public synchronized void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetTriggerClassInitBeforeAnySideEffect();
   }
 
   @Override

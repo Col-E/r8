@@ -92,7 +92,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   private static final int NEVER_RETURNS_NORMALLY_FLAG = 0x40;
   private static final int UNUSED_FLAG_2 = 0x80;
   private static final int UNUSED_FLAG_3 = 0x100;
-  private static final int TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x200;
+  private static final int UNUSED_FLAG_4 = 0x200;
   private static final int INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG = 0x400;
   private static final int REACHABILITY_SENSITIVE_FLAG = 0x800;
   private static final int RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG = 0x1000;
@@ -119,9 +119,7 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
         BooleanUtils.intValue(defaultOptInfo.neverReturnsNormally()) * NEVER_RETURNS_NORMALLY_FLAG;
     defaultFlags |= 0 * UNUSED_FLAG_2;
     defaultFlags |= 0 * UNUSED_FLAG_3;
-    defaultFlags |=
-        BooleanUtils.intValue(defaultOptInfo.triggersClassInitBeforeAnySideEffect())
-            * TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG;
+    defaultFlags |= 0 * UNUSED_FLAG_4;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.isInitializerEnablingJavaVmAssertions())
             * INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG;
@@ -497,11 +495,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
-  public boolean triggersClassInitBeforeAnySideEffect() {
-    return isFlagSet(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG);
-  }
-
-  @Override
   public boolean mayHaveSideEffects() {
     return isFlagSet(MAY_HAVE_SIDE_EFFECT_FLAG);
   }
@@ -673,14 +666,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     } else {
       assert inlining == InlinePreference.ForceInline;
     }
-  }
-
-  void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
-    setFlag(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
-  }
-
-  void unsetTriggerClassInitBeforeAnySideEffect() {
-    clearFlag(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
 
   // TODO(b/140214568): Should be package-private.

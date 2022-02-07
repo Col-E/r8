@@ -395,7 +395,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
     if (appView.canUseInitClass()
         && inlinerOptions.enableInliningOfInvokesWithClassInitializationSideEffects) {
-      action.setShouldSynthesizeInitClass();
+      action.setShouldEnsureStaticInitialization();
       return action;
     }
     whyAreYouNotInliningReporter.reportMustTriggerClassInitialization();
@@ -409,15 +409,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ClassInitializationAnalysis classInitializationAnalysis) {
     // Only proceed with inlining a static invoke if:
     // - the holder for the target is a subtype of the holder for the method,
-    // - the target method always triggers class initialization of its holder before any other side
-    //   effect (hence preserving class initialization semantics),
     // - the current method has already triggered the holder for the target method to be
     //   initialized, or
     // - there is no non-trivial class initializer.
     if (appView.appInfo().isSubtype(context.getHolderType(), target.getHolderType())) {
-      return true;
-    }
-    if (target.getDefinition().getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
     }
     if (!context.getDefinition().isStatic()) {

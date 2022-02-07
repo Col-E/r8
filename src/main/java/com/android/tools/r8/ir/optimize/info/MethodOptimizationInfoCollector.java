@@ -87,8 +87,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
-import com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis;
-import com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.SimpleEffectAnalysisResult;
 import com.android.tools.r8.ir.optimize.classinliner.analysis.ClassInlinerMethodConstraintAnalysis;
 import com.android.tools.r8.ir.optimize.classinliner.constraint.ClassInlinerMethodConstraint;
 import com.android.tools.r8.ir.optimize.enums.classification.EnumUnboxerMethodClassification;
@@ -142,9 +140,6 @@ public class MethodOptimizationInfoCollector {
     DexEncodedMethod definition = method.getDefinition();
     identifyBridgeInfo(definition, code, feedback, timing);
     analyzeReturns(code, feedback, methodProcessor, timing);
-    if (options.inlinerOptions().enableInlining) {
-      identifyInvokeSemanticsForInlining(definition, code, feedback, timing);
-    }
     if (options.enableClassInlining) {
       computeClassInlinerMethodConstraint(method, code, feedback, timing);
     }
@@ -527,25 +522,6 @@ public class MethodOptimizationInfoCollector {
       return true;
     }
     return false;
-  }
-
-  private void identifyInvokeSemanticsForInlining(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
-    timing.begin("Identify invoke semantics for inlining");
-    identifyInvokeSemanticsForInlining(method, code, feedback);
-    timing.end();
-  }
-
-  private void identifyInvokeSemanticsForInlining(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (method.isStatic()) {
-      // Identifies if the method preserves class initialization after inlining.
-      SimpleEffectAnalysisResult simpleEffectAnalysisResult =
-          SimpleDominatingEffectAnalysis.triggersClassInitializationBeforeAnyStaticRead(
-              appView, code);
-      feedback.markTriggerClassInitBeforeAnySideEffect(
-          method, simpleEffectAnalysisResult.isSatisfied());
-    }
   }
 
   /**

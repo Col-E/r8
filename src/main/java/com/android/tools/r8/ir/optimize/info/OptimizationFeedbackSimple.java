@@ -137,11 +137,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
     method.markProcessed(state);
   }
 
-  @Override
-  public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
-    // Ignored.
-  }
-
   public void setArgumentInfos(ProgramMethod method, CallSiteOptimizationInfo argumentInfos) {
     method.getDefinition().getMutableOptimizationInfo().setArgumentInfos(argumentInfos);
   }
@@ -330,12 +325,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   public void unsetSimpleInliningConstraint(ProgramMethod method) {
     withMutableMethodOptimizationInfo(
         method, MutableMethodOptimizationInfo::unsetSimpleInliningConstraint);
-  }
-
-  @Override
-  public void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method) {
-    withMutableMethodOptimizationInfo(
-        method, MutableMethodOptimizationInfo::unsetTriggerClassInitBeforeAnySideEffect);
   }
 
   @Override

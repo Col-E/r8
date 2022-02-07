@@ -54,8 +54,6 @@ public interface MethodOptimizationFeedback {
 
   void markAsPropagated(DexEncodedMethod method);
 
-  void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
-
   void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo);
 
   void setClassInlinerMethodConstraint(
@@ -119,8 +117,6 @@ public interface MethodOptimizationFeedback {
 
   void unsetSimpleInliningConstraint(ProgramMethod method);
 
-  void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method);
-
   void unsetUnusedArguments(ProgramMethod method);
 
   default void unsetOptimizationInfoForAbstractMethod(ProgramMethod method) {
@@ -143,7 +139,6 @@ public interface MethodOptimizationFeedback {
       unsetReturnedArgument(method);
       unsetReturnValueOnlyDependsOnArguments(method);
       unsetSimpleInliningConstraint(method);
-      unsetTriggerClassInitBeforeAnySideEffect(method);
       unsetUnusedArguments(method);
     }
   }

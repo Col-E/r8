@@ -91,8 +91,6 @@ public abstract class MethodOptimizationInfo
 
   public abstract boolean forceInline();
 
-  public abstract boolean triggersClassInitBeforeAnySideEffect();
-
   public abstract boolean mayHaveSideEffects();
 
   /** Context sensitive version of {@link #mayHaveSideEffects()}. */

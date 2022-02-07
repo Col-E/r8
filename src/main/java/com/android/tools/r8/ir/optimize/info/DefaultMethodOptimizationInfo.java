@@ -172,11 +172,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public boolean triggersClassInitBeforeAnySideEffect() {
-    return UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
-  }
-
-  @Override
   public boolean mayHaveSideEffects() {
     return UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
   }

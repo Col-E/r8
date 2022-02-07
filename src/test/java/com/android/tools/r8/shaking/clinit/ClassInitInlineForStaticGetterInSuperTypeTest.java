@@ -18,7 +18,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class ClassInitInlineForStaticGetterInSuperTypeTest extends TestBase {
 
   private static final String EXPECTED = "Hello World";
-  private static final String R8_EXPECTED = "Goodbye World";
 
   @Parameter() public TestParameters parameters;
 
@@ -44,8 +43,7 @@ public class ClassInitInlineForStaticGetterInSuperTypeTest extends TestBase {
         .addKeepRules("-keep class " + typeName(B.class) + " { <fields>; }")
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/215477768): Should be Hello World
-        .assertSuccessWithOutputLines(R8_EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class A {

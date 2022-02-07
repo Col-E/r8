@@ -94,9 +94,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {}
 
   @Override
-  public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
-
-  @Override
   public void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {}
 
   @Override
@@ -189,9 +186,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void unsetSimpleInliningConstraint(ProgramMethod method) {}
-
-  @Override
-  public void unsetTriggerClassInitBeforeAnySideEffect(ProgramMethod method) {}
 
   @Override
   public void unsetUnusedArguments(ProgramMethod method) {}

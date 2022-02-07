@@ -188,12 +188,8 @@ public class SimpleDominatingEffectAnalysis {
       satisfyingInstructions.forEach(instructionConsumer);
     }
 
-    public void forEachTopMostNotSatisfiedBlock(Consumer<BasicBlock> blockConsumer) {
-      topmostNotSatisfiedBlocks.forEach(blockConsumer);
-    }
-
-    public int topMostNotSatisfiedBlockSize() {
-      return topmostNotSatisfiedBlocks.size();
+    public List<BasicBlock> getTopmostNotSatisfiedBlocks() {
+      return topmostNotSatisfiedBlocks;
     }
 
     public static SimpleEffectAnalysisResultBuilder builder() {
@@ -337,9 +333,8 @@ public class SimpleDominatingEffectAnalysis {
   }
 
   public static SimpleEffectAnalysisResult triggersClassInitializationBeforeAnyStaticRead(
-      AppView<AppInfoWithLiveness> appView, IRCode code) {
+      AppView<AppInfoWithLiveness> appView, IRCode code, ProgramMethod context) {
     assert code.context().getDefinition().isStatic();
-    ProgramMethod context = code.context();
     return run(
         code,
         instruction -> {
