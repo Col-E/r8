@@ -339,7 +339,7 @@ public class SimpleDominatingEffectAnalysis {
         code,
         instruction -> {
           if (instruction.definitelyTriggersClassInitialization(
-              context.getHolderType(),
+              code.context().getHolderType(),
               context,
               appView,
               DIRECTLY,
