@@ -79,6 +79,9 @@ public class TestBackportedNotPresentInAndroidJar extends TestBase {
   @Test
   public void testBackportedMethodsPerAPILevel() throws Exception {
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
+      if (apiLevel == AndroidApiLevel.T) {
+        continue;
+      }
       if (!ToolHelper.hasAndroidJar(apiLevel)) {
         // Only check for the android jar versions present in third_party.
         System.out.println("Skipping check for " + apiLevel);

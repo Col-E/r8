@@ -131,7 +131,7 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
             .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
-      if (apiLevel.isGreaterThan(AndroidApiLevel.LATEST)) {
+      if (apiLevel.isGreaterThan(AndroidApiLevel.Sv2)) {
         continue;
       }
       Path compileApiLevelDirectory = directory.resolve("compile_api_level_" + apiLevel.getLevel());
