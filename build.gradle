@@ -140,6 +140,11 @@ sourceSets {
             srcDirs = ['src/test/examplesJava17']
         }
     }
+    examplesJava18 {
+        java {
+            srcDirs = ['src/test/examplesJava18']
+        }
+    }
     examplesTestNGRunner {
         java {
             srcDirs = ['src/test/testngrunner']
@@ -649,6 +654,12 @@ setJdkCompilationWithCompatibility(
 setJdkCompilationWithCompatibility(
         sourceSets.examplesJava17.compileJavaTaskName,
         'jdk-17',
+        JavaVersion.VERSION_17,
+        false)
+setJdkCompilationWithCompatibility(
+        sourceSets.examplesJava18.compileJavaTaskName,
+        'jdk-18',
+        // TODO(b/218293990): Update Gradle to get JavaVersion.VERSION_18.
         JavaVersion.VERSION_17,
         false)
 
@@ -1600,6 +1611,7 @@ buildExampleJarsCreateTask("Java9", sourceSets.examplesJava9)
 buildExampleJarsCreateTask("Java10", sourceSets.examplesJava10)
 buildExampleJarsCreateTask("Java11", sourceSets.examplesJava11)
 buildExampleJarsCreateTask("Java17", sourceSets.examplesJava17)
+buildExampleJarsCreateTask("Java18", sourceSets.examplesJava18)
 
 task provideArtFrameworksDependencies {
     cloudDependencies.tools.forEach({ art ->
@@ -1661,6 +1673,7 @@ task buildExamples {
     dependsOn buildExampleJava10Jars
     dependsOn buildExampleJava11Jars
     dependsOn buildExampleJava17Jars
+    dependsOn buildExampleJava18Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     def noDexTests = [
