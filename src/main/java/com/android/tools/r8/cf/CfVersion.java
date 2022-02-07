@@ -38,6 +38,8 @@ public final class CfVersion implements StructuralItem<CfVersion> {
   public static final CfVersion V16_PREVIEW = new CfVersion(Opcodes.V16 | Opcodes.V_PREVIEW);
   public static final CfVersion V17 = new CfVersion(Opcodes.V17);
   public static final CfVersion V17_PREVIEW = new CfVersion(Opcodes.V17 | Opcodes.V_PREVIEW);
+  public static final CfVersion V18 = new CfVersion(Opcodes.V18);
+  public static final CfVersion V18_PREVIEW = new CfVersion(Opcodes.V18 | Opcodes.V_PREVIEW);
 
   private final int version;
 
@@ -58,7 +60,8 @@ public final class CfVersion implements StructuralItem<CfVersion> {
     CfVersion.V14,
     CfVersion.V15,
     CfVersion.V16,
-    CfVersion.V17
+    CfVersion.V17,
+    CfVersion.V18
   };
 
   // Private constructor in case we want to canonicalize versions.

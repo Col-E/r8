@@ -14,13 +14,16 @@ exit -1
 # Create directory third_party/openjdk/jdk-X
 # cd into third_party/openjdk/jdk-X
 # Prepare README.google
-# Update JDK_VERSION below
+# Update JDK_VERSION and JDK_VERSION_FULL below
 
 # Now run script with fingers crossed!
 
-JDK_VERSION=17
+JDK_VERSION="18"
+JDK_VERSION_FULL=${JDK_VERSION}
+# For ea versions the full version name has a postfix.
+# JDK_VERSION_FULL="${JDK_VERSION}-ea+33"
 
-tar xf ~/Downloads/openjdk-${JDK_VERSION}_linux-x64_bin.tar.gz
+tar xf ~/Downloads/openjdk-${JDK_VERSION_FULL}_linux-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION} linux
 cp README.google linux
 upload_to_google_storage.py -a --bucket r8-deps linux
@@ -28,7 +31,7 @@ rm -rf jdk-${JDK_VERSION}
 rm -rf linux
 rm linux.tar.gz
 
-tar xf ~/Downloads/openjdk-${JDK_VERSION}_macos-x64_bin.tar.gz
+tar xf ~/Downloads/openjdk-${JDK_VERSION_FULL}_macos-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION}.jdk osx
 cp README.google osx
 upload_to_google_storage.py -a --bucket r8-deps osx
@@ -36,7 +39,7 @@ rm -rf osx
 rm -rf jdk-${JDK_VERSION}.jdk
 rm osx.tar.gz
 
-unzip ~/Downloads/openjdk-${JDK_VERSION}_windows-x64_bin.zip
+unzip ~/Downloads/openjdk-${JDK_VERSION_FULL}_windows-x64_bin.zip
 cp -rL jdk-${JDK_VERSION} windows
 cp README.google windows
 upload_to_google_storage.py -a --bucket r8-deps windows
