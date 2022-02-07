@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -29,7 +28,7 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
@@ -42,13 +41,12 @@ import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 // I am responsible for the generation of wrappers used to call library APIs when desugaring
@@ -98,8 +96,6 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-  private final ConcurrentHashMap<DexType, List<DexEncodedMethod>> allImplementedMethodsCache =
-      new ConcurrentHashMap<>();
   private final DesugaredLibraryEnumConversionSynthesizer enumConverter;
 
   public DesugaredLibraryWrapperSynthesizer(AppView<?> appView) {
@@ -264,6 +260,9 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       return getExistingProgramWrapperConversions(context);
     }
     assert context.isNotProgramClass();
+    Iterable<DexMethod> methods =
+        appView.options().machineDesugaredLibrarySpecification.getWrappers().get(context.type);
+    assert methods != null;
     ClasspathOrLibraryClass classpathOrLibraryContext = context.asClasspathOrLibraryClass();
     DexType type = context.type;
     DexType vivifiedType = vivifiedTypeFor(type);
@@ -274,7 +273,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
             type,
             classpathOrLibraryContext,
             eventConsumer,
-            wrapperField -> synthesizeVirtualMethodsForTypeWrapper(context, wrapperField));
+            wrapperField -> synthesizeVirtualMethodsForTypeWrapper(context, methods, wrapperField));
     DexClass vivifiedWrapper =
         ensureClasspathWrapper(
             SyntheticKind.VIVIFIED_WRAPPER,
@@ -282,7 +281,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
             vivifiedType,
             classpathOrLibraryContext,
             eventConsumer,
-            wrapperField -> synthesizeVirtualMethodsForVivifiedTypeWrapper(context, wrapperField));
+            wrapperField ->
+                synthesizeVirtualMethodsForVivifiedTypeWrapper(context, methods, wrapperField));
     return new WrapperConversions(
         getConversion(wrapper, vivifiedType, type),
         getConversion(vivifiedWrapper, type, vivifiedType));
@@ -447,8 +447,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private Collection<DexEncodedMethod> synthesizeVirtualMethodsForVivifiedTypeWrapper(
-      DexClass dexClass, DexEncodedField wrapperField) {
-    Iterable<DexMethod> allImplementedMethods = allImplementedMethods(dexClass);
+      DexClass dexClass, Iterable<DexMethod> allImplementedMethods, DexEncodedField wrapperField) {
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only types in their signature, but each method the wrapper forwards
     // to should used only vivified types.
@@ -489,8 +488,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private Collection<DexEncodedMethod> synthesizeVirtualMethodsForTypeWrapper(
-      DexClass dexClass, DexEncodedField wrapperField) {
-    Iterable<DexMethod> dexMethods = allImplementedMethods(dexClass);
+      DexClass dexClass, Iterable<DexMethod> dexMethods, DexEncodedField wrapperField) {
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only vivified types in their signature, but each method the wrapper
     // forwards
@@ -546,60 +544,6 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .build();
   }
 
-  private Iterable<DexMethod> allImplementedMethods(DexClass clazz) {
-    if (appView.options().machineDesugaredLibrarySpecification != null) {
-      return appView
-          .options()
-          .machineDesugaredLibrarySpecification
-          .getWrappers()
-          .get(clazz.type);
-    }
-    List<DexEncodedMethod> dexEncodedMethods =
-        allImplementedMethodsCache.computeIfAbsent(
-            clazz.type, type -> internalAllImplementedMethods(clazz));
-    return Iterables.transform(dexEncodedMethods, DexEncodedMember::getReference);
-  }
-
-  private List<DexEncodedMethod> internalAllImplementedMethods(DexClass libraryClass) {
-    LinkedList<DexClass> workList = new LinkedList<>();
-    List<DexEncodedMethod> implementedMethods = new ArrayList<>();
-    workList.add(libraryClass);
-    while (!workList.isEmpty()) {
-      DexClass dexClass = workList.removeFirst();
-      for (DexEncodedMethod virtualMethod : dexClass.virtualMethods()) {
-        if (!virtualMethod.isPrivateMethod()) {
-          boolean alreadyAdded = false;
-          // This looks quadratic but given the size of the collections met in practice for
-          // desugared libraries (Max ~15) it does not matter.
-          for (DexEncodedMethod alreadyImplementedMethod : implementedMethods) {
-            if (alreadyImplementedMethod.getReference().match(virtualMethod.getReference())) {
-              alreadyAdded = true;
-              break;
-            }
-          }
-          if (!alreadyAdded) {
-            implementedMethods.add(virtualMethod);
-          }
-        }
-      }
-      for (DexType itf : dexClass.interfaces.values) {
-        DexClass itfClass = appView.definitionFor(itf);
-        // Cannot be null in program since we started from a LibraryClass.
-        assert itfClass != null || appView.options().isDesugaredLibraryCompilation();
-        if (itfClass != null) {
-          workList.add(itfClass);
-        }
-      }
-      if (dexClass.superType != factory.objectType) {
-        DexClass superClass = appView.definitionFor(dexClass.superType);
-        assert superClass != null; // Cannot be null since we started from a LibraryClass.
-        workList.add(superClass);
-      }
-    }
-    assert !Iterables.any(implementedMethods, DexEncodedMethod::isFinal);
-    return implementedMethods;
-  }
-
   private DexField wrappedValueField(DexType holder, DexType fieldType) {
     return factory.createField(holder, fieldType, factory.wrapperFieldName);
   }
@@ -623,25 +567,28 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   // conversion methods are present.
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
-    LegacyDesugaredLibrarySpecification spec = appView.options().desugaredLibrarySpecification;
-    List<DexProgramClass> validClassesToWrap = new ArrayList<>();
-    for (DexType type : spec.getWrapperConversions()) {
-      assert !spec.getCustomConversions().containsKey(type);
-      DexClass validClassToWrap = getValidClassToWrap(type);
-      // In broken set-ups we can end up having a json files containing wrappers of non desugared
-      // classes. Such wrappers are not required since the class won't be rewritten.
-      if (validClassToWrap.isProgramClass()) {
-        if (validClassToWrap.isEnum()) {
-          enumConverter.ensureProgramEnumConversionClass(validClassToWrap, eventConsumer);
-        } else {
-          validClassesToWrap.add(validClassToWrap.asProgramClass());
-          ensureProgramWrappersWithoutVirtualMethods(validClassToWrap, eventConsumer);
-        }
-      }
-    }
-    for (DexProgramClass validClassToWrap : validClassesToWrap) {
-      ensureProgramWrappersVirtualMethods(validClassToWrap);
-    }
+    MachineDesugaredLibrarySpecification librarySpecification =
+        appView.options().machineDesugaredLibrarySpecification;
+    Map<DexProgramClass, Iterable<DexMethod>> validClassesToWrap = new IdentityHashMap<>();
+    librarySpecification
+        .getWrappers()
+        .forEach(
+            (type, methods) -> {
+              assert !librarySpecification.getCustomConversions().containsKey(type);
+              DexClass validClassToWrap = getValidClassToWrap(type);
+              // In broken set-ups we can end up having a json files containing wrappers of non
+              // desugared classes. Such wrappers are not required since the class won't be
+              // rewritten.
+              if (validClassToWrap.isProgramClass()) {
+                if (validClassToWrap.isEnum()) {
+                  enumConverter.ensureProgramEnumConversionClass(validClassToWrap, eventConsumer);
+                } else {
+                  validClassesToWrap.put(validClassToWrap.asProgramClass(), methods);
+                  ensureProgramWrappersWithoutVirtualMethods(validClassToWrap, eventConsumer);
+                }
+              }
+            });
+    validClassesToWrap.forEach(this::ensureProgramWrappersVirtualMethods);
   }
 
   // We generate first the two wrappers with the constructor method and the fields, then we
@@ -669,15 +616,16 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         SyntheticKind.VIVIFIED_WRAPPER, programContext, vivifiedWrapper, wrapper);
   }
 
-  private void ensureProgramWrappersVirtualMethods(DexClass context) {
+  private void ensureProgramWrappersVirtualMethods(DexClass context, Iterable<DexMethod> methods) {
     assert context.isProgramClass();
     DexProgramClass wrapper = getExistingProgramWrapper(context, SyntheticKind.WRAPPER);
     wrapper.addVirtualMethods(
-        synthesizeVirtualMethodsForTypeWrapper(context, getWrapperUniqueEncodedField(wrapper)));
+        synthesizeVirtualMethodsForTypeWrapper(
+            context, methods, getWrapperUniqueEncodedField(wrapper)));
     DexProgramClass vivifiedWrapper =
         getExistingProgramWrapper(context, SyntheticKind.VIVIFIED_WRAPPER);
     vivifiedWrapper.addVirtualMethods(
         synthesizeVirtualMethodsForVivifiedTypeWrapper(
-            context, getWrapperUniqueEncodedField(vivifiedWrapper)));
+            context, methods, getWrapperUniqueEncodedField(vivifiedWrapper)));
   }
 }
