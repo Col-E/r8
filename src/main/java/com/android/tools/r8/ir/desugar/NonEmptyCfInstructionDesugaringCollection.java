@@ -112,7 +112,7 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
       interfaceMethodRewriter = null;
     }
     desugaredLibraryAPIConverter =
-        appView.rewritePrefix.isRewriting()
+        appView.typeRewriter.isRewriting()
             ? new DesugaredLibraryAPIConverter(
                 appView,
                 SetUtils.newImmutableSetExcludingNullItems(

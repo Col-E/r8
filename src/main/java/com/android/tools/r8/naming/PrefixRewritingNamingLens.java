@@ -26,7 +26,7 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
 
   public static NamingLens createPrefixRewritingNamingLens(
       AppView<?> appView, NamingLens namingLens) {
-    if (!appView.rewritePrefix.isRewriting()) {
+    if (!appView.typeRewriter.isRewriting()) {
       return namingLens;
     }
     return new PrefixRewritingNamingLens(namingLens, appView);
@@ -45,8 +45,8 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
 
   private DexString getRenaming(DexType type) {
     DexString descriptor = null;
-    if (appView.rewritePrefix.hasRewrittenType(type, appView)) {
-      descriptor = appView.rewritePrefix.rewrittenType(type, appView).descriptor;
+    if (appView.typeRewriter.hasRewrittenType(type, appView)) {
+      descriptor = appView.typeRewriter.rewrittenType(type, appView).descriptor;
     }
     return descriptor;
   }
@@ -106,7 +106,7 @@ public class PrefixRewritingNamingLens extends NonIdentityNamingLens {
   }
 
   private boolean verifyNotPrefixRewrittenPackage(String packageName) {
-    appView.rewritePrefix.forAllRewrittenTypes(
+    appView.typeRewriter.forAllRewrittenTypes(
         dexType -> {
           assert !dexType.getPackageDescriptor().equals(packageName);
         });

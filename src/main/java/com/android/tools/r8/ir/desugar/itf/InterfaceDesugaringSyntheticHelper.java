@@ -97,7 +97,7 @@ public class InterfaceDesugaringSyntheticHelper {
     if (isEmulatedInterface(clazz.type)) {
       return true;
     }
-    return appView.rewritePrefix.hasRewrittenType(clazz.type, appView);
+    return appView.typeRewriter.hasRewrittenType(clazz.type, appView);
   }
 
   final boolean isCompatibleDefaultMethod(DexEncodedMethod method) {
@@ -575,7 +575,7 @@ public class InterfaceDesugaringSyntheticHelper {
 
     return type -> {
       DexString descriptor = type.getDescriptor();
-      return appView.rewritePrefix.hasRewrittenType(type, appView)
+      return appView.typeRewriter.hasRewrittenType(type, appView)
           || descriptor.endsWith(companionClassNameDescriptorSuffix)
           || isRewrittenEmulatedInterface(type)
           || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(type)

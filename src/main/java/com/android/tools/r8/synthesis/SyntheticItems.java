@@ -484,13 +484,13 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       AppView<?> appView,
       DexType type) {
     DexType rewrittenContextType =
-        appView.rewritePrefix.rewrittenContextType(outerContext.getSynthesizingContextType());
+        appView.typeRewriter.rewrittenContextType(outerContext.getSynthesizingContextType());
     if (rewrittenContextType == null) {
       return;
     }
     SynthesizingContext synthesizingContext = SynthesizingContext.fromType(rewrittenContextType);
     DexType rewrittenType = contextToType.apply(synthesizingContext);
-    appView.rewritePrefix.rewriteType(type, rewrittenType);
+    appView.typeRewriter.rewriteType(type, rewrittenType);
   }
 
   public DexProgramClass createClass(

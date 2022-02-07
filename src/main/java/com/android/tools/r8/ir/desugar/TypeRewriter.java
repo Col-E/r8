@@ -1,4 +1,4 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -12,9 +12,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public abstract class PrefixRewritingMapper {
+public abstract class TypeRewriter {
 
-  public static PrefixRewritingMapper empty() {
+  public static TypeRewriter empty() {
     return new EmptyPrefixRewritingMapper();
   }
 
@@ -44,7 +44,7 @@ public abstract class PrefixRewritingMapper {
 
   public abstract void forAllRewrittenTypes(Consumer<DexType> consumer);
 
-  public static class MachineDesugarPrefixRewritingMapper extends PrefixRewritingMapper {
+  public static class MachineDesugarPrefixRewritingMapper extends TypeRewriter {
 
     private final Map<DexType, DexType> rewriteType;
     private final Map<DexType, DexType> rewriteDerivedTypeOnly;
@@ -99,7 +99,7 @@ public abstract class PrefixRewritingMapper {
     }
   }
 
-  public static class EmptyPrefixRewritingMapper extends PrefixRewritingMapper {
+  public static class EmptyPrefixRewritingMapper extends TypeRewriter {
 
     @Override
     public DexType rewrittenType(DexType type, AppView<?> appView) {

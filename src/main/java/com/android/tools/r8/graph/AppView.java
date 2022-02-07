@@ -24,7 +24,7 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
@@ -88,7 +88,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       new SimpleInliningConstraintFactory();
 
   // Desugaring.
-  public final PrefixRewritingMapper rewritePrefix;
+  public final TypeRewriter typeRewriter;
 
   // Modeling.
   private final LibraryMethodSideEffectModelCollection libraryMethodSideEffectModelCollection;
@@ -123,16 +123,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final ComputedApiLevel computedMinApiLevel;
 
   private AppView(
-      T appInfo,
-      WholeProgramOptimizations wholeProgramOptimizations,
-      PrefixRewritingMapper mapper) {
+      T appInfo, WholeProgramOptimizations wholeProgramOptimizations, TypeRewriter mapper) {
     assert appInfo != null;
     this.context = CompilationContext.createInitialContext(appInfo.options());
     this.appInfo = appInfo;
     this.dontWarnConfiguration = DontWarnConfiguration.create(options().getProguardConfiguration());
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.initClassLens = InitClassLens.getThrowingInstance();
-    this.rewritePrefix = mapper;
+    this.typeRewriter = mapper;
 
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
       this.argumentPropagator = new ArgumentPropagator(withLiveness());
@@ -158,18 +156,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return libraryMemberOptimizer.isModeled(type);
   }
 
-  private static <T extends AppInfo> PrefixRewritingMapper defaultPrefixRewritingMapper(T appInfo) {
+  private static <T extends AppInfo> TypeRewriter defaultTypeRewriter(T appInfo) {
     InternalOptions options = appInfo.options();
-    return options.getPrefixRewritingMapper();
+    return options.getTypeRewriter();
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo) {
-    return new AppView<>(
-        appInfo, WholeProgramOptimizations.OFF, defaultPrefixRewritingMapper(appInfo));
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, defaultTypeRewriter(appInfo));
   }
 
-  public static <T extends AppInfo> AppView<T> createForD8(
-      T appInfo, PrefixRewritingMapper mapper) {
+  public static <T extends AppInfo> AppView<T> createForD8(T appInfo, TypeRewriter mapper) {
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
   }
 
@@ -184,24 +180,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     AppInfoWithClassHierarchy appInfo =
         AppInfoWithClassHierarchy.createInitialAppInfoWithClassHierarchy(
             application, classToFeatureSplitMap, mainDexInfo);
-    return new AppView<>(
-        appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
+    return new AppView<>(appInfo, WholeProgramOptimizations.ON, defaultTypeRewriter(appInfo));
   }
 
-  public static <T extends AppInfo> AppView<T> createForL8(
-      T appInfo, PrefixRewritingMapper mapper) {
+  public static <T extends AppInfo> AppView<T> createForL8(T appInfo, TypeRewriter mapper) {
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
   }
 
   public static <T extends AppInfo> AppView<T> createForRelocator(T appInfo) {
-    return new AppView<>(
-        appInfo, WholeProgramOptimizations.OFF, defaultPrefixRewritingMapper(appInfo));
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, defaultTypeRewriter(appInfo));
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForTracer(
       AppInfoWithClassHierarchy appInfo) {
-    return new AppView<>(
-        appInfo, WholeProgramOptimizations.ON, defaultPrefixRewritingMapper(appInfo));
+    return new AppView<>(appInfo, WholeProgramOptimizations.ON, defaultTypeRewriter(appInfo));
   }
 
   public AbstractValueFactory abstractValueFactory() {

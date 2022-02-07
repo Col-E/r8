@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
@@ -166,10 +166,10 @@ public class L8 {
     LazyLoadedDexApplication lazyApp =
         new ApplicationReader(inputApp, options, timing).read(executor);
 
-    PrefixRewritingMapper rewritePrefix = options.getPrefixRewritingMapper();
+    TypeRewriter typeRewriter = options.getTypeRewriter();
 
-    DexApplication app = new L8TreePruner(options).prune(lazyApp, rewritePrefix);
-    return AppView.createForL8(AppInfo.createInitialAppInfo(app), rewritePrefix);
+    DexApplication app = new L8TreePruner(options).prune(lazyApp, typeRewriter);
+    return AppView.createForL8(AppInfo.createInitialAppInfo(app), typeRewriter);
   }
 
   private static void run(String[] args) throws CompilationFailedException {

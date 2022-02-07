@@ -52,8 +52,8 @@ import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.MachineDesugarPrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.TypeRewriter;
+import com.android.tools.r8.ir.desugar.TypeRewriter.MachineDesugarPrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
@@ -888,17 +888,11 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // If non-null, configuration must be passed to the consumer.
   public StringConsumer configurationConsumer = null;
 
-  // If null, no desugaring of library is performed.
-  // If non null it contains flags describing library desugaring.
-  public LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
-      LegacyDesugaredLibrarySpecification.empty();
-
   public void setDesugaredLibrarySpecification(
       LegacyDesugaredLibrarySpecification specification, AndroidApp app) {
     if (specification.isEmptyConfiguration()) {
       return;
     }
-    desugaredLibrarySpecification = specification;
     try {
       HumanDesugaredLibrarySpecification human =
           new LegacyToHumanSpecificationConverter()
@@ -918,7 +912,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public void setDesugaredLibrarySpecificationForTesting(
       LegacyDesugaredLibrarySpecification specification, Path desugaredJDKLib, Path library)
       throws IOException {
-    desugaredLibrarySpecification = specification;
     HumanDesugaredLibrarySpecification human =
         new LegacyToHumanSpecificationConverter().convert(specification, library, this);
     machineDesugaredLibrarySpecification =
@@ -930,13 +923,13 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
                 this);
   }
 
-  // Meant to replace desugaredLibrarySpecification, set only from tests at the moment.
+  // Contains flags describing library desugaring.
   public MachineDesugaredLibrarySpecification machineDesugaredLibrarySpecification =
       MachineDesugaredLibrarySpecification.empty();
 
-  public PrefixRewritingMapper getPrefixRewritingMapper() {
+  public TypeRewriter getTypeRewriter() {
     return machineDesugaredLibrarySpecification.getRewriteType().isEmpty()
-        ? PrefixRewritingMapper.empty()
+        ? TypeRewriter.empty()
         : new MachineDesugarPrefixRewritingMapper(machineDesugaredLibrarySpecification);
   }
 

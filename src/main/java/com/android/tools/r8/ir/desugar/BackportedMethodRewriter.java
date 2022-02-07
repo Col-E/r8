@@ -100,14 +100,14 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
   public static List<DexMethod> generateListOfBackportedMethods(
       AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
     List<DexMethod> methods = new ArrayList<>();
-    PrefixRewritingMapper rewritePrefix = options.getPrefixRewritingMapper();
+    TypeRewriter typeRewriter = options.getTypeRewriter();
     AppInfo appInfo = null;
     if (androidApp != null) {
       DexApplication app =
           new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
       appInfo = AppInfo.createInitialAppInfo(app);
     }
-    AppView<?> appView = AppView.createForD8(appInfo, rewritePrefix);
+    AppView<?> appView = AppView.createForD8(appInfo, typeRewriter);
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
         new BackportedMethodRewriter.RewritableMethods(options, appView);
     rewritableMethods.visit(methods::add);
@@ -184,18 +184,18 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       // They however require the Optional/Stream class to be present, either through desugared
       // libraries or natively. If Optional/Stream class is not present, we do not desugar to
       // avoid confusion in error messages.
-      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
+      if (appView.typeRewriter.hasRewrittenType(factory.optionalType, appView)
           || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeJava9OptionalMethodProviders(factory);
         initializeJava10OptionalMethodProviders(factory);
         initializeJava11OptionalMethodProviders(factory);
       }
-      if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
+      if (appView.typeRewriter.hasRewrittenType(factory.streamType, appView)
           || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeStreamMethodProviders(factory);
       }
 
-      if (appView.rewritePrefix.hasRewrittenType(factory.supplierType, appView)) {
+      if (appView.typeRewriter.hasRewrittenType(factory.supplierType, appView)) {
         // TODO(b/191188594): Consider adding the Objects method from R here, or instead
         //  rely on desugared library to support them.
         initializeObjectsMethodProviders(factory);

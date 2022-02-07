@@ -120,7 +120,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
       DexType returnType = forwardMethod.proto.returnType;
       DexType forwardMethodReturnType =
-          appView.rewritePrefix.hasRewrittenType(returnType, appView)
+          appView.typeRewriter.hasRewrittenType(returnType, appView)
               ? vivifiedTypeFor(returnType)
               : returnType;
 

@@ -13,7 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.memberrebinding.b135627418.library.Drawable;
 import com.android.tools.r8.memberrebinding.b135627418.library.DrawableWrapper;
@@ -79,10 +78,6 @@ public class B135627418 extends TestBase {
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(
                 options -> {
-                  options.desugaredLibrarySpecification =
-                      LegacyDesugaredLibrarySpecification.withOnlyRewritePrefixForTesting(
-                          ImmutableMap.of(packageName + ".runtime", packageName + ".library"),
-                          options);
                   DexType type =
                       options
                           .dexItemFactory()

@@ -2633,7 +2633,7 @@ public class Enqueuer {
       // maintains the library override. In the second enqueuer phase, the signature has been
       // desugared, and the second resolution maintains the the library override.
       if (instantiation.isClass()
-          && appView.rewritePrefix.hasRewrittenTypeInSignature(
+          && appView.typeRewriter.hasRewrittenTypeInSignature(
               method.getReference().proto, appView)) {
         DexMethod methodToResolve =
             DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(

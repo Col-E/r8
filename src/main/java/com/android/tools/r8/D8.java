@@ -23,7 +23,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -168,11 +168,11 @@ public final class D8 {
   private static AppView<AppInfo> readApp(
       AndroidApp inputApp, InternalOptions options, ExecutorService executor, Timing timing)
       throws IOException {
-    PrefixRewritingMapper rewritePrefix = options.getPrefixRewritingMapper();
+    TypeRewriter typeRewriter = options.getTypeRewriter();
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
     LazyLoadedDexApplication app = applicationReader.read(executor);
     AppInfo appInfo = AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app));
-    return AppView.createForD8(appInfo, rewritePrefix);
+    return AppView.createForD8(appInfo, typeRewriter);
   }
 
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
@@ -269,7 +269,7 @@ public final class D8 {
         new CfApplicationWriter(appView, marker, GraphLens.getIdentityLens(), namingLens)
             .write(options.getClassFileConsumer(), inputApp);
       } else {
-        if (!hasDexResources || !hasClassResources || !appView.rewritePrefix.isRewriting()) {
+        if (!hasDexResources || !hasClassResources || !appView.typeRewriter.isRewriting()) {
           // All inputs are either dex or cf, or there is nothing to rewrite.
           namingLens = hasDexResources ? NamingLens.getIdentityLens() : namingLens;
           new GenericSignatureRewriter(appView, namingLens)

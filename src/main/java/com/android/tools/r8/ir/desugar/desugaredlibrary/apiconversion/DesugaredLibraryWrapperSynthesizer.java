@@ -117,7 +117,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     if (type.isArrayType()) {
       return shouldConvert(type.toBaseType(appView.dexItemFactory()), method, context);
     }
-    if (!appView.rewritePrefix.hasRewrittenType(type, appView)) {
+    if (!appView.typeRewriter.hasRewrittenType(type, appView)) {
       return false;
     }
     if (canConvert(type)) {
@@ -192,7 +192,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private void reportInvalidInvoke(DexType type, DexMethod invokedMethod, ProgramMethod context) {
-    DexType desugaredType = appView.rewritePrefix.rewrittenType(type, appView);
+    DexType desugaredType = appView.typeRewriter.rewrittenType(type, appView);
     Origin origin = context != null ? context.getOrigin() : Origin.unknown();
     Position position =
         context != null ? new MethodPosition(context.getMethodReference()) : Position.UNKNOWN;

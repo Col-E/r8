@@ -152,7 +152,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
       return false;
     }
     DexType holderType = invokedMethod.getHolderType();
-    if (appView.rewritePrefix.hasRewrittenType(holderType, appView) || holderType.isArrayType()) {
+    if (appView.typeRewriter.hasRewrittenType(holderType, appView) || holderType.isArrayType()) {
       return false;
     }
     DexClass dexClass = appView.definitionFor(holderType);
@@ -165,7 +165,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (isAlreadyDesugared(invoke, context)) {
       return false;
     }
-    return appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.getProto(), appView);
+    return appView.typeRewriter.hasRewrittenTypeInSignature(invokedMethod.getProto(), appView);
   }
 
   // The problem is that a method can resolve into a library method which is not present at runtime,
@@ -196,14 +196,14 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     DexType[] newParameters = originalMethod.proto.parameters.values.clone();
     int index = 0;
     for (DexType param : originalMethod.proto.parameters.values) {
-      if (appView.rewritePrefix.hasRewrittenType(param, appView)) {
+      if (appView.typeRewriter.hasRewrittenType(param, appView)) {
         newParameters[index] = vivifiedTypeFor(param, appView);
       }
       index++;
     }
     DexType returnType = originalMethod.proto.returnType;
     DexType newReturnType =
-        appView.rewritePrefix.hasRewrittenType(returnType, appView)
+        appView.typeRewriter.hasRewrittenType(returnType, appView)
             ? vivifiedTypeFor(returnType, appView)
             : returnType;
     DexProto newProto = appView.dexItemFactory().createProto(newReturnType, newParameters);
@@ -236,7 +236,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
             .createSynthesizedType(
                 DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
     // We would need to ensure a classpath class for each type to remove this rewriteType call.
-    appView.rewritePrefix.rewriteType(vivifiedType, type);
+    appView.typeRewriter.rewriteType(vivifiedType, type);
     return vivifiedType;
   }
 

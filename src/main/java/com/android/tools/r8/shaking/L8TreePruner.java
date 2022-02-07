@@ -7,7 +7,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -33,13 +33,13 @@ public class L8TreePruner {
         options.machineDesugaredLibrarySpecification.getEmulatedInterfaces().keySet());
   }
 
-  public DexApplication prune(DexApplication app, PrefixRewritingMapper rewritePrefix) {
+  public DexApplication prune(DexApplication app, TypeRewriter typeRewriter) {
     Map<DexType, DexProgramClass> typeMap = new IdentityHashMap<>();
     List<DexProgramClass> toKeep = new ArrayList<>();
     boolean pruneNestMember = false;
     for (DexProgramClass aClass : app.classes()) {
       typeMap.put(aClass.type, aClass);
-      if (rewritePrefix.hasRewrittenType(aClass.type, null)
+      if (typeRewriter.hasRewrittenType(aClass.type, null)
           || emulatedInterfaces.contains(aClass.type)) {
         toKeep.add(aClass);
       } else {
