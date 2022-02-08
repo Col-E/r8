@@ -4,6 +4,12 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThrows;
+
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -32,17 +38,32 @@ public class NarrowingWithoutSubtypingTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    testForD8()
-        .addInnerClasses(NarrowingWithoutSubtypingTest.class)
-        .addOptionsModification(
-            options -> {
-              options.testing.readInputStackMaps = readStackMap;
-              options.testing.enableNarrowAndWideningingChecksInD8 = true;
-              options.testing.noLocalsTableOnInput = true;
-            })
-        .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+    D8TestBuilder d8TestBuilder =
+        testForD8()
+            .addInnerClasses(NarrowingWithoutSubtypingTest.class)
+            .addOptionsModification(
+                options -> {
+                  options.testing.readInputStackMaps = readStackMap;
+                  options.testing.enableNarrowAndWideningingChecksInD8 = true;
+                  options.testing.noLocalsTableOnInput = true;
+                })
+            .setMinApi(parameters.getApiLevel());
+    if (readStackMap) {
+      d8TestBuilder
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutputLines("Hello world!");
+    } else {
+      // TODO(b/169120386): We should not be narrowing in D8.
+      assertThrows(
+          CompilationFailedException.class,
+          () -> {
+            d8TestBuilder.compileWithExpectedDiagnostics(
+                diagnostics ->
+                    diagnostics.assertAllErrorsMatch(
+                        diagnosticMessage(
+                            containsString("java.lang.AssertionError: During NARROWING"))));
+          });
+    }
   }
 
   static class TestClass {

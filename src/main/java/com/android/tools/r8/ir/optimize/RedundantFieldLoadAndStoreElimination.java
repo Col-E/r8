@@ -40,7 +40,6 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -92,9 +91,7 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
-    InternalOptions options = appView.options();
-    return options.enableRedundantFieldLoadElimination
-        && !options.debug
+    return appView.options().enableRedundantFieldLoadElimination
         && (code.metadata().mayHaveArrayGet()
             || code.metadata().mayHaveFieldInstruction()
             || code.metadata().mayHaveInitClass());
@@ -556,6 +553,17 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void handleArrayGet(InstructionListIterator it, ArrayGet arrayGet) {
+    if (arrayGet.array().hasLocalInfo()) {
+      // The array may be modified through the debugger. Therefore subsequent reads of the same
+      // array slot may not read this local.
+      return;
+    }
+    if (arrayGet.outValue().hasLocalInfo()) {
+      // This local may be modified through the debugger. Therefore subsequent reads of the same
+      // array slot may not read this local.
+      return;
+    }
+
     Value array = arrayGet.array().getAliasedValue();
     Value index = arrayGet.index().getAliasedValue();
     ArraySlot arraySlot = ArraySlot.create(array, index, arrayGet.getMemberType());
@@ -593,6 +601,11 @@ public class RedundantFieldLoadAndStoreElimination {
       InstanceGet instanceGet,
       DexClassAndField field,
       AssumeRemover assumeRemover) {
+    if (instanceGet.outValue().hasLocalInfo()) {
+      clearMostRecentInstanceFieldWrite(instanceGet, field);
+      return;
+    }
+
     Value object = instanceGet.object().getAliasedValue();
     FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
     FieldValue replacement = activeState.getInstanceFieldValue(fieldAndObject);
@@ -685,6 +698,12 @@ public class RedundantFieldLoadAndStoreElimination {
       DexClassAndField field,
       AssumeRemover assumeRemover) {
     markClassAsInitialized(field.getHolderType());
+
+    if (staticGet.outValue().hasLocalInfo()) {
+      killNonFinalActiveFields(staticGet);
+      clearMostRecentStaticFieldWrite(staticGet, field);
+      return;
+    }
 
     FieldValue replacement = activeState.getStaticFieldValue(field.getReference());
     if (replacement != null) {
