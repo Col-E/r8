@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterL8Synthesizer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.ProgramEmulatedInterfaceSynthesizer;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -17,8 +16,7 @@ import java.util.concurrent.ExecutorService;
 
 public abstract class CfClassSynthesizerDesugaringCollection {
 
-  public static CfClassSynthesizerDesugaringCollection create(
-      AppView<?> appView, RetargetingInfo retargetingInfo) {
+  public static CfClassSynthesizerDesugaringCollection create(AppView<?> appView) {
     Collection<CfClassSynthesizerDesugaring> synthesizers = new ArrayList<>();
     if (appView.options().isDesugaredLibraryCompilation()) {
       ProgramEmulatedInterfaceSynthesizer emulatedInterfaceSynthesizer =
@@ -27,7 +25,7 @@ public abstract class CfClassSynthesizerDesugaringCollection {
         synthesizers.add(emulatedInterfaceSynthesizer);
       }
       DesugaredLibraryRetargeterL8Synthesizer retargeterL8Synthesizer =
-          DesugaredLibraryRetargeterL8Synthesizer.create(appView, retargetingInfo);
+          DesugaredLibraryRetargeterL8Synthesizer.create(appView);
       if (retargeterL8Synthesizer != null) {
         synthesizers.add(retargeterL8Synthesizer);
       }

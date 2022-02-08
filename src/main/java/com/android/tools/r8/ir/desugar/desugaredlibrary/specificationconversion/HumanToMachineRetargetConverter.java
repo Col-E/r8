@@ -48,6 +48,12 @@ public class HumanToMachineRetargetConverter {
       DexType type) {
     DexClass holder = appInfo.definitionFor(method.holder);
     DexEncodedMethod foundMethod = holder.lookupMethod(method);
+    if (foundMethod == null && method.getName().toString().equals("deepEquals0")) {
+      // TODO(b/184026720): Temporary work-around (the method is missing).
+      DexMethod dest = method.withHolder(type, appInfo.dexItemFactory());
+      builder.putStaticRetarget(method, dest);
+      return;
+    }
     assert foundMethod != null;
     if (foundMethod.isStatic()) {
       convertStaticRetarget(builder, foundMethod, type);

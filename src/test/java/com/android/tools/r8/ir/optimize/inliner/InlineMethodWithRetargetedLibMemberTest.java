@@ -12,8 +12,7 @@ import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,7 +20,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InlineMethodWithRetargetedLibMemberTest extends TestBase {
+public class InlineMethodWithRetargetedLibMemberTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 
@@ -37,7 +36,7 @@ public class InlineMethodWithRetargetedLibMemberTest extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .enableCoreLibraryDesugaring(

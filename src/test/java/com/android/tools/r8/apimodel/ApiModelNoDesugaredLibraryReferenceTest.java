@@ -8,7 +8,6 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.references.Reference;
@@ -42,7 +41,7 @@ public class ApiModelNoDesugaredLibraryReferenceTest extends DesugaredLibraryTes
     Method main = Executor.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
         .addProgramClasses(Executor.class, LibUser.class)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addKeepMainRule(Executor.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)

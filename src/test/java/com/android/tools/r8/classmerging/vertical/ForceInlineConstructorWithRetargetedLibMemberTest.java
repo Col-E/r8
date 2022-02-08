@@ -13,8 +13,7 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ForceInlineConstructorWithRetargetedLibMemberTest extends TestBase {
+public class ForceInlineConstructorWithRetargetedLibMemberTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 
@@ -39,7 +38,7 @@ public class ForceInlineConstructorWithRetargetedLibMemberTest extends TestBase 
   public void test() throws Exception {
     // Regression test for b/170677722.
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .addInnerClasses(getClass())
         .addKeepMainRule(TestClass.class)
         .addVerticallyMergedClassesInspector(

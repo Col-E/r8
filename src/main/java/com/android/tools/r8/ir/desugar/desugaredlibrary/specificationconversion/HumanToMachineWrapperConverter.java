@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,8 +29,13 @@ public class HumanToMachineWrapperConverter {
     for (DexType wrapperConversion : rewritingFlags.getWrapperConversions()) {
       DexClass wrapperClass = appInfo.definitionFor(wrapperConversion);
       assert wrapperClass != null;
-      List<DexMethod> methods = allImplementedMethods(wrapperClass);
-      methods.sort(DexMethod::compareTo);
+      List<DexMethod> methods;
+      if (wrapperClass.isEnum()) {
+        methods = ImmutableList.of();
+      } else {
+        methods = allImplementedMethods(wrapperClass);
+        methods.sort(DexMethod::compareTo);
+      }
       builder.addWrapper(wrapperConversion, methods);
     }
   }

@@ -9,7 +9,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -48,7 +47,7 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
     Path dumpDir = temp.newFolder().toPath();
     testForD8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
-        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -76,7 +75,7 @@ public class DesugaredLibraryDumpInputsTest extends DesugaredLibraryTestBase {
     Path dumpDir = temp.newFolder().toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
-        .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
+        .addLibraryFiles(getLibraryFile())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())

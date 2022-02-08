@@ -45,6 +45,8 @@ import java.util.concurrent.ExecutorService;
 
 public class LegacyToHumanSpecificationConverter {
 
+  private AndroidApiLevel legacyHackLevel = AndroidApiLevel.N_MR1;
+
   public void convertAllAPILevels(
       StringResource inputSpecification, Path androidLib, StringConsumer output)
       throws IOException {
@@ -113,20 +115,31 @@ public class LegacyToHumanSpecificationConverter {
     // converting non multi-level specifications should be performed only with *valid*
     // specifications in practical cases.
     Origin origin = Origin.unknown();
-
     HumanRewritingFlags humanRewritingFlags =
         convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
+    if (options.getMinApiLevel().isLessThanOrEqualTo(legacyHackLevel)
+        && legacySpec.isLibraryCompilation()) {
+      HumanRewritingFlags.Builder builder =
+          humanRewritingFlags.newBuilder(app.dexItemFactory(), app.options.reporter, origin);
+      legacyLibraryFlagHacks(app.dexItemFactory(), builder);
+      humanRewritingFlags = builder.build();
+    }
     return new HumanDesugaredLibrarySpecification(
         humanTopLevelFlags, humanRewritingFlags, legacySpec.isLibraryCompilation());
   }
 
   private void legacyLibraryFlagHacks(
       Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
-    int level = AndroidApiLevel.N_MR1.getLevel();
+    int level = legacyHackLevel.getLevel();
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
     HumanRewritingFlags.Builder builder =
         humanRewritingFlags.newBuilder(app.dexItemFactory(), app.options.reporter, origin);
-    DexItemFactory itemFactory = app.dexItemFactory();
+    legacyLibraryFlagHacks(app.dexItemFactory(), builder);
+    libraryFlags.put(level, builder.build());
+  }
+
+  private void legacyLibraryFlagHacks(
+      DexItemFactory itemFactory, HumanRewritingFlags.Builder builder) {
 
     // TODO(b/177977763): This is only a workaround rewriting invokes of j.u.Arrays.deepEquals0
     // to j.u.DesugarArrays.deepEquals0.
@@ -149,8 +162,6 @@ public class LegacyToHumanSpecificationConverter {
     source = itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
     target = itemFactory.createType("Ljava/util/DesugarTimeZone;");
     builder.putRetargetCoreLibMember(source, target);
-
-    libraryFlags.put(level, builder.build());
   }
 
   private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {

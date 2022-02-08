@@ -14,30 +14,30 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesiz
 
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
-  private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedDispatchMethods;
 
-  public static DesugaredLibraryRetargeterL8Synthesizer create(
-      AppView<?> appView, RetargetingInfo retargetingInfo) {
+  public static DesugaredLibraryRetargeterL8Synthesizer create(AppView<?> appView) {
     assert appView.options().isDesugaredLibraryCompilation();
-    if (retargetingInfo == null || retargetingInfo.getEmulatedVirtualRetarget().isEmpty()) {
-      assert !appView.options().machineDesugaredLibrarySpecification.hasRetargeting();
+    if (appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getEmulatedVirtualRetarget()
+        .isEmpty()) {
       return null;
     }
-    return new DesugaredLibraryRetargeterL8Synthesizer(appView, retargetingInfo);
+    return new DesugaredLibraryRetargeterL8Synthesizer(appView);
   }
 
-  public DesugaredLibraryRetargeterL8Synthesizer(
-      AppView<?> appView, RetargetingInfo retargetingInfo) {
+  public DesugaredLibraryRetargeterL8Synthesizer(AppView<?> appView) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    emulatedDispatchMethods = retargetingInfo.getEmulatedVirtualRetarget();
   }
 
   @Override
   public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
-    assert !emulatedDispatchMethods.isEmpty();
+    Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget =
+        appView.options().machineDesugaredLibrarySpecification.getEmulatedVirtualRetarget();
     for (EmulatedDispatchMethodDescriptor emulatedDispatchMethod :
-        emulatedDispatchMethods.values()) {
+        emulatedVirtualRetarget.values()) {
       syntheticHelper.ensureProgramEmulatedHolderDispatchMethod(
           emulatedDispatchMethod, eventConsumer);
     }

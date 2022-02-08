@@ -54,7 +54,7 @@ public class LegacyTopLevelFlags {
 
   public static LegacyTopLevelFlags testing() {
     return new LegacyTopLevelFlags(
-        AndroidApiLevel.B,
+        AndroidApiLevel.O,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
         "testing",
         null,

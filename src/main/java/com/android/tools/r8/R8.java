@@ -324,7 +324,7 @@ public class R8 {
       // Upfront desugaring generation: Generates new program classes to be added in the app.
       CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
           new CfClassSynthesizerDesugaringEventConsumer();
-      CfClassSynthesizerDesugaringCollection.create(appView, null)
+      CfClassSynthesizerDesugaringCollection.create(appView)
           .synthesizeClasses(executorService, classSynthesizerEventConsumer);
       if (appView.getSyntheticItems().hasPendingSyntheticClasses()) {
         appView.setAppInfo(

@@ -415,8 +415,7 @@ public class IRConverter {
       ExecutorService executorService,
       CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer)
       throws ExecutionException {
-    CfClassSynthesizerDesugaringCollection.create(
-            appView, instructionDesugaring.getRetargetingInfo())
+    CfClassSynthesizerDesugaringCollection.create(appView)
         .synthesizeClasses(executorService, classSynthesizerEventConsumer);
   }
 

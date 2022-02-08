@@ -49,7 +49,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
-  private static final boolean FORCE_JDK11_DESUGARED_LIB = false;
+  private static final boolean FORCE_JDK11_DESUGARED_LIB = true;
 
   @BeforeClass
   public static void setUpDesugaredLibrary() {
@@ -99,10 +99,12 @@ public class DesugaredLibraryTestBase extends TestBase {
     throw new Error("Unsupported conversion parameters");
   }
 
+  protected AndroidApiLevel getRequiredCompilationAPILevel() {
+    return isJDK11DesugaredLibrary() ? AndroidApiLevel.R : AndroidApiLevel.P;
+  }
+
   protected Path getLibraryFile() {
-    return isJDK11DesugaredLibrary()
-        ? ToolHelper.getAndroidJar(AndroidApiLevel.R)
-        : ToolHelper.getAndroidJar(AndroidApiLevel.P);
+    return ToolHelper.getAndroidJar(getRequiredCompilationAPILevel());
   }
 
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {

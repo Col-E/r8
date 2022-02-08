@@ -79,9 +79,9 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   public ObjectsTest(TestParameters parameters, boolean libraryDesugarJavaUtilObjects) {
     this.parameters = parameters;
     this.libraryDesugarJavaUtilObjects = libraryDesugarJavaUtilObjects;
-    // Using desugared library require a compile SDK of 26 or higher.
     this.androidJar =
-        ToolHelper.getAndroidJar(Ordered.max(parameters.getApiLevel(), AndroidApiLevel.O));
+        ToolHelper.getAndroidJar(
+            Ordered.max(parameters.getApiLevel(), getRequiredCompilationAPILevel()));
   }
 
   LegacyDesugaredLibrarySpecification desugaredLibrarySpecification(

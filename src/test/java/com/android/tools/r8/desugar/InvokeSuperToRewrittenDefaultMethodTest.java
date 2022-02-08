@@ -9,9 +9,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import java.util.function.Consumer;
@@ -56,7 +54,7 @@ public class InvokeSuperToRewrittenDefaultMethodTest extends DesugaredLibraryTes
     testForD8()
         .addInnerClasses(InvokeSuperToRewrittenDefaultMethodTest.class)
         .setMinApi(parameters.getApiLevel())
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .addLibraryFiles(getLibraryFile())
         .enableCoreLibraryDesugaring(
             LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
