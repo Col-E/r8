@@ -2348,6 +2348,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // See b/218298666.
   public boolean canHaveInvokeInterfaceToObjectMethodBug() {
-    return isGeneratingClassFiles() || getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O);
+    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.O);
   }
 }

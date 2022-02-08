@@ -1108,7 +1108,7 @@ public class IRConverter {
       timing.end();
     }
 
-    if (!options.canHaveInvokeInterfaceToObjectMethodBug()) {
+    if (options.canHaveInvokeInterfaceToObjectMethodBug()) {
       timing.begin("JDK-8272564 fix rewrite");
       CodeRewriter.rewriteJdk8272564Fix(code, appView);
       timing.end();
