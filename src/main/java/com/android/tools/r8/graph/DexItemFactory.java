@@ -1431,6 +1431,54 @@ public class DexItemFactory {
           || method.match(waitLong)
           || method.match(waitLongInt);
     }
+
+    public DexMethod matchingPublicObjectMember(DexMethod method) {
+      switch (method.getName().byteAt(0)) {
+        case 't':
+          if (method.match(toString)) {
+            return toString;
+          }
+          break;
+        case 'h':
+          if (method.match(hashCode)) {
+            return hashCode;
+          }
+          break;
+        case 'e':
+          if (method.match(equals)) {
+            return equals;
+          }
+          break;
+        case 'g':
+          if (method.match(getClass)) {
+            return getClass;
+          }
+          break;
+        case 'n':
+          if (method.match(notify)) {
+            return notify;
+          }
+          if (method.match(notifyAll)) {
+            return notifyAll;
+          }
+          break;
+        case 'w':
+          if (method.match(wait)) {
+            return wait;
+          }
+          if (method.match(waitLong)) {
+            return waitLong;
+          }
+          if (method.match(waitLongInt)) {
+            return waitLongInt;
+          }
+          break;
+        default:
+          // Methods finalize and clone are not public.
+          return null;
+      }
+      return null;
+    }
   }
 
   public class BufferMembers {

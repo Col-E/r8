@@ -2338,4 +2338,16 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean canHaveSuperInvokeBug() {
     return getMinApiLevel().isLessThan(AndroidApiLevel.N);
   }
+
+  // Some Dalvik and Art MVs does not support interface invokes to Object
+  // members not explicitly defined on the symbolic reference of the
+  // interface invoke. In these cases rewrite to a virtual invoke with
+  // the symbolic reference java.lang.Object.
+  //
+  // javac started generating code like this with the fix for JDK-8272564.
+  //
+  // See b/218298666.
+  public boolean canHaveInvokeInterfaceToObjectMethodBug() {
+    return isGeneratingClassFiles() || getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O);
+  }
 }

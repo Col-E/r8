@@ -6,4 +6,8 @@ package jdk8272564;
 
 interface I {
   public String toString();
+
+  public int hashCode();
+
+  public boolean equals(Object other);
 }

@@ -12,8 +12,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.jdk18.jdk8272564.Jdk8272564;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,17 +42,24 @@ public class Jdk8272564Test extends TestBase {
   public TestParameters parameters;
 
   // With the fix for JDK-8272564 there are no invokevirtual instructions.
-  private void assertJdk8272564FixedCode(CodeInspector inspector) throws Exception {
+  private void assertJdk8272564FixedCode(CodeInspector inspector) {
     assertTrue(
         inspector
             .clazz(Jdk8272564.Main.typeName())
             .uniqueMethodWithName("f")
             .streamInstructions()
             .noneMatch(InstructionSubject::isInvokeVirtual));
+    assertTrue(
+        inspector
+            .clazz(Jdk8272564.Main.typeName())
+            .uniqueMethodWithName("g")
+            .streamInstructions()
+            .noneMatch(InstructionSubject::isInvokeVirtual));
   }
 
   // Without the fix for JDK-8272564 there is one invokeinterface and 2 invokevirtual instructions.
-  private void assertJdk8272564NotFixedCode(CodeInspector inspector) throws Exception {
+  private void assertJdk8272564NotFixedCode(
+      CodeInspector inspector, int invokeVirtualCount, int getClassCount) {
     assertEquals(
         1,
         inspector
@@ -69,6 +76,47 @@ public class Jdk8272564Test extends TestBase {
             .streamInstructions()
             .filter(InstructionSubject::isInvokeVirtual)
             .count());
+    assertEquals(
+        2,
+        inspector
+            .clazz(Jdk8272564.Main.typeName())
+            .uniqueMethodWithName("g")
+            .streamInstructions()
+            .filter(InstructionSubject::isInvokeInterface)
+            .count());
+    assertEquals(
+        2,
+        inspector
+            .clazz(Jdk8272564.Main.typeName())
+            .uniqueMethodWithName("g")
+            .streamInstructions()
+            .filter(InstructionSubject::isInvokeInterface)
+            .count());
+    assertEquals(
+        invokeVirtualCount,
+        inspector
+            .clazz(Jdk8272564.Main.typeName())
+            .uniqueMethodWithName("g")
+            .streamInstructions()
+            .filter(InstructionSubject::isInvokeVirtual)
+            .count());
+    assertEquals(
+        getClassCount,
+        inspector
+            .clazz(Jdk8272564.Main.typeName())
+            .uniqueMethodWithName("g")
+            .streamInstructions()
+            .filter(InstructionSubject::isInvoke)
+            .filter(instruction -> instruction.getMethod().getName().toString().equals("getClass"))
+            .count());
+  }
+
+  private void assertJdk8272564NotFixedCode(CodeInspector inspector) {
+    assertJdk8272564NotFixedCode(inspector, 22, 3);
+  }
+
+  private void assertJdk8272564NotFixedCodeR8(CodeInspector inspector) {
+    assertJdk8272564NotFixedCode(inspector, 19, 0);
   }
 
   @Test
@@ -94,13 +142,10 @@ public class Jdk8272564Test extends TestBase {
         .addProgramFiles(Jdk8272564.jar())
         .run(parameters.getRuntime(), Jdk8272564.Main.typeName())
         .applyIf(
-            parameters.getRuntime().isDex()
-                && parameters.getRuntime().asDex().getVersion().isOlderThanOrEqual(Version.V4_4_4),
-            r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class),
-            parameters.getRuntime().isDex()
-                && parameters.getRuntime().asDex().getVersion().isOlderThanOrEqual(Version.V7_0_0),
-            r -> r.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class),
-            r -> r.assertSuccess());
+            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O),
+            b -> b.inspect(this::assertJdk8272564NotFixedCode),
+            b -> b.inspect(this::assertJdk8272564FixedCode))
+        .assertSuccess();
   }
 
   @Test
@@ -113,7 +158,7 @@ public class Jdk8272564Test extends TestBase {
         .addKeepClassAndMembersRules(Jdk8272564.Main.typeName())
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .run(parameters.getRuntime(), Jdk8272564.Main.typeName())
-        .inspect(this::assertJdk8272564NotFixedCode)
+        .inspect(this::assertJdk8272564NotFixedCodeR8)
         .assertSuccess();
   }
 }

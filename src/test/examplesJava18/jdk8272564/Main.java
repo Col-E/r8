@@ -14,6 +14,34 @@ public class Main {
     k.toString();
   }
 
+  // Remaining public methods on Object.
+  static void g(I i, J j, K k) throws InterruptedException {
+    i.hashCode();
+    j.hashCode();
+    k.hashCode();
+    i.equals(new Object());
+    j.equals(new Object());
+    k.equals(new Object());
+    i.getClass();
+    j.getClass();
+    k.getClass();
+    i.notify();
+    j.notify();
+    k.notify();
+    i.notifyAll();
+    j.notifyAll();
+    k.notifyAll();
+    i.wait();
+    j.wait();
+    k.wait();
+    i.wait(1L);
+    j.wait(1L);
+    k.wait(1L);
+    i.wait(1L, 1);
+    j.wait(1L, 1);
+    k.wait(1L, 1);
+  }
+
   public static void main(String[] args) {
     f(new A(), new B(), new C());
   }

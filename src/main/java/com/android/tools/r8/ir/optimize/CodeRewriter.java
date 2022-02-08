@@ -70,6 +70,7 @@ import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeNewArray;
@@ -3768,6 +3769,26 @@ public class CodeRewriter {
                 "Failed to remove trivial phis between new-instance and <init>");
           }
           newInstance.markNoSpilling();
+        }
+      }
+    }
+  }
+
+  // The javac fix for JDK-8272564 has to be rewritten back to invoke-virtual on Object if the
+  // method with an Object signature is not defined on the interface. See
+  // https://bugs.openjdk.java.net/browse/JDK-8272564
+  public static void rewriteJdk8272564Fix(IRCode code, AppView<?> appView) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    InstructionListIterator it = code.instructionListIterator();
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+      if (instruction.isInvokeInterface()) {
+        InvokeInterface invoke = instruction.asInvokeInterface();
+        DexMethod method = invoke.getInvokedMethod();
+        DexMethod objectMember = dexItemFactory.objectMembers.matchingPublicObjectMember(method);
+        if (objectMember != null && appView.definitionFor(method) == null) {
+          it.replaceCurrentInstruction(
+              new InvokeVirtual(objectMember, invoke.outValue(), invoke.arguments()));
         }
       }
     }
