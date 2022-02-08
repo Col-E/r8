@@ -125,7 +125,11 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   private void assertOneWarning(TestDiagnosticMessagesImpl diagnosticsHandler) {
-    assertEquals(1, diagnosticsHandler.getWarnings().size());
+    assertEquals(
+        (isJDK11DesugaredLibrary() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O))
+            ? 2
+            : 1,
+        diagnosticsHandler.getWarnings().size());
     String msg = diagnosticsHandler.getWarnings().get(0).getDiagnosticMessage();
     assertTrue(
         msg.contains(

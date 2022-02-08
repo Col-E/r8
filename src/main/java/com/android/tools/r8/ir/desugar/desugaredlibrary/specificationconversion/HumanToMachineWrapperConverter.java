@@ -8,27 +8,37 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class HumanToMachineWrapperConverter {
 
   private final AppInfoWithClassHierarchy appInfo;
+  private final Set<DexType> missingClasses = Sets.newIdentityHashSet();
 
   public HumanToMachineWrapperConverter(AppInfoWithClassHierarchy appInfo) {
     this.appInfo = appInfo;
   }
 
   public void convertWrappers(
-      HumanRewritingFlags rewritingFlags, MachineRewritingFlags.Builder builder) {
-    for (DexType wrapperConversion : rewritingFlags.getWrapperConversions()) {
-      DexClass wrapperClass = appInfo.definitionFor(wrapperConversion);
-      assert wrapperClass != null;
+      HumanRewritingFlags rewritingFlags,
+      MachineRewritingFlags.Builder builder,
+      BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
+    for (DexType wrapperType : rewritingFlags.getWrapperConversions()) {
+      DexClass wrapperClass = appInfo.definitionFor(wrapperType);
+      if (wrapperClass == null) {
+        missingClasses.add(wrapperType);
+        continue;
+      }
       List<DexMethod> methods;
       if (wrapperClass.isEnum()) {
         methods = ImmutableList.of();
@@ -36,8 +46,9 @@ public class HumanToMachineWrapperConverter {
         methods = allImplementedMethods(wrapperClass);
         methods.sort(DexMethod::compareTo);
       }
-      builder.addWrapper(wrapperConversion, methods);
+      builder.addWrapper(wrapperType, methods);
     }
+    warnConsumer.accept("The following types to wrap are missing: ", missingClasses);
   }
 
   private List<DexMethod> allImplementedMethods(DexClass wrapperClass) {
@@ -59,7 +70,8 @@ public class HumanToMachineWrapperConverter {
             }
           }
           if (!alreadyAdded) {
-            assert !virtualMethod.isFinal() : "Cannot wrap final method " + virtualMethod;
+            assert !virtualMethod.isFinal()
+                : "Cannot wrap final method " + virtualMethod + " while wrapping " + wrapperClass;
             implementedMethods.add(virtualMethod.getReference());
           }
         }
@@ -72,7 +84,8 @@ public class HumanToMachineWrapperConverter {
       }
       if (dexClass.superType != appInfo.dexItemFactory().objectType) {
         DexClass superClass = appInfo.definitionFor(dexClass.superType);
-        assert superClass != null; // Cannot be null since we started from a LibraryClass.
+        assert superClass != null
+            : "Missing supertype " + dexClass.superType + " while wrapping " + wrapperClass;
         workList.add(superClass);
       }
     }

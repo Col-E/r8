@@ -589,7 +589,24 @@ public class IRConverter {
               .append("'")
               .append(i < neverMergePrefixes.size() - 1 ? ", " : "");
         }
-        message.append(" with classes with any other prefixes is not allowed.");
+        message.append(" with classes with any other prefixes is not allowed: ");
+        boolean first = true;
+        int limit = 11;
+        for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
+          if (!clazz.type.descriptor.startsWith(neverMergePrefix)) {
+            if (limit-- < 0) {
+              message.append("..");
+              break;
+            }
+            if (first) {
+              first = false;
+            } else {
+              message.append(", ");
+            }
+            message.append(clazz.type);
+          }
+        }
+        message.append(".");
         throw new CompilationError(message.toString());
       }
     }

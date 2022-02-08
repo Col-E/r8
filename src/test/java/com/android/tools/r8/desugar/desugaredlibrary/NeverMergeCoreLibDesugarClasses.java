@@ -45,15 +45,16 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
           .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
           .addProgramDexFileData(builder.compile())
           .setMinApi(parameters.getRuntime())
-          .compileWithExpectedDiagnostics(diagnostics -> {
-            diagnostics.assertErrorsCount(1);
-            String message = diagnostics.getErrors().get(0).getDiagnosticMessage();
-            assertThat(
-                message,
-                containsString(
-                    "Merging dex file containing classes with prefix 'j$.' "
-                        + "with classes with any other prefixes is not allowed."));
-          });
+          .compileWithExpectedDiagnostics(
+              diagnostics -> {
+                diagnostics.assertErrorsCount(1);
+                String message = diagnostics.getErrors().get(0).getDiagnosticMessage();
+                assertThat(
+                    message,
+                    containsString(
+                        "Merging dex file containing classes with prefix 'j$.' "
+                            + "with classes with any other prefixes is not allowed"));
+              });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.
       return;
@@ -78,7 +79,7 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
                     message,
                     containsString(
                         "Merging dex file containing classes with prefix 'j$.' "
-                            + "with classes with any other prefixes is not allowed."));
+                            + "with classes with any other prefixes is not allowed"));
               });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.

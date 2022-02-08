@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -18,27 +19,33 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Emu
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 public class HumanToMachineRetargetConverter {
 
   private final AppInfoWithClassHierarchy appInfo;
-  private SubtypingInfo subtypingInfo;
+  private final SubtypingInfo subtypingInfo;
+  private final Set<DexMethod> missingMethods = Sets.newIdentityHashSet();
 
   public HumanToMachineRetargetConverter(AppInfoWithClassHierarchy appInfo) {
     this.appInfo = appInfo;
+    subtypingInfo = SubtypingInfo.create(appInfo);
   }
 
   public void convertRetargetFlags(
-      HumanRewritingFlags rewritingFlags, MachineRewritingFlags.Builder builder) {
-    subtypingInfo = SubtypingInfo.create(appInfo);
+      HumanRewritingFlags rewritingFlags,
+      MachineRewritingFlags.Builder builder,
+      BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
     rewritingFlags
         .getRetargetCoreLibMember()
         .forEach(
             (method, type) ->
                 convertRetargetCoreLibMemberFlag(builder, rewritingFlags, method, type));
+    warnConsumer.accept("Cannot retarget missing methods: ", missingMethods);
   }
 
   private void convertRetargetCoreLibMemberFlag(
@@ -54,7 +61,10 @@ public class HumanToMachineRetargetConverter {
       builder.putStaticRetarget(method, dest);
       return;
     }
-    assert foundMethod != null;
+    if (foundMethod == null) {
+      missingMethods.add(foundMethod.getReference());
+      return;
+    }
     if (foundMethod.isStatic()) {
       convertStaticRetarget(builder, foundMethod, type);
       return;

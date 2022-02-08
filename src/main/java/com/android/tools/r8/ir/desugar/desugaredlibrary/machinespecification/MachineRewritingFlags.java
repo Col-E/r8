@@ -173,6 +173,7 @@ public class MachineRewritingFlags {
       assert src != null;
       assert target != null;
       assert src != target;
+      assert !rewriteType.containsKey(src) || rewriteType.get(src) == target;
       rewriteType.put(src, target);
     }
 
