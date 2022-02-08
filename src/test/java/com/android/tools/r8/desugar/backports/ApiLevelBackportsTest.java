@@ -88,7 +88,14 @@ public class ApiLevelBackportsTest extends TestBase {
         .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
         .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
-        .assertSuccessWithOutputLines("4");
+        .applyIf(
+            parameters.getDexRuntimeVersion().isOlderThan(Version.V13_MASTER),
+            b ->
+                b.assertFailureWithErrorThatMatches(
+                    containsString(
+                        "java.lang.NoSuchMethodError: No static method"
+                            + " parseInt(Ljava/lang/CharSequence;III)I")),
+            b -> b.assertSuccessWithOutputLines("4"));
   }
 
   // Test class for using: List List.of()
