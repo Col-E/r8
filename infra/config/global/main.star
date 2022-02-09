@@ -2,9 +2,6 @@
 
 lucicfg.check_version("1.28.0", "Please use newer `lucicfg` binary")
 
-# Enable LUCI Realms support.
-lucicfg.enable_experiment("crbug.com/1085650")
-
 # Launch 0% of Builds in "realms-aware mode"
 luci.builder.defaults.experiments.set({
     "luci.use_realms": 100,
