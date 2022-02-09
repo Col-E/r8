@@ -289,6 +289,11 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public TypeSubject asTypeSubject() {
+    return new TypeSubject(codeInspector, dexClass.getType());
+  }
+
+  @Override
   public boolean isAbstract() {
     return dexClass.accessFlags.isAbstract();
   }
@@ -502,10 +507,6 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public String toString() {
     return dexClass.toSourceString();
-  }
-
-  public TypeSubject asTypeSubject() {
-    return new TypeSubject(codeInspector, getDexProgramClass().type);
   }
 
   @Override

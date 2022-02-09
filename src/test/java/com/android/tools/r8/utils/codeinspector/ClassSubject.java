@@ -171,6 +171,10 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
     return null;
   }
 
+  public TypeSubject asTypeSubject() {
+    return null;
+  }
+
   @Override
   public abstract ClassAccessFlags getAccessFlags();
 

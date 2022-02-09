@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -50,6 +51,10 @@ public abstract class MethodSubject extends MemberSubject {
   public abstract String getOriginalSignatureAttribute();
 
   public abstract DexEncodedMethod getMethod();
+
+  public abstract TypeSubject getParameter(int index);
+
+  public abstract List<TypeSubject> getParameters();
 
   public abstract ProgramMethod getProgramMethod();
 

@@ -77,6 +77,16 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public TypeSubject getParameter(int index) {
+    throw new Unreachable("Cannot get the parameter for an absent method");
+  }
+
+  @Override
+  public List<TypeSubject> getParameters() {
+    throw new Unreachable("Cannot get the parameters for an absent method");
+  }
+
+  @Override
   public ProgramMethod getProgramMethod() {
     return null;
   }

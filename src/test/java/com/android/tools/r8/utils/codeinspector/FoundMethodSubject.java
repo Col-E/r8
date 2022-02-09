@@ -124,6 +124,18 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public TypeSubject getParameter(int index) {
+    return new TypeSubject(codeInspector, getMethod().getParameter(index));
+  }
+
+  @Override
+  public List<TypeSubject> getParameters() {
+    return getMethod().getParameters().stream()
+        .map(parameter -> new TypeSubject(codeInspector, parameter))
+        .collect(Collectors.toList());
+  }
+
+  @Override
   public ProgramMethod getProgramMethod() {
     return new ProgramMethod(clazz.getDexProgramClass(), getMethod());
   }
