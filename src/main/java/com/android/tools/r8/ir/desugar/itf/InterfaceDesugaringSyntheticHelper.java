@@ -192,8 +192,7 @@ public class InterfaceDesugaringSyntheticHelper {
       return null;
     }
     assert initialResolutionHolder != null;
-    // Outside L8 compilation, only library methods can lead to emulated interface dispatch.
-    if (!method.isLibraryMethod() && !appView.options().isDesugaredLibraryCompilation()) {
+    if (!requiresEmulatedDispatch(method)) {
       return null;
     }
     DexClassAndMethod maximallySpecificMethod =
@@ -201,24 +200,21 @@ public class InterfaceDesugaringSyntheticHelper {
     if (maximallySpecificMethod == null) {
       return null;
     }
-    EmulatedDispatchMethodDescriptor descriptor =
-        appView
-            .options()
-            .machineDesugaredLibrarySpecification
-            .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(
-                maximallySpecificMethod.getReference());
-    if (!appView.options().isDesugaredLibraryCompilation()) {
-      return descriptor;
-    }
-    return requiresEmulatedDispatchInL8(method, descriptor) ? descriptor : null;
+    return appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getEmulatedInterfaceEmulatedDispatchMethodDescriptor(
+            maximallySpecificMethod.getReference());
   }
 
-  private boolean requiresEmulatedDispatchInL8(
-      DexClassAndMethod method, EmulatedDispatchMethodDescriptor descriptor) {
+  private boolean requiresEmulatedDispatch(DexClassAndMethod method) {
     return method.isLibraryMethod()
         || isEmulatedInterface(method.getHolderType())
-        || (descriptor != null
-            && descriptor.getDispatchCases().containsKey(method.getHolderType()));
+        || appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .getEmulatedVirtualRetargetThroughEmulatedInterface()
+            .containsKey(method.getReference());
   }
 
   DerivedMethod computeEmulatedInterfaceDispatchMethod(MethodResolutionResult resolutionResult) {
@@ -230,14 +226,21 @@ public class InterfaceDesugaringSyntheticHelper {
 
   DerivedMethod computeEmulatedInterfaceForwardingMethod(
       DexClass initialResolutionHolder, DexClassAndMethod method) {
-    EmulatedDispatchMethodDescriptor descriptor =
-        getEmulatedDispatchDescriptor(initialResolutionHolder, method);
-    if (descriptor == null) {
+    if (method == null) {
       return null;
     }
-    return descriptor.getDispatchCases().containsKey(method.getHolderType())
-        ? descriptor.getDispatchCases().get(method.getHolderType())
-        : descriptor.getForwardingMethod();
+    DexMethod retarget =
+        appView
+            .options()
+            .machineDesugaredLibrarySpecification
+            .getEmulatedVirtualRetargetThroughEmulatedInterface()
+            .get(method.getReference());
+    if (retarget != null) {
+      return new DerivedMethod(retarget);
+    }
+    EmulatedDispatchMethodDescriptor descriptor =
+        getEmulatedDispatchDescriptor(initialResolutionHolder, method);
+    return descriptor == null ? null : descriptor.getForwardingMethod();
   }
 
   DexMethod ensureEmulatedInterfaceForwardingMethod(DerivedMethod method) {

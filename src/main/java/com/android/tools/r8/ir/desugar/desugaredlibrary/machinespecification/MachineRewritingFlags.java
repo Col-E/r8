@@ -30,6 +30,7 @@ public class MachineRewritingFlags {
       Map<DexMethod, DexMethod> staticRetarget,
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
+      Map<DexMethod, DexMethod> emulatedVirtualRetargetThroughEmulatedInterface,
       Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces,
       Map<DexType, List<DexMethod>> wrappers,
       Map<DexType, DexType> legacyBackport,
@@ -40,6 +41,8 @@ public class MachineRewritingFlags {
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
+    this.emulatedVirtualRetargetThroughEmulatedInterface =
+        emulatedVirtualRetargetThroughEmulatedInterface;
     this.emulatedInterfaces = emulatedInterfaces;
     this.wrappers = wrappers;
     this.legacyBackport = legacyBackport;
@@ -65,6 +68,9 @@ public class MachineRewritingFlags {
 
   // Virtual methods to retarget through emulated dispatch.
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
+  // Virtual methods to retarget through emulated dispatch but handled through emulated interface
+  // dispatch. The method has to override an emulated interface method.
+  private final Map<DexMethod, DexMethod> emulatedVirtualRetargetThroughEmulatedInterface;
 
   // Emulated interface descriptors.
   private final Map<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces;
@@ -94,6 +100,10 @@ public class MachineRewritingFlags {
 
   public Map<DexMethod, EmulatedDispatchMethodDescriptor> getEmulatedVirtualRetarget() {
     return emulatedVirtualRetarget;
+  }
+
+  public Map<DexMethod, DexMethod> getEmulatedVirtualRetargetThroughEmulatedInterface() {
+    return emulatedVirtualRetargetThroughEmulatedInterface;
   }
 
   public void forEachRetargetHolder(Consumer<DexType> consumer) {
@@ -161,6 +171,8 @@ public class MachineRewritingFlags {
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, EmulatedDispatchMethodDescriptor>
         emulatedVirtualRetarget = ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexMethod, DexMethod>
+        emulatedVirtualRetargetThroughEmulatedInterface = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, EmulatedInterfaceDescriptor> emulatedInterfaces =
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, List<DexMethod>> wrappers = ImmutableMap.builder();
@@ -197,6 +209,10 @@ public class MachineRewritingFlags {
       emulatedVirtualRetarget.put(src, dest);
     }
 
+    public void putEmulatedVirtualRetargetThroughEmulatedInterface(DexMethod src, DexMethod dest) {
+      emulatedVirtualRetargetThroughEmulatedInterface.put(src, dest);
+    }
+
     public void addWrapper(DexType wrapperConversion, List<DexMethod> methods) {
       wrappers.put(wrapperConversion, ImmutableList.copyOf(methods));
     }
@@ -220,6 +236,7 @@ public class MachineRewritingFlags {
           staticRetarget.build(),
           nonEmulatedVirtualRetarget.build(),
           emulatedVirtualRetarget.build(),
+          emulatedVirtualRetargetThroughEmulatedInterface.build(),
           emulatedInterfaces.build(),
           wrappers.build(),
           legacyBackport.build(),

@@ -96,6 +96,10 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getEmulatedVirtualRetarget();
   }
 
+  public Map<DexMethod, DexMethod> getEmulatedVirtualRetargetThroughEmulatedInterface() {
+    return rewritingFlags.getEmulatedVirtualRetargetThroughEmulatedInterface();
+  }
+
   public void forEachRetargetHolder(Consumer<DexType> consumer) {
     rewritingFlags.forEachRetargetHolder(consumer);
   }

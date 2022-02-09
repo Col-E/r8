@@ -81,14 +81,16 @@ public class HumanToMachineRetargetConverter {
       HumanRewritingFlags rewritingFlags,
       DexEncodedMethod src,
       DexType type) {
-    if (isEmulatedInterfaceDispatch(src, appInfo, rewritingFlags)) {
-      // Handled by emulated interface dispatch.
-      return;
-    }
-    // TODO(b/184026720): Implement library boundaries.
     DexProto newProto = appInfo.dexItemFactory().prependHolderToProto(src.getReference());
     DexMethod forwardingDexMethod =
         appInfo.dexItemFactory().createMethod(type, newProto, src.getName());
+    if (isEmulatedInterfaceDispatch(src, appInfo, rewritingFlags)) {
+      // Handled by emulated interface dispatch.
+      builder.putEmulatedVirtualRetargetThroughEmulatedInterface(
+          src.getReference(), forwardingDexMethod);
+      return;
+    }
+    // TODO(b/184026720): Implement library boundaries.
     DerivedMethod forwardingMethod = new DerivedMethod(forwardingDexMethod);
     DerivedMethod interfaceMethod =
         new DerivedMethod(src.getReference(), SyntheticKind.RETARGET_INTERFACE);

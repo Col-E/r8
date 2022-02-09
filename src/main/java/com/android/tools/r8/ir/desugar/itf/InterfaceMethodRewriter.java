@@ -127,15 +127,6 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
             (ei, descriptor) -> {
               registerType(appInfo, ei);
               registerType(appInfo, descriptor.getRewrittenType());
-              descriptor
-                  .getEmulatedMethods()
-                  .forEach(
-                      (method, methodDescriptor) -> {
-                        methodDescriptor
-                            .getDispatchCases()
-                            .keySet()
-                            .forEach(t -> registerType(appInfo, t));
-                      });
             });
     machineDesugaredLibrarySpecification
         .getCustomConversions()
