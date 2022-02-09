@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
@@ -15,8 +17,6 @@ import java.util.OptionalLong;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 @RunWith(Parameterized.class)
 public final class OptionalLongBackportJava11Test extends AbstractBackportTest {
@@ -34,11 +34,13 @@ public final class OptionalLongBackportJava11Test extends AbstractBackportTest {
 
   public OptionalLongBackportJava11Test(TestParameters parameters) {
     super(parameters, OptionalLong.class, TEST_JAR, "backport.OptionalLongBackportJava11Main");
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to OptionalBackportTest.
+    // Note: The methods in this test exist in android.jar from Android T. When R8 builds targeting
+    // Java 11 move these tests to OptionalBackportTest (out of examplesJava11).
 
-    // Available since N as part of library desugaring.
+    // Available since N.
     ignoreInvokes("empty");
     ignoreInvokes("of");
+
+    registerTarget(AndroidApiLevel.T, 2);
   }
 }

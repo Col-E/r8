@@ -34,11 +34,13 @@ public final class OptionalBackportJava9Test extends AbstractBackportTest {
 
   public OptionalBackportJava9Test(TestParameters parameters) {
     super(parameters, Optional.class, TEST_JAR, "backport.OptionalBackportJava9Main");
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to OptionalBackportTest.
+    // Note: The methods in this test exist in android.jar from Android T. When R8 builds targeting
+    // Java 11 move these tests to OptionalBackportTest (out of examplesJava9).
 
-    // Available since N as part of library desugaring.
+    // Available since N.
     ignoreInvokes("empty");
     ignoreInvokes("of");
+
+    registerTarget(AndroidApiLevel.T, 10);
   }
 }
