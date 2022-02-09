@@ -141,6 +141,8 @@ third_party/openjdk/jdk-[0-9][0-9]/osx
 third_party/openjdk/jdk-[0-9][0-9]/osx.tar.gz
 third_party/openjdk/jdk-[0-9][0-9]/windows
 third_party/openjdk/jdk-[0-9][0-9]/windows.tar.gz
+third_party/openjdk/jdk-11-test.tar.gz
+third_party/openjdk/jdk-11-test/
 third_party/openjdk/jdk8/darwin-x86
 third_party/openjdk/jdk8/darwin-x86.tar.gz
 third_party/openjdk/jdk8/linux-x86
@@ -258,6 +260,8 @@ tools/*/art-10.0.0
 tools/*/art-10.0.0.tar.gz
 tools/*/host/art-12.0.0-beta4
 tools/*/host/art-12.0.0-beta4.tar.gz
+tools/*/host/art-13-master
+tools/*/host/art-13-master.tar.gz
 tools/*/art.tar.gz
 tools/*/dalvik
 tools/*/dalvik-4.0.4
