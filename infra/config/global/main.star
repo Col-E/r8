@@ -263,6 +263,8 @@ r8_tester_with_default("linux-android-10.0.0",
     ["--dex_vm=10.0.0", "--all_tests"])
 r8_tester_with_default("linux-android-12.0.0",
     ["--dex_vm=12.0.0", "--all_tests"])
+r8_tester_with_default("linux-android-13.0.0",
+    ["--dex_vm=13.0.0", "--all_tests"])
 
 r8_tester_with_default("windows", ["--all_tests"],
     dimensions=get_dimensions(windows=True))
