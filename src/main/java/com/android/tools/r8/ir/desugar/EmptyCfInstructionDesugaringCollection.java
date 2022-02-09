@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.itf.InterfaceProcessor;
@@ -85,11 +84,6 @@ public class EmptyCfInstructionDesugaringCollection extends CfInstructionDesugar
   @Override
   public InterfaceMethodProcessorFacade getInterfaceMethodPostProcessingDesugaringR8(
       Flavor flavor, Predicate<ProgramMethod> isLiveMethod, InterfaceProcessor processor) {
-    return null;
-  }
-
-  @Override
-  public RetargetingInfo getRetargetingInfo() {
     return null;
   }
 

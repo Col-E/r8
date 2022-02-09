@@ -36,11 +36,11 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedDispatchMethods;
 
-  public DesugaredLibraryRetargeterPostProcessor(
-      AppView<?> appView, RetargetingInfo retargetingInfo) {
+  public DesugaredLibraryRetargeterPostProcessor(AppView<?> appView) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    emulatedDispatchMethods = retargetingInfo.getEmulatedVirtualRetarget();
+    emulatedDispatchMethods =
+        appView.options().machineDesugaredLibrarySpecification.getEmulatedVirtualRetarget();
   }
 
   @Override

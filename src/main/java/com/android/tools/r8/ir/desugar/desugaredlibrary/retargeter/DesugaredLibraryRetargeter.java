@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,7 +36,6 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
 
-  private final RetargetingInfo retargetingInfo;
   private final Map<DexMethod, DexMethod> staticRetarget;
   private final Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget;
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
@@ -43,10 +43,11 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   public DesugaredLibraryRetargeter(AppView<?> appView) {
     this.appView = appView;
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
-    retargetingInfo = RetargetingInfo.get(appView);
-    staticRetarget = retargetingInfo.getStaticRetarget();
-    nonEmulatedVirtualRetarget = retargetingInfo.getNonEmulatedVirtualRetarget();
-    emulatedVirtualRetarget = retargetingInfo.getEmulatedVirtualRetarget();
+    MachineDesugaredLibrarySpecification specification =
+        appView.options().machineDesugaredLibrarySpecification;
+    staticRetarget = specification.getStaticRetarget();
+    nonEmulatedVirtualRetarget = specification.getNonEmulatedVirtualRetarget();
+    emulatedVirtualRetarget = specification.getEmulatedVirtualRetarget();
   }
 
   // Used by the ListOfBackportedMethods utility.
@@ -54,10 +55,6 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     staticRetarget.keySet().forEach(consumer);
     nonEmulatedVirtualRetarget.keySet().forEach(consumer);
     emulatedVirtualRetarget.keySet().forEach(consumer);
-  }
-
-  public RetargetingInfo getRetargetingInfo() {
-    return retargetingInfo;
   }
 
   @Override

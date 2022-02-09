@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPICallbackSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterPostProcessor;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.RetargetingInfo;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodProcessorFacade;
 import com.android.tools.r8.ir.desugar.records.RecordDesugaring;
 import java.util.ArrayList;
@@ -21,12 +20,10 @@ import java.util.function.Predicate;
 public abstract class CfPostProcessingDesugaringCollection {
 
   public static CfPostProcessingDesugaringCollection create(
-      AppView<?> appView,
-      InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
-      RetargetingInfo retargetingInfo) {
+      AppView<?> appView, InterfaceMethodProcessorFacade interfaceMethodProcessorFacade) {
     if (appView.options().desugarState.isOn()) {
       return NonEmptyCfPostProcessingDesugaringCollection.create(
-          appView, interfaceMethodProcessorFacade, retargetingInfo);
+          appView, interfaceMethodProcessorFacade);
     }
     return empty();
   }
@@ -53,13 +50,11 @@ public abstract class CfPostProcessingDesugaringCollection {
     }
 
     public static CfPostProcessingDesugaringCollection create(
-        AppView<?> appView,
-        InterfaceMethodProcessorFacade interfaceMethodProcessorFacade,
-        RetargetingInfo retargetingInfo) {
+        AppView<?> appView, InterfaceMethodProcessorFacade interfaceMethodProcessorFacade) {
       ArrayList<CfPostProcessingDesugaring> desugarings = new ArrayList<>();
       if (appView.options().machineDesugaredLibrarySpecification.hasRetargeting()
           && !appView.options().isDesugaredLibraryCompilation()) {
-        desugarings.add(new DesugaredLibraryRetargeterPostProcessor(appView, retargetingInfo));
+        desugarings.add(new DesugaredLibraryRetargeterPostProcessor(appView));
       }
       if (interfaceMethodProcessorFacade != null) {
         desugarings.add(interfaceMethodProcessorFacade);

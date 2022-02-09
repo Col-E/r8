@@ -430,8 +430,7 @@ public class IRConverter {
     InterfaceMethodProcessorFacade interfaceDesugaring =
         instructionDesugaring.getInterfaceMethodPostProcessingDesugaringD8(
             ExcludeDexResources, interfaceProcessor);
-    CfPostProcessingDesugaringCollection.create(
-            appView, interfaceDesugaring, instructionDesugaring.getRetargetingInfo())
+    CfPostProcessingDesugaringCollection.create(appView, interfaceDesugaring)
         .postProcessingDesugaring(
             appView.appInfo().classes(), m -> true, eventConsumer, executorService);
     methodProcessor.awaitMethodProcessing();

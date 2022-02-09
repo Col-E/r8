@@ -4116,8 +4116,7 @@ public class Enqueuer {
     InterfaceMethodProcessorFacade interfaceDesugaring =
         desugaring.getInterfaceMethodPostProcessingDesugaringR8(
             ExcludeDexResources, liveMethods::contains, interfaceProcessor);
-    CfPostProcessingDesugaringCollection.create(
-            appView, interfaceDesugaring, desugaring.getRetargetingInfo())
+    CfPostProcessingDesugaringCollection.create(appView, interfaceDesugaring)
         .postProcessingDesugaring(
             liveTypes.items, liveMethods::contains, eventConsumer, executorService);
 
