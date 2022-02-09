@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
@@ -232,15 +231,10 @@ public class GeneratedExtensionRegistryShrinker {
 
   public boolean isDeadProtoExtensionField(DexField fieldReference) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    FieldResolutionResult resolutionResult = appInfo.resolveField(fieldReference);
-    if (resolutionResult.isSuccessfulResolution()) {
-      ProgramField field =
-          resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-      return field != null
-          && isDeadProtoExtensionField(
-              field, appInfo.getFieldAccessInfoCollection(), appInfo.getKeepInfo());
-    }
-    return false;
+    ProgramField field = appInfo.resolveField(fieldReference).getSingleProgramField();
+    return field != null
+        && isDeadProtoExtensionField(
+            field, appInfo.getFieldAccessInfoCollection(), appInfo.getKeepInfo());
   }
 
   public boolean isDeadProtoExtensionField(
@@ -262,7 +256,7 @@ public class GeneratedExtensionRegistryShrinker {
 
     // Multiple GeneratedExtensionRegistries exist in Chrome; 1 per feature split.
     return fieldAccessInfo.isReadOnlyInMethodSatisfying(
-        method -> references.isFindLiteExtensionByNumberMethod(method));
+        references::isFindLiteExtensionByNumberMethod);
   }
 
   private void forEachDeadProtoExtensionField(Consumer<DexField> consumer) {

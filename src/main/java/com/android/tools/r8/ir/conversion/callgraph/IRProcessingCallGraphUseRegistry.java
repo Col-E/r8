@@ -65,7 +65,7 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
       return;
     }
 
-    ProgramField field = appView.appInfo().resolveField(rewrittenReference).getProgramField();
+    ProgramField field = appView.appInfo().resolveField(rewrittenReference).getSingleProgramField();
     if (field == null || appView.appInfo().isPinned(field)) {
       return;
     }
@@ -89,7 +89,7 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
       return;
     }
 
-    ProgramField field = appView.appInfo().resolveField(rewrittenReference).getProgramField();
+    ProgramField field = appView.appInfo().resolveField(rewrittenReference).getSingleProgramField();
     if (field == null || appView.appInfo().isPinned(field)) {
       return;
     }

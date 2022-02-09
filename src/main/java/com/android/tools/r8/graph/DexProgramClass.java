@@ -38,7 +38,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass
-    implements ProgramDefinition, Supplier<DexProgramClass>, StructuralItem<DexProgramClass> {
+    implements ProgramClass, Supplier<DexProgramClass>, StructuralItem<DexProgramClass> {
 
   @FunctionalInterface
   public interface ChecksumSupplier {

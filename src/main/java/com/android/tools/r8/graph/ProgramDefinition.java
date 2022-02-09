@@ -8,7 +8,8 @@ import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public interface ProgramDefinition extends Definition, ProgramDerivedContext {
+public interface ProgramDefinition
+    extends Definition, ProgramDerivedContext, ProgramOrClasspathDefinition {
 
   @Override
   default <T> T apply(

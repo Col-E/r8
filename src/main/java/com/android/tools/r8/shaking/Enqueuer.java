@@ -62,6 +62,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.FailedOrUnknownFieldResolutionResult;
 import com.android.tools.r8.graph.GenericSignatureEnqueuerAnalysis;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.InvalidCode;
@@ -1474,49 +1475,52 @@ public class Enqueuer {
       return;
     }
 
-    FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
-    fieldAccessAnalyses.forEach(
-        analysis ->
-            analysis.traceInstanceFieldRead(
-                fieldReference, resolutionResult, currentMethod, workList));
+    resolveField(fieldReference, currentMethod)
+        .visitFieldResolutionResults(
+            resolutionResult -> {
+              fieldAccessAnalyses.forEach(
+                  analysis ->
+                      analysis.traceInstanceFieldRead(
+                          fieldReference, resolutionResult, currentMethod, workList));
 
-    if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must trace the types from the field reference even if it does not exist.
-      traceFieldReference(fieldReference, resolutionResult, currentMethod);
-      noClassMerging.add(fieldReference.getHolderType());
-      return;
-    }
+              ProgramField field = resolutionResult.getProgramField();
+              if (field == null) {
+                // No need to trace into the non-program code.
+                return;
+              }
 
-    ProgramField field =
-        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    if (field == null) {
-      // No need to trace into the non-program code.
-      return;
-    }
+              assert !mode.isFinalTreeShaking()
+                      || !field.getDefinition().getOptimizationInfo().isDead()
+                  : "Unexpected reference in `"
+                      + currentMethod.toSourceString()
+                      + "` to field marked dead: "
+                      + field.getReference().toSourceString();
 
-    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
-        : "Unexpected reference in `"
-            + currentMethod.toSourceString()
-            + "` to field marked dead: "
-            + field.getReference().toSourceString();
+              if (readType == FieldReadType.READ_FROM_METHOD_HANDLE) {
+                fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
+              } else if (readType == FieldReadType.READ_FROM_RECORD_METHOD_HANDLE) {
+                fieldAccessInfoCollection
+                    .get(field.getReference())
+                    .setReadFromRecordInvokeDynamic();
+              }
 
-    if (readType == FieldReadType.READ_FROM_METHOD_HANDLE) {
-      fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
-    } else if (readType == FieldReadType.READ_FROM_RECORD_METHOD_HANDLE) {
-      fieldAccessInfoCollection.get(field.getReference()).setReadFromRecordInvokeDynamic();
-    }
+              if (Log.ENABLED) {
+                Log.verbose(getClass(), "Register Iget `%s`.", fieldReference);
+              }
 
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Iget `%s`.", fieldReference);
-    }
+              if (field.getReference() != fieldReference) {
+                // Mark the initial resolution holder as live.
+                markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
+              }
 
-    if (field.getReference() != fieldReference) {
-      // Mark the initial resolution holder as live.
-      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
-    }
-
-    workList.enqueueMarkFieldAsReachableAction(
-        field, currentMethod, KeepReason.fieldReferencedIn(currentMethod));
+              workList.enqueueMarkFieldAsReachableAction(
+                  field, currentMethod, KeepReason.fieldReferencedIn(currentMethod));
+            },
+            failedResolution -> {
+              // Must trace the types from the field reference even if it does not exist.
+              traceFieldReference(fieldReference, failedResolution, currentMethod);
+              noClassMerging.add(fieldReference.getHolderType());
+            });
   }
 
   void traceInstanceFieldWrite(DexField field, ProgramMethod currentMethod) {
@@ -1533,47 +1537,48 @@ public class Enqueuer {
       return;
     }
 
-    FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
-    fieldAccessAnalyses.forEach(
-        analysis ->
-            analysis.traceInstanceFieldWrite(
-                fieldReference, resolutionResult, currentMethod, workList));
+    resolveField(fieldReference, currentMethod)
+        .visitFieldResolutionResults(
+            resolutionResult -> {
+              fieldAccessAnalyses.forEach(
+                  analysis ->
+                      analysis.traceInstanceFieldWrite(
+                          fieldReference, resolutionResult, currentMethod, workList));
 
-    if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must trace the types from the field reference even if it does not exist.
-      traceFieldReference(fieldReference, resolutionResult, currentMethod);
-      noClassMerging.add(fieldReference.getHolderType());
-      return;
-    }
+              ProgramField field = resolutionResult.getProgramField();
+              if (field == null) {
+                // No need to trace into the non-program code.
+                return;
+              }
 
-    ProgramField field =
-        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    if (field == null) {
-      // No need to trace into the non-program code.
-      return;
-    }
+              assert !mode.isFinalTreeShaking()
+                      || !field.getDefinition().getOptimizationInfo().isDead()
+                  : "Unexpected reference in `"
+                      + currentMethod.toSourceString()
+                      + "` to field marked dead: "
+                      + field.getReference().toSourceString();
 
-    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
-        : "Unexpected reference in `"
-            + currentMethod.toSourceString()
-            + "` to field marked dead: "
-            + field.getReference().toSourceString();
+              if (fromMethodHandle) {
+                fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
+              }
 
-    if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
-    }
+              if (Log.ENABLED) {
+                Log.verbose(getClass(), "Register Iput `%s`.", fieldReference);
+              }
 
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Iput `%s`.", fieldReference);
-    }
+              if (field.getReference() != fieldReference) {
+                // Mark the initial resolution holder as live.
+                markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
+              }
 
-    if (field.getReference() != fieldReference) {
-      // Mark the initial resolution holder as live.
-      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
-    }
-
-    KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
-    workList.enqueueMarkFieldAsReachableAction(field, currentMethod, reason);
+              KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
+              workList.enqueueMarkFieldAsReachableAction(field, currentMethod, reason);
+            },
+            failedResolution -> {
+              // Must trace the types from the field reference even if it does not exist.
+              traceFieldReference(fieldReference, failedResolution, currentMethod);
+              noClassMerging.add(fieldReference.getHolderType());
+            });
   }
 
   void traceStaticFieldRead(DexField field, ProgramMethod currentMethod) {
@@ -1590,63 +1595,66 @@ public class Enqueuer {
       return;
     }
 
-    FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
-    fieldAccessAnalyses.forEach(
-        analysis ->
-            analysis.traceStaticFieldRead(
-                fieldReference, resolutionResult, currentMethod, workList));
+    resolveField(fieldReference, currentMethod)
+        .visitFieldResolutionResults(
+            resolutionResult -> {
+              fieldAccessAnalyses.forEach(
+                  analysis ->
+                      analysis.traceStaticFieldRead(
+                          fieldReference, resolutionResult, currentMethod, workList));
 
-    if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must trace the types from the field reference even if it does not exist.
-      traceFieldReference(fieldReference, resolutionResult, currentMethod);
-      noClassMerging.add(fieldReference.getHolderType());
+              ProgramField field = resolutionResult.getProgramField();
+              if (field == null) {
+                // No need to trace into the non-program code.
+                return;
+              }
 
-      // Record field reference for generated extension registry shrinking.
-      appView.withGeneratedExtensionRegistryShrinker(
-          shrinker ->
-              shrinker.handleFailedOrUnknownFieldResolution(fieldReference, currentMethod, mode));
-      return;
-    }
+              assert !mode.isFinalTreeShaking()
+                      || !field.getDefinition().getOptimizationInfo().isDead()
+                  : "Unexpected reference in `"
+                      + currentMethod.toSourceString()
+                      + "` to field marked dead: "
+                      + field.getReference().toSourceString();
 
-    ProgramField field =
-        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    if (field == null) {
-      // No need to trace into the non-program code.
-      return;
-    }
+              if (fromMethodHandle) {
+                fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
+              }
 
-    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
-        : "Unexpected reference in `"
-            + currentMethod.toSourceString()
-            + "` to field marked dead: "
-            + field.getReference().toSourceString();
+              if (Log.ENABLED) {
+                Log.verbose(getClass(), "Register Sget `%s`.", fieldReference);
+              }
 
-    if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
-    }
+              // If it is a dead proto extension field, don't trace onwards.
+              boolean skipTracing =
+                  appView.withGeneratedExtensionRegistryShrinker(
+                      shrinker ->
+                          shrinker.isDeadProtoExtensionField(
+                              field, fieldAccessInfoCollection, keepInfo),
+                      false);
+              if (skipTracing) {
+                addDeadProtoTypeCandidate(field.getHolder());
+                return;
+              }
 
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Sget `%s`.", fieldReference);
-    }
+              if (field.getReference() != fieldReference) {
+                // Mark the initial resolution holder as live. Note that this should only be done if
+                // the field
+                // is not a dead proto field (in which case we bail-out above).
+                markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
+              }
 
-    // If it is a dead proto extension field, don't trace onwards.
-    boolean skipTracing =
-        appView.withGeneratedExtensionRegistryShrinker(
-            shrinker ->
-                shrinker.isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo),
-            false);
-    if (skipTracing) {
-      addDeadProtoTypeCandidate(field.getHolder());
-      return;
-    }
-
-    if (field.getReference() != fieldReference) {
-      // Mark the initial resolution holder as live. Note that this should only be done if the field
-      // is not a dead proto field (in which case we bail-out above).
-      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
-    }
-
-    markFieldAsLive(field, currentMethod);
+              markFieldAsLive(field, currentMethod);
+            },
+            failedResolution -> {
+              // Must trace the types from the field reference even if it does not exist.
+              traceFieldReference(fieldReference, failedResolution, currentMethod);
+              noClassMerging.add(fieldReference.getHolderType());
+              // Record field reference for generated extension registry shrinking.
+              appView.withGeneratedExtensionRegistryShrinker(
+                  shrinker ->
+                      shrinker.handleFailedOrUnknownFieldResolution(
+                          fieldReference, currentMethod, mode));
+            });
   }
 
   void traceStaticFieldWrite(DexField field, ProgramMethod currentMethod) {
@@ -1663,60 +1671,63 @@ public class Enqueuer {
       return;
     }
 
-    FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
-    fieldAccessAnalyses.forEach(
-        analysis ->
-            analysis.traceStaticFieldWrite(
-                fieldReference, resolutionResult, currentMethod, workList));
+    resolveField(fieldReference, currentMethod)
+        .visitFieldResolutionResults(
+            resolutionResult -> {
+              fieldAccessAnalyses.forEach(
+                  analysis ->
+                      analysis.traceStaticFieldWrite(
+                          fieldReference, resolutionResult, currentMethod, workList));
 
-    if (resolutionResult.isFailedOrUnknownResolution()) {
-      // Must trace the types from the field reference even if it does not exist.
-      traceFieldReference(fieldReference, resolutionResult, currentMethod);
-      noClassMerging.add(fieldReference.getHolderType());
-      return;
-    }
+              ProgramField field = resolutionResult.getProgramField();
+              if (field == null) {
+                // No need to trace into the non-program code.
+                return;
+              }
 
-    ProgramField field =
-        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    if (field == null) {
-      // No need to trace into the non-program code.
-      return;
-    }
+              assert !mode.isFinalTreeShaking()
+                      || !field.getDefinition().getOptimizationInfo().isDead()
+                  : "Unexpected reference in `"
+                      + currentMethod.toSourceString()
+                      + "` to field marked dead: "
+                      + field.getReference().toSourceString();
 
-    assert !mode.isFinalTreeShaking() || !field.getDefinition().getOptimizationInfo().isDead()
-        : "Unexpected reference in `"
-            + currentMethod.toSourceString()
-            + "` to field marked dead: "
-            + field.getReference().toSourceString();
+              if (fromMethodHandle) {
+                fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
+              }
 
-    if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
-    }
+              if (Log.ENABLED) {
+                Log.verbose(getClass(), "Register Sput `%s`.", fieldReference);
+              }
 
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Sput `%s`.", fieldReference);
-    }
+              if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
+                // If it is a dead proto extension field, don't trace onwards.
+                boolean skipTracing =
+                    appView.withGeneratedExtensionRegistryShrinker(
+                        shrinker ->
+                            shrinker.isDeadProtoExtensionField(
+                                field, fieldAccessInfoCollection, keepInfo),
+                        false);
+                if (skipTracing) {
+                  addDeadProtoTypeCandidate(field.getHolder());
+                  return;
+                }
+              }
 
-    if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
-      // If it is a dead proto extension field, don't trace onwards.
-      boolean skipTracing =
-          appView.withGeneratedExtensionRegistryShrinker(
-              shrinker ->
-                  shrinker.isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo),
-              false);
-      if (skipTracing) {
-        addDeadProtoTypeCandidate(field.getHolder());
-        return;
-      }
-    }
+              if (field.getReference() != fieldReference) {
+                // Mark the initial resolution holder as live. Note that this should only be done if
+                // the field
+                // is not a dead proto field (in which case we bail-out above).
+                markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
+              }
 
-    if (field.getReference() != fieldReference) {
-      // Mark the initial resolution holder as live. Note that this should only be done if the field
-      // is not a dead proto field (in which case we bail-out above).
-      markTypeAsLive(resolutionResult.getInitialResolutionHolder(), currentMethod);
-    }
-
-    markFieldAsLive(field, currentMethod);
+              markFieldAsLive(field, currentMethod);
+            },
+            failedResolution -> {
+              // Must trace the types from the field reference even if it does not exist.
+              traceFieldReference(fieldReference, failedResolution, currentMethod);
+              noClassMerging.add(fieldReference.getHolderType());
+            });
   }
 
   private DexMethod getInvokeSuperTarget(DexMethod method, ProgramMethod currentMethod) {
@@ -2083,16 +2094,17 @@ public class Enqueuer {
 
   private FieldResolutionResult resolveField(DexField field, ProgramDefinition context) {
     // Record the references in case they are not program types.
-    FieldResolutionResult resolutionResult = appInfo.resolveField(field);
-    if (resolutionResult.isSuccessfulResolution()) {
-      recordFieldReference(
-          field, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
-    } else {
-      assert resolutionResult.isFailedOrUnknownResolution();
-      failedFieldResolutionTargets.add(field);
-      recordFieldReference(field, context);
-    }
-    return resolutionResult;
+    FieldResolutionResult fieldResolutionResult = appInfo.resolveField(field);
+    fieldResolutionResult.visitFieldResolutionResults(
+        resolutionResult -> {
+          recordFieldReference(
+              field, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
+        },
+        failedResolution -> {
+          failedFieldResolutionTargets.add(field);
+          recordFieldReference(field, context);
+        });
+    return fieldResolutionResult;
   }
 
   private SingleResolutionResult resolveMethod(
@@ -2861,8 +2873,9 @@ public class Enqueuer {
   }
 
   private void traceFieldReference(
-      DexField field, FieldResolutionResult resolutionResult, ProgramMethod context) {
-    assert resolutionResult.isFailedOrUnknownResolution();
+      DexField field,
+      FailedOrUnknownFieldResolutionResult resolutionResult,
+      ProgramMethod context) {
     markTypeAsLive(field.getHolderType(), context);
     markTypeAsLive(field.getType(), context);
   }

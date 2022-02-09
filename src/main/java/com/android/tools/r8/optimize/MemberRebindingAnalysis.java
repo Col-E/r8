@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -541,12 +540,15 @@ public class MemberRebindingAnalysis {
                   }
 
                   private void registerFieldReference(DexField field) {
-                    SuccessfulFieldResolutionResult resolutionResult =
-                        appView.appInfo().resolveField(field).asSuccessfulResolution();
-                    if (resolutionResult != null
-                        && resolutionResult.getResolvedField().getReference() != field) {
-                      nonReboundFieldReferences.add(field);
-                    }
+                    appView
+                        .appInfo()
+                        .resolveField(field)
+                        .forEachSuccessfulFieldResolutionResult(
+                            resolutionResult -> {
+                              if (resolutionResult.getResolvedField().getReference() != field) {
+                                nonReboundFieldReferences.add(field);
+                              }
+                            });
                   }
 
                   @Override

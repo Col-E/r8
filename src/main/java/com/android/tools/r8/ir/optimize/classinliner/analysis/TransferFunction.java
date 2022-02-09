@@ -190,7 +190,7 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     // Instance field reads are OK, as long as the field resolves, since the class inliner will
     // just replace the field read by the value of the field.
     FieldResolutionResult resolutionResult = appView.appInfo().resolveField(instanceGet.getField());
-    if (resolutionResult.isSuccessfulResolution()) {
+    if (resolutionResult.isSingleFieldResolutionResult()) {
       // Record that the field is read from the parameter. For class inlining of singletons, this
       // parameter is only eligible for class inlining if the singleton's field value is known.
       return state.rebuildParameter(
@@ -217,7 +217,7 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     }
 
     FieldResolutionResult resolutionResult = appView.appInfo().resolveField(instancePut.getField());
-    if (resolutionResult.isSuccessfulResolution()) {
+    if (resolutionResult.isSingleFieldResolutionResult()) {
       return state.rebuildParameter(objectRoot, (context, usage) -> usage.setParameterMutated());
     } else {
       return state.abandonClassInliningInCurrentContexts(objectRoot);

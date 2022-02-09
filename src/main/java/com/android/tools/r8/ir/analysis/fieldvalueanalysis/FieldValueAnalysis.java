@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -125,15 +125,13 @@ public abstract class FieldValueAnalysis {
         if (instruction.isFieldPut()) {
           FieldInstruction fieldPut = instruction.asFieldInstruction();
           DexField field = fieldPut.getField();
-          SuccessfulFieldResolutionResult fieldResolutionResult =
-              appInfo.resolveField(field).asSuccessfulResolution();
-          if (fieldResolutionResult != null) {
-            DexEncodedField encodedField = fieldResolutionResult.getResolvedField();
-            assert encodedField != null;
+          ProgramField programField = appInfo.resolveField(field).getProgramField();
+          if (programField != null) {
+            DexEncodedField encodedField = programField.getDefinition();
             if (isSubjectToOptimization(encodedField)) {
               recordFieldPut(encodedField, fieldPut);
             } else if (isStaticFieldValueAnalysis()
-                && fieldResolutionResult.getResolvedHolder().isEnum()
+                && programField.getHolder().isEnum()
                 && isSubjectToOptimizationIgnoringPinning(encodedField)) {
               recordFieldPut(encodedField, fieldPut);
             }

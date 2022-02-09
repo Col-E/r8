@@ -22,6 +22,14 @@ public interface Definition {
     return null;
   }
 
+  default ProgramOrClasspathClass asProgramOrClasspathClass() {
+    return null;
+  }
+
+  default ProgramOrClasspathDefinition asProgramOrClasspathDefinition() {
+    return null;
+  }
+
   ProgramDerivedContext asProgramDerivedContext(ProgramDerivedContext witness);
 
   AccessFlags<?> getAccessFlags();

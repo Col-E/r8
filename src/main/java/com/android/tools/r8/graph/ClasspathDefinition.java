@@ -6,7 +6,8 @@ package com.android.tools.r8.graph;
 
 import java.util.function.Function;
 
-public interface ClasspathDefinition extends ClasspathOrLibraryDefinition {
+public interface ClasspathDefinition
+    extends ClasspathOrLibraryDefinition, ProgramOrClasspathDefinition {
 
   @Override
   default <T> T apply(

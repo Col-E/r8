@@ -21,6 +21,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class LazyLoadedDexApplication extends DexApplication {
@@ -50,6 +51,32 @@ public class LazyLoadedDexApplication extends DexApplication {
   List<DexProgramClass> programClasses() {
     programClasses.forceLoad(t -> true);
     return programClasses.getAllClasses();
+  }
+
+  @Override
+  public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
+    ClassResolutionResult.Builder builder = ClassResolutionResult.builder();
+    if (libraryClasses != null) {
+      addClassToBuilderIfNotNull(libraryClasses.get(type), builder::add);
+    }
+    if (programClasses == null
+        || !addClassToBuilderIfNotNull(programClasses.get(type), builder::add)) {
+      // When looking up a type that exists both on program path and classpath, we assume the
+      // program class is taken and only if not present will look at classpath.
+      if (classpathClasses != null) {
+        addClassToBuilderIfNotNull(classpathClasses.get(type), builder::add);
+      }
+    }
+    return builder.build();
+  }
+
+  private <T extends DexClass> boolean addClassToBuilderIfNotNull(T clazz, Consumer<T> adder) {
+    if (clazz != null) {
+      adder.accept(clazz);
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override

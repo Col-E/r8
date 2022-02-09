@@ -1214,7 +1214,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     assert lens.assertDefinitionsNotModified(
         switchMaps.keySet().stream()
             .map(this::resolveField)
-            .filter(FieldResolutionResult::isSuccessfulResolution)
+            .filter(FieldResolutionResult::isSingleFieldResolutionResult)
             .map(FieldResolutionResult::getResolvedField)
             .collect(Collectors.toList()));
 

@@ -562,6 +562,12 @@ public class TestBase {
     return buildClasses(programClasses, libraryClasses).build();
   }
 
+  protected static AndroidApp readClasses(
+      List<Class<?>> programClasses, List<Class<?>> classpathClasses, List<Class<?>> libraryClasses)
+      throws IOException {
+    return buildClasses(programClasses, classpathClasses, libraryClasses).build();
+  }
+
   protected static AndroidApp.Builder buildClasses(Class<?>... programClasses) throws IOException {
     return buildClasses(Arrays.asList(programClasses));
   }
@@ -587,20 +593,36 @@ public class TestBase {
 
   protected static AndroidApp.Builder buildClasses(
       Collection<Class<?>> programClasses, Collection<Class<?>> libraryClasses) throws IOException {
+    return buildClasses(programClasses, Collections.emptyList(), libraryClasses);
+  }
+
+  protected static AndroidApp.Builder buildClasses(
+      Collection<Class<?>> programClasses,
+      Collection<Class<?>> classpathClasses,
+      Collection<Class<?>> libraryClasses)
+      throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class<?> clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
     }
+    if (!classpathClasses.isEmpty()) {
+      builder.addClasspathResourceProvider(getClassFileProvider(classpathClasses));
+    }
     if (!libraryClasses.isEmpty()) {
-      PreloadedClassFileProvider.Builder libraryBuilder = PreloadedClassFileProvider.builder();
-      for (Class<?> clazz : libraryClasses) {
-        Path file = ToolHelper.getClassFileForTestClass(clazz);
-        libraryBuilder.addResource(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
-            Files.readAllBytes(file));
-      }
-      builder.addLibraryResourceProvider(libraryBuilder.build());
+      builder.addLibraryResourceProvider(getClassFileProvider(libraryClasses));
     }
     return builder;
+  }
+
+  private static PreloadedClassFileProvider getClassFileProvider(Collection<Class<?>> classes)
+      throws IOException {
+    PreloadedClassFileProvider.Builder providerBuilder = PreloadedClassFileProvider.builder();
+    for (Class<?> clazz : classes) {
+      Path file = ToolHelper.getClassFileForTestClass(clazz);
+      providerBuilder.addResource(
+          DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()), Files.readAllBytes(file));
+    }
+    return providerBuilder.build();
   }
 
   protected static AndroidApp.Builder buildInnerClasses(Class<?> clazz) throws IOException {

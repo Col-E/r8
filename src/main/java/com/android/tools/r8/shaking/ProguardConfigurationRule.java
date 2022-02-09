@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -127,6 +129,12 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
       return DexProgramClass.asProgramClasses(
           specificTypes,
           new DexDefinitionSupplier() {
+            @Override
+            public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(
+                DexType type) {
+              throw new Unreachable("Add support for multiple definitions with rule evaluation");
+            }
+
             @Override
             public DexClass definitionFor(DexType type) {
               if (canReferenceDeadTypes) {

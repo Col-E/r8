@@ -199,7 +199,7 @@ public abstract class NullCheckInserter {
         // This needs to map the field all the way to the final graph lens.
         DexField rewrittenField = appView.graphLens().lookupField(field, graphLens);
         FieldResolutionResult resolutionResult = appView.appInfo().resolveField(rewrittenField);
-        return resolutionResult.isSuccessfulResolution()
+        return resolutionResult.isSingleFieldResolutionResult()
             && !appView.appInfo().isFieldRead(resolutionResult.getResolvedField());
       }
       return false;

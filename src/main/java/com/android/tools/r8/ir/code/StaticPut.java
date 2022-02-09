@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -110,8 +110,7 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
 
-      SuccessfulFieldResolutionResult resolutionResult =
-          appInfoWithLiveness.resolveField(getField()).asSuccessfulResolution();
+      FieldResolutionResult resolutionResult = appInfoWithLiveness.resolveField(getField());
       if (internalInstructionInstanceCanThrow(appView, context, assumption, resolutionResult)) {
         return true;
       }

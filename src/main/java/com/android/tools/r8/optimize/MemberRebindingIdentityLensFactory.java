@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -148,31 +147,36 @@ public class MemberRebindingIdentityLensFactory {
       if (!seenFieldReferences.add(field)) {
         return;
       }
-      SuccessfulFieldResolutionResult resolutionResult =
-          appInfo.resolveField(field).asSuccessfulResolution();
-      if (resolutionResult == null) {
-        return;
-      }
-      DexField reboundReference = resolutionResult.getResolvedField().getReference();
-      if (field == reboundReference) {
-        // For the purpose of member rebinding, we don't care about already rebound references.
-        return;
-      }
-      FieldAccessInfoImpl fieldAccessInfo =
-          fieldAccessInfoCollection.computeIfAbsent(reboundReference, FieldAccessInfoImpl::new);
-      synchronized (fieldAccessInfo) {
-        // Record the fact that there is a non-rebound access to the given field. We don't
-        // distinguish between non-rebound reads and writes, so we just record it as a read.
-        if (fieldAccessInfo.getReadsWithContexts().isBottom()) {
-          fieldAccessInfo.setReadsWithContexts(new ConcreteAccessContexts());
-        } else {
-          assert fieldAccessInfo.getReadsWithContexts().isConcrete();
-        }
-        // For the purpose of member rebinding, we don't care about the access contexts, so we
-        // simply use the empty set.
-        ConcreteAccessContexts accessContexts = fieldAccessInfo.getReadsWithContexts().asConcrete();
-        accessContexts.getAccessesWithContexts().put(field, ProgramMethodSet.empty());
-      }
+      appInfo
+          .resolveField(field)
+          .forEachSuccessfulFieldResolutionResult(
+              resolutionResult -> {
+                DexField reboundReference = resolutionResult.getResolvedField().getReference();
+                if (field == reboundReference) {
+                  // For the purpose of member rebinding, we don't care about already rebound
+                  // references.
+                  return;
+                }
+                FieldAccessInfoImpl fieldAccessInfo =
+                    fieldAccessInfoCollection.computeIfAbsent(
+                        reboundReference, FieldAccessInfoImpl::new);
+                synchronized (fieldAccessInfo) {
+                  // Record the fact that there is a non-rebound access to the given field. We don't
+                  // distinguish between non-rebound reads and writes, so we just record it as a
+                  // read.
+                  if (fieldAccessInfo.getReadsWithContexts().isBottom()) {
+                    fieldAccessInfo.setReadsWithContexts(new ConcreteAccessContexts());
+                  } else {
+                    assert fieldAccessInfo.getReadsWithContexts().isConcrete();
+                  }
+                  // For the purpose of member rebinding, we don't care about the access contexts,
+                  // so we
+                  // simply use the empty set.
+                  ConcreteAccessContexts accessContexts =
+                      fieldAccessInfo.getReadsWithContexts().asConcrete();
+                  accessContexts.getAccessesWithContexts().put(field, ProgramMethodSet.empty());
+                }
+              });
     }
 
     @Override

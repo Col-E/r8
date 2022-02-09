@@ -224,11 +224,11 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
 
     private void registerFieldAccess(DexField field) {
       FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field);
-      if (resolutionResult.getProgramField() == null) {
+      if (resolutionResult.getSingleProgramField() == null) {
         return;
       }
 
-      ProgramField resolvedField = resolutionResult.getProgramField();
+      ProgramField resolvedField = resolutionResult.getSingleProgramField();
       DexField rewrittenFieldReference =
           graphLens.internalGetNextFieldSignature(resolvedField.getReference());
       if (rewrittenFieldReference != resolvedField.getReference()) {

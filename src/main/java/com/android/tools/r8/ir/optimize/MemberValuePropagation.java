@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -364,8 +364,8 @@ public class MemberValuePropagation {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    SuccessfulFieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(field).asSuccessfulResolution();
+    SingleFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(field).asSingleFieldResolutionResult();
     if (resolutionResult == null) {
       boolean replaceCurrentInstructionWithConstNull =
           appView.withGeneratedExtensionRegistryShrinker(

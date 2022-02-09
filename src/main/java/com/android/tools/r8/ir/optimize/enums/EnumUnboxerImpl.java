@@ -376,7 +376,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
     DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(field.holder);
     if (enumClass != null) {
       FieldResolutionResult resolutionResult = appView.appInfo().resolveField(field, context);
-      if (resolutionResult.isSuccessfulResolution()) {
+      if (resolutionResult.isSingleFieldResolutionResult()) {
         eligibleEnums.add(enumClass.getType());
       } else {
         markEnumAsUnboxable(Reason.UNRESOLVABLE_FIELD, enumClass);

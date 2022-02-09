@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolutionResult;
 import com.android.tools.r8.graph.LibraryMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
@@ -167,8 +167,8 @@ final class InlineCandidateProcessor {
     assert root.isStaticGet();
 
     StaticGet staticGet = root.asStaticGet();
-    SuccessfulFieldResolutionResult fieldResolutionResult =
-        appView.appInfo().resolveField(staticGet.getField()).asSuccessfulResolution();
+    SingleProgramFieldResolutionResult fieldResolutionResult =
+        appView.appInfo().resolveField(staticGet.getField()).asSingleProgramFieldResolutionResult();
     if (fieldResolutionResult == null) {
       return EligibilityStatus.NOT_ELIGIBLE;
     }

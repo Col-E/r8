@@ -458,7 +458,8 @@ public class FieldAssignmentTracker {
           appView.appInfo().getFieldAccessInfoCollection();
       fieldAccessInfoCollection.forEach(
           info -> {
-            ProgramField field = appView.appInfo().resolveField(info.getField()).getProgramField();
+            ProgramField field =
+                appView.appInfo().resolveField(info.getField()).getSingleProgramField();
             if (field == null) {
               return;
             }

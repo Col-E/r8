@@ -297,6 +297,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   @Override
+  public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
+    return appInfo().contextIndependentDefinitionForWithResolutionResult(type);
+  }
+
+  @Override
   public final DexClass definitionFor(DexType type) {
     return appInfo().definitionFor(type);
   }

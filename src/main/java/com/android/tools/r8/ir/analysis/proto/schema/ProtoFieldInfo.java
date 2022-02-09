@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo.BIT
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import java.util.List;
 import java.util.OptionalInt;
@@ -131,12 +130,10 @@ public class ProtoFieldInfo {
 
     ProtoObject object = protoMessageInfo.getHasBitsObjects().get(hasBitsIndex);
     assert object.isLiveProtoFieldObject();
-    FieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(object.asLiveProtoFieldObject().getField());
-    if (resolutionResult.isSuccessfulResolution()) {
-      return resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    }
-    return null;
+    return appView
+        .appInfo()
+        .resolveField(object.asLiveProtoFieldObject().getField())
+        .getSingleProgramField();
   }
 
   public int getHazzerBitFieldIndex(ProtoMessageInfo protoMessageInfo) {
@@ -175,12 +172,10 @@ public class ProtoFieldInfo {
     assert type.isOneOf();
     ProtoObject object = protoMessageInfo.getOneOfObjects().get(getAuxData()).getOneOfCaseObject();
     assert object.isLiveProtoFieldObject();
-    FieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(object.asLiveProtoFieldObject().getField());
-    if (resolutionResult.isSuccessfulResolution()) {
-      return resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    }
-    return null;
+    return appView
+        .appInfo()
+        .resolveField(object.asLiveProtoFieldObject().getField())
+        .getSingleProgramField();
   }
 
   /**
@@ -196,12 +191,10 @@ public class ProtoFieldInfo {
             ? protoMessageInfo.getOneOfObjects().get(getAuxData()).getOneOfObject()
             : objects.get(0);
     assert object.isLiveProtoFieldObject();
-    FieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(object.asLiveProtoFieldObject().getField());
-    if (resolutionResult.isSuccessfulResolution()) {
-      return resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-    }
-    return null;
+    return appView
+        .appInfo()
+        .resolveField(object.asLiveProtoFieldObject().getField())
+        .getProgramField();
   }
 
   @Override

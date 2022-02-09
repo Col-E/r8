@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.ir.desugar.itf.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -140,14 +139,24 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   @Override
+  public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
+    assert checkIfObsolete();
+    return syntheticItems.definitionFor(
+        type, app::contextIndependentDefinitionForWithResolutionResult);
+  }
+
+  @Override
   public DexClass definitionFor(DexType type) {
     return definitionForWithoutExistenceAssert(type);
   }
 
   public final DexClass definitionForWithoutExistenceAssert(DexType type) {
     assert checkIfObsolete();
-    return syntheticItems.definitionFor(type, app::definitionFor);
+    return syntheticItems
+        .definitionFor(type, app::contextIndependentDefinitionForWithResolutionResult)
+        .toSingleClassWithProgramOverLibrary();
   }
+
 
   public DexClass definitionForDesugarDependency(DexClass dependent, DexType type) {
     if (dependent.type == type) {
@@ -240,7 +249,7 @@ public class AppInfo implements DexDefinitionSupplier {
     DexProgramClass clazz = context.getHolder();
     DexEncodedField definition = clazz.lookupField(field);
     return definition != null
-        ? new SuccessfulFieldResolutionResult(clazz, clazz, definition)
+        ? FieldResolutionResult.createSingleFieldResolutionResult(clazz, clazz, definition)
         : FieldResolutionResult.unknown();
   }
 }

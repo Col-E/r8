@@ -22,7 +22,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
@@ -316,18 +317,19 @@ public class TrivialFieldAccessReprocessor {
         boolean isStatic,
         boolean isWrite,
         BytecodeInstructionMetadata metadata) {
-      SuccessfulFieldResolutionResult resolutionResult =
-          appView.appInfo().resolveField(reference).asSuccessfulResolution();
-      if (resolutionResult == null) {
+      FieldResolutionResult resolutionResult = appView.appInfo().resolveField(reference);
+      if (!resolutionResult.hasProgramResult()) {
+        // We don't care about field accesses that may not resolve to a program field.
         return;
       }
 
-      DexClassAndField field = resolutionResult.getResolutionPair();
+      ProgramField field = resolutionResult.getProgramField();
       DexEncodedField definition = field.getDefinition();
 
       if (definition.isStatic() != isStatic
           || appView.isCfByteCodePassThrough(getContext().getDefinition())
-          || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()) {
+          || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()
+          || !resolutionResult.isSingleProgramFieldResolutionResult()) {
         recordAccessThatCannotBeOptimized(field, definition);
         return;
       }

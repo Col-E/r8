@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
@@ -284,8 +284,8 @@ public class RedundantFieldLoadAndStoreElimination {
 
   private DexClassAndField resolveField(DexField field) {
     if (appView.enableWholeProgramOptimizations()) {
-      SuccessfulFieldResolutionResult resolutionResult =
-          appView.appInfo().withLiveness().resolveField(field).asSuccessfulResolution();
+      SingleFieldResolutionResult resolutionResult =
+          appView.appInfo().withLiveness().resolveField(field).asSingleFieldResolutionResult();
       return resolutionResult != null ? resolutionResult.getResolutionPair() : null;
     }
     if (field.getHolderType() == method.getHolderType()) {

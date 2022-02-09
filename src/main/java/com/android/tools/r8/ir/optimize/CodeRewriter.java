@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleProgramFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMergerUtils;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
@@ -1184,8 +1184,8 @@ public class CodeRewriter {
       return false;
     }
     InstanceGet instanceGet = switchValue.getDefinition().asInstanceGet();
-    SuccessfulFieldResolutionResult resolutionResult =
-        appInfo.resolveField(instanceGet.getField()).asSuccessfulResolution();
+    SingleProgramFieldResolutionResult resolutionResult =
+        appInfo.resolveField(instanceGet.getField()).asSingleProgramFieldResolutionResult();
     if (resolutionResult == null) {
       return false;
     }

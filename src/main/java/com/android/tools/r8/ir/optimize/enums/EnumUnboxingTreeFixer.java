@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramField;
@@ -398,11 +397,9 @@ class EnumUnboxingTreeFixer {
             continue;
           }
 
-          SuccessfulFieldResolutionResult resolutionResult =
-              appView.appInfo().resolveField(rewrittenField).asSuccessfulResolution();
-          if (resolutionResult != null
-              && resolutionResult.getResolvedHolder().isProgramClass()
-              && isPrunedAfterEnumUnboxing(resolutionResult.getProgramField(), enumData)) {
+          ProgramField programField =
+              appView.appInfo().resolveField(rewrittenField).getSingleProgramField();
+          if (programField != null && isPrunedAfterEnumUnboxing(programField, enumData)) {
             instructionIterator.removeOrReplaceByDebugLocalRead();
           }
         }

@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import static com.android.tools.r8.graph.FieldResolutionResult.createSingleFieldResolutionResult;
+
 import com.android.tools.r8.utils.SetUtils;
 import java.util.Set;
 
@@ -23,8 +24,12 @@ public class FieldResolution {
   }
 
   public FieldResolutionResult resolveFieldOn(DexType type, DexField field) {
-    DexClass holder = definitionFor.contextIndependentDefinitionFor(type);
-    return holder != null ? resolveFieldOn(holder, field) : FieldResolutionResult.failure();
+    FieldResolutionResult.Builder builder = FieldResolutionResult.builder();
+    definitionFor
+        .contextIndependentDefinitionForWithResolutionResult(type)
+        .forEachClassResolutionResult(
+            clazz -> builder.addResolutionResult(resolveFieldOn(clazz, field)));
+    return builder.buildOrIfEmpty(FieldResolutionResult.failure());
   }
 
   public FieldResolutionResult resolveFieldOn(DexClass holder, DexField field) {
@@ -41,49 +46,76 @@ public class FieldResolution {
     // Step 1: Class declares the field.
     DexEncodedField definition = holder.lookupField(field);
     if (definition != null) {
-      return new SuccessfulFieldResolutionResult(initialResolutionHolder, holder, definition);
+      return createSingleFieldResolutionResult(initialResolutionHolder, holder, definition);
     }
     // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
-    DexClassAndField result = resolveFieldOnDirectInterfaces(holder, field, visitedInterfaces);
+    FieldResolutionResult result =
+        resolveFieldOnDirectInterfaces(initialResolutionHolder, holder, field, visitedInterfaces);
     if (result != null) {
-      return new SuccessfulFieldResolutionResult(
-          initialResolutionHolder, result.getHolder(), result.getDefinition());
+      return result;
     }
     // Step 3: Apply recursively to superclass.
     if (holder.superType != null) {
-      DexClass superClass = definitionFor.contextIndependentDefinitionFor(holder.superType);
-      if (superClass != null) {
-        return resolveFieldOn(superClass, field, initialResolutionHolder, visitedInterfaces);
-      }
+      FieldResolutionResult.Builder builder = FieldResolutionResult.builder();
+      definitionFor
+          .contextIndependentDefinitionForWithResolutionResult(holder.superType)
+          .forEachClassResolutionResult(
+              superClass -> {
+                // Check if the subtype is a library type and if it is child of a non-library type.
+                // If that is the case, do not return any results.
+                if (holder.isLibraryClass() && !superClass.isLibraryClass()) {
+                  return;
+                }
+                builder.addResolutionResult(
+                    resolveFieldOn(superClass, field, initialResolutionHolder, visitedInterfaces));
+              });
+      return builder.buildOrIfEmpty(null);
     }
     return FieldResolutionResult.failure();
   }
 
-  private DexClassAndField resolveFieldOnDirectInterfaces(
-      DexClass clazz, DexField field, Set<DexType> visitedInterfaces) {
+  private FieldResolutionResult resolveFieldOnDirectInterfaces(
+      DexClass initialResolutionHolder,
+      DexClass clazz,
+      DexField field,
+      Set<DexType> visitedInterfaces) {
     for (DexType interfaceType : clazz.interfaces.values) {
       if (visitedInterfaces.add(interfaceType)) {
-        DexClass interfaceClass = definitionFor.contextIndependentDefinitionFor(interfaceType);
-        if (interfaceClass != null) {
-          DexClassAndField result =
-              resolveFieldOnInterface(interfaceClass, field, visitedInterfaces);
-          if (result != null) {
-            return result;
-          }
+        FieldResolutionResult.Builder builder = FieldResolutionResult.builder();
+        definitionFor
+            .contextIndependentDefinitionForWithResolutionResult(interfaceType)
+            .forEachClassResolutionResult(
+                ifaceClass -> {
+                  // Check if the subtype is a library type and if it is child of a non-library
+                  // type. If that is the case, do not return any results.
+                  if (clazz.isLibraryClass() && !ifaceClass.isLibraryClass()) {
+                    return;
+                  }
+                  builder.addResolutionResult(
+                      resolveFieldOnInterface(
+                          initialResolutionHolder, ifaceClass, field, visitedInterfaces));
+                });
+        FieldResolutionResult fieldResolutionResult = builder.buildOrIfEmpty(null);
+        if (fieldResolutionResult != null) {
+          return fieldResolutionResult;
         }
       }
     }
     return null;
   }
 
-  private DexClassAndField resolveFieldOnInterface(
-      DexClass interfaceClass, DexField field, Set<DexType> visitedInterfaces) {
+  private FieldResolutionResult resolveFieldOnInterface(
+      DexClass initialResolutionHolder,
+      DexClass interfaceClass,
+      DexField field,
+      Set<DexType> visitedInterfaces) {
     // Step 1: Class declares the field.
     DexEncodedField definition = interfaceClass.lookupField(field);
     if (definition != null) {
-      return DexClassAndField.create(interfaceClass, definition);
+      return createSingleFieldResolutionResult(initialResolutionHolder, interfaceClass, definition);
     }
     // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
-    return resolveFieldOnDirectInterfaces(interfaceClass, field, visitedInterfaces);
+    return resolveFieldOnDirectInterfaces(
+        initialResolutionHolder, interfaceClass, field, visitedInterfaces);
   }
 }

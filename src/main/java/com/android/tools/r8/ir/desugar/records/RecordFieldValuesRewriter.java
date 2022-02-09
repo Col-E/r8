@@ -165,7 +165,7 @@ public class RecordFieldValuesRewriter {
           appView
               .appInfo()
               .resolveField(appView.graphLens().getRenamedFieldSignature(fields[index]), context);
-      if (resolution.isSuccessfulResolution()) {
+      if (resolution.isSingleFieldResolutionResult()) {
         newInValues.add(inValues.get(index));
       }
     }

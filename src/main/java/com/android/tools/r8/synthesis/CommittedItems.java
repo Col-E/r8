@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -55,7 +55,8 @@ public class CommittedItems implements SyntheticDefinitionsProvider {
   }
 
   @Override
-  public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
+  public ClassResolutionResult definitionFor(
+      DexType type, Function<DexType, ClassResolutionResult> baseDefinitionFor) {
     // All synthetic types are committed to the application so lookup is just the base lookup.
     return baseDefinitionFor.apply(type);
   }

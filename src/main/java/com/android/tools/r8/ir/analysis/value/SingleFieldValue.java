@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.utils.ForEachUtils.allMatch;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -14,7 +15,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
@@ -96,9 +96,14 @@ public abstract class SingleFieldValue extends SingleValue {
   @Override
   public boolean isMaterializableInContext(
       AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
-    SuccessfulFieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(field).asSuccessfulResolution();
-    return resolutionResult != null && resolutionResult.isAccessibleFrom(context, appView).isTrue();
+    return allMatch(
+        appView.appInfo().resolveField(field)::forEachFieldResolutionResult,
+        resolutionResult -> {
+          if (resolutionResult.isPossiblyFailedOrUnknownResolution()) {
+            return false;
+          }
+          return resolutionResult.isAccessibleFrom(context, appView).isTrue();
+        });
   }
 
   @Override

@@ -40,7 +40,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public abstract class DexClass extends DexDefinition implements ClassDefinition {
+public abstract class DexClass extends DexDefinition
+    implements ClassDefinition, ClassResolutionResult {
 
   public interface FieldSetter {
     void setField(int index, DexEncodedField field);
@@ -132,6 +133,21 @@ public abstract class DexClass extends DexDefinition implements ClassDefinition 
               + type.descriptor.toString()
               + "' cannot be represented in dex format.");
     }
+  }
+
+  @Override
+  public boolean hasClassResolutionResult() {
+    return true;
+  }
+
+  @Override
+  public void forEachClassResolutionResult(Consumer<DexClass> consumer) {
+    consumer.accept(this);
+  }
+
+  @Override
+  public DexClass toSingleClassWithProgramOverLibrary() {
+    return this;
   }
 
   public abstract void accept(

@@ -9,7 +9,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -82,27 +81,23 @@ public class FieldAccessAnalysis {
     for (Instruction instruction : code.instructions()) {
       if (instruction.isFieldInstruction()) {
         FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-        FieldResolutionResult resolutionResult =
-            appView.appInfo().resolveField(fieldInstruction.getField());
-        if (resolutionResult.isSuccessfulResolution()) {
-          ProgramField field =
-              resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
-          if (field != null) {
-            if (fieldAssignmentTracker != null) {
-              fieldAssignmentTracker.recordFieldAccess(fieldInstruction, field, code.context());
-            }
-            if (fieldBitAccessAnalysis != null) {
-              fieldBitAccessAnalysis.recordFieldAccess(
-                  fieldInstruction, field.getDefinition(), feedback);
-            }
-            if (fieldReadForInvokeReceiverAnalysis != null) {
-              fieldReadForInvokeReceiverAnalysis.recordFieldAccess(
-                  fieldInstruction, field, bytecodeMetadataProviderBuilder, code.context());
-            }
-            if (fieldReadForWriteAnalysis != null) {
-              fieldReadForWriteAnalysis.recordFieldAccess(
-                  fieldInstruction, field, bytecodeMetadataProviderBuilder);
-            }
+        ProgramField field =
+            appView.appInfo().resolveField(fieldInstruction.getField()).getProgramField();
+        if (field != null) {
+          if (fieldAssignmentTracker != null) {
+            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, field, code.context());
+          }
+          if (fieldBitAccessAnalysis != null) {
+            fieldBitAccessAnalysis.recordFieldAccess(
+                fieldInstruction, field.getDefinition(), feedback);
+          }
+          if (fieldReadForInvokeReceiverAnalysis != null) {
+            fieldReadForInvokeReceiverAnalysis.recordFieldAccess(
+                fieldInstruction, field, bytecodeMetadataProviderBuilder, code.context());
+          }
+          if (fieldReadForWriteAnalysis != null) {
+            fieldReadForWriteAnalysis.recordFieldAccess(
+                fieldInstruction, field, bytecodeMetadataProviderBuilder);
           }
         }
       } else if (instruction.isNewInstance()) {

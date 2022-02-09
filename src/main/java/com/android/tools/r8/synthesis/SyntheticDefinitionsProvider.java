@@ -3,10 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexType;
 import java.util.function.Function;
 
 public interface SyntheticDefinitionsProvider {
-  DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor);
+  ClassResolutionResult definitionFor(
+      DexType type, Function<DexType, ClassResolutionResult> baseDefinitionFor);
 }

@@ -530,16 +530,12 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     DexField oneOfCaseFieldReference = oneOfCaseObject.asLiveProtoFieldObject().getField();
     FieldResolutionResult oneOfCaseFieldResolutionResult =
         appView.appInfo().resolveField(oneOfCaseFieldReference);
-    if (oneOfCaseFieldResolutionResult.isFailedOrUnknownResolution()) {
+    if (!oneOfCaseFieldResolutionResult.isSingleProgramFieldResolutionResult()) {
       assert false;
       return;
     }
 
-    ProgramField oneOfCaseField =
-        oneOfCaseFieldResolutionResult
-            .asSuccessfulResolution()
-            .getResolutionPair()
-            .asProgramField();
+    ProgramField oneOfCaseField = oneOfCaseFieldResolutionResult.getProgramField();
     if (oneOfCaseField == null) {
       assert false;
       return;
@@ -565,13 +561,12 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     DexField oneOfFieldReference = oneOfObject.asLiveProtoFieldObject().getField();
     FieldResolutionResult oneOfFieldResolutionResult =
         appView.appInfo().resolveField(oneOfFieldReference);
-    if (oneOfFieldResolutionResult.isFailedOrUnknownResolution()) {
+    if (!oneOfFieldResolutionResult.isSingleProgramFieldResolutionResult()) {
       assert false;
       return;
     }
 
-    ProgramField oneOfField =
-        oneOfFieldResolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+    ProgramField oneOfField = oneOfFieldResolutionResult.getProgramField();
     if (oneOfField == null || oneOfField.getHolder() != oneOfCaseField.getHolder()) {
       assert false;
       return;

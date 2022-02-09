@@ -6,6 +6,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.ClassResolutionResult.NoResolutionResult.noResult;
+
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
 import com.android.tools.r8.graph.classmerging.MergedClasses;
@@ -66,6 +68,12 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public List<DexLibraryClass> libraryClasses() {
     return libraryClasses;
+  }
+
+  @Override
+  public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
+    DexClass foundClass = definitionFor(type);
+    return foundClass == null ? noResult() : foundClass;
   }
 
   @Override

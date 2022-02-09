@@ -9,7 +9,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
@@ -65,28 +66,28 @@ public abstract class FieldInstruction extends Instruction {
   public boolean instructionInstanceCanThrow(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     return internalInstructionInstanceCanThrow(
-        appView,
-        context,
-        assumption,
-        appView.appInfo().resolveField(field, context).asSuccessfulResolution());
+        appView, context, assumption, appView.appInfo().resolveField(field, context));
   }
 
   boolean internalInstructionInstanceCanThrow(
       AppView<?> appView,
       ProgramMethod context,
       SideEffectAssumption assumption,
-      SuccessfulFieldResolutionResult resolutionResult) {
-    if (resolutionResult == null) {
+      FieldResolutionResult resolutionResult) {
+    if (!resolutionResult.isSingleFieldResolutionResult()) {
+      // Conservatively treat instruction as being throwing.
       return true;
     }
-    DexEncodedField resolvedField = resolutionResult.getResolvedField();
+    SingleFieldResolutionResult<?> singleFieldResolutionResult =
+        resolutionResult.asSingleFieldResolutionResult();
+    DexEncodedField resolvedField = singleFieldResolutionResult.getResolvedField();
     // Check if the instruction may fail with an IncompatibleClassChangeError.
     if (resolvedField.isStatic() != isStaticFieldInstruction()) {
       return true;
     }
     // Check if the resolution target is accessible.
-    if (resolutionResult.getResolvedHolder() != context.getHolder()) {
-      if (resolutionResult
+    if (singleFieldResolutionResult.getResolvedHolder() != context.getHolder()) {
+      if (singleFieldResolutionResult
           .isAccessibleFrom(context, appView.appInfo().withClassHierarchy())
           .isPossiblyFalse()) {
         return true;

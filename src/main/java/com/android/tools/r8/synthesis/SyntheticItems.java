@@ -10,6 +10,7 @@ import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.DexApplication;
@@ -176,7 +177,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   // Predicates and accessors.
 
   @Override
-  public DexClass definitionFor(DexType type, Function<DexType, DexClass> baseDefinitionFor) {
+  public ClassResolutionResult definitionFor(
+      DexType type, Function<DexType, ClassResolutionResult> baseDefinitionFor) {
     DexClass clazz = null;
     SyntheticKind kind = null;
     SyntheticDefinition<?, ?, ?> item = pending.nonLegacyDefinitions.get(type);
@@ -188,7 +190,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
     if (clazz != null) {
       assert kind != null;
-      assert baseDefinitionFor.apply(type) == null || kind.mayOverridesNonProgramType
+      assert !baseDefinitionFor.apply(type).hasClassResolutionResult()
+              || kind.mayOverridesNonProgramType
           : "Pending synthetic definition also present in the active program: " + type;
       return clazz;
     }

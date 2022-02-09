@@ -19,6 +19,17 @@ public interface DexDefinitionSupplier {
   }
 
   /**
+   * Lookup for the definition(s) of a type independent of context.
+   *
+   * <p>This will return multiple results if found in the precedence of library, program and
+   * classpath.
+   *
+   * @param type Type to look up the definition for.
+   * @return A {@link ClassResolutionResult} describing the result.
+   */
+  ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type);
+
+  /**
    * Lookup for the definition of a type from a given context.
    *
    * <p>This ensures that a context overrides the usual lookup precedence if looking up itself.
@@ -79,6 +90,14 @@ public interface DexDefinitionSupplier {
   default DexClassAndMethod definitionFor(DexMethod method) {
     DexClass holder = definitionFor(method.getHolderType());
     return holder != null ? holder.lookupClassMethod(method) : null;
+  }
+
+  default ClassResolutionResult definitionForWithResolutionResult(
+      DexType type, DexProgramClass context) {
+    assert context.type != type || ClassResolutionResult.builder().add(context).build() == context;
+    return context.type == type
+        ? context
+        : contextIndependentDefinitionForWithResolutionResult(type);
   }
 
   // Use programDefinitionFor with a context.

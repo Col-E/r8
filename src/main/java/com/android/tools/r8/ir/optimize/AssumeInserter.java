@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndField;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
+import com.android.tools.r8.graph.FieldResolutionResult.SingleFieldResolutionResult;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.DynamicTypeWithUpperBound;
@@ -285,8 +285,8 @@ public class AssumeInserter {
       return false;
     }
 
-    SuccessfulFieldResolutionResult resolutionResult =
-        appView.appInfo().resolveField(fieldGet.getField()).asSuccessfulResolution();
+    SingleFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(fieldGet.getField()).asSingleFieldResolutionResult();
     if (resolutionResult == null) {
       return false;
     }

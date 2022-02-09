@@ -58,7 +58,7 @@ public class FieldReadForWriteAnalysis {
         if (writtenFieldReference.match(field.getReference())
             && fieldPut.isStaticPut() == field.getAccessFlags().isStatic()) {
           ProgramField writtenField =
-              appView.appInfo().resolveField(writtenFieldReference).getProgramField();
+              appView.appInfo().resolveField(writtenFieldReference).getSingleProgramField();
           if (writtenField != null && writtenField.isStructurallyEqualTo(field)) {
             // OK.
             foundWrite = true;

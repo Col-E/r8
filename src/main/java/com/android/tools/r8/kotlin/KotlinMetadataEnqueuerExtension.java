@@ -7,7 +7,9 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.kotlin.KotlinClassMetadataReader.hasKotlinClassMetadataAnnotation;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.getNoKotlinInfo;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMember;
@@ -149,6 +151,11 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
       this.context = context;
       this.enqueuerDefinitionSupplier = enqueuerDefinitionSupplier;
       this.prunedTypes = prunedTypes;
+    }
+
+    @Override
+    public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
+      throw new Unreachable("Not yet used");
     }
 
     @Override

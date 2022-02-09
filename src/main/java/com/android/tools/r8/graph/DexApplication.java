@@ -66,8 +66,17 @@ public abstract class DexApplication implements DexDefinitionSupplier {
     DexApplication self = this;
     return new DexDefinitionSupplier() {
       @Override
+      public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(
+          DexType type) {
+        return syntheticDefinitionsProvider.definitionFor(
+            type, self::contextIndependentDefinitionForWithResolutionResult);
+      }
+
+      @Override
       public DexClass definitionFor(DexType type) {
-        return syntheticDefinitionsProvider.definitionFor(type, self::definitionFor);
+        return syntheticDefinitionsProvider
+            .definitionFor(type, self::contextIndependentDefinitionForWithResolutionResult)
+            .toSingleClassWithProgramOverLibrary();
       }
 
       @Override
