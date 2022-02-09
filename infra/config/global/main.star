@@ -127,8 +127,7 @@ luci.gitiles_poller(
   name = "branch-gitiles-trigger",
   bucket = "ci",
   repo = "https://r8.googlesource.com/r8",
-  # Version branches are named d8-x.y (up until d8-1.5) or just x.y (from 1.6)
-  refs = ["refs/heads/(?:d8-)?[0-9]+\\.[0-9]+(\\.[0-9]+)?"],
+  refs = ["refs/heads/[0-9]+\\.[0-9]+(\\.[0-9]+)?"],
   path_regexps = ["src/main/java/com/android/tools/r8/Version.java"]
 )
 
