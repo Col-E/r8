@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramField;
+import com.android.tools.r8.graph.ProgramOrClasspathClass;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
@@ -78,7 +79,7 @@ public class ProguardMapMinifier {
   private final SeedMapper seedMapper;
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
   // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-  private final Set<DexClass> mappedClasses = Sets.newIdentityHashSet();
+  private final Set<ProgramOrClasspathClass> mappedClasses = Sets.newIdentityHashSet();
   private final Map<DexReference, MemberNaming> memberNames = Maps.newIdentityHashMap();
   private final Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames =
       Maps.newIdentityHashMap();
@@ -193,14 +194,17 @@ public class ProguardMapMinifier {
     DexClass clazz = appView.definitionFor(type);
 
     // Keep track of classes that needs to get renamed.
-    if (clazz != null && (classNaming != null || clazz.isProgramClass())) {
-      mappedClasses.add(clazz);
+    if (clazz != null) {
+      if (clazz.isClasspathClass() && classNaming != null) {
+        mappedClasses.add(clazz.asClasspathClass());
+      } else if (clazz.isProgramClass()) {
+        mappedClasses.add(clazz.asProgramClass());
+      }
     }
 
     Map<DexReference, MemberNaming> nonPrivateMembers = new IdentityHashMap<>();
 
-    if (classNaming != null) {
-      // TODO(b/133091438) assert that !dexClass.isLibraryClass();
+    if (classNaming != null && (clazz == null || !clazz.isLibraryClass())) {
       DexString mappedName = factory.createString(classNaming.renamedName);
       checkAndAddMappedNames(type, mappedName, classNaming.position);
       classNaming.forAllMemberNaming(

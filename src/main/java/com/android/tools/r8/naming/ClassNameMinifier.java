@@ -11,12 +11,13 @@ import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFro
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexClassAndField;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.ProgramOrClasspathClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -35,7 +36,7 @@ class ClassNameMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ClassNamingStrategy classNamingStrategy;
-  private final Iterable<? extends DexClass> classes;
+  private final Iterable<? extends ProgramOrClasspathClass> classes;
   private final Set<String> usedTypeNames = Sets.newHashSet();
   private final Map<DexType, DexString> renaming = Maps.newIdentityHashMap();
   private final Map<String, Namespace> states = new HashMap<>();
@@ -48,7 +49,7 @@ class ClassNameMinifier {
   ClassNameMinifier(
       AppView<AppInfoWithLiveness> appView,
       ClassNamingStrategy classNamingStrategy,
-      Iterable<? extends DexClass> classes) {
+      Iterable<? extends ProgramOrClasspathClass> classes) {
     this.appView = appView;
     this.classNamingStrategy = classNamingStrategy;
     this.classes = classes;
@@ -86,11 +87,11 @@ class ClassNameMinifier {
   ClassRenaming computeRenaming(Timing timing) {
     // Collect names we have to keep.
     timing.begin("reserve");
-    for (DexClass clazz : classes) {
-      DexString descriptor = classNamingStrategy.reservedDescriptor(clazz.type);
+    for (ProgramOrClasspathClass clazz : classes) {
+      DexString descriptor = classNamingStrategy.reservedDescriptor(clazz.getType());
       if (descriptor != null) {
-        assert !renaming.containsKey(clazz.type);
-        registerClassAsUsed(clazz.type, descriptor);
+        assert !renaming.containsKey(clazz.getType());
+        registerClassAsUsed(clazz.getType(), descriptor);
       }
     }
     appView
@@ -100,29 +101,34 @@ class ClassNameMinifier {
     timing.end();
 
     timing.begin("rename-classes");
-    for (DexClass clazz : classes) {
-      if (!renaming.containsKey(clazz.type)) {
-        DexString renamed = computeName(clazz.type);
-        renaming.put(clazz.type, renamed);
-        // If the class is a member class and it has used $ separator, its renamed name should have
-        // the same separator (as long as inner-class attribute is honored).
-        assert !keepInnerClassStructure
-            || !clazz.isMemberClass()
-            || !clazz.type.getInternalName().contains(String.valueOf(INNER_CLASS_SEPARATOR))
-            || renamed.toString().contains(String.valueOf(INNER_CLASS_SEPARATOR))
-            || classNamingStrategy.isRenamedByApplyMapping(clazz.type)
-                : clazz.toSourceString() + " -> " + renamed;
+    for (ProgramOrClasspathClass clazz : classes) {
+      if (!renaming.containsKey(clazz.getType())) {
+        DexString renamed = computeName(clazz.getType());
+        renaming.put(clazz.getType(), renamed);
+        assert verifyMemberRenamingOfInnerClasses(clazz.asDexClass(), renamed);
       }
     }
     timing.end();
 
     timing.begin("rename-dangling-types");
-    for (DexClass clazz : classes) {
+    for (ProgramOrClasspathClass clazz : classes) {
       renameDanglingTypes(clazz);
     }
     timing.end();
 
     return new ClassRenaming(Collections.unmodifiableMap(renaming), getPackageRenaming());
+  }
+
+  private boolean verifyMemberRenamingOfInnerClasses(DexClass clazz, DexString renamed) {
+    // If the class is a member class and it has used $ separator, its renamed name should have
+    // the same separator (as long as inner-class attribute is honored).
+    assert !keepInnerClassStructure
+            || !clazz.isMemberClass()
+            || !clazz.getType().getInternalName().contains(String.valueOf(INNER_CLASS_SEPARATOR))
+            || renamed.toString().contains(String.valueOf(INNER_CLASS_SEPARATOR))
+            || classNamingStrategy.isRenamedByApplyMapping(clazz.getType())
+        : clazz + " -> " + renamed;
+    return true;
   }
 
   private Map<String, String> getPackageRenaming() {
@@ -137,16 +143,16 @@ class ClassNameMinifier {
     return packageRenaming.build();
   }
 
-  private void renameDanglingTypes(DexClass clazz) {
-    clazz.forEachMethod(this::renameDanglingTypesInMethod);
-    clazz.forEachField(this::renameDanglingTypesInField);
+  private void renameDanglingTypes(ProgramOrClasspathClass clazz) {
+    clazz.forEachClassMethod(this::renameDanglingTypesInMethod);
+    clazz.forEachClassField(this::renameDanglingTypesInField);
   }
 
-  private void renameDanglingTypesInField(DexEncodedField field) {
+  private void renameDanglingTypesInField(DexClassAndField field) {
     renameDanglingType(field.getReference().type);
   }
 
-  private void renameDanglingTypesInMethod(DexEncodedMethod method) {
+  private void renameDanglingTypesInMethod(DexClassAndMethod method) {
     DexProto proto = method.getReference().proto;
     renameDanglingType(proto.returnType);
     for (DexType type : proto.parameters.values) {

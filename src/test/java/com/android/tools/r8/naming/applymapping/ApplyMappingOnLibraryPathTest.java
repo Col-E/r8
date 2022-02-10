@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming.applymapping;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -42,19 +41,16 @@ public class ApplyMappingOnLibraryPathTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              // TODO(b/215318785): We should never rename on library path.
               ClassSubject clazz = inspector.clazz(Main.class);
               assertThat(clazz, isPresentAndNotRenamed());
               FoundClassSubject foundClassSubject = clazz.asFoundClassSubject();
-              assertEquals("a.a", foundClassSubject.getSuperClass().getOriginalName());
+              assertEquals(
+                  typeName(LibraryClass.class),
+                  foundClassSubject.getSuperClass().getOriginalName());
             })
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/215318785): Running the program should work.
-        .assertFailureWithErrorThatMatchesIf(
-            parameters.isCfRuntime(), containsString("Could not find or load main class"))
-        .assertFailureWithErrorThatThrowsIf(
-            parameters.isDexRuntime(), ClassNotFoundException.class);
+        .assertSuccessWithOutputLines("LibraryClass::foo");
   }
 
   public static class LibraryClass {
