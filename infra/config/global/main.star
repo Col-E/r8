@@ -1,10 +1,11 @@
 #!/usr/bin/env lucicfg
 
-lucicfg.check_version("1.28.0", "Please use newer `lucicfg` binary")
+lucicfg.check_version("1.30.9", "Please use newer `lucicfg` binary")
 
-# Launch 0% of Builds in "realms-aware mode"
+# Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
+lucicfg.enable_experiment("crbug.com/1182002")
+
 luci.builder.defaults.experiments.set({
-    "luci.use_realms": 100,
     "luci.recipes.use_python3": 100
 })
 
