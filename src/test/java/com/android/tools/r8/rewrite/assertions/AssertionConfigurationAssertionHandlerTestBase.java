@@ -6,10 +6,13 @@ package com.android.tools.r8.rewrite.assertions;
 
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionHandlers;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +37,14 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
 
   abstract List<Class<?>> getTestClasses();
 
+  protected List<Class<?>> getAssertionHandlerClasses() {
+    return ImmutableList.of(AssertionHandlers.class);
+  }
+
+  protected void configure(R8TestBuilder<?> builder) {}
+
+  protected void inspect(CodeInspector inspector) {}
+
   private MethodReference getAssertionHandlerIgnoreException() {
     try {
       return getAssertionHandler();
@@ -46,7 +57,7 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
-        .addProgramClasses(AssertionHandlers.class)
+        .addProgramClasses(getAssertionHandlerClasses())
         .addProgramClasses(getTestClasses())
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(o -> o.testing.forceIRForCfToCfDesugar = true)
@@ -63,11 +74,11 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(AssertionHandlers.class)
+        .addProgramClasses(getAssertionHandlerClasses())
         .addProgramClasses(getTestClasses())
         .addKeepMainRule(getTestClasses().get(0))
         .addKeepAnnotation()
-        .addKeepRules("-keep class * { @com.android.tools.r8.Keep *; }")
+        .addKeepRules("-keepclassmembers class * { @com.android.tools.r8.Keep *; }")
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(
             builder ->
@@ -75,7 +86,9 @@ public abstract class AssertionConfigurationAssertionHandlerTestBase extends Tes
                     .setAssertionHandler(getAssertionHandlerIgnoreException())
                     .setScopeAll()
                     .build())
+        .apply(this::configure)
         .run(parameters.getRuntime(), getTestClasses().get(0))
+        .inspect(this::inspect)
         .assertSuccessWithOutput(getExpectedOutput());
   }
 }

@@ -4,22 +4,26 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import com.android.tools.r8.R8TestBuilder;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionHandlers;
-import com.android.tools.r8.rewrite.assertions.assertionhandler.AssertionsInClinit;
+import com.android.tools.r8.rewrite.assertions.assertionhandler.NoAssertionsAfterOptimization;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class AssertionConfigurationAssertionHandlerAssertionInClinitOnlyTest
+public class AssertionConfigurationAssertionHandlerNoAssertionsAfterOptimizingTest
     extends AssertionConfigurationAssertionHandlerTestBase {
 
-  private static final String EXPECTED_OUTPUT = StringUtils.lines("assertionHandler: <clinit>");
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("Hello, world!");
 
   @Override
   String getExpectedOutput() {
@@ -33,12 +37,13 @@ public class AssertionConfigurationAssertionHandlerAssertionInClinitOnlyTest
   }
 
   @Override
-  List<Class<?>> getTestClasses() {
-    return ImmutableList.of(AssertionsInClinit.class);
+  protected void inspect(CodeInspector inspector) {
+    assert getAssertionHandlerClasses().size() == 1;
+    assertThat(inspector.clazz(getAssertionHandlerClasses().get(0)), not(isPresent()));
   }
 
   @Override
-  protected void configure(R8TestBuilder<?> builder) {
-    builder.allowUnusedProguardConfigurationRules();
+  List<Class<?>> getTestClasses() {
+    return ImmutableList.of(NoAssertionsAfterOptimization.class);
   }
 }
