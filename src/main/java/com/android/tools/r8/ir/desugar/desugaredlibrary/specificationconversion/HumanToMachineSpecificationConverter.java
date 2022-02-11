@@ -11,11 +11,15 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.CustomConversionDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
@@ -109,11 +113,29 @@ public class HumanToMachineSpecificationConverter {
         .getCustomConversions()
         .forEach(
             (type, conversionType) ->
-                builder.putCustomConversion(
-                    type, conversionType, appInfo.dexItemFactory().convertMethodName));
+                convertCustomConversion(appInfo, builder, type, conversionType));
     rewritingFlags.getDontRetargetLibMember().forEach(builder::addDontRetarget);
     rewritingFlags.getBackportCoreLibraryMember().forEach(builder::putLegacyBackport);
     return builder.build();
+  }
+
+  private void convertCustomConversion(
+      AppInfoWithClassHierarchy appInfo,
+      MachineRewritingFlags.Builder builder,
+      DexType type,
+      DexType conversionType) {
+    DexType rewrittenType = builder.getRewrittenType(type);
+    DexProto fromProto = appInfo.dexItemFactory().createProto(rewrittenType, type);
+    DexMethod fromMethod =
+        appInfo
+            .dexItemFactory()
+            .createMethod(conversionType, fromProto, appInfo.dexItemFactory().convertMethodName);
+    DexProto toProto = appInfo.dexItemFactory().createProto(type, rewrittenType);
+    DexMethod toMethod =
+        appInfo
+            .dexItemFactory()
+            .createMethod(conversionType, toProto, appInfo.dexItemFactory().convertMethodName);
+    builder.putCustomConversion(type, new CustomConversionDescriptor(toMethod, fromMethod));
   }
 
   private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {

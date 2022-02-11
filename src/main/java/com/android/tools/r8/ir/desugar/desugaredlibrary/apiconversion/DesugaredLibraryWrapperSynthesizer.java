@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -28,6 +27,7 @@ import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.CustomConversionDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
@@ -39,7 +39,6 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -173,13 +172,19 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   private DexMethod getCustomConversion(DexType type, DexType srcType, DexType destType) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
-    Pair<DexType, DexString> pair =
+    CustomConversionDescriptor descriptor =
         appView.options().machineDesugaredLibrarySpecification.getCustomConversions().get(type);
-    if (pair != null) {
-      return factory.createMethod(
-          pair.getFirst(), factory.createProto(destType, srcType), pair.getSecond());
+    if (descriptor == null) {
+      return null;
     }
-    return null;
+    // Because the conversion have rewritten types instead of vivified type we cannot use the
+    // specification content directly until the rewriting is done upfront in the compilation.
+    DexMethod conversion = type == srcType ? descriptor.getTo() : descriptor.getFrom();
+    assert type == srcType
+        ? type == conversion.getReturnType()
+        : type == conversion.getArgumentType(0, true);
+    return factory.createMethod(
+        conversion.getHolderType(), factory.createProto(destType, srcType), conversion.getName());
   }
 
   private boolean canConvert(DexType type) {

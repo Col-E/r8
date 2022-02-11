@@ -6,10 +6,8 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.Pair;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -133,7 +131,7 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getDontRetarget();
   }
 
-  public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
+  public Map<DexType, CustomConversionDescriptor> getCustomConversions() {
     return rewritingFlags.getCustomConversions();
   }
 

@@ -5,9 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -35,7 +33,7 @@ public class MachineRewritingFlags {
       Map<DexType, List<DexMethod>> wrappers,
       Map<DexType, DexType> legacyBackport,
       Set<DexType> dontRetarget,
-      Map<DexType, Pair<DexType, DexString>> customConversions) {
+      Map<DexType, CustomConversionDescriptor> customConversions) {
     this.rewriteType = rewriteType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticRetarget = staticRetarget;
@@ -80,7 +78,7 @@ public class MachineRewritingFlags {
 
   private final Map<DexType, DexType> legacyBackport;
   private final Set<DexType> dontRetarget;
-  private final Map<DexType, Pair<DexType, DexString>> customConversions;
+  private final Map<DexType, CustomConversionDescriptor> customConversions;
 
   public Map<DexType, DexType> getRewriteType() {
     return rewriteType;
@@ -129,10 +127,14 @@ public class MachineRewritingFlags {
   }
 
   public boolean isCustomConversionRewrittenType(DexType type) {
-    return Iterables.any(customConversions.values(), pair -> pair.getFirst() == type);
+    return Iterables.any(
+        customConversions.values(),
+        descriptor ->
+            descriptor.getFrom().getHolderType() == type
+                || descriptor.getTo().getHolderType() == type);
   }
 
-  public Map<DexType, Pair<DexType, DexString>> getCustomConversions() {
+  public Map<DexType, CustomConversionDescriptor> getCustomConversions() {
     return customConversions;
   }
 
@@ -178,7 +180,7 @@ public class MachineRewritingFlags {
     private final ImmutableMap.Builder<DexType, List<DexMethod>> wrappers = ImmutableMap.builder();
     private final ImmutableMap.Builder<DexType, DexType> legacyBackport = ImmutableMap.builder();
     private final ImmutableSet.Builder<DexType> dontRetarget = ImmutableSet.builder();
-    private final ImmutableMap.Builder<DexType, Pair<DexType, DexString>> customConversions =
+    private final ImmutableMap.Builder<DexType, CustomConversionDescriptor> customConversions =
         ImmutableMap.builder();
 
     public void rewriteType(DexType src, DexType target) {
@@ -225,8 +227,12 @@ public class MachineRewritingFlags {
       dontRetarget.add(type);
     }
 
-    public void putCustomConversion(DexType src, DexType conversionType, DexString conversionName) {
-      customConversions.put(src, new Pair<>(conversionType, conversionName));
+    public void putCustomConversion(DexType src, CustomConversionDescriptor descriptor) {
+      customConversions.put(src, descriptor);
+    }
+
+    public DexType getRewrittenType(DexType type) {
+      return rewriteType.get(type);
     }
 
     public MachineRewritingFlags build() {
