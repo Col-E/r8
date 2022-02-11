@@ -14,4 +14,16 @@ import java.util.function.Consumer;
 @FunctionalInterface
 public interface ThrowingConsumer<T, E extends Throwable> {
   void accept(T t) throws E;
+
+  default void acceptWithRuntimeException(T t) {
+    try {
+      accept(t);
+    } catch (Throwable throwable) {
+      RuntimeException runtimeException =
+          throwable instanceof RuntimeException
+              ? (RuntimeException) throwable
+              : new RuntimeException(throwable);
+      throw runtimeException;
+    }
+  }
 }

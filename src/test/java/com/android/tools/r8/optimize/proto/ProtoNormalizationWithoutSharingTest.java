@@ -50,11 +50,11 @@ public class ProtoNormalizationWithoutSharingTest extends TestBase {
               TypeSubject aTypeSubject = inspector.clazz(A.class).asTypeSubject();
               TypeSubject bTypeSubject = inspector.clazz(B.class).asTypeSubject();
 
-              // TODO(b/173398086): Should not be normalized as there is no sharing of protos.
+              // Should not be normalized as there is no sharing of protos.
               MethodSubject fooMethodSubject =
                   inspector.clazz(Main.class).uniqueMethodWithName("foo");
               assertThat(fooMethodSubject, isPresent());
-              assertThat(fooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
+              assertThat(fooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B");

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodSignature;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,6 +35,10 @@ public class DexMethodSignatureSet implements Collection<DexMethodSignature> {
 
   public static DexMethodSignatureSet create(DexMethodSignatureSet collection) {
     return new DexMethodSignatureSet(new HashSet<>(collection.backing));
+  }
+
+  public static DexMethodSignatureSet createConcurrent() {
+    return new DexMethodSignatureSet(Sets.newConcurrentHashSet());
   }
 
   public static DexMethodSignatureSet createLinked() {

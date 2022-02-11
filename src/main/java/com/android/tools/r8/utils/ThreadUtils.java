@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ProgramMethod;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -120,6 +122,17 @@ public class ThreadUtils {
       throws ExecutionException {
     return processItemsWithResults(
         items.entrySet(), arg -> consumer.apply(arg.getKey(), arg.getValue()), executorService);
+  }
+
+  public static <E extends Exception> void processMethods(
+      AppView<?> appView,
+      ThrowingConsumer<ProgramMethod, E> consumer,
+      ExecutorService executorService)
+      throws ExecutionException {
+    processItems(
+        appView.appInfo().classes(),
+        clazz -> clazz.forEachProgramMethod(consumer::acceptWithRuntimeException),
+        executorService);
   }
 
   public static void awaitFutures(Iterable<? extends Future<?>> futures)

@@ -42,6 +42,8 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
             options -> options.testing.enableExperimentalProtoNormalization = true)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
+        // TODO(b/173398086): uniqueMethodWithName() does not work with proto changes.
+        .noMinification()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
@@ -59,13 +61,11 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
 
-              // TODO(b/173398086): Rewriting B.foo(B, A) to B.foo(A, B) would lead to B.foo()
-              //  starting to override A.foo(A, B). B.foo(B, A) could either be rewritten to
-              //  B.foo$1(A, B) if B.foo(B, A) is not related by overriding to a kept method, or an
-              //  extra unused argument could be appended.
-              MethodSubject otherFooMethodSubject = bClassSubject.uniqueMethodWithName("foo");
+              // TODO(b/173398086): Consider rewriting B.foo(B, A) to B.foo(A, B, C) instead of
+              //  B.foo$1(A, B).
+              MethodSubject otherFooMethodSubject = bClassSubject.uniqueMethodWithName("foo$1");
               assertThat(otherFooMethodSubject, isPresent());
-              assertThat(otherFooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
+              assertThat(otherFooMethodSubject, hasParameters(aTypeSubject, bTypeSubject));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("A", "B", "A", "B");

@@ -54,6 +54,10 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
     return create(name, getProto());
   }
 
+  public DexMethodSignature withParameters(DexTypeList parameters, DexItemFactory dexItemFactory) {
+    return create(getName(), dexItemFactory.createProto(getReturnType(), parameters));
+  }
+
   public DexMethodSignature withProto(DexProto proto) {
     return create(getName(), proto);
   }

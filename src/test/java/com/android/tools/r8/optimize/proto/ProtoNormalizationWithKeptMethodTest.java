@@ -56,13 +56,11 @@ public class ProtoNormalizationWithKeptMethodTest extends TestBase {
               assertThat(fooMethodSubject, isPresent());
               assertThat(fooMethodSubject, hasParameters(bTypeSubject, aTypeSubject));
 
-              // TODO(b/195112263): Share parameter type lists with Main.foo(B, A) by rewriting to
-              //  bar(B, A) and baz(B, A).
               for (String methodName : new String[] {"bar", "baz"}) {
                 MethodSubject methodSubject =
                     inspector.clazz(Main.class).uniqueMethodWithName(methodName);
                 assertThat(methodSubject, isPresent());
-                assertThat(methodSubject, hasParameters(aTypeSubject, bTypeSubject));
+                assertThat(methodSubject, hasParameters(bTypeSubject, aTypeSubject));
               }
             })
         .run(parameters.getRuntime(), Main.class)
