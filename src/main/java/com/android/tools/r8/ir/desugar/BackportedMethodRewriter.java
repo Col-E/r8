@@ -1247,6 +1247,57 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
                 BackportedMethods::LongMethods_parseUnsignedLongSubsequenceWithRadix,
                 "parseUnsignedLongSubsequenceWithRadix"));
       }
+      // java.lang.String.
+      {
+        // String String.repeat(int)
+        DexType type = factory.stringType;
+        DexString name = factory.createString("repeat");
+        DexProto proto = factory.createProto(factory.stringType, factory.intType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(
+                method, BackportedMethods::StringMethods_repeat, "repeat", type));
+      }
+      {
+        // boolean String.isBlank()
+        DexType type = factory.stringType;
+        DexString name = factory.createString("isBlank");
+        DexProto proto = factory.createProto(factory.booleanType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(
+                method, BackportedMethods::StringMethods_isBlank, "isBlank", type));
+      }
+      {
+        // String String.strip()
+        DexType type = factory.stringType;
+        DexString name = factory.createString("strip");
+        DexProto proto = factory.createProto(factory.stringType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(
+                method, BackportedMethods::StringMethods_strip, "strip", type));
+      }
+      {
+        // String String.stripLeading()
+        DexType type = factory.stringType;
+        DexString name = factory.createString("stripLeading");
+        DexProto proto = factory.createProto(factory.stringType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(
+                method, BackportedMethods::StringMethods_stripLeading, "stripLeading", type));
+      }
+      {
+        // String String.stripTrailing()
+        DexType type = factory.stringType;
+        DexString name = factory.createString("stripTrailing");
+        DexProto proto = factory.createProto(factory.stringType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(
+                method, BackportedMethods::StringMethods_stripTrailing, "stripTrailing", type));
+      }
     }
 
     private void initializeAndroidOptionalTMethodProviders(DexItemFactory factory) {
@@ -1395,49 +1446,6 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::CharSequenceMethods_compare, "compare"));
-
-      // String
-      type = factory.stringType;
-
-      // String String.repeat(int)
-      name = factory.createString("repeat");
-      proto = factory.createProto(factory.stringType, factory.intType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new StatifyingMethodGenerator(
-              method, BackportedMethods::StringMethods_repeat, "repeat", type));
-
-      // boolean String.isBlank()
-      name = factory.createString("isBlank");
-      proto = factory.createProto(factory.booleanType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new StatifyingMethodGenerator(
-              method, BackportedMethods::StringMethods_isBlank, "isBlank", type));
-
-      // String String.strip()
-      name = factory.createString("strip");
-      proto = factory.createProto(factory.stringType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new StatifyingMethodGenerator(
-              method, BackportedMethods::StringMethods_strip, "strip", type));
-
-      // String String.stripLeading()
-      name = factory.createString("stripLeading");
-      proto = factory.createProto(factory.stringType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new StatifyingMethodGenerator(
-              method, BackportedMethods::StringMethods_stripLeading, "stripLeading", type));
-
-      // String String.stripTrailing()
-      name = factory.createString("stripTrailing");
-      proto = factory.createProto(factory.stringType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new StatifyingMethodGenerator(
-              method, BackportedMethods::StringMethods_stripTrailing, "stripTrailing", type));
     }
 
     private void initializeStreamMethodProviders(DexItemFactory factory) {

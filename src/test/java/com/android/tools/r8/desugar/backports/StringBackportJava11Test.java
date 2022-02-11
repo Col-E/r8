@@ -4,16 +4,17 @@
 
 package com.android.tools.r8.desugar.backports;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 
 @RunWith(Parameterized.class)
 public final class StringBackportJava11Test extends AbstractBackportTest {
@@ -31,7 +32,9 @@ public final class StringBackportJava11Test extends AbstractBackportTest {
 
   public StringBackportJava11Test(TestParameters parameters) {
     super(parameters, String.class, TEST_JAR, "backport.StringBackportJava11Main");
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to CharacterBackportTest.
+    // Note: The methods in this test exist in android.jar from Android T. When R8 builds targeting
+    // Java 11 move these tests to StringBackportTest (out of examplesJava11).
+
+    registerTarget(AndroidApiLevel.T, 49);
   }
 }
