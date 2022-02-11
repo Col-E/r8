@@ -15,13 +15,13 @@ import com.android.tools.r8.utils.LibraryClassCollection;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class LazyLoadedDexApplication extends DexApplication {
@@ -119,102 +119,92 @@ public class LazyLoadedDexApplication extends DexApplication {
   static class AllClasses {
 
     // Mapping of all types to their definitions.
+    private final Map<DexType, DexClass> allClasses;
     // Collections of the three different types for iteration.
-    private final ImmutableMap<DexType, DexProgramClass> programClasses;
-    private final ImmutableMap<DexType, DexClasspathClass> classpathClasses;
-    private final ImmutableMap<DexType, DexLibraryClass> libraryClasses;
+    private final ImmutableList<DexProgramClass> programClasses;
+    private final ImmutableList<DexClasspathClass> classpathClasses;
+    private final ImmutableList<DexLibraryClass> libraryClasses;
 
     AllClasses(
         LibraryClassCollection libraryClassesLoader,
         ClasspathClassCollection classpathClassesLoader,
         ProgramClassCollection programClassesLoader,
         InternalOptions options) {
+      int expectedMaxSize = 0;
 
       // Force-load library classes.
-      ImmutableMap<DexType, DexLibraryClass> allLibraryClasses;
+      Map<DexType, DexLibraryClass> allLibraryClasses = null;
       if (libraryClassesLoader != null) {
         libraryClassesLoader.forceLoad(type -> true);
         allLibraryClasses = libraryClassesLoader.getAllClassesInMap();
-      } else {
-        allLibraryClasses = ImmutableMap.of();
+        expectedMaxSize += allLibraryClasses.size();
       }
 
       // Program classes should be fully loaded.
       assert programClassesLoader != null;
       assert programClassesLoader.isFullyLoaded();
       programClassesLoader.forceLoad(type -> true);
-      ImmutableMap<DexType, DexProgramClass> allProgramClasses =
-          programClassesLoader.getAllClassesInMap();
+      Map<DexType, DexProgramClass> allProgramClasses = programClassesLoader.getAllClassesInMap();
+      expectedMaxSize += allProgramClasses.size();
 
       // Force-load classpath classes.
-      ImmutableMap<DexType, DexClasspathClass> allClasspathClasses;
+      Map<DexType, DexClasspathClass> allClasspathClasses = null;
       if (classpathClassesLoader != null) {
         classpathClassesLoader.forceLoad(type -> true);
         allClasspathClasses = classpathClassesLoader.getAllClassesInMap();
-      } else {
-        allClasspathClasses = ImmutableMap.of();
+        expectedMaxSize += allClasspathClasses.size();
       }
 
       // Collect loaded classes in the precedence order library classes, program classes and
       // class path classes or program classes, classpath classes and library classes depending
       // on the configured lookup order.
-      if (options.loadAllClassDefinitions) {
-        libraryClasses = allLibraryClasses;
-        programClasses = allProgramClasses;
-        classpathClasses = allClasspathClasses;
+      Map<DexType, DexClass> prioritizedClasses = new IdentityHashMap<>(expectedMaxSize);
+      if (options.lookupLibraryBeforeProgram) {
+        libraryClasses = fillPrioritizedClasses(allLibraryClasses, prioritizedClasses, options);
+        programClasses = fillPrioritizedClasses(allProgramClasses, prioritizedClasses, options);
+        classpathClasses = fillPrioritizedClasses(allClasspathClasses, prioritizedClasses, options);
       } else {
-        if (options.lookupLibraryBeforeProgram) {
-          libraryClasses = fillPrioritizedClasses(allLibraryClasses, type -> null, options);
-          programClasses = fillPrioritizedClasses(allProgramClasses, libraryClasses::get, options);
-          classpathClasses =
-              fillPrioritizedClasses(
-                  allClasspathClasses,
-                  type -> {
-                    DexLibraryClass clazz = libraryClasses.get(type);
-                    return clazz != null ? clazz : programClasses.get(type);
-                  },
-                  options);
-        } else {
-          programClasses = fillPrioritizedClasses(allProgramClasses, type -> null, options);
-          classpathClasses =
-              fillPrioritizedClasses(allClasspathClasses, programClasses::get, options);
-          libraryClasses =
-              fillPrioritizedClasses(
-                  allLibraryClasses,
-                  type -> {
-                    DexProgramClass clazz = programClasses.get(type);
-                    return clazz != null ? clazz : classpathClasses.get(type);
-                  },
-                  options);
-        }
+        programClasses = fillPrioritizedClasses(allProgramClasses, prioritizedClasses, options);
+        classpathClasses = fillPrioritizedClasses(allClasspathClasses, prioritizedClasses, options);
+        libraryClasses = fillPrioritizedClasses(allLibraryClasses, prioritizedClasses, options);
       }
+
+      allClasses = Collections.unmodifiableMap(prioritizedClasses);
+
+      assert prioritizedClasses.size()
+          == libraryClasses.size() + classpathClasses.size() + programClasses.size();
     }
 
-    public ImmutableMap<DexType, DexProgramClass> getProgramClasses() {
+    public Map<DexType, DexClass> getAllClasses() {
+      return allClasses;
+    }
+
+    public ImmutableList<DexProgramClass> getProgramClasses() {
       return programClasses;
     }
 
-    public ImmutableMap<DexType, DexClasspathClass> getClasspathClasses() {
+    public ImmutableList<DexClasspathClass> getClasspathClasses() {
       return classpathClasses;
     }
 
-    public ImmutableMap<DexType, DexLibraryClass> getLibraryClasses() {
+    public ImmutableList<DexLibraryClass> getLibraryClasses() {
       return libraryClasses;
     }
   }
 
-  private static <T extends DexClass> ImmutableMap<DexType, T> fillPrioritizedClasses(
+  private static <T extends DexClass> ImmutableList<T> fillPrioritizedClasses(
       Map<DexType, T> classCollection,
-      Function<DexType, DexClass> getExisting,
+      Map<DexType, DexClass> prioritizedClasses,
       InternalOptions options) {
     if (classCollection != null) {
       Set<DexType> javaLibraryOverride = Sets.newIdentityHashSet();
-      ImmutableMap.Builder<DexType, T> builder = ImmutableMap.builder();
+      ImmutableList.Builder<T> builder = ImmutableList.builder();
       classCollection.forEach(
           (type, clazz) -> {
-            DexClass other = getExisting.apply(type);
+            DexClass other = prioritizedClasses.get(type);
             if (other == null) {
-              builder.put(type, clazz);
+              prioritizedClasses.put(type, clazz);
+              builder.add(clazz);
             } else if (type.getPackageName().startsWith("java.")
                 && (clazz.isLibraryClass() || other.isLibraryClass())) {
               javaLibraryOverride.add(type);
@@ -225,7 +215,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       }
       return builder.build();
     } else {
-      return ImmutableMap.of();
+      return ImmutableList.of();
     }
   }
 

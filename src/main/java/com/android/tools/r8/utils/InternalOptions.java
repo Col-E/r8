@@ -563,8 +563,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // public boolean lookupLibraryBeforeProgram =
   //     System.getProperty("com.android.tools.r8.lookupProgramBeforeLibrary") == null;
 
-  public boolean loadAllClassDefinitions = false;
-
   // Whether or not to check for valid multi-dex builds.
   //
   // For min-api levels that did not support native multi-dex the user should provide a main dex

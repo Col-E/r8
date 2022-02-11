@@ -57,6 +57,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
@@ -3800,14 +3801,10 @@ public class Enqueuer {
 
     // Add just referenced non-program types. We can't replace the program classes at this point as
     // they are needed in tree pruning.
-    DirectMappedDexApplication app =
-        appInfo
-            .app()
-            .asDirect()
-            .builder()
-            .replaceLibraryClasses(libraryClasses)
-            .replaceClasspathClasses(classpathClasses)
-            .build();
+    Builder appBuilder = appInfo.app().asDirect().builder();
+    appBuilder.replaceLibraryClasses(libraryClasses);
+    appBuilder.replaceClasspathClasses(classpathClasses);
+    DirectMappedDexApplication app = appBuilder.build();
 
     // Verify the references on the pruned application after type synthesis.
     assert verifyReferences(app);

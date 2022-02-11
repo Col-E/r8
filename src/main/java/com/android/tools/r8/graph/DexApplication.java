@@ -94,9 +94,9 @@ public abstract class DexApplication implements DexDefinitionSupplier {
   // may process classes concurrently and fail-fast on the first error.
   private static class ReorderBox<T> {
 
-    private Collection<T> classes;
+    private List<T> classes;
 
-    ReorderBox(Collection<T> classes) {
+    ReorderBox(List<T> classes) {
       this.classes = classes;
     }
 
@@ -109,20 +109,20 @@ public abstract class DexApplication implements DexDefinitionSupplier {
       return true;
     }
 
-    Collection<T> getClasses() {
+    List<T> getClasses() {
       return classes;
     }
   }
 
-  abstract Collection<DexProgramClass> programClasses();
+  abstract List<DexProgramClass> programClasses();
 
-  public Collection<DexProgramClass> classes() {
+  public List<DexProgramClass> classes() {
     ReorderBox<DexProgramClass> box = new ReorderBox<>(programClasses());
     assert box.reorderClasses();
     return box.getClasses();
   }
 
-  public Collection<DexProgramClass> classesWithDeterministicOrder() {
+  public List<DexProgramClass> classesWithDeterministicOrder() {
     return classesWithDeterministicOrder(new ArrayList<>(programClasses()));
   }
 
