@@ -73,4 +73,9 @@ public final class IntegerMethods {
     }
     return Integer.parseInt(s.subSequence(beginIndex, endIndex).toString(), radix);
   }
+
+  public static int parseUnsignedIntSubsequenceWithRadix(
+      CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
+    return Integer.parseUnsignedInt(s.subSequence(beginIndex, endIndex).toString(), radix);
+  }
 }

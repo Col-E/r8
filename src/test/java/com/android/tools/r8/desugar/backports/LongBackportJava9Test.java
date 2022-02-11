@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.runner.RunWith;
@@ -30,8 +31,12 @@ public final class LongBackportJava9Test extends AbstractBackportTest {
       Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION);
 
   public LongBackportJava9Test(TestParameters parameters) {
-    super(parameters, Short.class, TEST_JAR, "backport.LongBackportJava9Main");
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to LongBackportTest.
+    super(parameters, Long.class, TEST_JAR, "backport.LongBackportJava9Main");
+    // Note: The methods in this test exist in android.jar from Android T. When R8 builds targeting
+    // Java 11 move these tests to LongBackportTest (out of examplesJava9).
+
+    ignoreInvokes("toString");
+
+    registerTarget(AndroidApiLevel.T, 17);
   }
 }

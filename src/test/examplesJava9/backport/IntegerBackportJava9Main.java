@@ -4,8 +4,6 @@
 
 package backport;
 
-import java.math.BigInteger;
-
 public final class IntegerBackportJava9Main {
   private static final int[] interestingValues = {
     Integer.MIN_VALUE,
@@ -23,6 +21,7 @@ public final class IntegerBackportJava9Main {
 
   public static void main(String[] args) {
     testParseIntegerSubsequenceWithRadix();
+    testParseUnsignedIntegerSubsequenceWithRadix();
   }
 
   private static void testParseIntegerSubsequenceWithRadix() {
@@ -71,22 +70,87 @@ public final class IntegerBackportJava9Main {
     } catch (NumberFormatException expected) {
     }
 
-    BigInteger overflow = new BigInteger("18446744073709551616");
+    long overflow = 73709551616L;
     for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
       for (String prefix : new String[] {"", "x", "xxx"}) {
         for (String postfix : new String[] {"", "x", "xxx"}) {
-          String overflowString = prefix + overflow.toString(radix) + postfix;
+          String overflowString = prefix + Long.toString(overflow, radix) + postfix;
           int start = prefix.length();
           int end = overflowString.length() - postfix.length();
           try {
-            throw new AssertionError(Long.parseLong(overflowString, start, end, radix));
+            throw new AssertionError(Integer.parseInt(overflowString, start, end, radix));
           } catch (NumberFormatException expected) {
           }
-          String underflowString = prefix + '-' + overflow.toString(radix) + postfix;
+          String underflowString = prefix + '-' + Long.toString(overflow, radix) + postfix;
           start = prefix.length();
           end = underflowString.length() - postfix.length();
           try {
-            throw new AssertionError(Long.parseLong(underflowString, start, end, radix));
+            throw new AssertionError(Integer.parseInt(underflowString, start, end, radix));
+          } catch (NumberFormatException expected) {
+          }
+        }
+      }
+    }
+  }
+
+  private static void testParseUnsignedIntegerSubsequenceWithRadix() {
+    for (int value : interestingValues) {
+      for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
+        for (String prefix : new String[] {"", "x", "xxx"}) {
+          for (String postfix : new String[] {"", "x", "xxx"}) {
+            String unsignedIntergerString = Long.toString(Integer.toUnsignedLong(value), radix);
+            String valueString = prefix + unsignedIntergerString + postfix;
+            int start = prefix.length();
+            int end = valueString.length() - postfix.length();
+            assertEquals(
+                valueString, value, Integer.parseUnsignedInt(valueString, start, end, radix));
+            if (value > 0) {
+              valueString = prefix + '+' + unsignedIntergerString + postfix;
+              end++;
+              assertEquals(
+                  valueString, value, Integer.parseUnsignedInt(valueString, start, end, radix));
+            }
+          }
+        }
+      }
+    }
+
+    try {
+      throw new AssertionError(Integer.parseUnsignedInt("0", 0, 1, Character.MIN_RADIX - 1));
+    } catch (IllegalArgumentException expected) {
+    }
+    try {
+      throw new AssertionError(Integer.parseUnsignedInt("0", 0, 1, Character.MAX_RADIX + 1));
+    } catch (IllegalArgumentException expected) {
+    }
+
+    try {
+      throw new AssertionError(Integer.parseUnsignedInt("", 0, 0, 16));
+    } catch (NumberFormatException expected) {
+    }
+    try {
+      throw new AssertionError(Integer.parseUnsignedInt("-", 0, 1, 16));
+    } catch (NumberFormatException expected) {
+    }
+    try {
+      throw new AssertionError(Integer.parseUnsignedInt("+", 0, 1, 16));
+    } catch (NumberFormatException expected) {
+    }
+
+    try {
+      throw new AssertionError(Integer.parseUnsignedInt("+a", 0, 2, 10));
+    } catch (NumberFormatException expected) {
+    }
+
+    long overflow = 73709551616L;
+    for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
+      for (String prefix : new String[] {"", "x", "xxx"}) {
+        for (String postfix : new String[] {"", "x", "xxx"}) {
+          String overflowString = prefix + Long.toString(overflow, radix) + postfix;
+          int start = prefix.length();
+          int end = overflowString.length() - postfix.length();
+          try {
+            throw new AssertionError(Integer.parseUnsignedInt(overflowString, start, end, radix));
           } catch (NumberFormatException expected) {
           }
         }

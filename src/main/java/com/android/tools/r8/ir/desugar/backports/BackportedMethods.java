@@ -2597,6 +2597,53 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode IntegerMethods_parseUnsignedIntSubsequenceWithRadix(
+      InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(
+                        options.itemFactory.charSequenceType,
+                        options.itemFactory.intType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("subSequence")),
+                true),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.charSequenceType,
+                    options.itemFactory.createProto(options.itemFactory.stringType),
+                    options.itemFactory.createString("toString")),
+                true),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Integer;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.intType,
+                        options.itemFactory.stringType,
+                        options.itemFactory.intType),
+                    options.itemFactory.createString("parseUnsignedInt")),
+                false),
+            new CfReturn(ValueType.INT),
+            label1),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode IntegerMethods_parseUnsignedIntWithRadix(
       InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
