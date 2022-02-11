@@ -267,6 +267,7 @@ public class RootSetUtils {
           || rule instanceof KeepConstantArgumentRule
           || rule instanceof KeepUnusedReturnValueRule
           || rule instanceof NoMethodStaticizingRule
+          || rule instanceof NoParameterReorderingRule
           || rule instanceof NoParameterTypeStrengtheningRule
           || rule instanceof NoReturnTypeStrengtheningRule
           || rule instanceof KeepUnusedArgumentRule
@@ -1254,6 +1255,13 @@ public class RootSetUtils {
             .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
             .asMethodJoiner()
             .disallowMethodStaticizing();
+        context.markAsUsed();
+      } else if (context instanceof NoParameterReorderingRule) {
+        assert item.isProgramMethod();
+        dependentMinimumKeepInfo
+            .getOrCreateUnconditionalMinimumKeepInfoFor(item.getReference())
+            .asMethodJoiner()
+            .disallowParameterReordering();
         context.markAsUsed();
       } else if (context instanceof NoParameterTypeStrengtheningRule) {
         assert item.isProgramMethod();

@@ -28,6 +28,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   private final boolean allowConstantArgumentOptimization;
   private final boolean allowInlining;
   private final boolean allowMethodStaticizing;
+  private final boolean allowParameterReordering;
   private final boolean allowParameterTypeStrengthening;
   private final boolean allowReturnTypeStrengthening;
   private final boolean allowUnusedArgumentOptimization;
@@ -39,6 +40,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     this.allowConstantArgumentOptimization = builder.isConstantArgumentOptimizationAllowed();
     this.allowInlining = builder.isInliningAllowed();
     this.allowMethodStaticizing = builder.isMethodStaticizingAllowed();
+    this.allowParameterReordering = builder.isParameterReorderingAllowed();
     this.allowParameterTypeStrengthening = builder.isParameterTypeStrengtheningAllowed();
     this.allowReturnTypeStrengthening = builder.isReturnTypeStrengtheningAllowed();
     this.allowUnusedArgumentOptimization = builder.isUnusedArgumentOptimizationAllowed();
@@ -95,6 +97,16 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   boolean internalIsMethodStaticizingAllowed() {
     return allowMethodStaticizing;
+  }
+
+  public boolean isParameterReorderingAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration)
+        && isShrinkingAllowed(configuration)
+        && internalIsParameterReorderingAllowed();
+  }
+
+  boolean internalIsParameterReorderingAllowed() {
+    return allowParameterReordering;
   }
 
   public boolean isParameterTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -158,6 +170,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     private boolean allowConstantArgumentOptimization;
     private boolean allowInlining;
     private boolean allowMethodStaticizing;
+    private boolean allowParameterReordering;
     private boolean allowParameterTypeStrengthening;
     private boolean allowReturnTypeStrengthening;
     private boolean allowUnusedArgumentOptimization;
@@ -173,6 +186,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       allowConstantArgumentOptimization = original.internalIsConstantArgumentOptimizationAllowed();
       allowInlining = original.internalIsInliningAllowed();
       allowMethodStaticizing = original.internalIsMethodStaticizingAllowed();
+      allowParameterReordering = original.internalIsParameterReorderingAllowed();
       allowParameterTypeStrengthening = original.internalIsParameterTypeStrengtheningAllowed();
       allowReturnTypeStrengthening = original.internalIsReturnTypeStrengtheningAllowed();
       allowUnusedArgumentOptimization = original.internalIsUnusedArgumentOptimizationAllowed();
@@ -254,6 +268,25 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Builder disallowMethodStaticizing() {
       return setAllowMethodStaticizing(false);
+    }
+
+    // Parameter reordering.
+
+    public boolean isParameterReorderingAllowed() {
+      return allowParameterReordering;
+    }
+
+    public Builder setAllowParameterReordering(boolean allowParameterReordering) {
+      this.allowParameterReordering = allowParameterReordering;
+      return self();
+    }
+
+    public Builder allowParameterReordering() {
+      return setAllowParameterReordering(true);
+    }
+
+    public Builder disallowParameterReordering() {
+      return setAllowParameterReordering(false);
     }
 
     // Parameter type strengthening.
@@ -361,6 +394,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
               == other.internalIsConstantArgumentOptimizationAllowed()
           && isInliningAllowed() == other.internalIsInliningAllowed()
           && isMethodStaticizingAllowed() == other.internalIsMethodStaticizingAllowed()
+          && isParameterReorderingAllowed() == other.internalIsParameterReorderingAllowed()
           && isParameterTypeStrengtheningAllowed()
               == other.internalIsParameterTypeStrengtheningAllowed()
           && isReturnTypeStrengtheningAllowed() == other.internalIsReturnTypeStrengtheningAllowed()
@@ -382,6 +416,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
           .disallowConstantArgumentOptimization()
           .disallowInlining()
           .disallowMethodStaticizing()
+          .disallowParameterReordering()
           .disallowParameterTypeStrengthening()
           .disallowReturnTypeStrengthening()
           .disallowUnusedArgumentOptimization()
@@ -395,6 +430,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
           .allowConstantArgumentOptimization()
           .allowInlining()
           .allowMethodStaticizing()
+          .allowParameterReordering()
           .allowParameterTypeStrengthening()
           .allowReturnTypeStrengthening()
           .allowUnusedArgumentOptimization()
@@ -425,6 +461,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner disallowMethodStaticizing() {
       builder.disallowMethodStaticizing();
+      return self();
+    }
+
+    public Joiner disallowParameterReordering() {
+      builder.disallowParameterReordering();
       return self();
     }
 
@@ -463,6 +504,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
               Joiner::disallowConstantArgumentOptimization)
           .applyIf(!joiner.builder.isInliningAllowed(), Joiner::disallowInlining)
           .applyIf(!joiner.builder.isMethodStaticizingAllowed(), Joiner::disallowMethodStaticizing)
+          .applyIf(
+              !joiner.builder.isParameterReorderingAllowed(), Joiner::disallowParameterReordering)
           .applyIf(
               !joiner.builder.isParameterTypeStrengtheningAllowed(),
               Joiner::disallowParameterTypeStrengthening)

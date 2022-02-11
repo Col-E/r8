@@ -70,7 +70,10 @@ public class TreeShakingSpecificTest extends TestBase {
     testForR8(backend)
         .applyIf(
             backend.isCf(),
-            builder -> builder.addProgramFiles(getProgramFiles(test)),
+            builder ->
+                builder
+                    .addProgramFiles(getProgramFiles(test))
+                    .enableNoParameterTypeStrengtheningAnnotations(),
             builder -> builder.addProgramDexFileData(getProgramDexFileData(test)))
         .addKeepRuleFiles(Paths.get(EXAMPLES_DIR, test, "keep-rules.txt"))
         .addIgnoreWarnings()

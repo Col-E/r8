@@ -514,6 +514,12 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString(NoParameterReorderingRule.RULE_NAME)) {
+          ProguardConfigurationRule rule =
+              parseNoOptimizationRule(optionStart, NoParameterReorderingRule.builder());
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString(NoParameterTypeStrengtheningRule.RULE_NAME)) {
           ProguardConfigurationRule rule =
               parseNoOptimizationRule(optionStart, NoParameterTypeStrengtheningRule.builder());

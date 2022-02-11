@@ -474,6 +474,10 @@ public abstract class TestShrinkerBuilder<
     return addTestingAnnotation(NoMethodStaticizing.class);
   }
 
+  public final T addNoParameterReorderingAnnotation() {
+    return addTestingAnnotation(NoParameterReordering.class);
+  }
+
   public final T addNoParameterTypeStrengtheningAnnotation() {
     return addTestingAnnotation(NoParameterTypeStrengthening.class);
   }
