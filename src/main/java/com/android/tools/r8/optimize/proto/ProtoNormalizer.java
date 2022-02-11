@@ -172,7 +172,8 @@ public class ProtoNormalizer {
 
   private boolean isUnoptimizable(ProgramMethod method) {
     // TODO(b/195112263): This is incomplete.
-    return appView.getKeepInfo(method).isPinned(options);
+    return appView.getKeepInfo(method).isPinned(options)
+        || method.getDefinition().isLibraryMethodOverride().isPossiblyTrue();
   }
 
   static class GlobalReservationState {
