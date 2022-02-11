@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -38,7 +41,16 @@ public class BaseCompilerCommandParser<
           "  --force-pa[:[<class name>|<package name>...]]",
           "                          # Don't change javac generated assertion code. This",
           "                          # is the default handling of javac assertion code when",
-          "                          # generating class file format.");
+          "                          # generating class file format.",
+          "  --force-assertions-handler:<handler method>[:[<class name>|<package name>...]]",
+          "  --force-ah:<handler method>[:[<class name>|<package name>...]]",
+          "                          # Change javac and kotlinc generated assertion code to invoke",
+          "                          # the method <handler method> with each assertion error",
+          "                          # instead of throwing it. The <handler method> is specified"
+              + " as",
+          "                          # a class name followed by a dot and the method name. The",
+          "                          # handler method must take a single argument of type",
+          "                          # java.lang.Throwable and have return type void.");
 
   static final Iterable<String> THREAD_COUNT_USAGE_MESSAGE =
       Arrays.asList(
@@ -82,23 +94,54 @@ public class BaseCompilerCommandParser<
 
   private static String PACKAGE_ASSERTION_POSTFIX = "...";
 
+  private enum AssertionTransformationType {
+    ENABLE,
+    DISABLE,
+    PASSTHROUGH,
+    HANDLER
+  }
+
+  private AssertionsConfiguration.Builder prepareBuilderForScope(
+      AssertionsConfiguration.Builder builder,
+      AssertionTransformationType transformation,
+      MethodReference assertionHandler) {
+    switch (transformation) {
+      case ENABLE:
+        return builder.setCompileTimeEnable();
+      case DISABLE:
+        return builder.setCompileTimeDisable();
+      case PASSTHROUGH:
+        return builder.setPassthrough();
+      case HANDLER:
+        return builder.setAssertionHandler(assertionHandler);
+      default:
+        throw new Unreachable();
+    }
+  }
+
   private void addAssertionTransformation(
-      B builder, AssertionTransformation transformation, String scope) {
+      B builder,
+      AssertionTransformationType transformation,
+      MethodReference assertionHandler,
+      String scope) {
     if (scope == null) {
       builder.addAssertionsConfiguration(
-          b -> b.setTransformation(transformation).setScopeAll().build());
+          b -> prepareBuilderForScope(b, transformation, assertionHandler).setScopeAll().build());
     } else {
       assert scope.length() > 0;
       if (scope.endsWith(PACKAGE_ASSERTION_POSTFIX)) {
         builder.addAssertionsConfiguration(
             b ->
-                b.setTransformation(transformation)
+                prepareBuilderForScope(b, transformation, assertionHandler)
                     .setScopePackage(
                         scope.substring(0, scope.length() - PACKAGE_ASSERTION_POSTFIX.length()))
                     .build());
       } else {
         builder.addAssertionsConfiguration(
-            b -> b.setTransformation(transformation).setScopeClass(scope).build());
+            b ->
+                prepareBuilderForScope(b, transformation, assertionHandler)
+                    .setScopeClass(scope)
+                    .build());
       }
     }
   }
@@ -110,34 +153,78 @@ public class BaseCompilerCommandParser<
     String FORCE_DA = "--force-da";
     String FORCE_PASSTHROUGH_ASSERTIONS = "--force-passthrough-assertions";
     String FORCE_PA = "--force-pa";
+    String FORCE_ASSERTIONS_HANDLER = "--force-assertions-handler";
+    String FORCE_AH = "--force-ah";
 
-    AssertionTransformation transformation = null;
+    AssertionTransformationType transformation = null;
+    MethodReference assertionsHandler = null;
     String remaining = null;
     if (arg.startsWith(FORCE_ENABLE_ASSERTIONS)) {
-      transformation = AssertionTransformation.ENABLE;
+      transformation = AssertionTransformationType.ENABLE;
       remaining = arg.substring(FORCE_ENABLE_ASSERTIONS.length());
     } else if (arg.startsWith(FORCE_EA)) {
-      transformation = AssertionTransformation.ENABLE;
+      transformation = AssertionTransformationType.ENABLE;
       remaining = arg.substring(FORCE_EA.length());
     } else if (arg.startsWith(FORCE_DISABLE_ASSERTIONS)) {
-      transformation = AssertionTransformation.DISABLE;
+      transformation = AssertionTransformationType.DISABLE;
       remaining = arg.substring(FORCE_DISABLE_ASSERTIONS.length());
     } else if (arg.startsWith(FORCE_DA)) {
-      transformation = AssertionTransformation.DISABLE;
+      transformation = AssertionTransformationType.DISABLE;
       remaining = arg.substring(FORCE_DA.length());
     } else if (arg.startsWith(FORCE_PASSTHROUGH_ASSERTIONS)) {
-      transformation = AssertionTransformation.PASSTHROUGH;
+      transformation = AssertionTransformationType.PASSTHROUGH;
       remaining = arg.substring(FORCE_PASSTHROUGH_ASSERTIONS.length());
     } else if (arg.startsWith(FORCE_PA)) {
-      transformation = AssertionTransformation.PASSTHROUGH;
+      transformation = AssertionTransformationType.PASSTHROUGH;
       remaining = arg.substring(FORCE_PA.length());
+    } else if (arg.startsWith(FORCE_ASSERTIONS_HANDLER)) {
+      transformation = AssertionTransformationType.HANDLER;
+      remaining = arg.substring(FORCE_ASSERTIONS_HANDLER.length());
+    } else if (arg.startsWith(FORCE_AH)) {
+      transformation = AssertionTransformationType.HANDLER;
+      remaining = arg.substring(FORCE_AH.length());
+    }
+    if (transformation == AssertionTransformationType.HANDLER) {
+      if (remaining.length() == 0 || (remaining.length() == 1 && remaining.charAt(0) == ':')) {
+        throw builder.fatalError(
+            new StringDiagnostic("Missing required argument <handler method>", origin));
+      }
+      if (remaining.charAt(0) != ':') {
+        return false;
+      }
+      remaining = remaining.substring(1);
+      int index = remaining.indexOf(':');
+      if (index == 0) {
+        throw builder.fatalError(
+            new StringDiagnostic("Missing required argument <handler method>", origin));
+      }
+      String assertionsHandlerString = index > 0 ? remaining.substring(0, index) : remaining;
+      int lastDotIndex = assertionsHandlerString.lastIndexOf('.');
+      if (assertionsHandlerString.length() < 3
+          || lastDotIndex <= 0
+          || lastDotIndex == assertionsHandlerString.length() - 1
+          || !DescriptorUtils.isValidJavaType(assertionsHandlerString.substring(0, lastDotIndex))) {
+        throw builder.fatalError(
+            new StringDiagnostic(
+                "Invalid argument <handler method>: " + assertionsHandlerString, origin));
+      }
+      assertionsHandler =
+          Reference.methodFromDescriptor(
+              DescriptorUtils.javaTypeToDescriptor(
+                  assertionsHandlerString.substring(0, lastDotIndex)),
+              assertionsHandlerString.substring(lastDotIndex + 1),
+              "(Ljava/lang/Throwable;)V");
+      remaining = remaining.substring(assertionsHandlerString.length());
     }
     if (transformation != null) {
       if (remaining.length() == 0) {
-        addAssertionTransformation(builder, transformation, null);
+        addAssertionTransformation(builder, transformation, assertionsHandler, null);
         return true;
       } else {
-        if (remaining.length() == 1 || remaining.charAt(0) != ':') {
+        if (remaining.length() == 1 && remaining.charAt(0) == ':') {
+          throw builder.fatalError(new StringDiagnostic("Missing optional argument", origin));
+        }
+        if (remaining.charAt(0) != ':') {
           return false;
         }
         String classOrPackageScope = remaining.substring(1);
@@ -147,7 +234,8 @@ public class BaseCompilerCommandParser<
           builder.error(
               new StringDiagnostic("Illegal assertion scope: " + classOrPackageScope, origin));
         }
-        addAssertionTransformation(builder, transformation, remaining.substring(1));
+        addAssertionTransformation(
+            builder, transformation, assertionsHandler, remaining.substring(1));
         return true;
       }
     } else {

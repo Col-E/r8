@@ -21,6 +21,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -36,6 +37,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -717,6 +719,13 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
   }
 
+  private void checkSingleForceAllAssertion(
+      List<AssertionsConfiguration> entries, Function<AssertionsConfiguration, Boolean> check) {
+    assertEquals(1, entries.size());
+    assertTrue(check.apply(entries.get(0)));
+    assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
+  }
+
   private void checkSingleForceClassAndPackageAssertion(
       List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
     assertEquals(2, entries.size());
@@ -724,6 +733,19 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
     assertEquals("ClassName", entries.get(0).getValue());
     assertEquals(transformation, entries.get(1).getTransformation());
+    assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
+    assertEquals("PackageName", entries.get(1).getValue());
+  }
+
+  private void checkSingleForceClassAndPackageAssertion(
+      List<AssertionsConfiguration> entries,
+      Function<AssertionsConfiguration, Boolean> checkClass,
+      Function<AssertionsConfiguration, Boolean> checkPackage) {
+    assertEquals(2, entries.size());
+    assertTrue(checkClass.apply(entries.get(0)));
+    assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
+    assertEquals("ClassName", entries.get(0).getValue());
+    assertTrue(checkPackage.apply(entries.get(1)));
     assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
     assertEquals("PackageName", entries.get(1).getValue());
   }
@@ -753,6 +775,47 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
                 "--force-passthrough-assertions:PackageName...")
             .getAssertionsConfiguration(),
         AssertionTransformation.PASSTHROUGH);
+    checkSingleForceAllAssertion(
+        parse("--force-assertions-handler:com.example.MyHandler.handler")
+            .getAssertionsConfiguration(),
+        configuration ->
+            configuration.isAssertionHandler()
+                && configuration
+                    .getAssertionHandler()
+                    .getHolderClass()
+                    .equals(Reference.classFromDescriptor("Lcom/example/MyHandler;"))
+                && configuration.getAssertionHandler().getMethodName().equals("handler")
+                && configuration
+                    .getAssertionHandler()
+                    .getMethodDescriptor()
+                    .equals("(Ljava/lang/Throwable;)V"));
+    checkSingleForceClassAndPackageAssertion(
+        parse(
+                "--force-assertions-handler:com.example.MyHandler.handler1:ClassName",
+                "--force-assertions-handler:com.example.MyHandler.handler2:PackageName...")
+            .getAssertionsConfiguration(),
+        configuration ->
+            configuration.isAssertionHandler()
+                && configuration
+                    .getAssertionHandler()
+                    .getHolderClass()
+                    .equals(Reference.classFromDescriptor("Lcom/example/MyHandler;"))
+                && configuration.getAssertionHandler().getMethodName().equals("handler1")
+                && configuration
+                    .getAssertionHandler()
+                    .getMethodDescriptor()
+                    .equals("(Ljava/lang/Throwable;)V"),
+        configuration ->
+            configuration.isAssertionHandler()
+                && configuration
+                    .getAssertionHandler()
+                    .getHolderClass()
+                    .equals(Reference.classFromDescriptor("Lcom/example/MyHandler;"))
+                && configuration.getAssertionHandler().getMethodName().equals("handler2")
+                && configuration
+                    .getAssertionHandler()
+                    .getMethodDescriptor()
+                    .equals("(Ljava/lang/Throwable;)V"));
   }
 
   @Test(expected = CompilationFailedException.class)
