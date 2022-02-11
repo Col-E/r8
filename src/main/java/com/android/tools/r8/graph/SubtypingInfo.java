@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -49,11 +48,15 @@ public class SubtypingInfo {
   }
 
   public static SubtypingInfo create(AppInfoWithClassHierarchy appInfo) {
-    return create(appInfo.app().asDirect().allClasses(), appInfo);
+    DirectMappedDexApplication directApp = appInfo.app().asDirect();
+    return create(
+        Iterables.concat(
+            directApp.programClasses(), directApp.classpathClasses(), directApp.libraryClasses()),
+        appInfo);
   }
 
   public static SubtypingInfo create(
-      Collection<? extends DexClass> classes, DexDefinitionSupplier definitions) {
+      Iterable<? extends DexClass> classes, DexDefinitionSupplier definitions) {
     Map<DexType, TypeInfo> typeInfo = new ConcurrentHashMap<>();
     Map<DexType, Set<DexType>> subtypeMap = new IdentityHashMap<>();
     populateSubtypeMap(classes, subtypeMap, typeInfo, definitions);
@@ -117,7 +120,7 @@ public class SubtypingInfo {
   }
 
   private static void populateSubtypeMap(
-      Collection<? extends DexClass> classes,
+      Iterable<? extends DexClass> classes,
       Map<DexType, Set<DexType>> map,
       Map<DexType, TypeInfo> typeInfo,
       DexDefinitionSupplier definitionSupplier) {

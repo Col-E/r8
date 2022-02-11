@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -131,7 +132,7 @@ public class JarSizeCompare {
   }
 
   private Map<String, DexProgramClass> translateClassNames(
-      DexApplication input, List<DexProgramClass> classes) {
+      DexApplication input, Collection<DexProgramClass> classes) {
     Map<String, DexProgramClass> result = new HashMap<>();
     ClassNameMapper classNameMapper = input.getProguardMap();
     for (DexProgramClass programClass : classes) {

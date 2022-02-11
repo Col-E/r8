@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -62,7 +63,7 @@ public abstract class ClassConverter {
   private void internalConvertClasses(
       ClassConverterResult.Builder resultBuilder, ExecutorService executorService)
       throws ExecutionException {
-    List<DexProgramClass> classes = appView.appInfo().classes();
+    Collection<DexProgramClass> classes = appView.appInfo().classes();
 
       CfClassSynthesizerDesugaringEventConsumer classSynthesizerEventConsumer =
           new CfClassSynthesizerDesugaringEventConsumer();

@@ -89,7 +89,7 @@ public class TreePruner {
         .replaceProgramClasses(getNewProgramClasses(application.classesWithDeterministicOrder()));
   }
 
-  private List<DexProgramClass> getNewProgramClasses(List<DexProgramClass> classes) {
+  private List<DexProgramClass> getNewProgramClasses(Collection<DexProgramClass> classes) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
     List<DexProgramClass> newClasses = new ArrayList<>();

@@ -29,10 +29,10 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -124,7 +124,7 @@ class TreeFixer extends TreeFixerBase {
    * </ul>
    */
   public HorizontalClassMergerGraphLens fixupTypeReferences() {
-    List<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
+    Collection<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
     Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
     classes.forEach(this::fixupAttributes);
     classes.forEach(this::fixupProgramClassSuperTypes);

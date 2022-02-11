@@ -147,7 +147,7 @@ public abstract class ClassMap<T extends DexClass> {
     return loadedClasses;
   }
 
-  public Map<DexType, T> getAllClassesInMap() {
+  public ImmutableMap<DexType, T> getAllClassesInMap() {
     if (classProvider.get() != null) {
       throw new Unreachable("Getting all classes from not fully loaded collection.");
     }
