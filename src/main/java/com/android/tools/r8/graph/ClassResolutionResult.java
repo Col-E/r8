@@ -43,6 +43,12 @@ public interface ClassResolutionResult {
       return this;
     }
 
+    public Builder add(ProgramOrClasspathClass programOrClasspathClass) {
+      assert this.programOrClasspathClass == null;
+      this.programOrClasspathClass = programOrClasspathClass;
+      return this;
+    }
+
     public ClassResolutionResult build() {
       if (programOrClasspathClass == null && libraryClass == null) {
         return noResult();

@@ -383,7 +383,7 @@ public class ApplicationWriter {
       return OriginalSourceFiles.unreachable();
     }
     // Clear all source files so as not to collect the original files.
-    List<DexProgramClass> classes = appView.appInfo().classes();
+    Collection<DexProgramClass> classes = appView.appInfo().classes();
     Map<DexType, DexString> originalSourceFiles = new HashMap<>(classes.size());
     for (DexProgramClass clazz : classes) {
       DexString originalSourceFile = clazz.getSourceFile();

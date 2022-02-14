@@ -10,17 +10,19 @@ import static com.android.tools.r8.graph.ClassResolutionResult.NoResolutionResul
 
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
-import com.android.tools.r8.graph.classmerging.MergedClasses;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class DirectMappedDexApplication extends DexApplication {
 
@@ -29,63 +31,86 @@ public class DirectMappedDexApplication extends DexApplication {
   private final Map<Code, DexEncodedMethod> codeOwners = new IdentityHashMap<>();
 
   // Unmodifiable mapping of all types to their definitions.
-  private final Map<DexType, DexClass> allClasses;
-  // Collections of the three different types for iteration.
-  private final ImmutableList<DexProgramClass> programClasses;
-  private final ImmutableList<DexClasspathClass> classpathClasses;
-  private final ImmutableList<DexLibraryClass> libraryClasses;
+  private final ImmutableMap<DexType, ProgramOrClasspathClass> programOrClasspathClasses;
+  private final ImmutableMap<DexType, DexLibraryClass> libraryClasses;
+
+  // Collections of different types for iteration.
+  private final ImmutableCollection<DexProgramClass> programClasses;
+  private final ImmutableCollection<DexClasspathClass> classpathClasses;
 
   private DirectMappedDexApplication(
       ClassNameMapper proguardMap,
       DexApplicationReadFlags flags,
-      Map<DexType, DexClass> allClasses,
-      ImmutableList<DexProgramClass> programClasses,
-      ImmutableList<DexClasspathClass> classpathClasses,
-      ImmutableList<DexLibraryClass> libraryClasses,
+      ImmutableMap<DexType, ProgramOrClasspathClass> programOrClasspathClasses,
+      ImmutableMap<DexType, DexLibraryClass> libraryClasses,
+      ImmutableCollection<DexProgramClass> programClasses,
+      ImmutableCollection<DexClasspathClass> classpathClasses,
       ImmutableList<DataResourceProvider> dataResourceProviders,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
     super(proguardMap, flags, dataResourceProviders, options, highestSortingString, timing);
-    this.allClasses = Collections.unmodifiableMap(allClasses);
+    this.programOrClasspathClasses = programOrClasspathClasses;
+    this.libraryClasses = libraryClasses;
     this.programClasses = programClasses;
     this.classpathClasses = classpathClasses;
-    this.libraryClasses = libraryClasses;
   }
 
-  public Collection<DexClass> allClasses() {
-    return allClasses.values();
-  }
-
-  public List<DexClasspathClass> classpathClasses() {
+  public Collection<DexClasspathClass> classpathClasses() {
     return classpathClasses;
   }
 
   @Override
-  List<DexProgramClass> programClasses() {
+  Collection<DexProgramClass> programClasses() {
     return programClasses;
   }
 
-  public List<DexLibraryClass> libraryClasses() {
-    return libraryClasses;
+  public Collection<DexLibraryClass> libraryClasses() {
+    return libraryClasses.values();
   }
 
   @Override
   public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
-    DexClass foundClass = definitionFor(type);
-    return foundClass == null ? noResult() : foundClass;
+    assert type.isClassType() : "Cannot lookup definition for type: " + type;
+    DexLibraryClass libraryClass = libraryClasses.get(type);
+    ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
+    if (libraryClass == null && programOrClasspathClass == null) {
+      return noResult();
+    } else if (libraryClass != null && programOrClasspathClass == null) {
+      return libraryClass;
+    } else if (libraryClass == null) {
+      return programOrClasspathClass.asDexClass();
+    } else {
+      return ClassResolutionResult.builder().add(libraryClass).add(programOrClasspathClass).build();
+    }
   }
 
   @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
-    return allClasses.get(type);
+    if (options.lookupLibraryBeforeProgram) {
+      DexLibraryClass libraryClass = libraryClasses.get(type);
+      if (libraryClass != null) {
+        return libraryClass;
+      }
+      ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
+      return programOrClasspathClass != null ? programOrClasspathClass.asDexClass() : null;
+    } else {
+      ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
+      if (programOrClasspathClass != null && programOrClasspathClass.isProgramClass()) {
+        return programOrClasspathClass.asDexClass();
+      }
+      DexLibraryClass libraryClass = libraryClasses.get(type);
+      return libraryClass != null
+          ? libraryClass
+          : (programOrClasspathClass == null ? null : programOrClasspathClass.asDexClass());
+    }
   }
 
   @Override
   public DexProgramClass programDefinitionFor(DexType type) {
-    // The direct mapped application has no duplicates so this coincides with definitionFor.
-    return DexProgramClass.asProgramClassOrNull(definitionFor(type));
+    ProgramOrClasspathClass programOrClasspathClass = programOrClasspathClasses.get(type);
+    return programOrClasspathClass == null ? null : programOrClasspathClass.asProgramClass();
   }
 
   @Override
@@ -119,21 +144,8 @@ public class DirectMappedDexApplication extends DexApplication {
     return true;
   }
 
-  public boolean verifyNothingToRewrite(AppView<?> appView, GraphLens lens) {
-    assert allClasses.keySet().stream()
-        .allMatch(
-            type ->
-                lens.lookupType(type) == type
-                    || MergedClasses.hasBeenMergedIntoDifferentType(
-                        appView.verticallyMergedClasses(), type)
-                    || MergedClasses.hasBeenMergedIntoDifferentType(
-                        appView.horizontallyMergedClasses(), type));
-    assert verifyCodeObjectsOwners();
-    return true;
-  }
-
   private boolean mappingIsValid(
-      List<DexProgramClass> classesBeforeLensApplication, GraphLens lens) {
+      Collection<DexProgramClass> classesBeforeLensApplication, GraphLens lens) {
     // The lens might either map to a different type that is already present in the application
     // (e.g. relinking a type) or it might encode a type that was renamed, in which case the
     // original type will point to a definition that was renamed.
@@ -188,19 +200,19 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public static class Builder extends DexApplication.Builder<Builder> {
 
-    private ImmutableList<DexClasspathClass> classpathClasses;
-    private ImmutableList<DexLibraryClass> libraryClasses;
+    private ImmutableCollection<DexClasspathClass> classpathClasses;
+    private Map<DexType, DexLibraryClass> libraryClasses;
 
     private final List<DexClasspathClass> pendingClasspathClasses = new ArrayList<>();
+    private final Set<DexType> pendingClasspathRemovalIfPresent = Sets.newIdentityHashSet();
 
     Builder(LazyLoadedDexApplication application) {
       super(application);
       // As a side-effect, this will force-load all classes.
       AllClasses allClasses = application.loadAllClasses();
-      classpathClasses = allClasses.getClasspathClasses();
+      classpathClasses = allClasses.getClasspathClasses().values();
       libraryClasses = allClasses.getLibraryClasses();
-      replaceProgramClasses(allClasses.getProgramClasses());
-      replaceClasspathClasses(allClasses.getClasspathClasses());
+      replaceProgramClasses(allClasses.getProgramClasses().values());
     }
 
     private Builder(DirectMappedDexApplication application) {
@@ -222,32 +234,17 @@ public class DirectMappedDexApplication extends DexApplication {
     @Override
     public void addProgramClassPotentiallyOverridingNonProgramClass(DexProgramClass clazz) {
       addProgramClass(clazz);
-      if (containsType(clazz.type, libraryClasses)) {
-        replaceLibraryClasses(withoutType(clazz.type, libraryClasses));
-        return;
-      }
-      if (containsType(clazz.type, classpathClasses)) {
-        replaceClasspathClasses(withoutType(clazz.type, classpathClasses));
+      pendingClasspathRemovalIfPresent.add(clazz.type);
+      if (libraryClasses.containsKey(clazz.type)) {
+        ensureMutableLibraryClassesMap();
+        libraryClasses.remove(clazz.type);
       }
     }
 
-    private boolean containsType(DexType type, List<? extends DexClass> classes) {
-      for (DexClass clazz : classes) {
-        if (clazz.type == type) {
-          return true;
-        }
+    private void ensureMutableLibraryClassesMap() {
+      if (!(libraryClasses instanceof IdentityHashMap)) {
+        libraryClasses = new IdentityHashMap<>(libraryClasses);
       }
-      return false;
-    }
-
-    private <T extends DexClass> ImmutableList<T> withoutType(DexType type, List<T> classes) {
-      ImmutableList.Builder<T> builder = ImmutableList.builder();
-      for (T clazz : classes) {
-        if (clazz.type != type) {
-          builder.add(clazz);
-        }
-      }
-      return builder.build();
     }
 
     @Override
@@ -257,11 +254,6 @@ public class DirectMappedDexApplication extends DexApplication {
 
     public Builder addClasspathClass(DexClasspathClass clazz) {
       pendingClasspathClasses.add(clazz);
-      return self();
-    }
-
-    public Builder addClasspathClasses(Collection<DexClasspathClass> classes) {
-      pendingClasspathClasses.addAll(classes);
       return self();
     }
 
@@ -276,11 +268,6 @@ public class DirectMappedDexApplication extends DexApplication {
       }
     }
 
-    public List<DexClasspathClass> getClasspathClasses() {
-      commitPendingClasspathClasses();
-      return classpathClasses;
-    }
-
     public Builder replaceClasspathClasses(Collection<DexClasspathClass> newClasspathClasses) {
       assert newClasspathClasses != null;
       classpathClasses = ImmutableList.copyOf(newClasspathClasses);
@@ -289,13 +276,9 @@ public class DirectMappedDexApplication extends DexApplication {
     }
 
     public Builder replaceLibraryClasses(Collection<DexLibraryClass> libraryClasses) {
-      this.libraryClasses = ImmutableList.copyOf(libraryClasses);
-      return self();
-    }
-
-    public Builder addLibraryClasses(Collection<DexLibraryClass> classes) {
-      libraryClasses =
-          ImmutableList.<DexLibraryClass>builder().addAll(libraryClasses).addAll(classes).build();
+      ImmutableMap.Builder<DexType, DexLibraryClass> builder = ImmutableMap.builder();
+      libraryClasses.forEach(clazz -> builder.put(clazz.type, clazz));
+      this.libraryClasses = builder.build();
       return self();
     }
 
@@ -303,33 +286,56 @@ public class DirectMappedDexApplication extends DexApplication {
     public DirectMappedDexApplication build() {
       // Rebuild the map. This will fail if keys are not unique.
       // TODO(zerny): Consider not rebuilding the map if no program classes are added.
-      Map<DexType, DexClass> allClasses =
-          new IdentityHashMap<>(
-              getProgramClasses().size() + getClasspathClasses().size() + libraryClasses.size());
+      commitPendingClasspathClasses();
+      Map<DexType, ProgramOrClasspathClass> programAndClasspathClasses =
+          new IdentityHashMap<>(getProgramClasses().size() + classpathClasses.size());
       // Note: writing classes in reverse priority order, so a duplicate will be correctly ordered.
-      // There should never be duplicates and that is asserted in the addAll subroutine.
-      addAll(allClasses, libraryClasses);
-      addAll(allClasses, getClasspathClasses());
-      addAll(allClasses, getProgramClasses());
+      // There should not be duplicates between program and classpath and that is asserted in the
+      // addAll subroutine.
+      ImmutableCollection<DexClasspathClass> newClasspathClasses = classpathClasses;
+      if (addAll(programAndClasspathClasses, classpathClasses)) {
+        ImmutableList.Builder<DexClasspathClass> builder = ImmutableList.builder();
+        for (DexClasspathClass classpathClass : classpathClasses) {
+          if (!pendingClasspathRemovalIfPresent.contains(classpathClass.getType())) {
+            builder.add(classpathClass);
+          }
+        }
+        newClasspathClasses = builder.build();
+      }
+      addAll(programAndClasspathClasses, getProgramClasses());
       return new DirectMappedDexApplication(
           proguardMap,
           flags,
-          allClasses,
+          ImmutableMap.copyOf(programAndClasspathClasses),
+          getLibraryClassesAsImmutableMap(),
           ImmutableList.copyOf(getProgramClasses()),
-          ImmutableList.copyOf(getClasspathClasses()),
-          libraryClasses,
+          newClasspathClasses,
           ImmutableList.copyOf(dataResourceProviders),
           options,
           highestSortingString,
           timing);
     }
-  }
 
-  private static <T extends DexClass> void addAll(
-      Map<DexType, DexClass> allClasses, Iterable<T> toAdd) {
-    for (DexClass clazz : toAdd) {
-      DexClass old = allClasses.put(clazz.type, clazz);
-      assert old == null : "Class " + old.type.toString() + " was already present.";
+    private <T extends ProgramOrClasspathClass> boolean addAll(
+        Map<DexType, ProgramOrClasspathClass> allClasses, Iterable<T> toAdd) {
+      boolean seenRemoved = false;
+      for (T clazz : toAdd) {
+        if (clazz.isProgramClass() || !pendingClasspathRemovalIfPresent.contains(clazz.getType())) {
+          ProgramOrClasspathClass old = allClasses.put(clazz.getType(), clazz);
+          assert old == null : "Class " + old.getType().toString() + " was already present.";
+        } else {
+          seenRemoved = true;
+        }
+      }
+      return seenRemoved;
+    }
+
+    private ImmutableMap<DexType, DexLibraryClass> getLibraryClassesAsImmutableMap() {
+      if (libraryClasses instanceof ImmutableMap) {
+        return (ImmutableMap<DexType, DexLibraryClass>) libraryClasses;
+      } else {
+        return ImmutableMap.copyOf(libraryClasses);
+      }
     }
   }
 }

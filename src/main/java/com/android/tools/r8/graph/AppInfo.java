@@ -11,7 +11,7 @@ import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -122,12 +122,12 @@ public class AppInfo implements DexDefinitionSupplier {
     return syntheticItems;
   }
 
-  public List<DexProgramClass> classes() {
+  public Collection<DexProgramClass> classes() {
     assert checkIfObsolete();
     return app.classes();
   }
 
-  public List<DexProgramClass> classesWithDeterministicOrder() {
+  public Collection<DexProgramClass> classesWithDeterministicOrder() {
     assert checkIfObsolete();
     return app.classesWithDeterministicOrder();
   }

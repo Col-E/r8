@@ -26,6 +26,7 @@ import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -106,7 +107,7 @@ public class GenericSignatureCorrectnessHelper {
     return new GenericSignatureCorrectnessHelper(appView, contextBuilder, Mode.VERIFY);
   }
 
-  public SignatureEvaluationResult run(List<DexProgramClass> programClasses) {
+  public SignatureEvaluationResult run(Collection<DexProgramClass> programClasses) {
     if (appView.options().disableGenericSignatureValidation
         || !appView.options().parseSignatureAttribute()) {
       return VALID;
