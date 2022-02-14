@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ImmediateProgramSubtypingInfo;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepMethodInfo;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.classhierarchy.MethodOverridesCollector;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
@@ -57,14 +59,17 @@ public abstract class CallSiteInformation {
     private final Set<DexMethod> multiCallerInlineCandidates = Sets.newIdentityHashSet();
 
     CallGraphBasedCallSiteInformation(AppView<AppInfoWithLiveness> appView, CallGraph graph) {
+      InternalOptions options = appView.options();
       ProgramMethodSet pinned =
           MethodOverridesCollector.findAllMethodsAndOverridesThatMatches(
               appView,
               ImmediateProgramSubtypingInfo.create(appView),
               appView.appInfo().classes(),
-              method ->
-                  appView.getKeepInfo(method).isPinned(appView.options())
-                      || appView.appInfo().isMethodTargetedByInvokeDynamic(method));
+              method -> {
+                KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+                return !keepInfo.isClosedWorldReasoningAllowed(options)
+                    || keepInfo.isPinned(options);
+              });
 
       for (Node node : graph.getNodes()) {
         ProgramMethod method = node.getProgramMethod();

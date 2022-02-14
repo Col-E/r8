@@ -22,8 +22,7 @@ public class ParameterRemovalUtils {
     if (!appView.getKeepInfo(method).isUnusedArgumentOptimizationAllowed(options)) {
       return false;
     }
-    return method.getDefinition().isLibraryMethodOverride().isFalse()
-        && !appView.appInfoWithLiveness().isMethodTargetedByInvokeDynamic(method);
+    return method.getDefinition().isLibraryMethodOverride().isFalse();
   }
 
   public static boolean canRemoveUnusedParameter(

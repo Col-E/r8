@@ -112,8 +112,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
    */
   private final Set<DexMethod> bootstrapMethods;
 
-  /** Set of methods that are the immediate target of an invoke-dynamic. */
-  private final Set<DexMethod> methodsTargetedByInvokeDynamic;
   /** Set of virtual methods that are the immediate target of an invoke-direct. */
   private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect;
   /**
@@ -210,7 +208,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       Set<DexMethod> failedMethodResolutionTargets,
       Set<DexField> failedFieldResolutionTargets,
       Set<DexMethod> bootstrapMethods,
-      Set<DexMethod> methodsTargetedByInvokeDynamic,
       Set<DexMethod> virtualMethodsTargetedByInvokeDirect,
       Set<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
@@ -245,7 +242,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.failedMethodResolutionTargets = failedMethodResolutionTargets;
     this.failedFieldResolutionTargets = failedFieldResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
-    this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
@@ -288,7 +284,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         previous.failedMethodResolutionTargets,
         previous.failedFieldResolutionTargets,
         previous.bootstrapMethods,
-        previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
         previous.liveMethods,
         previous.fieldAccessInfoCollection,
@@ -334,8 +329,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         pruneMethods(previous.failedMethodResolutionTargets, prunedItems, executorService, futures),
         pruneFields(previous.failedFieldResolutionTargets, prunedItems, executorService, futures),
         pruneMethods(previous.bootstrapMethods, prunedItems, executorService, futures),
-        pruneMethods(
-            previous.methodsTargetedByInvokeDynamic, prunedItems, executorService, futures),
         pruneMethods(
             previous.virtualMethodsTargetedByInvokeDirect, prunedItems, executorService, futures),
         pruneMethods(previous.liveMethods, prunedItems, executorService, futures),
@@ -541,7 +534,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         failedMethodResolutionTargets,
         failedFieldResolutionTargets,
         bootstrapMethods,
-        methodsTargetedByInvokeDynamic,
         virtualMethodsTargetedByInvokeDirect,
         liveMethods,
         fieldAccessInfoCollection,
@@ -621,7 +613,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     this.failedMethodResolutionTargets = previous.failedMethodResolutionTargets;
     this.failedFieldResolutionTargets = previous.failedFieldResolutionTargets;
     this.bootstrapMethods = previous.bootstrapMethods;
-    this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = previous.liveMethods;
     this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection;
@@ -743,14 +734,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
 
   public boolean isBootstrapMethod(ProgramMethod method) {
     return isBootstrapMethod(method.getReference());
-  }
-
-  public boolean isMethodTargetedByInvokeDynamic(DexMethod method) {
-    return methodsTargetedByInvokeDynamic.contains(method);
-  }
-
-  public boolean isMethodTargetedByInvokeDynamic(ProgramMethod method) {
-    return isMethodTargetedByInvokeDynamic(method.getReference());
   }
 
   public Set<DexMethod> getVirtualMethodsTargetedByInvokeDirect() {
@@ -1232,7 +1215,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         lens.rewriteReferences(failedMethodResolutionTargets),
         lens.rewriteReferences(failedFieldResolutionTargets),
         lens.rewriteReferences(bootstrapMethods),
-        lens.rewriteReferences(methodsTargetedByInvokeDynamic),
         lens.rewriteReferences(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteReferences(liveMethods),
         fieldAccessInfoCollection.rewrittenWithLens(definitionSupplier, lens),

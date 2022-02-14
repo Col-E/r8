@@ -67,7 +67,6 @@ public class ArgumentPropagatorUnoptimizableMethods {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
     return method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
-        || appInfo.isMethodTargetedByInvokeDynamic(method)
         || !appInfo.getKeepInfo().getMethodInfo(method).isArgumentPropagationAllowed(options);
   }
 }

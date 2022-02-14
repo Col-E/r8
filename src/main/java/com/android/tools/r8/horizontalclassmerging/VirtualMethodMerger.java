@@ -23,6 +23,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class VirtualMethodMerger {
 
@@ -224,7 +225,8 @@ public class VirtualMethodMerger {
   public void merge(
       ClassMethodsBuilder classMethodsBuilder,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
-      Reference2IntMap<DexType> classIdentifiers) {
+      Reference2IntMap<DexType> classIdentifiers,
+      Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     assert !methods.isEmpty();
 
     // Handle trivial merges.
@@ -284,13 +286,20 @@ public class VirtualMethodMerger {
     }
 
     // Map each old non-abstract method to the newly synthesized method in the graph lens.
+    VirtuallyMergedMethodsKeepInfo virtuallyMergedMethodsKeepInfo =
+        new VirtuallyMergedMethodsKeepInfo(representative.getReference());
     for (ProgramMethod oldMethod : methods) {
       lensBuilder.mapMethod(oldMethod.getReference(), newMethodReference);
+      virtuallyMergedMethodsKeepInfo.amendKeepInfo(appView.getKeepInfo(oldMethod));
     }
 
     // Add a mapping from a synthetic name to the synthetic merged method.
     lensBuilder.recordNewMethodSignature(bridgeMethodReference, newMethodReference);
 
     classMethodsBuilder.addVirtualMethod(newMethod);
+
+    if (!virtuallyMergedMethodsKeepInfo.getKeepInfo().isBottom()) {
+      virtuallyMergedMethodsKeepInfoConsumer.accept(virtuallyMergedMethodsKeepInfo);
+    }
   }
 }

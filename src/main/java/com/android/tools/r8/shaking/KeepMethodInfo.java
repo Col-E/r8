@@ -25,6 +25,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   private final boolean allowClassInlining;
+  private final boolean allowClosedWorldReasoning;
   private final boolean allowConstantArgumentOptimization;
   private final boolean allowInlining;
   private final boolean allowMethodStaticizing;
@@ -37,6 +38,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   private KeepMethodInfo(Builder builder) {
     super(builder);
     this.allowClassInlining = builder.isClassInliningAllowed();
+    this.allowClosedWorldReasoning = builder.isClosedWorldReasoningAllowed();
     this.allowConstantArgumentOptimization = builder.isConstantArgumentOptimizationAllowed();
     this.allowInlining = builder.isInliningAllowed();
     this.allowMethodStaticizing = builder.isMethodStaticizingAllowed();
@@ -59,7 +61,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isParameterRemovalAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && !isCheckDiscardedEnabled(configuration);
   }
@@ -70,6 +73,14 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
   boolean internalIsClassInliningAllowed() {
     return allowClassInlining;
+  }
+
+  public boolean isClosedWorldReasoningAllowed(GlobalKeepInfoConfiguration configuration) {
+    return isOptimizationAllowed(configuration) && internalIsClosedWorldReasoningAllowed();
+  }
+
+  boolean internalIsClosedWorldReasoningAllowed() {
+    return allowClosedWorldReasoning;
   }
 
   public boolean isConstantArgumentOptimizationAllowed(GlobalKeepInfoConfiguration configuration) {
@@ -89,7 +100,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isMethodStaticizingAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && configuration.isMethodStaticizingEnabled()
         && internalIsMethodStaticizingAllowed();
@@ -100,7 +112,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isParameterReorderingAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && internalIsParameterReorderingAllowed();
   }
@@ -110,7 +123,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isParameterTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && internalIsParameterTypeStrengtheningAllowed();
   }
@@ -120,7 +134,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isReturnTypeStrengtheningAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && internalIsReturnTypeStrengtheningAllowed();
   }
@@ -130,7 +145,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isUnusedArgumentOptimizationAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && internalIsUnusedArgumentOptimizationAllowed();
   }
@@ -140,7 +156,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   }
 
   public boolean isUnusedReturnValueOptimizationAllowed(GlobalKeepInfoConfiguration configuration) {
-    return isOptimizationAllowed(configuration)
+    return isClosedWorldReasoningAllowed(configuration)
+        && isOptimizationAllowed(configuration)
         && isShrinkingAllowed(configuration)
         && internalIsUnusedReturnValueOptimizationAllowed();
   }
@@ -167,6 +184,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
   public static class Builder extends KeepInfo.Builder<Builder, KeepMethodInfo> {
 
     private boolean allowClassInlining;
+    private boolean allowClosedWorldReasoning;
     private boolean allowConstantArgumentOptimization;
     private boolean allowInlining;
     private boolean allowMethodStaticizing;
@@ -183,6 +201,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     private Builder(KeepMethodInfo original) {
       super(original);
       allowClassInlining = original.internalIsClassInliningAllowed();
+      allowClosedWorldReasoning = original.internalIsClosedWorldReasoningAllowed();
       allowConstantArgumentOptimization = original.internalIsConstantArgumentOptimizationAllowed();
       allowInlining = original.internalIsInliningAllowed();
       allowMethodStaticizing = original.internalIsMethodStaticizingAllowed();
@@ -211,6 +230,25 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Builder disallowClassInlining() {
       return setAllowClassInlining(false);
+    }
+
+    // Closed world reasoning.
+
+    public boolean isClosedWorldReasoningAllowed() {
+      return allowClosedWorldReasoning;
+    }
+
+    public Builder setAllowClosedWorldReasoning(boolean allowClosedWorldReasoning) {
+      this.allowClosedWorldReasoning = allowClosedWorldReasoning;
+      return self();
+    }
+
+    public Builder allowClosedWorldReasoning() {
+      return setAllowClosedWorldReasoning(true);
+    }
+
+    public Builder disallowClosedWorldReasoning() {
+      return setAllowClosedWorldReasoning(false);
     }
 
     // Constant argument optimization.
@@ -390,6 +428,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     boolean internalIsEqualTo(KeepMethodInfo other) {
       return super.internalIsEqualTo(other)
           && isClassInliningAllowed() == other.internalIsClassInliningAllowed()
+          && isClosedWorldReasoningAllowed() == other.internalIsClosedWorldReasoningAllowed()
           && isConstantArgumentOptimizationAllowed()
               == other.internalIsConstantArgumentOptimizationAllowed()
           && isInliningAllowed() == other.internalIsInliningAllowed()
@@ -413,6 +452,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     public Builder makeTop() {
       return super.makeTop()
           .disallowClassInlining()
+          .disallowClosedWorldReasoning()
           .disallowConstantArgumentOptimization()
           .disallowInlining()
           .disallowMethodStaticizing()
@@ -427,6 +467,7 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
     public Builder makeBottom() {
       return super.makeBottom()
           .allowClassInlining()
+          .allowClosedWorldReasoning()
           .allowConstantArgumentOptimization()
           .allowInlining()
           .allowMethodStaticizing()
@@ -446,6 +487,11 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
 
     public Joiner disallowClassInlining() {
       builder.disallowClassInlining();
+      return self();
+    }
+
+    public Joiner disallowClosedWorldReasoning() {
+      builder.disallowClosedWorldReasoning();
       return self();
     }
 
@@ -499,6 +545,8 @@ public final class KeepMethodInfo extends KeepMemberInfo<KeepMethodInfo.Builder,
       // Should be extended to merge the fields of this class in case any are added.
       return super.merge(joiner)
           .applyIf(!joiner.builder.isClassInliningAllowed(), Joiner::disallowClassInlining)
+          .applyIf(
+              !joiner.builder.isClosedWorldReasoningAllowed(), Joiner::disallowClosedWorldReasoning)
           .applyIf(
               !joiner.builder.isConstantArgumentOptimizationAllowed(),
               Joiner::disallowConstantArgumentOptimization)

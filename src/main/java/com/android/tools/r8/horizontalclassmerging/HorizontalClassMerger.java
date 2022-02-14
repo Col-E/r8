@@ -4,12 +4,18 @@
 
 package com.android.tools.r8.horizontalclassmerging;
 
+import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
+
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConverter;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
@@ -24,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public class HorizontalClassMerger {
 
@@ -104,9 +111,13 @@ public class HorizontalClassMerger {
             : null;
     SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder =
         SyntheticInitializerConverter.builder(appView, codeProvider);
+    List<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfos = new ArrayList<>();
     PrunedItems prunedItems =
         applyClassMergers(
-            classMergers, syntheticArgumentClass, syntheticInitializerConverterBuilder);
+            classMergers,
+            syntheticArgumentClass,
+            syntheticInitializerConverterBuilder,
+            virtuallyMergedMethodsKeepInfos::add);
 
     SyntheticInitializerConverter syntheticInitializerConverter =
         syntheticInitializerConverterBuilder.build();
@@ -144,6 +155,37 @@ public class HorizontalClassMerger {
 
     appView.pruneItems(
         prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService);
+
+    amendKeepInfo(horizontalClassMergerGraphLens, virtuallyMergedMethodsKeepInfos);
+  }
+
+  private void amendKeepInfo(
+      HorizontalClassMergerGraphLens horizontalClassMergerGraphLens,
+      List<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfos) {
+    appView
+        .getKeepInfo()
+        .mutate(
+            keepInfo -> {
+              for (VirtuallyMergedMethodsKeepInfo virtuallyMergedMethodsKeepInfo :
+                  virtuallyMergedMethodsKeepInfos) {
+                DexMethod representative = virtuallyMergedMethodsKeepInfo.getRepresentative();
+                MethodLookupResult lookupResult =
+                    horizontalClassMergerGraphLens.lookupMethod(
+                        representative,
+                        null,
+                        Type.VIRTUAL,
+                        horizontalClassMergerGraphLens.getPrevious());
+                ProgramMethod mergedMethod =
+                    asProgramMethodOrNull(appView.definitionFor(lookupResult.getReference()));
+                if (mergedMethod != null) {
+                  keepInfo.joinMethod(
+                      mergedMethod,
+                      info -> info.merge(virtuallyMergedMethodsKeepInfo.getKeepInfo()));
+                  continue;
+                }
+                assert false;
+              }
+            });
   }
 
   private FieldAccessInfoCollectionModifier createFieldAccessInfoCollectionModifier(
@@ -245,11 +287,15 @@ public class HorizontalClassMerger {
   private PrunedItems applyClassMergers(
       Collection<ClassMerger> classMergers,
       SyntheticArgumentClass syntheticArgumentClass,
-      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
+      Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     PrunedItems.Builder prunedItemsBuilder = PrunedItems.builder().setPrunedApp(appView.app());
     for (ClassMerger merger : classMergers) {
       merger.mergeGroup(
-          prunedItemsBuilder, syntheticArgumentClass, syntheticInitializerConverterBuilder);
+          prunedItemsBuilder,
+          syntheticArgumentClass,
+          syntheticInitializerConverterBuilder,
+          virtuallyMergedMethodsKeepInfoConsumer);
     }
     return prunedItemsBuilder.build();
   }

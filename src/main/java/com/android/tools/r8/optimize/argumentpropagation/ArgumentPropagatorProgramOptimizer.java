@@ -420,7 +420,6 @@ public class ArgumentPropagatorProgramOptimizer {
       return appView.getKeepInfo(method).isParameterRemovalAllowed(options)
           && !method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()
           && !appView.appInfo().isBootstrapMethod(method)
-          && !appView.appInfo().isMethodTargetedByInvokeDynamic(method)
           && !interfaceDispatchOutsideProgram.contains(method);
     }
 

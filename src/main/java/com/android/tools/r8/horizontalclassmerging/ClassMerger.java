@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * The class merger is responsible for moving methods from the sources in {@link ClassMerger#group}
@@ -195,15 +196,22 @@ public class ClassMerger {
 
   void mergeMethods(
       SyntheticArgumentClass syntheticArgumentClass,
-      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
-    mergeVirtualMethods();
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
+      Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
+    mergeVirtualMethods(virtuallyMergedMethodsKeepInfoConsumer);
     mergeDirectMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
     classMethodsBuilder.setClassMethods(group.getTarget());
   }
 
-  void mergeVirtualMethods() {
+  void mergeVirtualMethods(
+      Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     virtualMethodMergers.forEach(
-        merger -> merger.merge(classMethodsBuilder, lensBuilder, classIdentifiers));
+        merger ->
+            merger.merge(
+                classMethodsBuilder,
+                lensBuilder,
+                classIdentifiers,
+                virtuallyMergedMethodsKeepInfoConsumer));
     group.forEachSource(clazz -> clazz.getMethodCollection().clearVirtualMethods());
   }
 
@@ -318,13 +326,17 @@ public class ClassMerger {
   public void mergeGroup(
       PrunedItems.Builder prunedItemsBuilder,
       SyntheticArgumentClass syntheticArgumentClass,
-      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder) {
+      SyntheticInitializerConverter.Builder syntheticInitializerConverterBuilder,
+      Consumer<VirtuallyMergedMethodsKeepInfo> virtuallyMergedMethodsKeepInfoConsumer) {
     fixAccessFlags();
     fixNestMemberAttributes();
     mergeAnnotations();
     mergeInterfaces();
     mergeFields(prunedItemsBuilder);
-    mergeMethods(syntheticArgumentClass, syntheticInitializerConverterBuilder);
+    mergeMethods(
+        syntheticArgumentClass,
+        syntheticInitializerConverterBuilder,
+        virtuallyMergedMethodsKeepInfoConsumer);
     group.getTarget().clearClassSignature();
     group.getTarget().forEachProgramMember(ProgramMember::clearGenericSignature);
     group.forEachSource(clazz -> prunedItemsBuilder.addRemovedClass(clazz.getType()));

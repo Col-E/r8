@@ -355,10 +355,6 @@ public class Enqueuer {
    */
   private final Set<DexMethod> bootstrapMethods = Sets.newIdentityHashSet();
   /**
-   * Set of direct methods that are the immediate target of an invoke-dynamic.
-   */
-  private final Set<DexMethod> methodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
-  /**
    * Set of virtual methods that are the immediate target of an invoke-direct.
    */
   private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect = Sets.newIdentityHashSet();
@@ -1030,7 +1026,7 @@ public class Enqueuer {
         if (bootstrapArgument.isDexValueMethodHandle()) {
           DexMethodHandle method = bootstrapArgument.asDexValueMethodHandle().getValue();
           if (method.isMethodHandle()) {
-            methodsTargetedByInvokeDynamic.add(method.asMethod());
+            disableClosedWorldReasoning(method.asMethod(), context);
           }
         }
       }
@@ -1051,10 +1047,6 @@ public class Enqueuer {
     assert implHandle != null;
 
     DexMethod method = implHandle.asMethod();
-    if (!methodsTargetedByInvokeDynamic.add(method)) {
-      return;
-    }
-
     switch (implHandle.type) {
       case INVOKE_STATIC:
         traceInvokeStaticFromLambda(method, context);
@@ -1073,6 +1065,18 @@ public class Enqueuer {
         break;
       default:
         throw new Unreachable();
+    }
+
+    disableClosedWorldReasoning(method, context);
+  }
+
+  private void disableClosedWorldReasoning(DexMethod reference, ProgramMethod context) {
+    SingleResolutionResult resolutionResult =
+        resolveMethod(reference, context, KeepReason.methodHandleReferencedIn(context));
+    if (resolutionResult != null && resolutionResult.getResolvedHolder().isProgramClass()) {
+      applyMinimumKeepInfoWhenLiveOrTargeted(
+          resolutionResult.getResolvedProgramMethod(),
+          KeepMethodInfo.newEmptyJoiner().disallowClosedWorldReasoning());
     }
   }
 
@@ -3839,7 +3843,6 @@ public class Enqueuer {
             failedMethodResolutionTargets,
             failedFieldResolutionTargets,
             bootstrapMethods,
-            methodsTargetedByInvokeDynamic,
             virtualMethodsTargetedByInvokeDirect,
             toDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
