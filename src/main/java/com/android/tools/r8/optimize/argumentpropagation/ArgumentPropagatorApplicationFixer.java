@@ -94,7 +94,7 @@ public class ArgumentPropagatorApplicationFixer extends TreeFixerBase {
         method -> {
           DexMethod methodReferenceBeforeParameterRemoval = method.getReference();
           DexMethod methodReferenceAfterParameterRemoval =
-              graphLens.internalGetNextMethodSignature(methodReferenceBeforeParameterRemoval);
+              graphLens.getNextMethodSignature(methodReferenceBeforeParameterRemoval);
           if (methodReferenceAfterParameterRemoval == methodReferenceBeforeParameterRemoval
               && !graphLens.hasPrototypeChanges(methodReferenceAfterParameterRemoval)) {
             return method;

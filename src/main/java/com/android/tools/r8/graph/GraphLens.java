@@ -543,6 +543,10 @@ public abstract class GraphLens {
     return false;
   }
 
+  public boolean isHorizontalClassMergerGraphLens() {
+    return false;
+  }
+
   public abstract boolean isIdentityLens();
 
   public boolean isMemberRebindingLens() {
@@ -911,6 +915,8 @@ public abstract class GraphLens {
 
     public abstract DexMethod getPreviousMethodSignature(DexMethod method);
 
+    public abstract DexMethod getNextMethodSignature(DexMethod method);
+
     @Override
     public final boolean isIdentityLens() {
       return false;
@@ -1118,6 +1124,11 @@ public abstract class GraphLens {
 
     @Override
     public DexMethod getPreviousMethodSignature(DexMethod method) {
+      return method;
+    }
+
+    @Override
+    public DexMethod getNextMethodSignature(DexMethod method) {
       return method;
     }
 

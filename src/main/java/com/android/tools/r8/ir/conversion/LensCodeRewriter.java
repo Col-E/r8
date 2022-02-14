@@ -969,7 +969,7 @@ public class LensCodeRewriter {
 
   private Deque<GraphLensInterval> getUnappliedLenses(ProgramMethod method) {
     Deque<GraphLensInterval> unappliedLenses = new ArrayDeque<>(8);
-    GraphLens codeLens = appView.codeLens();
+    GraphLens codeLens = method.getDefinition().getCode().getCodeLens(appView);
     GraphLens currentLens = appView.graphLens();
     DexMethod currentMethod = method.getReference();
     while (currentLens != codeLens) {

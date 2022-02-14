@@ -420,7 +420,7 @@ public final class InterfaceProcessor {
     }
 
     @Override
-    protected DexMethod internalGetNextMethodSignature(DexMethod method) {
+    public DexMethod getNextMethodSignature(DexMethod method) {
       return newMethodSignatures.getRepresentativeValueOrDefault(
           method, extraNewMethodSignatures.getRepresentativeValueOrDefault(method, method));
     }

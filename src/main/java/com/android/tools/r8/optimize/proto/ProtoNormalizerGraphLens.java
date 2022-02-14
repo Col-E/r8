@@ -115,6 +115,11 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
     return newMethodSignatures.getRepresentativeKeyOrDefault(method, method);
   }
 
+  @Override
+  public DexMethod getNextMethodSignature(DexMethod method) {
+    return newMethodSignatures.getOrDefault(method, method);
+  }
+
   public static class Builder {
 
     private final AppView<AppInfoWithLiveness> appView;

@@ -41,7 +41,8 @@ public abstract class UseRegistry<T extends Definition> {
   }
 
   public GraphLens getCodeLens() {
-    return appView.codeLens();
+    assert context.isMethod();
+    return getMethodContext().getDefinition().getCode().getCodeLens(appView);
   }
 
   public final T getContext() {

@@ -45,6 +45,11 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
   }
 
   @Override
+  public boolean isHorizontalClassMergerGraphLens() {
+    return true;
+  }
+
+  @Override
   protected Iterable<DexType> internalGetOriginalTypes(DexType previous) {
     return IterableUtils.prependSingleton(previous, mergedClasses.getSourcesFor(previous));
   }

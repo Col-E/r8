@@ -167,12 +167,7 @@ public class InstanceInitializerDescription {
     instructionBuilder.add(new CfReturnVoid());
 
     return new HorizontalClassMergerCfCode(
-        newMethodReference.getHolderType(),
-        maxStack.get(),
-        maxLocals,
-        instructionBuilder.build(),
-        ImmutableList.of(),
-        ImmutableList.of());
+        newMethodReference.getHolderType(), maxStack.get(), maxLocals, instructionBuilder.build());
   }
 
   private static void addCfInstructionsForInstanceFieldAssignments(

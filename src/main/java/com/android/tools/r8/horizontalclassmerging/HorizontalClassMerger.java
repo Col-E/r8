@@ -15,6 +15,7 @@ import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
@@ -136,6 +137,7 @@ public class HorizontalClassMerger {
     // Record where the synthesized $r8$classId fields are read and written.
     if (mode.isInitial()) {
       createFieldAccessInfoCollectionModifier(groups).modify(appView.withLiveness());
+      transformIncompleteCode(groups, horizontalClassMergerGraphLens, executorService);
     } else {
       assert groups.stream().noneMatch(MergeGroup::hasClassIdField);
     }
@@ -162,6 +164,32 @@ public class HorizontalClassMerger {
       }
     }
     return builder.build();
+  }
+
+  private void transformIncompleteCode(
+      Collection<MergeGroup> groups,
+      HorizontalClassMergerGraphLens horizontalClassMergerGraphLens,
+      ExecutorService executorService)
+      throws ExecutionException {
+    ThreadUtils.processItems(
+        groups,
+        group -> {
+          if (group.hasClassIdField()) {
+            DexProgramClass target = group.getTarget();
+            target.forEachProgramVirtualMethodMatching(
+                definition ->
+                    definition.hasCode()
+                        && definition.getCode() instanceof IncompleteVirtuallyMergedMethodCode,
+                method -> {
+                  IncompleteVirtuallyMergedMethodCode code =
+                      (IncompleteVirtuallyMergedMethodCode) method.getDefinition().getCode();
+                  method
+                      .getDefinition()
+                      .setCode(code.toCfCode(method, horizontalClassMergerGraphLens), appView);
+                });
+          }
+        },
+        executorService);
   }
 
   private DirectMappedDexApplication getNewApplication(HorizontallyMergedClasses mergedClasses) {

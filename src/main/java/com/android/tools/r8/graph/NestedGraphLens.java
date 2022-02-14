@@ -145,7 +145,7 @@ public class NestedGraphLens extends NonIdentityGraphLens {
       return originalMethod;
     }
     DexMethod renamedMethod = getPrevious().getRenamedMethodSignature(originalMethod, applied);
-    return internalGetNextMethodSignature(renamedMethod);
+    return getNextMethodSignature(renamedMethod);
   }
 
   @Override
@@ -257,7 +257,8 @@ public class NestedGraphLens extends NonIdentityGraphLens {
     return newMethodSignatures.getRepresentativeKeyOrDefault(method, method);
   }
 
-  protected DexMethod internalGetNextMethodSignature(DexMethod method) {
+  @Override
+  public DexMethod getNextMethodSignature(DexMethod method) {
     return newMethodSignatures.getRepresentativeValueOrDefault(method, method);
   }
 

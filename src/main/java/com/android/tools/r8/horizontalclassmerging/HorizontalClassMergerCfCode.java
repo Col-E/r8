@@ -5,7 +5,6 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexType;
 import java.util.List;
@@ -17,13 +16,8 @@ import java.util.List;
 public class HorizontalClassMergerCfCode extends CfCode {
 
   HorizontalClassMergerCfCode(
-      DexType originalHolder,
-      int maxStack,
-      int maxLocals,
-      List<CfInstruction> instructions,
-      List<CfTryCatch> tryCatchRanges,
-      List<LocalVariableInfo> localVariables) {
-    super(originalHolder, maxStack, maxLocals, instructions, tryCatchRanges, localVariables);
+      DexType originalHolder, int maxStack, int maxLocals, List<CfInstruction> instructions) {
+    super(originalHolder, maxStack, maxLocals, instructions);
   }
 
   @Override

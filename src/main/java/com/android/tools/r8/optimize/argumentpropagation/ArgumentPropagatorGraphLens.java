@@ -98,8 +98,8 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
   }
 
   @Override
-  public DexMethod internalGetNextMethodSignature(DexMethod method) {
-    return super.internalGetNextMethodSignature(method);
+  public DexMethod getNextMethodSignature(DexMethod method) {
+    return super.getNextMethodSignature(method);
   }
 
   @Override

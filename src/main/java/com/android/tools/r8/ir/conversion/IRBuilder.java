@@ -435,7 +435,7 @@ public class IRBuilder {
     return new IRBuilder(
         method,
         appView,
-        appView.codeLens(),
+        method.getDefinition().getCode().getCodeLens(appView),
         source,
         origin,
         lookupPrototypeChanges(appView, method),
@@ -457,14 +457,6 @@ public class IRBuilder {
   public static RewrittenPrototypeDescription lookupPrototypeChanges(
       AppView<?> appView, ProgramMethod method) {
     return appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
-  }
-
-  public static RewrittenPrototypeDescription lookupPrototypeChangesForInlinee(
-      AppView<?> appView, ProgramMethod method, MethodProcessor methodProcessor) {
-    if (methodProcessor.shouldApplyCodeRewritings(method)) {
-      return appView.graphLens().lookupPrototypeChangesForMethodDefinition(method.getReference());
-    }
-    return RewrittenPrototypeDescription.none();
   }
 
   private IRBuilder(

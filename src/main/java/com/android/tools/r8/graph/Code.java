@@ -33,6 +33,10 @@ public abstract class Code extends CachedHashValueDexItem {
         + getClass().getCanonicalName());
   }
 
+  public GraphLens getCodeLens(AppView<?> appView) {
+    return appView.codeLens();
+  }
+
   public BytecodeMetadata<? extends CfOrDexInstruction> getMetadata() {
     return null;
   }

@@ -2006,6 +2006,11 @@ public class VerticalClassMerger {
     }
 
     @Override
+    public DexMethod getNextMethodSignature(DexMethod method) {
+      throw new Unreachable();
+    }
+
+    @Override
     public MethodLookupResult lookupMethod(
         DexMethod method, DexMethod context, Type type, GraphLens codeLens) {
       // First look up the method using the existing graph lens (for example, the type will have

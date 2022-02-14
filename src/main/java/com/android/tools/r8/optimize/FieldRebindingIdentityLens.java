@@ -100,6 +100,11 @@ public class FieldRebindingIdentityLens extends NonIdentityGraphLens {
   }
 
   @Override
+  public DexMethod getNextMethodSignature(DexMethod method) {
+    return method;
+  }
+
+  @Override
   public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method, GraphLens codeLens) {
     if (this == codeLens) {

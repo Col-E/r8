@@ -87,7 +87,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
 
             if (graphLens != null) {
               DexMethod rewrittenMethodSignature =
-                  graphLens.internalGetNextMethodSignature(method.getReference());
+                  graphLens.getNextMethodSignature(method.getReference());
               if (graphLens.hasPrototypeChanges(rewrittenMethodSignature)) {
                 assert !appView.appInfo().isNeverReprocessMethod(method);
                 postMethodProcessorBuilder.add(method, currentGraphLens);
@@ -195,7 +195,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
 
       ProgramMethod resolvedMethod = resolutionResult.getResolvedProgramMethod();
       DexMethod rewrittenMethodReference =
-          graphLens.internalGetNextMethodSignature(resolvedMethod.getReference());
+          graphLens.getNextMethodSignature(resolvedMethod.getReference());
       if (rewrittenMethodReference != resolvedMethod.getReference()
           || graphLens.hasPrototypeChanges(rewrittenMethodReference)) {
         markAffected();

@@ -166,6 +166,11 @@ public final class AppliedGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
+  public DexMethod getNextMethodSignature(DexMethod method) {
+    return originalMethodSignatures.inverse().getOrDefault(method, method);
+  }
+
+  @Override
   public boolean isContextFreeForMethods() {
     return true;
   }

@@ -10,13 +10,10 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.horizontalclassmerging.code.VirtualMethodEntryPointSynthesizedCode;
-import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -57,14 +54,13 @@ public class VirtualMethodMerger {
 
     /** Get the super method handle if this method overrides a parent method. */
     private DexMethod superMethod(
-        AppView<? extends AppInfoWithClassHierarchy> appView, DexProgramClass target) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       DexMethod template = methods.iterator().next().getReference();
       SingleResolutionResult resolutionResult =
           appView
               .appInfo()
-              .resolveMethodOnClass(template, target.getSuperType())
+              .resolveMethodOnClass(template, group.getSuperType())
               .asSingleResolution();
-
       if (resolutionResult == null || resolutionResult.getResolvedMethod().isAbstract()) {
         // If there is no super method or the method is abstract it should not be called.
         return null;
@@ -74,7 +70,7 @@ public class VirtualMethodMerger {
         return resolutionResult
             .getResolvedMethod()
             .getReference()
-            .withHolder(target.getSuperType(), appView.dexItemFactory());
+            .withHolder(group.getSuperType(), appView.dexItemFactory());
       }
       return resolutionResult.getResolvedMethod().getReference();
     }
@@ -82,8 +78,7 @@ public class VirtualMethodMerger {
     public VirtualMethodMerger build(
         AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       // If not all the classes are in the merge group, find the fallback super method to call.
-      DexMethod superMethod =
-          methods.size() < group.size() ? superMethod(appView, group.getTarget()) : null;
+      DexMethod superMethod = methods.size() < group.size() ? superMethod(appView, group) : null;
       return new VirtualMethodMerger(appView, group, methods, superMethod);
     }
   }
@@ -252,7 +247,8 @@ public class VirtualMethodMerger {
       }
       DexMethod newMethod = moveMethod(classMethodsBuilder, method);
       lensBuilder.recordNewMethodSignature(method.getReference(), newMethod);
-      classIdToMethodMap.put(classIdentifiers.getInt(method.getHolderType()), newMethod);
+      classIdToMethodMap.put(
+          classIdentifiers.getInt(method.getHolderType()), method.getReference());
       if (representative == null) {
         representative = method;
       }
@@ -271,14 +267,9 @@ public class VirtualMethodMerger {
             classMethodsBuilder::isFresh);
     DexEncodedMethod representativeMethod = representative.getDefinition();
     DexMethod newMethodReference = getNewMethodReference();
-    AbstractSynthesizedCode synthesizedCode =
-        new VirtualMethodEntryPointSynthesizedCode(
-            classIdToMethodMap,
-            group.getClassIdField(),
-            superMethod,
-            newMethodReference,
-            bridgeMethodReference,
-            appView.dexItemFactory());
+    IncompleteVirtuallyMergedMethodCode synthesizedCode =
+        new IncompleteVirtuallyMergedMethodCode(
+            group.getClassIdField(), classIdToMethodMap, originalMethodReference, superMethod);
     DexEncodedMethod newMethod =
         DexEncodedMethod.syntheticBuilder()
             .setMethod(newMethodReference)

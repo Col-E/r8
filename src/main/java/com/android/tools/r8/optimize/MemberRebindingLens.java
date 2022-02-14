@@ -138,6 +138,11 @@ public class MemberRebindingLens extends NonIdentityGraphLens {
     return method;
   }
 
+  @Override
+  public DexMethod getNextMethodSignature(DexMethod method) {
+    return method;
+  }
+
   public FieldRebindingIdentityLens toRewrittenFieldRebindingLens(
       AppView<? extends AppInfoWithClassHierarchy> appView, GraphLens lens) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
