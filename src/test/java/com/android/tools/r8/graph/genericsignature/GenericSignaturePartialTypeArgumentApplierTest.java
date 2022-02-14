@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -121,7 +122,7 @@ public class GenericSignaturePartialTypeArgumentApplierTest extends TestBase {
                     MapUtils.transform(
                         substitutions,
                         HashMap::new,
-                        s -> s,
+                        Function.identity(),
                         ClassTypeSignature::new,
                         (key, val1, val2) -> {
                           throw new Unreachable("No keys should be merged");

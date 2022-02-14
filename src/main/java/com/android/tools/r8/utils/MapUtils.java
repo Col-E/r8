@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMaps;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -63,14 +64,28 @@ public class MapUtils {
       Function<K1, K2> keyMapping,
       Function<V1, V2> valueMapping,
       TriFunction<K2, V2, V2, V2> valueMerger) {
+    return transform(
+        map,
+        factory,
+        (key, value) -> keyMapping.apply(key),
+        (key, value) -> valueMapping.apply(value),
+        valueMerger);
+  }
+
+  public static <K1, V1, K2, V2> Map<K2, V2> transform(
+      Map<K1, V1> map,
+      IntFunction<Map<K2, V2>> factory,
+      BiFunction<K1, V1, K2> keyMapping,
+      BiFunction<K1, V1, V2> valueMapping,
+      TriFunction<K2, V2, V2, V2> valueMerger) {
     Map<K2, V2> result = factory.apply(map.size());
     map.forEach(
         (key, value) -> {
-          K2 newKey = keyMapping.apply(key);
+          K2 newKey = keyMapping.apply(key, value);
           if (newKey == null) {
             return;
           }
-          V2 newValue = valueMapping.apply(value);
+          V2 newValue = valueMapping.apply(key, value);
           V2 existingValue = result.put(newKey, newValue);
           if (existingValue != null) {
             result.put(newKey, valueMerger.apply(newKey, existingValue, newValue));

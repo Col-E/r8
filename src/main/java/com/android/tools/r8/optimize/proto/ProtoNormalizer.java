@@ -6,6 +6,7 @@ package com.android.tools.r8.optimize.proto;
 
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -16,11 +17,15 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.BidirectionalOneToOneHashMap;
 import com.android.tools.r8.utils.collections.DexMethodSignatureSet;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,14 +64,19 @@ public class ProtoNormalizer {
     LocalReservationState localReservationState = new LocalReservationState();
     ProtoNormalizerGraphLens.Builder lensBuilder = ProtoNormalizerGraphLens.builder(appView);
     for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
+      Map<DexMethodSignature, DexMethodSignature> newInstanceInitializerSignatures =
+          computeNewInstanceInitializerSignatures(
+              clazz, localReservationState, globalReservationState);
       clazz
           .getMethodCollection()
           .replaceMethods(
               method -> {
                 DexMethodSignature methodSignature = method.getSignature();
                 DexMethodSignature newMethodSignature =
-                    localReservationState.getNewMethodSignature(
-                        methodSignature, dexItemFactory, globalReservationState);
+                    method.isInstanceInitializer()
+                        ? newInstanceInitializerSignatures.get(methodSignature)
+                        : localReservationState.getAndReserveNewMethodSignature(
+                            methodSignature, dexItemFactory, globalReservationState);
                 if (methodSignature.equals(newMethodSignature)) {
                   return method;
                 }
@@ -170,6 +180,90 @@ public class ProtoNormalizer {
     }
   }
 
+  Map<DexMethodSignature, DexMethodSignature> computeNewInstanceInitializerSignatures(
+      DexProgramClass clazz,
+      LocalReservationState localReservationState,
+      GlobalReservationState globalReservationState) {
+    // Create a map from new method signatures to old method signatures. This produces a one-to-many
+    // mapping since multiple instance initializers may normalize to the same signature.
+    Map<DexMethodSignature, DexMethodSignatureSet> instanceInitializerCollisions =
+        computeInstanceInitializerCollisions(clazz, localReservationState, globalReservationState);
+
+    // Resolve each collision to ensure that the mapping is one-to-one.
+    resolveInstanceInitializerCollisions(instanceInitializerCollisions);
+
+    // Inverse the one-to-one map to produce a mapping from old method signatures to new method
+    // signatures.
+    return MapUtils.transform(
+        instanceInitializerCollisions,
+        HashMap::new,
+        (newMethodSignature, methodSignatures) -> Iterables.getFirst(methodSignatures, null),
+        (newMethodSignature, methodSignatures) -> newMethodSignature,
+        (newMethodSignature, methodSignature, otherMethodSignature) -> {
+          throw new Unreachable();
+        });
+  }
+
+  private Map<DexMethodSignature, DexMethodSignatureSet> computeInstanceInitializerCollisions(
+      DexProgramClass clazz,
+      LocalReservationState localReservationState,
+      GlobalReservationState globalReservationState) {
+    Map<DexMethodSignature, DexMethodSignatureSet> instanceInitializerCollisions = new HashMap<>();
+    clazz.forEachProgramInstanceInitializer(
+        method -> {
+          DexMethodSignature methodSignature = method.getMethodSignature();
+          DexMethodSignature newMethodSignature =
+              localReservationState.getNewMethodSignature(
+                  methodSignature, dexItemFactory, globalReservationState);
+          instanceInitializerCollisions
+              .computeIfAbsent(newMethodSignature, ignoreKey(DexMethodSignatureSet::create))
+              .add(methodSignature);
+        });
+    return instanceInitializerCollisions;
+  }
+
+  private void resolveInstanceInitializerCollisions(
+      Map<DexMethodSignature, DexMethodSignatureSet> instanceInitializerCollisions) {
+    WorkList<DexMethodSignature> worklist = WorkList.newEqualityWorkList();
+    instanceInitializerCollisions.forEach(
+        (newMethodSignature, methodSignatures) -> {
+          if (methodSignatures.size() > 1) {
+            worklist.addIfNotSeen(newMethodSignature);
+          }
+        });
+
+    while (worklist.hasNext()) {
+      DexMethodSignature newMethodSignature = worklist.removeSeen();
+      DexMethodSignatureSet methodSignatures =
+          instanceInitializerCollisions.get(newMethodSignature);
+      assert methodSignatures.size() > 1;
+
+      // Resolve this conflict in a deterministic way.
+      DexMethodSignature survivor =
+          methodSignatures.contains(newMethodSignature)
+              ? newMethodSignature
+              : IterableUtils.min(methodSignatures, DexMethodSignature::compareTo);
+
+      // Disallow optimizations of all other methods than the `survivor`.
+      for (DexMethodSignature methodSignature : methodSignatures) {
+        if (!methodSignature.equals(survivor)) {
+          DexMethodSignatureSet originalMethodSignaturesForMethodSignature =
+              instanceInitializerCollisions.computeIfAbsent(
+                  methodSignature, ignoreKey(DexMethodSignatureSet::create));
+          originalMethodSignaturesForMethodSignature.add(methodSignature);
+          if (originalMethodSignaturesForMethodSignature.size() > 1) {
+            worklist.addIfNotSeen(methodSignature);
+          }
+        }
+      }
+
+      // Remove all pinned methods from the set of original method signatures stored at
+      // instanceInitializerCollisions.get(newMethodSignature).
+      methodSignatures.clear();
+      methodSignatures.add(survivor);
+    }
+  }
+
   private boolean isUnoptimizable(ProgramMethod method) {
     // TODO(b/195112263): This is incomplete.
     return appView.getKeepInfo(method).isPinned(options)
@@ -226,11 +320,27 @@ public class ProtoNormalizer {
     MutableBidirectionalOneToOneMap<DexMethodSignature, DexMethodSignature> newMethodSignatures =
         new BidirectionalOneToOneHashMap<>();
 
-    // TODO: avoid sorting multiple times.
     DexMethodSignature getNewMethodSignature(
         DexMethodSignature methodSignature,
         DexItemFactory dexItemFactory,
         GlobalReservationState globalReservationState) {
+      return internalGetAndReserveNewMethodSignature(
+          methodSignature, dexItemFactory, globalReservationState, false);
+    }
+
+    DexMethodSignature getAndReserveNewMethodSignature(
+        DexMethodSignature methodSignature,
+        DexItemFactory dexItemFactory,
+        GlobalReservationState globalReservationState) {
+      return internalGetAndReserveNewMethodSignature(
+          methodSignature, dexItemFactory, globalReservationState, true);
+    }
+
+    private DexMethodSignature internalGetAndReserveNewMethodSignature(
+        DexMethodSignature methodSignature,
+        DexItemFactory dexItemFactory,
+        GlobalReservationState globalReservationState,
+        boolean reserve) {
       if (globalReservationState.isUnoptimizable(methodSignature)) {
         assert !newMethodSignatures.containsKey(methodSignature);
         return methodSignature;
@@ -254,7 +364,9 @@ public class ProtoNormalizer {
           newMethodSignature = newMethodSignature.withName(newMethodName);
         } while (newMethodSignatures.containsValue(newMethodSignature));
       }
-      newMethodSignatures.put(methodSignature, newMethodSignature);
+      if (reserve) {
+        newMethodSignatures.put(methodSignature, newMethodSignature);
+      }
       return newMethodSignature;
     }
   }

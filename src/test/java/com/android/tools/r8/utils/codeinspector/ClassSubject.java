@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.rules.TemporaryFolder;
 
@@ -126,6 +127,14 @@ public abstract class ClassSubject extends ClassOrMemberSubject {
 
   public MethodSubject init(String... parameters) {
     return init(Arrays.asList(parameters));
+  }
+
+  public MethodSubject initFromTypes(List<TypeSubject> parameters) {
+    return init(parameters.stream().map(TypeSubject::getTypeName).collect(Collectors.toList()));
+  }
+
+  public MethodSubject initFromTypes(TypeSubject... parameters) {
+    return initFromTypes(Arrays.asList(parameters));
   }
 
   public MethodSubject method(MethodSignature signature) {
