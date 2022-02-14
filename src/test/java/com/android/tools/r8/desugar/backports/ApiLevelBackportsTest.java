@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.backports;
 
 import static org.hamcrest.core.StringContains.containsString;
 
-import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -50,24 +49,31 @@ public class ApiLevelBackportsTest extends TestBase {
         .compile()
         .assertNoMessages()
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
-        .assertSuccessWithOutputLines("4");
+        .applyIf(
+            runtimeHasParseIntWithFourArgs(),
+            r -> r.assertSuccessWithOutputLines("4"),
+            r ->
+                r.assertFailureWithErrorThatMatches(
+                    containsString(
+                        "java.lang.NoSuchMethodError: No static method"
+                            + " parseInt(Ljava/lang/CharSequence;III)I")));
   }
 
   @Test
   public void backportOfPresentMethodOnLatest() throws Exception {
-    D8TestRunResult result =
-        testForD8()
-            .addProgramClassFileData(transformTestListOf())
-            .setMinApi(AndroidApiLevel.LATEST)
-            .compile()
-            .assertNoMessages()
-            .run(parameters.getRuntime(), TestListOf.class);
-    if (runtimeHasListOf()) {
-      result.assertSuccessWithOutputLines("0");
-    } else {
-      result.assertFailureWithErrorThatMatches(
-          containsString("java.lang.NoSuchMethodError: No static method of()Ljava/util/List;"));
-    }
+    testForD8()
+        .addProgramClassFileData(transformTestListOf())
+        .setMinApi(AndroidApiLevel.LATEST)
+        .compile()
+        .assertNoMessages()
+        .run(parameters.getRuntime(), TestListOf.class)
+        .applyIf(
+            runtimeHasListOf(),
+            r -> r.assertSuccessWithOutputLines("0"),
+            r ->
+                r.assertFailureWithErrorThatMatches(
+                    containsString(
+                        "java.lang.NoSuchMethodError: No static method of()Ljava/util/List;")));
   }
 
   @Test
@@ -79,7 +85,14 @@ public class ApiLevelBackportsTest extends TestBase {
         .assertOnlyWarnings()
         .assertWarningMessageThatMatches(containsString("is not supported by this compiler"))
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
-        .assertSuccessWithOutputLines("4");
+        .applyIf(
+            runtimeHasParseIntWithFourArgs(),
+            r -> r.assertSuccessWithOutputLines("4"),
+            r ->
+                r.assertFailureWithErrorThatMatches(
+                    containsString(
+                        "java.lang.NoSuchMethodError: No static method"
+                            + " parseInt(Ljava/lang/CharSequence;III)I")));
   }
 
   @Test
@@ -107,6 +120,14 @@ public class ApiLevelBackportsTest extends TestBase {
         .asDex()
         .getMinApiLevel()
         .isGreaterThanOrEqualTo(AndroidApiLevel.R);
+  }
+
+  boolean runtimeHasParseIntWithFourArgs() {
+    return parameters
+        .getRuntime()
+        .asDex()
+        .getMinApiLevel()
+        .isGreaterThanOrEqualTo(AndroidApiLevel.T);
   }
 
   byte[] transformTestListOf() throws Exception {
