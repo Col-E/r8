@@ -114,7 +114,7 @@ public class FoundFieldSubject extends FieldSubject {
   }
 
   @Override
-  public List<AnnotationSubject> annotations() {
+  public List<FoundAnnotationSubject> annotations() {
     throw new Unimplemented();
   }
 
@@ -123,7 +123,7 @@ public class FoundFieldSubject extends FieldSubject {
     DexAnnotation annotation = codeInspector.findAnnotation(name, dexField.annotations());
     return annotation == null
         ? new AbsentAnnotationSubject()
-        : new FoundAnnotationSubject(annotation);
+        : new FoundAnnotationSubject(annotation, codeInspector);
   }
 
   @Override

@@ -62,20 +62,26 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
 
   @Override
   public DexMethod getRenamedMethodSignature(DexMethod originalMethod, GraphLens applied) {
+    if (this == applied) {
+      return originalMethod;
+    }
     return newMethodSignatures.getOrDefault(originalMethod, originalMethod);
   }
 
   @Override
   public RewrittenPrototypeDescription lookupPrototypeChangesForMethodDefinition(
       DexMethod method, GraphLens codeLens) {
+    if (this == codeLens) {
+      return RewrittenPrototypeDescription.none();
+    }
     DexMethod previousMethodSignature = getPreviousMethodSignature(method);
     RewrittenPrototypeDescription previousPrototypeChanges =
         getPrevious().lookupPrototypeChangesForMethodDefinition(previousMethodSignature);
     if (previousMethodSignature == method) {
       return previousPrototypeChanges;
     }
-    assert prototypeChanges.containsKey(method);
-    return previousPrototypeChanges.combine(prototypeChanges.get(method));
+    return previousPrototypeChanges.combine(
+        prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none()));
   }
 
   @Override
@@ -132,11 +138,17 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
       this.appView = appView;
     }
 
-    public Builder recordNewMethodSignature(DexEncodedMethod method, DexMethod newMethodSignature) {
+    public RewrittenPrototypeDescription recordNewMethodSignature(
+        DexEncodedMethod method, DexMethod newMethodSignature) {
       assert method.getReference() != newMethodSignature;
-      prototypeChanges.put(newMethodSignature, computePrototypeChanges(method, newMethodSignature));
       newMethodSignatures.put(method.getReference(), newMethodSignature);
-      return this;
+      if (!method.getParameters().equals(newMethodSignature.getParameters())) {
+        RewrittenPrototypeDescription prototypeChangesForMethod =
+            computePrototypeChanges(method, newMethodSignature);
+        prototypeChanges.put(newMethodSignature, prototypeChangesForMethod);
+        return prototypeChangesForMethod;
+      }
+      return RewrittenPrototypeDescription.none();
     }
 
     // TODO(b/195112263): Canonicalize the permutation maps.

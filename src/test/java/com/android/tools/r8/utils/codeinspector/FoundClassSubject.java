@@ -359,8 +359,8 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public List<AnnotationSubject> annotations() {
-    return FoundAnnotationSubject.listFromDex(dexClass.annotations());
+  public List<FoundAnnotationSubject> annotations() {
+    return FoundAnnotationSubject.listFromDex(dexClass.annotations(), codeInspector);
   }
 
   @Override
@@ -372,7 +372,7 @@ public class FoundClassSubject extends ClassSubject {
     DexAnnotation annotation = codeInspector.findAnnotation(name, dexClass.annotations());
     return annotation == null
         ? new AbsentAnnotationSubject()
-        : new FoundAnnotationSubject(annotation);
+        : new FoundAnnotationSubject(annotation, codeInspector);
   }
 
   @Override

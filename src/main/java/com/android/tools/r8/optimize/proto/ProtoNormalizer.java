@@ -14,7 +14,9 @@ import com.android.tools.r8.graph.DexMethodSignature;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
@@ -81,9 +83,22 @@ public class ProtoNormalizer {
                   return method;
                 }
                 DexMethod newMethodReference = newMethodSignature.withHolder(clazz, dexItemFactory);
-                lensBuilder.recordNewMethodSignature(method, newMethodReference);
-                // TODO(b/195112263): Fixup any optimization info and parameter annotations.
-                return method.toTypeSubstitutedMethod(newMethodReference);
+                RewrittenPrototypeDescription prototypeChanges =
+                    lensBuilder.recordNewMethodSignature(method, newMethodReference);
+                // TODO(b/195112263): Assert that the method does not have any optimization info.
+                //  If/when enabling proto normalization after the final round of tree shaking, this
+                //  should simply clear the optimization info, or replace it by a
+                //  ThrowingMethodOptimizationInfo since we should never use the optimization info
+                //  after this point.
+                return method.toTypeSubstitutedMethod(
+                    newMethodReference,
+                    builder -> {
+                      if (!prototypeChanges.isEmpty()) {
+                        builder
+                            .apply(prototypeChanges.createParameterAnnotationsRemover(method))
+                            .setGenericSignature(MethodTypeSignature.noSignature());
+                      }
+                    });
               });
     }
 

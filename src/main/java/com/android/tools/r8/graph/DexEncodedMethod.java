@@ -44,6 +44,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
+import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
@@ -85,7 +86,6 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod>
@@ -1470,27 +1470,54 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       return this;
     }
 
-    public Builder removeParameterAnnotations(IntPredicate predicate) {
+    public Builder rewriteParameterAnnotations(
+        DexEncodedMethod method, ArgumentInfoCollection argumentInfoCollection) {
       if (parameterAnnotations.isEmpty()) {
         // Nothing to do.
         return this;
       }
+      if (!argumentInfoCollection.hasArgumentPermutation()
+          && !argumentInfoCollection.hasRemovedArguments()) {
+        // Nothing to do.
+        return this;
+      }
 
-      List<DexAnnotationSet> newParameterAnnotations = new ArrayList<>();
+      List<DexAnnotationSet> newParameterAnnotations =
+          new ArrayList<>(parameterAnnotations.countNonMissing());
       int newNumberOfMissingParameterAnnotations = 0;
 
-      for (int oldIndex = 0; oldIndex < parameterAnnotations.size(); oldIndex++) {
-        if (!predicate.test(oldIndex)) {
-          if (parameterAnnotations.isMissing(oldIndex)) {
+      for (int parameterIndex = 0;
+          parameterIndex < method.getParameters().size();
+          parameterIndex++) {
+        int argumentIndex = parameterIndex + method.getFirstNonReceiverArgumentIndex();
+        if (!argumentInfoCollection.isArgumentRemoved(argumentIndex)) {
+          if (parameterAnnotations.isMissing(parameterIndex)) {
             newNumberOfMissingParameterAnnotations++;
           } else {
-            newParameterAnnotations.add(parameterAnnotations.get(oldIndex));
+            newParameterAnnotations.add(parameterAnnotations.get(parameterIndex));
           }
         }
       }
 
       if (newParameterAnnotations.isEmpty()) {
         return setParameterAnnotations(ParameterAnnotationsList.empty());
+      }
+
+      if (argumentInfoCollection.hasArgumentPermutation()) {
+        List<DexAnnotationSet> newPermutedParameterAnnotations =
+            Arrays.asList(new DexAnnotationSet[method.getParameters().size()]);
+        for (int parameterIndex = newNumberOfMissingParameterAnnotations;
+            parameterIndex < method.getParameters().size();
+            parameterIndex++) {
+          int argumentIndex = parameterIndex + method.getFirstNonReceiverArgumentIndex();
+          int newArgumentIndex = argumentInfoCollection.getNewArgumentIndex(argumentIndex, 0);
+          int newParameterIndex = newArgumentIndex - method.getFirstNonReceiverArgumentIndex();
+          newPermutedParameterAnnotations.set(
+              newParameterIndex,
+              newParameterAnnotations.get(parameterIndex - newNumberOfMissingParameterAnnotations));
+        }
+        newParameterAnnotations = newPermutedParameterAnnotations;
+        newNumberOfMissingParameterAnnotations = 0;
       }
 
       return setParameterAnnotations(

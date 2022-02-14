@@ -87,6 +87,16 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public List<List<FoundAnnotationSubject>> getParameterAnnotations() {
+    throw new Unreachable("Cannot get the parameter annotations for an absent method");
+  }
+
+  @Override
+  public List<FoundAnnotationSubject> getParameterAnnotations(int index) {
+    throw new Unreachable("Cannot get the parameter annotations for an absent method");
+  }
+
+  @Override
   public ProgramMethod getProgramMethod() {
     return null;
   }
@@ -127,7 +137,7 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
-  public List<AnnotationSubject> annotations() {
+  public List<FoundAnnotationSubject> annotations() {
     throw new Unreachable("Cannot determine if an absent method has annotations");
   }
 

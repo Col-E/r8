@@ -60,7 +60,7 @@ public class AbsentFieldSubject extends FieldSubject {
   }
 
   @Override
-  public List<AnnotationSubject> annotations() {
+  public List<FoundAnnotationSubject> annotations() {
     throw new Unreachable("Cannot determine if an absent field has annotations");
   }
 

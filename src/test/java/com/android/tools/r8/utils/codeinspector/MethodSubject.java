@@ -56,6 +56,10 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract List<TypeSubject> getParameters();
 
+  public abstract List<List<FoundAnnotationSubject>> getParameterAnnotations();
+
+  public abstract List<FoundAnnotationSubject> getParameterAnnotations(int index);
+
   public abstract ProgramMethod getProgramMethod();
 
   public Iterator<InstructionSubject> iterateInstructions() {

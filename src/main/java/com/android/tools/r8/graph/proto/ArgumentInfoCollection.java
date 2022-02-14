@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.IntObjConsumer;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap;
@@ -344,13 +343,6 @@ public class ArgumentInfoCollection {
    */
   public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
       DexEncodedMethod method) {
-    if (numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
-      return builder -> {
-        int firstArgumentIndex = method.getFirstNonReceiverArgumentIndex();
-        builder.removeParameterAnnotations(
-            oldIndex -> getArgumentInfo(oldIndex + firstArgumentIndex).isRemovedArgumentInfo());
-      };
-    }
-    return ConsumerUtils.emptyConsumer();
+    return builder -> builder.rewriteParameterAnnotations(method, this);
   }
 }

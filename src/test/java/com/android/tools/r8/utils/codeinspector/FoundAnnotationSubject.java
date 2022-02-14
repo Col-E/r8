@@ -14,13 +14,22 @@ import java.util.List;
 public class FoundAnnotationSubject extends AnnotationSubject {
 
   private final DexAnnotation annotation;
+  private final CodeInspector codeInspector;
 
-  FoundAnnotationSubject(DexAnnotation annotation) {
+  FoundAnnotationSubject(DexAnnotation annotation, CodeInspector codeInspector) {
     this.annotation = annotation;
+    this.codeInspector = codeInspector;
   }
 
-  public static List<AnnotationSubject> listFromDex(DexAnnotationSet annotations) {
-    return ListUtils.map(annotations.annotations, FoundAnnotationSubject::new);
+  public static List<FoundAnnotationSubject> listFromDex(
+      DexAnnotationSet annotations, CodeInspector codeInspector) {
+    return ListUtils.map(
+        annotations.annotations,
+        annotation -> new FoundAnnotationSubject(annotation, codeInspector));
+  }
+
+  public TypeSubject getType() {
+    return new TypeSubject(codeInspector, annotation.getAnnotationType());
   }
 
   @Override

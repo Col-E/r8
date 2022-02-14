@@ -10,7 +10,7 @@ import java.util.List;
 
 public abstract class ClassOrMemberSubject extends Subject {
 
-  public abstract List<AnnotationSubject> annotations();
+  public abstract List<FoundAnnotationSubject> annotations();
 
   public abstract AnnotationSubject annotation(String name);
 

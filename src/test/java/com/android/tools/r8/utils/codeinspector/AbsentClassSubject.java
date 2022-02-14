@@ -115,7 +115,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public List<AnnotationSubject> annotations() {
+  public List<FoundAnnotationSubject> annotations() {
     throw new Unreachable("Cannot determine if an absent class has annotations");
   }
 

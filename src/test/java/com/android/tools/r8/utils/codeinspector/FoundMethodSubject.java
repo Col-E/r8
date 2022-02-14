@@ -42,6 +42,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -133,6 +134,24 @@ public class FoundMethodSubject extends MethodSubject {
     return getMethod().getParameters().stream()
         .map(parameter -> new TypeSubject(codeInspector, parameter))
         .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<FoundAnnotationSubject> getParameterAnnotations(int index) {
+    return FoundAnnotationSubject.listFromDex(
+        getMethod().getParameterAnnotation(index), codeInspector);
+  }
+
+  @Override
+  public List<List<FoundAnnotationSubject>> getParameterAnnotations() {
+    List<List<FoundAnnotationSubject>> parameterAnnotations =
+        new ArrayList<>(getMethod().getParameters().size());
+    for (int parameterIndex = 0;
+        parameterIndex < getMethod().getParameters().size();
+        parameterIndex++) {
+      parameterAnnotations.add(getParameterAnnotations(parameterIndex));
+    }
+    return parameterAnnotations;
   }
 
   @Override
@@ -343,8 +362,8 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
-  public List<AnnotationSubject> annotations() {
-    return FoundAnnotationSubject.listFromDex(dexMethod.annotations());
+  public List<FoundAnnotationSubject> annotations() {
+    return FoundAnnotationSubject.listFromDex(dexMethod.annotations(), codeInspector);
   }
 
   @Override
@@ -352,7 +371,7 @@ public class FoundMethodSubject extends MethodSubject {
     DexAnnotation annotation = codeInspector.findAnnotation(name, dexMethod.annotations());
     return annotation == null
         ? new AbsentAnnotationSubject()
-        : new FoundAnnotationSubject(annotation);
+        : new FoundAnnotationSubject(annotation, codeInspector);
   }
 
   @Override
