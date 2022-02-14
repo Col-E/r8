@@ -52,6 +52,10 @@ public abstract class ArgumentInfo {
     return null;
   }
 
+  public boolean isRemovedReceiverInfo() {
+    return false;
+  }
+
   public boolean isRewrittenTypeInfo() {
     return false;
   }

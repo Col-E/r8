@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RemovedArgumentInfo;
+import com.android.tools.r8.graph.proto.RemovedReceiverInfo;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.proto.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -1022,11 +1023,7 @@ public class ArgumentPropagatorProgramOptimizer {
           && ParameterRemovalUtils.canRemoveUnusedParametersFrom(appView, method)
           && ParameterRemovalUtils.canRemoveUnusedParameter(appView, method, 0)) {
         parameterChangesBuilder.addArgumentInfo(
-            0,
-            RemovedArgumentInfo.builder()
-                .setCheckNullOrZero(true)
-                .setType(method.getHolderType())
-                .build());
+            0, RemovedReceiverInfo.Builder.create().setType(method.getHolderType()).build());
       }
 
       CallSiteOptimizationInfo optimizationInfo = method.getOptimizationInfo().getArgumentInfos();

@@ -76,8 +76,7 @@ public abstract class NullCheckInserter {
 
       ArgumentInfo receiverArgumentInfo =
           lookup.getPrototypeChanges().getArgumentInfoCollection().getArgumentInfo(0);
-      if (!receiverArgumentInfo.isRemovedArgumentInfo()
-          || !receiverArgumentInfo.asRemovedArgumentInfo().isCheckNullOrZeroSet()) {
+      if (!receiverArgumentInfo.isRemovedReceiverInfo()) {
         return;
       }
 

@@ -13,39 +13,41 @@ import java.util.Objects;
 
 public class RemovedArgumentInfo extends ArgumentInfo {
 
-  public static class Builder {
+  abstract static class BuilderBase<B extends BuilderBase<B>> {
 
-    private boolean checkNullOrZero;
-    private SingleValue singleValue;
-    private DexType type;
+    SingleValue singleValue;
+    DexType type;
 
-    public Builder setCheckNullOrZero(boolean checkNullOrZero) {
-      this.checkNullOrZero = checkNullOrZero;
-      return this;
-    }
-
-    public Builder setSingleValue(SingleValue singleValue) {
+    public B setSingleValue(SingleValue singleValue) {
       this.singleValue = singleValue;
-      return this;
+      return self();
     }
 
-    public Builder setType(DexType type) {
+    public B setType(DexType type) {
       this.type = type;
-      return this;
+      return self();
     }
+
+    abstract B self();
+  }
+
+  public static class Builder extends BuilderBase<Builder> {
 
     public RemovedArgumentInfo build() {
-      assert type != null;
-      return new RemovedArgumentInfo(checkNullOrZero, singleValue, type);
+      return new RemovedArgumentInfo(singleValue, type);
+    }
+
+    @Override
+    Builder self() {
+      return this;
     }
   }
 
-  private final boolean checkNullOrZero;
   private final SingleValue singleValue;
   private final DexType type;
 
-  private RemovedArgumentInfo(boolean checkNullOrZero, SingleValue singleValue, DexType type) {
-    this.checkNullOrZero = checkNullOrZero;
+  RemovedArgumentInfo(SingleValue singleValue, DexType type) {
+    assert type != null;
     this.singleValue = singleValue;
     this.type = type;
   }
@@ -64,10 +66,6 @@ public class RemovedArgumentInfo extends ArgumentInfo {
 
   public DexType getType() {
     return type;
-  }
-
-  public boolean isCheckNullOrZeroSet() {
-    return checkNullOrZero;
   }
 
   @Override
@@ -93,7 +91,7 @@ public class RemovedArgumentInfo extends ArgumentInfo {
         hasSingleValue() ? singleValue.rewrittenWithLens(appView, graphLens, codeLens) : null;
     DexType rewrittenType = graphLens.lookupType(type, codeLens);
     if (rewrittenSingleValue != singleValue || rewrittenType != type) {
-      return new RemovedArgumentInfo(checkNullOrZero, rewrittenSingleValue, rewrittenType);
+      return new RemovedArgumentInfo(rewrittenSingleValue, rewrittenType);
     }
     return this;
   }
@@ -104,13 +102,11 @@ public class RemovedArgumentInfo extends ArgumentInfo {
       return false;
     }
     RemovedArgumentInfo other = (RemovedArgumentInfo) obj;
-    return checkNullOrZero == other.checkNullOrZero
-        && type == other.type
-        && Objects.equals(singleValue, other.singleValue);
+    return type == other.type && Objects.equals(singleValue, other.singleValue);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(checkNullOrZero, singleValue, type);
+    return Objects.hash(singleValue, type);
   }
 }
