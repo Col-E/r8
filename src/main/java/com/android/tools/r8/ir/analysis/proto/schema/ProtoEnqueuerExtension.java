@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.shaking.InstantiationReason;
+import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -133,8 +134,13 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    */
   @Override
   public void processNewlyLiveMethod(
-      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
+      ProgramMethod method,
+      ProgramDefinition context,
+      Enqueuer enqueuer,
+      EnqueuerWorklist worklist) {
     if (references.isFindLiteExtensionByNumberMethod(method.getReference())) {
+      enqueuer.applyMinimumKeepInfoWhenLiveOrTargeted(
+          method, KeepMethodInfo.newEmptyJoiner().disallowParameterReordering());
       findLiteExtensionByNumberMethods.add(method);
       return;
     }

@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.google.common.collect.ImmutableList;
@@ -77,7 +78,10 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis
 
   @Override
   public void processNewlyLiveMethod(
-      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
+      ProgramMethod method,
+      ProgramDefinition context,
+      Enqueuer enqueuer,
+      EnqueuerWorklist worklist) {
     DexEncodedMethod definition = method.getDefinition();
     if (!definition.hasCode() || !definition.getCode().isCfCode()) {
       return;

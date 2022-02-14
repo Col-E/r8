@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
+import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.Enqueuer.EnqueuerDefinitionSupplier;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.google.common.collect.Sets;
@@ -42,7 +43,10 @@ public class GenericSignatureEnqueuerAnalysis extends EnqueuerAnalysis {
 
   @Override
   public void processNewlyLiveMethod(
-      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
+      ProgramMethod method,
+      ProgramDefinition context,
+      Enqueuer enqueuer,
+      EnqueuerWorklist worklist) {
     processSignature(method, context);
   }
 

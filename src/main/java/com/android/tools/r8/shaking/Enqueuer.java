@@ -3419,9 +3419,8 @@ public class Enqueuer {
     }
   }
 
-  private void applyMinimumKeepInfoWhenLiveOrTargeted(
-      ProgramMethod method,
-      KeepMethodInfo.Joiner minimumKeepInfo) {
+  public void applyMinimumKeepInfoWhenLiveOrTargeted(
+      ProgramMethod method, KeepMethodInfo.Joiner minimumKeepInfo) {
     applyMinimumKeepInfoWhenLiveOrTargeted(method, minimumKeepInfo, EnqueuerEvent.unconditional());
   }
 
@@ -4350,7 +4349,7 @@ public class Enqueuer {
     }
 
     // Notify analyses.
-    analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method, context, workList));
+    analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method, context, this, workList));
   }
 
   private void markMethodAsTargeted(ProgramMethod method, KeepReason reason) {

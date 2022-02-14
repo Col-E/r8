@@ -30,7 +30,10 @@ public abstract class EnqueuerAnalysis {
 
   /** Called when a method is found to be live. */
   public void processNewlyLiveMethod(
-      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {}
+      ProgramMethod method,
+      ProgramDefinition context,
+      Enqueuer enqueuer,
+      EnqueuerWorklist worklist) {}
 
   /** Called when a method's code has been processed by the registry. */
   public void processTracedCode(

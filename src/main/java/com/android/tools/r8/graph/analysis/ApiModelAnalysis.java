@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
+import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 
 public class ApiModelAnalysis extends EnqueuerAnalysis {
@@ -36,7 +37,10 @@ public class ApiModelAnalysis extends EnqueuerAnalysis {
 
   @Override
   public void processNewlyLiveMethod(
-      ProgramMethod method, ProgramDefinition context, EnqueuerWorklist worklist) {
+      ProgramMethod method,
+      ProgramDefinition context,
+      Enqueuer enqueuer,
+      EnqueuerWorklist worklist) {
     computeAndSetApiLevelForDefinition(method);
   }
 
