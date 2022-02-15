@@ -3,10 +3,12 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-from html.parser import HTMLParser
+# TODO(b/219778569): from html.parser import HTMLParser
+from HTMLParser import HTMLParser
 import os
 import sys
-import urllib.request
+# TODO(b/219778569): urllib.request
+import urllib
 import utils
 
 JETBRAINS_KOTLIN_MAVEN_URL = "https://maven.pkg.jetbrains.space/kotlin/p/" \
@@ -14,7 +16,8 @@ JETBRAINS_KOTLIN_MAVEN_URL = "https://maven.pkg.jetbrains.space/kotlin/p/" \
 KOTLIN_RELEASE_URL = JETBRAINS_KOTLIN_MAVEN_URL + "kotlin-compiler/"
 
 def download_newest():
-  response = urllib.request.urlopen(KOTLIN_RELEASE_URL)
+# TODO(b/219778569): response = urllib.request.urlopen(KOTLIN_RELEASE_URL)
+  response = urllib.urlopen(KOTLIN_RELEASE_URL)
   if response.getcode() != 200:
     raise Exception('Url: %s \n returned %s'
                     % (KOTLIN_RELEASE_URL, response.getcode()))
@@ -70,7 +73,8 @@ def download_newest():
 
 def download_and_save(url, path, name):
   print('Downloading: ' + url)
-  urllib.request.urlretrieve(url, os.path.join(path, name))
+# TODO(b/219778569): urllib.request.urlretrieve(url, os.path.join(path, name))
+  urllib.urlretrieve(url, os.path.join(path, name))
 
 
 if __name__ == '__main__':
