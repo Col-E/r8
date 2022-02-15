@@ -10,6 +10,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.TestParameters;
@@ -41,6 +42,20 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
+  private String getExpected() {
+    return replaceInitNameInExpectedBasedOnKotlinVersion(EXPECTED);
+  }
+
+  private String getExpectedOuterRenamed() {
+    return replaceInitNameInExpectedBasedOnKotlinVersion(EXPECTED_OUTER_RENAMED);
+  }
+
+  private String replaceInitNameInExpectedBasedOnKotlinVersion(String expected) {
+    return kotlinParameters.isNewerThanOrEqualTo(KotlinCompilerVersion.KOTLIN_DEV)
+        ? expected.replace("<init>", "`<init>`")
+        : expected;
+  }
+
   @Parameterized.Parameters(name = "{0}, {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
@@ -64,7 +79,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
     testForRuntime(parameters)
         .addProgramFiles(kotlinc.getKotlinStdlibJar(), kotlinc.getKotlinReflectJar(), libJar)
         .run(parameters.getRuntime(), PKG_NESTED_REFLECT + ".MainKt")
-        .assertSuccessWithOutput(EXPECTED);
+        .assertSuccessWithOutput(getExpected());
   }
 
   @Test
@@ -83,8 +98,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
             .compile()
             .inspect(inspector -> inspectPruned(inspector, true))
             .writeToZip();
-
-    runD8(mainJar, EXPECTED_OUTER_RENAMED);
+    runD8(mainJar, getExpectedOuterRenamed());
   }
 
   @Test
@@ -105,8 +119,7 @@ public class MetadataRewriteInnerClassTest extends KotlinMetadataTestBase {
             .compile()
             .inspect(inspector -> inspectPruned(inspector, false))
             .writeToZip();
-
-    runD8(mainJar, EXPECTED);
+    runD8(mainJar, getExpected());
   }
 
   private void runD8(Path jar, String expected) throws Exception {
