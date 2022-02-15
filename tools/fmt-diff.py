@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
@@ -13,8 +13,10 @@ from subprocess import Popen, PIPE
 
 GOOGLE_JAVA_FORMAT_DIFF = os.path.join(
     utils.THIRD_PARTY,
+    'google',
     'google-java-format',
-    'google-java-format-google-java-format-1.7',
+    '1.14.0',
+    'google-java-format-1.14.0',
     'scripts',
     'google-java-format-diff.py')
 

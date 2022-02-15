@@ -77,6 +77,8 @@ third_party/framework
 third_party/framework.tar.gz
 third_party/gmail/*
 third_party/gmscore/*
+third_party/google/google-java-format/1.14.0
+third_party/google/google-java-format/1.14.0.tar.gz
 third_party/google-java-format
 third_party/google-java-format.tar.gz
 third_party/goyt

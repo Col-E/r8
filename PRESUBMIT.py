@@ -8,8 +8,10 @@ from subprocess import check_output, Popen, PIPE, STDOUT
 
 FMT_CMD = path.join(
     'third_party',
+    'google',
     'google-java-format',
-    'google-java-format-google-java-format-1.7',
+    '1.14.0',
+    'google-java-format-1.14.0',
     'scripts',
     'google-java-format-diff.py')
 
