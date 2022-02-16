@@ -15,7 +15,6 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -69,11 +68,7 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
           Arrays.asList(FUNCTION_KEEP.split(System.lineSeparator())), Origin.unknown());
     }
     ToolHelper.runL8(l8Builder.build(), options -> {});
-    assertEquals(
-        (isJDK11DesugaredLibrary() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O))
-            ? 2
-            : 1,
-        diagnosticsHandler.getWarnings().size());
+    assertEquals((isJDK11DesugaredLibrary()) ? 2 : 1, diagnosticsHandler.getWarnings().size());
     diagnosticsHandler.assertNoErrors();
     assertTrue(
         diagnosticsHandler
