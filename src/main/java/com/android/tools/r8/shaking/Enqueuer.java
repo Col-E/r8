@@ -700,13 +700,17 @@ public class Enqueuer {
   private void addLiveNonProgramType(
       ClasspathOrLibraryClass clazz,
       // TODO(b/216576191): Remove when tracking live library members.
-      boolean visitMembers,
+      boolean markProgramSuperTypesAsLiveAndVisitMemberReferences,
       BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer) {
     WorkList<ClasspathOrLibraryClass> worklist =
         WorkList.newIdentityWorkList(clazz, liveNonProgramTypes);
     while (worklist.hasNext()) {
       ClasspathOrLibraryClass definition = worklist.next();
-      processNewLiveNonProgramType(definition, worklist, missingClassConsumer, visitMembers);
+      processNewLiveNonProgramType(
+          definition,
+          worklist,
+          missingClassConsumer,
+          markProgramSuperTypesAsLiveAndVisitMemberReferences);
     }
   }
 
@@ -714,13 +718,14 @@ public class Enqueuer {
       ClasspathOrLibraryClass clazz,
       WorkList<ClasspathOrLibraryClass> worklist,
       BiConsumer<DexType, ClasspathOrLibraryDefinition> missingClassConsumer,
-      boolean visitMembers) {
+      boolean markProgramSuperTypesAsLiveAndVisitMemberReferences) {
     ensureMethodsContinueToWidenAccess(clazz);
-    if (clazz.isLibraryClass()) {
-      // Only libraries must not derive program. Classpath classes can, assuming correct keep rules.
-      warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
-    }
-    if (visitMembers) {
+    if (markProgramSuperTypesAsLiveAndVisitMemberReferences) {
+      if (clazz.isLibraryClass()) {
+        // Only libraries must not derive program. Classpath classes can, assuming correct keep
+        // rules.
+        handleLibraryTypeInheritingFromProgramType(clazz.asLibraryClass());
+      }
       clazz.forEachClassField(
           field ->
               addNonProgramClassToWorklist(
@@ -791,7 +796,7 @@ public class Enqueuer {
     return asProgramClassOrNull(getClassOrNullFromReflectiveAccess(type, context));
   }
 
-  private void warnIfLibraryTypeInheritsFromProgramType(DexLibraryClass clazz) {
+  private void handleLibraryTypeInheritingFromProgramType(DexLibraryClass clazz) {
     if (clazz.superType != null) {
       ensureFromLibraryOrThrow(clazz.superType, clazz);
     }
