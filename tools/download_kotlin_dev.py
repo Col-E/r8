@@ -11,7 +11,7 @@ if utils.is_python3():
 else:
   from HTMLParser import HTMLParser
   import urllib
-  url_request = urllib.request
+  url_request = urllib
 import os
 import sys
 
