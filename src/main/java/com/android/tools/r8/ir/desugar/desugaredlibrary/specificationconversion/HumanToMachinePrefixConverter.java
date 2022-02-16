@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -25,18 +24,20 @@ public class HumanToMachinePrefixConverter {
   private final MachineRewritingFlags.Builder builder;
   private final String synthesizedPrefix;
   private final Map<DexString, DexString> descriptorPrefix;
-  private final Map<DexType, DexType> reverse = new IdentityHashMap<>();
+  private final Map<DexString, Map<DexString, DexString>> descriptorDifferentPrefix;
   private final Set<DexString> usedPrefix = Sets.newIdentityHashSet();
 
   public HumanToMachinePrefixConverter(
       AppInfoWithClassHierarchy appInfo,
       MachineRewritingFlags.Builder builder,
       String synthesizedPrefix,
-      Map<String, String> descriptorPrefix) {
+      HumanRewritingFlags rewritingFlags) {
     this.appInfo = appInfo;
     this.builder = builder;
     this.synthesizedPrefix = synthesizedPrefix;
-    this.descriptorPrefix = convertRewritePrefix(descriptorPrefix);
+    this.descriptorPrefix = convertRewritePrefix(rewritingFlags.getRewritePrefix());
+    this.descriptorDifferentPrefix =
+        convertRewriteDifferentPrefix(rewritingFlags.getRewriteDerivedPrefix());
   }
 
   public void convertPrefixFlags(
@@ -46,26 +47,15 @@ public class HumanToMachinePrefixConverter {
     rewriteValues(rewritingFlags.getCustomConversions());
     rewriteEmulatedInterface(rewritingFlags.getEmulateLibraryInterface());
     rewriteRetargetKeys(rewritingFlags.getRetargetCoreLibMember());
-    rewriteReverse();
     warnIfUnusedPrefix(warnConsumer);
   }
 
   private void warnIfUnusedPrefix(BiConsumer<String, Set<DexString>> warnConsumer) {
     Set<DexString> prefixes = Sets.newIdentityHashSet();
     prefixes.addAll(descriptorPrefix.keySet());
+    prefixes.addAll(descriptorDifferentPrefix.keySet());
     prefixes.removeAll(usedPrefix);
     warnConsumer.accept("The following prefixes do not match any type: ", prefixes);
-  }
-
-  // For custom conversions, this is responsible in rewriting backward.
-  private void rewriteReverse() {
-    reverse.forEach(
-        (rewrittenType, type) -> {
-          DexType chainType = rewrittenType(rewrittenType);
-          if (chainType != null) {
-            builder.rewriteType(rewrittenType, chainType);
-          }
-        });
   }
 
   public DexType convertJavaNameToDesugaredLibrary(DexType type) {
@@ -90,11 +80,6 @@ public class HumanToMachinePrefixConverter {
     emulateLibraryInterface.forEach(builder::rewriteDerivedTypeOnly);
   }
 
-  private void rewriteType(DexType type, DexType rewrittenType) {
-    builder.rewriteType(type, rewrittenType);
-    reverse.put(rewrittenType, type);
-  }
-
   private void rewriteValues(
       Map<?, DexType> flags) {
     for (DexType type : flags.values()) {
@@ -104,44 +89,71 @@ public class HumanToMachinePrefixConverter {
 
   private void rewriteClasses() {
     for (DexClass clazz : appInfo.app().asDirect().libraryClasses()) {
-      rewriteClass(clazz);
+      registerType(clazz.type);
+      registerDifferentType(clazz.type);
     }
     for (DexClass clazz : appInfo.classes()) {
-      rewriteClass(clazz);
-    }
-  }
-
-  private void rewriteClass(DexClass clazz) {
-    registerType(clazz.type);
-    // We allow missing referenced types for the work-in-progress desugaring.
-    if (clazz.superType != null) {
-      registerType(clazz.superType);
-    }
-    clazz.interfaces.forEach(this::registerType);
-    if (clazz.getInnerClasses() != null) {
-      clazz.getInnerClasses().forEach(attr -> attr.forEachType(this::registerType));
+      registerType(clazz.type);
+      registerDifferentType(clazz.type);
     }
   }
 
   private void registerType(DexType type) {
     DexType rewrittenType = rewrittenType(type);
     if (rewrittenType != null) {
-      rewriteType(type, rewrittenType);
+      builder.rewriteType(type, rewrittenType);
     }
   }
 
-  private DexType rewrittenType(DexType type) {
+  private void registerDifferentType(DexType type) {
+    DexString prefix = prefixMatching(type, descriptorDifferentPrefix.keySet());
+    if (prefix == null) {
+      return;
+    }
+    descriptorDifferentPrefix
+        .get(prefix)
+        .forEach(
+            (k, v) -> {
+              DexString typeDescriptor =
+                  type.descriptor.withNewPrefix(prefix, k, appInfo.dexItemFactory());
+              DexString rewrittenTypeDescriptor =
+                  type.descriptor.withNewPrefix(prefix, v, appInfo.dexItemFactory());
+              builder.rewriteType(
+                  appInfo.dexItemFactory().createType(typeDescriptor),
+                  appInfo.dexItemFactory().createType(rewrittenTypeDescriptor));
+            });
+    usedPrefix.add(prefix);
+  }
+
+  private DexString prefixMatching(DexType type, Set<DexString> prefixes) {
     DexString prefixToMatch = type.descriptor.withoutArray(appInfo.dexItemFactory());
-    for (DexString prefix : descriptorPrefix.keySet()) {
+    for (DexString prefix : prefixes) {
       if (prefixToMatch.startsWith(prefix)) {
-        DexString rewrittenTypeDescriptor =
-            type.descriptor.withNewPrefix(
-                prefix, descriptorPrefix.get(prefix), appInfo.dexItemFactory());
-        usedPrefix.add(prefix);
-        return appInfo.dexItemFactory().createType(rewrittenTypeDescriptor);
+        return prefix;
       }
     }
     return null;
+  }
+
+  private DexType rewrittenType(DexType type) {
+    DexString prefix = prefixMatching(type, descriptorPrefix.keySet());
+    if (prefix == null) {
+      return null;
+    }
+    DexString rewrittenTypeDescriptor =
+        type.descriptor.withNewPrefix(
+            prefix, descriptorPrefix.get(prefix), appInfo.dexItemFactory());
+    usedPrefix.add(prefix);
+    return appInfo.dexItemFactory().createType(rewrittenTypeDescriptor);
+  }
+
+  private ImmutableMap<DexString, Map<DexString, DexString>> convertRewriteDifferentPrefix(
+      Map<String, Map<String, String>> rewriteDerivedPrefix) {
+    ImmutableMap.Builder<DexString, Map<DexString, DexString>> mapBuilder = ImmutableMap.builder();
+    for (String key : rewriteDerivedPrefix.keySet()) {
+      mapBuilder.put(toDescriptorPrefix(key), convertRewritePrefix(rewriteDerivedPrefix.get(key)));
+    }
+    return mapBuilder.build();
   }
 
   private ImmutableMap<DexString, DexString> convertRewritePrefix(

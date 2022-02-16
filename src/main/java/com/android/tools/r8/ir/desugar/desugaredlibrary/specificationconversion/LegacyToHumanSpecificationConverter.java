@@ -34,6 +34,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.io.IOException;
@@ -45,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 
 public class LegacyToHumanSpecificationConverter {
 
+  private static final String wrapperPrefix = "__wrapper__.";
   private AndroidApiLevel legacyHackLevel = AndroidApiLevel.N_MR1;
 
   public void convertAllAPILevels(
@@ -182,7 +184,9 @@ public class LegacyToHumanSpecificationConverter {
     HumanRewritingFlags.Builder builder =
         HumanRewritingFlags.builder(app.dexItemFactory(), app.options.reporter, origin);
 
-    flags.getRewritePrefix().forEach(builder::putRewritePrefix);
+    flags
+        .getRewritePrefix()
+        .forEach((prefix, rewritten) -> rewritePrefix(builder, prefix, rewritten));
     flags.getEmulateLibraryInterface().forEach(builder::putEmulateLibraryInterface);
     flags.getBackportCoreLibraryMember().forEach(builder::putBackportCoreLibraryMember);
     flags.getCustomConversions().forEach(builder::putCustomConversion);
@@ -197,6 +201,28 @@ public class LegacyToHumanSpecificationConverter {
         .forEach(pair -> convertDontRewriteInvocation(builder, app, pair));
 
     return builder.build();
+  }
+
+  private void rewritePrefix(HumanRewritingFlags.Builder builder, String prefix, String rewritten) {
+    // Legacy hacks: The human specification matches on class' types so we need different
+    // rewritings.
+    if (prefix.startsWith("j$")) {
+      assert rewritten.startsWith("java");
+      builder.putRewriteDerivedPrefix(rewritten, prefix, rewritten);
+      return;
+    }
+    if (prefix.equals(wrapperPrefix)) {
+      // We hard code here this applies to java.nio and java.io only.
+      ImmutableMap<String, String> map =
+          ImmutableMap.of("java.nio.", "j$.nio.", "java.io.", "j$.io.");
+      map.forEach(
+          (k, v) -> {
+            builder.putRewriteDerivedPrefix(k, wrapperPrefix + k, k);
+            builder.putRewriteDerivedPrefix(k, wrapperPrefix + v, v);
+          });
+      return;
+    }
+    builder.putRewritePrefix(prefix, rewritten);
   }
 
   private void convertDontRewriteInvocation(

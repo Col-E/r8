@@ -76,6 +76,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
       HumanRewritingFlags.Builder commonBuilder,
       HumanRewritingFlags.Builder builder) {
     deduplicateRewritePrefix(flags, otherFlags, commonBuilder, builder);
+    deduplicateRewriteDifferentPrefix(flags, otherFlags, commonBuilder, builder);
 
     deduplicateFlags(
         flags.getEmulateLibraryInterface(),
@@ -115,6 +116,33 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         builder::addWrapperConversion);
   }
 
+  private static void deduplicateRewriteDifferentPrefix(
+      HumanRewritingFlags flags,
+      HumanRewritingFlags otherFlags,
+      HumanRewritingFlags.Builder commonBuilder,
+      HumanRewritingFlags.Builder builder) {
+    flags
+        .getRewriteDerivedPrefix()
+        .forEach(
+            (prefixToMatch, rewriteRules) -> {
+              if (!otherFlags.getRewriteDerivedPrefix().containsKey(prefixToMatch)) {
+                rewriteRules.forEach(
+                    (k, v) -> builder.putRewriteDerivedPrefix(prefixToMatch, k, v));
+              } else {
+                Map<String, String> otherMap =
+                    otherFlags.getRewriteDerivedPrefix().get(prefixToMatch);
+                rewriteRules.forEach(
+                    (k, v) -> {
+                      if (otherMap.containsKey(k) && otherMap.get(k).equals(v)) {
+                        commonBuilder.putRewriteDerivedPrefix(prefixToMatch, k, v);
+                      } else {
+                        builder.putRewriteDerivedPrefix(prefixToMatch, k, v);
+                      }
+                    });
+              }
+            });
+  }
+
   private static void deduplicateRewritePrefix(
       HumanRewritingFlags flags,
       HumanRewritingFlags otherFlags,
@@ -124,7 +152,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         .getRewritePrefix()
         .forEach(
             (k, v) -> {
-              if (otherFlags.getRewritePrefix().get(k) != null
+              if (otherFlags.getRewritePrefix().containsKey(k)
                   && otherFlags.getRewritePrefix().get(k).equals(v)) {
                 commonBuilder.putRewritePrefix(k, v);
               } else {

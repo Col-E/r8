@@ -67,6 +67,13 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
           if (!flags.getRewritePrefix().isEmpty()) {
             toJson.put(REWRITE_PREFIX_KEY, new TreeMap<>(flags.getRewritePrefix()));
           }
+          if (!flags.getRewriteDerivedPrefix().isEmpty()) {
+            TreeMap<String, Map<String, String>> rewriteDerivedPrefix = new TreeMap<>();
+            flags
+                .getRewriteDerivedPrefix()
+                .forEach((k, v) -> rewriteDerivedPrefix.put(k, new TreeMap<>(v)));
+            toJson.put(REWRITE_DERIVED_PREFIX_KEY, rewriteDerivedPrefix);
+          }
           if (!flags.getEmulateLibraryInterface().isEmpty()) {
             toJson.put(EMULATE_INTERFACE_KEY, mapToString(flags.getEmulateLibraryInterface()));
           }

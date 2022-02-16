@@ -104,8 +104,7 @@ public class HumanToMachineSpecificationConverter {
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)
         .convertEmulatedInterfaces(rewritingFlags, appInfo, builder, this::warnMissingReferences);
-    new HumanToMachinePrefixConverter(
-            appInfo, builder, synthesizedPrefix, rewritingFlags.getRewritePrefix())
+    new HumanToMachinePrefixConverter(appInfo, builder, synthesizedPrefix, rewritingFlags)
         .convertPrefixFlags(rewritingFlags, this::warnMissingDexString);
     new HumanToMachineWrapperConverter(appInfo)
         .convertWrappers(rewritingFlags, builder, this::warnMissingReferences);

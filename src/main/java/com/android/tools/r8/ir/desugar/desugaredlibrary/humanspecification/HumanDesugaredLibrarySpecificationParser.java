@@ -18,6 +18,7 @@ import com.google.gson.JsonParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Consumer;
 
 public class HumanDesugaredLibrarySpecificationParser {
@@ -35,6 +36,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String WRAPPER_CONVERSION_KEY = "wrapper_conversion";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
   static final String REWRITE_PREFIX_KEY = "rewrite_prefix";
+  static final String REWRITE_DERIVED_PREFIX_KEY = "rewrite_derived_prefix";
   static final String RETARGET_LIB_MEMBER_KEY = "retarget_lib_member";
   static final String EMULATE_INTERFACE_KEY = "emulate_interface";
   static final String DONT_REWRITE_KEY = "dont_rewrite";
@@ -189,6 +191,16 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (Map.Entry<String, JsonElement> rewritePrefix :
           jsonFlagSet.get(REWRITE_PREFIX_KEY).getAsJsonObject().entrySet()) {
         builder.putRewritePrefix(rewritePrefix.getKey(), rewritePrefix.getValue().getAsString());
+      }
+    }
+    if (jsonFlagSet.has(REWRITE_DERIVED_PREFIX_KEY)) {
+      for (Map.Entry<String, JsonElement> prefixToMatch :
+          jsonFlagSet.get(REWRITE_DERIVED_PREFIX_KEY).getAsJsonObject().entrySet()) {
+        for (Entry<String, JsonElement> rewriteRule :
+            prefixToMatch.getValue().getAsJsonObject().entrySet()) {
+          builder.putRewriteDerivedPrefix(
+              prefixToMatch.getKey(), rewriteRule.getKey(), rewriteRule.getValue().getAsString());
+        }
       }
     }
     if (jsonFlagSet.has(RETARGET_LIB_MEMBER_KEY)) {

@@ -98,6 +98,9 @@ public class ConvertExportReadTest extends TestBase {
       HumanRewritingFlags humanRewritingFlags1, HumanRewritingFlags humanRewritingFlags2) {
     assertEquals(humanRewritingFlags1.getRewritePrefix(), humanRewritingFlags2.getRewritePrefix());
     assertEquals(
+        humanRewritingFlags1.getRewriteDerivedPrefix(),
+        humanRewritingFlags2.getRewriteDerivedPrefix());
+    assertEquals(
         humanRewritingFlags1.getBackportCoreLibraryMember(),
         humanRewritingFlags2.getBackportCoreLibraryMember());
     assertEquals(
