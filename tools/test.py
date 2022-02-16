@@ -399,7 +399,8 @@ def Main():
     if utils.is_python3():
       threading.Thread(
           target=timeout_handler,
-          args=(timestamp_file, print_stacks_timeout)).start()
+          args=(timestamp_file, print_stacks_timeout),
+          daemon=True).start()
     else:
       thread.start_new_thread(
           timeout_handler, (timestamp_file, print_stacks_timeout,))
