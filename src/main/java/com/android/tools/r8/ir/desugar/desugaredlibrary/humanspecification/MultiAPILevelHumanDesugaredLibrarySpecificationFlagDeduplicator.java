@@ -5,8 +5,9 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import com.android.tools.r8.graph.DexItem;
-import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Reporter;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -20,7 +21,6 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
 
   public static void deduplicateFlags(
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
-      DexItemFactory factory,
       Reporter reporter) {
 
     IntArraySet apis = new IntArraySet();
@@ -29,13 +29,12 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     apis.addAll(specification.getProgramFlags().keySet());
 
     for (Integer api : apis) {
-      deduplicateFlags(specification, factory, reporter, api);
+      deduplicateFlags(specification, reporter, api);
     }
   }
 
   private static void deduplicateFlags(
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
-      DexItemFactory factory,
       Reporter reporter,
       int api) {
 
@@ -53,12 +52,10 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     Origin origin = specification.getOrigin();
     HumanRewritingFlags.Builder commonBuilder =
         commonFlags.get(api) == null
-            ? HumanRewritingFlags.builder(factory, reporter, origin)
-            : commonFlags.get(api).newBuilder(factory, reporter, origin);
-    HumanRewritingFlags.Builder libraryBuilder =
-        HumanRewritingFlags.builder(factory, reporter, origin);
-    HumanRewritingFlags.Builder programBuilder =
-        HumanRewritingFlags.builder(factory, reporter, origin);
+            ? HumanRewritingFlags.builder(reporter, origin)
+            : commonFlags.get(api).newBuilder(reporter, origin);
+    HumanRewritingFlags.Builder libraryBuilder = HumanRewritingFlags.builder(reporter, origin);
+    HumanRewritingFlags.Builder programBuilder = HumanRewritingFlags.builder(reporter, origin);
 
     // Iterate over all library/program flags, add them in common if also in the other, else add
     // them to library/program.
@@ -79,20 +76,20 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     deduplicateRewriteDifferentPrefix(flags, otherFlags, commonBuilder, builder);
 
     deduplicateFlags(
-        flags.getEmulateLibraryInterface(),
-        otherFlags.getEmulateLibraryInterface(),
-        commonBuilder::putEmulateLibraryInterface,
-        builder::putEmulateLibraryInterface);
+        flags.getEmulatedInterfaces(),
+        otherFlags.getEmulatedInterfaces(),
+        commonBuilder::putEmulatedInterface,
+        builder::putEmulatedInterface);
     deduplicateFlags(
-        flags.getRetargetCoreLibMember(),
-        otherFlags.getRetargetCoreLibMember(),
-        commonBuilder::putRetargetCoreLibMember,
-        builder::putRetargetCoreLibMember);
+        flags.getRetargetMethod(),
+        otherFlags.getRetargetMethod(),
+        commonBuilder::retargetMethod,
+        builder::retargetMethod);
     deduplicateFlags(
-        flags.getBackportCoreLibraryMember(),
-        otherFlags.getBackportCoreLibraryMember(),
-        commonBuilder::putBackportCoreLibraryMember,
-        builder::putBackportCoreLibraryMember);
+        flags.getLegacyBackport(),
+        otherFlags.getLegacyBackport(),
+        commonBuilder::putLegacyBackport,
+        builder::putLegacyBackport);
     deduplicateFlags(
         flags.getCustomConversions(),
         otherFlags.getCustomConversions(),
@@ -105,8 +102,8 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         commonBuilder::addDontRewriteInvocation,
         builder::addDontRewriteInvocation);
     deduplicateFlags(
-        flags.getDontRetargetLibMember(),
-        otherFlags.getDontRetargetLibMember(),
+        flags.getDontRetarget(),
+        otherFlags.getDontRetarget(),
         commonBuilder::addDontRetargetLibMember,
         builder::addDontRetargetLibMember);
     deduplicateFlags(
@@ -114,6 +111,26 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         otherFlags.getWrapperConversions(),
         commonBuilder::addWrapperConversion,
         builder::addWrapperConversion);
+
+    deduplicateAmendLibraryMemberFlags(flags, otherFlags, commonBuilder, builder);
+  }
+
+  private static void deduplicateAmendLibraryMemberFlags(
+      HumanRewritingFlags flags,
+      HumanRewritingFlags otherFlags,
+      HumanRewritingFlags.Builder commonBuilder,
+      HumanRewritingFlags.Builder builder) {
+    Map<DexMethod, MethodAccessFlags> other = otherFlags.getAmendLibraryMethod();
+    flags
+        .getAmendLibraryMethod()
+        .forEach(
+            (k, v) -> {
+              if (other.get(k) == v) {
+                commonBuilder.amendLibraryMethod(k, v);
+              } else {
+                builder.amendLibraryMethod(k, v);
+              }
+            });
   }
 
   private static void deduplicateRewriteDifferentPrefix(

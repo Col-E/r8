@@ -82,6 +82,18 @@ public abstract class AccessFlags<T extends AccessFlags<T>> implements Structura
     return originalFlags;
   }
 
+  public ClassAccessFlags asClassAccessFlags() {
+    return null;
+  }
+
+  public MethodAccessFlags asMethodAccessFlags() {
+    return null;
+  }
+
+  public FieldAccessFlags asFieldAccessFlags() {
+    return null;
+  }
+
   @Override
   public boolean equals(Object object) {
     if (object instanceof AccessFlags) {

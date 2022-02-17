@@ -119,6 +119,11 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     return copy.materialize();
   }
 
+  @Override
+  public MethodAccessFlags asMethodAccessFlags() {
+    return this;
+  }
+
   public boolean isSynchronized() {
     return isSet(Constants.ACC_SYNCHRONIZED);
   }
@@ -247,6 +252,11 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
 
     Builder() {
       super(MethodAccessFlags.fromSharedAccessFlags(0, false));
+    }
+
+    public Builder set(int flag) {
+      flags.set(flag);
+      return this;
     }
 
     public Builder setBridge() {

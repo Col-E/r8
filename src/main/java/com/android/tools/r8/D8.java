@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnal
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -195,6 +196,7 @@ public final class D8 {
       assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
 
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
+      DesugaredLibraryAmender.run(appView);
       SyntheticItems.collectSyntheticInputs(appView);
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;

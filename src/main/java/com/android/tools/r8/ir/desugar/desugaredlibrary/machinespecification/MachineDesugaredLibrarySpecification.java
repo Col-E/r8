@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +134,10 @@ public class MachineDesugaredLibrarySpecification {
 
   public Map<DexType, CustomConversionDescriptor> getCustomConversions() {
     return rewritingFlags.getCustomConversions();
+  }
+
+  public Map<DexMethod, MethodAccessFlags> getAmendLibraryMethods() {
+    return rewritingFlags.getAmendLibraryMethod();
   }
 
   public boolean hasRetargeting() {

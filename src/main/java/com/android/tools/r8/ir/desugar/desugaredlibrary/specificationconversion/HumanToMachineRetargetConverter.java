@@ -41,7 +41,7 @@ public class HumanToMachineRetargetConverter {
       MachineRewritingFlags.Builder builder,
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
     rewritingFlags
-        .getRetargetCoreLibMember()
+        .getRetargetMethod()
         .forEach(
             (method, type) ->
                 convertRetargetCoreLibMemberFlag(builder, rewritingFlags, method, type));
@@ -55,12 +55,6 @@ public class HumanToMachineRetargetConverter {
       DexType type) {
     DexClass holder = appInfo.definitionFor(method.holder);
     DexEncodedMethod foundMethod = holder.lookupMethod(method);
-    if (foundMethod == null && method.getName().toString().equals("deepEquals0")) {
-      // TODO(b/184026720): Temporary work-around (the method is missing).
-      DexMethod dest = method.withHolder(type, appInfo.dexItemFactory());
-      builder.putStaticRetarget(method, dest);
-      return;
-    }
     if (foundMethod == null) {
       missingMethods.add(foundMethod.getReference());
       return;
@@ -127,8 +121,7 @@ public class HumanToMachineRetargetConverter {
       AppInfoWithClassHierarchy appInfo,
       HumanRewritingFlags humanRewritingFlags) {
     // Answers true if this method is already managed through emulated interface dispatch.
-    Map<DexType, DexType> emulateLibraryInterface =
-        humanRewritingFlags.getEmulateLibraryInterface();
+    Map<DexType, DexType> emulateLibraryInterface = humanRewritingFlags.getEmulatedInterfaces();
     if (emulateLibraryInterface.isEmpty()) {
       return false;
     }

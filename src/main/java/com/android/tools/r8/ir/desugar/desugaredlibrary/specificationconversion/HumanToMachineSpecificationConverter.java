@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
@@ -100,6 +101,8 @@ public class HumanToMachineSpecificationConverter {
       String synthesizedPrefix, HumanRewritingFlags rewritingFlags) {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
+    DesugaredLibraryAmender.run(appView, rewritingFlags.getAmendLibraryMethod());
+    rewritingFlags.getAmendLibraryMethod().forEach(builder::amendLibraryMethod);
     new HumanToMachineRetargetConverter(appInfo)
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)
@@ -113,8 +116,8 @@ public class HumanToMachineSpecificationConverter {
         .forEach(
             (type, conversionType) ->
                 convertCustomConversion(appInfo, builder, type, conversionType));
-    rewritingFlags.getDontRetargetLibMember().forEach(builder::addDontRetarget);
-    rewritingFlags.getBackportCoreLibraryMember().forEach(builder::putLegacyBackport);
+    rewritingFlags.getDontRetarget().forEach(builder::addDontRetarget);
+    rewritingFlags.getLegacyBackport().forEach(builder::putLegacyBackport);
     return builder.build();
   }
 

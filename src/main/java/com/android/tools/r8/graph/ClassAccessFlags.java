@@ -107,6 +107,11 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
     return flags;
   }
 
+  @Override
+  public ClassAccessFlags asClassAccessFlags() {
+    return this;
+  }
+
   /**
    * Checks whether the constraints from
    * https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.1 are met.

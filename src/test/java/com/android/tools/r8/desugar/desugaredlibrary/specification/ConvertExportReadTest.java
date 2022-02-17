@@ -33,15 +33,13 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ConvertExportReadTest extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public ConvertExportReadTest(TestParameters parameters) {
-    this.parameters = parameters;
+    assert parameters.isNoneRuntime();
   }
 
   @Test
@@ -100,26 +98,25 @@ public class ConvertExportReadTest extends TestBase {
     assertEquals(
         humanRewritingFlags1.getRewriteDerivedPrefix(),
         humanRewritingFlags2.getRewriteDerivedPrefix());
+
     assertEquals(
-        humanRewritingFlags1.getBackportCoreLibraryMember(),
-        humanRewritingFlags2.getBackportCoreLibraryMember());
+        humanRewritingFlags1.getLegacyBackport(), humanRewritingFlags2.getLegacyBackport());
     assertEquals(
         humanRewritingFlags1.getCustomConversions(), humanRewritingFlags2.getCustomConversions());
     assertEquals(
-        humanRewritingFlags1.getEmulateLibraryInterface(),
-        humanRewritingFlags2.getEmulateLibraryInterface());
+        humanRewritingFlags1.getEmulatedInterfaces(), humanRewritingFlags2.getEmulatedInterfaces());
     assertEquals(
-        humanRewritingFlags1.getRetargetCoreLibMember(),
-        humanRewritingFlags2.getRetargetCoreLibMember());
+        humanRewritingFlags1.getRetargetMethod(), humanRewritingFlags2.getRetargetMethod());
 
-    assertEquals(
-        humanRewritingFlags1.getDontRetargetLibMember(),
-        humanRewritingFlags2.getDontRetargetLibMember());
+    assertEquals(humanRewritingFlags1.getDontRetarget(), humanRewritingFlags2.getDontRetarget());
     assertEquals(
         humanRewritingFlags1.getDontRewriteInvocation(),
         humanRewritingFlags2.getDontRewriteInvocation());
     assertEquals(
         humanRewritingFlags1.getWrapperConversions(), humanRewritingFlags2.getWrapperConversions());
+
+    assertEquals(
+        humanRewritingFlags1.getAmendLibraryMethod(), humanRewritingFlags2.getAmendLibraryMethod());
   }
 
   private void assertTopLevelFlagsEquals(

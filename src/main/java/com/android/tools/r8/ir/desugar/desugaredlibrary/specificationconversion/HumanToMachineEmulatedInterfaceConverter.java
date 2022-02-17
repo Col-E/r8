@@ -43,7 +43,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
       AppInfoWithClassHierarchy appInfo,
       MachineRewritingFlags.Builder builder,
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
-    Map<DexType, DexType> emulateInterfaces = rewritingFlags.getEmulateLibraryInterface();
+    Map<DexType, DexType> emulateInterfaces = rewritingFlags.getEmulatedInterfaces();
     Set<DexMethod> dontRewriteInvocation = rewritingFlags.getDontRewriteInvocation();
     processEmulatedInterfaceHierarchy(appInfo, emulateInterfaces);
     for (DexType itf : emulateInterfaces.keySet()) {
@@ -73,7 +73,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
         appInfo
             .dexItemFactory()
             .createMethod(
-                rewritingFlags.getEmulateLibraryInterface().get(method.getHolderType()),
+                rewritingFlags.getEmulatedInterfaces().get(method.getHolderType()),
                 method.getProto(),
                 method.getName());
     DerivedMethod interfaceMethod = new DerivedMethod(itfDexMethod);
@@ -93,7 +93,7 @@ public class HumanToMachineEmulatedInterfaceConverter {
     List<DexType> subInterfaces = emulatedInterfaceHierarchy.get(method.getHolderType());
     LinkedHashMap<DexType, DerivedMethod> extraDispatchCases = new LinkedHashMap<>();
     // Retarget core lib emulated dispatch handled as part of emulated interface dispatch.
-    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetCoreLibMember();
+    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetMethod();
     for (DexMethod retarget : retargetCoreLibMember.keySet()) {
       if (retarget.match(method)) {
         DexClass inClass = appInfo.definitionFor(retarget.getHolderType());

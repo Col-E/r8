@@ -6,8 +6,11 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -36,16 +39,18 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String WRAPPER_CONVERSION_KEY = "wrapper_conversion";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
   static final String REWRITE_PREFIX_KEY = "rewrite_prefix";
+  static final String RETARGET_METHOD_KEY = "retarget_method";
   static final String REWRITE_DERIVED_PREFIX_KEY = "rewrite_derived_prefix";
-  static final String RETARGET_LIB_MEMBER_KEY = "retarget_lib_member";
   static final String EMULATE_INTERFACE_KEY = "emulate_interface";
   static final String DONT_REWRITE_KEY = "dont_rewrite";
-  static final String DONT_RETARGET_LIB_MEMBER_KEY = "dont_retarget_lib_member";
+  static final String DONT_RETARGET_KEY = "dont_retarget";
   static final String BACKPORT_KEY = "backport";
+  static final String AMEND_LIBRARY_METHOD_KEY = "amend_library_method";
   static final String SHRINKER_CONFIG_KEY = "shrinker_config";
   static final String SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY = "support_all_callbacks_from_library";
 
   private final DexItemFactory dexItemFactory;
+  private final HumanMethodParser methodParser;
   private final Reporter reporter;
   private final boolean libraryCompilation;
   private final int minAPILevel;
@@ -59,6 +64,7 @@ public class HumanDesugaredLibrarySpecificationParser {
       boolean libraryCompilation,
       int minAPILevel) {
     this.dexItemFactory = dexItemFactory;
+    this.methodParser = new HumanMethodParser(dexItemFactory);
     this.reporter = reporter;
     this.minAPILevel = minAPILevel;
     this.libraryCompilation = libraryCompilation;
@@ -129,8 +135,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   }
 
   private HumanRewritingFlags parseRewritingFlags() {
-    HumanRewritingFlags.Builder builder =
-        HumanRewritingFlags.builder(dexItemFactory, reporter, origin);
+    HumanRewritingFlags.Builder builder = HumanRewritingFlags.builder(reporter, origin);
     JsonElement commonFlags = required(jsonConfig, COMMON_FLAGS_KEY);
     JsonElement libraryFlags = required(jsonConfig, LIBRARY_FLAGS_KEY);
     JsonElement programFlags = required(jsonConfig, PROGRAM_FLAGS_KEY);
@@ -203,46 +208,70 @@ public class HumanDesugaredLibrarySpecificationParser {
         }
       }
     }
-    if (jsonFlagSet.has(RETARGET_LIB_MEMBER_KEY)) {
+    if (jsonFlagSet.has(RETARGET_METHOD_KEY)) {
       for (Map.Entry<String, JsonElement> retarget :
-          jsonFlagSet.get(RETARGET_LIB_MEMBER_KEY).getAsJsonObject().entrySet()) {
-        builder.putRetargetCoreLibMember(retarget.getKey(), retarget.getValue().getAsString());
+          jsonFlagSet.get(RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
+        builder.retargetMethod(
+            parseMethod(retarget.getKey()),
+            stringDescriptorToDexType(retarget.getValue().getAsString()));
       }
     }
     if (jsonFlagSet.has(BACKPORT_KEY)) {
       for (Map.Entry<String, JsonElement> backport :
           jsonFlagSet.get(BACKPORT_KEY).getAsJsonObject().entrySet()) {
-        builder.putBackportCoreLibraryMember(backport.getKey(), backport.getValue().getAsString());
+        builder.putLegacyBackport(
+            stringDescriptorToDexType(backport.getKey()),
+            stringDescriptorToDexType(backport.getValue().getAsString()));
       }
     }
     if (jsonFlagSet.has(EMULATE_INTERFACE_KEY)) {
       for (Map.Entry<String, JsonElement> itf :
           jsonFlagSet.get(EMULATE_INTERFACE_KEY).getAsJsonObject().entrySet()) {
-        builder.putEmulateLibraryInterface(itf.getKey(), itf.getValue().getAsString());
+        builder.putEmulatedInterface(
+            stringDescriptorToDexType(itf.getKey()),
+            stringDescriptorToDexType(itf.getValue().getAsString()));
       }
     }
     if (jsonFlagSet.has(CUSTOM_CONVERSION_KEY)) {
       for (Map.Entry<String, JsonElement> conversion :
           jsonFlagSet.get(CUSTOM_CONVERSION_KEY).getAsJsonObject().entrySet()) {
-        builder.putCustomConversion(conversion.getKey(), conversion.getValue().getAsString());
+        builder.putCustomConversion(
+            stringDescriptorToDexType(conversion.getKey()),
+            stringDescriptorToDexType(conversion.getValue().getAsString()));
       }
     }
     if (jsonFlagSet.has(WRAPPER_CONVERSION_KEY)) {
       for (JsonElement wrapper : jsonFlagSet.get(WRAPPER_CONVERSION_KEY).getAsJsonArray()) {
-        builder.addWrapperConversion(wrapper.getAsString());
+        builder.addWrapperConversion(stringDescriptorToDexType(wrapper.getAsString()));
       }
     }
     if (jsonFlagSet.has(DONT_REWRITE_KEY)) {
       JsonArray dontRewrite = jsonFlagSet.get(DONT_REWRITE_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRewrite) {
-        builder.addDontRewriteInvocation(rewrite.getAsString());
+        builder.addDontRewriteInvocation(parseMethod(rewrite.getAsString()));
       }
     }
-    if (jsonFlagSet.has(DONT_RETARGET_LIB_MEMBER_KEY)) {
-      JsonArray dontRetarget = jsonFlagSet.get(DONT_RETARGET_LIB_MEMBER_KEY).getAsJsonArray();
+    if (jsonFlagSet.has(DONT_RETARGET_KEY)) {
+      JsonArray dontRetarget = jsonFlagSet.get(DONT_RETARGET_KEY).getAsJsonArray();
       for (JsonElement rewrite : dontRetarget) {
-        builder.addDontRetargetLibMember(rewrite.getAsString());
+        builder.addDontRetargetLibMember(stringDescriptorToDexType(rewrite.getAsString()));
       }
     }
+    if (jsonFlagSet.has(AMEND_LIBRARY_METHOD_KEY)) {
+      JsonArray amendLibraryMember = jsonFlagSet.get(AMEND_LIBRARY_METHOD_KEY).getAsJsonArray();
+      for (JsonElement amend : amendLibraryMember) {
+        methodParser.parseMethod(amend.getAsString());
+        builder.amendLibraryMethod(methodParser.getMethod(), methodParser.getFlags());
+      }
+    }
+  }
+
+  private DexMethod parseMethod(String signature) {
+    methodParser.parseMethod(signature);
+    return methodParser.getMethod();
+  }
+
+  private DexType stringDescriptorToDexType(String stringClass) {
+    return dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(stringClass));
   }
 }

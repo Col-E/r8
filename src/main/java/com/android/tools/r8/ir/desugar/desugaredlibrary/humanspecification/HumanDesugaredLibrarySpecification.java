@@ -65,12 +65,12 @@ public class HumanDesugaredLibrarySpecification {
   }
 
   public Map<DexType, DexType> getEmulateLibraryInterface() {
-    return rewritingFlags.getEmulateLibraryInterface();
+    return rewritingFlags.getEmulatedInterfaces();
   }
 
   // If the method is retargeted, answers the retargeted method, else null.
   public DexMethod retargetMethod(DexEncodedMethod method, AppView<?> appView) {
-    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetCoreLibMember();
+    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetMethod();
     DexType dexType = retargetCoreLibMember.get(method.getReference());
     if (dexType != null) {
       return appView
@@ -88,11 +88,11 @@ public class HumanDesugaredLibrarySpecification {
   }
 
   public Map<DexMethod, DexType> getRetargetCoreLibMember() {
-    return rewritingFlags.getRetargetCoreLibMember();
+    return rewritingFlags.getRetargetMethod();
   }
 
   public Map<DexType, DexType> getBackportCoreLibraryMember() {
-    return rewritingFlags.getBackportCoreLibraryMember();
+    return rewritingFlags.getLegacyBackport();
   }
 
   public Map<DexType, DexType> getCustomConversions() {
@@ -108,7 +108,7 @@ public class HumanDesugaredLibrarySpecification {
   }
 
   public Set<DexType> getDontRetargetLibMember() {
-    return rewritingFlags.getDontRetargetLibMember();
+    return rewritingFlags.getDontRetarget();
   }
 
   public List<String> getExtraKeepRules() {

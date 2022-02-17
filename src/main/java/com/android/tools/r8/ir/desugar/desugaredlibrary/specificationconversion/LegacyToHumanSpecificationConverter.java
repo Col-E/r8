@@ -8,6 +8,7 @@ import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -16,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
@@ -60,7 +62,7 @@ public class LegacyToHumanSpecificationConverter {
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
         convertAllAPILevels(legacySpec, androidLib, options);
     MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator.deduplicateFlags(
-        humanSpec, options.dexItemFactory(), options.reporter);
+        humanSpec, options.reporter);
     MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter.export(humanSpec, output);
   }
 
@@ -122,7 +124,7 @@ public class LegacyToHumanSpecificationConverter {
     if (options.getMinApiLevel().isLessThanOrEqualTo(legacyHackLevel)
         && legacySpec.isLibraryCompilation()) {
       HumanRewritingFlags.Builder builder =
-          humanRewritingFlags.newBuilder(app.dexItemFactory(), app.options.reporter, origin);
+          humanRewritingFlags.newBuilder(app.options.reporter, origin);
       legacyLibraryFlagHacks(app.dexItemFactory(), builder);
       humanRewritingFlags = builder.build();
     }
@@ -135,7 +137,7 @@ public class LegacyToHumanSpecificationConverter {
     int level = legacyHackLevel.getLevel();
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
     HumanRewritingFlags.Builder builder =
-        humanRewritingFlags.newBuilder(app.dexItemFactory(), app.options.reporter, origin);
+        humanRewritingFlags.newBuilder(app.options.reporter, origin);
     legacyLibraryFlagHacks(app.dexItemFactory(), builder);
     libraryFlags.put(level, builder.build());
   }
@@ -152,7 +154,12 @@ public class LegacyToHumanSpecificationConverter {
     DexMethod source =
         itemFactory.createMethod(itemFactory.createType(itemFactory.arraysDescriptor), proto, name);
     DexType target = itemFactory.createType("Ljava/util/DesugarArrays;");
-    builder.putRetargetCoreLibMember(source, target);
+    builder.retargetMethod(source, target);
+
+    builder.amendLibraryMethod(
+        source,
+        MethodAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_PRIVATE | Constants.ACC_STATIC, false));
 
     // TODO(b/181629049): This is only a workaround rewriting invokes of
     //  j.u.TimeZone.getTimeZone taking a java.time.ZoneId.
@@ -163,7 +170,7 @@ public class LegacyToHumanSpecificationConverter {
             itemFactory.createType("Ljava/time/ZoneId;"));
     source = itemFactory.createMethod(itemFactory.createType("Ljava/util/TimeZone;"), proto, name);
     target = itemFactory.createType("Ljava/util/DesugarTimeZone;");
-    builder.putRetargetCoreLibMember(source, target);
+    builder.retargetMethod(source, target);
   }
 
   private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {
@@ -181,14 +188,13 @@ public class LegacyToHumanSpecificationConverter {
 
   private HumanRewritingFlags convertRewritingFlags(
       LegacyRewritingFlags flags, DexApplication app, Origin origin) {
-    HumanRewritingFlags.Builder builder =
-        HumanRewritingFlags.builder(app.dexItemFactory(), app.options.reporter, origin);
+    HumanRewritingFlags.Builder builder = HumanRewritingFlags.builder(app.options.reporter, origin);
 
     flags
         .getRewritePrefix()
         .forEach((prefix, rewritten) -> rewritePrefix(builder, prefix, rewritten));
-    flags.getEmulateLibraryInterface().forEach(builder::putEmulateLibraryInterface);
-    flags.getBackportCoreLibraryMember().forEach(builder::putBackportCoreLibraryMember);
+    flags.getEmulateLibraryInterface().forEach(builder::putEmulatedInterface);
+    flags.getBackportCoreLibraryMember().forEach(builder::putLegacyBackport);
     flags.getCustomConversions().forEach(builder::putCustomConversion);
     flags.getDontRetargetLibMember().forEach(builder::addDontRetargetLibMember);
     flags.getWrapperConversions().forEach(builder::addWrapperConversion);
@@ -246,7 +252,7 @@ public class LegacyToHumanSpecificationConverter {
           assert dexClass != null;
           List<DexClassAndMethod> methodsWithName = findMethodsWithName(name, dexClass);
           for (DexClassAndMethod dexClassAndMethod : methodsWithName) {
-            builder.putRetargetCoreLibMember(dexClassAndMethod.getReference(), rewrittenType);
+            builder.retargetMethod(dexClassAndMethod.getReference(), rewrittenType);
           }
         });
   }

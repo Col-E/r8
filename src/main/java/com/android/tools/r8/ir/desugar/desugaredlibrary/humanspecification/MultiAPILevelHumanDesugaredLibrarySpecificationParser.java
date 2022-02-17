@@ -43,10 +43,8 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationParser
       int api_level_below_or_equal = required(flag, API_LEVEL_BELOW_OR_EQUAL_KEY).getAsInt();
       HumanRewritingFlags.Builder builder =
           flags.containsKey(api_level_below_or_equal)
-              ? flags
-                  .get(api_level_below_or_equal)
-                  .newBuilder(dexItemFactory(), reporter(), getOrigin())
-              : HumanRewritingFlags.builder(dexItemFactory(), reporter(), getOrigin());
+              ? flags.get(api_level_below_or_equal).newBuilder(reporter(), getOrigin())
+              : HumanRewritingFlags.builder(reporter(), getOrigin());
       parseFlags(flag, builder);
       flags.put(api_level_below_or_equal, builder.build());
     }

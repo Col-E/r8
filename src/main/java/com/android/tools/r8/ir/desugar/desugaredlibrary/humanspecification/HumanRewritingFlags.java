@@ -4,13 +4,10 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableMap;
@@ -27,33 +24,36 @@ public class HumanRewritingFlags {
 
   private final Map<String, String> rewritePrefix;
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
-  private final Map<DexType, DexType> emulateLibraryInterface;
-  private final Map<DexMethod, DexType> retargetCoreLibMember;
-  private final Map<DexType, DexType> backportCoreLibraryMember;
+  private final Map<DexType, DexType> emulatedInterfaces;
+  private final Map<DexMethod, DexType> retargetMethod;
+  private final Map<DexType, DexType> legacyBackport;
   private final Map<DexType, DexType> customConversions;
   private final Set<DexMethod> dontRewriteInvocation;
-  private final Set<DexType> dontRetargetLibMember;
+  private final Set<DexType> dontRetarget;
   private final Set<DexType> wrapperConversions;
+  private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
 
   HumanRewritingFlags(
       Map<String, String> rewritePrefix,
       Map<String, Map<String, String>> rewriteDerivedPrefix,
       Map<DexType, DexType> emulateLibraryInterface,
-      Map<DexMethod, DexType> retargetCoreLibMember,
-      Map<DexType, DexType> backportCoreLibraryMember,
-      Map<DexType, DexType> customConversions,
+      Map<DexMethod, DexType> retargetMethod,
+      Map<DexType, DexType> legacyBackport,
+      Map<DexType, DexType> customConversion,
       Set<DexMethod> dontRewriteInvocation,
-      Set<DexType> dontRetargetLibMember,
-      Set<DexType> wrapperConversions) {
+      Set<DexType> dontRetarget,
+      Set<DexType> wrapperConversion,
+      Map<DexMethod, MethodAccessFlags> amendLibraryMethod) {
     this.rewritePrefix = rewritePrefix;
     this.rewriteDerivedPrefix = rewriteDerivedPrefix;
-    this.emulateLibraryInterface = emulateLibraryInterface;
-    this.retargetCoreLibMember = retargetCoreLibMember;
-    this.backportCoreLibraryMember = backportCoreLibraryMember;
-    this.customConversions = customConversions;
+    this.emulatedInterfaces = emulateLibraryInterface;
+    this.retargetMethod = retargetMethod;
+    this.legacyBackport = legacyBackport;
+    this.customConversions = customConversion;
     this.dontRewriteInvocation = dontRewriteInvocation;
-    this.dontRetargetLibMember = dontRetargetLibMember;
-    this.wrapperConversions = wrapperConversions;
+    this.dontRetarget = dontRetarget;
+    this.wrapperConversions = wrapperConversion;
+    this.amendLibraryMethod = amendLibraryMethod;
   }
 
   public static HumanRewritingFlags empty() {
@@ -66,27 +66,28 @@ public class HumanRewritingFlags {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
-        ImmutableSet.of());
+        ImmutableSet.of(),
+        ImmutableMap.of());
   }
 
-  public static Builder builder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
-    return new Builder(dexItemFactory, reporter, origin);
+  public static Builder builder(Reporter reporter, Origin origin) {
+    return new Builder(reporter, origin);
   }
 
-  public Builder newBuilder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
+  public Builder newBuilder(Reporter reporter, Origin origin) {
     return new Builder(
-        dexItemFactory,
         reporter,
         origin,
         rewritePrefix,
         rewriteDerivedPrefix,
-        emulateLibraryInterface,
-        retargetCoreLibMember,
-        backportCoreLibraryMember,
+        emulatedInterfaces,
+        retargetMethod,
+        legacyBackport,
         customConversions,
         dontRewriteInvocation,
-        dontRetargetLibMember,
-        wrapperConversions);
+        dontRetarget,
+        wrapperConversions,
+        amendLibraryMethod);
   }
 
   public Map<String, String> getRewritePrefix() {
@@ -97,16 +98,16 @@ public class HumanRewritingFlags {
     return rewriteDerivedPrefix;
   }
 
-  public Map<DexType, DexType> getEmulateLibraryInterface() {
-    return emulateLibraryInterface;
+  public Map<DexType, DexType> getEmulatedInterfaces() {
+    return emulatedInterfaces;
   }
 
-  public Map<DexMethod, DexType> getRetargetCoreLibMember() {
-    return retargetCoreLibMember;
+  public Map<DexMethod, DexType> getRetargetMethod() {
+    return retargetMethod;
   }
 
-  public Map<DexType, DexType> getBackportCoreLibraryMember() {
-    return backportCoreLibraryMember;
+  public Map<DexType, DexType> getLegacyBackport() {
+    return legacyBackport;
   }
 
   public Map<DexType, DexType> getCustomConversions() {
@@ -117,35 +118,36 @@ public class HumanRewritingFlags {
     return dontRewriteInvocation;
   }
 
-  public Set<DexType> getDontRetargetLibMember() {
-    return dontRetargetLibMember;
+  public Set<DexType> getDontRetarget() {
+    return dontRetarget;
   }
 
   public Set<DexType> getWrapperConversions() {
     return wrapperConversions;
   }
 
+  public Map<DexMethod, MethodAccessFlags> getAmendLibraryMethod() {
+    return amendLibraryMethod;
+  }
+
   public static class Builder {
 
-    private static final String SEPARATORS = "\\s+|,\\s+|#|\\(|\\)";
-
-    private final DexItemFactory factory;
     private final Reporter reporter;
     private final Origin origin;
 
     private final Map<String, String> rewritePrefix;
-    Map<String, Map<String, String>> rewriteDerivedPrefix;
-    private final Map<DexType, DexType> emulateLibraryInterface;
-    private final Map<DexMethod, DexType> retargetCoreLibMember;
-    private final Map<DexType, DexType> backportCoreLibraryMember;
+    private final Map<String, Map<String, String>> rewriteDerivedPrefix;
+    private final Map<DexType, DexType> emulatedInterfaces;
+    private final Map<DexMethod, DexType> retargetMethod;
+    private final Map<DexType, DexType> legacyBackport;
     private final Map<DexType, DexType> customConversions;
     private final Set<DexMethod> dontRewriteInvocation;
-    private final Set<DexType> dontRetargetLibMember;
+    private final Set<DexType> dontRetarget;
     private final Set<DexType> wrapperConversions;
+    private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
 
-    Builder(DexItemFactory factory, Reporter reporter, Origin origin) {
+    Builder(Reporter reporter, Origin origin) {
       this(
-          factory,
           reporter,
           origin,
           new HashMap<>(),
@@ -156,11 +158,11 @@ public class HumanRewritingFlags {
           new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
-          Sets.newIdentityHashSet());
+          Sets.newIdentityHashSet(),
+          new IdentityHashMap<>());
     }
 
     Builder(
-        DexItemFactory factory,
         Reporter reporter,
         Origin origin,
         Map<String, String> rewritePrefix,
@@ -171,22 +173,23 @@ public class HumanRewritingFlags {
         Map<DexType, DexType> customConversions,
         Set<DexMethod> dontRewriteInvocation,
         Set<DexType> dontRetargetLibMember,
-        Set<DexType> wrapperConversions) {
-      this.factory = factory;
+        Set<DexType> wrapperConversions,
+        Map<DexMethod, MethodAccessFlags> amendLibrary) {
       this.reporter = reporter;
       this.origin = origin;
       this.rewritePrefix = new HashMap<>(rewritePrefix);
       this.rewriteDerivedPrefix = new HashMap<>(rewriteDerivedPrefix);
-      this.emulateLibraryInterface = new IdentityHashMap<>(emulateLibraryInterface);
-      this.retargetCoreLibMember = new IdentityHashMap<>(retargetCoreLibMember);
-      this.backportCoreLibraryMember = new IdentityHashMap<>(backportCoreLibraryMember);
+      this.emulatedInterfaces = new IdentityHashMap<>(emulateLibraryInterface);
+      this.retargetMethod = new IdentityHashMap<>(retargetCoreLibMember);
+      this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
       this.dontRewriteInvocation = Sets.newIdentityHashSet();
       this.dontRewriteInvocation.addAll(dontRewriteInvocation);
-      this.dontRetargetLibMember = Sets.newIdentityHashSet();
-      this.dontRetargetLibMember.addAll(dontRetargetLibMember);
+      this.dontRetarget = Sets.newIdentityHashSet();
+      this.dontRetarget.addAll(dontRetargetLibMember);
       this.wrapperConversions = Sets.newIdentityHashSet();
       this.wrapperConversions.addAll(wrapperConversions);
+      this.amendLibraryMethod = new IdentityHashMap<>(amendLibrary);
     }
 
     // Utility to set values.
@@ -226,27 +229,12 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder putEmulateLibraryInterface(
-        String emulateLibraryItf, String rewrittenEmulateLibraryItf) {
-      DexType interfaceType = stringClassToDexType(emulateLibraryItf);
-      DexType rewrittenType = stringClassToDexType(rewrittenEmulateLibraryItf);
-      putEmulateLibraryInterface(interfaceType, rewrittenType);
-      return this;
-    }
-
-    public Builder putEmulateLibraryInterface(DexType interfaceType, DexType rewrittenType) {
+    public Builder putEmulatedInterface(DexType interfaceType, DexType rewrittenType) {
       put(
-          emulateLibraryInterface,
+          emulatedInterfaces,
           interfaceType,
           rewrittenType,
           HumanDesugaredLibrarySpecificationParser.EMULATE_INTERFACE_KEY);
-      return this;
-    }
-
-    public Builder putCustomConversion(String type, String conversionHolder) {
-      DexType dexType = stringClassToDexType(type);
-      DexType conversionType = stringClassToDexType(conversionHolder);
-      putCustomConversion(dexType, conversionType);
       return this;
     }
 
@@ -259,87 +247,42 @@ public class HumanRewritingFlags {
       return this;
     }
 
-    public Builder addWrapperConversion(String type) {
-      DexType dexType = stringClassToDexType(type);
-      addWrapperConversion(dexType);
-      return this;
-    }
-
     public Builder addWrapperConversion(DexType dexType) {
       wrapperConversions.add(dexType);
       return this;
     }
 
-    public Builder putRetargetCoreLibMember(String retarget, String rewrittenRetarget) {
-      DexMethod key = parseMethod(retarget);
-      DexType rewrittenType = stringClassToDexType(rewrittenRetarget);
-      putRetargetCoreLibMember(key, rewrittenType);
-      return this;
-    }
-
-    public Builder putRetargetCoreLibMember(DexMethod key, DexType rewrittenType) {
+    public Builder retargetMethod(DexMethod key, DexType rewrittenType) {
       put(
-          retargetCoreLibMember,
+          retargetMethod,
           key,
           rewrittenType,
-          HumanDesugaredLibrarySpecificationParser.RETARGET_LIB_MEMBER_KEY);
+          HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_KEY);
       return this;
     }
 
-    public Builder putBackportCoreLibraryMember(String backport, String rewrittenBackport) {
-      DexType backportType = stringClassToDexType(backport);
-      DexType rewrittenBackportType = stringClassToDexType(rewrittenBackport);
-      putBackportCoreLibraryMember(backportType, rewrittenBackportType);
-      return this;
-    }
-
-    public Builder putBackportCoreLibraryMember(
-        DexType backportType, DexType rewrittenBackportType) {
+    public Builder putLegacyBackport(DexType backportType, DexType rewrittenBackportType) {
       put(
-          backportCoreLibraryMember,
+          legacyBackport,
           backportType,
           rewrittenBackportType,
           HumanDesugaredLibrarySpecificationParser.BACKPORT_KEY);
       return this;
     }
 
-    public Builder addDontRewriteInvocation(String dontRewriteInvocation) {
-      DexMethod dontRewrite = parseMethod(dontRewriteInvocation);
-      addDontRewriteInvocation(dontRewrite);
-      return this;
-    }
-
     public Builder addDontRewriteInvocation(DexMethod dontRewrite) {
-      this.dontRewriteInvocation.add(dontRewrite);
-      return this;
-    }
-
-    public Builder addDontRetargetLibMember(String dontRetargetLibMember) {
-      addDontRetargetLibMember(stringClassToDexType(dontRetargetLibMember));
+      dontRewriteInvocation.add(dontRewrite);
       return this;
     }
 
     public Builder addDontRetargetLibMember(DexType dontRetargetLibMember) {
-      this.dontRetargetLibMember.add(dontRetargetLibMember);
+      dontRetarget.add(dontRetargetLibMember);
       return this;
     }
 
-    private DexMethod parseMethod(String signature) {
-      String[] split = signature.split(SEPARATORS);
-      assert split.length >= 3;
-      DexType returnType = factory.createType(DescriptorUtils.javaTypeToDescriptor(split[0]));
-      DexType holderType = factory.createType(DescriptorUtils.javaTypeToDescriptor(split[1]));
-      DexString name = factory.createString(split[2]);
-      DexType[] argTypes = new DexType[split.length - 3];
-      for (int i = 3; i < split.length; i++) {
-        argTypes[i - 3] = factory.createType(DescriptorUtils.javaTypeToDescriptor(split[i]));
-      }
-      DexProto proto = factory.createProto(returnType, argTypes);
-      return factory.createMethod(holderType, proto, name);
-    }
-
-    private DexType stringClassToDexType(String stringClass) {
-      return factory.createType(DescriptorUtils.javaTypeToDescriptor(stringClass));
+    public Builder amendLibraryMethod(DexMethod member, MethodAccessFlags flags) {
+      amendLibraryMethod.put(member, flags);
+      return this;
     }
 
     public HumanRewritingFlags build() {
@@ -347,13 +290,14 @@ public class HumanRewritingFlags {
       return new HumanRewritingFlags(
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableMap.copyOf(rewriteDerivedPrefix),
-          ImmutableMap.copyOf(emulateLibraryInterface),
-          ImmutableMap.copyOf(retargetCoreLibMember),
-          ImmutableMap.copyOf(backportCoreLibraryMember),
+          ImmutableMap.copyOf(emulatedInterfaces),
+          ImmutableMap.copyOf(retargetMethod),
+          ImmutableMap.copyOf(legacyBackport),
           ImmutableMap.copyOf(customConversions),
           ImmutableSet.copyOf(dontRewriteInvocation),
-          ImmutableSet.copyOf(dontRetargetLibMember),
-          ImmutableSet.copyOf(wrapperConversions));
+          ImmutableSet.copyOf(dontRetarget),
+          ImmutableSet.copyOf(wrapperConversions),
+          ImmutableMap.copyOf(amendLibraryMethod));
     }
 
     private void validate() {

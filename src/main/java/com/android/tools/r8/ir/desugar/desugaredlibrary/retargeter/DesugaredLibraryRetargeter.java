@@ -140,13 +140,11 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MethodResolutionResult resolutionResult =
         appInfo.resolveMethod(invokedMethod, cfInvoke.isInterface());
-    // We are required to use the invokedMethod if it does not resolve due to the rewriting of
-    // private methods absent from the library.
-    DexMethod singleTarget =
-        resolutionResult.isSingleResolution()
-            ? resolutionResult.getSingleTarget().getReference()
-            : invokedMethod;
-    assert singleTarget != null;
+    if (!resolutionResult.isSingleResolution()) {
+      return NO_REWRITING;
+    }
+    assert resolutionResult.getSingleTarget() != null;
+    DexMethod singleTarget = resolutionResult.getSingleTarget().getReference();
     if (cfInvoke.isInvokeStatic()) {
       DexMethod retarget = staticRetarget.get(singleTarget);
       return retarget == null ? NO_REWRITING : ensureInvokeRetargetingResult(retarget);

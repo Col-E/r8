@@ -99,6 +99,11 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
   }
 
   @Override
+  public FieldAccessFlags asFieldAccessFlags() {
+    return this;
+  }
+
+  @Override
   public int getAsCfAccessFlags() {
     return materialize();
   }
@@ -136,6 +141,11 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
 
     public Builder() {
       super(FieldAccessFlags.fromSharedAccessFlags(0));
+    }
+
+    public Builder set(int flag) {
+      flags.set(flag);
+      return this;
     }
 
     @Override

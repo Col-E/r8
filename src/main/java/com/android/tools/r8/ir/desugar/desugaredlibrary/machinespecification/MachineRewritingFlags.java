@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -33,7 +34,8 @@ public class MachineRewritingFlags {
       Map<DexType, List<DexMethod>> wrappers,
       Map<DexType, DexType> legacyBackport,
       Set<DexType> dontRetarget,
-      Map<DexType, CustomConversionDescriptor> customConversions) {
+      Map<DexType, CustomConversionDescriptor> customConversions,
+      Map<DexMethod, MethodAccessFlags> amendLibraryMethods) {
     this.rewriteType = rewriteType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticRetarget = staticRetarget;
@@ -46,6 +48,7 @@ public class MachineRewritingFlags {
     this.legacyBackport = legacyBackport;
     this.dontRetarget = dontRetarget;
     this.customConversions = customConversions;
+    this.amendLibraryMethod = amendLibraryMethods;
   }
 
   // Rewrites all the references to the keys as well as synthetic types derived from any key.
@@ -79,6 +82,7 @@ public class MachineRewritingFlags {
   private final Map<DexType, DexType> legacyBackport;
   private final Set<DexType> dontRetarget;
   private final Map<DexType, CustomConversionDescriptor> customConversions;
+  private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
 
   public Map<DexType, DexType> getRewriteType() {
     return rewriteType;
@@ -138,6 +142,10 @@ public class MachineRewritingFlags {
     return customConversions;
   }
 
+  public Map<DexMethod, MethodAccessFlags> getAmendLibraryMethod() {
+    return amendLibraryMethod;
+  }
+
   public boolean hasRetargeting() {
     return !staticRetarget.isEmpty()
         || !nonEmulatedVirtualRetarget.isEmpty()
@@ -181,6 +189,8 @@ public class MachineRewritingFlags {
     private final ImmutableMap.Builder<DexType, DexType> legacyBackport = ImmutableMap.builder();
     private final ImmutableSet.Builder<DexType> dontRetarget = ImmutableSet.builder();
     private final ImmutableMap.Builder<DexType, CustomConversionDescriptor> customConversions =
+        ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexMethod, MethodAccessFlags> amendLibraryMethod =
         ImmutableMap.builder();
 
     public void rewriteType(DexType src, DexType target) {
@@ -231,6 +241,10 @@ public class MachineRewritingFlags {
       customConversions.put(src, descriptor);
     }
 
+    public void amendLibraryMethod(DexMethod missingReference, MethodAccessFlags flags) {
+      amendLibraryMethod.put(missingReference, flags);
+    }
+
     public DexType getRewrittenType(DexType type) {
       return rewriteType.get(type);
     }
@@ -247,7 +261,8 @@ public class MachineRewritingFlags {
           wrappers.build(),
           legacyBackport.build(),
           dontRetarget.build(),
-          customConversions.build());
+          customConversions.build(),
+          amendLibraryMethod.build());
     }
   }
 }
