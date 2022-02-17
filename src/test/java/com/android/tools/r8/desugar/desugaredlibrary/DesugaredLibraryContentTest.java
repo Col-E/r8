@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,17 +118,14 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   private void assertOneWarning(TestDiagnosticMessagesImpl diagnosticsHandler) {
-    assertEquals(
-        (isJDK11DesugaredLibrary() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O))
-            ? 2
-            : 1,
-        diagnosticsHandler.getWarnings().size());
-    String msg = diagnosticsHandler.getWarnings().get(0).getDiagnosticMessage();
-    assertTrue(
-        msg.contains(
-            "The following library types, prefixed by java., are present both as library and non"
-                + " library classes"));
-    assertTrue(diagnosticsHandler.getErrors().isEmpty());
+    if (requiresAnyCoreLibDesugaring(parameters)) {
+      String msg = diagnosticsHandler.getWarnings().get(0).getDiagnosticMessage();
+      assertTrue(
+          msg.contains(
+              "The following library types, prefixed by java., are present both as library and non"
+                  + " library classes"));
+    }
+    diagnosticsHandler.assertNoErrors();
   }
 
   private void assertCorrect(CodeInspector inspector) {

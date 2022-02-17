@@ -9,7 +9,13 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +54,7 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
     return topLevelFlags.supportAllCallbacksFromLibrary();
   }
 
+  @Override
   public AndroidApiLevel getRequiredCompilationApiLevel() {
     return topLevelFlags.getRequiredCompilationAPILevel();
   }
@@ -140,6 +147,24 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
   }
 
   public boolean isEmptyConfiguration() {
-    return false;
+    return rewritingFlags.isEmpty();
+  }
+
+  @Override
+  public MachineDesugaredLibrarySpecification toMachineSpecification(
+      InternalOptions options, AndroidApp app) throws IOException {
+    return new HumanToMachineSpecificationConverter()
+        .convert(
+            this,
+            isLibraryCompilation() ? app.getProgramResourceProviders() : null,
+            app.getLibraryResourceProviders(),
+            options);
+  }
+
+  @Override
+  public MachineDesugaredLibrarySpecification toMachineSpecification(
+      InternalOptions options, Path library, Path desugaredJDKLib) throws IOException {
+    return new HumanToMachineSpecificationConverter()
+        .convert(this, isLibraryCompilation() ? desugaredJDKLib : null, library, options);
   }
 }

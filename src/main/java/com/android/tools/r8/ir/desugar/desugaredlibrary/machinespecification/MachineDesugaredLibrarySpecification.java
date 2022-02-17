@@ -99,8 +99,8 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getEmulatedVirtualRetargetThroughEmulatedInterface();
   }
 
-  public void forEachRetargetHolder(Consumer<DexType> consumer) {
-    rewritingFlags.forEachRetargetHolder(consumer);
+  public void forEachRetargetMethod(Consumer<DexMethod> consumer) {
+    rewritingFlags.forEachRetargetMethod(consumer);
   }
 
   public Map<DexType, EmulatedInterfaceDescriptor> getEmulatedInterfaces() {
@@ -170,5 +170,9 @@ public class MachineDesugaredLibrarySpecification {
       }
     }
     return false;
+  }
+
+  public AndroidApiLevel getRequiredCompilationApiLevel() {
+    return topLevelFlags.getRequiredCompilationAPILevel();
   }
 }

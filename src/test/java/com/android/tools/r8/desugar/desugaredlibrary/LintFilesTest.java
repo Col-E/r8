@@ -14,8 +14,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -125,10 +125,13 @@ public class LintFilesTest extends DesugaredLibraryTestBase {
           directory.toString()
         });
     InternalOptions options = new InternalOptions(new DexItemFactory(), new Reporter());
-    LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
-        new LegacyDesugaredLibrarySpecificationParser(
-                options.itemFactory, options.reporter, false, AndroidApiLevel.B.getLevel())
-            .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
+    DesugaredLibrarySpecification desugaredLibrarySpecification =
+        DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
+            options.itemFactory,
+            options.reporter,
+            false,
+            AndroidApiLevel.B.getLevel());
 
     for (AndroidApiLevel apiLevel : AndroidApiLevel.values()) {
       if (apiLevel.isGreaterThan(AndroidApiLevel.Sv2)) {

@@ -249,6 +249,15 @@
       }
     },
     {
+      "api_level_below_or_equal": 25,
+      "retarget_method": {
+        "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
+      },
+      "amend_library_method": [
+        "private static boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)"
+      ]
+    },
+    {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",

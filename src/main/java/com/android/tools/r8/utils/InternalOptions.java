@@ -55,10 +55,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.TypeRewriter.MachineDesugarPrefixRewritingMapper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.ir.desugar.nest.Nest;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
@@ -896,21 +893,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return;
     }
     try {
-      HumanDesugaredLibrarySpecification human =
-          specification.isLegacy()
-              ? new LegacyToHumanSpecificationConverter()
-                  .convert(
-                      specification.asLegacyDesugaredLibrarySpecification(),
-                      app.getLibraryResourceProviders(),
-                      this)
-              : specification.asHumanDesugaredLibrarySpecification();
-      machineDesugaredLibrarySpecification =
-          new HumanToMachineSpecificationConverter()
-              .convert(
-                  human,
-                  human.isLibraryCompilation() ? app.getProgramResourceProviders() : null,
-                  app.getLibraryResourceProviders(),
-                  this);
+      machineDesugaredLibrarySpecification = specification.toMachineSpecification(this, app);
     } catch (IOException e) {
       reporter.error(new ExceptionDiagnostic(e, Origin.unknown()));
     }
@@ -922,14 +905,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (specification.isEmpty()) {
       return;
     }
-    HumanDesugaredLibrarySpecification human =
-        specification.isLegacy()
-            ? new LegacyToHumanSpecificationConverter()
-                .convert(specification.asLegacyDesugaredLibrarySpecification(), library, this)
-            : specification.asHumanDesugaredLibrarySpecification();
     machineDesugaredLibrarySpecification =
-        new HumanToMachineSpecificationConverter()
-            .convert(human, human.isLibraryCompilation() ? desugaredJDKLib : null, library, this);
+        specification.toMachineSpecification(this, library, desugaredJDKLib);
   }
 
   // Contains flags describing library desugaring.

@@ -36,7 +36,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -74,7 +74,7 @@ public class GenerateLintFiles {
   private final Reporter reporter = new Reporter();
   private final InternalOptions options = new InternalOptions(factory, reporter);
 
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+  private final MachineDesugaredLibrarySpecification desugaredLibrarySpecification;
   private final Path desugaredLibraryImplementation;
   private final Path outputDirectory;
 
@@ -83,14 +83,12 @@ public class GenerateLintFiles {
   public GenerateLintFiles(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
       throws Exception {
-    DesugaredLibrarySpecification desugaredLibrarySpecification =
+    DesugaredLibrarySpecification specification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
-    if (!desugaredLibrarySpecification.isLegacy()) {
-      // TODO(b/184026720): To implement by forcing conversion to machine spec.
-      throw new Exception("Generation of lint files not supported from non legacy specification");
-    }
+    Path androidJarPath = getAndroidJarPath(specification.getRequiredCompilationApiLevel());
     this.desugaredLibrarySpecification =
-        desugaredLibrarySpecification.asLegacyDesugaredLibrarySpecification();
+        specification.toMachineSpecification(options, androidJarPath);
+
     this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
     this.outputDirectory = Paths.get(outputDirectory);
     if (!Files.isDirectory(this.outputDirectory)) {
@@ -202,6 +200,7 @@ public class GenerateLintFiles {
   }
 
   public static class SupportedMethods {
+
     public final Set<DexClass> classesWithAllMethodsSupported;
     public final Map<DexClass, List<DexEncodedMethod>> supportedMethods;
 
@@ -232,54 +231,34 @@ public class GenerateLintFiles {
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
     Map<DexClass, List<DexEncodedMethod>> supportedMethods = new LinkedHashMap<>();
     for (DexProgramClass clazz : dexApplication.classes()) {
-      String className = clazz.toSourceString();
-      // All the methods with the rewritten prefix are supported.
-      for (String prefix : desugaredLibrarySpecification.getRewritePrefix().keySet()) {
-        if (clazz.accessFlags.isPublic() && className.startsWith(prefix)) {
-          DexProgramClass implementationClass =
-              implementationApplication.programDefinitionFor(clazz.getType());
-          if (implementationClass == null) {
-            throw new Exception("Implementation class not found for " + clazz.toSourceString());
+      if (clazz.accessFlags.isPublic()
+          && desugaredLibrarySpecification.getRewriteType().containsKey(clazz.type)) {
+        DexProgramClass implementationClass =
+            implementationApplication.programDefinitionFor(clazz.getType());
+        if (implementationClass == null) {
+          throw new Exception("Implementation class not found for " + clazz.toSourceString());
+        }
+        boolean allMethodsAdded = true;
+        for (DexEncodedMethod method : clazz.methods()) {
+          if (!method.isPublic()) {
+            continue;
           }
-          boolean allMethodsAddad = true;
-          for (DexEncodedMethod method : clazz.methods()) {
-            if (!method.isPublic()) {
-              continue;
-            }
-            ProgramMethod implementationMethod =
-                implementationClass.lookupProgramMethod(method.getReference());
-            // Don't include methods which are not implemented by the desugared library.
-            if (supported.test(method) && implementationMethod != null) {
-              supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
-            } else {
-              allMethodsAddad = false;
-            }
-          }
-          if (allMethodsAddad) {
-            classesWithAllMethodsSupported.add(clazz);
+          ProgramMethod implementationMethod =
+              implementationClass.lookupProgramMethod(method.getReference());
+          // Don't include methods which are not implemented by the desugared library.
+          if (supported.test(method) && implementationMethod != null) {
+            supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
+          } else {
+            allMethodsAdded = false;
           }
         }
-      }
-
-      // All retargeted methods are supported.
-      for (DexEncodedMethod method : clazz.methods()) {
-        if (desugaredLibrarySpecification
-            .getRetargetCoreLibMember()
-            .keySet()
-            .contains(method.getReference().name)) {
-          if (desugaredLibrarySpecification
-              .getRetargetCoreLibMember()
-              .get(method.getReference().name)
-              .containsKey(clazz.type)) {
-            if (supported.test(method)) {
-              supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
-            }
-          }
+        if (allMethodsAdded) {
+          classesWithAllMethodsSupported.add(clazz);
         }
       }
 
       // All emulated interfaces static and default methods are supported.
-      if (desugaredLibrarySpecification.getEmulateLibraryInterface().containsKey(clazz.type)) {
+      if (desugaredLibrarySpecification.getEmulatedInterfaces().containsKey(clazz.type)) {
         assert clazz.isInterface();
         for (DexEncodedMethod method : clazz.methods()) {
           if (!method.isDefaultMethod() && !method.isStatic()) {
@@ -291,6 +270,21 @@ public class GenerateLintFiles {
         }
       }
     }
+
+    // All retargeted methods are supported.
+    desugaredLibrarySpecification.forEachRetargetMethod(
+        method -> {
+          DexClass clazz = dexApplication.contextIndependentDefinitionFor(method.getHolderType());
+          assert clazz != null;
+          DexEncodedMethod encodedMethod = clazz.lookupMethod(method);
+          if (encodedMethod == null) {
+            // Some methods are registered but present higher in the hierarchy, ignore them.
+            return;
+          }
+          if (supported.test(encodedMethod)) {
+            supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(encodedMethod);
+          }
+        });
 
     return new SupportedMethods(classesWithAllMethodsSupported, supportedMethods);
   }
@@ -410,6 +404,7 @@ public class GenerateLintFiles {
   }
 
   private static class StringBuilderWithIndent {
+
     String NL = System.lineSeparator();
     StringBuilder builder = new StringBuilder();
     String indent = "";
@@ -617,6 +612,7 @@ public class GenerateLintFiles {
   }
 
   private static class HTMLBuilder extends StringBuilderWithIndent {
+
     private String indent = "";
 
     private void increaseIndent() {
@@ -658,6 +654,7 @@ public class GenerateLintFiles {
   }
 
   public static class HTMLSourceBuilder extends SourceBuilder<HTMLSourceBuilder> {
+
     private final Set<DexMethod> parallelMethods;
 
     public HTMLSourceBuilder(DexClass clazz, boolean newClass, Set<DexMethod> parallelMethods) {

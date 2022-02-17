@@ -108,10 +108,10 @@ public class MachineRewritingFlags {
     return emulatedVirtualRetargetThroughEmulatedInterface;
   }
 
-  public void forEachRetargetHolder(Consumer<DexType> consumer) {
-    staticRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
-    nonEmulatedVirtualRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
-    emulatedVirtualRetarget.keySet().forEach(m -> consumer.accept(m.getHolderType()));
+  public void forEachRetargetMethod(Consumer<DexMethod> consumer) {
+    staticRetarget.keySet().forEach(consumer);
+    nonEmulatedVirtualRetarget.keySet().forEach(consumer);
+    emulatedVirtualRetarget.keySet().forEach(consumer);
   }
 
   public Map<DexType, EmulatedInterfaceDescriptor> getEmulatedInterfaces() {
