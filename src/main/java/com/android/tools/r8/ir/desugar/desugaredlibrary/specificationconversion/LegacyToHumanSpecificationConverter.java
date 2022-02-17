@@ -61,8 +61,6 @@ public class LegacyToHumanSpecificationConverter {
             .parseMultiLevelConfiguration(inputSpecification);
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
         convertAllAPILevels(legacySpec, androidLib, options);
-    MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator.deduplicateFlags(
-        humanSpec, options.reporter);
     MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter.export(humanSpec, output);
   }
 
@@ -74,7 +72,6 @@ public class LegacyToHumanSpecificationConverter {
     Origin origin = legacySpec.getOrigin();
     AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
     DexApplication app = readApp(androidApp, options);
-    LibraryValidator.validate(app, legacySpec.getTopLevelFlags().getRequiredCompilationAPILevel());
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
     Int2ObjectArrayMap<HumanRewritingFlags> commonFlags =
         convertRewritingFlagMap(legacySpec.getCommonFlags(), app, origin);
@@ -85,8 +82,12 @@ public class LegacyToHumanSpecificationConverter {
 
     legacyLibraryFlagHacks(libraryFlags, app, origin);
 
-    return new MultiAPILevelHumanDesugaredLibrarySpecification(
-        origin, humanTopLevelFlags, commonFlags, libraryFlags, programFlags);
+    MultiAPILevelHumanDesugaredLibrarySpecification humanSpec =
+        new MultiAPILevelHumanDesugaredLibrarySpecification(
+            origin, humanTopLevelFlags, commonFlags, libraryFlags, programFlags);
+    MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator.deduplicateFlags(
+        humanSpec, options.reporter);
+    return humanSpec;
   }
 
   public HumanDesugaredLibrarySpecification convert(
@@ -112,7 +113,10 @@ public class LegacyToHumanSpecificationConverter {
       LegacyDesugaredLibrarySpecification legacySpec, AndroidApp inputApp, InternalOptions options)
       throws IOException {
     DexApplication app = readApp(inputApp, options);
-    LibraryValidator.validate(app, legacySpec.getTopLevelFlags().getRequiredCompilationAPILevel());
+    LibraryValidator.validate(
+        app,
+        legacySpec.isLibraryCompilation(),
+        legacySpec.getTopLevelFlags().getRequiredCompilationAPILevel());
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
     // The origin is not maintained in non multi-level specifications.
     // It should not matter since the origin is used to report invalid specifications, and
@@ -136,6 +140,9 @@ public class LegacyToHumanSpecificationConverter {
       Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
     int level = legacyHackLevel.getLevel();
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
+    if (humanRewritingFlags == null) {
+      return;
+    }
     HumanRewritingFlags.Builder builder =
         humanRewritingFlags.newBuilder(app.options.reporter, origin);
     legacyLibraryFlagHacks(app.dexItemFactory(), builder);

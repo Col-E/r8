@@ -67,6 +67,7 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
     return topLevelFlags.getRequiredCompilationAPILevel();
   }
 
+  @Override
   public boolean isLibraryCompilation() {
     return libraryCompilation;
   }

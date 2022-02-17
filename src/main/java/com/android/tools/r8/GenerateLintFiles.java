@@ -85,7 +85,10 @@ public class GenerateLintFiles {
       throws Exception {
     DesugaredLibrarySpecification desugaredLibrarySpecification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
-    assert desugaredLibrarySpecification.isLegacy();
+    if (!desugaredLibrarySpecification.isLegacy()) {
+      // TODO(b/184026720): To implement by forcing conversion to machine spec.
+      throw new Exception("Generation of lint files not supported from non legacy specification");
+    }
     this.desugaredLibrarySpecification =
         desugaredLibrarySpecification.asLegacyDesugaredLibrarySpecification();
     this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);

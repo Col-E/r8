@@ -1,215 +1,10 @@
 {
-  "configuration_format_version": 3,
-  "group_id" : "com.tools.android",
-  "artifact_id" : "desugar_jdk_libs",
-  "version": "2.0.0",
+  "identifier": "com.tools.android:desugar_jdk_libs:2.0.0",
+  "configuration_format_version": 100,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": true,
   "common_flags": [
-    {
-      "api_level_below_or_equal": 25,
-      "wrapper_conversion": [
-        "java.time.Clock"
-      ]
-    },
-    {
-      "api_level_below_or_equal": 23,
-      "wrapper_conversion": [
-        "java.util.PrimitiveIterator$OfDouble",
-        "java.util.PrimitiveIterator$OfInt",
-        "java.util.PrimitiveIterator$OfLong",
-        "java.util.Spliterator",
-        "java.util.Spliterator$OfDouble",
-        "java.util.Spliterator$OfInt",
-        "java.util.Spliterator$OfLong",
-        "java.util.Spliterator$OfPrimitive",
-        "java.util.function.BiConsumer",
-        "java.util.function.BiFunction",
-        "java.util.function.BiPredicate",
-        "java.util.function.BinaryOperator",
-        "java.util.function.Consumer",
-        "java.util.function.DoubleBinaryOperator",
-        "java.util.function.DoubleConsumer",
-        "java.util.function.DoubleFunction",
-        "java.util.function.DoublePredicate",
-        "java.util.function.DoubleToIntFunction",
-        "java.util.function.DoubleToLongFunction",
-        "java.util.function.DoubleUnaryOperator",
-        "java.util.function.Function",
-        "java.util.function.IntBinaryOperator",
-        "java.util.function.IntConsumer",
-        "java.util.function.IntFunction",
-        "java.util.function.IntPredicate",
-        "java.util.function.IntToDoubleFunction",
-        "java.util.function.IntToLongFunction",
-        "java.util.function.IntUnaryOperator",
-        "java.util.function.LongBinaryOperator",
-        "java.util.function.LongConsumer",
-        "java.util.function.LongFunction",
-        "java.util.function.LongPredicate",
-        "java.util.function.LongToDoubleFunction",
-        "java.util.function.LongToIntFunction",
-        "java.util.function.LongUnaryOperator",
-        "java.util.function.ObjDoubleConsumer",
-        "java.util.function.ObjIntConsumer",
-        "java.util.function.ObjLongConsumer",
-        "java.util.function.Predicate",
-        "java.util.function.Supplier",
-        "java.util.function.ToDoubleFunction",
-        "java.util.function.ToIntFunction",
-        "java.util.function.ToLongFunction",
-        "java.util.function.UnaryOperator",
-        "java.util.stream.BaseStream",
-        "java.util.stream.Collector",
-        "java.util.stream.DoubleStream",
-        "java.util.stream.IntStream",
-        "java.util.stream.LongStream",
-        "java.util.stream.Stream"
-      ]
-    }
-  ],
-  "library_flags": [
-    {
-      "api_level_below_or_equal": 10000,
-      "rewrite_prefix": {
-        "desugar.": "j$.desugar.",
-        "libcore.": "j$.libcore.",
-        "java.net.URLDecoder": "j$.net.URLDecoder",
-        "java.net.URLEncoder": "j$.net.URLEncoder",
-        "java.lang.Desugar": "j$.lang.Desugar",
-        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
-        "sun.security.action.": "j$.sun.security.action."
-      }
-    },
-    {
-      "api_level_below_or_equal": 30,
-      "rewrite_prefix": {
-        "j$.time.": "java.time.",
-        "java.time.": "j$.time.",
-        "java.util.Desugar": "j$.util.Desugar"
-      },
-      "retarget_lib_member": {
-        "java.util.Date#toInstant": "java.util.DesugarDate",
-        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
-        "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
-      },
-      "custom_conversion": {
-        "java.time.ZonedDateTime": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
-        "java.time.Duration": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
-        "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions"
-      }
-    },
-    {
-      "api_level_below_or_equal": 29,
-      "rewrite_prefix": {
-        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
-      }
-    },
-    {
-      "api_level_below_or_equal": 25,
-      "rewrite_prefix": {
-        "java.io.DesugarFile" : "j$.io.DesugarFile",
-        "sun.misc.Desugar": "j$.sun.misc.Desugar",
-        "jdk.internal.": "j$.jdk.internal.",
-        "java.nio.Desugar": "j$.nio.Desugar",
-        "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
-        "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
-        "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
-        "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
-        "java.nio.file.": "j$.nio.file.",
-        "sun.nio.cs." : "j$.sun.nio.cs.",
-        "sun.nio.fs.AbstractFileSystemProvider": "j$.sun.nio.fs.AbstractFileSystemProvider",
-        "sun.nio.fs.AbstractFileTypeDetector": "j$.sun.nio.fs.AbstractFileTypeDetector",
-        "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
-        "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
-        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
-      },
-      "backport": {
-        "java.lang.DesugarDouble": "java.lang.Double",
-        "java.lang.DesugarInteger": "java.lang.Integer",
-        "java.lang.DesugarLong": "java.lang.Long",
-        "java.lang.DesugarMath": "java.lang.Math"
-      },
-      "retarget_lib_member": {
-        "java.io.File#toPath": "java.io.DesugarFile"
-      }
-    },
-    {
-      "api_level_below_or_equal": 23,
-      "rewrite_prefix": {
-        "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
-        "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
-        "j$.util.Optional": "java.util.Optional",
-        "j$.util.LongSummaryStatistics": "java.util.LongSummaryStatistics",
-        "j$.util.IntSummaryStatistics": "java.util.IntSummaryStatistics",
-        "j$.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatistics",
-        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
-        "java.util.stream.": "j$.util.stream.",
-        "java.util.function.": "j$.util.function.",
-        "java.util.Comparators": "j$.util.Comparators",
-        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
-        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
-        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
-        "java.util.Optional": "j$.util.Optional",
-        "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
-        "java.util.SortedSet$1": "j$.util.SortedSet$1",
-        "java.util.Spliterator": "j$.util.Spliterator",
-        "java.util.StringJoiner": "j$.util.StringJoiner",
-        "java.util.Tripwire": "j$.util.Tripwire",
-        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
-        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
-        "java.util.AbstractList": "j$.util.AbstractList",
-        "java.util.CollSer": "j$.util.CollSer",
-        "java.util.ImmutableCollections": "j$.util.ImmutableCollections",
-        "java.util.KeyValueHolder": "j$.util.KeyValueHolder"
-      },
-      "retarget_lib_member": {
-        "java.util.Arrays#stream": "java.util.DesugarArrays",
-        "java.util.Arrays#spliterator": "java.util.DesugarArrays",
-        "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet"
-      },
-      "dont_rewrite": [
-        "java.util.Iterator#remove"
-      ],
-      "emulate_interface": {
-        "java.lang.Iterable": "j$.lang.Iterable",
-        "java.util.Map$Entry": "j$.util.Map$Entry",
-        "java.util.Collection": "j$.util.Collection",
-        "java.util.Map": "j$.util.Map",
-        "java.util.Iterator": "j$.util.Iterator",
-        "java.util.Comparator": "j$.util.Comparator",
-        "java.util.List": "j$.util.List",
-        "java.util.SortedSet": "j$.util.SortedSet",
-        "java.util.Set": "j$.util.Set",
-        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
-      },
-      "custom_conversion": {
-        "java.util.Optional": "java.util.OptionalConversions",
-        "java.util.OptionalDouble": "java.util.OptionalConversions",
-        "java.util.OptionalInt": "java.util.OptionalConversions",
-        "java.util.OptionalLong": "java.util.OptionalConversions",
-        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
-        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
-        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
-      }
-    },
-    {
-      "api_level_below_or_equal": 18,
-      "rewrite_prefix": {
-        "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
-      },
-      "retarget_lib_member": {
-        "java.lang.Character#isBmpCodePoint": "java.lang.DesugarCharacter"
-      }
-    }
-  ],
-  "program_flags": [
     {
       "api_level_below_or_equal": 10000,
       "rewrite_prefix": {
@@ -223,29 +18,29 @@
         "java.time.": "j$.time.",
         "java.util.Desugar": "j$.util.Desugar"
       },
-      "retarget_lib_member": {
-        "java.util.Calendar#toInstant": "java.util.DesugarCalendar",
-        "java.util.Date#from": "java.util.DesugarDate",
-        "java.util.Date#toInstant": "java.util.DesugarDate",
-        "java.util.GregorianCalendar#from": "java.util.DesugarGregorianCalendar",
-        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar",
-        "java.util.TimeZone#getTimeZone": "java.util.DesugarTimeZone",
-        "java.util.TimeZone#toZoneId": "java.util.DesugarTimeZone"
+      "retarget_method": {
+        "java.time.Instant java.util.Date#toInstant()": "java.util.DesugarDate",
+        "java.time.ZoneId java.util.TimeZone#toZoneId()": "java.util.DesugarTimeZone",
+        "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar"
       },
       "custom_conversion": {
-        "java.time.ZonedDateTime": "java.time.TimeConversions",
-        "java.time.LocalDate": "java.time.TimeConversions",
         "java.time.Duration": "java.time.TimeConversions",
-        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
         "java.time.MonthDay": "java.time.TimeConversions",
-        "java.time.Instant": "java.time.TimeConversions"
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.ZonedDateTime": "java.time.TimeConversions"
       }
+    },
+    {
+      "api_level_below_or_equal": 25,
+      "wrapper_conversion": [
+        "java.time.Clock"
+      ]
     },
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
-        "java.util.stream.": "j$.util.stream.",
-        "java.util.function.": "j$.util.function.",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
@@ -253,61 +48,245 @@
         "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
         "java.util.Spliterator": "j$.util.Spliterator",
         "java.util.StringJoiner": "j$.util.StringJoiner",
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
         "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
+        "java.util.function.": "j$.util.function.",
+        "java.util.stream.": "j$.util.stream."
       },
-      "retarget_lib_member": {
-        "java.util.Arrays#stream": "java.util.DesugarArrays",
-        "java.util.Arrays#spliterator": "java.util.DesugarArrays",
-        "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet",
-        "java.util.concurrent.atomic.AtomicInteger#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicInteger",
-        "java.util.concurrent.atomic.AtomicInteger#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicInteger",
-        "java.util.concurrent.atomic.AtomicInteger#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicInteger",
-        "java.util.concurrent.atomic.AtomicInteger#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicInteger",
-        "java.util.concurrent.atomic.AtomicLong#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicLong",
-        "java.util.concurrent.atomic.AtomicLong#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicLong",
-        "java.util.concurrent.atomic.AtomicLong#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicLong",
-        "java.util.concurrent.atomic.AtomicLong#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicLong",
-        "java.util.concurrent.atomic.AtomicReference#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicReference",
-        "java.util.concurrent.atomic.AtomicReference#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
-        "java.util.concurrent.atomic.AtomicReference#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicReference",
-        "java.util.concurrent.atomic.AtomicReference#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
-        "java.util.Collections#synchronizedMap": "java.util.DesugarCollections",
-        "java.util.Collections#synchronizedSortedMap": "java.util.DesugarCollections"
-      },
-      "dont_rewrite": [
-        "java.util.Iterator#remove"
-      ],
       "emulate_interface": {
         "java.lang.Iterable": "j$.lang.Iterable",
-        "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
-        "java.util.Map": "j$.util.Map",
-        "java.util.Iterator": "j$.util.Iterator",
         "java.util.Comparator": "j$.util.Comparator",
+        "java.util.Iterator": "j$.util.Iterator",
         "java.util.List": "j$.util.List",
-        "java.util.SortedSet": "j$.util.SortedSet",
+        "java.util.Map": "j$.util.Map",
+        "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Set": "j$.util.Set",
+        "java.util.SortedSet": "j$.util.SortedSet",
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
       },
+      "dont_rewrite": [
+        "void java.util.Iterator#remove()"
+      ],
+      "retarget_method": {
+        "java.util.Spliterator java.util.Arrays#spliterator(java.lang.Object[])": "java.util.DesugarArrays",
+        "java.util.Spliterator java.util.Arrays#spliterator(java.lang.Object[], int, int)": "java.util.DesugarArrays",
+        "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet",
+        "java.util.Spliterator$OfDouble java.util.Arrays#spliterator(double[])": "java.util.DesugarArrays",
+        "java.util.Spliterator$OfDouble java.util.Arrays#spliterator(double[], int, int)": "java.util.DesugarArrays",
+        "java.util.Spliterator$OfInt java.util.Arrays#spliterator(int[])": "java.util.DesugarArrays",
+        "java.util.Spliterator$OfInt java.util.Arrays#spliterator(int[], int, int)": "java.util.DesugarArrays",
+        "java.util.Spliterator$OfLong java.util.Arrays#spliterator(long[])": "java.util.DesugarArrays",
+        "java.util.Spliterator$OfLong java.util.Arrays#spliterator(long[], int, int)": "java.util.DesugarArrays",
+        "java.util.stream.DoubleStream java.util.Arrays#stream(double[])": "java.util.DesugarArrays",
+        "java.util.stream.DoubleStream java.util.Arrays#stream(double[], int, int)": "java.util.DesugarArrays",
+        "java.util.stream.IntStream java.util.Arrays#stream(int[])": "java.util.DesugarArrays",
+        "java.util.stream.IntStream java.util.Arrays#stream(int[], int, int)": "java.util.DesugarArrays",
+        "java.util.stream.LongStream java.util.Arrays#stream(long[])": "java.util.DesugarArrays",
+        "java.util.stream.LongStream java.util.Arrays#stream(long[], int, int)": "java.util.DesugarArrays",
+        "java.util.stream.Stream java.util.Arrays#stream(java.lang.Object[])": "java.util.DesugarArrays",
+        "java.util.stream.Stream java.util.Arrays#stream(java.lang.Object[], int, int)": "java.util.DesugarArrays"
+      },
+      "wrapper_conversion": [
+        "java.util.function.IntUnaryOperator",
+        "java.util.function.BiFunction",
+        "java.util.function.IntConsumer",
+        "java.util.function.IntBinaryOperator",
+        "java.util.function.UnaryOperator",
+        "java.util.function.DoubleConsumer",
+        "java.util.function.IntPredicate",
+        "java.util.Spliterator$OfLong",
+        "java.util.stream.Collector",
+        "java.util.function.LongPredicate",
+        "java.util.function.ToLongFunction",
+        "java.util.function.LongToDoubleFunction",
+        "java.util.PrimitiveIterator$OfInt",
+        "java.util.function.LongToIntFunction",
+        "java.util.function.Predicate",
+        "java.util.Spliterator$OfPrimitive",
+        "java.util.function.DoubleToIntFunction",
+        "java.util.function.ObjDoubleConsumer",
+        "java.util.function.BinaryOperator",
+        "java.util.stream.DoubleStream",
+        "java.util.Spliterator$OfInt",
+        "java.util.stream.Stream",
+        "java.util.function.ObjLongConsumer",
+        "java.util.function.ToDoubleFunction",
+        "java.util.Spliterator",
+        "java.util.stream.IntStream",
+        "java.util.function.LongBinaryOperator",
+        "java.util.Spliterator$OfDouble",
+        "java.util.function.DoubleFunction",
+        "java.util.function.ObjIntConsumer",
+        "java.util.function.Function",
+        "java.util.function.Supplier",
+        "java.util.function.DoubleUnaryOperator",
+        "java.util.function.BiPredicate",
+        "java.util.PrimitiveIterator$OfDouble",
+        "java.util.function.DoubleBinaryOperator",
+        "java.util.PrimitiveIterator$OfLong",
+        "java.util.function.BiConsumer",
+        "java.util.function.IntFunction",
+        "java.util.stream.LongStream",
+        "java.util.function.IntToDoubleFunction",
+        "java.util.function.LongFunction",
+        "java.util.function.ToIntFunction",
+        "java.util.function.LongConsumer",
+        "java.util.function.Consumer",
+        "java.util.function.IntToLongFunction",
+        "java.util.function.DoubleToLongFunction",
+        "java.util.function.LongUnaryOperator",
+        "java.util.stream.BaseStream",
+        "java.util.function.DoublePredicate"
+      ],
       "custom_conversion": {
+        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions",
+        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
+        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
         "java.util.Optional": "java.util.OptionalConversions",
         "java.util.OptionalDouble": "java.util.OptionalConversions",
         "java.util.OptionalInt": "java.util.OptionalConversions",
-        "java.util.OptionalLong": "java.util.OptionalConversions",
-        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
-        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
-        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
+        "java.util.OptionalLong": "java.util.OptionalConversions"
       }
     },
     {
       "api_level_below_or_equal": 18,
       "rewrite_prefix": {
         "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
+      }
+    }
+  ],
+  "program_flags": [
+    {
+      "api_level_below_or_equal": 30,
+      "retarget_method": {
+        "java.time.Instant java.util.Calendar#toInstant()": "java.util.DesugarCalendar",
+        "java.util.Date java.util.Date#from(java.time.Instant)": "java.util.DesugarDate",
+        "java.util.GregorianCalendar java.util.GregorianCalendar#from(java.time.ZonedDateTime)": "java.util.DesugarGregorianCalendar",
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.lang.String)": "java.util.DesugarTimeZone",
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
+      }
+    },
+    {
+      "api_level_below_or_equal": 23,
+      "retarget_method": {
+        "int java.util.concurrent.atomic.AtomicInteger#accumulateAndGet(int, java.util.function.IntBinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "int java.util.concurrent.atomic.AtomicInteger#getAndAccumulate(int, java.util.function.IntBinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "int java.util.concurrent.atomic.AtomicInteger#getAndUpdate(java.util.function.IntUnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "int java.util.concurrent.atomic.AtomicInteger#updateAndGet(java.util.function.IntUnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "java.lang.Object java.util.concurrent.atomic.AtomicReference#accumulateAndGet(java.lang.Object, java.util.function.BinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.lang.Object java.util.concurrent.atomic.AtomicReference#getAndAccumulate(java.lang.Object, java.util.function.BinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.lang.Object java.util.concurrent.atomic.AtomicReference#getAndUpdate(java.util.function.UnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.lang.Object java.util.concurrent.atomic.AtomicReference#updateAndGet(java.util.function.UnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.util.Map java.util.Collections#synchronizedMap(java.util.Map)": "java.util.DesugarCollections",
+        "java.util.SortedMap java.util.Collections#synchronizedSortedMap(java.util.SortedMap)": "java.util.DesugarCollections",
+        "long java.util.concurrent.atomic.AtomicLong#accumulateAndGet(long, java.util.function.LongBinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "long java.util.concurrent.atomic.AtomicLong#getAndAccumulate(long, java.util.function.LongBinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "long java.util.concurrent.atomic.AtomicLong#getAndUpdate(java.util.function.LongUnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "long java.util.concurrent.atomic.AtomicLong#updateAndGet(java.util.function.LongUnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicLong"
+      }
+    },
+    {
+      "api_level_below_or_equal": 18,
+      "retarget_method": {
+        "boolean java.lang.Character#isBmpCodePoint(int)": "j$.lang.DesugarCharacter"
+      }
+    }
+  ],
+  "library_flags": [
+    {
+      "api_level_below_or_equal": 10000,
+      "rewrite_prefix": {
+        "desugar.": "j$.desugar.",
+        "java.lang.Desugar": "j$.lang.Desugar",
+        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
+        "libcore.": "j$.libcore.",
+        "sun.security.action.": "j$.sun.security.action."
+      }
+    },
+    {
+      "api_level_below_or_equal": 30,
+      "rewrite_derived_prefix": {
+        "java.time.": {
+          "j$.time.": "java.time."
+        }
+      }
+    },
+    {
+      "api_level_below_or_equal": 29,
+      "rewrite_prefix": {
+        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
+      }
+    },
+    {
+      "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.io.DesugarFile": "j$.io.DesugarFile",
+        "java.nio.Desugar": "j$.nio.Desugar",
+        "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
+        "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
+        "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
+        "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
+        "java.nio.file.": "j$.nio.file.",
+        "jdk.internal.": "j$.jdk.internal.",
+        "sun.misc.Desugar": "j$.sun.misc.Desugar",
+        "sun.nio.cs.": "j$.sun.nio.cs.",
+        "sun.nio.fs.AbstractFileSystemProvider": "j$.sun.nio.fs.AbstractFileSystemProvider",
+        "sun.nio.fs.AbstractFileTypeDetector": "j$.sun.nio.fs.AbstractFileTypeDetector",
+        "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
+        "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
+        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
       },
-      "retarget_lib_member": {
-        "java.lang.Character#isBmpCodePoint": "j$.lang.DesugarCharacter"
+      "retarget_method": {
+        "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays",
+        "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile",
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
+      },
+      "backport": {
+        "java.lang.DesugarDouble": "java.lang.Double",
+        "java.lang.DesugarInteger": "java.lang.Integer",
+        "java.lang.DesugarLong": "java.lang.Long",
+        "java.lang.DesugarMath": "java.lang.Math"
+      },
+      "amend_library_method": [
+        "private static boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)"
+      ]
+    },
+    {
+      "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
+        "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
+        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
+        "java.util.AbstractList": "j$.util.AbstractList",
+        "java.util.CollSer": "j$.util.CollSer",
+        "java.util.Comparators": "j$.util.Comparators",
+        "java.util.ImmutableCollections": "j$.util.ImmutableCollections",
+        "java.util.KeyValueHolder": "j$.util.KeyValueHolder",
+        "java.util.SortedSet$1": "j$.util.SortedSet$1",
+        "java.util.Tripwire": "j$.util.Tripwire",
+        "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers"
+      },
+      "rewrite_derived_prefix": {
+        "java.util.DoubleSummaryStatistics": {
+          "j$.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatistics"
+        },
+        "java.util.IntSummaryStatistics": {
+          "j$.util.IntSummaryStatistics": "java.util.IntSummaryStatistics"
+        },
+        "java.util.LongSummaryStatistics": {
+          "j$.util.LongSummaryStatistics": "java.util.LongSummaryStatistics"
+        },
+        "java.util.Optional": {
+          "j$.util.Optional": "java.util.Optional"
+        }
+      }
+    },
+    {
+      "api_level_below_or_equal": 18,
+      "retarget_method": {
+        "boolean java.lang.Character#isBmpCodePoint(int)": "java.lang.DesugarCharacter"
       }
     }
   ],

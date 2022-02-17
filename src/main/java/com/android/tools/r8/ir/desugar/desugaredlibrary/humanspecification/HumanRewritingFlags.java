@@ -131,7 +131,10 @@ public class HumanRewritingFlags {
   }
 
   public boolean isEmpty() {
-    return rewritePrefix.isEmpty() && emulatedInterfaces.isEmpty() && retargetMethod.isEmpty();
+    return rewritePrefix.isEmpty()
+        && rewriteDerivedPrefix.isEmpty()
+        && emulatedInterfaces.isEmpty()
+        && retargetMethod.isEmpty();
   }
 
   public static class Builder {

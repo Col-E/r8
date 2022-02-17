@@ -8,8 +8,8 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -67,13 +67,13 @@ public class DesugaredLibraryCHMOnlyContentTest extends DesugaredLibraryTestBase
     assert inspector.clazz("j$.util.concurrent.ConcurrentHashMap").isPresent();
   }
 
-  LegacyDesugaredLibrarySpecification chmOnlyConfiguration(
+  DesugaredLibrarySpecification chmOnlyConfiguration(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
-    return new LegacyDesugaredLibrarySpecificationParser(
-            options.dexItemFactory(),
-            options.reporter,
-            libraryCompilation,
-            parameters.getApiLevel().getLevel())
-        .parse(StringResource.fromFile(ToolHelper.getCHMOnlyDesugarLibJsonForTesting()));
+    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+        StringResource.fromFile(ToolHelper.getCHMOnlyDesugarLibJsonForTesting()),
+        options.dexItemFactory(),
+        options.reporter,
+        libraryCompilation,
+        parameters.getApiLevel().getLevel());
   }
 }

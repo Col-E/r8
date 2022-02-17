@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
+import com.android.tools.r8.ir.desugar.desugaredlibrary.TopLevelFlagsBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -77,7 +78,7 @@ public class HumanTopLevelFlags {
     return extraKeepRules;
   }
 
-  public static class Builder {
+  public static class Builder implements TopLevelFlagsBuilder<Builder> {
 
     private AndroidApiLevel requiredCompilationAPILevel;
     private String synthesizedLibraryClassesPackagePrefix;
@@ -108,6 +109,7 @@ public class HumanTopLevelFlags {
       return this;
     }
 
+    @Override
     public Builder setSupportAllCallbacksFromLibrary(boolean supportAllCallbacksFromLibrary) {
       this.supportAllCallbacksFromLibrary = supportAllCallbacksFromLibrary;
       return this;

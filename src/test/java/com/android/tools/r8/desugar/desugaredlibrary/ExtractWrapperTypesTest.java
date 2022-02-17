@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.GenerateLintFiles;
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -41,12 +40,13 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class ExtractWrapperTypesTest extends TestBase {
+public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
 
   // Filter on types that do not need to be considered for wrapping.
   private static boolean doesNotNeedWrapper(String type, Set<String> customConversions) {
@@ -273,6 +273,7 @@ public class ExtractWrapperTypesTest extends TestBase {
 
   private CodeInspector getDesugaredApiJar() throws Exception {
     Path out = temp.newFolder().toPath();
+    Assume.assumeFalse("TODO(b/184026720): Support lint generation.", isJDK11DesugaredLibrary());
     GenerateLintFiles desugaredApi =
         new GenerateLintFiles(
             ToolHelper.getDesugarLibJsonForTesting().toString(),

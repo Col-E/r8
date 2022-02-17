@@ -25,8 +25,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
@@ -50,7 +49,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
-  private static final boolean FORCE_JDK11_DESUGARED_LIB = false;
+  private static final boolean FORCE_JDK11_DESUGARED_LIB = true;
 
   @BeforeClass
   public static void setUpDesugaredLibrary() {
@@ -250,19 +249,18 @@ public class DesugaredLibraryTestBase extends TestBase {
     return desugaredLib;
   }
 
-  protected LegacyDesugaredLibrarySpecification configurationWithSupportAllCallbacksFromLibrary(
+  protected DesugaredLibrarySpecification configurationWithSupportAllCallbacksFromLibrary(
       InternalOptions options,
       boolean libraryCompilation,
       TestParameters parameters,
       boolean supportAllCallbacksFromLibrary) {
-    return new LegacyDesugaredLibrarySpecificationParser(
-            options.dexItemFactory(),
-            options.reporter,
-            libraryCompilation,
-            parameters.getApiLevel().getLevel())
-        .parse(
-            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
-            builder -> builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary));
+    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecificationforTesting(
+        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
+        options.dexItemFactory(),
+        options.reporter,
+        libraryCompilation,
+        parameters.getApiLevel().getLevel(),
+        builder -> builder.setSupportAllCallbacksFromLibrary(supportAllCallbacksFromLibrary));
   }
 
   private Map<AndroidApiLevel, Path> desugaredLibraryClassFileCache = new HashMap<>();

@@ -52,6 +52,7 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
     return topLevelFlags.getRequiredCompilationAPILevel();
   }
 
+  @Override
   public boolean isLibraryCompilation() {
     return libraryCompilation;
   }

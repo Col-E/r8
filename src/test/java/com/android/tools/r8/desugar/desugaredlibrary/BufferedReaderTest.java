@@ -10,8 +10,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -60,16 +60,16 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
             : "Caught j$.io.UncheckedIOException");
   }
 
-  LegacyDesugaredLibrarySpecification configurationAlternative3(
+  DesugaredLibrarySpecification configurationAlternative3(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
     // Parse the current configuration and amend the configuration for BufferedReader.lines. The
     // configuration is the same for both program and library.
-    return new LegacyDesugaredLibrarySpecificationParser(
-            options.dexItemFactory(),
-            options.reporter,
-            libraryCompilation,
-            parameters.getApiLevel().getLevel())
-        .parse(StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingAlternative3()));
+    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingAlternative3()),
+        options.dexItemFactory(),
+        options.reporter,
+        libraryCompilation,
+        parameters.getApiLevel().getLevel());
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {

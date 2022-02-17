@@ -170,14 +170,16 @@ public class LegacyRewritingFlags {
       this.factory = factory;
       this.reporter = reporter;
       this.origin = origin;
-      this.rewritePrefix = rewritePrefix;
-      this.emulateLibraryInterface = emulateLibraryInterface;
-      this.retargetCoreLibMember = retargetCoreLibMember;
-      this.backportCoreLibraryMember = backportCoreLibraryMember;
-      this.customConversions = customConversions;
-      this.dontRewriteInvocation = dontRewriteInvocation;
-      this.dontRetargetLibMember = dontRetargetLibMember;
-      this.wrapperConversions = wrapperConversions;
+      this.rewritePrefix = new HashMap<>(rewritePrefix);
+      this.emulateLibraryInterface = new IdentityHashMap<>(emulateLibraryInterface);
+      this.retargetCoreLibMember = new IdentityHashMap<>(retargetCoreLibMember);
+      this.backportCoreLibraryMember = new IdentityHashMap<>(backportCoreLibraryMember);
+      this.customConversions = new IdentityHashMap<>(customConversions);
+      this.dontRewriteInvocation = new ArrayList<>(dontRewriteInvocation);
+      this.dontRetargetLibMember = Sets.newIdentityHashSet();
+      this.dontRetargetLibMember.addAll(dontRetargetLibMember);
+      this.wrapperConversions = Sets.newIdentityHashSet();
+      this.wrapperConversions.addAll(wrapperConversions);
     }
 
     // Utility to set values. Currently assumes the key is fresh.

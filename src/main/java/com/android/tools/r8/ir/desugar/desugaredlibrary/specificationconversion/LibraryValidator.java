@@ -11,9 +11,16 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 
 public class LibraryValidator {
 
-  // Estimates if the library passed is at the expected minimum level, if it is not, raise
-  // a warning.
-  public static void validate(DexApplication app, AndroidApiLevel requiredCompilationAPILevel) {
+  /**
+   * In program compilation, The LibraryValidator estimates if the library passed is at the expected
+   * minimum level, if it is not, raises a warning.
+   */
+  public static void validate(
+      DexApplication app, boolean libraryCompilation, AndroidApiLevel requiredCompilationAPILevel) {
+    if (libraryCompilation) {
+      // In library compilation, the classes are passed as program classes and are always found.
+      return;
+    }
     DexType levelType;
     if (requiredCompilationAPILevel.isEqualTo(AndroidApiLevel.O)) {
       levelType = app.dexItemFactory.createType("Ljava/time/LocalTime;");

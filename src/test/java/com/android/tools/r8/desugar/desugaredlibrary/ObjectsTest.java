@@ -15,8 +15,8 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -84,18 +84,17 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
             Ordered.max(parameters.getApiLevel(), getRequiredCompilationAPILevel()));
   }
 
-  LegacyDesugaredLibrarySpecification desugaredLibrarySpecification(
+  DesugaredLibrarySpecification desugaredLibrarySpecification(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
-    return new LegacyDesugaredLibrarySpecificationParser(
-            options.dexItemFactory(),
-            options.reporter,
-            libraryCompilation,
-            parameters.getApiLevel().getLevel())
-        .parse(
-            StringResource.fromFile(
-                libraryDesugarJavaUtilObjects
-                    ? ToolHelper.getDesugarLibJsonForTestingAlternative3()
-                    : ToolHelper.getDesugarLibJsonForTesting()));
+    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+        StringResource.fromFile(
+            libraryDesugarJavaUtilObjects
+                ? ToolHelper.getDesugarLibJsonForTestingAlternative3()
+                : ToolHelper.getDesugarLibJsonForTesting()),
+        options.dexItemFactory(),
+        options.reporter,
+        libraryCompilation,
+        parameters.getApiLevel().getLevel());
   }
 
   private void configurationForProgramCompilation(InternalOptions options) {

@@ -1,30 +1,25 @@
 {
-  "configuration_format_version": 3,
-  "group_id" : "com.tools.android",
-  "artifact_id" : "chm_only_desugar_jdk_libs",
-  "version": "1.0.12",
+  "identifier": "com.tools.android:chm_only_desugar_jdk_libs:1.0.12",
+  "configuration_format_version": 100,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
   "common_flags": [
+    {
+      "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
+        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom"
+      }
+    }
   ],
+  "program_flags": [],
   "library_flags": [
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.util.concurrent.Helpers": "j$.util.concurrent.Helpers",
-        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap",
         "sun.misc.Desugar": "j$.sun.misc.Desugar"
-      }
-    }
-  ],
-  "program_flags": [
-    {
-      "api_level_below_or_equal": 23,
-      "rewrite_prefix": {
-        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
       }
     }
   ],

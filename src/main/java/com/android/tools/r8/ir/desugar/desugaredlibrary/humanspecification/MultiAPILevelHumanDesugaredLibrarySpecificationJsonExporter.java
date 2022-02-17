@@ -37,6 +37,7 @@ import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,7 +63,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
         humanSpec.getTopLevelFlags().getRequiredCompilationAPILevel().getLevel());
     toJson.put(
         SYNTHESIZED_LIBRARY_CLASSES_PACKAGE_PREFIX_KEY,
-        humanSpec.getTopLevelFlags().getSynthesizedLibraryClassesPackagePrefix());
+        humanSpec.getTopLevelFlags().getSynthesizedLibraryClassesPackagePrefix().replace('/', '.'));
     toJson.put(
         SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY,
         humanSpec.getTopLevelFlags().supportAllCallbacksFromLibrary());
@@ -81,47 +82,48 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
   private List<Object> rewritingFlagsToString(
       Int2ObjectMap<HumanRewritingFlags> rewritingFlagsMap) {
     ArrayList<Object> list = new ArrayList<>();
-    rewritingFlagsMap.forEach(
-        (apiBelowOrEqual, flags) -> {
-          HashMap<String, Object> toJson = new LinkedHashMap<>();
-          toJson.put(API_LEVEL_BELOW_OR_EQUAL_KEY, apiBelowOrEqual);
-          if (!flags.getRewritePrefix().isEmpty()) {
-            toJson.put(REWRITE_PREFIX_KEY, new TreeMap<>(flags.getRewritePrefix()));
-          }
-          if (!flags.getRewriteDerivedPrefix().isEmpty()) {
-            TreeMap<String, Map<String, String>> rewriteDerivedPrefix = new TreeMap<>();
-            flags
-                .getRewriteDerivedPrefix()
-                .forEach((k, v) -> rewriteDerivedPrefix.put(k, new TreeMap<>(v)));
-            toJson.put(REWRITE_DERIVED_PREFIX_KEY, rewriteDerivedPrefix);
-          }
-          if (!flags.getEmulatedInterfaces().isEmpty()) {
-            toJson.put(EMULATE_INTERFACE_KEY, mapToString(flags.getEmulatedInterfaces()));
-          }
-          if (!flags.getDontRewriteInvocation().isEmpty()) {
-            toJson.put(DONT_REWRITE_KEY, setToString(flags.getDontRewriteInvocation()));
-          }
-          if (!flags.getRetargetMethod().isEmpty()) {
-            toJson.put(RETARGET_METHOD_KEY, mapToString(flags.getRetargetMethod()));
-          }
-          if (!flags.getDontRetarget().isEmpty()) {
-            toJson.put(DONT_RETARGET_KEY, setToString(flags.getDontRetarget()));
-          }
-          if (!flags.getLegacyBackport().isEmpty()) {
-            toJson.put(BACKPORT_KEY, mapToString(flags.getLegacyBackport()));
-          }
-          if (!flags.getWrapperConversions().isEmpty()) {
-            toJson.put(WRAPPER_CONVERSION_KEY, setToString(flags.getWrapperConversions()));
-          }
-          if (!flags.getCustomConversions().isEmpty()) {
-            toJson.put(CUSTOM_CONVERSION_KEY, mapToString(flags.getCustomConversions()));
-          }
-          if (!flags.getAmendLibraryMethod().isEmpty()) {
-            toJson.put(
-                AMEND_LIBRARY_METHOD_KEY, amendLibraryToString(flags.getAmendLibraryMethod()));
-          }
-          list.add(toJson);
-        });
+    ArrayList<Integer> apis = new ArrayList<>(rewritingFlagsMap.keySet());
+    apis.sort(Comparator.reverseOrder());
+    for (int apiBelowOrEqual : apis) {
+      HumanRewritingFlags flags = rewritingFlagsMap.get(apiBelowOrEqual);
+      HashMap<String, Object> toJson = new LinkedHashMap<>();
+      toJson.put(API_LEVEL_BELOW_OR_EQUAL_KEY, apiBelowOrEqual);
+      if (!flags.getRewritePrefix().isEmpty()) {
+        toJson.put(REWRITE_PREFIX_KEY, new TreeMap<>(flags.getRewritePrefix()));
+      }
+      if (!flags.getRewriteDerivedPrefix().isEmpty()) {
+        TreeMap<String, Map<String, String>> rewriteDerivedPrefix = new TreeMap<>();
+        flags
+            .getRewriteDerivedPrefix()
+            .forEach((k, v) -> rewriteDerivedPrefix.put(k, new TreeMap<>(v)));
+        toJson.put(REWRITE_DERIVED_PREFIX_KEY, rewriteDerivedPrefix);
+      }
+      if (!flags.getEmulatedInterfaces().isEmpty()) {
+        toJson.put(EMULATE_INTERFACE_KEY, mapToString(flags.getEmulatedInterfaces()));
+      }
+      if (!flags.getDontRewriteInvocation().isEmpty()) {
+        toJson.put(DONT_REWRITE_KEY, setToString(flags.getDontRewriteInvocation()));
+      }
+      if (!flags.getRetargetMethod().isEmpty()) {
+        toJson.put(RETARGET_METHOD_KEY, mapToString(flags.getRetargetMethod()));
+      }
+      if (!flags.getDontRetarget().isEmpty()) {
+        toJson.put(DONT_RETARGET_KEY, setToString(flags.getDontRetarget()));
+      }
+      if (!flags.getLegacyBackport().isEmpty()) {
+        toJson.put(BACKPORT_KEY, mapToString(flags.getLegacyBackport()));
+      }
+      if (!flags.getWrapperConversions().isEmpty()) {
+        toJson.put(WRAPPER_CONVERSION_KEY, setToString(flags.getWrapperConversions()));
+      }
+      if (!flags.getCustomConversions().isEmpty()) {
+        toJson.put(CUSTOM_CONVERSION_KEY, mapToString(flags.getCustomConversions()));
+      }
+      if (!flags.getAmendLibraryMethod().isEmpty()) {
+        toJson.put(AMEND_LIBRARY_METHOD_KEY, amendLibraryToString(flags.getAmendLibraryMethod()));
+      }
+      list.add(toJson);
+    }
     return list;
   }
 

@@ -56,7 +56,7 @@ public class HumanToMachineRetargetConverter {
     DexClass holder = appInfo.definitionFor(method.holder);
     DexEncodedMethod foundMethod = holder.lookupMethod(method);
     if (foundMethod == null) {
-      missingMethods.add(foundMethod.getReference());
+      missingMethods.add(method);
       return;
     }
     if (foundMethod.isStatic()) {

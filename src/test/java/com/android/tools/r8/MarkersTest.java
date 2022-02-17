@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.Origin;
@@ -27,6 +28,7 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -36,7 +38,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MarkersTest extends TestBase {
+public class MarkersTest extends DesugaredLibraryTestBase {
 
   @Parameterized.Parameters(
       name = "{0}, compilationMode {1}, shrinkDesugaredLibrary {2}, noCfMarkerForDesugaredCode {3}")
@@ -84,18 +86,20 @@ public class MarkersTest extends TestBase {
     }
     L8.run(builder.build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
-    String version =
+    JsonObject jsonObject =
         new JsonParser()
             .parse(FileUtils.readTextFile(ToolHelper.getDesugarLibJsonForTesting(), Charsets.UTF_8))
-            .getAsJsonObject()
-            .get("version")
-            .getAsString();
+            .getAsJsonObject();
+    String identifier =
+        jsonObject.has("version")
+            ? "com.tools.android:desugar_jdk_libs:" + jsonObject.get("version").getAsString()
+            : jsonObject.get("identifier").getAsString();
 
     Matcher<Marker> l8Matcher =
         allOf(
             markerTool(Tool.L8),
             markerCompilationMode(compilationMode),
-            markerDesugaredLibraryIdentifier("com.tools.android:desugar_jdk_libs:" + version),
+            markerDesugaredLibraryIdentifier(identifier),
             markerHasChecksums(false));
     Matcher<Marker> r8Matcher =
         allOf(

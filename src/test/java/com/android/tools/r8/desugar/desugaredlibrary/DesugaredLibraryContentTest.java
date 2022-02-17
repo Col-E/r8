@@ -11,10 +11,10 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.L8Command;
-import com.android.tools.r8.L8TestBuilder;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessages;
@@ -29,7 +29,6 @@ import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,20 +51,15 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   @Test
   public void testInvalidLibrary() throws Exception {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    L8TestBuilder l8TestBuilder =
-        testForL8(parameters.getApiLevel())
-            .addProgramFiles(Collections.singleton(ToolHelper.getDesugarJDKLibs()))
+    D8TestCompileResult compile =
+        testForD8()
+            .addProgramClasses(GuineaPig.class)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.L))
-            .setDesugarJDKLibsConfiguration(ToolHelper.DESUGAR_LIB_CONVERSIONS);
-    try {
-      l8TestBuilder.compile();
-      fail();
-    } catch (AssertionError ae) {
-      // Expected since the library is invalid.
-    }
-    TestDiagnosticMessages diagnosticMessages = l8TestBuilder.getDiagnosticMessages();
+            .enableCoreLibraryDesugaring(
+                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
+            .compile();
+    TestDiagnosticMessages diagnosticMessages = compile.getDiagnosticMessages();
     diagnosticMessages.assertOnlyWarnings();
-    assertEquals(diagnosticMessages.getWarnings().size(), 1);
     assertTrue(
         diagnosticMessages
             .getWarnings()
@@ -166,4 +160,8 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     }
   }
 
+  static class GuineaPig {
+
+    public static void main(String[] args) {}
+  }
 }

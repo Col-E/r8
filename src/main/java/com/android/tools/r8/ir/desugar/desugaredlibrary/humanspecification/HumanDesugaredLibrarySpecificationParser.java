@@ -5,11 +5,13 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.isHumanSpecification;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.TopLevelFlagsBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -102,13 +104,8 @@ public class HumanDesugaredLibrarySpecificationParser {
   }
 
   public HumanDesugaredLibrarySpecification parse(StringResource stringResource) {
-    return parse(stringResource, builder -> {});
-  }
-
-  public HumanDesugaredLibrarySpecification parse(
-      StringResource stringResource, Consumer<HumanTopLevelFlags.Builder> topLevelFlagAmender) {
     String jsonConfigString = parseJson(stringResource);
-    return parse(origin, jsonConfigString, jsonConfig, topLevelFlagAmender);
+    return parse(origin, jsonConfigString, jsonConfig, ignored -> {});
   }
 
   public HumanDesugaredLibrarySpecification parse(
@@ -116,11 +113,15 @@ public class HumanDesugaredLibrarySpecificationParser {
     return parse(origin, jsonConfigString, jsonConfig, ignored -> {});
   }
 
-  private HumanDesugaredLibrarySpecification parse(
+  public HumanDesugaredLibrarySpecification parse(
       Origin origin,
       String jsonConfigString,
       JsonObject jsonConfig,
-      Consumer<HumanTopLevelFlags.Builder> topLevelFlagAmender) {
+      Consumer<TopLevelFlagsBuilder<?>> topLevelFlagAmender) {
+    if (!isHumanSpecification(jsonConfig, reporter, origin)) {
+      reporter.error(
+          "Attempt to parse a non desugared library human specification as a human specification.");
+    }
     this.origin = origin;
     this.jsonConfig = jsonConfig;
     HumanTopLevelFlags topLevelFlags = parseTopLevelFlags(jsonConfigString, topLevelFlagAmender);
@@ -165,7 +166,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   }
 
   HumanTopLevelFlags parseTopLevelFlags(
-      String jsonConfigString, Consumer<HumanTopLevelFlags.Builder> topLevelFlagAmender) {
+      String jsonConfigString, Consumer<TopLevelFlagsBuilder<?>> topLevelFlagAmender) {
     HumanTopLevelFlags.Builder builder = HumanTopLevelFlags.builder();
 
     builder.setJsonSource(jsonConfigString);

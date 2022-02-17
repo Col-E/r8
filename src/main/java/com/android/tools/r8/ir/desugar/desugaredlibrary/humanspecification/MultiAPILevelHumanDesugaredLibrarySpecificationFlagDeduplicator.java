@@ -62,9 +62,19 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
     deduplicateFlags(library, program, commonBuilder, libraryBuilder);
     deduplicateFlags(program, library, commonBuilder, programBuilder);
 
-    commonFlags.put(api, commonBuilder.build());
-    libraryFlags.put(api, libraryBuilder.build());
-    programFlags.put(api, programBuilder.build());
+    putNewFlags(api, commonFlags, commonBuilder);
+    putNewFlags(api, libraryFlags, libraryBuilder);
+    putNewFlags(api, programFlags, programBuilder);
+  }
+
+  private static void putNewFlags(
+      int api, Int2ObjectMap<HumanRewritingFlags> flags, HumanRewritingFlags.Builder builder) {
+    HumanRewritingFlags build = builder.build();
+    if (build.isEmpty()) {
+      flags.remove(api);
+    } else {
+      flags.put(api, build);
+    }
   }
 
   private static void deduplicateFlags(
