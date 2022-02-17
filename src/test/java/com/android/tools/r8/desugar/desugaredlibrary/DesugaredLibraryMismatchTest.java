@@ -65,14 +65,18 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .enableCoreLibraryDesugaring(LibraryDesugaringTestConfiguration.forApiLevel(apiLevel))
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                diagnostics.assertNoInfos();
-                diagnostics.assertAllWarningsMatch(
-                    diagnosticMessage(
-                        containsString(
-                            "The compilation is slowed down due to a mix of class file and dex"
-                                + " file inputs in the context of desugared library.")));
-                diagnostics.assertErrorsMatch(
-                    diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
+                if (requiresAnyCoreLibDesugaring(apiLevel)) {
+                  diagnostics.assertNoInfos();
+                  diagnostics.assertAllWarningsMatch(
+                      diagnosticMessage(
+                          containsString(
+                              "The compilation is slowed down due to a mix of class file and dex"
+                                  + " file inputs in the context of desugared library.")));
+                  diagnostics.assertErrorsMatch(
+                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
+                } else {
+                  diagnostics.assertNoMessages();
+                }
               });
 
     } catch (CompilationFailedException e) {
@@ -146,9 +150,13 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(apiLevel)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                diagnostics.assertOnlyErrors();
-                diagnostics.assertErrorsMatch(
-                    diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
+                if (requiresAnyCoreLibDesugaring(apiLevel)) {
+                  diagnostics.assertOnlyErrors();
+                  diagnostics.assertErrorsMatch(
+                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
+                } else {
+                  diagnostics.assertNoMessages();
+                }
               });
     } catch (CompilationFailedException e) {
     }
@@ -181,9 +189,13 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
           .setMinApi(apiLevel)
           .compileWithExpectedDiagnostics(
               diagnostics -> {
-                diagnostics.assertOnlyErrors();
-                diagnostics.assertErrorsMatch(
-                    diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
+                if (requiresAnyCoreLibDesugaring(apiLevel)) {
+                  diagnostics.assertOnlyErrors();
+                  diagnostics.assertErrorsMatch(
+                      diagnosticType(DesugaredLibraryMismatchDiagnostic.class));
+                } else {
+                  diagnostics.assertNoMessages();
+                }
               });
     } catch (CompilationFailedException e) {
     }
@@ -211,7 +223,10 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
                                 + "\"version\":\"1.0.9\","
                                 + "\"synthesized_library_classes_package_prefix\":\"my_prefix\","
                                 + "\"required_compilation_api_level\":\"30\","
-                                + "\"common_flags\":[],"
+                                + "\"common_flags\":[{"
+                                + "      \"api_level_below_or_equal\": 9999,"
+                                + "      \"rewrite_prefix\": {\"j$.time.\": \"java.time.\"}"
+                                + "    }],"
                                 + "\"library_flags\":[],"
                                 + "\"program_flags\":[]"
                                 + "}",

@@ -9,37 +9,22 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class LegacyDesugaredLibrarySpecification {
+public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
 
   private final boolean libraryCompilation;
   private final LegacyTopLevelFlags topLevelFlags;
   private final LegacyRewritingFlags rewritingFlags;
 
-  public static LegacyDesugaredLibrarySpecification withOnlyRewritePrefixForTesting(
-      Map<String, String> prefix, InternalOptions options) {
-    return new LegacyDesugaredLibrarySpecification(
-        LegacyTopLevelFlags.empty(),
-        LegacyRewritingFlags.withOnlyRewritePrefixForTesting(prefix, options),
-        true);
-  }
-
   public static LegacyDesugaredLibrarySpecification empty() {
     return new LegacyDesugaredLibrarySpecification(
-        LegacyTopLevelFlags.empty(), LegacyRewritingFlags.empty(), false) {
-
-      @Override
-      public boolean isEmptyConfiguration() {
-        return true;
-      }
-    };
+        LegacyTopLevelFlags.empty(), LegacyRewritingFlags.empty(), false);
   }
 
   public LegacyDesugaredLibrarySpecification(
@@ -49,6 +34,21 @@ public class LegacyDesugaredLibrarySpecification {
     this.libraryCompilation = libraryCompilation;
     this.topLevelFlags = topLevelFlags;
     this.rewritingFlags = rewritingFlags;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return rewritingFlags.isEmpty();
+  }
+
+  @Override
+  public boolean isLegacy() {
+    return true;
+  }
+
+  @Override
+  public LegacyDesugaredLibrarySpecification asLegacyDesugaredLibrarySpecification() {
+    return this;
   }
 
   public LegacyTopLevelFlags getTopLevelFlags() {
@@ -71,19 +71,9 @@ public class LegacyDesugaredLibrarySpecification {
     return libraryCompilation;
   }
 
+  @Override
   public String getSynthesizedLibraryClassesPackagePrefix() {
     return topLevelFlags.getSynthesizedLibraryClassesPackagePrefix();
-  }
-
-  // TODO(b/183918843): We are currently computing a new name for the class by replacing the
-  //  initial package prefix by the synthesized library class package prefix, it would be better
-  //  to make the rewriting explicit in the desugared library json file.
-  public String convertJavaNameToDesugaredLibrary(DexType type) {
-    String prefix =
-        DescriptorUtils.getJavaTypeFromBinaryName(getSynthesizedLibraryClassesPackagePrefix());
-    String interfaceType = type.toString();
-    int firstPackage = interfaceType.indexOf('.');
-    return prefix + interfaceType.substring(firstPackage + 1);
   }
 
   public String getIdentifier() {
@@ -146,15 +136,14 @@ public class LegacyDesugaredLibrarySpecification {
     return rewritingFlags.getDontRetargetLibMember();
   }
 
+  @Override
   public List<String> getExtraKeepRules() {
     return topLevelFlags.getExtraKeepRules();
   }
 
+  @Override
   public String getJsonSource() {
     return topLevelFlags.getJsonSource();
   }
 
-  public boolean isEmptyConfiguration() {
-    return false;
-  }
 }

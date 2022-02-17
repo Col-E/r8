@@ -24,6 +24,7 @@ import com.android.tools.r8.TestState;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.tracereferences.TraceReferences;
@@ -68,7 +69,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   public void setDesugaredLibrarySpecificationForTesting(
-      InternalOptions options, LegacyDesugaredLibrarySpecification specification) {
+      InternalOptions options, DesugaredLibrarySpecification specification) {
     try {
       options.setDesugaredLibrarySpecificationForTesting(
           specification,
@@ -117,10 +118,14 @@ public class DesugaredLibraryTestBase extends TestBase {
   }
 
   protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel()
+    return requiresAnyCoreLibDesugaring(parameters.getApiLevel());
+  }
+
+  protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel) {
+    return apiLevel.getLevel()
         <= (isJDK11DesugaredLibrary()
             ? AndroidApiLevel.LATEST.getLevel()
-            : AndroidApiLevel.N.getLevel());
+            : AndroidApiLevel.N_MR1.getLevel());
   }
 
   protected L8TestBuilder testForL8(AndroidApiLevel apiLevel) {

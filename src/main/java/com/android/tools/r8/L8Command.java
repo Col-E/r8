@@ -12,7 +12,7 @@ import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -42,7 +42,7 @@ public final class L8Command extends BaseCompilerCommand {
 
   private final D8Command d8Command;
   private final R8Command r8Command;
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+  private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final DexItemFactory factory;
 
   boolean isShrinking() {
@@ -95,7 +95,7 @@ public final class L8Command extends BaseCompilerCommand {
       Reporter diagnosticsHandler,
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
+      DesugaredLibrarySpecification desugaredLibrarySpecification,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       int threadCount,
@@ -335,7 +335,7 @@ public final class L8Command extends BaseCompilerCommand {
       }
 
       DexItemFactory factory = new DexItemFactory();
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+      DesugaredLibrarySpecification desugaredLibrarySpecification =
           getDesugaredLibraryConfiguration(factory, true);
 
       R8Command r8Command = null;

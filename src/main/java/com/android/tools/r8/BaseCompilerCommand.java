@@ -7,8 +7,9 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -573,7 +574,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return self();
     }
 
-    LegacyDesugaredLibrarySpecification getDesugaredLibraryConfiguration(
+    DesugaredLibrarySpecification getDesugaredLibraryConfiguration(
         DexItemFactory factory, boolean libraryCompilation) {
       if (desugaredLibrarySpecificationResources.isEmpty()) {
         return LegacyDesugaredLibrarySpecification.empty();
@@ -583,10 +584,12 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       }
       StringResource desugaredLibrarySpecificationResource =
           desugaredLibrarySpecificationResources.get(0);
-      LegacyDesugaredLibrarySpecificationParser libraryParser =
-          new LegacyDesugaredLibrarySpecificationParser(
-              factory, getReporter(), libraryCompilation, getMinApiLevel());
-      return libraryParser.parse(desugaredLibrarySpecificationResource);
+      return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+          desugaredLibrarySpecificationResource,
+          factory,
+          getReporter(),
+          libraryCompilation,
+          getMinApiLevel());
     }
 
     boolean hasDesugaredLibraryConfiguration() {

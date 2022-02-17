@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -288,7 +288,7 @@ public final class D8Command extends BaseCompilerCommand {
       intermediate |= getProgramConsumer() instanceof DexFilePerClassFileConsumer;
 
       DexItemFactory factory = new DexItemFactory();
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+      DesugaredLibrarySpecification desugaredLibrarySpecification =
           getDesugaredLibraryConfiguration(factory, false);
 
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules =
@@ -328,7 +328,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean intermediate;
   private final DesugarGraphConsumer desugarGraphConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+  private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final String synthesizedClassPrefix;
   private final boolean skipDump;
   private final boolean enableMainDexListCheck;
@@ -390,7 +390,7 @@ public final class D8Command extends BaseCompilerCommand {
       BiPredicate<String, Long> dexClassChecksumFilter,
       DesugarGraphConsumer desugarGraphConsumer,
       StringConsumer desugaredLibraryKeepRuleConsumer,
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
+      DesugaredLibrarySpecification desugaredLibrarySpecification,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,

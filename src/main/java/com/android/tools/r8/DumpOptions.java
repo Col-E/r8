@@ -7,7 +7,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
@@ -50,7 +50,7 @@ public class DumpOptions {
   private final Optional<Boolean> forceProguardCompatibility;
 
   // Dump if present.
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+  private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final ProguardConfiguration proguardConfiguration;
   private final List<ProguardConfigurationRule> mainDexKeepRules;
@@ -62,7 +62,7 @@ public class DumpOptions {
       Tool tool,
       CompilationMode compilationMode,
       int minAPI,
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
+      DesugaredLibrarySpecification desugaredLibrarySpecification,
       boolean optimizeMultidexForLinearAlloc,
       int threadCount,
       DesugarState desugarState,
@@ -133,8 +133,7 @@ public class DumpOptions {
   }
 
   private boolean hasDesugaredLibraryConfiguration() {
-    return desugaredLibrarySpecification != null
-        && !desugaredLibrarySpecification.isEmptyConfiguration();
+    return desugaredLibrarySpecification != null && !desugaredLibrarySpecification.isEmpty();
   }
 
   public String getDesugaredLibraryJsonSource() {
@@ -186,7 +185,7 @@ public class DumpOptions {
     private Optional<Boolean> minification = Optional.empty();
     private Optional<Boolean> forceProguardCompatibility = Optional.empty();
     // Dump if present.
-    private LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+    private DesugaredLibrarySpecification desugaredLibrarySpecification;
     private FeatureSplitConfiguration featureSplitConfiguration;
     private ProguardConfiguration proguardConfiguration;
     private List<ProguardConfigurationRule> mainDexKeepRules;
@@ -209,7 +208,7 @@ public class DumpOptions {
     }
 
     public Builder setDesugaredLibraryConfiguration(
-        LegacyDesugaredLibrarySpecification desugaredLibrarySpecification) {
+        DesugaredLibrarySpecification desugaredLibrarySpecification) {
       this.desugaredLibrarySpecification = desugaredLibrarySpecification;
       return this;
     }

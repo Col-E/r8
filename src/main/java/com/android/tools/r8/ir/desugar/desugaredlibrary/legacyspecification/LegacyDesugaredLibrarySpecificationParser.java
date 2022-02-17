@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification;
 
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
+
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
@@ -26,7 +28,6 @@ public class LegacyDesugaredLibrarySpecificationParser {
   public static final int MAX_SUPPORTED_VERSION = 4;
   public static final SemanticVersion MIN_SUPPORTED_VERSION = new SemanticVersion(1, 0, 9);
 
-  static final String CONFIGURATION_FORMAT_VERSION_KEY = "configuration_format_version";
   static final String VERSION_KEY = "version";
   static final String GROUP_ID_KEY = "group_id";
   static final String ARTIFACT_ID_KEY = "artifact_id";
@@ -103,7 +104,21 @@ public class LegacyDesugaredLibrarySpecificationParser {
   public LegacyDesugaredLibrarySpecification parse(
       StringResource stringResource, Consumer<LegacyTopLevelFlags.Builder> topLevelFlagAmender) {
     String jsonConfigString = parseJson(stringResource);
+    return parse(origin, jsonConfigString, jsonConfig, topLevelFlagAmender);
+  }
 
+  public LegacyDesugaredLibrarySpecification parse(
+      Origin origin, String jsonConfigString, JsonObject jsonConfig) {
+    return parse(origin, jsonConfigString, jsonConfig, ignored -> {});
+  }
+
+  private LegacyDesugaredLibrarySpecification parse(
+      Origin origin,
+      String jsonConfigString,
+      JsonObject jsonConfig,
+      Consumer<LegacyTopLevelFlags.Builder> topLevelFlagAmender) {
+    this.origin = origin;
+    this.jsonConfig = jsonConfig;
     LegacyTopLevelFlags topLevelFlags = parseTopLevelFlags(jsonConfigString, topLevelFlagAmender);
 
     LegacyRewritingFlags legacyRewritingFlags = parseRewritingFlags();
@@ -111,7 +126,7 @@ public class LegacyDesugaredLibrarySpecificationParser {
     LegacyDesugaredLibrarySpecification config =
         new LegacyDesugaredLibrarySpecification(
             topLevelFlags, legacyRewritingFlags, libraryCompilation);
-    origin = null;
+    this.origin = null;
     return config;
   }
 

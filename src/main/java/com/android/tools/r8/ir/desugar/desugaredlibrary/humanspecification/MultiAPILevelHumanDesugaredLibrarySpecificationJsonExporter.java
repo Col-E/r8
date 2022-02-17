@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.AMEND_LIBRARY_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_LEVEL_BELOW_OR_EQUAL_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.BACKPORT_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.COMMON_FLAGS_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.CUSTOM_CONVERSION_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.DONT_RETARGET_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.DONT_REWRITE_KEY;
@@ -54,6 +56,7 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec, StringConsumer output) {
     HashMap<String, Object> toJson = new LinkedHashMap<>();
     toJson.put(IDENTIFIER_KEY, humanSpec.getTopLevelFlags().getIdentifier());
+    toJson.put(CONFIGURATION_FORMAT_VERSION_KEY, CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION);
     toJson.put(
         REQUIRED_COMPILATION_API_LEVEL_KEY,
         humanSpec.getTopLevelFlags().getRequiredCompilationAPILevel().getLevel());

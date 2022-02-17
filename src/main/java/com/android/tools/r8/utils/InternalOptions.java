@@ -54,8 +54,8 @@ import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.TypeRewriter.MachineDesugarPrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
@@ -891,19 +891,24 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public StringConsumer configurationConsumer = null;
 
   public void setDesugaredLibrarySpecification(
-      LegacyDesugaredLibrarySpecification specification, AndroidApp app) {
-    if (specification.isEmptyConfiguration()) {
+      DesugaredLibrarySpecification specification, AndroidApp app) {
+    if (specification.isEmpty()) {
       return;
     }
     try {
       HumanDesugaredLibrarySpecification human =
-          new LegacyToHumanSpecificationConverter()
-              .convert(specification, app.getLibraryResourceProviders(), this);
+          specification.isLegacy()
+              ? new LegacyToHumanSpecificationConverter()
+                  .convert(
+                      specification.asLegacyDesugaredLibrarySpecification(),
+                      app.getLibraryResourceProviders(),
+                      this)
+              : specification.asHumanDesugaredLibrarySpecification();
       machineDesugaredLibrarySpecification =
           new HumanToMachineSpecificationConverter()
               .convert(
                   human,
-                  specification.isLibraryCompilation() ? app.getProgramResourceProviders() : null,
+                  human.isLibraryCompilation() ? app.getProgramResourceProviders() : null,
                   app.getLibraryResourceProviders(),
                   this);
     } catch (IOException e) {
@@ -912,17 +917,19 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public void setDesugaredLibrarySpecificationForTesting(
-      LegacyDesugaredLibrarySpecification specification, Path desugaredJDKLib, Path library)
+      DesugaredLibrarySpecification specification, Path desugaredJDKLib, Path library)
       throws IOException {
+    if (specification.isEmpty()) {
+      return;
+    }
     HumanDesugaredLibrarySpecification human =
-        new LegacyToHumanSpecificationConverter().convert(specification, library, this);
+        specification.isLegacy()
+            ? new LegacyToHumanSpecificationConverter()
+                .convert(specification.asLegacyDesugaredLibrarySpecification(), library, this)
+            : specification.asHumanDesugaredLibrarySpecification();
     machineDesugaredLibrarySpecification =
         new HumanToMachineSpecificationConverter()
-            .convert(
-                human,
-                specification.isLibraryCompilation() ? desugaredJDKLib : null,
-                library,
-                this);
+            .convert(human, human.isLibraryCompilation() ? desugaredJDKLib : null, library, this);
   }
 
   // Contains flags describing library desugaring.

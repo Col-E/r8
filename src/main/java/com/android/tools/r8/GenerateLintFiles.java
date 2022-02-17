@@ -34,8 +34,9 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -82,8 +83,11 @@ public class GenerateLintFiles {
   public GenerateLintFiles(
       String desugarConfigurationPath, String desugarImplementationPath, String outputDirectory)
       throws Exception {
-    this.desugaredLibrarySpecification =
+    DesugaredLibrarySpecification desugaredLibrarySpecification =
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
+    assert desugaredLibrarySpecification.isLegacy();
+    this.desugaredLibrarySpecification =
+        desugaredLibrarySpecification.asLegacyDesugaredLibrarySpecification();
     this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
     this.outputDirectory = Paths.get(outputDirectory);
     if (!Files.isDirectory(this.outputDirectory)) {
@@ -119,11 +123,14 @@ public class GenerateLintFiles {
     return Paths.get(jar);
   }
 
-  private LegacyDesugaredLibrarySpecification readDesugaredLibraryConfiguration(
+  private DesugaredLibrarySpecification readDesugaredLibraryConfiguration(
       String desugarConfigurationPath) {
-    return new LegacyDesugaredLibrarySpecificationParser(
-            factory, reporter, false, AndroidApiLevel.B.getLevel())
-        .parse(StringResource.fromFile(Paths.get(desugarConfigurationPath)));
+    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+        StringResource.fromFile(Paths.get(desugarConfigurationPath)),
+        factory,
+        reporter,
+        false,
+        AndroidApiLevel.B.getLevel());
   }
 
   private CfCode buildEmptyThrowingCfCode(DexMethod method) {

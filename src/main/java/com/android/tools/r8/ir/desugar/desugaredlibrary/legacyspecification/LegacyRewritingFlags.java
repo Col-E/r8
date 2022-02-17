@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -69,13 +68,6 @@ public class LegacyRewritingFlags {
         ImmutableSet.of());
   }
 
-  public static LegacyRewritingFlags withOnlyRewritePrefixForTesting(
-      Map<String, String> prefix, InternalOptions options) {
-    Builder builder = builder(options.dexItemFactory(), options.reporter, Origin.unknown());
-    prefix.forEach(builder::putRewritePrefix);
-    return builder.build();
-  }
-
   public static Builder builder(DexItemFactory dexItemFactory, Reporter reporter, Origin origin) {
     return new Builder(dexItemFactory, reporter, origin);
   }
@@ -125,6 +117,12 @@ public class LegacyRewritingFlags {
 
   public Set<DexType> getWrapperConversions() {
     return wrapperConversions;
+  }
+
+  public boolean isEmpty() {
+    return rewritePrefix.isEmpty()
+        && emulateLibraryInterface.isEmpty()
+        && retargetCoreLibMember.isEmpty();
   }
 
   public static class Builder {

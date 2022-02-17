@@ -15,7 +15,7 @@ import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -475,7 +475,7 @@ public final class R8Command extends BaseCompilerCommand {
       List<ProguardConfigurationRule> mainDexKeepRules =
           ProguardConfigurationParser.parse(mainDexRules, factory, reporter);
 
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification =
+      DesugaredLibrarySpecification desugaredLibrarySpecification =
           getDesugaredLibraryConfiguration(factory, false);
 
       ProguardConfigurationParser parser =
@@ -666,7 +666,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final GraphConsumer mainDexKeptGraphConsumer;
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+  private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final FeatureSplitConfiguration featureSplitConfiguration;
   private final String synthesizedClassPrefix;
   private final boolean skipDump;
@@ -744,7 +744,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       StringConsumer desugaredLibraryKeepRuleConsumer,
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
+      DesugaredLibrarySpecification desugaredLibrarySpecification,
       FeatureSplitConfiguration featureSplitConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,

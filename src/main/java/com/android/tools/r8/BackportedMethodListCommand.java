@@ -4,8 +4,9 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -41,7 +42,7 @@ public class BackportedMethodListCommand {
   private final boolean printVersion;
   private final Reporter reporter;
   private final int minApiLevel;
-  private final LegacyDesugaredLibrarySpecification desugaredLibrarySpecification;
+  private final DesugaredLibrarySpecification desugaredLibrarySpecification;
   private final AndroidApp app;
   private final StringConsumer backportedMethodListConsumer;
   private final DexItemFactory factory;
@@ -62,7 +63,7 @@ public class BackportedMethodListCommand {
     return minApiLevel;
   }
 
-  public LegacyDesugaredLibrarySpecification getDesugaredLibraryConfiguration() {
+  public DesugaredLibrarySpecification getDesugaredLibraryConfiguration() {
     return desugaredLibrarySpecification;
   }
 
@@ -88,7 +89,7 @@ public class BackportedMethodListCommand {
   private BackportedMethodListCommand(
       Reporter reporter,
       int minApiLevel,
-      LegacyDesugaredLibrarySpecification desugaredLibrarySpecification,
+      DesugaredLibrarySpecification desugaredLibrarySpecification,
       AndroidApp app,
       StringConsumer backportedMethodListConsumer,
       DexItemFactory factory) {
@@ -245,7 +246,7 @@ public class BackportedMethodListCommand {
       return this;
     }
 
-    LegacyDesugaredLibrarySpecification getDesugaredLibraryConfiguration(DexItemFactory factory) {
+    DesugaredLibrarySpecification getDesugaredLibraryConfiguration(DexItemFactory factory) {
       if (desugaredLibrarySpecificationResources.isEmpty()) {
         return LegacyDesugaredLibrarySpecification.empty();
       }
@@ -254,9 +255,8 @@ public class BackportedMethodListCommand {
       }
       StringResource desugaredLibrarySpecificationResource =
           desugaredLibrarySpecificationResources.get(0);
-      LegacyDesugaredLibrarySpecificationParser libraryParser =
-          new LegacyDesugaredLibrarySpecificationParser(factory, null, false, getMinApiLevel());
-      return libraryParser.parse(desugaredLibrarySpecificationResource);
+      return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
+          desugaredLibrarySpecificationResource, factory, null, false, getMinApiLevel());
     }
 
     /** Output file for the backported method list */
