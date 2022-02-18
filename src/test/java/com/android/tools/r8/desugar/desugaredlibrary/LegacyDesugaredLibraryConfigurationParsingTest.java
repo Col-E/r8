@@ -180,7 +180,7 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
   @Test
   public void testUnsupportedAbove() {
     LinkedHashMap<String, Object> data = template();
-    data.put("configuration_format_version", 100000);
+    data.put("configuration_format_version", 99);
     runFailing(
         toJson(data),
         diagnostics ->

@@ -11,7 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.OutputMode;
@@ -48,16 +48,21 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testInvalidLibrary() throws Exception {
+  public void testInvalidLibrary() {
     Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
-    D8TestCompileResult compile =
+    D8TestBuilder testBuilder =
         testForD8()
+            .setMinApi(parameters.getApiLevel())
             .addProgramClasses(GuineaPig.class)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.L))
             .enableCoreLibraryDesugaring(
-                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()))
-            .compile();
-    TestDiagnosticMessages diagnosticMessages = compile.getDiagnosticMessages();
+                LibraryDesugaringTestConfiguration.forApiLevel(parameters.getApiLevel()));
+    try {
+      testBuilder.compile();
+    } catch (Throwable t) {
+      // Expected since we are compiling with an invalid set-up.
+    }
+    TestDiagnosticMessages diagnosticMessages = testBuilder.getState().getDiagnosticsMessages();
     diagnosticMessages.assertOnlyWarnings();
     assertTrue(
         diagnosticMessages
