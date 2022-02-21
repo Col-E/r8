@@ -1,5 +1,5 @@
 {
-  "identifier": "com.tools.android:desugar_jdk_libs_alternative_3:2.0.0",
+  "identifier": "com.tools.android:desugar_jdk_libs_alternative_3:1.0.12",
   "configuration_format_version": 100,
   "required_compilation_api_level": 30,
   "synthesized_library_classes_package_prefix": "j$.",
@@ -21,8 +21,12 @@
       "retarget_method": {
         "java.time.Instant java.util.Date#toInstant()": "java.util.DesugarDate",
         "java.time.ZoneId java.util.TimeZone#toZoneId()": "java.util.DesugarTimeZone",
-        "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar"
+        "java.time.ZonedDateTime java.util.GregorianCalendar#toZonedDateTime()": "java.util.DesugarGregorianCalendar",
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
       },
+      "wrapper_conversion": [
+        "java.time.Clock"
+      ],
       "custom_conversion": {
         "java.time.Duration": "java.time.TimeConversions",
         "java.time.Instant": "java.time.TimeConversions",
@@ -33,14 +37,9 @@
       }
     },
     {
-      "api_level_below_or_equal": 25,
-      "wrapper_conversion": [
-        "java.time.Clock"
-      ]
-    },
-    {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
+        "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
         "java.io.UncheckedIOException": "j$.io.UncheckedIOException",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
@@ -97,15 +96,15 @@
         "java.util.function.IntConsumer",
         "java.util.function.IntBinaryOperator",
         "java.util.function.UnaryOperator",
-        "java.util.function.IntPredicate",
         "java.util.function.DoubleConsumer",
+        "java.util.function.IntPredicate",
         "java.util.Spliterator$OfLong",
         "java.util.stream.Collector",
         "java.util.function.LongPredicate",
         "java.util.function.ToLongFunction",
         "java.util.function.LongToDoubleFunction",
-        "java.util.function.LongToIntFunction",
         "java.util.PrimitiveIterator$OfInt",
+        "java.util.function.LongToIntFunction",
         "java.util.function.Predicate",
         "java.util.Spliterator$OfPrimitive",
         "java.util.function.DoubleToIntFunction",
@@ -119,8 +118,8 @@
         "java.util.Spliterator",
         "java.util.stream.IntStream",
         "java.util.function.LongBinaryOperator",
-        "java.util.function.DoubleFunction",
         "java.util.Spliterator$OfDouble",
+        "java.util.function.DoubleFunction",
         "java.util.function.ObjIntConsumer",
         "java.util.function.Function",
         "java.util.function.Supplier",
@@ -131,8 +130,8 @@
         "java.util.PrimitiveIterator$OfLong",
         "java.util.function.BiConsumer",
         "java.util.function.IntFunction",
-        "java.util.function.IntToDoubleFunction",
         "java.util.stream.LongStream",
+        "java.util.function.IntToDoubleFunction",
         "java.util.function.LongFunction",
         "java.util.function.ToIntFunction",
         "java.util.function.LongConsumer",
@@ -157,6 +156,9 @@
       "api_level_below_or_equal": 18,
       "rewrite_prefix": {
         "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
+      },
+      "retarget_method": {
+        "boolean java.lang.Character#isBmpCodePoint(int)": "java.lang.DesugarCharacter"
       }
     }
   ],
@@ -167,8 +169,7 @@
         "java.time.Instant java.util.Calendar#toInstant()": "java.util.DesugarCalendar",
         "java.util.Date java.util.Date#from(java.time.Instant)": "java.util.DesugarDate",
         "java.util.GregorianCalendar java.util.GregorianCalendar#from(java.time.ZonedDateTime)": "java.util.DesugarGregorianCalendar",
-        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.lang.String)": "java.util.DesugarTimeZone",
-        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.time.ZoneId)": "java.util.DesugarTimeZone"
+        "java.util.TimeZone java.util.TimeZone#getTimeZone(java.lang.String)": "java.util.DesugarTimeZone"
       }
     },
     {
@@ -191,9 +192,15 @@
       }
     },
     {
+      "api_level_below_or_equal": 19,
+      "dont_retarget": [
+        "android.support.multidex.MultiDexExtractor$ExtractedDex"
+      ]
+    },
+    {
       "api_level_below_or_equal": 18,
-      "retarget_method": {
-        "boolean java.lang.Character#isBmpCodePoint(int)": "j$.lang.DesugarCharacter"
+      "rewrite_prefix": {
+        "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter"
       }
     }
   ],
@@ -203,16 +210,38 @@
       "rewrite_prefix": {
         "desugar.": "j$.desugar.",
         "java.lang.Desugar": "j$.lang.Desugar",
-        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
         "libcore.": "j$.libcore.",
         "sun.security.action.": "j$.sun.security.action."
+      },
+      "rewrite_derived_prefix": {
+        "java.io.": {
+          "__wrapper__.j$.io.": "j$.io.",
+          "__wrapper__.java.io.": "java.io."
+        },
+        "java.nio.": {
+          "__wrapper__.j$.nio.": "j$.nio.",
+          "__wrapper__.java.nio.": "java.nio."
+        }
       }
     },
     {
       "api_level_below_or_equal": 30,
+      "rewrite_derived_prefix": {
+        "java.time.": {
+          "j$.time.": "java.time."
+        }
+      }
+    },
+    {
+      "api_level_below_or_equal": 29,
+      "rewrite_prefix": {
+        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
+      }
+    },
+    {
+      "api_level_below_or_equal": 25,
       "rewrite_prefix": {
         "java.io.DesugarFile": "j$.io.DesugarFile",
-        "java.nio.Desugar": "j$.nio.Desugar",
         "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
         "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
         "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
@@ -227,12 +256,8 @@
         "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
         "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
       },
-      "rewrite_derived_prefix": {
-        "java.time.": {
-          "j$.time.": "java.time."
-        }
-      },
       "retarget_method": {
+        "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays",
         "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
       "backport": {
@@ -240,18 +265,6 @@
         "java.lang.DesugarInteger": "java.lang.Integer",
         "java.lang.DesugarLong": "java.lang.Long",
         "java.lang.DesugarMath": "java.lang.Math"
-      }
-    },
-    {
-      "api_level_below_or_equal": 29,
-      "rewrite_prefix": {
-        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
-      }
-    },
-    {
-      "api_level_below_or_equal": 25,
-      "retarget_method": {
-        "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
       },
       "amend_library_method": [
         "private static boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)"
@@ -260,7 +273,6 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
-        "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
         "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
         "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
         "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
@@ -286,18 +298,19 @@
         "java.util.Optional": {
           "j$.util.Optional": "java.util.Optional"
         }
-      }
-    },
-    {
-      "api_level_below_or_equal": 18,
+      },
       "retarget_method": {
-        "boolean java.lang.Character#isBmpCodePoint(int)": "java.lang.DesugarCharacter"
-      }
+        "long java.io.InputStream#transferTo(java.io.OutputStream)": "java.io.DesugarInputStream"
+      },
+      "amend_library_method": [
+        "public long java.io.InputStream#transferTo(java.io.OutputStream)"
+      ]
     }
   ],
   "shrinker_config": [
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { private void readObject(java.io.ObjectInputStream); private void writeObject(java.io.ObjectOutputStream); private void readObjectNoData(); private static final java.io.ObjectStreamField[] serialPersistentFields; private static final long serialVersionUID;}",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); public static final !synthetic <fields>; }",
     "-keeppackagenames j$.**",

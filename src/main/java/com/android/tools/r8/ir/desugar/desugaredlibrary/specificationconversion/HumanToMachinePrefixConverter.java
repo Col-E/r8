@@ -89,9 +89,6 @@ public class HumanToMachinePrefixConverter {
 
   private void rewriteClasses() {
     for (DexClass clazz : appInfo.app().asDirect().libraryClasses()) {
-      if (clazz.toString().contains("MonthDay")) {
-        clazz.toString();
-      }
       registerType(clazz.type);
       registerDifferentType(clazz.type);
     }

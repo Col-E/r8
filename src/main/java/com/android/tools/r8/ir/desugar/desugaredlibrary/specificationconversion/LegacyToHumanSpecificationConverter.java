@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -36,6 +37,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -141,6 +143,7 @@ public class LegacyToHumanSpecificationConverter {
     int level = legacyHackLevel.getLevel();
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
     if (humanRewritingFlags == null) {
+      // Skip CHM only configuration.
       return;
     }
     HumanRewritingFlags.Builder builder =
@@ -242,7 +245,8 @@ public class LegacyToHumanSpecificationConverter {
       HumanRewritingFlags.Builder builder, DexApplication app, Pair<DexType, DexString> pair) {
     DexClass dexClass = app.definitionFor(pair.getFirst());
     assert dexClass != null;
-    List<DexClassAndMethod> methodsWithName = findMethodsWithName(pair.getSecond(), dexClass);
+    List<DexClassAndMethod> methodsWithName =
+        findMethodsWithName(pair.getSecond(), dexClass, builder, app);
     for (DexClassAndMethod dexClassAndMethod : methodsWithName) {
       builder.addDontRewriteInvocation(dexClassAndMethod.getReference());
     }
@@ -257,16 +261,37 @@ public class LegacyToHumanSpecificationConverter {
         (type, rewrittenType) -> {
           DexClass dexClass = app.definitionFor(type);
           assert dexClass != null;
-          List<DexClassAndMethod> methodsWithName = findMethodsWithName(name, dexClass);
+          List<DexClassAndMethod> methodsWithName =
+              findMethodsWithName(name, dexClass, builder, app);
           for (DexClassAndMethod dexClassAndMethod : methodsWithName) {
             builder.retargetMethod(dexClassAndMethod.getReference(), rewrittenType);
           }
         });
   }
 
-  private List<DexClassAndMethod> findMethodsWithName(DexString methodName, DexClass clazz) {
+  private List<DexClassAndMethod> findMethodsWithName(
+      DexString methodName,
+      DexClass clazz,
+      HumanRewritingFlags.Builder builder,
+      DexApplication app) {
     List<DexClassAndMethod> found = new ArrayList<>();
     clazz.forEachClassMethodMatching(definition -> definition.getName() == methodName, found::add);
+    if (found.isEmpty()
+        && methodName.toString().equals("transferTo")
+        && clazz.type.toString().equals("java.io.InputStream")) {
+      // Special hack for JDK11 java.io.InputStream#transferTo which could not be specified
+      // correctly.
+      DexItemFactory factory = app.dexItemFactory();
+      DexProto proto =
+          factory.createProto(factory.longType, factory.createType("Ljava/io/OutputStream;"));
+      DexMethod method = factory.createMethod(clazz.type, proto, methodName);
+      MethodAccessFlags flags =
+          MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
+      builder.amendLibraryMethod(method, flags);
+      DexEncodedMethod build =
+          DexEncodedMethod.builder().setMethod(method).setAccessFlags(flags).build();
+      return ImmutableList.of(DexClassAndMethod.create(clazz, build));
+    }
     assert !found.isEmpty()
         : "Should have found a method (library specifications) for "
             + clazz.toSourceString()
