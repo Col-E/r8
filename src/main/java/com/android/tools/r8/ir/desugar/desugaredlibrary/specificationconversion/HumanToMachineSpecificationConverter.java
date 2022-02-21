@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryAmender;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
@@ -154,7 +155,11 @@ public class HumanToMachineSpecificationConverter {
   private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    return applicationReader.read(executorService).toDirect();
+    assert !options.ignoreJavaLibraryOverride;
+    options.ignoreJavaLibraryOverride = true;
+    DirectMappedDexApplication app = applicationReader.read(executorService).toDirect();
+    options.ignoreJavaLibraryOverride = false;
+    return app;
   }
 
   void warnMissingReferences(String message, Set<? extends DexReference> missingReferences) {

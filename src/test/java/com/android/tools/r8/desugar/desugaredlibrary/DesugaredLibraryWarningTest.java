@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.junit.Assert.assertTrue;
-
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
@@ -67,19 +65,6 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
           Arrays.asList(FUNCTION_KEEP.split(System.lineSeparator())), Origin.unknown());
     }
     ToolHelper.runL8(l8Builder.build(), options -> {});
-    boolean hasWarning = requiresAnyCoreLibDesugaring(parameters);
-    diagnosticsHandler.assertNoErrors();
-    if (hasWarning) {
-      assertTrue(
-          diagnosticsHandler
-              .getWarnings()
-              .get(0)
-              .getDiagnosticMessage()
-              .contains(
-                  "The following library types, prefixed by java., are present both as library and"
-                      + " non library classes:"));
-    } else {
-      diagnosticsHandler.assertNoWarnings();
-    }
+    diagnosticsHandler.assertNoMessages();
   }
 }

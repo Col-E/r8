@@ -349,6 +349,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean invalidDebugInfoStrict =
       System.getProperty("com.android.tools.r8.strictdebuginfo") != null;
 
+  public boolean ignoreJavaLibraryOverride = false;
+
   // When dexsplitting we ignore main dex classes missing in the application. These will be
   // fused together by play store when shipped for pre-L devices.
   public boolean ignoreMainDexMissingClasses = false;

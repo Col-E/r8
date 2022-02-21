@@ -231,6 +231,9 @@ public class LazyLoadedDexApplication extends DexApplication {
 
   private static void warnJavaLibraryOverride(
       InternalOptions options, Set<DexType> javaLibraryOverride) {
+    if (options.ignoreJavaLibraryOverride) {
+      return;
+    }
     String joined =
         javaLibraryOverride.stream()
             .sorted()

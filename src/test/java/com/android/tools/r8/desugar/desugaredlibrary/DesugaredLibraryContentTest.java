@@ -119,18 +119,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     ToolHelper.runL8(l8Builder.build(), options -> {});
     CodeInspector codeInspector = new CodeInspector(desugaredLib);
     assertCorrect(codeInspector);
-    assertOneWarning(diagnosticsHandler);
-  }
-
-  private void assertOneWarning(TestDiagnosticMessagesImpl diagnosticsHandler) {
-    if (requiresAnyCoreLibDesugaring(parameters)) {
-      String msg = diagnosticsHandler.getWarnings().get(0).getDiagnosticMessage();
-      assertTrue(
-          msg.contains(
-              "The following library types, prefixed by java., are present both as library and non"
-                  + " library classes"));
-    }
-    diagnosticsHandler.assertNoErrors();
+    diagnosticsHandler.assertNoMessages();
   }
 
   private void assertCorrect(CodeInspector inspector) {
