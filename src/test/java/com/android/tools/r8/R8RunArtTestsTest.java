@@ -2022,8 +2022,9 @@ public abstract class R8RunArtTestsTest {
           System.out.println("Running on 10.0.0 is disabled, see b/144966342");
           continue;
         }
-        if (vm.getVersion() == DexVm.Version.V12_0_0) {
-          System.out.println("Running on 12.0.0 is disabled, see b/197078995");
+        if (vm.getVersion() == DexVm.Version.V12_0_0
+            || vm.getVersion() == DexVm.Version.V13_MASTER) {
+          System.out.println("Running on 12.0.0 or V13_MASTER is disabled, see b/197078995");
           continue;
         }
         vms.add(new DexRuntime(vm));
