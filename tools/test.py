@@ -219,6 +219,7 @@ def Main():
 
   if utils.is_bot():
     gradle.RunGradle(['--no-daemon', 'clean'])
+    print('Running with python ' + str(sys.version_info))
 
   desugar_jdk_json_dir = None
   if options.desugared_library_configuration:
