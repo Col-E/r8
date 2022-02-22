@@ -328,13 +328,13 @@ def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
   if archive:
     archive_log(stdout, stderr, exitcode, timed_out, cmd)
   else:
-    print 'Execution of %s resulted in:' % cmd
-    print 'exit code: %s ' % exitcode
-    print 'timeout: %s ' % timed_out
+    print('Execution of %s resulted in:' % cmd)
+    print('exit code: %s ' % exitcode)
+    print('timeout: %s ' % timed_out)
     with open(stderr, 'r') as f:
-      print 'stderr: %s' % f.read()
+      print('stderr: %s' % f.read())
     with open(stdout, 'r') as f:
-      print 'stdout: %s' % f.read()
+      print('stdout: %s' % f.read())
 
 def execute(cmd, archive, env=None):
   if cmd == []:
