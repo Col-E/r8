@@ -112,7 +112,7 @@ luci.gitiles_poller(
   name = "branch-gitiles-3.3-forward",
   bucket = "ci",
   repo = "https://r8.googlesource.com/r8",
-  refs = ["refs/heads//([3]\\.[3-9]+(\\.[0-9]+)?|[4-9]\\.[0-9]+(\\.[0-9]+)?)"],
+  refs = ["refs/heads/([3]\\.[3-9]+(\\.[0-9]+)?|[4-9]\\.[0-9]+(\\.[0-9]+)?)"],
   path_regexps = ["src/main/java/com/android/tools/r8/Version.java"]
 )
 
@@ -120,7 +120,7 @@ luci.gitiles_poller(
   name = "branch-gitiles-3.2-forward",
   bucket = "ci",
   repo = "https://r8.googlesource.com/r8",
-  refs = ["refs/heads//([3]\\.[2-9]+(\\.[0-9]+)?|[4-9]\\.[0-9]+(\\.[0-9]+)?)"],
+  refs = ["refs/heads/([3]\\.[2-9]+(\\.[0-9]+)?|[4-9]\\.[0-9]+(\\.[0-9]+)?)"],
   path_regexps = ["src/main/java/com/android/tools/r8/Version.java"]
 )
 
