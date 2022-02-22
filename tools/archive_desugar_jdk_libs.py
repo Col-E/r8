@@ -104,6 +104,7 @@ def BuildDesugaredLibrary(checkout_dir, variant):
     bazel = os.path.join(utils.BAZEL_TOOL, 'lib', 'bazel', 'bin', 'bazel')
     cmd = [
         bazel,
+        '--sandbox_debug',
         '--bazelrc=/dev/null',
         'build',
         'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
