@@ -230,7 +230,7 @@ def generate_dependencies():
   dependency_lines = []
   collect = False
   for line in dependencies.splitlines():
-    if 'runtimeClasspath' in line and "'main'" in line:
+    if line and 'runtimeClasspath' in line and "'main'" in line:
       collect = True
       continue
     if collect:

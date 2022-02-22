@@ -96,7 +96,7 @@ def RunGradleInGetOutput(gradleCmd, args, cwd, env=None):
   cmd.extend(args)
   utils.PrintCmd(cmd)
   with utils.ChangedWorkingDirectory(cwd):
-    return subprocess.check_output(cmd, env=GetJavaEnv(env))
+    return str(subprocess.check_output(cmd, env=GetJavaEnv(env)))
 
 def RunGradleWrapperInGetOutput(args, cwd, env=None):
   return RunGradleInGetOutput('./gradlew', args, cwd, env=env)
