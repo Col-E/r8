@@ -89,6 +89,10 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
               Version.V12_0_0,
               // TODO(120402963) Triage.
               ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
+          .put(
+              Version.V13_MASTER,
+              // TODO(120402963) Triage.
+              ImmutableList.of("invokecustom-with-shrinking", "invokecustom2-with-shrinking"))
           .put(Version.DEFAULT, ImmutableList.of())
           .build();
 
