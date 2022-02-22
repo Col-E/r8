@@ -298,6 +298,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   public boolean readDebugSetFileEvent = false;
   public boolean disableL8AnnotationRemoval =
       System.getProperty("com.android.tools.r8.disableL8AnnotationRemoval") != null;
+  public boolean enableVisibilityBridgeRemoval = true;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 

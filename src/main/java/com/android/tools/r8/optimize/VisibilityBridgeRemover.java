@@ -80,6 +80,9 @@ public class VisibilityBridgeRemover {
 
   public void run(ExecutorService executorService) throws ExecutionException {
     // Collect all visibility bridges to remove.
+    if (!appView.options().enableVisibilityBridgeRemoval) {
+      return;
+    }
     ConcurrentHashMap<DexProgramClass, Set<DexEncodedMethod>> visibilityBridgesToRemove =
         new ConcurrentHashMap<>();
     processItems(
