@@ -196,7 +196,10 @@ public class InterfaceTypeToClassTypeLensCodeRewriterHelperImpl
         CheckCast.builder()
             .setCastType(castType)
             .setObject(operand)
-            .setFreshOutValue(code, castType.toTypeElement(appView), operand.getLocalInfo())
+            .setFreshOutValue(
+                code,
+                castType.toTypeElement(appView, operand.getType().nullability()),
+                operand.getLocalInfo())
             .setPosition(rewrittenUser)
             .build();
     if (block.hasCatchHandlers()) {
