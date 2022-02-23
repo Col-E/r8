@@ -5,12 +5,9 @@
 
 # Run ProGuard, Google's internal version
 
-from __future__ import print_function
-
 import os
 import subprocess
 import sys
-from exceptions import ValueError
 
 import jdk
 import utils

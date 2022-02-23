@@ -121,7 +121,7 @@ def runDebuggee(version, args):
   cmd.extend(get_debuggee_flags(version))
   cmd.extend(args)
   setup_environment(version)
-  print "Running debuggee as:", cmd
+  print("Running debuggee as: %s" % cmd)
   return subprocess.check_call(cmd)
 
 def runDebugger(version, classpath, args):
@@ -136,14 +136,14 @@ def runDebugger(version, classpath, args):
              (dalvikvm, ' '.join(get_debuggee_flags(version))))
   cmd.extend(args)
   setup_environment(version)
-  print "Running debugger as:", cmd
+  print("Running debugger as: " % cmd)
   return subprocess.check_call(cmd)
 
 def usage():
-  print "Usage: %s [--debuggee] [--version=<version>] [--classpath=<classpath>] <args>" % (sys.argv[0])
-  print "where <version> is one of:", ', '.join(VERSIONS)
-  print "  and <classpath> is optional classpath (default: %s)" % JDWP_TESTS_HOSTDEX
-  print "  and <args> will be passed on as arguments to the art runtime."
+  print("Usage: %s [--debuggee] [--version=<version>] [--classpath=<classpath>] <args>" % (sys.argv[0]))
+  print("where <version> is one of:", ', '.join(VERSIONS))
+  print("  and <classpath> is optional classpath (default: %s)" % JDWP_TESTS_HOSTDEX)
+  print("  and <args> will be passed on as arguments to the art runtime.")
 
 def main():
   version = 'default'
@@ -161,7 +161,7 @@ def main():
     else:
       args.append(arg)
   if version not in VERSIONS:
-    print "Invalid version", version
+    print("Invalid version %s" % version)
     usage()
     return 1
   if not debuggee and len(args) == 0:
