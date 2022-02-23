@@ -1019,7 +1019,7 @@ def r8LibCreateTask(name, pgConfs = [], r8Task, output, libs = [], classpath = [
         dependsOn r8WithRelocatedDeps
         dependsOn r8Task
         commandLine ([
-                "python", "tools/create_r8lib.py",
+                "python3", "tools/create_r8lib.py",
                 "--r8jar", r8Task.outputs.files[0],
                 "--output", output]
                 + (pgConfs.collectMany { ["--pg-conf", it] })
@@ -1068,7 +1068,7 @@ task buildDesugaredLibrary(type: Exec) {
     inputs.file script
     outputs.dir outputDir
     dependsOn downloadDeps
-    commandLine "python", script
+    commandLine "python3", script
     workingDir = projectDir
 }
 
@@ -1186,7 +1186,7 @@ task createArtTests(type: Exec) {
     inputs.files files("tests/2017-10-04/art.tar.gz", createArtTestsScript)
     outputs.dir outputDir
     dependsOn downloadDeps
-    commandLine "python", createArtTestsScript
+    commandLine "python3", createArtTestsScript
     workingDir = projectDir
 }
 
@@ -1196,7 +1196,7 @@ task createJctfTests(type: Exec) {
     inputs.file script
     outputs.dir outputDir
     dependsOn downloadDeps
-    commandLine "python", script
+    commandLine "python3", script
     workingDir = projectDir
 }
 
@@ -1875,7 +1875,7 @@ def shouldRetrace() {
 def retrace(Throwable exception) {
     def out = new StringBuffer()
     def err = new StringBuffer()
-    def command = "python tools/retrace.py --quiet"
+    def command = "python3 tools/retrace.py --quiet"
     def header = "RETRACED STACKTRACE";
     out.append("\n--------------------------------------\n")
     out.append("${header}\n")
