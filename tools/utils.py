@@ -365,7 +365,7 @@ def cat_file_on_cloud_storage(destination, ignore_errors=False):
   cmd = [get_gsutil(), 'cat', destination]
   PrintCmd(cmd)
   try:
-    return subprocess.check_output(cmd)
+    return str(subprocess.check_output(cmd))
   except subprocess.CalledProcessError as e:
     if ignore_errors:
       return ''
