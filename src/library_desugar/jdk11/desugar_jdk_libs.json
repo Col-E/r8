@@ -205,8 +205,10 @@
       "api_level_below_or_equal": 10000,
       "rewrite_prefix": {
         "desugar.": "j$.desugar.",
-        "java.lang.Desugar": "j$.lang.Desugar",
         "libcore.": "j$.libcore.",
+        "java.lang.Desugar": "j$.lang.Desugar",
+        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
+        "wrapper." : "j$.wrapper.",
         "sun.security.action.": "j$.sun.security.action."
       },
       "rewrite_derived_prefix": {
