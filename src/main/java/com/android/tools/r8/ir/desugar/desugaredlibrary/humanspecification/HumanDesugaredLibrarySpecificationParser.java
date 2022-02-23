@@ -176,9 +176,11 @@ public class HumanDesugaredLibrarySpecificationParser {
     if (formatVersion != CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION) {
       reporter.warning(
           new StringDiagnostic(
-              "Human desugared library specification version mismatches the parser "
-                  + "expected version. This is allowed and should happen only while extending "
-                  + "the specifications.",
+              "Human desugared library specification format version "
+                  + formatVersion
+                  + " mismatches the parser expected version ("
+                  + CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION
+                  + "). This is allowed and should happen only while extending the specifications.",
               origin));
     }
 

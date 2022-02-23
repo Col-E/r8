@@ -28,11 +28,6 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
   private final LegacyTopLevelFlags topLevelFlags;
   private final LegacyRewritingFlags rewritingFlags;
 
-  public static LegacyDesugaredLibrarySpecification empty() {
-    return new LegacyDesugaredLibrarySpecification(
-        LegacyTopLevelFlags.empty(), LegacyRewritingFlags.empty(), false);
-  }
-
   public LegacyDesugaredLibrarySpecification(
       LegacyTopLevelFlags topLevelFlags,
       LegacyRewritingFlags rewritingFlags,

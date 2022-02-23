@@ -214,6 +214,8 @@ public class DesugaredLibraryMismatchTest extends DesugaredLibraryTestBase {
                 LibraryDesugaringTestConfiguration.builder()
                     .setMinApi(apiLevel)
                     // Minimal configuration with a different identifier.
+                    // The j$.time is rewritten because empty flags are equivalent to an empty
+                    // specification, and no marker is set for empty specifications.
                     .addDesugaredLibraryConfiguration(
                         StringResource.fromString(
                             "{"

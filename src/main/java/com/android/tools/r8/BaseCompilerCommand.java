@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -577,7 +577,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     DesugaredLibrarySpecification getDesugaredLibraryConfiguration(
         DexItemFactory factory, boolean libraryCompilation) {
       if (desugaredLibrarySpecificationResources.isEmpty()) {
-        return LegacyDesugaredLibrarySpecification.empty();
+        return HumanDesugaredLibrarySpecification.empty();
       }
       if (desugaredLibrarySpecificationResources.size() > 1) {
         throw new CompilationError("Only one desugared library configuration is supported.");

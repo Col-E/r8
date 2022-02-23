@@ -35,6 +35,11 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
     this.rewritingFlags = rewritingFlags;
   }
 
+  public static HumanDesugaredLibrarySpecification empty() {
+    return new HumanDesugaredLibrarySpecification(
+        HumanTopLevelFlags.empty(), HumanRewritingFlags.empty(), false);
+  }
+
   @Override
   public boolean isEmpty() {
     return rewritingFlags.isEmpty();
