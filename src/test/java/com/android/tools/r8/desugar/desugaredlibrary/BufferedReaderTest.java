@@ -62,6 +62,9 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
 
   DesugaredLibrarySpecification configurationAlternative3(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
+    Assume.assumeTrue(
+        "The alternative 3 configuration is available only in JDK 11 desugared library.",
+        isJDK11DesugaredLibrary());
     // Parse the current configuration and amend the configuration for BufferedReader.lines. The
     // configuration is the same for both program and library.
     return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
