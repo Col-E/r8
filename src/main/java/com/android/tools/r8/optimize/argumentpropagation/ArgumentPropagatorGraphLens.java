@@ -49,9 +49,6 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
     return prototypeChanges.getOrDefault(method, RewrittenPrototypeDescription.none());
   }
 
-  public boolean isAffected(DexMethod method) {
-    return method != getPreviousMethodSignature(method) || hasPrototypeChanges(method);
-  }
 
   @Override
   protected boolean isLegitimateToHaveEmptyMappings() {
@@ -104,13 +101,12 @@ public class ArgumentPropagatorGraphLens extends NestedGraphLens {
 
   @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-    if (!type.isStatic() && hasPrototypeChanges(newMethod)) {
-      RewrittenPrototypeDescription prototypeChanges = getPrototypeChanges(newMethod);
-      if (prototypeChanges.getArgumentInfoCollection().isArgumentRemoved(0)) {
-        return Type.STATIC;
-      }
-    }
-    return super.mapInvocationType(newMethod, originalMethod, type);
+    return hasPrototypeChanges(newMethod)
+            && getPrototypeChanges(newMethod)
+                .getArgumentInfoCollection()
+                .isConvertedToStaticMethod()
+        ? Type.STATIC
+        : super.mapInvocationType(newMethod, originalMethod, type);
   }
 
   public static class Builder {

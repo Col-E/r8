@@ -53,7 +53,7 @@ public class ConstructorEntryPointSynthesizedCode extends AbstractSynthesizedCod
   }
 
   @Override
-  public boolean isHorizontalClassMergingCode() {
+  public boolean isHorizontalClassMergerCode() {
     return true;
   }
 }

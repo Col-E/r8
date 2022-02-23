@@ -42,7 +42,7 @@ public final class ProgramMethod extends DexClassAndMethod
     GraphLens codeLens = appView.graphLens();
     RewrittenPrototypeDescription protoChanges = RewrittenPrototypeDescription.none();
     if (methodProcessor.shouldApplyCodeRewritings(this)) {
-      codeLens = appView.codeLens();
+      codeLens = getDefinition().getCode().getCodeLens(appView);
       protoChanges = appView.graphLens().lookupPrototypeChangesForMethodDefinition(getReference());
     }
     return code.buildInliningIR(

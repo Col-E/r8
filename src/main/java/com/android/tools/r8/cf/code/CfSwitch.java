@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -144,13 +144,12 @@ public class CfSwitch extends CfInstruction {
   @Override
   public void evaluate(
       CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
+      DexMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
     // ..., index/key →
     // ...
-    frameBuilder.popInitialized(factory.intType);
+    frameBuilder.popInitialized(dexItemFactory.intType);
     frameBuilder.checkTarget(defaultTarget);
     for (CfLabel target : targets) {
       frameBuilder.checkTarget(target);

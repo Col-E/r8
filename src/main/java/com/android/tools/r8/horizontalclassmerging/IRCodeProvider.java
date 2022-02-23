@@ -7,6 +7,7 @@ package com.android.tools.r8.horizontalclassmerging;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 
@@ -23,6 +24,7 @@ public class IRCodeProvider {
     AppView<AppInfo> appViewForConversion =
         AppView.createForD8(AppInfo.createInitialAppInfo(appView.appInfo().app()));
     appViewForConversion.setGraphLens(appView.graphLens());
+    appViewForConversion.setCodeLens(appView.codeLens());
     this.appViewForConversion = appViewForConversion;
   }
 
@@ -31,5 +33,9 @@ public class IRCodeProvider {
         .getDefinition()
         .getCode()
         .buildIR(method, appViewForConversion, method.getOrigin());
+  }
+
+  public void setGraphLens(GraphLens graphLens) {
+    appViewForConversion.setGraphLens(graphLens);
   }
 }

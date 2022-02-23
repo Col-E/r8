@@ -1638,11 +1638,11 @@ public class IRConverter {
       OptimizationFeedback feedback,
       MethodConversionOptions conversionOptions,
       BytecodeMetadataProvider bytecodeMetadataProvider) {
-    DexEncodedMethod method = code.method();
-    assert !method.getCode().isDexCode();
+    ProgramMethod method = code.context();
+    assert !method.getDefinition().getCode().isDexCode();
     CfBuilder builder = new CfBuilder(appView, method, code, bytecodeMetadataProvider);
     CfCode result = builder.build(deadCodeRemover, conversionOptions);
-    method.setCode(result, appView);
+    method.getDefinition().setCode(result, appView);
     markProcessed(code, feedback);
   }
 

@@ -1137,7 +1137,10 @@ public class VerticalClassMerger {
         }
 
         deferredRenamings.map(virtualMethod.getReference(), shadowedBy.getReference());
-        deferredRenamings.recordMove(virtualMethod.getReference(), resultingMethod.getReference());
+        deferredRenamings.recordMove(
+            virtualMethod.getReference(),
+            resultingMethod.getReference(),
+            resultingMethod.isStatic());
       }
 
       if (abortMerge) {

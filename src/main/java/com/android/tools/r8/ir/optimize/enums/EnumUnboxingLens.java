@@ -167,12 +167,14 @@ class EnumUnboxingLens extends NestedGraphLens {
       if (fromStatic != toStatic) {
         assert toStatic;
         offsetDiff = 1;
-        builder.addArgumentInfo(
-            0,
-            RewrittenTypeInfo.builder()
-                .setOldType(from.getHolderType())
-                .setNewType(to.getParameter(0))
-                .build());
+        builder
+            .addArgumentInfo(
+                0,
+                RewrittenTypeInfo.builder()
+                    .setOldType(from.getHolderType())
+                    .setNewType(to.getParameter(0))
+                    .build())
+            .setIsConvertedToStaticMethod();
       }
       for (int i = 0; i < from.getParameters().size(); i++) {
         DexType fromType = from.getParameter(i);

@@ -10,7 +10,6 @@ import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.graph.CfCodeStackMapValidatingException;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.utils.MapUtils;
 import com.android.tools.r8.utils.collections.ImmutableDeque;
 import com.android.tools.r8.utils.collections.ImmutableInt2ReferenceSortedMap;
@@ -40,7 +39,6 @@ public class CfFrameVerificationHelper {
   private final BiPredicate<DexType, DexType> isJavaAssignable;
   private final DexItemFactory factory;
   private final List<CfTryCatch> tryCatchRanges;
-  private final GraphLens graphLens;
   private final int maxStackHeight;
 
   private final Deque<CfTryCatch> currentCatchRanges = new ArrayDeque<>();
@@ -52,14 +50,12 @@ public class CfFrameVerificationHelper {
       List<CfTryCatch> tryCatchRanges,
       BiPredicate<DexType, DexType> isJavaAssignable,
       DexItemFactory factory,
-      GraphLens graphLens,
       int maxStackHeight) {
     this.context = context;
     this.stateMap = stateMap;
     this.tryCatchRanges = tryCatchRanges;
     this.isJavaAssignable = isJavaAssignable;
     this.factory = factory;
-    this.graphLens = graphLens;
     this.maxStackHeight = maxStackHeight;
     throwStack = ImmutableDeque.of(FrameType.initialized(factory.throwableType));
     // Compute all labels that marks a start or end to catch ranges.
@@ -111,6 +107,12 @@ public class CfFrameVerificationHelper {
     FrameType frameType = pop();
     checkIsAssignable(frameType, expectedType, isAssignable);
     return frameType;
+  }
+
+  public CfFrameVerificationHelper popAndDiscardInitialized(DexType expectedType) {
+    checkFrameIsSet();
+    popInitialized(expectedType);
+    return this;
   }
 
   public CfFrameVerificationHelper popAndDiscardInitialized(DexType... expectedTypes) {
@@ -258,14 +260,14 @@ public class CfFrameVerificationHelper {
     if (!source.isUninitializedThis()) {
       return false;
     }
-    return target == factory.objectType || graphLens.lookupClassType(target) == context;
+    return target == factory.objectType || target == context;
   }
 
   public boolean isUninitializedNewAndTarget(FrameType source, DexType target) {
     if (!source.isUninitializedNew()) {
       return false;
     }
-    return target == factory.objectType || graphLens.lookupClassType(target) == context;
+    return target == factory.objectType || target == context;
   }
 
   public boolean isAssignableAndInitialized(FrameType source, DexType target) {

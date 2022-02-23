@@ -15,22 +15,15 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfSwitch.Kind;
-import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.ClasspathMethod;
-import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IterableUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -44,9 +37,10 @@ import org.objectweb.asm.Opcodes;
 
 /**
  * A short-lived piece of code that will be converted into {@link CfCode} using the method {@link
- * #toCfCode(ProgramMethod, HorizontalClassMergerGraphLens)}.
+ * IncompleteHorizontalClassMergerCode#toCfCode(AppView, ProgramMethod,
+ * HorizontalClassMergerGraphLens)}.
  */
-public class IncompleteVirtuallyMergedMethodCode extends Code {
+public class IncompleteVirtuallyMergedMethodCode extends IncompleteHorizontalClassMergerCode {
 
   private final DexField classIdField;
   private final Int2ReferenceSortedMap<DexMethod> mappedMethods;
@@ -62,11 +56,6 @@ public class IncompleteVirtuallyMergedMethodCode extends Code {
     this.classIdField = classIdField;
     this.superMethod = superMethod;
     this.originalMethod = originalMethod;
-  }
-
-  @Override
-  public boolean isHorizontalClassMergingCode() {
-    return true;
   }
 
   /**
@@ -91,7 +80,11 @@ public class IncompleteVirtuallyMergedMethodCode extends Code {
    * methods may be changed as a result of the horizontal class merger's fixup (e.g., if the method
    * signature refers to a horizontally merged type).
    */
-  public CfCode toCfCode(ProgramMethod method, HorizontalClassMergerGraphLens lens) {
+  @Override
+  public CfCode toCfCode(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod method,
+      HorizontalClassMergerGraphLens lens) {
     // We store each argument in a local.
     int maxLocals = 1 + IterableUtils.sumInt(method.getParameters(), DexType::getRequiredRegisters);
 
@@ -157,13 +150,7 @@ public class IncompleteVirtuallyMergedMethodCode extends Code {
 
       @Override
       public GraphLens getCodeLens(AppView<?> appView) {
-        GraphLens graphLens =
-            appView
-                .graphLens()
-                .asNonIdentityLens()
-                .find(GraphLens::isHorizontalClassMergerGraphLens);
-        assert graphLens != null;
-        return graphLens;
+        return lens;
       }
     };
   }
@@ -195,50 +182,8 @@ public class IncompleteVirtuallyMergedMethodCode extends Code {
     return locals;
   }
 
-  // Implement Code.
-
-  @Override
-  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    throw new Unreachable();
-  }
-
-  @Override
-  protected boolean computeEquals(Object other) {
-    throw new Unreachable();
-  }
-
-  @Override
-  protected int computeHashCode() {
-    throw new Unreachable();
-  }
-
-  @Override
-  public int estimatedDexCodeSizeUpperBoundInBytes() {
-    throw new Unreachable();
-  }
-
-  @Override
-  public boolean isEmptyVoidMethod() {
-    throw new Unreachable();
-  }
-
-  @Override
-  public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
-    throw new Unreachable();
-  }
-
-  @Override
-  public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
-    throw new Unreachable();
-  }
-
   @Override
   public String toString() {
     return "IncompleteVirtuallyMergedMethodCode";
-  }
-
-  @Override
-  public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return toString();
   }
 }

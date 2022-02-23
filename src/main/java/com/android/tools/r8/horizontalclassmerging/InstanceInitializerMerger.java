@@ -143,11 +143,11 @@ public class InstanceInitializerMerger {
    * synthesized constructor all-though it by construction doesn't have any unused arguments.
    */
   private DexMethod getSyntheticMethodReference(
-      ClassMethodsBuilder classMethodsBuilder, ProgramMethod representative) {
+      ClassMethodsBuilder classMethodsBuilder, DexMethod newMethodReference) {
     return dexItemFactory.createFreshMethodNameWithoutHolder(
-        "$r8$init$synthetic",
-        representative.getProto(),
-        representative.getHolderType(),
+        Constants.SYNTHETIC_INSTANCE_INITIALIZER_PREFIX,
+        newMethodReference.getProto(),
+        newMethodReference.getHolderType(),
         classMethodsBuilder::isFresh);
   }
 
@@ -276,7 +276,6 @@ public class InstanceInitializerMerger {
       int extraNulls) {
     if (hasInstanceInitializerDescription()) {
       return instanceInitializerDescription.createCfCode(
-          newMethodReference,
           getOriginalMethodReference(),
           syntheticMethodReference,
           group,
@@ -340,7 +339,7 @@ public class InstanceInitializerMerger {
 
     // Add a mapping from a synthetic name to the synthetic constructor.
     DexMethod syntheticMethodReference =
-        getSyntheticMethodReference(classMethodsBuilder, representative);
+        getSyntheticMethodReference(classMethodsBuilder, newMethodReference);
     if (!isSingleton() || group.hasClassIdField()) {
       lensBuilder.recordNewMethodSignature(syntheticMethodReference, newMethodReference, true);
     }
@@ -372,11 +371,12 @@ public class InstanceInitializerMerger {
 
     if (mode.isFinal()) {
       if (appView.options().isGeneratingDex() && !newInstanceInitializer.getCode().isDexCode()) {
-        syntheticInitializerConverterBuilder.add(
+        syntheticInitializerConverterBuilder.addInstanceInitializer(
             new ProgramMethod(group.getTarget(), newInstanceInitializer));
       } else {
         assert appView.options().isGeneratingDex()
-            || newInstanceInitializer.getCode().isCfWritableCode();
+            || newInstanceInitializer.getCode().isCfWritableCode()
+            || newInstanceInitializer.getCode().isIncompleteHorizontalClassMergerCode();
       }
     }
   }

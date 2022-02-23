@@ -32,12 +32,7 @@ public class CfVerifierTool {
     appView.setAppServices(AppServices.builder(appView).build());
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethod(
-          method ->
-              method
-                  .getDefinition()
-                  .getCode()
-                  .asCfCode()
-                  .verifyFrames(method.getDefinition(), appView, clazz.getOrigin()));
+          method -> method.getDefinition().getCode().asCfCode().verifyFrames(method, appView));
     }
   }
 }

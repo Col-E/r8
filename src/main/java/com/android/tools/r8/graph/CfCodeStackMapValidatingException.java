@@ -5,7 +5,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.cf.code.CfInstruction;
-import com.android.tools.r8.origin.Origin;
 
 public class CfCodeStackMapValidatingException extends RuntimeException {
 
@@ -18,36 +17,43 @@ public class CfCodeStackMapValidatingException extends RuntimeException {
   }
 
   public static CfCodeDiagnostics unexpectedStackMapFrame(
-      Origin origin, DexMethod method, AppView<?> appView) {
+      ProgramMethod method, AppView<?> appView) {
     StringBuilder sb = new StringBuilder("Unexpected stack map frame without target");
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(origin, method, sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
-  public static CfCodeDiagnostics multipleFramesForLabel(
-      Origin origin, DexMethod method, AppView<?> appView) {
+  public static CfCodeDiagnostics multipleFramesForLabel(ProgramMethod method, AppView<?> appView) {
     StringBuilder sb = new StringBuilder("Multiple frames for label");
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(origin, method, sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
   public static CfCodeDiagnostics noFramesForMethodWithJumps(
-      Origin origin, DexMethod method, AppView<?> appView) {
+      ProgramMethod method, AppView<?> appView) {
     StringBuilder sb =
         new StringBuilder("Expected stack map table for method with non-linear control flow.");
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(origin, method, sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 
   public static CfCodeDiagnostics toDiagnostics(
-      Origin origin,
-      DexMethod method,
+      ProgramMethod method,
       int instructionIndex,
       CfInstruction instruction,
       String detailMessage,
@@ -63,6 +69,9 @@ public class CfCodeStackMapValidatingException extends RuntimeException {
     if (appView.enableWholeProgramOptimizations()) {
       sb.append(" In later version of R8, the method may be assumed not reachable.");
     }
-    return new CfCodeDiagnostics(origin, method, sb.toString());
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
   }
 }

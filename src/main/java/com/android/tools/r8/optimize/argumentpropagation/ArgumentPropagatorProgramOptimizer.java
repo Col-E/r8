@@ -1021,8 +1021,10 @@ public class ArgumentPropagatorProgramOptimizer {
           && method.getOptimizationInfo().getUnusedArguments().get(0)
           && ParameterRemovalUtils.canRemoveUnusedParametersFrom(appView, method)
           && ParameterRemovalUtils.canRemoveUnusedParameter(appView, method, 0)) {
-        parameterChangesBuilder.addArgumentInfo(
-            0, RemovedReceiverInfo.Builder.create().setType(method.getHolderType()).build());
+        parameterChangesBuilder
+            .addArgumentInfo(
+                0, RemovedReceiverInfo.Builder.create().setType(method.getHolderType()).build())
+            .setIsConvertedToStaticMethod();
       }
 
       CallSiteOptimizationInfo optimizationInfo = method.getOptimizationInfo().getArgumentInfos();

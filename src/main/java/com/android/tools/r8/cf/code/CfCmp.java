@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -127,13 +127,12 @@ public class CfCmp extends CfInstruction {
   @Override
   public void evaluate(
       CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
+      DexMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
     // ..., value1, value2 →
     // ..., result
-    FrameType frameType = FrameType.fromNumericType(type, factory);
-    frameBuilder.popAndDiscard(frameType, frameType).push(factory.intType);
+    FrameType frameType = FrameType.fromNumericType(type, dexItemFactory);
+    frameBuilder.popAndDiscard(frameType, frameType).push(dexItemFactory.intType);
   }
 }

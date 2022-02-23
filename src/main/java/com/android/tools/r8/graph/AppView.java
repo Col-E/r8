@@ -433,7 +433,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return codeLens;
   }
 
-  private void setCodeLens(GraphLens codeLens) {
+  public void setCodeLens(GraphLens codeLens) {
     this.codeLens = codeLens;
   }
 

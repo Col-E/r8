@@ -121,10 +121,7 @@ public class HorizontalClassMerger {
 
     SyntheticInitializerConverter syntheticInitializerConverter =
         syntheticInitializerConverterBuilder.build();
-    if (!syntheticInitializerConverter.isEmpty()) {
-      assert mode.isFinal();
-      syntheticInitializerConverterBuilder.build().convert(executorService);
-    }
+    syntheticInitializerConverter.convertClassInitializers(executorService);
 
     // Generate the graph lens.
     HorizontallyMergedClasses mergedClasses =
@@ -144,14 +141,17 @@ public class HorizontalClassMerger {
     // sites, fields accesses, etc. are correctly transferred to the target classes.
     appView.rewriteWithLensAndApplication(
         horizontalClassMergerGraphLens, getNewApplication(mergedClasses));
+    codeProvider.setGraphLens(horizontalClassMergerGraphLens);
 
     // Record where the synthesized $r8$classId fields are read and written.
     if (mode.isInitial()) {
       createFieldAccessInfoCollectionModifier(groups).modify(appView.withLiveness());
-      transformIncompleteCode(groups, horizontalClassMergerGraphLens, executorService);
     } else {
       assert groups.stream().noneMatch(MergeGroup::hasClassIdField);
     }
+
+    transformIncompleteCode(groups, horizontalClassMergerGraphLens, executorService);
+    syntheticInitializerConverter.convertInstanceInitializers(executorService);
 
     appView.pruneItems(
         prunedItems.toBuilder().setPrunedApp(appView.app()).build(), executorService);
@@ -197,11 +197,11 @@ public class HorizontalClassMerger {
       if (group.hasClassIdField()) {
         DexProgramClass target = group.getTarget();
         target.forEachProgramInstanceInitializerMatching(
-            definition -> definition.getCode().isHorizontalClassMergingCode(),
+            definition -> definition.getCode().isHorizontalClassMergerCode(),
             method -> builder.recordFieldWrittenInContext(group.getClassIdField(), method));
         target.forEachProgramVirtualMethodMatching(
             definition ->
-                definition.hasCode() && definition.getCode().isHorizontalClassMergingCode(),
+                definition.hasCode() && definition.getCode().isHorizontalClassMergerCode(),
             method -> builder.recordFieldReadInContext(group.getClassIdField(), method));
       }
     }
@@ -216,20 +216,19 @@ public class HorizontalClassMerger {
     ThreadUtils.processItems(
         groups,
         group -> {
-          if (group.hasClassIdField()) {
-            DexProgramClass target = group.getTarget();
-            target.forEachProgramVirtualMethodMatching(
-                definition ->
-                    definition.hasCode()
-                        && definition.getCode() instanceof IncompleteVirtuallyMergedMethodCode,
-                method -> {
-                  IncompleteVirtuallyMergedMethodCode code =
-                      (IncompleteVirtuallyMergedMethodCode) method.getDefinition().getCode();
-                  method
-                      .getDefinition()
-                      .setCode(code.toCfCode(method, horizontalClassMergerGraphLens), appView);
-                });
-          }
+          DexProgramClass target = group.getTarget();
+          target.forEachProgramMethodMatching(
+              definition ->
+                  definition.hasCode()
+                      && definition.getCode().isIncompleteHorizontalClassMergerCode(),
+              method -> {
+                IncompleteHorizontalClassMergerCode code =
+                    (IncompleteHorizontalClassMergerCode) method.getDefinition().getCode();
+                method
+                    .getDefinition()
+                    .setCode(
+                        code.toCfCode(appView, method, horizontalClassMergerGraphLens), appView);
+              });
         },
         executorService);
   }

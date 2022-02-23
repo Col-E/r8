@@ -143,7 +143,8 @@ public class ClassMerger {
     if (!definition.getCode().isCfCode()) {
       assert appView.options().isGeneratingDex();
       assert mode.isFinal();
-      syntheticInitializerConverterBuilder.add(new ProgramMethod(group.getTarget(), definition));
+      syntheticInitializerConverterBuilder.addClassInitializer(
+          new ProgramMethod(group.getTarget(), definition));
     }
   }
 

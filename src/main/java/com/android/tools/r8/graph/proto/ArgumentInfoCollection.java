@@ -34,26 +34,31 @@ public class ArgumentInfoCollection {
   private final Int2ObjectSortedMap<ArgumentInfo> argumentInfos;
   private final int argumentInfosSize;
   private final ArgumentPermutation argumentPermutation;
+  private final boolean isConvertedToStaticMethod;
 
   // Specific constructor for empty.
   private ArgumentInfoCollection() {
     this.argumentInfos = EMPTY_MAP;
     this.argumentInfosSize = -1;
     this.argumentPermutation = ArgumentPermutation.getDefault();
+    this.isConvertedToStaticMethod = false;
   }
 
   private ArgumentInfoCollection(
       Int2ObjectSortedMap<ArgumentInfo> argumentInfos,
       int argumentInfosSize,
-      ArgumentPermutation argumentPermutation) {
+      ArgumentPermutation argumentPermutation,
+      boolean isConvertedToStaticMethod) {
     assert argumentInfos != null;
     assert argumentPermutation != null;
     assert !argumentInfos.isEmpty() || argumentInfos == EMPTY_MAP;
-    assert !argumentInfos.isEmpty() || !argumentPermutation.isDefault() : "should use empty.";
+    assert !argumentInfos.isEmpty() || !argumentPermutation.isDefault() || isConvertedToStaticMethod
+        : "should use empty.";
     assert argumentInfosSize >= 0;
     this.argumentInfos = argumentInfos;
     this.argumentInfosSize = argumentInfosSize;
     this.argumentPermutation = argumentPermutation;
+    this.isConvertedToStaticMethod = isConvertedToStaticMethod;
   }
 
   public static ArgumentInfoCollection empty() {
@@ -161,6 +166,10 @@ public class ArgumentInfoCollection {
     return argumentPermutation.getNewArgumentIndex(intermediateArgumentIndex);
   }
 
+  public boolean isConvertedToStaticMethod() {
+    return isConvertedToStaticMethod;
+  }
+
   public int size() {
     assert !isEmpty();
     return argumentInfosSize;
@@ -187,7 +196,10 @@ public class ArgumentInfoCollection {
               builder.addArgumentInfo(argumentIndex, argumentInfo);
             }
           });
-      return builder.setArgumentInfosSize(argumentInfosSize).build();
+      return builder
+          .setArgumentInfosSize(argumentInfosSize)
+          .setIsConvertedToStaticMethod(isConvertedToStaticMethod())
+          .build();
     }
     return this;
   }
@@ -203,12 +215,14 @@ public class ArgumentInfoCollection {
     ArgumentInfoCollection other = (ArgumentInfoCollection) obj;
     return argumentInfos.equals(other.argumentInfos)
         && argumentPermutation.equals(other.argumentPermutation)
-        && argumentInfosSize == other.argumentInfosSize;
+        && argumentInfosSize == other.argumentInfosSize
+        && isConvertedToStaticMethod == other.isConvertedToStaticMethod;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(argumentInfos, argumentPermutation, argumentInfosSize);
+    return Objects.hash(
+        argumentInfos, argumentPermutation, argumentInfosSize, isConvertedToStaticMethod);
   }
 
   public static Builder builder() {
@@ -220,6 +234,7 @@ public class ArgumentInfoCollection {
     private Int2ObjectSortedMap<ArgumentInfo> argumentInfos = new Int2ObjectRBTreeMap<>();
     private int argumentInfosSize = -1;
     private ArgumentPermutation argumentPermutation = ArgumentPermutation.getDefault();
+    private boolean isConvertedToStaticMethod;
 
     public Builder addArgumentInfo(int argumentIndex, ArgumentInfo argInfo) {
       argumentInfos.put(argumentIndex, argInfo);
@@ -240,7 +255,9 @@ public class ArgumentInfoCollection {
     }
 
     public boolean isEmpty() {
-      return argumentInfos.isEmpty() && argumentPermutation.isDefault();
+      return argumentInfos.isEmpty()
+          && argumentPermutation.isDefault()
+          && !isConvertedToStaticMethod;
     }
 
     public Builder setArgumentInfosSize(int argumentInfosSize) {
@@ -253,6 +270,15 @@ public class ArgumentInfoCollection {
       return this;
     }
 
+    public Builder setIsConvertedToStaticMethod() {
+      return setIsConvertedToStaticMethod(true);
+    }
+
+    public Builder setIsConvertedToStaticMethod(boolean isConvertedToStaticMethod) {
+      this.isConvertedToStaticMethod = isConvertedToStaticMethod;
+      return this;
+    }
+
     public ArgumentInfoCollection build() {
       if (isEmpty()) {
         return empty();
@@ -260,7 +286,7 @@ public class ArgumentInfoCollection {
       Int2ObjectSortedMap<ArgumentInfo> argumentInfosOrEmpty =
           argumentInfos.isEmpty() ? EMPTY_MAP : argumentInfos;
       return new ArgumentInfoCollection(
-          argumentInfosOrEmpty, argumentInfosSize, argumentPermutation);
+          argumentInfosOrEmpty, argumentInfosSize, argumentPermutation, isConvertedToStaticMethod);
     }
   }
 
@@ -315,9 +341,14 @@ public class ArgumentInfoCollection {
         argumentPermutationBuilder.setNewArgumentIndex(argumentIndex, newArgumentIndex);
       }
     }
+    assert BooleanUtils.intValue(isConvertedToStaticMethod())
+            + BooleanUtils.intValue(other.isConvertedToStaticMethod())
+        <= 1;
     return builder
         .setArgumentInfosSize(argumentInfosSize)
         .setArgumentPermutation(argumentPermutationBuilder.build())
+        .setIsConvertedToStaticMethod(
+            isConvertedToStaticMethod() || other.isConvertedToStaticMethod())
         .build();
   }
 

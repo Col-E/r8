@@ -26,9 +26,9 @@ import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -81,7 +81,7 @@ public class CfBuilder {
   private static final int IINC_PATTERN_SIZE = 4;
 
   public final AppView<?> appView;
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
   private final IRCode code;
 
   private Map<BasicBlock, CfLabel> labels;
@@ -135,7 +135,7 @@ public class CfBuilder {
 
   public CfBuilder(
       AppView<?> appView,
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       BytecodeMetadataProvider bytecodeMetadataProvider) {
     this.appView = appView;
@@ -193,12 +193,12 @@ public class CfBuilder {
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
     assert verifyInvokeInterface(code, appView);
-    assert code.verifyFrames(method, appView, this.code.origin).isValid();
+    assert code.verifyFrames(method, appView, appView.graphLens()).isValid();
     return code;
   }
 
   private Set<UninitializedThisLocalRead> insertUninitializedThisLocalReads() {
-    if (!method.isInstanceInitializer()) {
+    if (!method.getDefinition().isInstanceInitializer()) {
       return Collections.emptySet();
     }
     // Find all non-normal exit blocks.
@@ -249,7 +249,7 @@ public class CfBuilder {
       for (Instruction insn : block.getInstructions()) {
         if (insn.isNewInstance()) {
           initializers.put(insn.asNewInstance(), computeInitializers(insn.outValue()));
-        } else if (insn.isArgument() && method.isInstanceInitializer()) {
+        } else if (insn.isArgument() && method.getDefinition().isInstanceInitializer()) {
           if (insn.outValue().isThis()) {
             // By JVM8 §4.10.1.9 (invokespecial), a this() or super() call in a constructor
             // changes the type of `this` from uninitializedThis
@@ -259,7 +259,7 @@ public class CfBuilder {
         }
       }
     }
-    assert !(method.isInstanceInitializer() && thisInitializers == null);
+    assert !(method.getDefinition().isInstanceInitializer() && thisInitializers == null);
   }
 
   private List<InvokeDirect> computeInitializers(Value value) {
@@ -383,8 +383,8 @@ public class CfBuilder {
     }
     com.android.tools.r8.position.Position diagnosticPosition =
         com.android.tools.r8.position.Position.UNKNOWN;
-    if (method.getCode().isCfCode()) {
-      diagnosticPosition = method.getCode().asCfCode().getDiagnosticPosition();
+    if (method.getDefinition().getCode().isCfCode()) {
+      diagnosticPosition = method.getDefinition().getCode().asCfCode().getDiagnosticPosition();
     }
     return new CfCode(
         method.getHolderType(),

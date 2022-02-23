@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -162,14 +163,13 @@ public class CfInvokeDynamic extends CfInstruction {
   @Override
   public void evaluate(
       CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
+      DexMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
     // ..., [arg1, [arg2 ...]] →
     // ...
     frameBuilder.popAndDiscardInitialized(callSite.methodProto.parameters.values);
-    if (callSite.methodProto.returnType != factory.voidType) {
+    if (callSite.methodProto.returnType != dexItemFactory.voidType) {
       frameBuilder.push(callSite.methodProto.returnType);
     }
   }

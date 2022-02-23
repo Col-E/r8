@@ -27,15 +27,18 @@ public class SyntheticInitializerConverter {
 
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final IRCodeProvider codeProvider;
-  private final List<ProgramMethod> methods;
+  private final List<ProgramMethod> classInitializers;
+  private final List<ProgramMethod> instanceInitializers;
 
   private SyntheticInitializerConverter(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCodeProvider codeProvider,
-      List<ProgramMethod> methods) {
+      List<ProgramMethod> classInitializers,
+      List<ProgramMethod> instanceInitializers) {
     this.appView = appView;
     this.codeProvider = codeProvider;
-    this.methods = methods;
+    this.classInitializers = classInitializers;
+    this.instanceInitializers = instanceInitializers;
   }
 
   public static Builder builder(
@@ -43,7 +46,24 @@ public class SyntheticInitializerConverter {
     return new Builder(appView, codeProvider);
   }
 
-  public void convert(ExecutorService executorService) throws ExecutionException {
+  public void convertClassInitializers(ExecutorService executorService) throws ExecutionException {
+    if (!classInitializers.isEmpty()) {
+      IRConverter converter = new IRConverter(createAppViewForConversion(), Timing.empty());
+      ThreadUtils.processItems(
+          classInitializers, method -> processMethod(method, converter), executorService);
+    }
+  }
+
+  public void convertInstanceInitializers(ExecutorService executorService)
+      throws ExecutionException {
+    if (!instanceInitializers.isEmpty()) {
+      IRConverter converter = new IRConverter(createAppViewForConversion(), Timing.empty());
+      ThreadUtils.processItems(
+          instanceInitializers, method -> processMethod(method, converter), executorService);
+    }
+  }
+
+  private AppView<AppInfo> createAppViewForConversion() {
     // At this point the code rewritings described by repackaging and synthetic finalization have
     // not been applied to the code objects. These code rewritings will be applied in the
     // application writer. We therefore simulate that we are in D8, to allow building IR for each of
@@ -52,28 +72,26 @@ public class SyntheticInitializerConverter {
     AppView<AppInfo> appViewForConversion =
         AppView.createForD8(AppInfo.createInitialAppInfo(appView.appInfo().app()));
     appViewForConversion.setGraphLens(appView.graphLens());
+    appViewForConversion.setCodeLens(appView.codeLens());
+    return appViewForConversion;
+  }
 
-    // Build IR for each of the class initializers and finalize.
-    IRConverter converter = new IRConverter(appViewForConversion, Timing.empty());
-    ThreadUtils.processItems(
-        methods,
-        method -> {
-          IRCode code = codeProvider.buildIR(method);
-          converter.removeDeadCodeAndFinalizeIR(
-              code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
-        },
-        executorService);
+  private void processMethod(ProgramMethod method, IRConverter converter) {
+    IRCode code = codeProvider.buildIR(method);
+    converter.removeDeadCodeAndFinalizeIR(
+        code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
   }
 
   public boolean isEmpty() {
-    return methods.isEmpty();
+    return classInitializers.isEmpty() && instanceInitializers.isEmpty();
   }
 
   public static class Builder {
 
     private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final IRCodeProvider codeProvider;
-    private final List<ProgramMethod> methods = new ArrayList<>();
+    private final List<ProgramMethod> classInitializers = new ArrayList<>();
+    private final List<ProgramMethod> instanceInitializers = new ArrayList<>();
 
     private Builder(
         AppView<? extends AppInfoWithClassHierarchy> appView, IRCodeProvider codeProvider) {
@@ -81,13 +99,19 @@ public class SyntheticInitializerConverter {
       this.codeProvider = codeProvider;
     }
 
-    public Builder add(ProgramMethod method) {
-      this.methods.add(method);
+    public Builder addClassInitializer(ProgramMethod method) {
+      this.classInitializers.add(method);
+      return this;
+    }
+
+    public Builder addInstanceInitializer(ProgramMethod method) {
+      this.instanceInitializers.add(method);
       return this;
     }
 
     public SyntheticInitializerConverter build() {
-      return new SyntheticInitializerConverter(appView, codeProvider, methods);
+      return new SyntheticInitializerConverter(
+          appView, codeProvider, classInitializers, instanceInitializers);
     }
   }
 }

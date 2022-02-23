@@ -221,12 +221,11 @@ public class CfConstDynamic extends CfInstruction implements CfTypeInstruction {
   @Override
   public void evaluate(
       CfFrameVerificationHelper frameBuilder,
-      DexType context,
-      DexType returnType,
-      DexItemFactory factory,
-      InitClassLens initClassLens) {
+      DexMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
     // ... →
     // ..., value
-    frameBuilder.push(factory.classType);
+    frameBuilder.push(dexItemFactory.classType);
   }
 }

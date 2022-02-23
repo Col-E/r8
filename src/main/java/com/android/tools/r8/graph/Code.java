@@ -88,7 +88,11 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
-  public boolean isHorizontalClassMergingCode() {
+  public boolean isHorizontalClassMergerCode() {
+    return false;
+  }
+
+  public boolean isIncompleteHorizontalClassMergerCode() {
     return false;
   }
 

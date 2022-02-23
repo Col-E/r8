@@ -25,8 +25,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
-import com.android.tools.r8.graph.proto.ArgumentInfo;
-import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.MemberType;
@@ -34,6 +32,7 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.ExtraParameter;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -404,8 +403,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       LensCodeRewriterUtils rewriter,
       MethodVisitor visitor) {
     GraphLens graphLens = appView.graphLens();
-    assert verifyFrames(method.getDefinition(), appView, null).isValid()
-        : "Could not validate stack map frames";
+    assert verifyFrames(method, appView).isValid() : "Could not validate stack map frames";
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     InitClassLens initClassLens = appView.initClassLens();
     InternalOptions options = appView.options();
@@ -506,8 +504,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
 
   @Override
   public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    verifyFramesOrRemove(
-        method.getDefinition(), appView, origin, IRBuilder.lookupPrototypeChanges(appView, method));
+    verifyFramesOrRemove(method, appView, getCodeLens(appView));
     return internalBuildPossiblyWithLocals(
         method, method, appView, appView.codeLens(), null, null, origin, null);
   }
@@ -525,7 +522,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     assert protoChanges != null;
-    verifyFramesOrRemove(method.getDefinition(), appView, origin, protoChanges);
+    verifyFramesOrRemove(method, appView, codeLens);
     return internalBuildPossiblyWithLocals(
         context,
         method,
@@ -537,12 +534,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
         protoChanges);
   }
 
-  private void verifyFramesOrRemove(
-      DexEncodedMethod method,
-      AppView<?> appView,
-      Origin origin,
-      RewrittenPrototypeDescription protoChanges) {
-    stackMapStatus = verifyFrames(method, appView, origin, protoChanges);
+  private void verifyFramesOrRemove(ProgramMethod method, AppView<?> appView, GraphLens codeLens) {
+    stackMapStatus = verifyFrames(method, appView, codeLens);
     if (!stackMapStatus.isValid()) {
       ArrayList<CfInstruction> copy = new ArrayList<>(instructions);
       copy.removeIf(CfInstruction::isFrame);
@@ -874,30 +867,31 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
         originalHolder, maxStack, maxLocals, newInstructions, tryCatchRanges, localVariables);
   }
 
-  public StackMapStatus verifyFrames(DexEncodedMethod method, AppView<?> appView, Origin origin) {
-    return verifyFrames(method, appView, origin, RewrittenPrototypeDescription.none());
+  public StackMapStatus verifyFrames(ProgramMethod method, AppView<?> appView) {
+    return verifyFrames(method, appView, getCodeLens(appView));
   }
 
-  public StackMapStatus verifyFrames(
-      DexEncodedMethod method,
-      AppView<?> appView,
-      Origin origin,
-      RewrittenPrototypeDescription protoChanges) {
+  public StackMapStatus verifyFrames(ProgramMethod method, AppView<?> appView, GraphLens codeLens) {
+    GraphLens graphLens = appView.graphLens();
+    DexEncodedMethod definition = method.getDefinition();
     if (!appView.options().canUseInputStackMaps()
         || appView.options().testing.disableStackMapVerification) {
       return StackMapStatus.NOT_PRESENT;
     }
-    if (method.hasClassFileVersion() && method.getClassFileVersion().isLessThan(CfVersion.V1_7)) {
+    if (definition.hasClassFileVersion()
+        && definition.getClassFileVersion().isLessThan(CfVersion.V1_7)) {
       return StackMapStatus.NOT_PRESENT;
     }
-    if (!method.isInstanceInitializer()
-        && appView
-            .graphLens()
-            .getOriginalMethodSignature(method.getReference())
-            .isInstanceInitializer(appView.dexItemFactory())) {
-      // We cannot verify instance initializers if they are moved.
-      return StackMapStatus.NOT_PRESENT;
-    }
+
+    RewrittenPrototypeDescription protoChanges =
+        graphLens.lookupPrototypeChangesForMethodDefinition(method.getReference(), codeLens);
+
+    DexMethod previousMethodSignature =
+        graphLens.getOriginalMethodSignature(method.getReference(), codeLens);
+    boolean previousMethodSignatureIsInstance =
+        method.getDefinition().isInstance()
+            || protoChanges.getArgumentInfoCollection().isConvertedToStaticMethod();
+
     // Build a map from labels to frames.
     Map<CfLabel, CfFrame> stateMap = new IdentityHashMap<>();
     List<CfLabel> labels = new ArrayList<>();
@@ -909,10 +903,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
           for (CfLabel label : labels) {
             if (stateMap.containsKey(label)) {
               return reportStackMapError(
-                  CfCodeStackMapValidatingException.multipleFramesForLabel(
-                      origin,
-                      appView.graphLens().getOriginalMethodSignature(method.getReference()),
-                      appView),
+                  CfCodeStackMapValidatingException.multipleFramesForLabel(method, appView),
                   appView);
             }
             stateMap.put(label, frame);
@@ -920,11 +911,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
         } else if (instruction != instructions.get(0)) {
           // From b/168212806, it is possible that the first instruction is a frame.
           return reportStackMapError(
-              CfCodeStackMapValidatingException.unexpectedStackMapFrame(
-                  origin,
-                  appView.graphLens().getOriginalMethodSignature(method.getReference()),
-                  appView),
-              appView);
+              CfCodeStackMapValidatingException.unexpectedStackMapFrame(method, appView), appView);
         }
       }
       // We are trying to map a frame to a label, but we can have positions in between, so skip
@@ -943,32 +930,28 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     // If there are no frames but we have seen a jump instruction, we cannot verify the stack map.
     if (requireStackMapFrame && stateMap.isEmpty()) {
       return reportStackMapError(
-          CfCodeStackMapValidatingException.noFramesForMethodWithJumps(
-              origin,
-              appView.graphLens().getOriginalMethodSignature(method.getReference()),
-              appView),
-          appView);
-    }
-    DexType context = appView.graphLens().lookupType(method.getHolderType());
-    DexType returnType = appView.graphLens().lookupType(method.getReference().getReturnType());
-    if (!protoChanges.isEmpty() && protoChanges.getRewrittenReturnInfo() != null) {
-      returnType = protoChanges.getRewrittenReturnInfo().getOldType();
+          CfCodeStackMapValidatingException.noFramesForMethodWithJumps(method, appView), appView);
     }
     CfFrameVerificationHelper builder =
         new CfFrameVerificationHelper(
-            context,
+            previousMethodSignature.getHolderType(),
             stateMap,
             tryCatchRanges,
             isAssignablePredicate(appView),
             appView.dexItemFactory(),
-            appView.graphLens(),
             maxStack);
     if (stateMap.containsKey(null)) {
       assert !shouldComputeInitialFrame();
       builder.checkFrameAndSet(stateMap.get(null));
     } else if (shouldComputeInitialFrame()) {
       builder.checkFrameAndSet(
-          new CfFrame(computeInitialLocals(context, method, protoChanges), new ArrayDeque<>()));
+          new CfFrame(
+              computeInitialLocals(
+                  appView,
+                  previousMethodSignature,
+                  previousMethodSignatureIsInstance,
+                  protoChanges),
+              new ArrayDeque<>()));
     }
     for (int i = 0; i < instructions.size(); i++) {
       CfInstruction instruction = instructions.get(i);
@@ -980,17 +963,11 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
           assert !instruction.isStore();
           builder.checkExceptionEdges();
         }
-        instruction.evaluate(
-            builder, context, returnType, appView.dexItemFactory(), appView.initClassLens());
+        instruction.evaluate(builder, previousMethodSignature, appView, appView.dexItemFactory());
       } catch (CfCodeStackMapValidatingException ex) {
         return reportStackMapError(
             CfCodeStackMapValidatingException.toDiagnostics(
-                origin,
-                appView.graphLens().getOriginalMethodSignature(method.getReference()),
-                i,
-                instruction,
-                ex.getMessage(),
-                appView),
+                method, i, instruction, ex.getMessage(), appView),
             appView);
       }
     }
@@ -1038,40 +1015,33 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
   }
 
   private Int2ReferenceSortedMap<FrameType> computeInitialLocals(
-      DexType context, DexEncodedMethod method, RewrittenPrototypeDescription protoTypeChanges) {
+      AppView<?> appView,
+      DexMethod method,
+      boolean isInstance,
+      RewrittenPrototypeDescription prototypeChanges) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     Int2ReferenceSortedMap<FrameType> initialLocals = new Int2ReferenceAVLTreeMap<>();
     int index = 0;
-    if (method.isInstanceInitializer()) {
-      initialLocals.put(index++, FrameType.uninitializedThis());
-    } else if (!method.getAccessFlags().isStatic()) {
-      initialLocals.put(index++, FrameType.initialized(context));
+    if (isInstance) {
+      initialLocals.put(
+          index++,
+          method.isInstanceInitializer(dexItemFactory)
+                  || method.mustBeInlinedIntoInstanceInitializer(appView)
+                  || method.isHorizontallyMergedInstanceInitializer(dexItemFactory)
+              ? FrameType.uninitializedThis()
+              : FrameType.initialized(method.getHolderType()));
     }
-    ArgumentInfoCollection argumentsInfo = protoTypeChanges.getArgumentInfoCollection();
-    DexType[] parameters = method.getReference().proto.parameters.values;
-    int originalNumberOfArguments =
-        parameters.length
-            + argumentsInfo.numberOfRemovedArguments()
-            + initialLocals.size()
-            - protoTypeChanges.numberOfExtraParameters();
-    int argumentIndex = index;
-    int usedArgumentIndex = 0;
-    while (argumentIndex < originalNumberOfArguments) {
-      ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(argumentIndex++);
-      DexType localType;
-      if (argumentInfo.isRemovedArgumentInfo()) {
-        localType = argumentInfo.asRemovedArgumentInfo().getType();
-      } else {
-        if (argumentInfo.isRewrittenTypeInfo()) {
-          assert parameters[usedArgumentIndex] == argumentInfo.asRewrittenTypeInfo().getNewType();
-          localType = argumentInfo.asRewrittenTypeInfo().getOldType();
-        } else {
-          localType = parameters[usedArgumentIndex];
-        }
-        usedArgumentIndex++;
-      }
-      FrameType frameType = FrameType.initialized(localType);
+    for (DexType parameter : method.getParameters()) {
+      FrameType frameType = FrameType.initialized(parameter);
       initialLocals.put(index++, frameType);
-      if (localType.isWideType()) {
+      if (frameType.isWide()) {
+        initialLocals.put(index++, frameType);
+      }
+    }
+    for (ExtraParameter extraParameter : prototypeChanges.getExtraParameters()) {
+      FrameType frameType = FrameType.initialized(extraParameter.getType(dexItemFactory));
+      initialLocals.put(index++, frameType);
+      if (frameType.isWide()) {
         initialLocals.put(index++, frameType);
       }
     }
