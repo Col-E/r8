@@ -211,7 +211,7 @@ public class Phi extends Value implements InstructionOrPhi {
     current.removePhiUser(this);
   }
 
-  void replaceOperand(Value current, Value newValue) {
+  public void replaceOperand(Value current, Value newValue) {
     for (int i = 0; i < operands.size(); i++) {
       if (operands.get(i) == current) {
         operands.set(i, newValue);

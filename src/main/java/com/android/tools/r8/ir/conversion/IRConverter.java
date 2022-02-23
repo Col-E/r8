@@ -74,6 +74,7 @@ import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberValuePropagation;
+import com.android.tools.r8.ir.optimize.NaturalIntLoopRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadAndStoreElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
@@ -142,6 +143,7 @@ public class IRConverter {
   private final InternalOptions options;
   private final CfgPrinter printer;
   public final CodeRewriter codeRewriter;
+  private final NaturalIntLoopRemover naturalIntLoopRemover = new NaturalIntLoopRemover();
   private final ConstantCanonicalizer constantCanonicalizer;
   public final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
@@ -1299,6 +1301,9 @@ public class IRConverter {
 
     timing.begin("Rewrite array length");
     codeRewriter.rewriteKnownArrayLengthCalls(code);
+    timing.end();
+    timing.begin("Natural Int Loop Remover");
+    naturalIntLoopRemover.run(code);
     timing.end();
     timing.begin("Rewrite AssertionError");
     codeRewriter.rewriteAssertionErrorTwoArgumentConstructor(code, options);
