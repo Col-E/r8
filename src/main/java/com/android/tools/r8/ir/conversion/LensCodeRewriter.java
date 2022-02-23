@@ -885,7 +885,8 @@ public class LensCodeRewriter {
           ListIterator<Instruction> argumentPostludeIterator = argumentPostlude.listIterator();
           while (argumentPostludeIterator.hasNext()) {
             Instruction current = argumentPostludeIterator.next();
-            if (!current.isArgument() || replacement.getIndex() < current.asArgument().getIndex()) {
+            if (!current.isArgument()
+                || replacement.getIndexRaw() < current.asArgument().getIndexRaw()) {
               argumentPostludeIterator.previous();
               break;
             }

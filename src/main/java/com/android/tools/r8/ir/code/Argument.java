@@ -37,7 +37,15 @@ public class Argument extends Instruction {
   }
 
   public int getIndex() {
-    assert verifyIndex();
+    return getIndex(true);
+  }
+
+  public int getIndexRaw() {
+    return getIndex(false);
+  }
+
+  private int getIndex(boolean verifyIndex) {
+    assert !verifyIndex || verifyIndex();
     return index;
   }
 

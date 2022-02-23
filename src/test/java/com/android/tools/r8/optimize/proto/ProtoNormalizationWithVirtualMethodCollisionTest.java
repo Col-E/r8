@@ -38,8 +38,6 @@ public class ProtoNormalizationWithVirtualMethodCollisionTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.testing.enableExperimentalProtoNormalization = true)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with proto changes.

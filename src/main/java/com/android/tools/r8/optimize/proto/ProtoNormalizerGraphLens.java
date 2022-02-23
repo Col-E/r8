@@ -56,8 +56,11 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
   }
 
   @Override
-  public DexField getRenamedFieldSignature(DexField originalField, GraphLens codeLens) {
-    return originalField;
+  public DexField getRenamedFieldSignature(DexField originalField, GraphLens applied) {
+    if (this == applied) {
+      return originalField;
+    }
+    return getPrevious().getRenamedFieldSignature(originalField);
   }
 
   @Override
@@ -65,7 +68,7 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
     if (this == applied) {
       return originalMethod;
     }
-    return newMethodSignatures.getOrDefault(originalMethod, originalMethod);
+    return getNextMethodSignature(getPrevious().getRenamedMethodSignature(originalMethod));
   }
 
   @Override
@@ -98,14 +101,18 @@ public class ProtoNormalizerGraphLens extends NonIdentityGraphLens {
   protected MethodLookupResult internalDescribeLookupMethod(
       MethodLookupResult previous, DexMethod context) {
     DexMethod methodSignature = previous.getReference();
-    DexMethod newMethodSignature = getRenamedMethodSignature(methodSignature);
+    DexMethod newMethodSignature = getNextMethodSignature(methodSignature);
     if (methodSignature == newMethodSignature) {
       return previous;
     }
     assert !previous.hasReboundReference();
     return MethodLookupResult.builder(this)
         .setPrototypeChanges(
-            previous.getPrototypeChanges().combine(prototypeChanges.get(newMethodSignature)))
+            previous
+                .getPrototypeChanges()
+                .combine(
+                    prototypeChanges.getOrDefault(
+                        newMethodSignature, RewrittenPrototypeDescription.none())))
         .setReference(newMethodSignature)
         .setType(previous.getType())
         .build();

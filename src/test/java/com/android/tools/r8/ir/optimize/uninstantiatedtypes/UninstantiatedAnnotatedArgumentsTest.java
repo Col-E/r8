@@ -12,6 +12,7 @@ import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.KeepUnusedArguments;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NoParameterReordering;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
@@ -68,6 +69,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
         .enableNeverClassInliningAnnotations()
         .enableConstantArgumentAnnotations(keepUninstantiatedArguments)
         .enableInliningAnnotations()
+        .enableNoParameterReorderingAnnotations()
         .enableUnusedArgumentAnnotations()
         // TODO(b/123060011): Mapping not working in presence of argument removal.
         .minification(keepUninstantiatedArguments)
@@ -168,6 +170,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
+    @NoParameterReordering
     static void testRemoveStaticFromStart(
         @Uninstantiated Dead uninstantiated,
         @Instantiated String instantiated,
@@ -178,6 +181,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
+    @NoParameterReordering
     static void testRemoveStaticFromMiddle(
         @Instantiated String instantiated,
         @Uninstantiated Dead uninstantiated,
@@ -188,6 +192,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
+    @NoParameterReordering
     static void testRemoveStaticFromEnd(
         @Instantiated String instantiated,
         @Instantiated String otherInstantiated,
@@ -198,6 +203,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
+    @NoParameterReordering
     void testRemoveVirtualFromStart(
         @Uninstantiated Dead uninstantiated,
         @Instantiated String instantiated,
@@ -208,6 +214,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
+    @NoParameterReordering
     void testRemoveVirtualFromMiddle(
         @Instantiated String instantiated,
         @Uninstantiated Dead uninstantiated,
@@ -218,6 +225,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
     @KeepConstantArguments
     @KeepUnusedArguments
     @NeverInline
+    @NoParameterReordering
     void testRemoveVirtualFromEnd(
         @Instantiated String instantiated,
         @Instantiated String otherInstantiated,

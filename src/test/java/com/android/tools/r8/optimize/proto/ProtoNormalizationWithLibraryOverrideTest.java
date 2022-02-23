@@ -38,8 +38,6 @@ public class ProtoNormalizationWithLibraryOverrideTest extends TestBase {
         .addLibraryClasses(A.class, B.class, Library.class)
         .addDefaultRuntimeLibrary(parameters)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.testing.enableExperimentalProtoNormalization = true)
         .enableInliningAnnotations()
         // TODO(b/173398086): uniqueMethodWithName() does not work with proto changes.
         .noMinification()

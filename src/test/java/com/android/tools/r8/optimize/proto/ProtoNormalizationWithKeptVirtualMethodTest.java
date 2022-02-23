@@ -39,8 +39,6 @@ public class ProtoNormalizationWithKeptVirtualMethodTest extends TestBase {
         .addInnerClasses(getClass())
         .addKeepClassAndMembersRules(Main.class)
         .addKeepRules("-keepclassmembers class " + A.class.getTypeName() + " { void foo(...); }")
-        .addOptionsModification(
-            options -> options.testing.enableExperimentalProtoNormalization = true)
         .enableInliningAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

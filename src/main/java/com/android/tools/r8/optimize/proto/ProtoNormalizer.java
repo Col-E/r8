@@ -15,9 +15,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
+import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.KeepMethodInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.MapUtils;
@@ -52,9 +54,7 @@ public class ProtoNormalizer {
   }
 
   public void run(ExecutorService executorService, Timing timing) throws ExecutionException {
-    if (options.testing.enableExperimentalProtoNormalization) {
-      timing.time("Proto normalization", () -> run(executorService));
-    }
+    timing.time("Proto normalization", () -> run(executorService));
   }
 
   private void run(ExecutorService executorService) throws ExecutionException {
@@ -280,9 +280,24 @@ public class ProtoNormalizer {
   }
 
   private boolean isUnoptimizable(ProgramMethod method) {
-    // TODO(b/195112263): This is incomplete.
-    return appView.getKeepInfo(method).isPinned(options)
-        || method.getDefinition().isLibraryMethodOverride().isPossiblyTrue();
+    KeepMethodInfo keepInfo = appView.getKeepInfo(method);
+    if (!keepInfo.isParameterReorderingAllowed(options)
+        || method.getDefinition().isLibraryMethodOverride().isPossiblyTrue()) {
+      return true;
+    }
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    if (appInfo.isBootstrapMethod(method)) {
+      return true;
+    }
+    ObjectAllocationInfoCollection objectAllocationInfoCollection =
+        appInfo.getObjectAllocationInfoCollection();
+    if (method.getHolder().isInterface()
+        && method.getDefinition().isAbstract()
+        && objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(
+            method.getHolder())) {
+      return true;
+    }
+    return false;
   }
 
   static class GlobalReservationState {

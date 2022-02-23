@@ -37,8 +37,6 @@ public class ProtoNormalizationWithoutSharingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.testing.enableExperimentalProtoNormalization = true)
         .enableInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())

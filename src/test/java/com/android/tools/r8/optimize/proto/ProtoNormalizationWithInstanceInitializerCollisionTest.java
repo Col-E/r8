@@ -36,8 +36,6 @@ public class ProtoNormalizationWithInstanceInitializerCollisionTest extends Test
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addOptionsModification(
-            options -> options.testing.enableExperimentalProtoNormalization = true)
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
