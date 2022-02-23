@@ -497,12 +497,14 @@ public class R8 {
           && options.getProguardConfiguration().isOptimizing()) {
         if (options.enableVerticalClassMerging) {
           timing.begin("VerticalClassMerger");
-          VerticalClassMerger verticalClassMerger =
+          VerticalClassMergerGraphLens lens =
               new VerticalClassMerger(
-                  getDirectApp(appViewWithLiveness), appViewWithLiveness, executorService, timing);
-          VerticalClassMergerGraphLens lens = verticalClassMerger.run();
+                      getDirectApp(appViewWithLiveness),
+                      appViewWithLiveness,
+                      executorService,
+                      timing)
+                  .run();
           if (lens != null) {
-            appView.rewriteWithLens(lens);
             runtimeTypeCheckInfo = runtimeTypeCheckInfo.rewriteWithLens(lens);
           }
           timing.end();

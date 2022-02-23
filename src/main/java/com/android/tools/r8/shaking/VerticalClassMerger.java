@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.dex.Constants.TEMPORARY_INSTANCE_INITIALIZER_PREFIX;
+import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
@@ -720,7 +721,7 @@ public class VerticalClassMerger {
         new VerticalClassMergerTreeFixer(
                 appView, lensBuilder, verticallyMergedClasses, synthesizedBridges)
             .fixupTypeReferences();
-    KeepInfoCollection keepInfo = appView.appInfo().getKeepInfo();
+    KeepInfoCollection keepInfo = appView.getKeepInfo();
     keepInfo.mutate(
         mutator ->
             mutator.removeKeepInfoForMergedClasses(
@@ -729,6 +730,26 @@ public class VerticalClassMerger {
 
     assert lens != null;
     assert verifyGraphLens(lens);
+
+    // Rewrite collections using the lens.
+    appView.rewriteWithLens(lens);
+
+    // Copy keep info to newly synthesized methods.
+    keepInfo.mutate(
+        mutator -> {
+          for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
+            ProgramMethod bridge =
+                asProgramMethodOrNull(appView.definitionFor(synthesizedBridge.method));
+            ProgramMethod target =
+                asProgramMethodOrNull(appView.definitionFor(synthesizedBridge.invocationTarget));
+            if (bridge != null && target != null) {
+              mutator.joinMethod(bridge, info -> info.merge(appView.getKeepInfo(target).joiner()));
+              continue;
+            }
+            assert false;
+          }
+        });
+
     return lens;
   }
 
