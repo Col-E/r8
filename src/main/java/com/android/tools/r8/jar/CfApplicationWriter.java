@@ -10,6 +10,7 @@ import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.SourceFileEnvironment;
 import com.android.tools.r8.cf.CfVersion;
+import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CodeSizeOverflowDiagnostic;
@@ -137,7 +138,12 @@ public class CfApplicationWriter {
     if (options.proguardMapConsumer != null) {
       proguardMapId =
           runAndWriteMap(
-              inputApp, appView, namingLens, application.timing, OriginalSourceFiles.fromClasses());
+              inputApp,
+              appView,
+              namingLens,
+              application.timing,
+              OriginalSourceFiles.fromClasses(),
+              DebugRepresentation.none(options));
       marker.setPgMapId(proguardMapId.getId());
     }
     Optional<String> markerString =

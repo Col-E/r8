@@ -148,14 +148,18 @@ public abstract class DexDebugInfo extends CachedHashValueDexItem
       // No indexed items to collect.
     }
 
-    @Override
-    public int estimatedWriteSize() {
+    public static int estimatedWriteSize(int parameterCount, int maxPc) {
       return LebUtils.sizeAsUleb128(START_LINE)
           + LebUtils.sizeAsUleb128(parameterCount)
           + parameterCount * LebUtils.sizeAsUleb128(0)
           + 1
           + maxPc
           + 1;
+    }
+
+    @Override
+    public int estimatedWriteSize() {
+      return estimatedWriteSize(parameterCount, maxPc);
     }
 
     @Override

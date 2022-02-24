@@ -1663,6 +1663,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;
     public boolean forceJumboStringProcessing = false;
+    public boolean forcePcBasedEncoding = false;
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
@@ -1884,7 +1885,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean canUseDexPc2PcAsDebugInformation() {
-    return lineNumberOptimization == LineNumberOptimization.ON;
+    return isGeneratingDex() && lineNumberOptimization == LineNumberOptimization.ON;
   }
 
   public boolean canUseNativeDexPcInsteadOfDebugInfo() {

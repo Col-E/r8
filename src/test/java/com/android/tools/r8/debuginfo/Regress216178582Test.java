@@ -48,6 +48,7 @@ public class Regress216178582Test extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(TestClass.class)
             .addKeepAttributeLineNumberTable()
+            .addOptionsModification(o -> o.testing.forcePcBasedEncoding = true)
             .compile()
             .inspect(
                 inspector -> {

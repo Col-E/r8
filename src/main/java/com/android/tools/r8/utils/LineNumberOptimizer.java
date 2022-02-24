@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
+import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -334,14 +335,21 @@ public class LineNumberOptimizer {
       AppView<?> appView,
       NamingLens namingLens,
       Timing timing,
-      OriginalSourceFiles originalSourceFiles) {
+      OriginalSourceFiles originalSourceFiles,
+      DebugRepresentationPredicate representation) {
     assert appView.options().proguardMapConsumer != null;
     // When line number optimization is turned off the identity mapping for line numbers is
     // used. We still run the line number optimizer to collect line numbers and inline frame
     // information for the mapping file.
     timing.begin("Line number remapping");
     ClassNameMapper mapper =
-        run(appView, appView.appInfo().app(), inputApp, namingLens, originalSourceFiles);
+        run(
+            appView,
+            appView.appInfo().app(),
+            inputApp,
+            namingLens,
+            originalSourceFiles,
+            representation);
     timing.end();
     timing.begin("Write proguard map");
     ProguardMapId mapId = ProguardMapSupplier.create(mapper, appView.options()).writeProguardMap();
@@ -465,9 +473,12 @@ public class LineNumberOptimizer {
       DexApplication application,
       AndroidApp inputApp,
       NamingLens namingLens,
-      OriginalSourceFiles originalSourceFiles) {
+      OriginalSourceFiles originalSourceFiles,
+      DebugRepresentationPredicate representation) {
     // For finding methods in kotlin files based on SourceDebugExtensions, we use a line method map.
     // We create it here to ensure it is only reading class files once.
+    // TODO(b/220999985): Make this threaded per virtual file. Possibly pull the kotlin line mapping
+    //  onto main thread before threading.
     CfLineToMethodMapper cfLineToMethodMapper = new CfLineToMethodMapper(inputApp);
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
 
@@ -560,7 +571,7 @@ public class LineNumberOptimizer {
           List<MappedPosition> mappedPositions;
           Code code = method.getCode();
           boolean canUseDexPc =
-              appView.options().canUseDexPc2PcAsDebugInformation() && methods.size() == 1;
+              methods.size() == 1 && representation.useDexPcEncoding(clazz, method);
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (canUseDexPc) {
@@ -910,7 +921,7 @@ public class LineNumberOptimizer {
         });
   }
 
-  private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
+  public static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
       GraphLens graphLens, NamingLens namingLens, DexProgramClass clazz) {
     IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.getMethodCollection().size());
@@ -943,7 +954,7 @@ public class LineNumberOptimizer {
     return false;
   }
 
-  private static boolean doesContainPositions(DexCode dexCode) {
+  public static boolean doesContainPositions(DexCode dexCode) {
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
     if (debugInfo == null) {
       return false;

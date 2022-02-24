@@ -6,6 +6,7 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
@@ -73,6 +74,7 @@ public class VirtualFile {
   private final FeatureSplit featureSplit;
 
   private final DexProgramClass primaryClass;
+  private DebugRepresentation debugRepresentation;
 
   VirtualFile(
       int id,
@@ -138,6 +140,17 @@ public class VirtualFile {
 
   public String getPrimaryClassDescriptor() {
     return primaryClass == null ? null : primaryClass.type.descriptor.toString();
+  }
+
+  public void setDebugRepresentation(DebugRepresentation debugRepresentation) {
+    assert debugRepresentation != null;
+    assert this.debugRepresentation == null;
+    this.debugRepresentation = debugRepresentation;
+  }
+
+  public DebugRepresentation getDebugRepresentation() {
+    assert debugRepresentation != null;
+    return debugRepresentation;
   }
 
   public static String deriveCommonPrefixAndSanityCheck(List<String> fileNames) {

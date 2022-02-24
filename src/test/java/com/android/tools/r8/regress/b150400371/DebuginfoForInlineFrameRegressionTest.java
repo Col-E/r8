@@ -4,13 +4,14 @@
 
 package com.android.tools.r8.regress.b150400371;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import org.junit.Test;
@@ -45,9 +46,10 @@ public class DebuginfoForInlineFrameRegressionTest extends TestBase {
               MethodSubject main =
                   inspector.method(InlineInto.class.getDeclaredMethod("main", String[].class));
               if (parameters.getApiLevel().isLessThan(apiLevelWithPcAsLineNumberSupport())) {
-                // Method has 14 actual lines, the PC mapping table will have about 50.
+                // Method has 2 actual lines for inlining of foo.
+                // The pc2pc encoding is larger than normal encoding, so it is just the two lines.
                 IntSet lines = new IntArraySet(main.getLineNumberTable().getLines());
-                assertTrue(lines.size() > 20);
+                assertEquals(ImmutableSet.of(1, 2), lines);
               } else {
                 assertNull(main.getLineNumberTable());
               }

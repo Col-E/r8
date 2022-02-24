@@ -17,6 +17,8 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.SourceFileEnvironment;
+import com.android.tools.r8.debuginfo.DebugRepresentation;
+import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
@@ -295,6 +297,7 @@ public class ApplicationWriter {
                   Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
                   computeOffsetMappingAndRewriteJumboStrings(
                       virtualFile, lazyDexStrings, fileTiming);
+                  DebugRepresentation.computeForFile(virtualFile, graphLens, namingLens, options);
                   fileTiming.end();
                   return fileTiming;
                 },
@@ -303,10 +306,15 @@ public class ApplicationWriter {
         merger.end();
       }
 
+
       // Now code offsets are fixed, compute the mapping file content.
       if (willComputeProguardMap()) {
+        // TODO(b/220999985): Refactor line number optimization to be per file and thread it above.
+        DebugRepresentationPredicate representation =
+            DebugRepresentation.fromFiles(virtualFiles, options);
         delayedProguardMapId.set(
-            runAndWriteMap(inputApp, appView, namingLens, timing, originalSourceFiles));
+            runAndWriteMap(
+                inputApp, appView, namingLens, timing, originalSourceFiles, representation));
       }
 
       // With the mapping id/hash known, it is safe to compute the remaining dex strings.
