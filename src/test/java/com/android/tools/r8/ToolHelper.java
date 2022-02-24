@@ -314,6 +314,10 @@ public class ToolHelper {
         return compareTo(other) == 0;
       }
 
+      public boolean isEqualToOneOf(Version... versions) {
+        return Arrays.stream(versions).anyMatch(this::isEqualTo);
+      }
+
       public boolean isNewerThan(Version other) {
         return compareTo(other) > 0;
       }
