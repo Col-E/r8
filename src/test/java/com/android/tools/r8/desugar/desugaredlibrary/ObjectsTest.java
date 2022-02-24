@@ -78,6 +78,11 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
 
   public ObjectsTest(TestParameters parameters, boolean libraryDesugarJavaUtilObjects) {
     this.parameters = parameters;
+    if (libraryDesugarJavaUtilObjects) {
+      Assume.assumeTrue(
+          "The alternative 3 configuration is available only in JDK 11 desugared library.",
+          isJDK11DesugaredLibrary());
+    }
     this.libraryDesugarJavaUtilObjects = libraryDesugarJavaUtilObjects;
     this.androidJar =
         ToolHelper.getAndroidJar(

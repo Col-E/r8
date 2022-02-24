@@ -84,6 +84,9 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testBufferedReaderD8Cf() throws Exception {
+    Assume.assumeTrue(
+        "The alternative 3 configuration is available only in JDK 11 desugared library.",
+        isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     // Use D8 to desugar with Java classfile output.
     Path jar =
@@ -140,6 +143,9 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   @Test
   public void testBufferedReaderD8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
+    Assume.assumeTrue(
+        "The alternative 3 configuration is available only in JDK 11 desugared library.",
+        isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addLibraryFiles(getLibraryFile())
@@ -166,6 +172,9 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   @Test
   public void testBufferedReaderR8() throws Exception {
     Assume.assumeTrue(parameters.getRuntime().isDex());
+    Assume.assumeTrue(
+        "The alternative 3 configuration is available only in JDK 11 desugared library.",
+        isJDK11DesugaredLibrary());
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
