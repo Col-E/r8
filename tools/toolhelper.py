@@ -3,6 +3,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 import glob
+import time
 import subprocess
 from threading import Timer
 
@@ -14,7 +15,7 @@ import utils
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
         stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False,
-        cmd_prefix=None, jar=None, main=None):
+        cmd_prefix=None, jar=None, main=None, time_consumer=None):
   cmd = []
   if cmd_prefix:
     cmd.extend(cmd_prefix)
@@ -52,6 +53,7 @@ def run(tool, args, build=None, debug=True,
     cmd.extend(["--lib", lib])
   cmd.extend(args)
   utils.PrintCmd(cmd, quiet=quiet)
+  start = time.time()
   if timeout > 0:
     kill = lambda process: process.kill()
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -61,11 +63,16 @@ def run(tool, args, build=None, debug=True,
       stdout, stderr = proc.communicate()
     finally:
       timer.cancel()
-    return stdout if return_stdout else proc.returncode
+    result = stdout if return_stdout else proc.returncode
   else:
-    if return_stdout:
-      return subprocess.check_output(cmd)
-    return subprocess.call(cmd, stdout=stdout, stderr=stderr)
+    result = (
+        subprocess.check_output(cmd)
+        if return_stdout
+        else subprocess.call(cmd, stdout=stdout, stderr=stderr))
+  duration = int((time.time() - start) * 1000)
+  if time_consumer:
+    time_consumer(duration)
+  return result
 
 def run_in_tests(tool, args, build=None, debug=True, extra_args=None):
   if build is None:
