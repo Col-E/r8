@@ -59,16 +59,6 @@ import java.util.function.Predicate;
 
 public class VirtualFile {
 
-  // The fill strategy determine how to distribute classes into dex files.
-  enum FillStrategy {
-    // Distribute classes in as few dex files as possible filling each dex file as much as possible.
-    FILL_MAX,
-    // Distribute classes keeping some space for future growth. This is mainly useful together with
-    // the package map distribution.
-    LEAVE_SPACE_FOR_GROWTH,
-    // TODO(sgjesse): Does "minimal main dex" combined with "leave space for growth" make sense?
-  }
-
   public static final int MAX_ENTRIES = Constants.U16BIT_MAX + 1;
 
   /**
@@ -278,8 +268,8 @@ public class VirtualFile {
             hasMainDexList, transaction.getNumberOfMethods(), transaction.getNumberOfFields()));
   }
 
-  private boolean isFilledEnough(FillStrategy fillStrategy) {
-    return isFull(fillStrategy == FillStrategy.FILL_MAX ? MAX_ENTRIES : MAX_PREFILL_ENTRIES);
+  private boolean isFilledEnough() {
+    return isFull(MAX_ENTRIES);
   }
 
   public void abortTransaction() {
@@ -492,12 +482,6 @@ public class VirtualFile {
 
     protected void addFeatureSplitFiles(Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses)
         throws IOException {
-      addFeatureSplitFiles(featureSplitClasses, FillStrategy.FILL_MAX);
-    }
-
-    protected void addFeatureSplitFiles(
-        Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses, FillStrategy fillStrategy)
-        throws IOException {
       if (featureSplitClasses.isEmpty()) {
         return;
       }
@@ -524,7 +508,6 @@ public class VirtualFile {
                 appView,
                 featureClasses,
                 originalNames,
-                fillStrategy,
                 0,
                 writer.graphLens,
                 writer.initClassLens,
@@ -536,13 +519,11 @@ public class VirtualFile {
   }
 
   public static class FillFilesDistributor extends DistributorBase {
-    private final FillStrategy fillStrategy;
     private final ExecutorService executorService;
 
     FillFilesDistributor(ApplicationWriter writer, InternalOptions options,
         ExecutorService executorService) {
       super(writer, options);
-      this.fillStrategy = FillStrategy.FILL_MAX;
       this.executorService = executorService;
     }
 
@@ -594,7 +575,6 @@ public class VirtualFile {
                 appView,
                 classes,
                 originalNames,
-                fillStrategy,
                 fileIndexOffset,
                 writer.graphLens,
                 writer.initClassLens,
@@ -602,7 +582,7 @@ public class VirtualFile {
                 options)
             .call();
       }
-      addFeatureSplitFiles(featureSplitClasses, fillStrategy);
+      addFeatureSplitFiles(featureSplitClasses);
 
       assert totalClassNumber == virtualFiles.stream().mapToInt(dex -> dex.classes().size()).sum();
       return virtualFiles;
@@ -1028,7 +1008,6 @@ public class VirtualFile {
     private final List<DexProgramClass> classes;
     private final Map<DexProgramClass, String> originalNames;
     private final DexItemFactory dexItemFactory;
-    private final FillStrategy fillStrategy;
     private final InternalOptions options;
     private final VirtualFileCycler cycler;
 
@@ -1037,7 +1016,6 @@ public class VirtualFile {
         AppView<?> appView,
         Set<DexProgramClass> classes,
         Map<DexProgramClass, String> originalNames,
-        FillStrategy fillStrategy,
         int fileIndexOffset,
         GraphLens graphLens,
         InitClassLens initClassLens,
@@ -1046,7 +1024,6 @@ public class VirtualFile {
       this.classes = new ArrayList<>(classes);
       this.originalNames = originalNames;
       this.dexItemFactory = appView.dexItemFactory();
-      this.fillStrategy = fillStrategy;
       this.options = options;
       this.cycler =
           new VirtualFileCycler(
@@ -1170,7 +1147,7 @@ public class VirtualFile {
           && current.getNumberOfClasses() > options.testing.limitNumberOfClassesPerDex) {
         return true;
       }
-      return current.isFilledEnough(fillStrategy) || current.isFull();
+      return current.isFull();
     }
 
     private void addNonPackageClasses(
@@ -1179,7 +1156,7 @@ public class VirtualFile {
       VirtualFile current;
       current = cycler.next();
       for (DexProgramClass clazz : nonPackageClasses) {
-        if (current.isFilledEnough(fillStrategy)) {
+        if (current.isFull()) {
           current = getVirtualFile(cycler);
         }
         current.addClass(clazz);
