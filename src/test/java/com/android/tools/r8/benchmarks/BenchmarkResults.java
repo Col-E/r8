@@ -61,7 +61,7 @@ public class BenchmarkResults {
   }
 
   public static String prettyTime(long nanoTime) {
-    return "" + (nanoTime / 1000000) + "ms";
+    return "" + (nanoTime / 1000000) + " ms";
   }
 
   private void printRunTimeRaw(BenchmarkConfig config, long duration) {
