@@ -5,10 +5,11 @@ package com.android.tools.r8.benchmarks;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.rules.TemporaryFolder;
 
 public class BenchmarkConfig {
 
@@ -60,6 +61,7 @@ public class BenchmarkConfig {
     private BenchmarkTarget target = null;
     private Set<BenchmarkMetric> metrics = new HashSet<>();
     private BenchmarkSuite suite = BenchmarkSuite.getDefault();
+    private Collection<BenchmarkDependency> dependencies = new ArrayList<>();
     private int fromRevision = -1;
 
     private boolean timeWarmupRuns = false;
@@ -89,7 +91,14 @@ public class BenchmarkConfig {
         throw new Unreachable("Benchmark with warmup time must measure RunTimeRaw");
       }
       return new BenchmarkConfig(
-          name, method, target, ImmutableSet.copyOf(metrics), suite, fromRevision, timeWarmupRuns);
+          name,
+          method,
+          target,
+          ImmutableSet.copyOf(metrics),
+          suite,
+          fromRevision,
+          timeWarmupRuns,
+          dependencies);
     }
 
     public Builder setName(String name) {
@@ -131,6 +140,11 @@ public class BenchmarkConfig {
       this.timeWarmupRuns = true;
       return this;
     }
+
+    public Builder addDependency(BenchmarkDependency dependency) {
+      dependencies.add(dependency);
+      return this;
+    }
   }
 
   public static Builder builder() {
@@ -141,6 +155,7 @@ public class BenchmarkConfig {
   private final BenchmarkMethod method;
   private final ImmutableSet<BenchmarkMetric> metrics;
   private final BenchmarkSuite suite;
+  private final Collection<BenchmarkDependency> dependencies;
   private final int fromRevision;
   private final boolean timeWarmupRuns;
 
@@ -151,13 +166,15 @@ public class BenchmarkConfig {
       ImmutableSet<BenchmarkMetric> metrics,
       BenchmarkSuite suite,
       int fromRevision,
-      boolean timeWarmupRuns) {
+      boolean timeWarmupRuns,
+      Collection<BenchmarkDependency> dependencies) {
     this.id = new BenchmarkIdentifier(name, target);
     this.method = benchmarkMethod;
     this.metrics = metrics;
     this.suite = suite;
     this.fromRevision = fromRevision;
     this.timeWarmupRuns = timeWarmupRuns;
+    this.dependencies = dependencies;
   }
 
   public BenchmarkIdentifier getIdentifier() {
@@ -199,8 +216,12 @@ public class BenchmarkConfig {
     return timeWarmupRuns;
   }
 
-  public void run(TemporaryFolder temp) throws Exception {
-    method.run(this, temp);
+  public Collection<BenchmarkDependency> getDependencies() {
+    return dependencies;
+  }
+
+  public void run(BenchmarkEnvironment environment) throws Exception {
+    method.run(environment);
   }
 
   @Override

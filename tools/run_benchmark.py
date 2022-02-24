@@ -99,6 +99,7 @@ def run(options, r8jar, testjars):
     'com.android.tools.r8.benchmarks.BenchmarkMainEntryRunner',
     options.benchmark,
     options.target,
+    'golem' if options.golem else 'local',
     ])
   return subprocess.check_call(cmd)
 

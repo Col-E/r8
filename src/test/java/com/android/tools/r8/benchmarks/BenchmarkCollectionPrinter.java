@@ -139,6 +139,13 @@ public class BenchmarkCollectionPrinter {
                                 + " --benchmark "
                                 + benchmark.getName())));
             printSemi("options.resources.add(openjdk)");
+            for (BenchmarkDependency dependency : benchmark.getDependencies()) {
+              scopeBraces(
+                  () -> {
+                    addGolemResource("dependency", dependency.getTarball());
+                    printSemi("options.resources.add(dependency)");
+                  });
+            }
           });
     }
     printSemi("group.addBenchmark(name, metrics)");
@@ -173,7 +180,7 @@ public class BenchmarkCollectionPrinter {
   }
 
   private static Path getJdkHome() throws IOException {
-    ProcessBuilder builder = new ProcessBuilder("python", "tools/jdk.py");
+    ProcessBuilder builder = new ProcessBuilder("python3", "tools/jdk.py");
     ProcessResult result = ToolHelper.runProcess(builder, QUIET);
     if (result.exitCode != 0) {
       throw new BenchmarkConfigError("Unexpected failure to determine jdk home: " + result);

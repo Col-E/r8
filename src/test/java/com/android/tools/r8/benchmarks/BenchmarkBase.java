@@ -32,7 +32,7 @@ public abstract class BenchmarkBase extends TestBase {
 
   @Test
   public void testBenchmarks() throws Exception {
-    config.run(temp);
+    config.run(new BenchmarkEnvironment(config, temp, false));
   }
 
   public static BenchmarkRunner runner(BenchmarkConfig config) {

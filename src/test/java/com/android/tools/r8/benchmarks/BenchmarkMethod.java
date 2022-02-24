@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks;
 
-import org.junit.rules.TemporaryFolder;
-
 @FunctionalInterface
 public interface BenchmarkMethod {
 
-  void run(BenchmarkConfig config, TemporaryFolder temp) throws Exception;
+  void run(BenchmarkEnvironment environment) throws Exception;
 }
