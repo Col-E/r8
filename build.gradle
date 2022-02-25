@@ -367,6 +367,7 @@ def cloudDependencies = [
                 "openjdk/openjdk-rt-1.8",
                 "openjdk/desugar_jdk_libs",
                 "openjdk/desugar_jdk_libs_11",
+                "openjdk/desugar_jdk_libs_legacy",
                 "openjdk/desugar_jdk_libs_releases/1.0.9",
                 "openjdk/desugar_jdk_libs_releases/1.0.10",
                 "openjdk/desugar_jdk_libs_releases/1.1.0",
