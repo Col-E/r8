@@ -12,6 +12,10 @@ public class BenchmarkDependency {
     return new BenchmarkDependency("openjdk-rt-1.8", Paths.get("third_party", "openjdk"));
   }
 
+  public static BenchmarkDependency getAndroidJar30() {
+    return new BenchmarkDependency("lib-v30", Paths.get("third_party", "android_jar"));
+  }
+
   // Directory name of the dependency.
   private final String directoryName;
 

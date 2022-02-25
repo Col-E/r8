@@ -1372,15 +1372,15 @@ public class ToolHelper {
       BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(builder);
+    long start = 0;
+    if (benchmarkResults != null) {
+      start = System.nanoTime();
+    }
     D8Command command = builder.build();
     InternalOptions options = command.getInternalOptions();
     if (optionsConsumer != null) {
       ExceptionUtils.withD8CompilationHandler(
           options.reporter, () -> optionsConsumer.accept(options));
-    }
-    long start = 0;
-    if (benchmarkResults != null) {
-      start = System.nanoTime();
     }
     D8.runForTesting(command.getInputApp(), options);
     if (benchmarkResults != null) {

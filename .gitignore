@@ -127,6 +127,8 @@ third_party/openjdk/desugar_jdk_libs
 third_party/openjdk/desugar_jdk_libs.tar.gz
 third_party/openjdk/desugar_jdk_libs_11
 third_party/openjdk/desugar_jdk_libs_11.tar.gz
+third_party/openjdk/desugar_jdk_libs_legacy
+third_party/openjdk/desugar_jdk_libs_legacy.tar.gz
 third_party/openjdk/desugar_jdk_libs_releases/1.0.9
 third_party/openjdk/desugar_jdk_libs_releases/1.0.9.tar.gz
 third_party/openjdk/desugar_jdk_libs_releases/1.0.10

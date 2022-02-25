@@ -5,6 +5,7 @@ package com.android.tools.r8.benchmarks;
 
 import static java.util.Collections.emptyList;
 
+import com.android.tools.r8.benchmarks.desugaredlib.LegacyDesugaredLibraryBenchmark;
 import com.android.tools.r8.benchmarks.helloworld.HelloWorldBenchmark;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ public class BenchmarkCollection {
     BenchmarkCollection collection = new BenchmarkCollection();
     // Every benchmark that should be active on golem must be setup in this method.
     HelloWorldBenchmark.configs().forEach(collection::addBenchmark);
+    LegacyDesugaredLibraryBenchmark.configs().forEach(collection::addBenchmark);
     return collection;
   }
 
