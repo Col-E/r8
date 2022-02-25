@@ -137,12 +137,12 @@ def find_hash_or_version_from_options(options):
     return options.commit_hash or options.version
 
 def find_hash_or_version_from_tag(tag_or_hash):
-  info = subprocess.check_output([
+  info = str(subprocess.check_output([
       'git',
       'show',
       tag_or_hash,
       '-s',
-      '--format=oneline']).splitlines()[-1].split()
+      '--format=oneline'])).splitlines()[-1].split()
   # The info should be on the following form [hash,"Version",version]
   if len(info) == 3 and len(info[0]) == 40 and info[1] == "Version":
     return info[2]
@@ -309,8 +309,8 @@ def get_sha1(filename):
   return sha1.hexdigest()
 
 def is_main():
-  remotes = subprocess.check_output(['git', 'branch', '-r', '--contains',
-                                     'HEAD'])
+  remotes = str(subprocess.check_output(['git', 'branch', '-r', '--contains',
+                                     'HEAD']))
   return 'origin/main' in remotes
 
 def get_HEAD_sha1():
@@ -359,7 +359,7 @@ def delete_file_from_cloud_storage(destination):
 def ls_files_on_cloud_storage(destination):
   cmd = [get_gsutil(), 'ls', destination]
   PrintCmd(cmd)
-  return subprocess.check_output(cmd)
+  return str(subprocess.check_output(cmd))
 
 def cat_file_on_cloud_storage(destination, ignore_errors=False):
   cmd = [get_gsutil(), 'cat', destination]
@@ -535,7 +535,7 @@ def getCfSegmentSizes(cfFile):
          'com.android.tools.r8.cf_segments.MeasureLib',
          cfFile]
   PrintCmd(cmd)
-  output = subprocess.check_output(cmd)
+  output = str(subprocess.check_output(cmd))
 
   matches = DEX_SEGMENTS_RESULT_PATTERN.findall(output)
 
@@ -567,7 +567,7 @@ def print_dexsegments(prefix, dex_files):
 # Ensure that we are not benchmarking with a google jvm.
 def check_java_version():
   cmd= [jdk.GetJavaExecutable(), '-version']
-  output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
+  output = str(subprocess.check_output(cmd, stderr = subprocess.STDOUT))
   m = re.search('openjdk version "([^"]*)"', output.decode('utf-8'))
   if m is None:
     raise Exception("Can't check java version: no version string in output"
@@ -604,7 +604,7 @@ def uncompressed_size(path):
 def getR8Version(path):
   cmd = [jdk.GetJavaExecutable(), '-cp', path, 'com.android.tools.r8.R8',
         '--version']
-  output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
+  output = str(subprocess.check_output(cmd, stderr = subprocess.STDOUT))
   # output is of the form 'R8 <version> (with additional info)'
   # so we split on '('; clean up tailing spaces; and strip off 'R8 '.
   return output.split('(')[0].strip()[3:]
