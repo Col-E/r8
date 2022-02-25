@@ -39,10 +39,6 @@ public class BenchmarkConfig {
     return getConsistentRepresentative(variants).getSuite();
   }
 
-  public static boolean getCommonTimeWarmupRuns(List<BenchmarkConfig> variants) {
-    return getConsistentRepresentative(variants).hasTimeWarmupRuns();
-  }
-
   private static BenchmarkConfig getConsistentRepresentative(List<BenchmarkConfig> variants) {
     if (variants.isEmpty()) {
       throw new BenchmarkConfigError("Unexpected attempt to check consistency of empty collection");
@@ -63,8 +59,6 @@ public class BenchmarkConfig {
     private BenchmarkSuite suite = BenchmarkSuite.getDefault();
     private Collection<BenchmarkDependency> dependencies = new ArrayList<>();
     private int fromRevision = -1;
-
-    private boolean timeWarmupRuns = false;
 
     private Builder() {}
 
@@ -87,9 +81,6 @@ public class BenchmarkConfig {
       if (fromRevision < 0) {
         throw new Unreachable("Benchmark must specify from which golem revision it is valid");
       }
-      if (timeWarmupRuns && !metrics.contains(BenchmarkMetric.RunTimeRaw)) {
-        throw new Unreachable("Benchmark with warmup time must measure RunTimeRaw");
-      }
       return new BenchmarkConfig(
           name,
           method,
@@ -97,7 +88,6 @@ public class BenchmarkConfig {
           ImmutableSet.copyOf(metrics),
           suite,
           fromRevision,
-          timeWarmupRuns,
           dependencies);
     }
 
@@ -116,13 +106,18 @@ public class BenchmarkConfig {
       return this;
     }
 
-    public Builder measureRunTimeRaw() {
+    public Builder measureRunTime() {
       metrics.add(BenchmarkMetric.RunTimeRaw);
       return this;
     }
 
     public Builder measureCodeSize() {
       metrics.add(BenchmarkMetric.CodeSize);
+      return this;
+    }
+
+    public Builder measureWarmup() {
+      metrics.add(BenchmarkMetric.StartupTime);
       return this;
     }
 
@@ -133,11 +128,6 @@ public class BenchmarkConfig {
 
     public Builder setFromRevision(int fromRevision) {
       this.fromRevision = fromRevision;
-      return this;
-    }
-
-    public Builder timeWarmupRuns() {
-      this.timeWarmupRuns = true;
       return this;
     }
 
@@ -157,7 +147,6 @@ public class BenchmarkConfig {
   private final BenchmarkSuite suite;
   private final Collection<BenchmarkDependency> dependencies;
   private final int fromRevision;
-  private final boolean timeWarmupRuns;
 
   private BenchmarkConfig(
       String name,
@@ -166,14 +155,12 @@ public class BenchmarkConfig {
       ImmutableSet<BenchmarkMetric> metrics,
       BenchmarkSuite suite,
       int fromRevision,
-      boolean timeWarmupRuns,
       Collection<BenchmarkDependency> dependencies) {
     this.id = new BenchmarkIdentifier(name, target);
     this.method = benchmarkMethod;
     this.metrics = metrics;
     this.suite = suite;
     this.fromRevision = fromRevision;
-    this.timeWarmupRuns = timeWarmupRuns;
     this.dependencies = dependencies;
   }
 
@@ -183,13 +170,6 @@ public class BenchmarkConfig {
 
   public String getName() {
     return id.getName();
-  }
-
-  public String getWarmupName() {
-    if (!timeWarmupRuns) {
-      throw new BenchmarkConfigError("Invalid attempt at getting warmup benchmark name");
-    }
-    return getName() + "Warmup";
   }
 
   public BenchmarkTarget getTarget() {
@@ -213,7 +193,7 @@ public class BenchmarkConfig {
   }
 
   public boolean hasTimeWarmupRuns() {
-    return timeWarmupRuns;
+    return hasMetric(BenchmarkMetric.StartupTime);
   }
 
   public Collection<BenchmarkDependency> getDependencies() {

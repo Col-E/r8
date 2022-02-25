@@ -5,7 +5,8 @@ package com.android.tools.r8.benchmarks;
 
 public enum BenchmarkMetric {
   RunTimeRaw,
-  CodeSize;
+  CodeSize,
+  StartupTime;
 
   public String getDartType() {
     return "Metric." + name();

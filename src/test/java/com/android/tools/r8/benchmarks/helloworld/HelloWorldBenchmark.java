@@ -45,6 +45,7 @@ public class HelloWorldBenchmark extends BenchmarkBase {
   }
 
   // Options/parameter setup to define variants of the benchmark above.
+  // Other benchmarks may not need this kind of options. It is just to help create the variants.
   private static class Options {
     final BenchmarkTarget target;
     final Backend backend;
@@ -78,7 +79,7 @@ public class HelloWorldBenchmark extends BenchmarkBase {
                 .setName(options.getName())
                 .setTarget(target)
                 // The benchmark is required to have at least one metric.
-                .measureRunTimeRaw()
+                .measureRunTime()
                 .measureCodeSize()
                 // The benchmark is required to have a runner method which defines the actual
                 // execution.
@@ -88,7 +89,7 @@ public class HelloWorldBenchmark extends BenchmarkBase {
                 .setFromRevision(12150)
                 // The benchmark can optionally time the warmup. This is not needed to use a warmup
                 // in the actual run, only to include it as its own benchmark entry on golem.
-                .timeWarmupRuns();
+                .measureWarmup();
         // If compiling with a library it needs to be added as a dependency.
         if (options.library != null) {
           builder.addDependency(options.library);
@@ -110,7 +111,7 @@ public class HelloWorldBenchmark extends BenchmarkBase {
                         .setMinApi(options.minApi)
                         .addLibraryFiles(getLibraryFiles(options, environment))
                         .addProgramClasses(TestClass.class)
-                        // Compile and emit RunTimeRaw measure.
+                        // Compile and measure the run time.
                         .benchmarkCompile(results)
                         // Measure the output size.
                         .benchmarkCodeSize(results));
@@ -130,7 +131,7 @@ public class HelloWorldBenchmark extends BenchmarkBase {
                         .setMinApi(options.minApi)
                         .addProgramClasses(TestClass.class)
                         .addKeepMainRule(TestClass.class)
-                        // Compile and emit RunTimeRaw measure.
+                        // Compile and measure the run time.
                         .benchmarkCompile(results)
                         // Measure the output size.
                         .benchmarkCodeSize(results));

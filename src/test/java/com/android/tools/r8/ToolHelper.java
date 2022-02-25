@@ -1292,7 +1292,7 @@ public class ToolHelper {
     R8.runForTesting(command.getInputApp(), internalOptions);
     if (benchmarkResults != null) {
       long end = System.nanoTime();
-      benchmarkResults.addRuntimeRawResult(end - start);
+      benchmarkResults.addRuntimeResult(end - start);
     }
   }
 
@@ -1385,7 +1385,7 @@ public class ToolHelper {
     D8.runForTesting(command.getInputApp(), options);
     if (benchmarkResults != null) {
       long end = System.nanoTime();
-      benchmarkResults.addRuntimeRawResult(end - start);
+      benchmarkResults.addRuntimeResult(end - start);
     }
     return compatSink.build();
   }

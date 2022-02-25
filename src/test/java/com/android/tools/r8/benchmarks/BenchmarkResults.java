@@ -9,8 +9,8 @@ import it.unimi.dsi.fastutil.longs.LongList;
 
 public class BenchmarkResults {
 
-  private final boolean isWarmupResults;
-  private final LongList runtimeRawResults = new LongArrayList();
+  private final BenchmarkMetric runtimeMetric;
+  private final LongList runtimeResults = new LongArrayList();
   private final LongList codeSizeResults = new LongArrayList();
 
   public static BenchmarkResults create() {
@@ -22,15 +22,19 @@ public class BenchmarkResults {
   }
 
   private BenchmarkResults(boolean isWarmupResults) {
-    this.isWarmupResults = isWarmupResults;
+    this.runtimeMetric = isWarmupResults ? BenchmarkMetric.StartupTime : BenchmarkMetric.RunTimeRaw;
+  }
+
+  private boolean isWarmupResults() {
+    return runtimeMetric == BenchmarkMetric.StartupTime;
   }
 
   private String getName(BenchmarkConfig config) {
-    return isWarmupResults ? config.getWarmupName() : config.getName();
+    return config.getName();
   }
 
-  public void addRuntimeRawResult(long result) {
-    runtimeRawResults.add(result);
+  public void addRuntimeResult(long result) {
+    runtimeResults.add(result);
   }
 
   public void addCodeSizeResult(long result) {
@@ -53,7 +57,7 @@ public class BenchmarkResults {
     verifyMetric(
         BenchmarkMetric.RunTimeRaw,
         config.getMetrics().contains(BenchmarkMetric.RunTimeRaw),
-        !runtimeRawResults.isEmpty());
+        !runtimeResults.isEmpty());
     verifyMetric(
         BenchmarkMetric.CodeSize,
         config.getMetrics().contains(BenchmarkMetric.CodeSize),
@@ -64,8 +68,9 @@ public class BenchmarkResults {
     return "" + (nanoTime / 1000000) + " ms";
   }
 
-  private void printRunTimeRaw(BenchmarkConfig config, long duration) {
-    System.out.println(getName(config) + "(RunTimeRaw): " + prettyTime(duration));
+  private void printRunTime(BenchmarkConfig config, long duration) {
+    String metric = runtimeMetric.name();
+    System.out.println(getName(config) + "(" + metric + "): " + prettyTime(duration));
   }
 
   private void printCodeSize(BenchmarkConfig config, long bytes) {
@@ -74,15 +79,15 @@ public class BenchmarkResults {
 
   public void printResults(ResultMode mode, BenchmarkConfig config) {
     verifyConfigAndResults(config);
-    if (config.hasMetric(BenchmarkMetric.RunTimeRaw)) {
-      long sum = runtimeRawResults.stream().mapToLong(l -> l).sum();
+    if (config.hasMetric(runtimeMetric)) {
+      long sum = runtimeResults.stream().mapToLong(l -> l).sum();
       if (mode == ResultMode.SUM) {
-        printRunTimeRaw(config, sum);
+        printRunTime(config, sum);
       } else if (mode == ResultMode.AVERAGE) {
-        printRunTimeRaw(config, sum / runtimeRawResults.size());
+        printRunTime(config, sum / runtimeResults.size());
       }
     }
-    if (!isWarmupResults && config.hasMetric(BenchmarkMetric.CodeSize)) {
+    if (!isWarmupResults() && config.hasMetric(BenchmarkMetric.CodeSize)) {
       long size = codeSizeResults.getLong(0);
       for (int i = 1; i < codeSizeResults.size(); i++) {
         if (size != codeSizeResults.getLong(i)) {
