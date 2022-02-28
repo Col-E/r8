@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion;
 
-import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -23,7 +26,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -31,11 +34,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 public class HumanToMachineSpecificationConverter {
 
-  private AppInfoWithClassHierarchy appInfo;
-  private Reporter reporter;
+  private AppView<?> appView;
   private final Set<DexType> missingCustomConversions = Sets.newIdentityHashSet();
   private final Timing timing;
 
@@ -44,30 +47,55 @@ public class HumanToMachineSpecificationConverter {
   }
 
   public MachineDesugaredLibrarySpecification convert(
-      HumanDesugaredLibrarySpecification humanSpec, AndroidApp inputApp, InternalOptions options)
+      HumanDesugaredLibrarySpecification humanSpec,
+      List<ProgramResourceProvider> desugaredJDKLib,
+      List<ClassFileResourceProvider> library,
+      InternalOptions options)
       throws IOException {
-    DexApplication app =
-        AppForSpecConversion.readApp(inputApp, options, humanSpec.isLibraryCompilation(), timing);
-    return convert(humanSpec, app);
+    timing.begin("Human to machine convert");
+    assert !humanSpec.isLibraryCompilation() || desugaredJDKLib != null;
+    AndroidApp.Builder builder = AndroidApp.builder();
+    for (ClassFileResourceProvider classFileResourceProvider : library) {
+      builder.addLibraryResourceProvider(classFileResourceProvider);
+    }
+    if (humanSpec.isLibraryCompilation()) {
+      for (ProgramResourceProvider programResourceProvider : desugaredJDKLib) {
+        builder.addProgramResourceProvider(programResourceProvider);
+      }
+    }
+    MachineDesugaredLibrarySpecification machineSpec =
+        internalConvert(humanSpec, builder.build(), options);
+    timing.end();
+    return machineSpec;
   }
 
-  public MachineDesugaredLibrarySpecification convertForTesting(
+  public MachineDesugaredLibrarySpecification convert(
       HumanDesugaredLibrarySpecification humanSpec,
       Path desugaredJDKLib,
       Path androidLib,
       InternalOptions options)
       throws IOException {
-    DexApplication app =
-        AppForSpecConversion.readAppForTesting(
-            desugaredJDKLib, androidLib, options, humanSpec.isLibraryCompilation(), timing);
-    return convert(humanSpec, app);
+    timing.begin("Human to machine convert");
+    assert !humanSpec.isLibraryCompilation() || desugaredJDKLib != null;
+    AndroidApp.Builder builder = AndroidApp.builder();
+    if (humanSpec.isLibraryCompilation()) {
+      builder.addProgramFile(desugaredJDKLib);
+    }
+    AndroidApp inputApp = builder.addLibraryFile(androidLib).build();
+    MachineDesugaredLibrarySpecification machineSpec =
+        internalConvert(humanSpec, inputApp, options);
+    timing.end();
+    return machineSpec;
   }
 
-  private MachineDesugaredLibrarySpecification convert(
-      HumanDesugaredLibrarySpecification humanSpec, DexApplication app) {
-    timing.begin("Human to machine convert");
-    reporter = app.options.reporter;
-    appInfo = AppInfoWithClassHierarchy.createForDesugaring(AppInfo.createInitialAppInfo(app));
+  private MachineDesugaredLibrarySpecification internalConvert(
+      HumanDesugaredLibrarySpecification humanSpec, AndroidApp inputApp, InternalOptions options)
+      throws IOException {
+    timing.begin("internal convert");
+    DexApplication app = readApp(inputApp, options);
+    timing.begin("appView creation");
+    appView = AppView.createForD8(AppInfo.createInitialAppInfo(app));
+    timing.end();
     LibraryValidator.validate(
         app,
         humanSpec.isLibraryCompilation(),
@@ -94,9 +122,9 @@ public class HumanToMachineSpecificationConverter {
   private MachineRewritingFlags convertRewritingFlags(
       String synthesizedPrefix, HumanRewritingFlags rewritingFlags) {
     timing.begin("convert rewriting flags");
+    AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
-    DesugaredLibraryAmender.run(
-        appInfo, reporter, ComputedApiLevel.unknown(), rewritingFlags.getAmendLibraryMethod());
+    DesugaredLibraryAmender.run(appView, rewritingFlags.getAmendLibraryMethod());
     rewritingFlags.getAmendLibraryMethod().forEach(builder::amendLibraryMethod);
     new HumanToMachineRetargetConverter(appInfo)
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
@@ -143,6 +171,18 @@ public class HumanToMachineSpecificationConverter {
     builder.putCustomConversion(type, new CustomConversionDescriptor(toMethod, fromMethod));
   }
 
+  private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {
+    timing.begin("Read app");
+    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    assert !options.ignoreJavaLibraryOverride;
+    options.ignoreJavaLibraryOverride = true;
+    DexApplication app = applicationReader.read(executorService);
+    options.ignoreJavaLibraryOverride = false;
+    timing.end();
+    return app;
+  }
+
   void warnMissingReferences(String message, Set<? extends DexReference> missingReferences) {
     List<DexReference> memberList = new ArrayList<>(missingReferences);
     memberList.sort(DexReference::compareTo);
@@ -159,6 +199,6 @@ public class HumanToMachineSpecificationConverter {
     if (memberList.isEmpty()) {
       return;
     }
-    reporter.warning("Specification conversion: " + message + memberList);
+    appView.options().reporter.warning("Specification conversion: " + message + memberList);
   }
 }

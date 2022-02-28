@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -21,6 +23,14 @@ public interface DesugaredLibrarySpecification {
 
   default boolean isLegacy() {
     return false;
+  }
+
+  default LegacyDesugaredLibrarySpecification asLegacyDesugaredLibrarySpecification() {
+    return null;
+  }
+
+  default HumanDesugaredLibrarySpecification asHumanDesugaredLibrarySpecification() {
+    return null;
   }
 
   boolean isEmpty();

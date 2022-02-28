@@ -59,11 +59,7 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
                 StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()));
 
     MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1 =
-        converter.convertAllAPILevels(
-            spec,
-            ToolHelper.getDesugarJDKLibs(),
-            ToolHelper.getAndroidJar(getRequiredCompilationAPILevel()),
-            options);
+        converter.convertAllAPILevels(spec, ToolHelper.getAndroidJar(31), options);
 
     Box<String> json = new Box<>();
     MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter.export(

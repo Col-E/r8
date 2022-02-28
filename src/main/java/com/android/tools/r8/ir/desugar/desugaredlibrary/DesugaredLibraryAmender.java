@@ -4,14 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
-import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.utils.Reporter;
 import java.util.Map;
 
 /**
@@ -21,34 +18,21 @@ import java.util.Map;
  */
 public class DesugaredLibraryAmender {
 
-  private final DexDefinitionSupplier definitions;
-  private final Reporter reporter;
-  private final ComputedApiLevel minAPILevel;
+  private final AppView<?> appView;
 
   public static void run(AppView<?> appView) {
-    run(
-        appView,
-        appView.options().reporter,
-        appView.computedMinApiLevel(),
-        appView.options().machineDesugaredLibrarySpecification.getAmendLibraryMethods());
+    run(appView, appView.options().machineDesugaredLibrarySpecification.getAmendLibraryMethods());
   }
 
-  public static void run(
-      DexDefinitionSupplier definitions,
-      Reporter reporter,
-      ComputedApiLevel minAPILevel,
-      Map<DexMethod, MethodAccessFlags> amendLibrary) {
+  public static void run(AppView<?> appView, Map<DexMethod, MethodAccessFlags> amendLibrary) {
     if (amendLibrary.isEmpty()) {
       return;
     }
-    new DesugaredLibraryAmender(definitions, reporter, minAPILevel).run(amendLibrary);
+    new DesugaredLibraryAmender(appView).run(amendLibrary);
   }
 
-  private DesugaredLibraryAmender(
-      DexDefinitionSupplier definitions, Reporter reporter, ComputedApiLevel minAPILevel) {
-    this.definitions = definitions;
-    this.reporter = reporter;
-    this.minAPILevel = minAPILevel;
+  private DesugaredLibraryAmender(AppView<?> appView) {
+    this.appView = appView;
   }
 
   private void run(Map<DexMethod, MethodAccessFlags> amendLibrary) {
@@ -56,14 +40,17 @@ public class DesugaredLibraryAmender {
   }
 
   private void amendLibraryMethod(DexMethod method, MethodAccessFlags methodAccessFlags) {
-    DexClass dexClass = definitions.contextIndependentDefinitionFor(method.getHolderType());
+    DexClass dexClass = appView.contextIndependentDefinitionFor(method.getHolderType());
     if (dexClass == null || !dexClass.isLibraryClass()) {
       // Consider just throwing an error.
-      reporter.warning(
-          "Desugared library: Cannot amend library method "
-              + method
-              + " because the holder is not a library class"
-              + (dexClass == null ? "(null)." : "."));
+      appView
+          .options()
+          .reporter
+          .warning(
+              "Desugared library: Cannot amend library method "
+                  + method
+                  + " because the holder is not a library class"
+                  + (dexClass == null ? "(null)." : "."));
       return;
     }
     if (dexClass.lookupMethod(method) != null) {
@@ -74,7 +61,7 @@ public class DesugaredLibraryAmender {
             .setMethod(method)
             .setAccessFlags(methodAccessFlags)
             .setCode(null)
-            .setApiLevelForDefinition(minAPILevel)
+            .setApiLevelForDefinition(appView.computedMinApiLevel())
             .build();
     dexClass.getMethodCollection().addMethod(encodedMethod);
   }
