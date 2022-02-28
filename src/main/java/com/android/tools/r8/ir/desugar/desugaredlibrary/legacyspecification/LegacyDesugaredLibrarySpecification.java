@@ -15,7 +15,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -46,11 +45,6 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
   @Override
   public boolean isLegacy() {
     return true;
-  }
-
-  @Override
-  public LegacyDesugaredLibrarySpecification asLegacyDesugaredLibrarySpecification() {
-    return this;
   }
 
   public LegacyTopLevelFlags getTopLevelFlags() {
@@ -84,18 +78,6 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
     return topLevelFlags.getIdentifier();
   }
 
-  public Map<String, String> getRewritePrefix() {
-    return rewritingFlags.getRewritePrefix();
-  }
-
-  public boolean hasEmulatedLibraryInterfaces() {
-    return !getEmulateLibraryInterface().isEmpty();
-  }
-
-  public Map<DexType, DexType> getEmulateLibraryInterface() {
-    return rewritingFlags.getEmulateLibraryInterface();
-  }
-
   // If the method is retargeted, answers the retargeted method, else null.
   public DexMethod retargetMethod(DexEncodedMethod method, AppView<?> appView) {
     Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
@@ -116,14 +98,6 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
     return retargetMethod(method.getDefinition(), appView);
   }
 
-  public Map<DexString, Map<DexType, DexType>> getRetargetCoreLibMember() {
-    return rewritingFlags.getRetargetCoreLibMember();
-  }
-
-  public Map<DexType, DexType> getBackportCoreLibraryMember() {
-    return rewritingFlags.getBackportCoreLibraryMember();
-  }
-
   public Map<DexType, DexType> getCustomConversions() {
     return rewritingFlags.getCustomConversions();
   }
@@ -132,13 +106,6 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
     return rewritingFlags.getWrapperConversions();
   }
 
-  public List<Pair<DexType, DexString>> getDontRewriteInvocation() {
-    return rewritingFlags.getDontRewriteInvocation();
-  }
-
-  public Set<DexType> getDontRetargetLibMember() {
-    return rewritingFlags.getDontRetargetLibMember();
-  }
 
   @Override
   public List<String> getExtraKeepRules() {
@@ -154,7 +121,7 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
   public MachineDesugaredLibrarySpecification toMachineSpecification(
       InternalOptions options, AndroidApp app, Timing timing) throws IOException {
     return new LegacyToHumanSpecificationConverter(timing)
-        .convert(this, app.getLibraryResourceProviders(), options)
+        .convert(this, app, options)
         .toMachineSpecification(options, app, timing);
   }
 
@@ -163,7 +130,7 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
       InternalOptions options, Path library, Path desugaredJDKLib, Timing timing)
       throws IOException {
     return new LegacyToHumanSpecificationConverter(timing)
-        .convert(this, library, options)
+        .convertForTesting(this, desugaredJDKLib, library, options)
         .toMachineSpecification(options, library, desugaredJDKLib, timing);
   }
 }
