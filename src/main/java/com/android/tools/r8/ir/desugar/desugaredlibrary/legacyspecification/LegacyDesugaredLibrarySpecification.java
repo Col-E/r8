@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -152,18 +151,17 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app, Timing timing) throws IOException {
-    return new LegacyToHumanSpecificationConverter(timing)
+      InternalOptions options, AndroidApp app) throws IOException {
+    return new LegacyToHumanSpecificationConverter()
         .convert(this, app.getLibraryResourceProviders(), options)
-        .toMachineSpecification(options, app, timing);
+        .toMachineSpecification(options, app);
   }
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Path desugaredJDKLib, Timing timing)
-      throws IOException {
-    return new LegacyToHumanSpecificationConverter(timing)
+      InternalOptions options, Path library, Path desugaredJDKLib) throws IOException {
+    return new LegacyToHumanSpecificationConverter()
         .convert(this, library, options)
-        .toMachineSpecification(options, library, desugaredJDKLib, timing);
+        .toMachineSpecification(options, library, desugaredJDKLib);
   }
 }

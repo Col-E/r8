@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.MethodResolutionResult;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
@@ -26,10 +28,12 @@ import java.util.function.BiConsumer;
 public class HumanToMachineRetargetConverter {
 
   private final AppInfoWithClassHierarchy appInfo;
+  private final SubtypingInfo subtypingInfo;
   private final Set<DexMethod> missingMethods = Sets.newIdentityHashSet();
 
   public HumanToMachineRetargetConverter(AppInfoWithClassHierarchy appInfo) {
     this.appInfo = appInfo;
+    subtypingInfo = SubtypingInfo.create(appInfo);
   }
 
   public void convertRetargetFlags(
@@ -87,10 +91,29 @@ public class HumanToMachineRetargetConverter {
     DerivedMethod dispatchMethod =
         new DerivedMethod(src.getReference(), SyntheticKind.RETARGET_CLASS);
     LinkedHashMap<DexType, DerivedMethod> dispatchCases = new LinkedHashMap<>();
+    assert validateNoOverride(src, appInfo, subtypingInfo);
     builder.putEmulatedVirtualRetarget(
         src.getReference(),
         new EmulatedDispatchMethodDescriptor(
             interfaceMethod, dispatchMethod, forwardingMethod, dispatchCases));
+  }
+
+  private boolean validateNoOverride(
+      DexEncodedMethod src, AppInfoWithClassHierarchy appInfo, SubtypingInfo subtypingInfo) {
+    for (DexType subtype : subtypingInfo.subtypes(src.getHolderType())) {
+      DexClass subclass = appInfo.definitionFor(subtype);
+      MethodResolutionResult resolutionResult =
+          appInfo.resolveMethodOn(subclass, src.getReference());
+      // The resolution is not successful when compiling to dex if the method rewritten is missing
+      // in Android.jar.
+      assert !resolutionResult.isSuccessfulMemberResolutionResult()
+          || resolutionResult.getResolvedMethod().getReference() == src.getReference()
+          // There is a difference in the sql library between Android.jar and the JDK which leads
+          // to this resolution when compiling Cf to Cf while the methods do not exist in Android.
+          || (resolutionResult.getResolvedMethod().getHolderType().toString().contains("java.sql")
+              && resolutionResult.getResolvedMethod().getName().toString().equals("toInstant"));
+    }
+    return true;
   }
 
   private boolean isEmulatedInterfaceDispatch(
@@ -123,10 +146,19 @@ public class HumanToMachineRetargetConverter {
       DexEncodedMethod foundMethod,
       DexType type,
       AppInfoWithClassHierarchy appInfo,
+      SubtypingInfo subtypingInfo,
       BiConsumer<DexMethod, DexMethod> consumer) {
     DexMethod src = foundMethod.getReference();
     DexMethod dest = src.withHolder(type, appInfo.dexItemFactory());
     consumer.accept(src, dest);
+    for (DexType subtype : subtypingInfo.subtypes(foundMethod.getHolderType())) {
+      DexClass subclass = appInfo.definitionFor(subtype);
+      MethodResolutionResult resolutionResult = appInfo.resolveMethodOn(subclass, src);
+      if (resolutionResult.isSuccessfulMemberResolutionResult()
+          && resolutionResult.getResolvedMethod().getReference() == src) {
+        consumer.accept(src.withHolder(subtype, appInfo.dexItemFactory()), dest);
+      }
+    }
   }
 
   private void convertNonEmulatedVirtualRetarget(
@@ -135,6 +167,7 @@ public class HumanToMachineRetargetConverter {
         foundMethod,
         type,
         appInfo,
+        subtypingInfo,
         (src, dest) ->
             builder.putNonEmulatedVirtualRetarget(
                 src,
@@ -144,6 +177,7 @@ public class HumanToMachineRetargetConverter {
 
   private void convertStaticRetarget(
       MachineRewritingFlags.Builder builder, DexEncodedMethod foundMethod, DexType type) {
-    convertNonEmulatedRetarget(foundMethod, type, appInfo, builder::putStaticRetarget);
+    convertNonEmulatedRetarget(
+        foundMethod, type, appInfo, subtypingInfo, builder::putStaticRetarget);
   }
 }

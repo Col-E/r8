@@ -50,13 +50,8 @@ import java.util.concurrent.ExecutorService;
 
 public class LegacyToHumanSpecificationConverter {
 
-  private static final String WRAPPER_PREFIX = "__wrapper__.";
-  private static final AndroidApiLevel LEGACY_HACK_LEVEL = AndroidApiLevel.N_MR1;
-  private final Timing timing;
-
-  public LegacyToHumanSpecificationConverter(Timing timing) {
-    this.timing = timing;
-  }
+  private static final String wrapperPrefix = "__wrapper__.";
+  private AndroidApiLevel legacyHackLevel = AndroidApiLevel.N_MR1;
 
   public void convertAllAPILevels(
       StringResource inputSpecification, Path androidLib, StringConsumer output)
@@ -76,7 +71,6 @@ public class LegacyToHumanSpecificationConverter {
       Path androidLib,
       InternalOptions options)
       throws IOException {
-    timing.begin("Legacy to human all API convert");
     Origin origin = legacySpec.getOrigin();
     AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
     DexApplication app = readApp(androidApp, options);
@@ -95,7 +89,6 @@ public class LegacyToHumanSpecificationConverter {
             origin, humanTopLevelFlags, commonFlags, libraryFlags, programFlags);
     MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator.deduplicateFlags(
         humanSpec, options.reporter);
-    timing.end();
     return humanSpec;
   }
 
@@ -104,31 +97,23 @@ public class LegacyToHumanSpecificationConverter {
       List<ClassFileResourceProvider> library,
       InternalOptions options)
       throws IOException {
-    timing.begin("Legacy to human convert");
     AndroidApp.Builder builder = AndroidApp.builder();
     for (ClassFileResourceProvider classFileResourceProvider : library) {
       builder.addLibraryResourceProvider(classFileResourceProvider);
     }
-    HumanDesugaredLibrarySpecification humanSpec =
-        internalConvert(legacySpec, builder.build(), options);
-    timing.end();
-    return humanSpec;
+    return internalConvert(legacySpec, builder.build(), options);
   }
 
   public HumanDesugaredLibrarySpecification convert(
       LegacyDesugaredLibrarySpecification legacySpec, Path androidLib, InternalOptions options)
       throws IOException {
-    timing.begin("Legacy to human convert");
     AndroidApp androidApp = AndroidApp.builder().addLibraryFile(androidLib).build();
-    HumanDesugaredLibrarySpecification humanSpec = internalConvert(legacySpec, androidApp, options);
-    timing.end();
-    return humanSpec;
+    return internalConvert(legacySpec, androidApp, options);
   }
 
   public HumanDesugaredLibrarySpecification internalConvert(
       LegacyDesugaredLibrarySpecification legacySpec, AndroidApp inputApp, InternalOptions options)
       throws IOException {
-    timing.begin("internal convert");
     DexApplication app = readApp(inputApp, options);
     LibraryValidator.validate(
         app,
@@ -142,24 +127,20 @@ public class LegacyToHumanSpecificationConverter {
     Origin origin = Origin.unknown();
     HumanRewritingFlags humanRewritingFlags =
         convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
-    if (options.getMinApiLevel().isLessThanOrEqualTo(LEGACY_HACK_LEVEL)
+    if (options.getMinApiLevel().isLessThanOrEqualTo(legacyHackLevel)
         && legacySpec.isLibraryCompilation()) {
-      timing.begin("Legacy hacks");
       HumanRewritingFlags.Builder builder =
           humanRewritingFlags.newBuilder(app.options.reporter, origin);
       legacyLibraryFlagHacks(app.dexItemFactory(), builder);
       humanRewritingFlags = builder.build();
-      timing.end();
     }
-
-    timing.end();
     return new HumanDesugaredLibrarySpecification(
         humanTopLevelFlags, humanRewritingFlags, legacySpec.isLibraryCompilation());
   }
 
   private void legacyLibraryFlagHacks(
       Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
-    int level = LEGACY_HACK_LEVEL.getLevel();
+    int level = legacyHackLevel.getLevel();
     HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
     if (humanRewritingFlags == null) {
       // Skip CHM only configuration.
@@ -203,12 +184,9 @@ public class LegacyToHumanSpecificationConverter {
   }
 
   private DexApplication readApp(AndroidApp inputApp, InternalOptions options) throws IOException {
-    timing.begin("Read app");
-    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
+    ApplicationReader applicationReader = new ApplicationReader(inputApp, options, Timing.empty());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    DexApplication app = applicationReader.read(executorService);
-    timing.end();
-    return app;
+    return applicationReader.read(executorService).toDirect();
   }
 
   private Int2ObjectArrayMap<HumanRewritingFlags> convertRewritingFlagMap(
@@ -220,7 +198,6 @@ public class LegacyToHumanSpecificationConverter {
 
   private HumanRewritingFlags convertRewritingFlags(
       LegacyRewritingFlags flags, DexApplication app, Origin origin) {
-    timing.begin("Convert rewriting flags");
     HumanRewritingFlags.Builder builder = HumanRewritingFlags.builder(app.options.reporter, origin);
 
     flags
@@ -231,17 +208,15 @@ public class LegacyToHumanSpecificationConverter {
     flags.getCustomConversions().forEach(builder::putCustomConversion);
     flags.getDontRetargetLibMember().forEach(builder::addDontRetargetLibMember);
     flags.getWrapperConversions().forEach(builder::addWrapperConversion);
-    timing.begin("Convert retarget");
+
     flags
         .getRetargetCoreLibMember()
         .forEach((name, typeMap) -> convertRetargetCoreLibMember(builder, app, name, typeMap));
-    timing.end();
     flags
         .getDontRewriteInvocation()
         .forEach(pair -> convertDontRewriteInvocation(builder, app, pair));
-    HumanRewritingFlags humanFlags = builder.build();
-    timing.end();
-    return humanFlags;
+
+    return builder.build();
   }
 
   private void rewritePrefix(HumanRewritingFlags.Builder builder, String prefix, String rewritten) {
@@ -252,14 +227,14 @@ public class LegacyToHumanSpecificationConverter {
       builder.putRewriteDerivedPrefix(rewritten, prefix, rewritten);
       return;
     }
-    if (prefix.equals(WRAPPER_PREFIX)) {
+    if (prefix.equals(wrapperPrefix)) {
       // We hard code here this applies to java.nio and java.io only.
       ImmutableMap<String, String> map =
           ImmutableMap.of("java.nio.", "j$.nio.", "java.io.", "j$.io.");
       map.forEach(
           (k, v) -> {
-            builder.putRewriteDerivedPrefix(k, WRAPPER_PREFIX + k, k);
-            builder.putRewriteDerivedPrefix(k, WRAPPER_PREFIX + v, v);
+            builder.putRewriteDerivedPrefix(k, wrapperPrefix + k, k);
+            builder.putRewriteDerivedPrefix(k, wrapperPrefix + v, v);
           });
       return;
     }

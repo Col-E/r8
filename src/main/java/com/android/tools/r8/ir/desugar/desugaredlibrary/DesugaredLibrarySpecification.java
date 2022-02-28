@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -46,15 +45,14 @@ public interface DesugaredLibrarySpecification {
   AndroidApiLevel getRequiredCompilationApiLevel();
 
   MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app, Timing timing) throws IOException;
+      InternalOptions options, AndroidApp app) throws IOException;
 
   MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Path desugaredJDKLib, Timing timing)
-      throws IOException;
+      InternalOptions options, Path library, Path desugaredJDKLib) throws IOException;
 
   default MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Timing timing) throws IOException {
+      InternalOptions options, Path library) throws IOException {
     assert !isLibraryCompilation();
-    return toMachineSpecification(options, library, null, timing);
+    return toMachineSpecification(options, library, null);
   }
 }

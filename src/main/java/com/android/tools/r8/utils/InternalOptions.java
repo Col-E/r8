@@ -896,13 +896,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return;
     }
     try {
-      // TODO(b/221224178): Move the timing to top level timing in D8, R8 and L8.
-      Timing timing = Timing.create("Desugared library specification conversion", this);
-      machineDesugaredLibrarySpecification =
-          specification.toMachineSpecification(this, app, timing);
-      if (printTimes) {
-        timing.report();
-      }
+      machineDesugaredLibrarySpecification = specification.toMachineSpecification(this, app);
     } catch (IOException e) {
       reporter.error(new ExceptionDiagnostic(e, Origin.unknown()));
     }
@@ -914,13 +908,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     if (specification.isEmpty()) {
       return;
     }
-    // TODO(b/221224178): Move the timing to top level timing in D8, R8 and L8.
-    Timing timing = Timing.create("Desugared library specification conversion", this);
     machineDesugaredLibrarySpecification =
-        specification.toMachineSpecification(this, library, desugaredJDKLib, timing);
-    if (printTimes) {
-      timing.report();
-    }
+        specification.toMachineSpecification(this, library, desugaredJDKLib);
   }
 
   // Contains flags describing library desugaring.

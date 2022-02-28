@@ -26,7 +26,6 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -140,8 +139,7 @@ public class ExtractWrapperTypesTest extends DesugaredLibraryTestBase {
             false,
             minApi.getLevel());
     MachineDesugaredLibrarySpecification specification =
-        spec.toMachineSpecification(
-            new InternalOptions(factory, new Reporter()), getLibraryFile(), Timing.empty());
+        spec.toMachineSpecification(new InternalOptions(factory, new Reporter()), getLibraryFile());
     Set<String> wrappersInSpec =
         specification.getWrappers().keySet().stream()
             .map(DexType::toString)
