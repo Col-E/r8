@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.NewUnboxedEnumInstance;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
@@ -575,11 +576,12 @@ class EnumUnboxingTreeFixer {
         method.getName().toString() + (method.isNonPrivateVirtualMethod() ? "$enumunboxing$" : "");
     DexMethod newMethod = factory.createMethod(method.getHolderType(), newProto, newMethodName);
     newMethod = ensureUniqueMethod(method, newMethod);
-    int numberOfExtraNullParameters = newMethod.getArity() - method.getReference().getArity();
+    List<ExtraUnusedNullParameter> extraUnusedNullParameters =
+        ExtraUnusedNullParameter.computeExtraUnusedNullParameters(method.getReference(), newMethod);
     boolean isStatic = method.isStatic();
     RewrittenPrototypeDescription prototypeChanges =
         lensBuilder.move(
-            method.getReference(), newMethod, isStatic, isStatic, numberOfExtraNullParameters);
+            method.getReference(), newMethod, isStatic, isStatic, extraUnusedNullParameters);
     return method.toTypeSubstitutedMethod(
         newMethod,
         builder ->

@@ -6,22 +6,38 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.SingleNumberValue;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class ExtraUnusedNullParameter extends ExtraParameter {
 
   private final DexType type;
 
-  @Deprecated
-  public ExtraUnusedNullParameter() {
-    this(null);
-  }
-
   public ExtraUnusedNullParameter(DexType type) {
     this.type = type;
+  }
+
+  public static List<ExtraUnusedNullParameter> computeExtraUnusedNullParameters(
+      DexMethod from, DexMethod to) {
+    int numberOfExtraNullParameters = to.getArity() - from.getArity();
+    if (numberOfExtraNullParameters == 0) {
+      return Collections.emptyList();
+    }
+    List<ExtraUnusedNullParameter> extraUnusedNullParameters =
+        new ArrayList<>(numberOfExtraNullParameters);
+    for (int extraUnusedNullParameterIndex = from.getArity();
+        extraUnusedNullParameterIndex < to.getParameters().size();
+        extraUnusedNullParameterIndex++) {
+      DexType extraUnusedNullParameterType = to.getParameter(extraUnusedNullParameterIndex);
+      extraUnusedNullParameters.add(new ExtraUnusedNullParameter(extraUnusedNullParameterType));
+    }
+    return extraUnusedNullParameters;
   }
 
   @Override

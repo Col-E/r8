@@ -20,7 +20,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.conversion.ExtraParameter;
-import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
@@ -252,18 +251,12 @@ public class RewrittenPrototypeDescription {
         extraParameters, newRewrittenReturnInfo, argumentInfoCollection);
   }
 
-  public RewrittenPrototypeDescription withExtraUnusedNullParameters(
-      int numberOfExtraUnusedNullParameters) {
-    List<ExtraParameter> parameters =
-        Collections.nCopies(numberOfExtraUnusedNullParameters, new ExtraUnusedNullParameter());
-    return withExtraParameters(parameters);
-  }
-
   public RewrittenPrototypeDescription withExtraParameters(ExtraParameter... parameters) {
     return withExtraParameters(Arrays.asList(parameters));
   }
 
-  public RewrittenPrototypeDescription withExtraParameters(List<ExtraParameter> parameters) {
+  public RewrittenPrototypeDescription withExtraParameters(
+      List<? extends ExtraParameter> parameters) {
     if (parameters.isEmpty()) {
       return this;
     }

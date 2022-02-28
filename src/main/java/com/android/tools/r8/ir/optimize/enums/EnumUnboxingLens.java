@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.collections.BidirectionalOneToManyRepresentativeHashMap;
@@ -27,7 +28,9 @@ import com.android.tools.r8.utils.collections.BidirectionalOneToOneMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.MutableBidirectionalOneToOneMap;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -148,7 +151,7 @@ class EnumUnboxingLens extends NestedGraphLens {
     }
 
     public void move(DexMethod from, DexMethod to, boolean fromStatic, boolean toStatic) {
-      move(from, to, fromStatic, toStatic, 0);
+      move(from, to, fromStatic, toStatic, Collections.emptyList());
     }
 
     public RewrittenPrototypeDescription move(
@@ -156,7 +159,7 @@ class EnumUnboxingLens extends NestedGraphLens {
         DexMethod to,
         boolean fromStatic,
         boolean toStatic,
-        int numberOfExtraNullParameters) {
+        List<ExtraUnusedNullParameter> extraUnusedNullParameters) {
       assert from != to;
       newMethodSignatures.put(from, to);
       int offsetDiff = 0;
@@ -194,7 +197,7 @@ class EnumUnboxingLens extends NestedGraphLens {
                   .build();
       RewrittenPrototypeDescription prototypeChanges =
           RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build())
-              .withExtraUnusedNullParameters(numberOfExtraNullParameters);
+              .withExtraParameters(extraUnusedNullParameters);
       prototypeChangesPerMethod.put(to, prototypeChanges);
       return prototypeChanges;
     }

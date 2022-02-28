@@ -272,7 +272,8 @@ public class HorizontalClassMergerGraphLens extends NestedGraphLens {
       }
     }
 
-    void addExtraParameters(DexMethod methodSignature, List<ExtraParameter> extraParameters) {
+    void addExtraParameters(
+        DexMethod methodSignature, List<? extends ExtraParameter> extraParameters) {
       Set<DexMethod> originalMethodSignatures = methodMap.getKeys(methodSignature);
       if (originalMethodSignatures.isEmpty()) {
         methodExtraParameters

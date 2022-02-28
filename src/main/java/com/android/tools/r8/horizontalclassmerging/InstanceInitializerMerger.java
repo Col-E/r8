@@ -34,7 +34,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class InstanceInitializerMerger {
@@ -317,7 +316,11 @@ public class InstanceInitializerMerger {
             newMethodReferenceTemplate,
             mode.isInitial() ? syntheticArgumentClass.getArgumentClasses() : ImmutableList.of(),
             classMethodsBuilder::isFresh);
-    int extraNulls = newMethodReference.getArity() - newMethodReferenceTemplate.getArity();
+
+    // Compute the extra unused null parameters.
+    List<ExtraUnusedNullParameter> extraUnusedNullParameters =
+        ExtraUnusedNullParameter.computeExtraUnusedNullParameters(
+            newMethodReferenceTemplate, newMethodReference);
 
     // Verify that the merge is a simple renaming in the final round of merging.
     assert mode.isInitial() || newMethodReference == newMethodReferenceTemplate;
@@ -351,7 +354,7 @@ public class InstanceInitializerMerger {
         int classIdentifier = classIdentifiers.getInt(instanceInitializer.getHolderType());
         extraParameters.add(new ExtraConstantIntParameter(classIdentifier));
       }
-      extraParameters.addAll(Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
+      extraParameters.addAll(extraUnusedNullParameters);
       lensBuilder.mapMergedConstructor(
           instanceInitializer.getReference(), newMethodReference, extraParameters);
     }
@@ -362,7 +365,11 @@ public class InstanceInitializerMerger {
             .setMethod(newMethodReference)
             .setAccessFlags(getNewAccessFlags())
             .setCode(
-                getNewCode(newMethodReference, syntheticMethodReference, needsClassId, extraNulls))
+                getNewCode(
+                    newMethodReference,
+                    syntheticMethodReference,
+                    needsClassId,
+                    extraUnusedNullParameters.size()))
             .setClassFileVersion(getNewClassFileVersion())
             .setApiLevelForDefinition(representativeMethod.getApiLevelForDefinition())
             .setApiLevelForCode(representativeMethod.getApiLevelForCode())

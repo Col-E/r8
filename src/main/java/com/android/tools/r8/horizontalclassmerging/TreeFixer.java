@@ -30,7 +30,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -293,10 +292,10 @@ class TreeFixer extends TreeFixerBase {
                 newMethodReference,
                 syntheticArgumentClass.getArgumentClasses(),
                 tryMethod -> !newMethods.contains(tryMethod.getSignature()));
-        int extraNulls = newMethodReference.getArity() - originalMethodReference.getArity();
         lensBuilder.addExtraParameters(
             originalMethodReference,
-            Collections.nCopies(extraNulls, new ExtraUnusedNullParameter()));
+            ExtraUnusedNullParameter.computeExtraUnusedNullParameters(
+                originalMethodReference, newMethodReference));
       } else {
         newMethodReference =
             dexItemFactory.createFreshMethodNameWithoutHolder(
