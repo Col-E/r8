@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Cus
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineTopLevelFlags;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
@@ -43,14 +42,6 @@ public class HumanToMachineSpecificationConverter {
     this.timing = timing;
   }
 
-  public MachineDesugaredLibrarySpecification convert(
-      HumanDesugaredLibrarySpecification humanSpec, AndroidApp inputApp, InternalOptions options)
-      throws IOException {
-    DexApplication app =
-        AppForSpecConversion.readApp(inputApp, options, humanSpec.isLibraryCompilation(), timing);
-    return convert(humanSpec, app);
-  }
-
   public MachineDesugaredLibrarySpecification convertForTesting(
       HumanDesugaredLibrarySpecification humanSpec,
       Path desugaredJDKLib,
@@ -63,7 +54,7 @@ public class HumanToMachineSpecificationConverter {
     return convert(humanSpec, app);
   }
 
-  private MachineDesugaredLibrarySpecification convert(
+  public MachineDesugaredLibrarySpecification convert(
       HumanDesugaredLibrarySpecification humanSpec, DexApplication app) {
     timing.begin("Human to machine convert");
     reporter = app.options.reporter;
@@ -72,9 +63,7 @@ public class HumanToMachineSpecificationConverter {
         app,
         humanSpec.isLibraryCompilation(),
         humanSpec.getTopLevelFlags().getRequiredCompilationAPILevel());
-    MachineRewritingFlags machineRewritingFlags =
-        convertRewritingFlags(
-            humanSpec.getSynthesizedLibraryClassesPackagePrefix(), humanSpec.getRewritingFlags());
+    MachineRewritingFlags machineRewritingFlags = convertRewritingFlags(humanSpec);
     MachineTopLevelFlags topLevelFlags = convertTopLevelFlags(humanSpec.getTopLevelFlags());
     timing.end();
     return new MachineDesugaredLibrarySpecification(
@@ -92,8 +81,9 @@ public class HumanToMachineSpecificationConverter {
   }
 
   private MachineRewritingFlags convertRewritingFlags(
-      String synthesizedPrefix, HumanRewritingFlags rewritingFlags) {
+      HumanDesugaredLibrarySpecification humanSpec) {
     timing.begin("convert rewriting flags");
+    HumanRewritingFlags rewritingFlags = humanSpec.getRewritingFlags();
     MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
     DesugaredLibraryAmender.run(
         rewritingFlags.getAmendLibraryMethod(), appInfo, reporter, ComputedApiLevel.unknown());
@@ -102,7 +92,7 @@ public class HumanToMachineSpecificationConverter {
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)
         .convertEmulatedInterfaces(rewritingFlags, appInfo, builder, this::warnMissingReferences);
-    new HumanToMachinePrefixConverter(appInfo, builder, synthesizedPrefix, rewritingFlags)
+    new HumanToMachinePrefixConverter(appInfo, builder, humanSpec, rewritingFlags)
         .convertPrefixFlags(rewritingFlags, this::warnMissingDexString);
     new HumanToMachineWrapperConverter(appInfo)
         .convertWrappers(rewritingFlags, builder, this::warnMissingReferences);

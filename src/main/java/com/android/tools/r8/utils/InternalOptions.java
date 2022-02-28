@@ -35,6 +35,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -87,7 +88,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -890,37 +890,27 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // If non-null, configuration must be passed to the consumer.
   public StringConsumer configurationConsumer = null;
 
-  public void setDesugaredLibrarySpecification(
-      DesugaredLibrarySpecification specification, AndroidApp app) {
+  public void setDesugaredLibrarySpecification(DesugaredLibrarySpecification specification) {
     if (specification.isEmpty()) {
       return;
     }
-    try {
-      // TODO(b/221224178): Move the timing to top level timing in D8, R8 and L8.
-      Timing timing = Timing.create("Desugared library specification conversion", this);
-      machineDesugaredLibrarySpecification =
-          specification.toMachineSpecification(this, app, timing);
-      if (printTimes) {
-        timing.report();
-      }
-    } catch (IOException e) {
-      reporter.error(new ExceptionDiagnostic(e, Origin.unknown()));
-    }
+    loadMachineDesugaredLibrarySpecification =
+        (timing, app) ->
+            machineDesugaredLibrarySpecification =
+                specification.toMachineSpecification(app, timing);
   }
 
-  public void setDesugaredLibrarySpecificationForTesting(
-      DesugaredLibrarySpecification specification, Path desugaredJDKLib, Path library)
+  private ThrowingBiConsumer<Timing, DexApplication, IOException>
+      loadMachineDesugaredLibrarySpecification = null;
+
+  public void loadMachineDesugaredLibrarySpecification(Timing timing, DexApplication app)
       throws IOException {
-    if (specification.isEmpty()) {
+    if (loadMachineDesugaredLibrarySpecification == null) {
       return;
     }
-    // TODO(b/221224178): Move the timing to top level timing in D8, R8 and L8.
-    Timing timing = Timing.create("Desugared library specification conversion", this);
-    machineDesugaredLibrarySpecification =
-        specification.toMachineSpecification(this, library, timing, desugaredJDKLib);
-    if (printTimes) {
-      timing.report();
-    }
+    timing.begin("Load machine specification");
+    loadMachineDesugaredLibrarySpecification.accept(timing, app);
+    timing.end();
   }
 
   // Contains flags describing library desugaring.

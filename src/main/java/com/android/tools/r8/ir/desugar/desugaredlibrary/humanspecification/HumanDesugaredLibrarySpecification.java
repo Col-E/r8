@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -91,8 +91,8 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app, Timing timing) throws IOException {
-    return new HumanToMachineSpecificationConverter(timing).convert(this, app, options);
+      DexApplication app, Timing timing) {
+    return new HumanToMachineSpecificationConverter(timing).convert(this, app);
   }
 
   @Override

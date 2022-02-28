@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -35,8 +35,8 @@ public interface DesugaredLibrarySpecification {
 
   AndroidApiLevel getRequiredCompilationApiLevel();
 
-  MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app, Timing timing) throws IOException;
+  MachineDesugaredLibrarySpecification toMachineSpecification(DexApplication app, Timing timing)
+      throws IOException;
 
   MachineDesugaredLibrarySpecification toMachineSpecification(
       InternalOptions options, Path library, Timing timing, Path desugaredJDKLib)

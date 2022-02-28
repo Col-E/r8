@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion;
 
-import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.utils.AndroidApp;
@@ -17,25 +15,6 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
 public class AppForSpecConversion {
-  static DexApplication readApp(
-      AndroidApp inputApp, InternalOptions options, boolean libraryCompilation, Timing timing)
-      throws IOException {
-    timing.begin("Read App");
-    AndroidApp.Builder builder = AndroidApp.builder();
-    for (ClassFileResourceProvider classFileResourceProvider :
-        inputApp.getLibraryResourceProviders()) {
-      builder.addLibraryResourceProvider(classFileResourceProvider);
-    }
-    if (libraryCompilation) {
-      for (ProgramResourceProvider programResourceProvider :
-          inputApp.getProgramResourceProviders()) {
-        builder.addProgramResourceProvider(programResourceProvider);
-      }
-    }
-    DexApplication app = internalReadApp(builder.build(), options, timing);
-    timing.end();
-    return app;
-  }
 
   static DexApplication readAppForTesting(
       Path desugaredJDKLib,

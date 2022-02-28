@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -13,7 +14,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecific
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.LegacyToHumanSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -119,10 +119,10 @@ public class LegacyDesugaredLibrarySpecification implements DesugaredLibrarySpec
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app, Timing timing) throws IOException {
+      DexApplication app, Timing timing) throws IOException {
     return new LegacyToHumanSpecificationConverter(timing)
-        .convert(this, app, options)
-        .toMachineSpecification(options, app, timing);
+        .convert(this, app)
+        .toMachineSpecification(app, timing);
   }
 
   @Override

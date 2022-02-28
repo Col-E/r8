@@ -63,7 +63,6 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
       // Expected since we are compiling with an invalid set-up.
     }
     TestDiagnosticMessages diagnosticMessages = testBuilder.getState().getDiagnosticsMessages();
-    diagnosticMessages.assertOnlyWarnings();
     assertTrue(
         diagnosticMessages
             .getWarnings()

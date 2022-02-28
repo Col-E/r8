@@ -169,9 +169,10 @@ public final class D8 {
   private static AppView<AppInfo> readApp(
       AndroidApp inputApp, InternalOptions options, ExecutorService executor, Timing timing)
       throws IOException {
-    TypeRewriter typeRewriter = options.getTypeRewriter();
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
     LazyLoadedDexApplication app = applicationReader.read(executor);
+    options.loadMachineDesugaredLibrarySpecification(timing, app);
+    TypeRewriter typeRewriter = options.getTypeRewriter();
     AppInfo appInfo = AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app));
     return AppView.createForD8(appInfo, typeRewriter);
   }

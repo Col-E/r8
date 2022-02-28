@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.Mult
 import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.MultiAPILevelLegacyDesugaredLibrarySpecificationParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Timing;
@@ -100,14 +99,6 @@ public class LegacyToHumanSpecificationConverter {
     return humanSpec;
   }
 
-  public HumanDesugaredLibrarySpecification convert(
-      LegacyDesugaredLibrarySpecification legacySpec, AndroidApp inputApp, InternalOptions options)
-      throws IOException {
-    DexApplication app =
-        AppForSpecConversion.readApp(inputApp, options, legacySpec.isLegacy(), timing);
-    return convert(legacySpec, app, options);
-  }
-
   public HumanDesugaredLibrarySpecification convertForTesting(
       LegacyDesugaredLibrarySpecification legacySpec,
       Path desugaredJDKLib,
@@ -117,12 +108,11 @@ public class LegacyToHumanSpecificationConverter {
     DexApplication app =
         AppForSpecConversion.readAppForTesting(
             desugaredJDKLib, androidLib, options, legacySpec.isLibraryCompilation(), timing);
-    return convert(legacySpec, app, options);
+    return convert(legacySpec, app);
   }
 
   public HumanDesugaredLibrarySpecification convert(
-      LegacyDesugaredLibrarySpecification legacySpec, DexApplication app, InternalOptions options)
-      throws IOException {
+      LegacyDesugaredLibrarySpecification legacySpec, DexApplication app) throws IOException {
     timing.begin("Legacy to Human convert");
     LibraryValidator.validate(
         app,
@@ -136,7 +126,7 @@ public class LegacyToHumanSpecificationConverter {
     Origin origin = Origin.unknown();
     HumanRewritingFlags humanRewritingFlags =
         convertRewritingFlags(legacySpec.getRewritingFlags(), app, origin);
-    if (options.getMinApiLevel().isLessThanOrEqualTo(LEGACY_HACK_LEVEL)
+    if (app.options.getMinApiLevel().isLessThanOrEqualTo(LEGACY_HACK_LEVEL)
         && legacySpec.isLibraryCompilation()) {
       timing.begin("Legacy hacks");
       HumanRewritingFlags.Builder builder =

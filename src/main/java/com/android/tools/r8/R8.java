@@ -293,6 +293,7 @@ public class R8 {
       {
         ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
         DirectMappedDexApplication application = applicationReader.read(executorService).toDirect();
+        options.loadMachineDesugaredLibrarySpecification(timing, application);
         MainDexInfo mainDexInfo = applicationReader.readMainDexClassesForR8(application);
 
         // Now that the dex-application is fully loaded, close any internal archive providers.

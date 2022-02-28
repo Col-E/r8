@@ -69,14 +69,7 @@ public class DesugaredLibraryTestBase extends TestBase {
 
   public void setDesugaredLibrarySpecificationForTesting(
       InternalOptions options, DesugaredLibrarySpecification specification) {
-    try {
-      options.setDesugaredLibrarySpecificationForTesting(
-          specification,
-          ToolHelper.getDesugarJDKLibs(),
-          ToolHelper.getAndroidJar(AndroidApiLevel.R));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    options.setDesugaredLibrarySpecification(specification);
   }
 
   // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes

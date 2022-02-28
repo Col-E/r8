@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -22,6 +23,7 @@ public class HumanToMachinePrefixConverter {
   private final AppInfoWithClassHierarchy appInfo;
   private final MachineRewritingFlags.Builder builder;
   private final String synthesizedPrefix;
+  private final boolean libraryCompilation;
   private final Map<DexString, DexString> descriptorPrefix;
   private final Map<DexString, Map<DexString, DexString>> descriptorDifferentPrefix;
   private final Set<DexString> usedPrefix = Sets.newIdentityHashSet();
@@ -29,11 +31,12 @@ public class HumanToMachinePrefixConverter {
   public HumanToMachinePrefixConverter(
       AppInfoWithClassHierarchy appInfo,
       MachineRewritingFlags.Builder builder,
-      String synthesizedPrefix,
+      HumanDesugaredLibrarySpecification humanSpec,
       HumanRewritingFlags rewritingFlags) {
     this.appInfo = appInfo;
     this.builder = builder;
-    this.synthesizedPrefix = synthesizedPrefix;
+    this.synthesizedPrefix = humanSpec.getSynthesizedLibraryClassesPackagePrefix();
+    this.libraryCompilation = humanSpec.isLibraryCompilation();
     this.descriptorPrefix = convertRewritePrefix(rewritingFlags.getRewritePrefix());
     this.descriptorDifferentPrefix =
         convertRewriteDifferentPrefix(rewritingFlags.getRewriteDerivedPrefix());
@@ -88,7 +91,9 @@ public class HumanToMachinePrefixConverter {
 
   private void rewriteClasses() {
     appInfo.app().forEachLibraryType(this::registerClassType);
-    appInfo.app().forEachProgramType(this::registerClassType);
+    if (libraryCompilation) {
+      appInfo.app().forEachProgramType(this::registerClassType);
+    }
   }
 
   private void registerClassType(DexType type) {
