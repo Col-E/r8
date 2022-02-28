@@ -392,6 +392,7 @@ public class ProtoNormalizer {
         do {
           DexString newMethodName = dexItemFactory.createString(newMethodBaseName + "$" + index);
           newMethodSignature = newMethodSignature.withName(newMethodName);
+          index++;
         } while (newMethodSignatures.containsValue(newMethodSignature));
       }
       if (reserve) {
