@@ -35,9 +35,9 @@ def ParseOptions():
 
 def GetToolVersion(jar_path):
   # TODO(mkroghj) This would not work for r8-lib, maybe use utils.getR8Version.
-  output = str(subprocess.check_output([
+  output = subprocess.check_output([
     jdk.GetJavaExecutable(), '-jar', jar_path, '--version'
-  ]))
+  ]).decode('utf-8')
   return output.splitlines()[0].strip()
 
 def GetVersion():
@@ -54,11 +54,11 @@ def GetGitBranches():
   return subprocess.check_output(['git', 'show', '-s', '--pretty=%d', 'HEAD'])
 
 def GetGitHash():
-  return str(subprocess.check_output(['git', 'rev-parse', 'HEAD'])).strip()
+  return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').strip()
 
 def IsMain(version):
-  branches = str(subprocess.check_output(['git', 'branch', '-r', '--contains',
-                                      'HEAD']))
+  branches = subprocess.check_output(['git', 'branch', '-r', '--contains',
+                                      'HEAD']).decode('utf-8')
   # CL runs from gerrit does not have a branch, we always treat them as main
   # commits to archive these to the hash based location
   if len(branches) == 0:

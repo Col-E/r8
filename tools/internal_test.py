@@ -166,7 +166,7 @@ def restart_if_new_version(original_contents):
 
 def ensure_git_clean():
   # Ensure clean git repo.
-  diff = str(subprocess.check_output(['git', 'diff']))
+  diff = subprocess.check_output(['git', 'diff']).decode('utf-8')
   if len(diff) > 0:
     log('Local modifications to the git repo, exiting')
     sys.exit(1)
