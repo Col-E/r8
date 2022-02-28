@@ -6,11 +6,7 @@ package com.android.tools.r8.benchmarks;
 /** Enumeration of the benchmark suites on Golem. */
 public enum BenchmarkSuite {
   R8_BENCHMARKS("R8Benchmarks", "suite"),
-  D8_BENCHMARKS("D8KeyBenchmarks", "d8KeySuite"),
-  D8_INCREMENTAL_BENCHMARKS("D8IncrementalBenchmarks", "incrementalSuite"),
-  OPENSOURCE_BENCHMARKS("OpenSourceAppDumps", "dumpsSuite"),
-  MEMORY_BENCHMARKS("R8MemoryBenchmarks", "r8MemorySuite"),
-  RETRACE_BENCHMARKS("R8RetraceBenchmarks", "r8RetraceSuite");
+  OPENSOURCE_BENCHMARKS("OpenSourceAppDumps", "dumpsSuite");
 
   private final String golemName;
   private final String dartName;
