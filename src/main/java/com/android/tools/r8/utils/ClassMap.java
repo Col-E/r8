@@ -163,6 +163,15 @@ public abstract class ClassMap<T extends DexClass> {
     return classes.keySet();
   }
 
+  public Iterable<DexType> getAllClassProviderTypes() {
+    ClassProvider<T> theClassProvider = classProvider.get();
+    if (theClassProvider != null) {
+      return theClassProvider.collectTypes();
+    }
+    throw new CompilationError(
+        "Cannot access all types since the classProvider is no longer available");
+  }
+
   /**
    * Forces loading of all the classes satisfying the criteria specified.
    * <p>

@@ -54,6 +54,16 @@ public class LazyLoadedDexApplication extends DexApplication {
   }
 
   @Override
+  public void forEachProgramType(Consumer<DexType> consumer) {
+    programClasses.getAllTypes().forEach(consumer);
+  }
+
+  @Override
+  public void forEachLibraryType(Consumer<DexType> consumer) {
+    libraryClasses.getAllClassProviderTypes().forEach(consumer);
+  }
+
+  @Override
   public ClassResolutionResult contextIndependentDefinitionForWithResolutionResult(DexType type) {
     ClassResolutionResult.Builder builder = ClassResolutionResult.builder();
     if (libraryClasses != null) {

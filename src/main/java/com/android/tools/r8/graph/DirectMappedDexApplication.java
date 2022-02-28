@@ -23,6 +23,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class DirectMappedDexApplication extends DexApplication {
 
@@ -63,6 +64,16 @@ public class DirectMappedDexApplication extends DexApplication {
   @Override
   Collection<DexProgramClass> programClasses() {
     return programClasses;
+  }
+
+  @Override
+  public void forEachProgramType(Consumer<DexType> consumer) {
+    programClasses.forEach(clazz -> consumer.accept(clazz.type));
+  }
+
+  @Override
+  public void forEachLibraryType(Consumer<DexType> consumer) {
+    libraryClasses.forEach((type, clazz) -> consumer.accept(type));
   }
 
   public Collection<DexLibraryClass> libraryClasses() {

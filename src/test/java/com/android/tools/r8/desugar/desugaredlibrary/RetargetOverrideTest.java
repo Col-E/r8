@@ -26,7 +26,7 @@ public class RetargetOverrideTest extends DesugaredLibraryTestBase {
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "machine: {0}, {2}, shrink: {1}")
+  @Parameters(name = "{1}, shrink: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(),

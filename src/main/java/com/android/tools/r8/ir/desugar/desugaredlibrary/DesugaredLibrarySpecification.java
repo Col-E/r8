@@ -4,12 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary;
 
-import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,14 +21,6 @@ public interface DesugaredLibrarySpecification {
 
   default boolean isLegacy() {
     return false;
-  }
-
-  default LegacyDesugaredLibrarySpecification asLegacyDesugaredLibrarySpecification() {
-    return null;
-  }
-
-  default HumanDesugaredLibrarySpecification asHumanDesugaredLibrarySpecification() {
-    return null;
   }
 
   boolean isEmpty();
@@ -45,14 +36,15 @@ public interface DesugaredLibrarySpecification {
   AndroidApiLevel getRequiredCompilationApiLevel();
 
   MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app) throws IOException;
+      InternalOptions options, AndroidApp app, Timing timing) throws IOException;
 
   MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Path desugaredJDKLib) throws IOException;
+      InternalOptions options, Path library, Timing timing, Path desugaredJDKLib)
+      throws IOException;
 
   default MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library) throws IOException {
+      InternalOptions options, Path library, Timing timing) throws IOException {
     assert !isLibraryCompilation();
-    return toMachineSpecification(options, library, null);
+    return toMachineSpecification(options, library, timing, null);
   }
 }

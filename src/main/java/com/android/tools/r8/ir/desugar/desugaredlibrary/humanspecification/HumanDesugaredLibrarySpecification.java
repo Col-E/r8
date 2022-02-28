@@ -3,22 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClassAndMethod;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.HumanToMachineSpecificationConverter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpecification {
 
@@ -48,11 +42,6 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
   @Override
   public boolean isHuman() {
     return true;
-  }
-
-  @Override
-  public HumanDesugaredLibrarySpecification asHumanDesugaredLibrarySpecification() {
-    return this;
   }
 
   public boolean supportAllCallbacksFromLibrary() {
@@ -86,61 +75,6 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
     return topLevelFlags.getIdentifier();
   }
 
-  public Map<String, String> getRewritePrefix() {
-    return rewritingFlags.getRewritePrefix();
-  }
-
-  public boolean hasEmulatedLibraryInterfaces() {
-    return !getEmulateLibraryInterface().isEmpty();
-  }
-
-  public Map<DexType, DexType> getEmulateLibraryInterface() {
-    return rewritingFlags.getEmulatedInterfaces();
-  }
-
-  // If the method is retargeted, answers the retargeted method, else null.
-  public DexMethod retargetMethod(DexEncodedMethod method, AppView<?> appView) {
-    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetMethod();
-    DexType dexType = retargetCoreLibMember.get(method.getReference());
-    if (dexType != null) {
-      return appView
-          .dexItemFactory()
-          .createMethod(
-              dexType,
-              appView.dexItemFactory().prependHolderToProto(method.getReference()),
-              method.getName());
-    }
-    return null;
-  }
-
-  public DexMethod retargetMethod(DexClassAndMethod method, AppView<?> appView) {
-    return retargetMethod(method.getDefinition(), appView);
-  }
-
-  public Map<DexMethod, DexType> getRetargetCoreLibMember() {
-    return rewritingFlags.getRetargetMethod();
-  }
-
-  public Map<DexType, DexType> getBackportCoreLibraryMember() {
-    return rewritingFlags.getLegacyBackport();
-  }
-
-  public Map<DexType, DexType> getCustomConversions() {
-    return rewritingFlags.getCustomConversions();
-  }
-
-  public Set<DexType> getWrapperConversions() {
-    return rewritingFlags.getWrapperConversions();
-  }
-
-  public Set<DexMethod> getDontRewriteInvocation() {
-    return rewritingFlags.getDontRewriteInvocation();
-  }
-
-  public Set<DexType> getDontRetargetLibMember() {
-    return rewritingFlags.getDontRetarget();
-  }
-
   @Override
   public List<String> getExtraKeepRules() {
     return topLevelFlags.getExtraKeepRules();
@@ -157,19 +91,15 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app) throws IOException {
-    return new HumanToMachineSpecificationConverter()
-        .convert(
-            this,
-            isLibraryCompilation() ? app.getProgramResourceProviders() : null,
-            app.getLibraryResourceProviders(),
-            options);
+      InternalOptions options, AndroidApp app, Timing timing) throws IOException {
+    return new HumanToMachineSpecificationConverter(timing).convert(this, app, options);
   }
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Path desugaredJDKLib) throws IOException {
-    return new HumanToMachineSpecificationConverter()
-        .convert(this, isLibraryCompilation() ? desugaredJDKLib : null, library, options);
+      InternalOptions options, Path library, Timing timing, Path desugaredJDKLib)
+      throws IOException {
+    return new HumanToMachineSpecificationConverter(timing)
+        .convertForTesting(this, desugaredJDKLib, library, options);
   }
 }
