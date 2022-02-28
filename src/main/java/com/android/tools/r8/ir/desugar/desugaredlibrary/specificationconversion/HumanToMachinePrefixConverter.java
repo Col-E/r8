@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -88,14 +87,13 @@ public class HumanToMachinePrefixConverter {
   }
 
   private void rewriteClasses() {
-    for (DexClass clazz : appInfo.app().asDirect().libraryClasses()) {
-      registerType(clazz.type);
-      registerDifferentType(clazz.type);
-    }
-    for (DexClass clazz : appInfo.classes()) {
-      registerType(clazz.type);
-      registerDifferentType(clazz.type);
-    }
+    appInfo.app().forEachLibraryType(this::registerClassType);
+    appInfo.app().forEachProgramType(this::registerClassType);
+  }
+
+  private void registerClassType(DexType type) {
+    registerType(type);
+    registerDifferentType(type);
   }
 
   private void registerType(DexType type) {

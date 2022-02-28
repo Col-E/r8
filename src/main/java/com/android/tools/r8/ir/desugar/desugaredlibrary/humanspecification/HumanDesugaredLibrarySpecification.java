@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -157,8 +158,8 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, AndroidApp app) throws IOException {
-    return new HumanToMachineSpecificationConverter()
+      InternalOptions options, AndroidApp app, Timing timing) throws IOException {
+    return new HumanToMachineSpecificationConverter(timing)
         .convert(
             this,
             isLibraryCompilation() ? app.getProgramResourceProviders() : null,
@@ -168,8 +169,9 @@ public class HumanDesugaredLibrarySpecification implements DesugaredLibrarySpeci
 
   @Override
   public MachineDesugaredLibrarySpecification toMachineSpecification(
-      InternalOptions options, Path library, Path desugaredJDKLib) throws IOException {
-    return new HumanToMachineSpecificationConverter()
+      InternalOptions options, Path library, Path desugaredJDKLib, Timing timing)
+      throws IOException {
+    return new HumanToMachineSpecificationConverter(timing)
         .convert(this, isLibraryCompilation() ? desugaredJDKLib : null, library, options);
   }
 }

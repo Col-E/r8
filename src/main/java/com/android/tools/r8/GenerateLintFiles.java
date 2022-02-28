@@ -87,7 +87,7 @@ public class GenerateLintFiles {
         readDesugaredLibraryConfiguration(desugarConfigurationPath);
     Path androidJarPath = getAndroidJarPath(specification.getRequiredCompilationApiLevel());
     this.desugaredLibrarySpecification =
-        specification.toMachineSpecification(options, androidJarPath);
+        specification.toMachineSpecification(options, androidJarPath, Timing.empty());
 
     this.desugaredLibraryImplementation = Paths.get(desugarImplementationPath);
     this.outputDirectory = Paths.get(outputDirectory);

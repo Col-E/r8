@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.util.Map;
 import org.junit.Assume;
@@ -46,7 +47,8 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
   public void testMultiLevel() throws IOException {
     Assume.assumeTrue(ToolHelper.isLocalDevelopment());
 
-    LegacyToHumanSpecificationConverter converter = new LegacyToHumanSpecificationConverter();
+    LegacyToHumanSpecificationConverter converter =
+        new LegacyToHumanSpecificationConverter(Timing.empty());
 
     InternalOptions options = new InternalOptions();
 

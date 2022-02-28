@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class DexApplication implements DexDefinitionSupplier {
@@ -115,6 +116,10 @@ public abstract class DexApplication implements DexDefinitionSupplier {
   }
 
   abstract Collection<DexProgramClass> programClasses();
+
+  public abstract void forEachProgramType(Consumer<DexType> consumer);
+
+  public abstract void forEachLibraryType(Consumer<DexType> consumer);
 
   public Collection<DexProgramClass> classes() {
     ReorderBox<DexProgramClass> box = new ReorderBox<>(programClasses());
