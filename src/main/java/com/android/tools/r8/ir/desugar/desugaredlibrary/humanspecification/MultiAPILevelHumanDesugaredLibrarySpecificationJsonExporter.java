@@ -18,6 +18,7 @@ import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecificatio
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.LIBRARY_FLAGS_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.PROGRAM_FLAGS_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.REQUIRED_COMPILATION_API_LEVEL_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_EMULATED_DISPATCH_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.REWRITE_DERIVED_PREFIX_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.REWRITE_PREFIX_KEY;
@@ -106,6 +107,11 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
       }
       if (!flags.getRetargetMethod().isEmpty()) {
         toJson.put(RETARGET_METHOD_KEY, mapToString(flags.getRetargetMethod()));
+      }
+      if (!flags.getRetargetMethodEmulatedDispatch().isEmpty()) {
+        toJson.put(
+            RETARGET_METHOD_EMULATED_DISPATCH_KEY,
+            mapToString(flags.getRetargetMethodEmulatedDispatch()));
       }
       if (!flags.getDontRetarget().isEmpty()) {
         toJson.put(DONT_RETARGET_KEY, setToString(flags.getDontRetarget()));

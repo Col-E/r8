@@ -46,9 +46,10 @@ public class HumanToMachinePrefixConverter {
       HumanRewritingFlags rewritingFlags, BiConsumer<String, Set<DexString>> warnConsumer) {
     rewriteClasses();
     rewriteValues(rewritingFlags.getRetargetMethod());
+    rewriteValues(rewritingFlags.getRetargetMethodEmulatedDispatch());
     rewriteValues(rewritingFlags.getCustomConversions());
     rewriteEmulatedInterface(rewritingFlags.getEmulatedInterfaces());
-    rewriteRetargetKeys(rewritingFlags.getRetargetMethod());
+    rewriteRetargetKeys(rewritingFlags.getRetargetMethodEmulatedDispatch());
     warnIfUnusedPrefix(warnConsumer);
   }
 

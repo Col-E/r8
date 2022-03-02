@@ -93,7 +93,8 @@ public class HumanToMachineEmulatedInterfaceConverter {
     List<DexType> subInterfaces = emulatedInterfaceHierarchy.get(method.getHolderType());
     LinkedHashMap<DexType, DerivedMethod> extraDispatchCases = new LinkedHashMap<>();
     // Retarget core lib emulated dispatch handled as part of emulated interface dispatch.
-    Map<DexMethod, DexType> retargetCoreLibMember = rewritingFlags.getRetargetMethod();
+    Map<DexMethod, DexType> retargetCoreLibMember =
+        rewritingFlags.getRetargetMethodEmulatedDispatch();
     for (DexMethod retarget : retargetCoreLibMember.keySet()) {
       if (retarget.match(method)) {
         DexClass inClass = appInfo.definitionFor(retarget.getHolderType());

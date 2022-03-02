@@ -26,6 +26,7 @@ public class HumanRewritingFlags {
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
   private final Map<DexType, DexType> emulatedInterfaces;
   private final Map<DexMethod, DexType> retargetMethod;
+  private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
   private final Map<DexType, DexType> legacyBackport;
   private final Map<DexType, DexType> customConversions;
   private final Set<DexMethod> dontRewriteInvocation;
@@ -38,6 +39,7 @@ public class HumanRewritingFlags {
       Map<String, Map<String, String>> rewriteDerivedPrefix,
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexMethod, DexType> retargetMethod,
+      Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
       Map<DexType, DexType> legacyBackport,
       Map<DexType, DexType> customConversion,
       Set<DexMethod> dontRewriteInvocation,
@@ -48,6 +50,7 @@ public class HumanRewritingFlags {
     this.rewriteDerivedPrefix = rewriteDerivedPrefix;
     this.emulatedInterfaces = emulateLibraryInterface;
     this.retargetMethod = retargetMethod;
+    this.retargetMethodEmulatedDispatch = retargetMethodEmulatedDispatch;
     this.legacyBackport = legacyBackport;
     this.customConversions = customConversion;
     this.dontRewriteInvocation = dontRewriteInvocation;
@@ -58,6 +61,7 @@ public class HumanRewritingFlags {
 
   public static HumanRewritingFlags empty() {
     return new HumanRewritingFlags(
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -82,6 +86,7 @@ public class HumanRewritingFlags {
         rewriteDerivedPrefix,
         emulatedInterfaces,
         retargetMethod,
+        retargetMethodEmulatedDispatch,
         legacyBackport,
         customConversions,
         dontRewriteInvocation,
@@ -104,6 +109,10 @@ public class HumanRewritingFlags {
 
   public Map<DexMethod, DexType> getRetargetMethod() {
     return retargetMethod;
+  }
+
+  public Map<DexMethod, DexType> getRetargetMethodEmulatedDispatch() {
+    return retargetMethodEmulatedDispatch;
   }
 
   public Map<DexType, DexType> getLegacyBackport() {
@@ -146,6 +155,7 @@ public class HumanRewritingFlags {
     private final Map<String, Map<String, String>> rewriteDerivedPrefix;
     private final Map<DexType, DexType> emulatedInterfaces;
     private final Map<DexMethod, DexType> retargetMethod;
+    private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
     private final Map<DexType, DexType> legacyBackport;
     private final Map<DexType, DexType> customConversions;
     private final Set<DexMethod> dontRewriteInvocation;
@@ -163,6 +173,7 @@ public class HumanRewritingFlags {
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
@@ -175,7 +186,8 @@ public class HumanRewritingFlags {
         Map<String, String> rewritePrefix,
         Map<String, Map<String, String>> rewriteDerivedPrefix,
         Map<DexType, DexType> emulateLibraryInterface,
-        Map<DexMethod, DexType> retargetCoreLibMember,
+        Map<DexMethod, DexType> retargetMethod,
+        Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
         Map<DexType, DexType> backportCoreLibraryMember,
         Map<DexType, DexType> customConversions,
         Set<DexMethod> dontRewriteInvocation,
@@ -187,7 +199,8 @@ public class HumanRewritingFlags {
       this.rewritePrefix = new HashMap<>(rewritePrefix);
       this.rewriteDerivedPrefix = new HashMap<>(rewriteDerivedPrefix);
       this.emulatedInterfaces = new IdentityHashMap<>(emulateLibraryInterface);
-      this.retargetMethod = new IdentityHashMap<>(retargetCoreLibMember);
+      this.retargetMethod = new IdentityHashMap<>(retargetMethod);
+      this.retargetMethodEmulatedDispatch = new IdentityHashMap<>(retargetMethodEmulatedDispatch);
       this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
       this.dontRewriteInvocation = Sets.newIdentityHashSet();
@@ -268,6 +281,15 @@ public class HumanRewritingFlags {
       return this;
     }
 
+    public Builder retargetMethodEmulatedDispatch(DexMethod key, DexType rewrittenType) {
+      put(
+          retargetMethodEmulatedDispatch,
+          key,
+          rewrittenType,
+          HumanDesugaredLibrarySpecificationParser.RETARGET_METHOD_EMULATED_DISPATCH_KEY);
+      return this;
+    }
+
     public Builder putLegacyBackport(DexType backportType, DexType rewrittenBackportType) {
       put(
           legacyBackport,
@@ -299,6 +321,7 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(rewriteDerivedPrefix),
           ImmutableMap.copyOf(emulatedInterfaces),
           ImmutableMap.copyOf(retargetMethod),
+          ImmutableMap.copyOf(retargetMethodEmulatedDispatch),
           ImmutableMap.copyOf(legacyBackport),
           ImmutableMap.copyOf(customConversions),
           ImmutableSet.copyOf(dontRewriteInvocation),

@@ -46,6 +46,8 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
   static final String REWRITE_PREFIX_KEY = "rewrite_prefix";
   static final String RETARGET_METHOD_KEY = "retarget_method";
+  static final String RETARGET_METHOD_EMULATED_DISPATCH_KEY =
+      "retarget_method_with_emulated_dispatch";
   static final String REWRITE_DERIVED_PREFIX_KEY = "rewrite_derived_prefix";
   static final String EMULATE_INTERFACE_KEY = "emulate_interface";
   static final String DONT_REWRITE_KEY = "dont_rewrite";
@@ -244,6 +246,14 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
         builder.retargetMethod(
+            parseMethod(retarget.getKey()),
+            stringDescriptorToDexType(retarget.getValue().getAsString()));
+      }
+    }
+    if (jsonFlagSet.has(RETARGET_METHOD_EMULATED_DISPATCH_KEY)) {
+      for (Map.Entry<String, JsonElement> retarget :
+          jsonFlagSet.get(RETARGET_METHOD_EMULATED_DISPATCH_KEY).getAsJsonObject().entrySet()) {
+        builder.retargetMethodEmulatedDispatch(
             parseMethod(retarget.getKey()),
             stringDescriptorToDexType(retarget.getValue().getAsString()));
       }

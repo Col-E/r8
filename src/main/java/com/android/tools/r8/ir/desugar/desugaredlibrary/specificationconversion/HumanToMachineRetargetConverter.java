@@ -38,13 +38,16 @@ public class HumanToMachineRetargetConverter {
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
     rewritingFlags
         .getRetargetMethod()
+        .forEach((method, type) -> convertRetargetMethod(builder, method, type));
+    rewritingFlags
+        .getRetargetMethodEmulatedDispatch()
         .forEach(
             (method, type) ->
-                convertRetargetCoreLibMemberFlag(builder, rewritingFlags, method, type));
+                convertRetargetMethodEmulatedDispatch(builder, rewritingFlags, method, type));
     warnConsumer.accept("Cannot retarget missing methods: ", missingMethods);
   }
 
-  private void convertRetargetCoreLibMemberFlag(
+  private void convertRetargetMethodEmulatedDispatch(
       MachineRewritingFlags.Builder builder,
       HumanRewritingFlags rewritingFlags,
       DexMethod method,
@@ -56,14 +59,53 @@ public class HumanToMachineRetargetConverter {
       return;
     }
     if (foundMethod.isStatic()) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .error("Cannot generate emulated dispatch for static method " + foundMethod);
+      return;
+    }
+    if (!seemsToNeedEmulatedDispatch(holder, foundMethod)) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .warning(
+              "Generating (seemingly unnecessary) emulated dispatch for final method "
+                  + foundMethod);
+    }
+    convertEmulatedVirtualRetarget(builder, rewritingFlags, foundMethod, type);
+  }
+
+  private void convertRetargetMethod(
+      MachineRewritingFlags.Builder builder, DexMethod method, DexType type) {
+    DexClass holder = appInfo.definitionFor(method.holder);
+    DexEncodedMethod foundMethod = holder.lookupMethod(method);
+    if (foundMethod == null) {
+      missingMethods.add(method);
+      return;
+    }
+    if (foundMethod.isStatic()) {
       convertStaticRetarget(builder, foundMethod, type);
       return;
     }
-    if (holder.isFinal() || foundMethod.isFinal()) {
-      convertNonEmulatedVirtualRetarget(builder, foundMethod, type);
-      return;
+    if (seemsToNeedEmulatedDispatch(holder, foundMethod)) {
+      appInfo
+          .app()
+          .options
+          .reporter
+          .warning(
+              "Retargeting non final method "
+                  + foundMethod
+                  + " which could lead to invalid runtime execution in overrides.");
     }
-    convertEmulatedVirtualRetarget(builder, rewritingFlags, foundMethod, type);
+    convertNonEmulatedVirtualRetarget(builder, foundMethod, type);
+  }
+
+  private boolean seemsToNeedEmulatedDispatch(DexClass holder, DexEncodedMethod method) {
+    assert !method.isStatic();
+    return !(holder.isFinal() || method.isFinal());
   }
 
   private void convertEmulatedVirtualRetarget(

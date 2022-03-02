@@ -261,7 +261,15 @@ public class LegacyToHumanSpecificationConverter {
           List<DexClassAndMethod> methodsWithName =
               findMethodsWithName(name, dexClass, builder, app);
           for (DexClassAndMethod dexClassAndMethod : methodsWithName) {
-            builder.retargetMethod(dexClassAndMethod.getReference(), rewrittenType);
+            DexEncodedMethod definition = dexClassAndMethod.getDefinition();
+            if (definition.isStatic()
+                || definition.isFinal()
+                || dexClassAndMethod.getHolder().isFinal()) {
+              builder.retargetMethod(dexClassAndMethod.getReference(), rewrittenType);
+            } else {
+              builder.retargetMethodEmulatedDispatch(
+                  dexClassAndMethod.getReference(), rewrittenType);
+            }
           }
         });
   }
