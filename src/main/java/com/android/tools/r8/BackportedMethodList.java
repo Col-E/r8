@@ -79,6 +79,7 @@ public class BackportedMethodList {
       return;
     }
     InternalOptions options = command.getInternalOptions();
+
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     try {
       ExceptionUtils.withD8CompilationHandler(
