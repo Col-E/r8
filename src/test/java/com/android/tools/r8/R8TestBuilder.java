@@ -125,7 +125,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         builder, rules -> box.syntheticProguardRules = rules);
     libraryDesugaringTestConfiguration.configure(builder);
     ToolHelper.runAndBenchmarkR8WithoutResult(
-        builder.build(),
+        builder,
         optionsConsumer.andThen(
             options -> box.proguardConfiguration = options.getProguardConfiguration()),
         benchmarkResults);

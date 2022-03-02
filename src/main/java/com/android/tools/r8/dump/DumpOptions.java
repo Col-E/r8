@@ -1,9 +1,10 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8;
+package com.android.tools.r8.dump;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
@@ -12,7 +13,10 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -55,6 +59,8 @@ public class DumpOptions {
   private final ProguardConfiguration proguardConfiguration;
   private final List<ProguardConfigurationRule> mainDexKeepRules;
 
+  private final Map<String, String> systemProperties;
+
   // Reporting only.
   private final boolean dumpInputToFile;
 
@@ -74,6 +80,7 @@ public class DumpOptions {
       FeatureSplitConfiguration featureSplitConfiguration,
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> mainDexKeepRules,
+      Map<String, String> systemProperties,
       boolean dumpInputToFile) {
     this.tool = tool;
     this.compilationMode = compilationMode;
@@ -90,6 +97,7 @@ public class DumpOptions {
     this.featureSplitConfiguration = featureSplitConfiguration;
     this.proguardConfiguration = proguardConfiguration;
     this.mainDexKeepRules = mainDexKeepRules;
+    this.systemProperties = systemProperties;
     this.dumpInputToFile = dumpInputToFile;
   }
 
@@ -112,16 +120,91 @@ public class DumpOptions {
     addOptionalDumpEntry(builder, TREE_SHAKING_KEY, treeShaking);
     addOptionalDumpEntry(builder, MINIFICATION_KEY, minification);
     addOptionalDumpEntry(builder, FORCE_PROGUARD_COMPATIBILITY_KEY, forceProguardCompatibility);
-    System.getProperties()
-        .stringPropertyNames()
-        .forEach(
-            name -> {
-              if (name.startsWith("com.android.tools.r8.")) {
-                String value = System.getProperty(name);
-                addDumpEntry(builder, SYSTEM_PROPERTY_PREFIX + name, value);
-              }
-            });
+    ArrayList<String> sortedKeys = new ArrayList<>(systemProperties.keySet());
+    sortedKeys.sort(String::compareTo);
+    sortedKeys.forEach(
+        key -> addDumpEntry(builder, SYSTEM_PROPERTY_PREFIX + key, systemProperties.get(key)));
     return builder.toString();
+  }
+
+  public static void parse(String content, DumpOptions.Builder builder) {
+    String[] lines = content.split("\n");
+    for (String line : lines) {
+      String trimmed = line.trim();
+      int i = trimmed.indexOf('=');
+      if (i < 0) {
+        throw new RuntimeException("Invalid dump line. Expected = in line: '" + trimmed + "'");
+      }
+      String key = trimmed.substring(0, i).trim();
+      String value = trimmed.substring(i + 1).trim();
+      parseKeyValue(builder, key, value);
+    }
+  }
+
+  private static void parseKeyValue(Builder builder, String key, String value) {
+    switch (key) {
+      case TOOL_KEY:
+        builder.setTool(Tool.valueOf(value));
+        return;
+      case MODE_KEY:
+        if (value.equals(DEBUG_MODE_VALUE)) {
+          builder.setCompilationMode(CompilationMode.DEBUG);
+        } else if (value.equals(RELEASE_MODE_VALUE)) {
+          builder.setCompilationMode(CompilationMode.RELEASE);
+        } else {
+          parseKeyValueError(key, value);
+        }
+        return;
+      case MIN_API_KEY:
+        builder.setMinApi(Integer.parseInt(value));
+        return;
+      case OPTIMIZE_MULTIDEX_FOR_LINEAR_ALLOC_KEY:
+        builder.setOptimizeMultidexForLinearAlloc(Boolean.parseBoolean(value));
+        return;
+      case THREAD_COUNT_KEY:
+        builder.setThreadCount(Integer.parseInt(value));
+        return;
+      case DESUGAR_STATE_KEY:
+        builder.setDesugarState(DesugarState.valueOf(value));
+        return;
+      case INTERMEDIATE_KEY:
+        builder.setIntermediate(Boolean.parseBoolean(value));
+        return;
+      case INCLUDE_DATA_RESOURCES_KEY:
+        builder.setIncludeDataResources(Optional.of(Boolean.parseBoolean(value)));
+        return;
+      case TREE_SHAKING_KEY:
+        builder.setTreeShaking(Boolean.parseBoolean(value));
+        return;
+      case MINIFICATION_KEY:
+        builder.setMinification(Boolean.parseBoolean(value));
+        return;
+      case FORCE_PROGUARD_COMPATIBILITY_KEY:
+        builder.setForceProguardCompatibility(Boolean.parseBoolean(value));
+        return;
+      default:
+        if (key.startsWith(SYSTEM_PROPERTY_PREFIX)) {
+          builder.setSystemProperty(key.substring(SYSTEM_PROPERTY_PREFIX.length()), value);
+        } else {
+          parseKeyValueError(key, value);
+        }
+    }
+  }
+
+  private static void parseKeyValueError(String key, String value) {
+    throw new RuntimeException("Unknown key value pair: " + key + " = " + value);
+  }
+
+  public Tool getTool() {
+    return tool;
+  }
+
+  public CompilationMode getCompilationMode() {
+    return compilationMode;
+  }
+
+  public int getMinApi() {
+    return minApi;
   }
 
   private void addOptionalDumpEntry(StringBuilder builder, String key, Optional<?> optionalValue) {
@@ -169,11 +252,11 @@ public class DumpOptions {
   }
 
   public static Builder builder(Tool tool) {
-    return new Builder(tool);
+    return new Builder().setTool(tool);
   }
 
   public static class Builder {
-    private final Tool tool;
+    private Tool tool;
     private CompilationMode compilationMode;
     private int minApi;
     private boolean optimizeMultidexForLinearAlloc;
@@ -190,11 +273,16 @@ public class DumpOptions {
     private ProguardConfiguration proguardConfiguration;
     private List<ProguardConfigurationRule> mainDexKeepRules;
 
+    private Map<String, String> systemProperties = new HashMap<>();
+
     // Reporting only.
     private boolean dumpInputToFile;
 
-    public Builder(Tool tool) {
+    public Builder() {}
+
+    public Builder setTool(Tool tool) {
       this.tool = tool;
+      return this;
     }
 
     public Builder setCompilationMode(CompilationMode compilationMode) {
@@ -274,7 +362,26 @@ public class DumpOptions {
       return this;
     }
 
+    public Builder setSystemProperty(String key, String value) {
+      this.systemProperties.put(key, value);
+      return this;
+    }
+
+    public Builder readCurrentSystemProperties() {
+      System.getProperties()
+          .stringPropertyNames()
+          .forEach(
+              name -> {
+                if (name.startsWith("com.android.tools.r8.")) {
+                  String value = System.getProperty(name);
+                  setSystemProperty(name, value);
+                }
+              });
+      return this;
+    }
+
     public DumpOptions build() {
+      assert tool != null;
       return new DumpOptions(
           tool,
           compilationMode,
@@ -291,6 +398,7 @@ public class DumpOptions {
           featureSplitConfiguration,
           proguardConfiguration,
           mainDexKeepRules,
+          systemProperties,
           dumpInputToFile);
     }
   }

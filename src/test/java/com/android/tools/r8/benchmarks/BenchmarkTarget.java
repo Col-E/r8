@@ -4,10 +4,11 @@
 package com.android.tools.r8.benchmarks;
 
 public enum BenchmarkTarget {
+
   // Possible dashboard targets on golem.
   D8("d8", "D8"),
   R8_COMPAT("r8-compat", "R8"),
-  R8_NON_COMPAT("r8", "R8-full"),
+  R8_NON_COMPAT("r8-full", "R8-full"),
   R8_FORCE_OPT("r8-force", "R8-full-minify-optimize-shrink");
 
   private final String idName;

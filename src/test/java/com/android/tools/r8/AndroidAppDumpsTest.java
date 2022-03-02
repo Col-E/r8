@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;

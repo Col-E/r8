@@ -1272,23 +1272,18 @@ public class ToolHelper {
     return runR8WithFullResult(command, optionsConsumer);
   }
 
-  public static void runR8WithoutResult(
-      R8Command command, Consumer<InternalOptions> optionsConsumer)
-      throws CompilationFailedException {
-    runAndBenchmarkR8WithoutResult(command, optionsConsumer, null);
-  }
-
   public static void runAndBenchmarkR8WithoutResult(
-      R8Command command,
+      R8Command.Builder commandBuilder,
       Consumer<InternalOptions> optionsConsumer,
       BenchmarkResults benchmarkResults)
       throws CompilationFailedException {
-    InternalOptions internalOptions = command.getInternalOptions();
-    optionsConsumer.accept(internalOptions);
     long start = 0;
     if (benchmarkResults != null) {
       start = System.nanoTime();
     }
+    R8Command command = commandBuilder.build();
+    InternalOptions internalOptions = command.getInternalOptions();
+    optionsConsumer.accept(internalOptions);
     R8.runForTesting(command.getInputApp(), internalOptions);
     if (benchmarkResults != null) {
       long end = System.nanoTime();

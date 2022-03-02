@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
@@ -1010,7 +1011,7 @@ public final class R8Command extends BaseCompilerCommand {
   }
 
   private DumpOptions dumpOptions() {
-    DumpOptions.Builder builder = DumpOptions.builder(Tool.R8);
+    DumpOptions.Builder builder = DumpOptions.builder(Tool.R8).readCurrentSystemProperties();
     dumpBaseCommandOptions(builder);
     return builder
         .setIncludeDataResources(includeDataResources)

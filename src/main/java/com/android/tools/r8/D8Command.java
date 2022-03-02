@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING
 
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
@@ -526,7 +527,7 @@ public final class D8Command extends BaseCompilerCommand {
   }
 
   private DumpOptions dumpOptions() {
-    DumpOptions.Builder builder = DumpOptions.builder(Tool.D8);
+    DumpOptions.Builder builder = DumpOptions.builder(Tool.D8).readCurrentSystemProperties();
     dumpBaseCommandOptions(builder);
     return builder
         .setIntermediate(intermediate)

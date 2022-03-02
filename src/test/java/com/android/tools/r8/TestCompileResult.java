@@ -509,7 +509,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertNoInfoMessages() {
-    getDiagnosticMessages().assertInfosCount(0);
+    getDiagnosticMessages().assertNoInfos();
     return self();
   }
 
@@ -529,7 +529,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertNoWarningMessages() {
-    getDiagnosticMessages().assertWarningsCount(0);
+    getDiagnosticMessages().assertNoWarnings();
     return self();
   }
 
@@ -544,7 +544,7 @@ public abstract class TestCompileResult<
   }
 
   public CR assertNoErrorMessages() {
-    getDiagnosticMessages().assertErrorsCount(0);
+    getDiagnosticMessages().assertNoErrors();
     return self();
   }
 

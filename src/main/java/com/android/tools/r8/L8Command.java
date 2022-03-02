@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
@@ -442,7 +443,7 @@ public final class L8Command extends BaseCompilerCommand {
   }
 
   private DumpOptions dumpOptions() {
-    DumpOptions.Builder builder = DumpOptions.builder(Tool.L8);
+    DumpOptions.Builder builder = DumpOptions.builder(Tool.L8).readCurrentSystemProperties();
     dumpBaseCommandOptions(builder);
     if (r8Command != null) {
       builder.setProguardConfiguration(r8Command.getInternalOptions().getProguardConfiguration());
