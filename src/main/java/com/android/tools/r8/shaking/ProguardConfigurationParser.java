@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
+import com.android.tools.r8.InputDependencyGraphConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.DexField;
@@ -50,6 +51,7 @@ public class ProguardConfigurationParser {
   private final DexItemFactory dexItemFactory;
 
   private final Reporter reporter;
+  private final InputDependencyGraphConsumer inputDependencyConsumer;
   private final boolean allowTestOptions;
 
   public static final String FLATTEN_PACKAGE_HIERARCHY = "flattenpackagehierarchy";
@@ -120,16 +122,37 @@ public class ProguardConfigurationParser {
 
   public ProguardConfigurationParser(
       DexItemFactory dexItemFactory, Reporter reporter) {
-    this(dexItemFactory, reporter, false);
+    this(dexItemFactory, reporter, null, false);
   }
 
   public ProguardConfigurationParser(
-      DexItemFactory dexItemFactory, Reporter reporter, boolean allowTestOptions) {
+      DexItemFactory dexItemFactory,
+      Reporter reporter,
+      InputDependencyGraphConsumer inputDependencyConsumer,
+      boolean allowTestOptions) {
     this.dexItemFactory = dexItemFactory;
     configurationBuilder = ProguardConfiguration.builder(dexItemFactory, reporter);
 
     this.reporter = reporter;
+    this.inputDependencyConsumer =
+        inputDependencyConsumer != null
+            ? inputDependencyConsumer
+            : emptyInputDependencyGraphConsumer();
     this.allowTestOptions = allowTestOptions;
+  }
+
+  private static InputDependencyGraphConsumer emptyInputDependencyGraphConsumer() {
+    return new InputDependencyGraphConsumer() {
+      @Override
+      public void accept(Origin dependent, Path dependency) {
+        // ignored.
+      }
+
+      @Override
+      public void finished() {
+        // ignored.
+      }
+    };
   }
 
   public ProguardConfiguration.Builder getConfigurationBuilder() {
@@ -370,7 +393,8 @@ public class ProguardConfigurationParser {
           configurationBuilder.setPrintMappingFile(parseFileName(false));
         }
       } else if (acceptString("applymapping")) {
-        configurationBuilder.setApplyMappingFile(parseFileName(false));
+        configurationBuilder.setApplyMappingFile(
+            parseFileInputDependency(inputDependencyConsumer::acceptProguardApplyMapping));
       } else if (acceptString("assumenosideeffects")) {
         ProguardAssumeNoSideEffectRule rule = parseAssumeNoSideEffectsRule(optionStart);
         configurationBuilder.addRule(rule);
@@ -388,9 +412,11 @@ public class ProguardConfigurationParser {
         skipWhitespace();
         baseDirectory = parseFileName(false);
       } else if (acceptString("injars")) {
-        configurationBuilder.addInjars(parseClassPath());
+        configurationBuilder.addInjars(
+            parseClassPath(inputDependencyConsumer::acceptProguardInJars));
       } else if (acceptString("libraryjars")) {
-        configurationBuilder.addLibraryJars(parseClassPath());
+        configurationBuilder.addLibraryJars(
+            parseClassPath(inputDependencyConsumer::acceptProguardLibraryJars));
       } else if (acceptString("printseeds")) {
         configurationBuilder.setPrintSeeds(true);
         skipWhitespace();
@@ -398,11 +424,16 @@ public class ProguardConfigurationParser {
           configurationBuilder.setSeedFile(parseFileName(false));
         }
       } else if (acceptString("obfuscationdictionary")) {
-        configurationBuilder.setObfuscationDictionary(parseFileName(false));
+        configurationBuilder.setObfuscationDictionary(
+            parseFileInputDependency(inputDependencyConsumer::acceptProguardObfuscationDictionary));
       } else if (acceptString("classobfuscationdictionary")) {
-        configurationBuilder.setClassObfuscationDictionary(parseFileName(false));
+        configurationBuilder.setClassObfuscationDictionary(
+            parseFileInputDependency(
+                inputDependencyConsumer::acceptProguardClassObfuscationDictionary));
       } else if (acceptString("packageobfuscationdictionary")) {
-        configurationBuilder.setPackageObfuscationDictionary(parseFileName(false));
+        configurationBuilder.setPackageObfuscationDictionary(
+            parseFileInputDependency(
+                inputDependencyConsumer::acceptProguardPackageObfuscationDictionary));
       } else if (acceptString("alwaysinline")) {
         InlineRule rule = parseInlineRule(InlineRule.Type.ALWAYS, optionStart);
         configurationBuilder.addRule(rule);
@@ -635,7 +666,7 @@ public class ProguardConfigurationParser {
 
     private void parseInclude() throws ProguardRuleParserException {
       TextPosition start = getPosition();
-      Path included = parseFileName(false);
+      Path included = parseFileInputDependency(inputDependencyConsumer::acceptProguardInclude);
       try {
         new ProguardConfigurationSourceParser(new ProguardConfigurationSourceFile(included))
             .parse();
@@ -1536,6 +1567,13 @@ public class ProguardConfigurationParser {
       return result.toString();
     }
 
+    private Path parseFileInputDependency(BiConsumer<Origin, Path> dependencyConsumer)
+        throws ProguardRuleParserException {
+      Path file = parseFileName(false);
+      dependencyConsumer.accept(origin, file);
+      return file;
+    }
+
     private Path parseFileName(boolean stopAfterPathSeparator) throws ProguardRuleParserException {
       TextPosition start = getPosition();
       skipWhitespace();
@@ -1566,15 +1604,18 @@ public class ProguardConfigurationParser {
       return baseDirectory.resolve(fileName);
     }
 
-    private List<FilteredClassPath> parseClassPath() throws ProguardRuleParserException {
+    private List<FilteredClassPath> parseClassPath(BiConsumer<Origin, Path> dependencyCallback)
+        throws ProguardRuleParserException {
       List<FilteredClassPath> classPath = new ArrayList<>();
       skipWhitespace();
       TextPosition position = getPosition();
       Path file = parseFileName(true);
+      dependencyCallback.accept(origin, file);
       ImmutableList<String> filters = parseClassPathFilters();
       classPath.add(new FilteredClassPath(file, filters, origin, position));
       while (acceptChar(File.pathSeparatorChar)) {
         file = parseFileName(true);
+        dependencyCallback.accept(origin, file);
         filters = parseClassPathFilters();
         classPath.add(new FilteredClassPath(file, filters, origin, position));
       }
