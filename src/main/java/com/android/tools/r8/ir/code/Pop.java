@@ -53,7 +53,19 @@ public class Pop extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.isPop();
+    if (!other.isPop()) {
+      return false;
+    }
+    Pop pop = other.asPop();
+    if (getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass)) {
+      InitClass initClass = getFirstOperand().getDefinition().asInitClass();
+      if (!pop.getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass)) {
+        return false;
+      }
+      InitClass otherInitClass = pop.getFirstOperand().getDefinition().asInitClass();
+      return initClass.getClassValue() == otherInitClass.getClassValue();
+    }
+    return !pop.getFirstOperand().isDefinedByInstructionSatisfying(Instruction::isInitClass);
   }
 
   @Override
