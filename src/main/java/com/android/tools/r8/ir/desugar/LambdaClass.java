@@ -99,13 +99,15 @@ public final class LambdaClass {
 
     this.target = createTarget(accessedFrom);
 
-    boolean stateless = isStateless();
+    boolean statelessSingleton = isStatelessSingleton();
     this.classConstructor =
-        !stateless
-            ? null
-            : factory.createMethod(type, constructorProto, factory.classConstructorMethodName);
+        statelessSingleton
+            ? factory.createMethod(type, constructorProto, factory.classConstructorMethodName)
+            : null;
     this.lambdaField =
-        !stateless ? null : factory.createField(type, type, factory.lambdaInstanceFieldName);
+        statelessSingleton
+            ? factory.createField(type, type, factory.lambdaInstanceFieldName)
+            : null;
 
     // Synthesize the program class once all fields are set.
     synthesizeLambdaClass(builder, desugarInvoke);
@@ -145,8 +147,8 @@ public final class LambdaClass {
             appView.dexItemFactory().createString("f$" + index));
   }
 
-  public final boolean isStateless() {
-    return descriptor.isStateless();
+  public final boolean isStatelessSingleton() {
+    return appView.options().createSingletonsForStatelessLambdas && descriptor.isStateless();
   }
 
   // Synthesize virtual methods.
@@ -193,13 +195,14 @@ public final class LambdaClass {
 
   // Synthesize direct methods.
   private void synthesizeDirectMethods(SyntheticProgramClassBuilder builder) {
-    boolean stateless = isStateless();
-    List<DexEncodedMethod> methods = new ArrayList<>(stateless ? 2 : 1);
+    boolean statelessSingleton = isStatelessSingleton();
+    List<DexEncodedMethod> methods = new ArrayList<>(statelessSingleton ? 2 : 1);
 
     // Constructor.
     MethodAccessFlags accessFlags =
         MethodAccessFlags.fromSharedAccessFlags(
-            (stateless ? Constants.ACC_PRIVATE : Constants.ACC_PUBLIC) | Constants.ACC_SYNTHETIC,
+            (statelessSingleton ? Constants.ACC_PRIVATE : Constants.ACC_PUBLIC)
+                | Constants.ACC_SYNTHETIC,
             true);
     methods.add(
         DexEncodedMethod.syntheticBuilder()
@@ -211,7 +214,7 @@ public final class LambdaClass {
             .build());
 
     // Class constructor for stateless lambda classes.
-    if (stateless) {
+    if (statelessSingleton) {
       methods.add(
           DexEncodedMethod.syntheticBuilder()
               .setMethod(classConstructor)
@@ -249,7 +252,7 @@ public final class LambdaClass {
 
   // Synthesize static fields to represent singleton instance.
   private void synthesizeStaticFields(SyntheticProgramClassBuilder builder) {
-    if (isStateless()) {
+    if (isStatelessSingleton()) {
       // Create instance field for stateless lambda.
       assert this.lambdaField != null;
       builder.setStaticFields(

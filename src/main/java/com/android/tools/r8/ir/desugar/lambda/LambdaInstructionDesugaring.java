@@ -121,7 +121,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
 
     eventConsumer.acceptLambdaClass(lambdaClass, context);
 
-    if (lambdaClass.isStateless()) {
+    if (lambdaClass.isStatelessSingleton()) {
       return ImmutableList.of(
           new CfStaticFieldRead(lambdaClass.lambdaField, lambdaClass.lambdaField));
     }
