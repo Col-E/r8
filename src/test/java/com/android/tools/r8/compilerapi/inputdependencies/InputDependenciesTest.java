@@ -41,9 +41,9 @@ public class InputDependenciesTest extends CompilerApiTestRunner {
     runTest(test::run);
   }
 
-  private void checkPathOrigin(Path expected, Origin origin) {
+  private void checkPathOrigin(Path expected, Origin origin, Path base) {
     assertTrue(origin instanceof PathOrigin);
-    assertEquals(expected, ((PathOrigin) origin).getPath());
+    assertEquals(base.relativize(expected), base.relativize(((PathOrigin) origin).getPath()));
   }
 
   private interface Runner {
@@ -75,17 +75,17 @@ public class InputDependenciesTest extends CompilerApiTestRunner {
           public void accept(Origin dependent, Path dependency) {
             dependencyCount.increment();
             assertEquals(Origin.unknown(), dependent);
-            assertEquals(applymapping, dependency);
+            assertEquals(dir.relativize(applymapping), dir.relativize(dependency));
           }
 
           @Override
           public void acceptProguardInclude(Origin dependent, Path dependency) {
             dependencyCount.increment();
             if (dependent == Origin.unknown()) {
-              assertEquals(included2, dependency);
+              assertEquals(dir.relativize(included2), dir.relativize(dependency));
             } else {
-              checkPathOrigin(included2, dependent);
-              assertEquals(included1, dependency);
+              checkPathOrigin(included2, dependent, dir);
+              assertEquals(dir.relativize(included1), dir.relativize(dependency));
             }
           }
 
