@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -136,6 +137,15 @@ public class EnumUnboxingRewriter {
         Instruction instruction = iterator.next();
         if (instructionsToRemove.contains(instruction)) {
           iterator.removeOrReplaceByDebugLocalRead();
+          continue;
+        }
+
+        if (instruction.isInitClass()) {
+          InitClass initClass = instruction.asInitClass();
+          DexType enumType = getEnumTypeOrNull(initClass.getClassValue());
+          if (enumType != null) {
+            iterator.removeOrReplaceByDebugLocalRead();
+          }
           continue;
         }
 

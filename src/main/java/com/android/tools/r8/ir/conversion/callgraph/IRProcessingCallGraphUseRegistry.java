@@ -102,6 +102,12 @@ public class IRProcessingCallGraphUseRegistry<N extends NodeBase<N>> extends Inv
 
   private void processInitClass(DexType type) {
     DexType rewrittenType = appView.graphLens().lookupType(type);
+    if (rewrittenType.isIntType()) {
+      // Type was unboxed; init-class instruction will be removed by enum unboxer.
+      assert appView.hasUnboxedEnums();
+      assert appView.unboxedEnums().isUnboxedEnum(type);
+      return;
+    }
     DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(rewrittenType));
     if (clazz == null) {
       assert false;
