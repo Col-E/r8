@@ -16,9 +16,11 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.MapIdTemplateProvider;
 import com.android.tools.r8.utils.SourceFileTemplateProvider;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -46,6 +48,7 @@ public class CompatProguard {
     public final String mainDexList;
     public final MapIdProvider mapIdProvider;
     public final SourceFileProvider sourceFileProvider;
+    public final String depsFileOutput;
     public final List<String> proguardConfig;
     public boolean printHelpAndExit;
 
@@ -63,6 +66,7 @@ public class CompatProguard {
         String mainDexList,
         MapIdProvider mapIdProvider,
         SourceFileProvider sourceFileProvider,
+        String depsFileOutput,
         boolean printHelpAndExit,
         boolean disableVerticalClassMerging) {
       this.output = output;
@@ -75,6 +79,7 @@ public class CompatProguard {
       this.proguardConfig = proguardConfig;
       this.mapIdProvider = mapIdProvider;
       this.sourceFileProvider = sourceFileProvider;
+      this.depsFileOutput = depsFileOutput;
       this.printHelpAndExit = printHelpAndExit;
       this.disableVerticalClassMerging = disableVerticalClassMerging;
     }
@@ -91,6 +96,7 @@ public class CompatProguard {
       boolean printHelpAndExit = false;
       MapIdProvider mapIdProvider = null;
       SourceFileProvider sourceFileProvider = null;
+      String depsFileOutput = null;
       // Flags to disable experimental features.
       boolean disableVerticalClassMerging = false;
       // These flags are currently ignored.
@@ -134,6 +140,8 @@ public class CompatProguard {
               mapIdProvider = MapIdTemplateProvider.create(args[++i], handler);
             } else if (arg.equals("--source-file-template")) {
               sourceFileProvider = SourceFileTemplateProvider.create(args[++i], handler);
+            } else if (arg.equals("--deps-file")) {
+              depsFileOutput = args[++i];
             } else if (arg.equals("--no-vertical-class-merging")) {
               disableVerticalClassMerging = true;
             } else if (arg.equals("--minimal-main-dex")) {
@@ -173,6 +181,7 @@ public class CompatProguard {
           mainDexList,
           mapIdProvider,
           sourceFileProvider,
+          depsFileOutput,
           printHelpAndExit,
           disableVerticalClassMerging);
     }
@@ -228,7 +237,13 @@ public class CompatProguard {
     if (options.mainDexList != null) {
       builder.addMainDexListFiles(Paths.get(options.mainDexList));
     }
-
+    if (options.depsFileOutput != null) {
+      Path target = Paths.get(options.output);
+      if (!FileUtils.isArchive(target)) {
+        target = target.resolve("classes.dex");
+      }
+      builder.setInputDependencyGraphConsumer(new DepsFileWriter(target, options.depsFileOutput));
+    }
     R8.run(builder.build());
   }
 

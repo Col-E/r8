@@ -63,7 +63,7 @@ public interface InputDependencyGraphConsumer {
   }
 
   /**
-   * Callback indicating no more dependency remain for the active compilation unit.
+   * Callback indicating no more dependencies remain for the active compilation unit.
    *
    * <p>Note: this callback places no other guarantees on number of calls or on which threads.
    */
