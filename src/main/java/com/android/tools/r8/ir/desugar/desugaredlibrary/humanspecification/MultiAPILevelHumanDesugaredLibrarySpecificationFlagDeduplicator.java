@@ -121,13 +121,29 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
         otherFlags.getDontRetarget(),
         commonBuilder::addDontRetargetLibMember,
         builder::addDontRetargetLibMember);
-    deduplicateFlags(
-        flags.getWrapperConversions(),
-        otherFlags.getWrapperConversions(),
-        commonBuilder::addWrapperConversion,
-        builder::addWrapperConversion);
+
+    deduplicateWrapperFlags(flags, otherFlags, commonBuilder, builder);
 
     deduplicateAmendLibraryMemberFlags(flags, otherFlags, commonBuilder, builder);
+  }
+
+  private static void deduplicateWrapperFlags(
+      HumanRewritingFlags flags,
+      HumanRewritingFlags otherFlags,
+      HumanRewritingFlags.Builder commonBuilder,
+      HumanRewritingFlags.Builder builder) {
+    Map<DexType, Set<DexMethod>> other = otherFlags.getWrapperConversions();
+    flags
+        .getWrapperConversions()
+        .forEach(
+            (wrapperType, excludedMethods) -> {
+              if (other.containsKey(wrapperType)) {
+                assert excludedMethods.equals(other.get(wrapperType));
+                commonBuilder.addWrapperConversion(wrapperType, excludedMethods);
+              } else {
+                builder.addWrapperConversion(wrapperType, excludedMethods);
+              }
+            });
   }
 
   private static void deduplicateAmendLibraryMemberFlags(

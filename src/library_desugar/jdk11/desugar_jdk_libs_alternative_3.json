@@ -119,7 +119,6 @@
         "java.util.stream.Stream",
         "java.util.function.ObjLongConsumer",
         "java.util.function.ToDoubleFunction",
-        "java.util.Spliterator",
         "java.util.stream.IntStream",
         "java.util.function.LongBinaryOperator",
         "java.util.Spliterator$OfDouble",
@@ -146,6 +145,12 @@
         "java.util.stream.BaseStream",
         "java.util.function.DoublePredicate"
       ],
+      "wrapper_conversion_excluding": {
+        "java.util.Spliterator": [
+          "boolean java.util.Spliterator#hasCharacteristics(int)",
+          "long java.util.Spliterator#getExactSizeIfKnown()"
+        ]
+      },
       "custom_conversion": {
         "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions",
         "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",

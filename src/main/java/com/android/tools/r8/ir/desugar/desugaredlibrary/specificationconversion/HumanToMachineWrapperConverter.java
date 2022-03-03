@@ -33,25 +33,29 @@ public class HumanToMachineWrapperConverter {
       HumanRewritingFlags rewritingFlags,
       MachineRewritingFlags.Builder builder,
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
-    for (DexType wrapperType : rewritingFlags.getWrapperConversions()) {
-      DexClass wrapperClass = appInfo.definitionFor(wrapperType);
-      if (wrapperClass == null) {
-        missingClasses.add(wrapperType);
-        continue;
-      }
-      List<DexMethod> methods;
-      if (wrapperClass.isEnum()) {
-        methods = ImmutableList.of();
-      } else {
-        methods = allImplementedMethods(wrapperClass);
-        methods.sort(DexMethod::compareTo);
-      }
-      builder.addWrapper(wrapperType, methods);
-    }
+    rewritingFlags
+        .getWrapperConversions()
+        .forEach(
+            (wrapperType, excludedMethods) -> {
+              DexClass wrapperClass = appInfo.definitionFor(wrapperType);
+              if (wrapperClass == null) {
+                missingClasses.add(wrapperType);
+                return;
+              }
+              List<DexMethod> methods;
+              if (wrapperClass.isEnum()) {
+                methods = ImmutableList.of();
+              } else {
+                methods = allImplementedMethods(wrapperClass, excludedMethods);
+                methods.sort(DexMethod::compareTo);
+              }
+              builder.addWrapper(wrapperType, methods);
+            });
     warnConsumer.accept("The following types to wrap are missing: ", missingClasses);
   }
 
-  private List<DexMethod> allImplementedMethods(DexClass wrapperClass) {
+  private List<DexMethod> allImplementedMethods(
+      DexClass wrapperClass, Set<DexMethod> excludedMethods) {
     LinkedList<DexClass> workList = new LinkedList<>();
     List<DexMethod> implementedMethods = new ArrayList<>();
     workList.add(wrapperClass);
@@ -60,13 +64,15 @@ public class HumanToMachineWrapperConverter {
       for (DexEncodedMethod virtualMethod : dexClass.virtualMethods()) {
         if (!virtualMethod.isPrivateMethod()) {
           assert virtualMethod.isProtectedMethod() || virtualMethod.isPublicMethod();
-          boolean alreadyAdded = false;
+          boolean alreadyAdded = excludedMethods.contains(virtualMethod.getReference());
           // This looks quadratic but given the size of the collections met in practice for
           // desugared libraries (Max ~15) it does not matter.
-          for (DexMethod alreadyImplementedMethod : implementedMethods) {
-            if (alreadyImplementedMethod.match(virtualMethod.getReference())) {
-              alreadyAdded = true;
-              break;
+          if (!alreadyAdded) {
+            for (DexMethod alreadyImplementedMethod : implementedMethods) {
+              if (alreadyImplementedMethod.match(virtualMethod.getReference())) {
+                alreadyAdded = true;
+                break;
+              }
             }
           }
           if (!alreadyAdded) {
