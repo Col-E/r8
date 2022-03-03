@@ -158,15 +158,18 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
                   .toArray(new String[0]));
       printTime("R8/JVM external", start);
       assertEquals(javaProcessResult.toString(), 0, javaProcessResult.exitCode);
-      assertTrue(
+      uploadJarsToCloudStorageIfTestFails(
+          TestBase::filesAreEqual, outputThroughCf, outputThroughCfExternal);
+      assertProgramsEqual(outputThroughCf, outputThroughCfExternal);
+      String message =
           "The output of R8/JVM in-process and R8/JVM external differ."
               + " Make sure you have an up-to-date compilation of "
               + r8jar
               + ". If not, that could very likely cause the in-process run (eg, via intellij) to"
               + " differ from the external run which uses "
               + r8jar
-              + ". If up-to-date, the likely cause of this error is that R8 is non-deterministic.",
-          TestBase.filesAreEqual(outputThroughCf, outputThroughCfExternal));
+              + ". If up-to-date, the likely cause of this error is that R8 is non-deterministic.";
+      assertTrue(message, filesAreEqual(outputThroughCf, outputThroughCfExternal));
     }
 
     // Finally compile R8 on the ART runtime using the already compiled DEX version of R8.

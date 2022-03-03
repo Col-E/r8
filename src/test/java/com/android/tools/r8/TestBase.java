@@ -8,9 +8,7 @@ import static com.android.tools.r8.TestBuilder.getTestingAnnotations;
 import static com.android.tools.r8.ToolHelper.R8_TEST_BUCKET;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
-import static com.google.common.io.ByteStreams.toByteArray;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -87,6 +85,7 @@ import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.base.Predicates;
 import com.google.common.cache.CacheBuilder;
@@ -94,6 +93,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 import com.google.common.io.ByteStreams;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -110,8 +110,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -126,6 +128,7 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -1943,20 +1946,100 @@ public class TestBase {
     return false;
   }
 
-  public static boolean assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
+  public static boolean assertProgramsEqual(Path expectedJar, Path actualJar) throws IOException {
     if (filesAreEqual(expectedJar, actualJar)) {
       return true;
     }
-    ArchiveClassFileProvider expected = new ArchiveClassFileProvider(expectedJar);
-    ArchiveClassFileProvider actual = new ArchiveClassFileProvider(actualJar);
-    assertEquals(getSortedDescriptorList(expected), getSortedDescriptorList(actual));
-    for (String descriptor : expected.getClassDescriptors()) {
-      assertArrayEquals(
-          "Class " + descriptor + " differs",
-          getClassAsBytes(expected, descriptor),
-          getClassAsBytes(actual, descriptor));
-    }
+    assertIdenticalInspectors(new CodeInspector(expectedJar), new CodeInspector(actualJar));
     return false;
+  }
+
+  public static void assertIdenticalInspectors(CodeInspector inspector1, CodeInspector inspector2) {
+    Set<String> classes1Set =
+        inspector1.allClasses().stream()
+            .map(c -> c.getDexProgramClass().getType().toString())
+            .collect(Collectors.toSet());
+    Set<String> classes2Set =
+        inspector2.allClasses().stream()
+            .map(c -> c.getDexProgramClass().getType().toString())
+            .collect(Collectors.toSet());
+    SetView<String> classUnion = Sets.union(classes1Set, classes2Set);
+    Assert.assertEquals(
+        "Inspector 1 contains more classes",
+        Collections.emptySet(),
+        Sets.difference(classUnion, classes1Set));
+    Assert.assertEquals(
+        "Inspector 2 contains more classes",
+        Collections.emptySet(),
+        Sets.difference(classUnion, classes2Set));
+    Map<DexEncodedMethod, DexEncodedMethod> diffs = new IdentityHashMap<>();
+    for (FoundClassSubject clazz1 : inspector1.allClasses()) {
+      ClassSubject clazz = inspector2.clazz(clazz1.getOriginalName());
+      assertTrue(clazz.isPresent());
+      FoundClassSubject clazz2 = clazz.asFoundClassSubject();
+      Set<String> methods1 =
+          clazz1.allMethods().stream()
+              .map(FoundMethodSubject::toString)
+              .collect(Collectors.toSet());
+      Set<String> methods2 =
+          clazz2.allMethods().stream()
+              .map(FoundMethodSubject::toString)
+              .collect(Collectors.toSet());
+      SetView<String> union = Sets.union(methods1, methods2);
+      Assert.assertEquals(
+          "Inspector 1 contains more methods",
+          Collections.emptySet(),
+          Sets.difference(union, methods1));
+      Assert.assertEquals(
+          "Inspector 2 contains more methods",
+          Collections.emptySet(),
+          Sets.difference(union, methods2));
+      Assert.assertEquals(clazz1.allMethods().size(), clazz2.allMethods().size());
+      for (FoundMethodSubject method1 : clazz1.allMethods()) {
+        MethodSubject method = clazz2.method(method1.asMethodReference());
+        assertTrue(method.isPresent());
+        FoundMethodSubject method2 = method.asFoundMethodSubject();
+        if (method1.hasCode()) {
+          assertTrue(method2.hasCode());
+          if (!(method1
+              .getMethod()
+              .getCode()
+              .toString()
+              .equals(method2.getMethod().getCode().toString()))) {
+            diffs.put(method1.getMethod(), method2.getMethod());
+          }
+        }
+      }
+    }
+    assertTrue(printDiffs(diffs), diffs.isEmpty());
+  }
+
+  private static String printDiffs(Map<DexEncodedMethod, DexEncodedMethod> diffs) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("The following methods had differences from one dex file to the other (")
+        .append(diffs.size())
+        .append("):\n");
+    diffs.forEach(
+        (m1, m2) -> {
+          sb.append(m1.toSourceString()).append("\n");
+          String[] lines1 = m1.getCode().toString().split("\n");
+          String[] lines2 = m2.getCode().toString().split("\n");
+          if (lines1.length != lines2.length) {
+            sb.append("Different number of lines.");
+            sb.append("\n");
+          } else {
+            for (int i = 0; i < lines1.length; i++) {
+              if (!lines1[i].equals(lines2[i])) {
+                sb.append(lines1[i]);
+                sb.append("\n");
+                sb.append(lines2[i]);
+                sb.append("\n");
+                return;
+              }
+            }
+          }
+        });
+    return sb.toString();
   }
 
   public static boolean filesAreEqual(Path file1, Path file2) throws IOException {
@@ -1980,16 +2063,5 @@ public class TestBase {
       }
     }
     return byteRead1 == byteRead2;
-  }
-
-  private static List<String> getSortedDescriptorList(ArchiveClassFileProvider inputJar) {
-    ArrayList<String> descriptorList = new ArrayList<>(inputJar.getClassDescriptors());
-    Collections.sort(descriptorList);
-    return descriptorList;
-  }
-
-  private static byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
-      throws Exception {
-    return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
   }
 }
