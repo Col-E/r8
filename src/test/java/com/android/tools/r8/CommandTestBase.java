@@ -7,7 +7,12 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion.AppForSpecConversion;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import org.junit.Test;
 
 public abstract class CommandTestBase<C extends BaseCompilerCommand> extends TestBase {
@@ -301,6 +306,20 @@ public abstract class CommandTestBase<C extends BaseCompilerCommand> extends Tes
   private C parseWithRequiredArgs(DiagnosticsHandler handler, String... args)
       throws CompilationFailedException {
     return parse(handler, prepareArgs(args));
+  }
+
+  protected InternalOptions getOptionsWithLoadedDesugaredLibraryConfiguration(
+      C command, boolean libraryCompilation) throws IOException {
+    InternalOptions options = command.getInternalOptions();
+    options.loadMachineDesugaredLibrarySpecification(
+        Timing.empty(),
+        AppForSpecConversion.readAppForTesting(
+            libraryCompilation ? ToolHelper.getDesugarJDKLibs() : null,
+            ToolHelper.getAndroidJar(AndroidApiLevel.R),
+            options,
+            libraryCompilation,
+            Timing.empty()));
+    return options;
   }
 
   /**

@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutorService;
 
 public class AppForSpecConversion {
 
-  static DexApplication readAppForTesting(
+  public static DexApplication readAppForTesting(
       Path desugaredJDKLib,
       Path androidLib,
       InternalOptions options,

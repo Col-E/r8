@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -355,19 +356,15 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   }
 
   @Test
-  public void desugaredLibrary() throws CompilationFailedException {
+  public void desugaredLibrary() throws CompilationFailedException, IOException {
     L8Command l8Command =
         parse(
             "--desugared-lib",
             ToolHelper.getDesugarLibJsonForTesting().toString(),
             "--lib",
-            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
-    assertFalse(
-        l8Command
-            .getInternalOptions()
-            .machineDesugaredLibrarySpecification
-            .getRewriteType()
-            .isEmpty());
+            ToolHelper.getAndroidJar(AndroidApiLevel.R).toString());
+    InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(l8Command, true);
+    assertFalse(options.machineDesugaredLibrarySpecification.getRewriteType().isEmpty());
   }
 
   private void checkSingleForceAllAssertion(

@@ -24,6 +24,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -825,38 +826,30 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
   }
 
   @Test
-  public void desugaredLibrary() throws CompilationFailedException {
+  public void desugaredLibrary() throws CompilationFailedException, IOException {
     R8Command r8Command =
         parse(
             "--desugared-lib",
             "src/library_desugar/desugar_jdk_libs.json",
             "--lib",
-            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString());
-    assertFalse(
-        r8Command
-            .getInternalOptions()
-            .machineDesugaredLibrarySpecification
-            .getRewriteType()
-            .isEmpty());
+            ToolHelper.getAndroidJar(AndroidApiLevel.R).toString());
+    InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(r8Command, false);
+    assertFalse(options.machineDesugaredLibrarySpecification.getRewriteType().isEmpty());
   }
 
   @Test
-  public void desugaredLibraryWithOutputConf() throws CompilationFailedException {
+  public void desugaredLibraryWithOutputConf() throws CompilationFailedException, IOException {
     Path pgout = temp.getRoot().toPath().resolve("pgout.conf");
     R8Command r8Command =
         parse(
             "--desugared-lib",
             "src/library_desugar/desugar_jdk_libs.json",
             "--lib",
-            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+            ToolHelper.getAndroidJar(AndroidApiLevel.R).toString(),
             "--desugared-lib-pg-conf-output",
             pgout.toString());
-    assertFalse(
-        r8Command
-            .getInternalOptions()
-            .machineDesugaredLibrarySpecification
-            .getRewriteType()
-            .isEmpty());
+    InternalOptions options = getOptionsWithLoadedDesugaredLibraryConfiguration(r8Command, false);
+    assertFalse(options.machineDesugaredLibrarySpecification.getRewriteType().isEmpty());
   }
 
   @Test
