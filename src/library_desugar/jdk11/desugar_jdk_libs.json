@@ -13,6 +13,18 @@
       }
     },
     {
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.io.DesugarInputStream": "j$.io.DesugarInputStream"
+      },
+      "retarget_method_with_emulated_dispatch": {
+        "long java.io.InputStream#transferTo(java.io.OutputStream)": "java.io.DesugarInputStream"
+      },
+      "amend_library_method": [
+        "public long java.io.InputStream#transferTo(java.io.OutputStream)"
+      ]
+    },
+    {
       "api_level_below_or_equal": 30,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
@@ -282,7 +294,6 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
-        "java.io.DesugarInputStream": "j$.io.DesugarInputStream",
         "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
         "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
         "java.util.AbstractList": "j$.util.AbstractList",
@@ -307,13 +318,7 @@
         "java.util.Optional": {
           "j$.util.Optional": "java.util.Optional"
         }
-      },
-      "retarget_method_with_emulated_dispatch": {
-        "long java.io.InputStream#transferTo(java.io.OutputStream)": "java.io.DesugarInputStream"
-      },
-      "amend_library_method": [
-        "public long java.io.InputStream#transferTo(java.io.OutputStream)"
-      ]
+      }
     }
   ],
   "shrinker_config": [
