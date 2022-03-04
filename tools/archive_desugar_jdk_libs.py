@@ -106,7 +106,7 @@ def BuildDesugaredLibrary(checkout_dir, variant):
         bazel,
         '--bazelrc=/dev/null',
         'build',
-        '--sandbox_debug',
+        '--spawn_strategy=local',
         '--verbose_failures',
         'maven_release' + ('_jdk11' if variant == 'jdk11' else '')]
     utils.PrintCmd(cmd)
