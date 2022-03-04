@@ -73,8 +73,9 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
                       .count();
               long paramNullCheckCount =
                   countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
-              // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
-              assertEquals(2, ifzCount);
+              // TODO(b/214496607): Should be one after Iterator#hasNext, and another in the filter
+              //  predicate: sinceYear != null.
+              assertEquals(testParameters.isCfRuntime() ? 5 : 2, ifzCount);
               assertEquals(0, paramNullCheckCount);
             });
   }

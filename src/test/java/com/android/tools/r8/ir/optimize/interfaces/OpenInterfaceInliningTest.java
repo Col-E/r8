@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.interfaces;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -39,7 +40,7 @@ public class OpenInterfaceInliningTest extends TestBase {
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines(false));
+        .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
 
   @Test
@@ -50,7 +51,7 @@ public class OpenInterfaceInliningTest extends TestBase {
         .addProgramClassFileData(getTransformedMainClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines(false));
+        .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
 
   @Test
@@ -59,11 +60,18 @@ public class OpenInterfaceInliningTest extends TestBase {
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
         .addKeepClassAndMembersRules(Main.class)
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
+        // TODO(b/214496607): A and B should strictly speaking not be merged since A implements the
+        //  open interface I, and there is an invoke-interface instruction in the program to I.m(),
+        //  which should succeed if the receiver is an A, but fail with an ICCE if the receiver is a
+        //  B.
+        .enableNoHorizontalClassMergingAnnotations()
         // TODO(b/214496607): I should not be merged into A in the first place, since I is open.
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines(true));
+        .assertSuccessWithOutputLines(getExpectedOutputLines());
   }
 
   private List<Class<?>> getProgramClasses() {
@@ -90,11 +98,7 @@ public class OpenInterfaceInliningTest extends TestBase {
         .transform();
   }
 
-  private List<String> getExpectedOutputLines(boolean isR8) {
-    if (isR8) {
-      // TODO(b/214496607): R8 should not inline the invoke instruction since I is open.
-      return ImmutableList.of("A", "A");
-    }
+  private List<String> getExpectedOutputLines() {
     return ImmutableList.of("A", "ICCE");
   }
 
@@ -124,6 +128,7 @@ public class OpenInterfaceInliningTest extends TestBase {
     void m();
   }
 
+  @NoHorizontalClassMerging
   static class A implements I {
 
     @Override
@@ -132,6 +137,7 @@ public class OpenInterfaceInliningTest extends TestBase {
     }
   }
 
+  @NoHorizontalClassMerging
   static class B {
 
     public void m() {

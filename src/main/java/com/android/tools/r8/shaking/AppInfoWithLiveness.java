@@ -50,6 +50,7 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter;
@@ -1355,6 +1356,12 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     assert checkIfObsolete();
     assert dynamicReceiverType != null;
     if (method.getHolderType().isArrayType()) {
+      return null;
+    }
+    TypeElement staticReceiverType = method.getHolderType().toTypeElement(appView);
+    if (!appView
+        .getOpenClosedInterfacesCollection()
+        .isDefinitelyInstanceOfStaticType(appView, () -> dynamicReceiverType, staticReceiverType)) {
       return null;
     }
     DexClass initialResolutionHolder = definitionFor(method.holder);

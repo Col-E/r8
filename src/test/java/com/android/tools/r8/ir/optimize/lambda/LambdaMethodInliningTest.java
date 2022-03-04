@@ -65,7 +65,7 @@ public class LambdaMethodInliningTest extends TestBase {
     assertTrue(
         testClassMethodSubject
             .streamInstructions()
-            .anyMatch(
+            .noneMatch(
                 instruction ->
                     instruction.isInvokeVirtual()
                         && instruction.getMethod().toSourceString().contains("println")));
