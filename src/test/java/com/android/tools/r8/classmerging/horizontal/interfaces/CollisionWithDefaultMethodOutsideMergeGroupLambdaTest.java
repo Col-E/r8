@@ -18,8 +18,8 @@ import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.HorizontallyMergedClassesInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,13 +46,7 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
         // I and J are not eligible for merging, since the lambda that implements I & J inherits a
         // default m() method from K, which is also on J.
         .addHorizontallyMergedClassesInspector(
-            inspector -> {
-              if (parameters.isCfRuntime()) {
-                inspector.assertIsCompleteMergeGroup(I.class, J.class);
-              } else {
-                inspector.assertNoClassesMerged();
-              }
-            })
+            HorizontallyMergedClassesInspector::assertNoClassesMerged)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableNoHorizontalClassMergingAnnotations()
@@ -66,25 +60,13 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
               ClassSubject aClassSubject = inspector.clazz(A.class);
               if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
                 assertThat(aClassSubject, isPresent());
-                if (parameters.isCfRuntime()) {
-                  assertThat(aClassSubject, isImplementing(inspector.clazz(I.class)));
-                } else {
-                  assertThat(aClassSubject, isImplementing(inspector.clazz(J.class)));
-                }
+                assertThat(aClassSubject, isImplementing(inspector.clazz(J.class)));
               } else {
                 assertThat(aClassSubject, isAbsent());
               }
             })
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/173990042): Should succeed with "K", "J".
-        .applyIf(
-            parameters.isCfRuntime(),
-            builder ->
-                builder.assertFailureWithErrorThatThrows(
-                    parameters.isCfRuntime(CfVm.JDK11)
-                        ? AbstractMethodError.class
-                        : IncompatibleClassChangeError.class),
-            builder -> builder.assertSuccessWithOutputLines("K", "J"));
+        .assertSuccessWithOutputLines("K", "J");
   }
 
   static class Main {

@@ -164,6 +164,11 @@ public class CheckCast extends Instruction {
         return true;
       }
     }
+    if (!appView
+        .getOpenClosedInterfacesCollection()
+        .isDefinitelyInstanceOfStaticType(appViewWithLiveness, object())) {
+      return true;
+    }
     TypeElement castType = TypeElement.fromDexType(type, definitelyNotNull(), appView);
     if (object()
         .getDynamicUpperBoundType(appViewWithLiveness)

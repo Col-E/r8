@@ -16,7 +16,7 @@ import com.android.tools.r8.ProguardTestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
@@ -49,7 +49,7 @@ public class InvalidTypesTest extends JasminTestBase {
 
       @Override
       public String getExpectedOutput(
-          Compiler compiler, TestRuntime runtime, boolean useInterface) {
+          Compiler compiler, TestParameters parameters, boolean useInterface) {
         return StringUtils.joinLines("Hello!", "Goodbye!", "");
       }
 
@@ -62,7 +62,7 @@ public class InvalidTypesTest extends JasminTestBase {
 
       @Override
       public String getExpectedOutput(
-          Compiler compiler, TestRuntime runtime, boolean useInterface) {
+          Compiler compiler, TestParameters parameters, boolean useInterface) {
         if (!useInterface) {
           return StringUtils.joinLines("Hello!", "");
         }
@@ -70,7 +70,7 @@ public class InvalidTypesTest extends JasminTestBase {
         switch (compiler) {
           case D8:
           case DX:
-            switch (runtime.asDex().getVm().getVersion()) {
+            switch (parameters.getDexRuntimeVersion()) {
               case V4_0_4:
               case V4_4_4:
               case V10_0_0:
@@ -90,10 +90,35 @@ public class InvalidTypesTest extends JasminTestBase {
                 // Fallthrough.
             }
 
-          case R8:
           case PROGUARD:
             return StringUtils.joinLines(
                 "Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
+
+          case R8:
+            if (parameters.isDexRuntime()) {
+              if (parameters
+                  .getDexRuntimeVersion()
+                  .isEqualToOneOf(
+                      Version.V5_1_1,
+                      Version.V6_0_1,
+                      Version.V8_1_0,
+                      Version.V9_0_0,
+                      Version.DEFAULT)) {
+                return StringUtils.joinLines(
+                    "Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
+              }
+              if (parameters
+                  .getDexRuntimeVersion()
+                  .isEqualToOneOf(Version.V7_0_0, Version.V13_MASTER)) {
+                return StringUtils.joinLines(
+                    "Hello!",
+                    "Unexpected outcome of checkcast",
+                    "Unexpected outcome of instanceof",
+                    "Goodbye!",
+                    "");
+              }
+            }
+            return StringUtils.joinLines("Hello!", "Goodbye!", "");
 
           case R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES:
             return StringUtils.joinLines(
@@ -120,7 +145,7 @@ public class InvalidTypesTest extends JasminTestBase {
 
       @Override
       public String getExpectedOutput(
-          Compiler compiler, TestRuntime runtime, boolean useInterface) {
+          Compiler compiler, TestParameters parameters, boolean useInterface) {
         if (useInterface) {
           return StringUtils.joinLines("Hello!", "In verifiable method!", "Goodbye!", "");
         }
@@ -147,7 +172,7 @@ public class InvalidTypesTest extends JasminTestBase {
     };
 
     public abstract String getExpectedOutput(
-        Compiler compiler, TestRuntime runtime, boolean useInterface);
+        Compiler compiler, TestParameters parameters, boolean useInterface);
 
     public abstract String instruction();
   }
@@ -402,7 +427,7 @@ public class InvalidTypesTest extends JasminTestBase {
   }
 
   private String getExpectedOutput(Compiler compiler) {
-    return mode.getExpectedOutput(compiler, parameters.getRuntime(), useInterface);
+    return mode.getExpectedOutput(compiler, parameters, useInterface);
   }
 
   private Matcher<String> getMatcherForExpectedError() {

@@ -33,8 +33,11 @@ public class IdenticalFunctionalInterfacesWithIntersectionMergingTest extends Te
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
-        .addHorizontallyMergedClassesInspector(
-            inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class))
+        .applyIf(
+            parameters.isDexRuntime(),
+            testBuilder ->
+                testBuilder.addHorizontallyMergedClassesInspector(
+                    inspector -> inspector.assertIsCompleteMergeGroup(I.class, J.class)))
         .enableNoUnusedInterfaceRemovalAnnotations()
         .enableNoVerticalClassMergingAnnotations()
         .noClassInliningOfSynthetics()

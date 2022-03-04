@@ -1496,6 +1496,12 @@ public class CodeRewriter {
       }
     }
 
+    if (!appView
+        .getOpenClosedInterfacesCollection()
+        .isDefinitelyInstanceOfStaticType(appViewWithLiveness, inValue)) {
+      return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
+    }
+
     // If the in-value is `null` and the cast-type is a float-array type, then trivial check-cast
     // elimination may lead to verification errors. See b/123269162.
     if (options.canHaveArtCheckCastVerifierBug()) {
@@ -1609,6 +1615,12 @@ public class CodeRewriter {
     }
 
     Value inValue = instanceOf.value();
+    if (!appView
+        .getOpenClosedInterfacesCollection()
+        .isDefinitelyInstanceOfStaticType(appViewWithLiveness, inValue)) {
+      return false;
+    }
+
     TypeElement inType = inValue.getType();
     TypeElement instanceOfType =
         TypeElement.fromDexType(instanceOf.type(), inType.nullability(), appView);
