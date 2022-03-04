@@ -1046,12 +1046,12 @@ final class InlineCandidateProcessor {
     int parameter = 0;
     if (root.isNewInstance()) {
       return classInlinerMethodConstraint.isEligibleForNewInstanceClassInlining(
-          singleTarget, parameter);
+          appView, eligibleClass, singleTarget, parameter);
     }
 
     assert root.isStaticGet();
     return classInlinerMethodConstraint.isEligibleForStaticGetClassInlining(
-        appView, parameter, objectState, method);
+        appView, eligibleClass, parameter, objectState, method);
   }
 
   // Analyzes if a method invoke the eligible instance is passed to is eligible. In short,
@@ -1155,13 +1155,13 @@ final class InlineCandidateProcessor {
         singleTarget.getDefinition().getOptimizationInfo().getClassInlinerMethodConstraint();
     if (root.isNewInstance()) {
       if (!classInlinerMethodConstraint.isEligibleForNewInstanceClassInlining(
-          singleTarget, parameter)) {
+          appView, eligibleClass, singleTarget, parameter)) {
         return false;
       }
     } else {
       assert root.isStaticGet();
       if (!classInlinerMethodConstraint.isEligibleForStaticGetClassInlining(
-          appView, parameter, objectState, method)) {
+          appView, eligibleClass, parameter, objectState, method)) {
         return false;
       }
     }

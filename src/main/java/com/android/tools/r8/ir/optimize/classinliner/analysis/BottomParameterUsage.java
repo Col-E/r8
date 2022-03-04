@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 
 class BottomParameterUsage extends ParameterUsage {
@@ -15,6 +16,11 @@ class BottomParameterUsage extends ParameterUsage {
 
   static BottomParameterUsage getInstance() {
     return BOTTOM;
+  }
+
+  @Override
+  ParameterUsage addCastWithParameter(DexType castType) {
+    return InternalNonEmptyParameterUsage.builder().addCastWithParameter(castType).build();
   }
 
   @Override

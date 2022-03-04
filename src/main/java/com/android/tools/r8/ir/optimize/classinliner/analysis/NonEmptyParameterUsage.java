@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.classinliner.analysis;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.Multiset;
@@ -15,6 +16,7 @@ import java.util.Set;
 
 public class NonEmptyParameterUsage extends ParameterUsage {
 
+  private Set<DexType> castsWithParameter;
   private Set<DexField> fieldsReadFromParameter;
   private Multiset<DexMethod> methodCallsWithParameterAsReceiver;
 
@@ -23,21 +25,29 @@ public class NonEmptyParameterUsage extends ParameterUsage {
   private boolean isParameterUsedAsLock;
 
   NonEmptyParameterUsage(
+      Set<DexType> castsWithParameter,
       Set<DexField> fieldsReadFromParameter,
       Multiset<DexMethod> methodCallsWithParameterAsReceiver,
       boolean isParameterMutated,
       boolean isParameterReturned,
       boolean isParameterUsedAsLock) {
-    assert !fieldsReadFromParameter.isEmpty()
+    assert !castsWithParameter.isEmpty()
+        || !fieldsReadFromParameter.isEmpty()
         || !methodCallsWithParameterAsReceiver.isEmpty()
         || isParameterMutated
         || isParameterReturned
         || isParameterUsedAsLock;
+    this.castsWithParameter = castsWithParameter;
     this.fieldsReadFromParameter = fieldsReadFromParameter;
     this.methodCallsWithParameterAsReceiver = methodCallsWithParameterAsReceiver;
     this.isParameterMutated = isParameterMutated;
     this.isParameterReturned = isParameterReturned;
     this.isParameterUsedAsLock = isParameterUsedAsLock;
+  }
+
+  @Override
+  ParameterUsage addCastWithParameter(DexType castType) {
+    throw new Unreachable();
   }
 
   @Override
@@ -62,6 +72,10 @@ public class NonEmptyParameterUsage extends ParameterUsage {
 
   public boolean hasFieldsReadFromParameter() {
     return !getFieldsReadFromParameter().isEmpty();
+  }
+
+  public Set<DexType> getCastsWithParameter() {
+    return castsWithParameter;
   }
 
   public Set<DexField> getFieldsReadFromParameter() {
@@ -104,6 +118,9 @@ public class NonEmptyParameterUsage extends ParameterUsage {
 
   @Override
   public boolean equals(Object obj) {
+    if (obj == this) {
+      return true;
+    }
     if (obj == null || obj.getClass() != getClass()) {
       return false;
     }
@@ -111,6 +128,7 @@ public class NonEmptyParameterUsage extends ParameterUsage {
     return isParameterMutated == knownParameterUsage.isParameterMutated
         && isParameterReturned == knownParameterUsage.isParameterReturned
         && isParameterUsedAsLock == knownParameterUsage.isParameterUsedAsLock
+        && castsWithParameter.equals(knownParameterUsage.castsWithParameter)
         && fieldsReadFromParameter.equals(knownParameterUsage.fieldsReadFromParameter)
         && methodCallsWithParameterAsReceiver.equals(
             knownParameterUsage.methodCallsWithParameterAsReceiver);
@@ -119,9 +137,11 @@ public class NonEmptyParameterUsage extends ParameterUsage {
   @Override
   public int hashCode() {
     int hash =
-        31 * (31 + fieldsReadFromParameter.hashCode())
+        31 * (31 * (31 + castsWithParameter.hashCode()) + fieldsReadFromParameter.hashCode())
             + methodCallsWithParameterAsReceiver.hashCode();
-    assert hash == Objects.hash(fieldsReadFromParameter, methodCallsWithParameterAsReceiver);
+    assert hash
+        == Objects.hash(
+            castsWithParameter, fieldsReadFromParameter, methodCallsWithParameterAsReceiver);
     hash = (hash << 1) | BooleanUtils.intValue(isParameterMutated);
     hash = (hash << 1) | BooleanUtils.intValue(isParameterReturned);
     hash = (hash << 1) | BooleanUtils.intValue(isParameterUsedAsLock);

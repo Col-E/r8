@@ -171,7 +171,11 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
 
   private ParameterUsages analyzeCheckCast(CheckCast checkCast, NonEmptyParameterUsages state) {
     // Mark the value as ineligible for class inlining if it has phi users.
-    return checkCast.outValue().hasPhiUsers() ? fail(checkCast, state) : state;
+    if (checkCast.outValue().hasPhiUsers()) {
+      return fail(checkCast, state);
+    }
+    return state.rebuildParameter(
+        checkCast.object(), (context, usage) -> usage.addCastWithParameter(checkCast.getType()));
   }
 
   private ParameterUsages analyzeIf(If theIf, NonEmptyParameterUsages state) {

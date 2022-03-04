@@ -5,9 +5,12 @@
 package com.android.tools.r8.ir.optimize.classinliner.analysis;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 
 public abstract class ParameterUsage {
+
+  abstract ParameterUsage addCastWithParameter(DexType castType);
 
   abstract ParameterUsage addFieldReadFromParameter(DexField field);
 

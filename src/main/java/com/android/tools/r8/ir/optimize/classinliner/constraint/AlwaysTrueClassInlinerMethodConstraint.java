@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner.constraint;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.value.objectstate.ObjectState;
@@ -34,13 +35,18 @@ public class AlwaysTrueClassInlinerMethodConstraint implements ClassInlinerMetho
   }
 
   @Override
-  public boolean isEligibleForNewInstanceClassInlining(ProgramMethod method, int parameter) {
+  public boolean isEligibleForNewInstanceClassInlining(
+      AppView<AppInfoWithLiveness> appView,
+      DexProgramClass candidateClass,
+      ProgramMethod method,
+      int parameter) {
     return true;
   }
 
   @Override
   public boolean isEligibleForStaticGetClassInlining(
       AppView<AppInfoWithLiveness> appView,
+      DexProgramClass candidateClass,
       int parameter,
       ObjectState objectState,
       ProgramMethod context) {

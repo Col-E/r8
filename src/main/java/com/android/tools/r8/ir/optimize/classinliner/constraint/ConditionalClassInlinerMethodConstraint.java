@@ -8,6 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.proto.ArgumentInfo;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
@@ -68,15 +70,30 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
   }
 
   @Override
-  public boolean isEligibleForNewInstanceClassInlining(ProgramMethod method, int parameter) {
+  public boolean isEligibleForNewInstanceClassInlining(
+      AppView<AppInfoWithLiveness> appView,
+      DexProgramClass candidateClass,
+      ProgramMethod method,
+      int parameter) {
     AnalysisContext defaultContext = AnalysisContext.getDefaultContext();
     ParameterUsage usage = usages.get(parameter).get(defaultContext);
-    return !usage.isTop();
+    if (usage.isBottom()) {
+      return true;
+    }
+    if (usage.isTop()) {
+      return false;
+    }
+    NonEmptyParameterUsage knownUsage = usage.asNonEmpty();
+    if (hasUnsafeCast(appView, candidateClass, knownUsage)) {
+      return false;
+    }
+    return true;
   }
 
   @Override
   public boolean isEligibleForStaticGetClassInlining(
       AppView<AppInfoWithLiveness> appView,
+      DexProgramClass candidateClass,
       int parameter,
       ObjectState objectState,
       ProgramMethod context) {
@@ -100,6 +117,9 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
       // We will not be able to remove the monitor instruction afterwards.
       return false;
     }
+    if (hasUnsafeCast(appView, candidateClass, knownUsage)) {
+      return false;
+    }
     for (DexField fieldReadFromParameter : knownUsage.getFieldsReadFromParameter()) {
       DexClass holder = appView.definitionFor(fieldReadFromParameter.getHolderType());
       DexEncodedField definition = fieldReadFromParameter.lookupOnClass(holder);
@@ -116,5 +136,21 @@ public class ConditionalClassInlinerMethodConstraint implements ClassInlinerMeth
       }
     }
     return true;
+  }
+
+  private boolean hasUnsafeCast(
+      AppView<AppInfoWithLiveness> appView,
+      DexProgramClass candidateClass,
+      NonEmptyParameterUsage knownUsage) {
+    for (DexType castType : knownUsage.getCastsWithParameter()) {
+      if (!castType.isClassType()) {
+        return true;
+      }
+      DexClass castClass = appView.definitionFor(castType);
+      if (castClass == null || !appView.appInfo().isSubtype(candidateClass, castClass)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
