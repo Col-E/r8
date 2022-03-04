@@ -59,6 +59,7 @@ public abstract class TestCompilerBuilder<
         options.testing.reportUnusedProguardConfigurationRules = true;
         options.horizontalClassMergerOptions().enable();
         options.horizontalClassMergerOptions().setEnableInterfaceMerging();
+        options.getOpenClosedInterfacesOptions().disallowOpenInterfaces();
       };
 
   final Backend backend;

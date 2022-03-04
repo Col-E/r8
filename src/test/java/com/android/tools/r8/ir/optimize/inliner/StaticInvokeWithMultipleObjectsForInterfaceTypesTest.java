@@ -65,7 +65,13 @@ public class StaticInvokeWithMultipleObjectsForInterfaceTypesTest extends TestBa
         .addNoVerticalClassMergingAnnotations()
         .applyIf(!enableInlining, R8TestBuilder::enableInliningAnnotations)
         .applyIf(
-            !enableVerticalClassMerging, R8TestBuilder::enableNoVerticalClassMergingAnnotations)
+            !enableVerticalClassMerging,
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(
+                        options ->
+                            options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
+                    .enableNoVerticalClassMergingAnnotations())
         .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

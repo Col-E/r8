@@ -94,8 +94,11 @@ public class AppDumpBenchmarkBuilder {
                       .setMinApi(dumpProperties.getMinApi())
                       .allowUnusedDontWarnPatterns()
                       .allowUnusedProguardConfigurationRules()
-                      // TODO(b/222228826): Disallow unrecognized diagnostics.
+                      // TODO(b/222228826): Disallow unrecognized diagnostics and open interfaces.
                       .allowDiagnosticMessages()
+                      .addOptionsModification(
+                          options ->
+                              options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
                       .benchmarkCompile(results)
                       .benchmarkCodeSize(results);
                 });

@@ -34,6 +34,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.experimental.startup.StartupConfiguration;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -52,6 +53,7 @@ import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.horizontalclassmerging.HorizontallyMergedClasses;
 import com.android.tools.r8.horizontalclassmerging.Policy;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.ir.desugar.TypeRewriter.MachineDesugarPrefixRewritingMapper;
@@ -734,6 +736,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   private final InlinerOptions inlinerOptions = new InlinerOptions();
   private final HorizontalClassMergerOptions horizontalClassMergerOptions =
       new HorizontalClassMergerOptions();
+  private final OpenClosedInterfacesOptions openClosedInterfacesOptions =
+      new OpenClosedInterfacesOptions();
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   private final KotlinOptimizationOptions kotlinOptimizationOptions =
       new KotlinOptimizationOptions();
@@ -784,6 +788,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   public DesugarSpecificOptions desugarSpecificOptions() {
     return desugarSpecificOptions;
+  }
+
+  public OpenClosedInterfacesOptions getOpenClosedInterfacesOptions() {
+    return openClosedInterfacesOptions;
   }
 
   private static Set<String> getExtensiveLoggingFilter() {
@@ -1505,6 +1513,77 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
     public void setRestrictToSynthetics() {
       restrictToSynthetics = true;
+    }
+  }
+
+  public static class OpenClosedInterfacesOptions {
+
+    public interface OpenInterfaceWitnessSuppression {
+
+      boolean isSuppressed(
+          AppView<? extends AppInfoWithClassHierarchy> appView,
+          TypeElement valueType,
+          DexClass openInterface);
+    }
+
+    // Allow open interfaces by default. This is set to false in testing.
+    private boolean allowOpenInterfaces = true;
+
+    // When open interfaces are not allowed, compilation fails with an assertion error unless each
+    // open interface witness is expected according to some suppression.
+    private List<OpenInterfaceWitnessSuppression> suppressions = new ArrayList<>();
+
+    public void disallowOpenInterfaces() {
+      allowOpenInterfaces = false;
+    }
+
+    public void suppressAllOpenInterfaces() {
+      assert !allowOpenInterfaces;
+      suppressions.add((appView, valueType, openInterface) -> true);
+    }
+
+    public void suppressAllOpenInterfacesDueToMissingClasses() {
+      assert !allowOpenInterfaces;
+      suppressions.add(
+          (appView, valueType, openInterface) -> valueType.isBasedOnMissingClass(appView));
+    }
+
+    public void suppressArrayAssignmentsToJavaLangSerializable() {
+      assert !allowOpenInterfaces;
+      suppressions.add(
+          (appView, valueType, openInterface) ->
+              valueType.isArrayType()
+                  && openInterface.getTypeName().equals("java.io.Serializable"));
+    }
+
+    public void suppressZipFileAssignmentsToJavaLangAutoCloseable() {
+      assert !allowOpenInterfaces;
+      suppressions.add(
+          (appView, valueType, openInterface) ->
+              valueType.isClassType()
+                  && valueType
+                      .asClassType()
+                      .getClassType()
+                      .getTypeName()
+                      .equals("java.util.zip.ZipFile")
+                  && openInterface.getTypeName().equals("java.lang.AutoCloseable"));
+    }
+
+    public boolean isOpenInterfacesAllowed() {
+      return allowOpenInterfaces;
+    }
+
+    public boolean hasSuppressions() {
+      return !suppressions.isEmpty();
+    }
+
+    public boolean isSuppressed(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        TypeElement valueType,
+        DexClass openInterface) {
+      return allowOpenInterfaces
+          || suppressions.stream()
+              .anyMatch(suppression -> suppression.isSuppressed(appView, valueType, openInterface));
     }
   }
 

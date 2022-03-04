@@ -47,6 +47,11 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
         .addKeepRules(WHY_ARE_YOU_KEEPING_ALL)
+        .addOptionsModification(
+            options ->
+                options
+                    .getOpenClosedInterfacesOptions()
+                    .suppressZipFileAssignmentsToJavaLangAutoCloseable())
         .collectStdout()
         .compile()
         .assertStdoutThatMatches(containsString("referenced in keep rule"))

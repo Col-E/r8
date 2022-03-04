@@ -212,6 +212,11 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .addKeepMainRule(R8.class)
             .addKeepClassRules(CLASS_WITH_ANNOTATED_METHOD)
             .addKeepRules("-keepclassmembers class * { @" + PRESENT_ANNOTATION + " *** *(...); }")
+            .addOptionsModification(
+                options ->
+                    options
+                        .getOpenClosedInterfacesOptions()
+                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
             .apply(this::configureHorizontalClassMerging)
@@ -231,6 +236,11 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .addOptionsModification(
+                options ->
+                    options
+                        .getOpenClosedInterfacesOptions()
+                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
@@ -249,6 +259,11 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " *** *(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .addOptionsModification(
+                options ->
+                    options
+                        .getOpenClosedInterfacesOptions()
+                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
@@ -269,6 +284,11 @@ public class KeepAnnotatedMemberTest extends TestBase {
                     + " <2> <3>(...); }")
             .addDontWarnGoogle()
             .addDontWarnJavaxNullableAnnotation()
+            .addOptionsModification(
+                options ->
+                    options
+                        .getOpenClosedInterfacesOptions()
+                        .suppressZipFileAssignmentsToJavaLangAutoCloseable())
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();

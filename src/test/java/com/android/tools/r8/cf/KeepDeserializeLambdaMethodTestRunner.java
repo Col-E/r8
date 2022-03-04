@@ -11,7 +11,6 @@ import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -79,7 +78,9 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
         testForR8Compat(parameters.getBackend())
             .addProgramClasses(getClasses())
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(getMainClass());
+            .addKeepMainRule(getMainClass())
+            .addOptionsModification(
+                options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces());
     if (addKeepDeserializedLambdaRule) {
       builder.allowUnusedProguardConfigurationRules(parameters.isDexRuntime());
       builder.addKeepRules(

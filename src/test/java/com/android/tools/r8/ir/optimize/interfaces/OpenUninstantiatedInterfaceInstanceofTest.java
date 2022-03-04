@@ -60,6 +60,8 @@ public class OpenUninstantiatedInterfaceInstanceofTest extends TestBase {
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

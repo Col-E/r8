@@ -8,7 +8,6 @@ import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoVerticalClassMerging;
-import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.transformers.ClassFileTransformer.MethodPredicate;
@@ -56,7 +55,13 @@ public class InstancePutToInterfaceWithObjectMergingTest extends TestBase {
         .addKeepRules("-keepclassmembers class " + Main.class.getTypeName() + " { *** get(...); }")
         .addNoVerticalClassMergingAnnotations()
         .applyIf(
-            !enableVerticalClassMerging, R8TestBuilder::enableNoVerticalClassMergingAnnotations)
+            !enableVerticalClassMerging,
+            testBuilder ->
+                testBuilder
+                    .addOptionsModification(
+                        options ->
+                            options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
+                    .enableNoVerticalClassMergingAnnotations())
         .addVerticallyMergedClassesInspector(
             inspector -> {
               if (enableVerticalClassMerging) {

@@ -61,6 +61,8 @@ public class OpenInterfaceCheckCastTest extends TestBase {
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .enableInliningAnnotations()
         // TODO(b/214496607): I should not be merged into A in the first place, since I is open.
         .enableNoVerticalClassMergingAnnotations()

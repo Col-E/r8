@@ -64,9 +64,13 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
         compileWithR8(
             builder ->
                 builder.addOptionsModification(
-                    options ->
-                        options.testing.processingContextsConsumer =
-                            id -> assertNull(idsRoundOne.put(id, id))));
+                    options -> {
+                      options
+                          .getOpenClosedInterfacesOptions()
+                          .suppressArrayAssignmentsToJavaLangSerializable();
+                      options.testing.processingContextsConsumer =
+                          id -> assertNull(idsRoundOne.put(id, id));
+                    }));
 
     compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
 
@@ -75,12 +79,16 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
         compileWithR8(
             builder ->
                 builder.addOptionsModification(
-                    options ->
-                        options.testing.processingContextsConsumer =
-                            id -> {
-                              AssertionUtils.assertNotNull(idsRoundOne.get(id));
-                              assertNull(idsRoundTwo.put(id, id));
-                            }));
+                    options -> {
+                      options
+                          .getOpenClosedInterfacesOptions()
+                          .suppressArrayAssignmentsToJavaLangSerializable();
+                      options.testing.processingContextsConsumer =
+                          id -> {
+                            AssertionUtils.assertNotNull(idsRoundOne.get(id));
+                            assertNull(idsRoundTwo.put(id, id));
+                          };
+                    }));
 
     // Verify that the result of the two compilations was the same.
     assertEquals(

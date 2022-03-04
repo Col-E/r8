@@ -301,7 +301,10 @@ public class InvalidTypesTest extends JasminTestBase {
             .addOptionsModification(
                 options -> {
                   if (mode == Mode.INVOKE_UNVERIFIABLE_METHOD) {
+                    options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
                     options.testing.allowTypeErrors = true;
+                  } else if (mode == Mode.INVOKE_VERIFIABLE_METHOD_ON_UNVERIFIABLE_CLASS) {
+                    options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
                   }
                 })
             .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
@@ -329,6 +332,9 @@ public class InvalidTypesTest extends JasminTestBase {
                 options -> {
                   if (mode == Mode.INVOKE_UNVERIFIABLE_METHOD) {
                     options.testing.allowTypeErrors = true;
+                    options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
+                  } else if (mode == Mode.INVOKE_VERIFIABLE_METHOD_ON_UNVERIFIABLE_CLASS) {
+                    options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
                   }
                   options.enableUninstantiatedTypeOptimizationForInterfaces = true;
                 })

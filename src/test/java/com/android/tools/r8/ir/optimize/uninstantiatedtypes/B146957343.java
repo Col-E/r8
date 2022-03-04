@@ -50,7 +50,10 @@ public class B146957343 extends TestBase implements Opcodes {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
-            options -> options.enableUninstantiatedTypeOptimizationForInterfaces = true)
+            options -> {
+              options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
+              options.enableUninstantiatedTypeOptimizationForInterfaces = true;
+            })
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatThrows(NullPointerException.class);
@@ -65,7 +68,10 @@ public class B146957343 extends TestBase implements Opcodes {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
-            options -> options.enableUninstantiatedTypeOptimizationForInterfaces = false)
+            options -> {
+              options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
+              options.enableUninstantiatedTypeOptimizationForInterfaces = false;
+            })
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("In A.f()");

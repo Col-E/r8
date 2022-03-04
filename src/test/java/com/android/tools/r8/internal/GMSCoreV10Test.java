@@ -62,9 +62,13 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
         compileWithR8(
             builder ->
                 builder.addOptionsModification(
-                    options ->
-                        options.testing.processingContextsConsumer =
-                            id -> assertTrue(idsRoundOne.add(id))));
+                    options -> {
+                      options
+                          .getOpenClosedInterfacesOptions()
+                          .suppressArrayAssignmentsToJavaLangSerializable();
+                      options.testing.processingContextsConsumer =
+                          id -> assertTrue(idsRoundOne.add(id));
+                    }));
 
     compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
 
@@ -73,9 +77,13 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
         compileWithR8(
             builder ->
                 builder.addOptionsModification(
-                    options ->
-                        options.testing.processingContextsConsumer =
-                            id -> assertTrue(idsRoundTwo.add(id))));
+                    options -> {
+                      options
+                          .getOpenClosedInterfacesOptions()
+                          .suppressArrayAssignmentsToJavaLangSerializable();
+                      options.testing.processingContextsConsumer =
+                          id -> assertTrue(idsRoundTwo.add(id));
+                    }));
 
     uploadJarsToCloudStorageIfTestFails(
         (ignored1, ignored2) -> {
@@ -94,7 +102,12 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
     compileWithR8(
             builder ->
                 builder.addOptionsModification(
-                    options -> options.testing.forceJumboStringProcessing = true))
+                    options -> {
+                      options.testing.forceJumboStringProcessing = true;
+                      options
+                          .getOpenClosedInterfacesOptions()
+                          .suppressArrayAssignmentsToJavaLangSerializable();
+                    }))
         .runDex2Oat(parameters.getRuntime())
         .assertNoVerificationErrors();
   }

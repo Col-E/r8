@@ -56,6 +56,14 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ScriptEngineTest.class)
         .addKeepMainRule(TestClass.class)
+        .applyIf(
+            parameters.isDexRuntime(),
+            testBuilder ->
+                testBuilder.addOptionsModification(
+                    options ->
+                        options
+                            .getOpenClosedInterfacesOptions()
+                            .suppressAllOpenInterfacesDueToMissingClasses()))
         .setMinApi(parameters.getApiLevel())
         .addDataEntryResources(
             DataEntryResource.fromBytes(

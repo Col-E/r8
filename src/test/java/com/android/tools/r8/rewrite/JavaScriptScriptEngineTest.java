@@ -56,6 +56,14 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaScriptScriptEngineTest.class)
         .addKeepMainRule(TestClass.class)
+        .applyIf(
+            parameters.isDexRuntime(),
+            testBuilder ->
+                testBuilder.addOptionsModification(
+                    options ->
+                        options
+                            .getOpenClosedInterfacesOptions()
+                            .suppressAllOpenInterfacesDueToMissingClasses()))
         .setMinApi(parameters.getApiLevel())
         .apply(
             b -> {

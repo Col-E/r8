@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodSideEffectModelCollection;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
+import com.android.tools.r8.optimize.interfaces.collection.OpenClosedInterfacesCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepClassInfo;
 import com.android.tools.r8.shaking.KeepFieldInfo;
@@ -105,6 +106,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private HorizontallyMergedClasses horizontallyMergedClasses = HorizontallyMergedClasses.empty();
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumDataMap unboxedEnums = null;
+  private OpenClosedInterfacesCollection openClosedInterfacesCollection =
+      OpenClosedInterfacesCollection.getDefault();
   // TODO(b/169115389): Remove
   private Set<DexMethod> cfByteCodePassThrough = ImmutableSet.of();
   private Map<DexType, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
@@ -610,6 +613,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     testing().verticallyMergedClassesConsumer.accept(dexItemFactory(), verticallyMergedClasses);
   }
 
+  public OpenClosedInterfacesCollection getOpenClosedInterfacesCollection() {
+    return openClosedInterfacesCollection;
+  }
+
+  public void setOpenClosedInterfacesCollection(
+      OpenClosedInterfacesCollection openClosedInterfacesCollection) {
+    this.openClosedInterfacesCollection = openClosedInterfacesCollection;
+  }
+
   public boolean hasUnboxedEnums() {
     return unboxedEnums != null;
   }
@@ -713,6 +725,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     if (hasMainDexRootSet()) {
       setMainDexRootSet(mainDexRootSet.withoutPrunedItems(prunedItems));
     }
+    setOpenClosedInterfacesCollection(
+        openClosedInterfacesCollection.withoutPrunedItems(prunedItems));
   }
 
   @SuppressWarnings("unchecked")
@@ -805,6 +819,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
           if (appView.hasMainDexRootSet()) {
             appView.setMainDexRootSet(appView.getMainDexRootSet().rewrittenWithLens(lens));
           }
+          appView.setOpenClosedInterfacesCollection(
+              appView.getOpenClosedInterfacesCollection().rewrittenWithLens(lens));
           if (appView.hasRootSet()) {
             appView.setRootSet(appView.rootSet().rewrittenWithLens(lens));
           }

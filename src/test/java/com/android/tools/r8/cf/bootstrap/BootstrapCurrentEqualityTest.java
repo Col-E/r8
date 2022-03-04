@@ -99,6 +99,11 @@ public class BootstrapCurrentEqualityTest extends TestBase {
           .setMode(mode)
           .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
           .addKeepRuleFiles(MAIN_KEEP)
+          .addOptionsModification(
+              options ->
+                  options
+                      .getOpenClosedInterfacesOptions()
+                      .suppressZipFileAssignmentsToJavaLangAutoCloseable())
           .compile()
           .apply(c -> FileUtils.writeTextFile(map, c.getProguardMap()))
           .writeToZip(jar);

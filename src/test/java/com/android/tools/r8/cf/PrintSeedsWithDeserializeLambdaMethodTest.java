@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -54,6 +53,9 @@ public class PrintSeedsWithDeserializeLambdaMethodTest extends TestBase {
         .addProgramClasses(getClasses())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(getMainClass())
+        // TODO(b/214496607): Improve analysis precision to ensure there are no open interfaces.
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .addPrintSeeds()
         .allowStdoutMessages()
         .noMinification()
