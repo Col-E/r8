@@ -279,6 +279,7 @@ public class HorizontalClassMerger {
       classMergers.add(
           new ClassMerger.Builder(appView, codeProvider, group, mode).build(lensBuilder));
     }
+    appView.dexItemFactory().clearTypeElementsCache();
     return classMergers;
   }
 

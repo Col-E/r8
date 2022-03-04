@@ -27,14 +27,15 @@ import com.android.tools.r8.ir.conversion.ExtraUnusedNullParameter;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class InstanceInitializerMerger {
 
@@ -101,10 +102,6 @@ public class InstanceInitializerMerger {
     return classFileVersion;
   }
 
-  private DexMethod getNewMethodReference(ProgramMethod representative) {
-    return getNewMethodReference(representative, false);
-  }
-
   private DexMethod getNewMethodReference(ProgramMethod representative, boolean needsClassId) {
     DexType[] oldParameters = representative.getParameters().values;
     DexType[] newParameters =
@@ -112,12 +109,15 @@ public class InstanceInitializerMerger {
     System.arraycopy(oldParameters, 0, newParameters, 0, oldParameters.length);
     for (int i = 0; i < oldParameters.length; i++) {
       final int parameterIndex = i;
-      newParameters[i] =
-          DexTypeUtils.computeLeastUpperBound(
-              appView,
-              Iterables.transform(
-                  instanceInitializers,
-                  instanceInitializer -> instanceInitializer.getParameter(parameterIndex)));
+      Set<DexType> parameterTypes =
+          SetUtils.newIdentityHashSet(
+              builder ->
+                  instanceInitializers.forEach(
+                      instanceInitializer ->
+                          builder.accept(instanceInitializer.getParameter(parameterIndex))));
+      if (parameterTypes.size() > 1) {
+        newParameters[i] = DexTypeUtils.computeLeastUpperBound(appView, parameterTypes);
+      }
     }
     if (needsClassId) {
       assert ArrayUtils.last(newParameters) == null;

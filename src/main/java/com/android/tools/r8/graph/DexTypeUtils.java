@@ -4,86 +4,39 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.InterfaceCollection;
-import com.android.tools.r8.utils.ObjectUtils;
-import java.util.Iterator;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.google.common.collect.Iterables;
 
 public class DexTypeUtils {
 
   public static DexType computeLeastUpperBound(
       AppView<? extends AppInfoWithClassHierarchy> appView, Iterable<DexType> types) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-
-    Iterator<DexType> iterator = types.iterator();
-    assert iterator.hasNext();
-
-    DexType result = iterator.next();
-    while (iterator.hasNext()) {
-      result = computeLeastUpperBound(appView, result, iterator.next());
-    }
-    return result;
+    TypeElement join =
+        TypeElement.join(Iterables.transform(types, type -> type.toTypeElement(appView)), appView);
+    return toDexType(appView, join);
   }
 
-  public static DexType computeLeastUpperBound(
-      AppView<? extends AppInfoWithClassHierarchy> appView, DexType type, DexType other) {
-    if (type == other) {
-      return type;
-    }
-
+  private static DexType toDexType(
+      AppView<? extends AppInfoWithClassHierarchy> appView, TypeElement type) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    if (type == dexItemFactory.objectType
-        || other == dexItemFactory.objectType
-        || type.isArrayType() != other.isArrayType()) {
-      return dexItemFactory.objectType;
+    if (type.isPrimitiveType()) {
+      return type.asPrimitiveType().toDexType(dexItemFactory);
     }
-
     if (type.isArrayType()) {
-      assert other.isArrayType();
-      int arrayDimension = type.getNumberOfLeadingSquareBrackets();
-      if (other.getNumberOfLeadingSquareBrackets() != arrayDimension) {
-        return dexItemFactory.objectType;
-      }
-
-      DexType baseType = type.toBaseType(dexItemFactory);
-      DexType otherBaseType = other.toBaseType(dexItemFactory);
-      if (baseType.isPrimitiveType() || otherBaseType.isPrimitiveType()) {
-        assert baseType != otherBaseType;
-        return dexItemFactory.objectType;
-      }
-
-      return dexItemFactory.createArrayType(
-          arrayDimension, computeLeastUpperBound(appView, baseType, otherBaseType));
+      ArrayTypeElement arrayType = type.asArrayType();
+      DexType baseType = toDexType(appView, arrayType.getBaseType());
+      return baseType.toArrayType(arrayType.getNesting(), dexItemFactory);
     }
-
-    assert !type.isArrayType();
-    assert !other.isArrayType();
-
-    boolean isInterface =
-        type.isClassType()
-            && ObjectUtils.getBooleanOrElse(
-                appView.definitionFor(type), DexClass::isInterface, false);
-    boolean otherIsInterface =
-        other.isClassType()
-            && ObjectUtils.getBooleanOrElse(
-                appView.definitionFor(other), DexClass::isInterface, false);
-    if (isInterface != otherIsInterface) {
-      return dexItemFactory.objectType;
+    assert type.isClassType();
+    ClassTypeElement classType = type.asClassType();
+    if (classType.getClassType() != dexItemFactory.objectType) {
+      return classType.getClassType();
     }
-
-    if (isInterface) {
-      assert otherIsInterface;
-      InterfaceCollection interfaceCollection =
-          ClassTypeElement.computeLeastUpperBoundOfInterfaces(
-              appView, InterfaceCollection.singleton(type), InterfaceCollection.singleton(other));
-      return interfaceCollection.hasSingleKnownInterface()
-          ? interfaceCollection.getSingleKnownInterface()
-          : dexItemFactory.objectType;
+    if (classType.getInterfaces().hasSingleKnownInterface()) {
+      return classType.getInterfaces().getSingleKnownInterface();
     }
-
-    assert !isInterface;
-    assert !otherIsInterface;
-
-    return ClassTypeElement.computeLeastUpperBoundOfClasses(appView.appInfo(), type, other);
+    return dexItemFactory.objectType;
   }
 }

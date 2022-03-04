@@ -16,6 +16,7 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfSafeCheckCast;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -115,7 +116,13 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
 
     // Assign each field.
     addCfInstructionsForInstanceFieldAssignments(
-        instructionBuilder, instanceFieldAssignmentsPre, argumentToLocalIndex, maxStack, lens);
+        appView,
+        method,
+        instructionBuilder,
+        instanceFieldAssignmentsPre,
+        argumentToLocalIndex,
+        maxStack,
+        lens);
 
     // Load receiver for parent constructor call.
     int stackHeightForParentConstructorCall = 1;
@@ -155,7 +162,13 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
 
     // Assign each field.
     addCfInstructionsForInstanceFieldAssignments(
-        instructionBuilder, instanceFieldAssignmentsPost, argumentToLocalIndex, maxStack, lens);
+        appView,
+        method,
+        instructionBuilder,
+        instanceFieldAssignmentsPost,
+        argumentToLocalIndex,
+        maxStack,
+        lens);
 
     // Return.
     instructionBuilder.add(new CfReturnVoid());
@@ -174,6 +187,8 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
   }
 
   private static void addCfInstructionsForInstanceFieldAssignments(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      ProgramMethod method,
       ImmutableList.Builder<CfInstruction> instructionBuilder,
       Map<DexField, InstanceFieldInitializationInfo> instanceFieldAssignments,
       int[] argumentToLocalIndex,
@@ -186,8 +201,28 @@ public class IncompleteMergedInstanceInitializerCode extends IncompleteHorizonta
           int stackSizeForInitializationInfo =
               addCfInstructionsForInitializationInfo(
                   instructionBuilder, initializationInfo, argumentToLocalIndex, field.getType());
-          instructionBuilder.add(
-              new CfInstanceFieldWrite(lens.getRenamedFieldSignature(field, lens.getPrevious())));
+          DexField rewrittenField = lens.getRenamedFieldSignature(field, lens.getPrevious());
+
+          // Insert a check to ensure the program continues to type check according to Java type
+          // checking. Otherwise, instance initializer merging may cause open interfaces. If
+          // <init>(A) and <init>(B) both have the behavior `this.i = arg; this.j = arg` where the
+          // type of `i` is I and the type of `j` is J, and both A and B implements I and J, then
+          // the constructors are merged into a single constructor <init>(java.lang.Object), which
+          // is no longer strictly type checking. Note that no choice of parameter type would solve
+          // this.
+          if (initializationInfo.isArgumentInitializationInfo()) {
+            int argumentIndex =
+                initializationInfo.asArgumentInitializationInfo().getArgumentIndex();
+            if (argumentIndex > 0) {
+              DexType argumentType = method.getArgumentType(argumentIndex);
+              if (argumentType.isClassType()
+                  && !appView.appInfo().isSubtype(argumentType, rewrittenField.getType())) {
+                instructionBuilder.add(new CfSafeCheckCast(rewrittenField.getType()));
+              }
+            }
+          }
+
+          instructionBuilder.add(new CfInstanceFieldWrite(rewrittenField));
           maxStack.setMax(stackSizeForInitializationInfo + 1);
         });
   }
