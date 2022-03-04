@@ -351,7 +351,7 @@ public class TrivialFieldAccessReprocessor {
       }
 
       // Record access.
-      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(field)) {
+      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(appView, field)) {
         if (field.getAccessFlags().isStatic() == isStatic) {
           if (isWrite) {
             recordFieldAccessContext(definition, writtenFields, readFields);
@@ -396,7 +396,7 @@ public class TrivialFieldAccessReprocessor {
     private void recordAccessThatCannotBeOptimized(
         DexClassAndField field, DexEncodedField definition) {
       constantFields.remove(definition);
-      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(field)) {
+      if (field.isProgramField() && appView.appInfo().mayPropagateValueFor(appView, field)) {
         destroyFieldAccessContexts(definition);
       }
     }

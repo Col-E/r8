@@ -1038,28 +1038,33 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         && !keepInfo.getMethodInfo(method).isPinned(options());
   }
 
-  public boolean mayPropagateValueFor(DexClassAndMember<?, ?> member) {
+  public boolean mayPropagateValueFor(
+      AppView<AppInfoWithLiveness> appView, DexClassAndMember<?, ?> member) {
     assert checkIfObsolete();
-    return member.getReference().apply(this::mayPropagateValueFor, this::mayPropagateValueFor);
+    return member
+        .getReference()
+        .apply(
+            field -> mayPropagateValueFor(appView, field),
+            method -> mayPropagateValueFor(appView, method));
   }
 
-  public boolean mayPropagateValueFor(DexField field) {
+  public boolean mayPropagateValueFor(AppView<AppInfoWithLiveness> appView, DexField field) {
     assert checkIfObsolete();
     if (neverPropagateValue.contains(field)) {
       return false;
     }
-    if (isPinned(field) && !field.getType().isAlwaysNull(this)) {
+    if (isPinned(field) && !field.getType().isAlwaysNull(appView)) {
       return false;
     }
     return true;
   }
 
-  public boolean mayPropagateValueFor(DexMethod method) {
+  public boolean mayPropagateValueFor(AppView<AppInfoWithLiveness> appView, DexMethod method) {
     assert checkIfObsolete();
     if (neverPropagateValue.contains(method)) {
       return false;
     }
-    if (!method.getReturnType().isAlwaysNull(this)
+    if (!method.getReturnType().isAlwaysNull(appView)
         && !getKeepInfo().getMethodInfo(method, this).isOptimizationAllowed(options())) {
       return false;
     }

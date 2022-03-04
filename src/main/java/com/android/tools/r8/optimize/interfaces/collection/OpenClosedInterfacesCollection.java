@@ -32,6 +32,10 @@ public abstract class OpenClosedInterfacesCollection {
 
   public abstract boolean isDefinitelyClosed(DexClass clazz);
 
+  public final boolean isMaybeOpen(DexClass clazz) {
+    return !isDefinitelyClosed(clazz);
+  }
+
   public final boolean isDefinitelyInstanceOfStaticType(
       AppView<AppInfoWithLiveness> appView, Value value) {
     return isDefinitelyInstanceOfStaticType(

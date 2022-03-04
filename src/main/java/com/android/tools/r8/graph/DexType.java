@@ -150,21 +150,17 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
   }
 
   public boolean isAlwaysNull(AppView<AppInfoWithLiveness> appView) {
-    return isAlwaysNull(appView.appInfo());
-  }
-
-  public boolean isAlwaysNull(AppInfoWithLiveness appInfo) {
     if (!isClassType()) {
       return false;
     }
-    DexProgramClass clazz = asProgramClassOrNull(appInfo.definitionFor(this));
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(this));
     if (clazz == null) {
       return false;
     }
-    if (appInfo.options().enableUninstantiatedTypeOptimizationForInterfaces) {
-      return !appInfo.isInstantiatedDirectlyOrIndirectly(clazz);
+    if (clazz.isInterface() && appView.getOpenClosedInterfacesCollection().isMaybeOpen(clazz)) {
+      return false;
     }
-    return !clazz.isInterface() && !appInfo.isInstantiatedDirectlyOrIndirectly(clazz);
+    return !appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz);
   }
 
   public boolean isSamePackage(DexType other) {

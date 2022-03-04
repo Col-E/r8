@@ -124,7 +124,7 @@ public class MemberValuePropagation {
 
   private boolean mayPropagateValueFor(DexClassAndField field) {
     if (field.isProgramField()) {
-      return appView.appInfo().mayPropagateValueFor(field.getReference());
+      return appView.appInfo().mayPropagateValueFor(appView, field.getReference());
     }
     return appView.appInfo().assumedValues.containsKey(field.getReference())
         || appView.appInfo().noSideEffects.containsKey(field.getReference());
@@ -132,7 +132,7 @@ public class MemberValuePropagation {
 
   private boolean mayPropagateValueFor(DexClassAndMethod method) {
     if (method.isProgramMethod()) {
-      return appView.appInfo().mayPropagateValueFor(method.getReference());
+      return appView.appInfo().mayPropagateValueFor(appView, method.getReference());
     }
     return appView.appInfo().assumedValues.containsKey(method.getReference())
         || appView.appInfo().noSideEffects.containsKey(method.getReference());

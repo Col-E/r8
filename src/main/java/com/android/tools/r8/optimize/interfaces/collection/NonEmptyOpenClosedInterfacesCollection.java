@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.utils.SetUtils;
 import java.util.Set;
 
-/** Computed oracle that may respond "definitely closed" for some or all interfaces. */
 public class NonEmptyOpenClosedInterfacesCollection extends OpenClosedInterfacesCollection {
 
   private final Set<DexType> openInterfaceTypes;

@@ -33,7 +33,7 @@ public class B146957343 extends TestBase implements Opcodes {
   }
 
   @Test
-  public void testWithoutR8() throws Exception {
+  public void testRuntime() throws Exception {
     testForRuntime(parameters)
         .addProgramClasses(I.class, J.class, Main.class)
         .addProgramClassFileData(getAimplementsI())
@@ -42,36 +42,15 @@ public class B146957343 extends TestBase implements Opcodes {
   }
 
   @Test
-  public void testWithUninstantiatedTypeOptimizationForInterfaces() throws Exception {
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, J.class, Main.class)
         .addProgramClassFileData(getAimplementsI())
         .addKeepMainRule(Main.class)
+        .addOptionsModification(
+            options -> options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            options -> {
-              options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
-              options.enableUninstantiatedTypeOptimizationForInterfaces = true;
-            })
-        .compile()
-        .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrows(NullPointerException.class);
-  }
-
-  @Test
-  public void testWithoutUninstantiatedTypeOptimizationForInterfaces() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(I.class, J.class, Main.class)
-        .addProgramClassFileData(getAimplementsI())
-        .addKeepMainRule(Main.class)
-        .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(
-            options -> {
-              options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
-              options.enableUninstantiatedTypeOptimizationForInterfaces = false;
-            })
         .compile()
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("In A.f()");

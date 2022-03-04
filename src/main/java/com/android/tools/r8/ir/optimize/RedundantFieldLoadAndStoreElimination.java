@@ -40,6 +40,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -448,10 +449,12 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void handleInvokeDirect(InvokeDirect invoke) {
-    if (!appView.enableWholeProgramOptimizations()) {
+    if (!appView.hasLiveness()) {
       killAllNonFinalActiveFields();
       return;
     }
+
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
     DexClassAndMethod singleTarget = invoke.lookupSingleTarget(appView, method);
     if (singleTarget == null || !singleTarget.getDefinition().isInstanceInitializer()) {
@@ -470,7 +473,9 @@ public class RedundantFieldLoadAndStoreElimination {
     fieldInitializationInfos.forEachWithDeterministicOrder(
         appView,
         (field, info) -> {
-          if (!appView.appInfo().withLiveness().mayPropagateValueFor(field.getReference())) {
+          if (!appViewWithLiveness
+              .appInfo()
+              .mayPropagateValueFor(appViewWithLiveness, field.getReference())) {
             return;
           }
           if (info.isArgumentInitializationInfo()) {
@@ -485,7 +490,7 @@ public class RedundantFieldLoadAndStoreElimination {
             }
           } else if (info.isSingleValue()) {
             SingleValue value = info.asSingleValue();
-            if (value.isMaterializableInContext(appView.withLiveness(), method)) {
+            if (value.isMaterializableInContext(appViewWithLiveness, method)) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.getReference(), object);
               if (field.isFinal()) {
@@ -782,12 +787,13 @@ public class RedundantFieldLoadAndStoreElimination {
   }
 
   private void applyObjectState(Value value, ObjectState objectState) {
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     objectState.forEachAbstractFieldValue(
         (field, fieldValue) -> {
-          if (appView.appInfoWithLiveness().mayPropagateValueFor(field)
+          if (appViewWithLiveness.appInfo().mayPropagateValueFor(appViewWithLiveness, field)
               && fieldValue.isSingleValue()) {
             SingleValue singleFieldValue = fieldValue.asSingleValue();
-            if (singleFieldValue.isMaterializableInContext(appView.withLiveness(), method)) {
+            if (singleFieldValue.isMaterializableInContext(appViewWithLiveness, method)) {
               activeState.putFinalInstanceField(
                   new FieldAndObject(field, value), new MaterializableValue(singleFieldValue));
             }
