@@ -196,7 +196,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
         appInfo.definitionForProgramType(reference.holder).getProgramDefaultInitializer();
     Assert.assertNotNull(appInfo.resolveMethodOnClass(reference).getSingleTarget());
     DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(reference, context, false);
+        appInfo.lookupSingleVirtualTarget(appView, reference, context, false);
     if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);
     } else {

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -89,22 +90,23 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   public static byte[] DUMP = BDump.dump();
 
+  private static AppView<AppInfoWithLiveness> appView;
   private static AppInfoWithLiveness appInfo;
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appInfo =
+    appView =
         computeAppViewWithLiveness(
-                buildClasses(CLASSES)
-                    .addClassProgramData(DUMP)
-                    .addLibraryFile(getMostRecentAndroidJar())
-                    .build(),
-                Main.class)
-            .appInfo();
+            buildClasses(CLASSES)
+                .addClassProgramData(DUMP)
+                .addLibraryFile(getMostRecentAndroidJar())
+                .build(),
+            Main.class);
+    appInfo = appView.appInfo();
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
-    return buildNullaryVoidMethod(clazz, name, appInfo.dexItemFactory());
+    return buildNullaryVoidMethod(clazz, name, appView.dexItemFactory());
   }
 
   @Parameters(name = "{0}")
@@ -131,7 +133,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
     assertEquals(methodOnBReference, resolved.getReference());
     assertFalse(resolutionResult.isVirtualTarget());
     DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(methodOnBReference, methodOnB, false);
+        appInfo.lookupSingleVirtualTarget(appView, methodOnBReference, methodOnB, false);
     Assert.assertNull(singleVirtualTarget);
   }
 

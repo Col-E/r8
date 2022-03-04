@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
-import static com.android.tools.r8.ir.analysis.type.TypeAnalysis.toRefinedReceiverType;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
@@ -18,8 +17,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -103,19 +101,14 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView,
-      ProgramMethod context,
-      TypeElement receiverUpperBoundType,
-      ClassTypeElement receiverLowerBoundType) {
-    return lookupSingleTarget(
-        appView, context, receiverUpperBoundType, receiverLowerBoundType, getInvokedMethod());
+      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
+    return lookupSingleTarget(appView, context, dynamicReceiverType, getInvokedMethod());
   }
 
   public static DexClassAndMethod lookupSingleTarget(
       AppView<?> appView,
       ProgramMethod context,
-      TypeElement receiverUpperBoundType,
-      ClassTypeElement receiverLowerBoundType,
+      DynamicType dynamicReceiverType,
       DexMethod method) {
     DexEncodedMethod result = null;
     if (appView.appInfo().hasLiveness()) {
@@ -124,12 +117,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
           appViewWithLiveness
               .appInfo()
               .lookupSingleVirtualTarget(
-                  method,
-                  context,
-                  false,
-                  appView,
-                  toRefinedReceiverType(receiverUpperBoundType, method, appViewWithLiveness),
-                  receiverLowerBoundType);
+                  appViewWithLiveness, method, context, false, appView, dynamicReceiverType);
     } else {
       // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is
       // used for library modeling.

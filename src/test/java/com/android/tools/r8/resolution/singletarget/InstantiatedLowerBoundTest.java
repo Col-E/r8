@@ -22,7 +22,8 @@ import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.DynamicTypeWithLowerBound;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
@@ -61,10 +62,16 @@ public class InstantiatedLowerBoundTest extends TestBase {
     ProgramMethod mainMethod =
         appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    ClassTypeElement latticeB =
-        ClassTypeElement.create(typeB, Nullability.definitelyNotNull(), appView);
+    TypeElement latticeA = typeA.toTypeElement(appView);
+    ClassTypeElement latticeB = typeB.toTypeElement(appView).asClassType();
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeB);
+        appInfo.lookupSingleVirtualTarget(
+            appView,
+            fooA,
+            mainMethod,
+            false,
+            t -> false,
+            DynamicTypeWithLowerBound.create(appView, latticeA, latticeB));
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     assertEquals(fooB, singleTarget.getReference());
@@ -88,10 +95,16 @@ public class InstantiatedLowerBoundTest extends TestBase {
     ProgramMethod mainMethod =
         appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    ClassTypeElement latticeB =
-        ClassTypeElement.create(typeB, Nullability.definitelyNotNull(), appView);
+    TypeElement latticeA = typeA.toTypeElement(appView);
+    ClassTypeElement latticeB = typeB.toTypeElement(appView).asClassType();
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeB);
+        appInfo.lookupSingleVirtualTarget(
+            appView,
+            fooA,
+            mainMethod,
+            false,
+            t -> false,
+            DynamicTypeWithLowerBound.create(appView, latticeA, latticeB));
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     assertEquals(fooB, singleTarget.getReference());
@@ -138,10 +151,16 @@ public class InstantiatedLowerBoundTest extends TestBase {
               assert false;
             });
     assertEquals(expected, actual);
-    ClassTypeElement latticeC =
-        ClassTypeElement.create(typeC, Nullability.definitelyNotNull(), appView);
+    TypeElement latticeA = typeA.toTypeElement(appView);
+    ClassTypeElement latticeC = typeC.toTypeElement(appView).asClassType();
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeC);
+        appInfo.lookupSingleVirtualTarget(
+            appView,
+            fooA,
+            mainMethod,
+            false,
+            t -> false,
+            DynamicTypeWithLowerBound.create(appView, latticeA, latticeC));
     assertNull(singleTarget);
   }
 

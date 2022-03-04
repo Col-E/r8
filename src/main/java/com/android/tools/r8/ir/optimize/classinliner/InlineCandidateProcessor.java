@@ -487,11 +487,12 @@ final class InlineCandidateProcessor {
             continue;
           }
 
-          ClassTypeElement exactReceiverType =
-              ClassTypeElement.create(eligibleClass.type, Nullability.definitelyNotNull(), appView);
+          DynamicType exactReceiverType =
+              DynamicType.createExact(
+                  ClassTypeElement.create(
+                      eligibleClass.getType(), Nullability.definitelyNotNull(), appView));
           ProgramMethod singleTarget =
-              invoke.lookupSingleProgramTarget(
-                  appView, method, exactReceiverType, exactReceiverType);
+              invoke.lookupSingleProgramTarget(appView, method, exactReceiverType);
           if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }

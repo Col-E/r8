@@ -85,7 +85,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
       }
     } else {
       ProgramMethod singleTarget =
-          appView.appInfo().lookupSingleProgramTarget(type, method, context, appView);
+          appView.appInfo().lookupSingleProgramTarget(appView, type, method, context, appView);
       if (singleTarget != null) {
         processSingleTarget(singleTarget, context);
       }

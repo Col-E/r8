@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -93,10 +92,10 @@ public class Devirtualizer {
             InvokeVirtual devirtualizedInvoke = devirtualizedCall.get(origin.asInvokeInterface());
 
             // Extract the newly added check-cast instruction, if any.
-            CheckCast newCheckCast = null;
+            SafeCheckCast newCheckCast = null;
             Value newReceiver = devirtualizedInvoke.getReceiver();
-            if (!newReceiver.isPhi() && newReceiver.definition.isCheckCast()) {
-              CheckCast definition = newReceiver.definition.asCheckCast();
+            if (!newReceiver.isPhi() && newReceiver.definition.isSafeCheckCast()) {
+              SafeCheckCast definition = newReceiver.definition.asSafeCheckCast();
               if (newCheckCastInstructions.contains(definition)) {
                 newCheckCast = definition;
               }
@@ -136,8 +135,7 @@ public class Devirtualizer {
                   InvokeVirtual.lookupSingleTarget(
                       appView,
                       context,
-                      invoke.getReceiver().getDynamicUpperBoundType(appView),
-                      invoke.getReceiver().getDynamicLowerBoundType(appView),
+                      invoke.getReceiver().getDynamicType(appView),
                       invokedMethod);
               if (newSingleTarget != null
                   && newSingleTarget.getReference() == singleTarget.getReference()) {

@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.Comparator;
@@ -162,25 +163,26 @@ public class TypeAnalysis {
   }
 
   public static DexType getRefinedReceiverType(
-      AppView<? extends AppInfoWithClassHierarchy> appView, InvokeMethodWithReceiver invoke) {
-    return getRefinedReceiverType(appView, invoke.getInvokedMethod(), invoke.getReceiver());
-  }
-
-  public static DexType getRefinedReceiverType(
-      AppView<? extends AppInfoWithClassHierarchy> appView, DexMethod method, Value receiver) {
-    return toRefinedReceiverType(receiver.getDynamicUpperBoundType(appView), method, appView);
+      AppView<AppInfoWithLiveness> appView, InvokeMethodWithReceiver invoke) {
+    return toRefinedReceiverType(
+        invoke.getReceiver().getDynamicType(appView), invoke.getInvokedMethod(), appView);
   }
 
   public static DexType toRefinedReceiverType(
-      TypeElement receiverUpperBoundType,
+      DynamicType dynamicReceiverType,
       DexMethod method,
       AppView<? extends AppInfoWithClassHierarchy> appView) {
-    DexType staticReceiverType = method.holder;
-    if (receiverUpperBoundType.isClassType()) {
-      ClassTypeElement classType = receiverUpperBoundType.asClassType();
-      DexType refinedType = classType.getClassType();
+    DexType staticReceiverType = method.getHolderType();
+    TypeElement staticReceiverTypeElement = staticReceiverType.toTypeElement(appView);
+    TypeElement dynamicReceiverUpperBoundType =
+        dynamicReceiverType.getDynamicUpperBoundType(staticReceiverTypeElement);
+    if (dynamicReceiverUpperBoundType.isClassType()) {
+      ClassTypeElement dynamicReceiverUpperBoundClassType =
+          dynamicReceiverUpperBoundType.asClassType();
+      DexType refinedType = dynamicReceiverUpperBoundClassType.getClassType();
       if (refinedType == appView.dexItemFactory().objectType) {
-        DexType singleKnownInterface = classType.getInterfaces().getSingleKnownInterface();
+        DexType singleKnownInterface =
+            dynamicReceiverUpperBoundClassType.getInterfaces().getSingleKnownInterface();
         if (singleKnownInterface != null) {
           refinedType = singleKnownInterface;
         }

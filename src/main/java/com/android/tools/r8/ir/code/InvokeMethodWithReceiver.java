@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
@@ -35,18 +36,6 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   public Iterable<Value> getNonReceiverArguments() {
     return Iterables.skip(arguments(), 1);
-  }
-
-  public boolean hasRefinedReceiverLowerBoundType(AppView<AppInfoWithLiveness> appView) {
-    assert isInvokeMethodWithDynamicDispatch();
-    return getReceiver().getDynamicLowerBoundType(appView) != null;
-  }
-
-  public boolean hasRefinedReceiverUpperBoundType(AppView<AppInfoWithLiveness> appView) {
-    assert isInvokeMethodWithDynamicDispatch();
-    DexType staticReceiverType = getInvokedMethod().holder;
-    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView, this);
-    return refinedReceiverType != staticReceiverType;
   }
 
   @Override
@@ -77,29 +66,20 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   @Override
   public final DexClassAndMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    TypeElement receiverUpperBoundType = null;
-    ClassTypeElement receiverLowerBoundType = null;
-    if (appView.enableWholeProgramOptimizations()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      receiverUpperBoundType = getReceiver().getDynamicUpperBoundType(appViewWithLiveness);
-      receiverLowerBoundType = getReceiver().getDynamicLowerBoundType(appViewWithLiveness);
-    }
-    return lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType);
+    DynamicType dynamicReceiverType =
+        appView.hasLiveness()
+            ? getReceiver().getDynamicType(appView.withLiveness())
+            : DynamicType.unknown();
+    return lookupSingleTarget(appView, context, dynamicReceiverType);
   }
 
   public abstract DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView,
-      ProgramMethod context,
-      TypeElement receiverUpperBoundType,
-      ClassTypeElement receiverLowerBoundType);
+      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType);
 
   public final ProgramMethod lookupSingleProgramTarget(
-      AppView<?> appView,
-      ProgramMethod context,
-      TypeElement receiverUpperBoundType,
-      ClassTypeElement receiverLowerBoundType) {
+      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
     return DexClassAndMethod.asProgramMethodOrNull(
-        lookupSingleTarget(appView, context, receiverUpperBoundType, receiverLowerBoundType));
+        lookupSingleTarget(appView, context, dynamicReceiverType));
   }
 
   @Override

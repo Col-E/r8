@@ -20,8 +20,7 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssu
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
@@ -133,10 +132,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView,
-      ProgramMethod context,
-      TypeElement receiverUpperBoundType,
-      ClassTypeElement receiverLowerBoundType) {
+      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
     DexMethod invokedMethod = getInvokedMethod();
     DexEncodedMethod result;
     if (appView.appInfo().hasLiveness()) {

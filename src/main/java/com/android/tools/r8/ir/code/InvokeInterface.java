@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.graph.DexEncodedMethod.asDexClassAndMethodOrNull;
-import static com.android.tools.r8.ir.analysis.type.TypeAnalysis.toRefinedReceiverType;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeInterfaceRange;
@@ -17,8 +16,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
-import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.type.DynamicType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -98,10 +96,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
 
   @Override
   public DexClassAndMethod lookupSingleTarget(
-      AppView<?> appView,
-      ProgramMethod context,
-      TypeElement receiverUpperBoundType,
-      ClassTypeElement receiverLowerBoundType) {
+      AppView<?> appView, ProgramMethod context, DynamicType dynamicReceiverType) {
     if (!appView.appInfo().hasLiveness()) {
       return null;
     }
@@ -110,13 +105,12 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
         appViewWithLiveness
             .appInfo()
             .lookupSingleVirtualTarget(
+                appViewWithLiveness,
                 getInvokedMethod(),
                 context,
                 true,
                 appView,
-                toRefinedReceiverType(
-                    receiverUpperBoundType, getInvokedMethod(), appViewWithLiveness),
-                receiverLowerBoundType);
+                dynamicReceiverType);
     return asDexClassAndMethodOrNull(result, appView);
   }
 
