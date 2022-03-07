@@ -7,8 +7,11 @@ package com.android.tools.r8.apimodel;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForClass;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -31,28 +34,56 @@ public class ApiModelMockClassLoadingTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private boolean isGreaterOrEqualToMockLevel() {
+    return parameters.isDexRuntime() && parameters.getApiLevel().isGreaterThanOrEqualTo(mockLevel);
+  }
+
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) {
+    testBuilder
+        .addProgramClasses(Main.class)
+        .addLibraryClasses(LibraryClass.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
+        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
+        .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
+        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel));
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    testForD8()
+        .apply(this::setupTestBuilder)
+        .compile()
+        // TODO(b/213552119): Add support for stubbing
+        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses)
+        .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput);
+  }
+
   @Test
   public void testR8() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeFalse(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
-    boolean isLibraryOnBootClassPath =
-        parameters.isDexRuntime()
-            && parameters.getRuntime().maxSupportedApiLevel().isGreaterThanOrEqualTo(mockLevel);
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class)
-        .addLibraryClasses(LibraryClass.class)
-        .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
-        .apply(setMockApiLevelForClass(LibraryClass.class, mockLevel))
-        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, mockLevel))
         .compile()
-        .applyIf(isLibraryOnBootClassPath, b -> b.addBootClasspathClasses(LibraryClass.class))
+        .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(isLibraryOnBootClassPath, "Hello World");
+        .apply(this::checkOutput);
+  }
+
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    runResult.assertSuccessWithOutputLinesIf(isGreaterOrEqualToMockLevel(), "Hello World");
+    runResult.assertFailureWithErrorThatThrowsIf(
+        !isGreaterOrEqualToMockLevel(), NoClassDefFoundError.class);
   }
 
   // Only present form api level 23.
