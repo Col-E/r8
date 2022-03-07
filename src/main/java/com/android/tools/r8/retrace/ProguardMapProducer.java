@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
+import com.google.common.primitives.Bytes;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -24,5 +25,9 @@ public interface ProguardMapProducer {
 
   static ProguardMapProducer fromPath(Path path) {
     return () -> Files.newBufferedReader(path, StandardCharsets.UTF_8);
+  }
+
+  static ProguardMapProducer fromBytes(byte[]... partitions) {
+    return fromString(new String(Bytes.concat(partitions), StandardCharsets.UTF_8));
   }
 }
