@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.androidapi;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexClass;
@@ -106,13 +106,13 @@ public class ApiReferenceStubber {
     }
   }
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final Map<DexLibraryClass, Set<DexMethod>> libraryClassesToMock =
       new ConcurrentHashMap<>();
   private final Set<DexType> seenTypes = Sets.newConcurrentHashSet();
   private final AndroidApiLevelCompute apiLevelCompute;
 
-  public ApiReferenceStubber(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public ApiReferenceStubber(AppView<?> appView) {
     this.appView = appView;
     apiLevelCompute = appView.apiLevelCompute();
   }
@@ -138,10 +138,18 @@ public class ApiReferenceStubber {
       AppView<AppInfoWithLiveness> appInfoWithLivenessAppView = appView.withLiveness();
       appInfoWithLivenessAppView.setAppInfo(
           appInfoWithLivenessAppView.appInfo().rebuildWithLiveness(committedItems));
-    } else {
+    } else if (appView.hasClassHierarchy()) {
       appView
           .withClassHierarchy()
-          .setAppInfo(appView.appInfo().rebuildWithClassHierarchy(committedItems));
+          .setAppInfo(
+              appView.appInfo().withClassHierarchy().rebuildWithClassHierarchy(committedItems));
+    } else {
+      appView
+          .withoutClassHierarchy()
+          .setAppInfo(
+              new AppInfo(
+                  appView.appInfo().getSyntheticItems().commit(appView.app()),
+                  appView.appInfo().getMainDexInfo()));
     }
   }
 

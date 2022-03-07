@@ -12,6 +12,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -20,6 +21,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -55,19 +57,37 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForD8()
+        .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        // TODO(b/213552119): Add support for stubbing
         .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForD8()
+        .setMode(CompilationMode.RELEASE)
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -84,9 +104,7 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
         .applyIf(isGreaterOrEqualToMockLevel(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(
-            inspector ->
-                verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel));
+        .inspect(this::inspect);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {
@@ -100,6 +118,10 @@ public class ApiModelMockClassInstanceInitTest extends TestBase {
             && parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V7_0_0),
         result -> result.assertStderrMatches(not(containsString("This dex file is invalid"))));
+  }
+
+  private void inspect(CodeInspector inspector) {
+    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(mockLevel);
   }
 
   // Only present from api level 23.
