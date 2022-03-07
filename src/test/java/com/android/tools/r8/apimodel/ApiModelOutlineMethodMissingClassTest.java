@@ -14,9 +14,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -45,56 +48,69 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private Method addedOn23() throws Exception {
+    return LibraryClass.class.getMethod("addedOn23");
+  }
+
+  private Method addedOn27() throws Exception {
+    return LibraryClass.class.getMethod("addedOn27");
+  }
+
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    testBuilder
+        .addProgramClasses(Main.class, TestClass.class)
+        .addLibraryClasses(LibraryClass.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
+        .addAndroidBuildVersion()
+        .apply(setMockApiLevelForClass(LibraryClass.class, initialLibraryMockLevel))
+        .apply(
+            setMockApiLevelForDefaultInstanceInitializer(
+                LibraryClass.class, initialLibraryMockLevel))
+        .apply(setMockApiLevelForMethod(addedOn23(), initialLibraryMockLevel))
+        .apply(setMockApiLevelForMethod(addedOn27(), finalLibraryMethodLevel))
+        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses);
+  }
+
+  public boolean addToBootClasspath() {
+    return parameters.isDexRuntime()
+        && parameters
+            .getRuntime()
+            .maxSupportedApiLevel()
+            .isGreaterThanOrEqualTo(initialLibraryMockLevel);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    testForD8(parameters.getBackend())
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        // TODO(b/213552119): Assert that we did not outline any methods.
+        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+  }
+
   @Test
   public void testR8() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeFalse(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
-    boolean preMockApis =
-        parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(initialLibraryMockLevel);
-    boolean postMockApis =
-        !preMockApis && parameters.getApiLevel().isGreaterThanOrEqualTo(finalLibraryMethodLevel);
-    boolean betweenMockApis = !preMockApis && !postMockApis;
-    Method addedOn23 = LibraryClass.class.getMethod("addedOn23");
-    Method addedOn27 = LibraryClass.class.getMethod("addedOn27");
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, TestClass.class)
-        .addLibraryClasses(LibraryClass.class)
-        .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
-        .addAndroidBuildVersion()
-        .apply(setMockApiLevelForClass(LibraryClass.class, initialLibraryMockLevel))
-        .apply(
-            setMockApiLevelForDefaultInstanceInitializer(
-                LibraryClass.class, initialLibraryMockLevel))
-        .apply(setMockApiLevelForMethod(addedOn23, initialLibraryMockLevel))
-        .apply(setMockApiLevelForMethod(addedOn27, finalLibraryMethodLevel))
-        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableInliningAnnotations()
         .compile()
-        .applyIf(
-            parameters.isDexRuntime()
-                && parameters
-                    .getRuntime()
-                    .maxSupportedApiLevel()
-                    .isGreaterThanOrEqualTo(initialLibraryMockLevel),
-            b -> b.addBootClasspathClasses(LibraryClass.class))
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(preMockApis, "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            betweenMockApis,
-            "LibraryClass::addedOn23",
-            "LibraryClass::missingAndReferenced",
-            "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            postMockApis,
-            "LibraryClass::addedOn23",
-            "LibraryClass::missingAndReferenced",
-            "LibraryCLass::addedOn27",
-            "Hello World")
+        .apply(this::checkOutput)
         .inspect(
             inspector -> {
               // No need to check further on CF.
@@ -115,8 +131,8 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                                       .matches(methodSubject))
                       .findFirst();
               assertFalse(synthesizedMissingNotReferenced.isPresent());
-              verifyThat(inspector, parameters, addedOn23).isNotOutlinedFrom(testMethod);
-              verifyThat(inspector, parameters, addedOn27)
+              verifyThat(inspector, parameters, addedOn23()).isNotOutlinedFrom(testMethod);
+              verifyThat(inspector, parameters, addedOn27())
                   .isOutlinedFromUntil(testMethod, finalLibraryMethodLevel);
               verifyThat(
                       inspector,
@@ -129,6 +145,25 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                 assertEquals(3, inspector.allClasses().size());
               }
             });
+  }
+
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    boolean preMockApis =
+        parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(initialLibraryMockLevel);
+    boolean postMockApis =
+        !preMockApis && parameters.getApiLevel().isGreaterThanOrEqualTo(finalLibraryMethodLevel);
+    if (preMockApis) {
+      runResult.assertSuccessWithOutputLines("Hello World");
+    } else if (postMockApis) {
+      runResult.assertSuccessWithOutputLines(
+          "LibraryClass::addedOn23",
+          "LibraryClass::missingAndReferenced",
+          "LibraryCLass::addedOn27",
+          "Hello World");
+    } else {
+      runResult.assertSuccessWithOutputLines(
+          "LibraryClass::addedOn23", "LibraryClass::missingAndReferenced", "Hello World");
+    }
   }
 
   // Only present from api level 23.

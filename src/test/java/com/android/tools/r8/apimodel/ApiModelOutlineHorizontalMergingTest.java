@@ -11,9 +11,12 @@ import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMetho
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -43,24 +46,12 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  @Test
-  public void testR8() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeFalse(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
-    boolean beforeFirstApiMethodLevel =
-        parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(firstMethodApiLevel);
-    boolean afterSecondApiMethodLevel =
-        parameters.isDexRuntime()
-            && parameters.getApiLevel().isGreaterThanOrEqualTo(secondMethodApiLevel);
-    boolean betweenMethodApiLevels = !beforeFirstApiMethodLevel && !afterSecondApiMethodLevel;
-    testForR8(parameters.getBackend())
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    testBuilder
         .addProgramClasses(Main.class, TestClass.class)
         .addLibraryClasses(LibraryClass.class, OtherLibraryClass.class)
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(Main.class)
         .addAndroidBuildVersion()
         .apply(setMockApiLevelForClass(LibraryClass.class, libraryClassApiLevel))
         .apply(
@@ -82,30 +73,51 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
             setMockApiLevelForMethod(
                 OtherLibraryClass.class.getMethod("addedOn27"), secondMethodApiLevel))
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses);
+  }
+
+  public boolean addToBootClasspath() {
+    return parameters.isDexRuntime()
+        && parameters
+            .getRuntime()
+            .maxSupportedApiLevel()
+            .isGreaterThanOrEqualTo(libraryClassApiLevel);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    testForD8(parameters.getBackend())
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(
+            addToBootClasspath(),
+            b -> b.addBootClasspathClasses(LibraryClass.class, OtherLibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        // TODO(b/213552119): Assert that we did not outline any methods.
+        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeFalse(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForR8(parameters.getBackend())
+        .apply(this::setupTestBuilder)
+        .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .compile()
         .applyIf(
-            parameters.isDexRuntime()
-                && parameters
-                    .getRuntime()
-                    .maxSupportedApiLevel()
-                    .isGreaterThanOrEqualTo(libraryClassApiLevel),
+            addToBootClasspath(),
             b -> b.addBootClasspathClasses(LibraryClass.class, OtherLibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(beforeFirstApiMethodLevel, "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            betweenMethodApiLevels,
-            "LibraryClass::addedOn23",
-            "OtherLibraryClass::addedOn23",
-            "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            afterSecondApiMethodLevel,
-            "LibraryClass::addedOn23",
-            "LibraryClass::addedOn27",
-            "OtherLibraryClass::addedOn23",
-            "OtherLibraryClass::addedOn27",
-            "Hello World")
+        .apply(this::checkOutput)
         .inspect(
             inspector -> {
               // No need to check further on CF.
@@ -164,6 +176,27 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
                 assertEquals(3, inspector.allClasses().size());
               }
             });
+  }
+
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    boolean beforeFirstApiMethodLevel =
+        parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(firstMethodApiLevel);
+    boolean afterSecondApiMethodLevel =
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().isGreaterThanOrEqualTo(secondMethodApiLevel);
+    if (beforeFirstApiMethodLevel) {
+      runResult.assertSuccessWithOutputLines("Hello World");
+    } else if (afterSecondApiMethodLevel) {
+      runResult.assertSuccessWithOutputLines(
+          "LibraryClass::addedOn23",
+          "LibraryClass::addedOn27",
+          "OtherLibraryClass::addedOn23",
+          "OtherLibraryClass::addedOn27",
+          "Hello World");
+    } else {
+      runResult.assertSuccessWithOutputLines(
+          "LibraryClass::addedOn23", "OtherLibraryClass::addedOn23", "Hello World");
+    }
   }
 
   // Only present from api level 19.

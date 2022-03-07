@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -175,6 +176,14 @@ public abstract class ApiModelingTestHelper {
       CodeInspector inspector, TestParameters parameters, Method method) {
     return new ApiModelingMethodVerificationHelper(
         inspector, parameters, Reference.methodFromMethod(method));
+  }
+
+  public static void assertNoSynthesizedClasses(CodeInspector inspector) {
+    assertEquals(
+        Collections.emptySet(),
+        inspector.allClasses().stream()
+            .filter(FoundClassSubject::isSynthetic)
+            .collect(Collectors.toSet()));
   }
 
   public static class ApiModelingClassVerificationHelper {

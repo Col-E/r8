@@ -8,10 +8,13 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -41,62 +44,93 @@ public class ApiModelOutlineMethodProtectedTest extends TestBase {
     return getTestParameters().withAllRuntimes().build();
   }
 
-  @Test
-  public void testR8() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeFalse(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
-    Method[] apiMethods =
-        new Method[] {
-          LibraryClass.class.getDeclaredMethod("addedOn27"),
-          LibraryClass.class.getDeclaredMethod("alsoAddedOn27"),
-          LibraryClass.class.getDeclaredMethod("superInvokeOn27")
-        };
-    AndroidApiLevel runApiLevel =
-        parameters.isCfRuntime()
-            ? AndroidApiLevel.B
-            : parameters.getRuntime().maxSupportedApiLevel();
-    boolean willInvokeLibraryMethods =
-        parameters.isDexRuntime() && runApiLevel.isGreaterThanOrEqualTo(methodApiLevel);
-    testForR8(parameters.getBackend())
+  private AndroidApiLevel runApiLevel() {
+    return parameters.isCfRuntime()
+        ? AndroidApiLevel.B
+        : parameters.getRuntime().maxSupportedApiLevel();
+  }
+
+  private Method[] apiMethods() throws Exception {
+    return new Method[] {
+      LibraryClass.class.getDeclaredMethod("addedOn27"),
+      LibraryClass.class.getDeclaredMethod("alsoAddedOn27"),
+      LibraryClass.class.getDeclaredMethod("superInvokeOn27")
+    };
+  }
+
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    testBuilder
         .addLibraryClasses(LibraryClass.class)
         .addLibraryFiles(
             parameters.isCfRuntime()
                 ? ToolHelper.getJava8RuntimeJar()
-                : ToolHelper.getFirstSupportedAndroidJar(runApiLevel))
+                : ToolHelper.getFirstSupportedAndroidJar(runApiLevel()))
         .addProgramClassFileData(
             transformer(TestClass.class).setClassDescriptor(TESTCLASS_DESCRIPTOR).transform(),
             transformer(Main.class)
                 .replaceClassDescriptorInMethodInstructions(
                     descriptor(TestClass.class), TESTCLASS_DESCRIPTOR)
                 .transform())
-        .addKeepMainRule(Main.class)
         .setMinApi(AndroidApiLevel.B)
-        .addAndroidBuildVersion(runApiLevel)
+        .addAndroidBuildVersion(runApiLevel())
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
         .apply(
             builder -> {
-              for (Method apiMethod : apiMethods) {
+              for (Method apiMethod : apiMethods()) {
                 setMockApiLevelForMethod(apiMethod, methodApiLevel).accept(builder);
               }
             })
-        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::enableOutliningOfMethods);
+  }
+
+  public boolean addToBootClasspath() {
+    return parameters.isDexRuntime() && runApiLevel().isGreaterThanOrEqualTo(methodApiLevel);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    testForD8()
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeFalse(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForR8(parameters.getBackend())
+        .apply(this::setupTestBuilder)
+        .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .compile()
-        .applyIf(willInvokeLibraryMethods, b -> b.addBootClasspathClasses(LibraryClass.class))
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(!willInvokeLibraryMethods, "Not calling API")
-        .assertSuccessWithOutputLinesIf(
-            willInvokeLibraryMethods,
-            "Could not access LibraryClass::addedOn27",
-            "LibraryClass::addedOn27",
-            "LibraryClass::addedOn27",
-            "LibraryCLass::alsoAddedOn27",
-            "TestClass::superInvokeOn27",
-            "LibraryCLass::superInvokeOn27");
+        .apply(this::checkOutput);
+  }
+
+  public void checkOutput(SingleTestRunResult<?> runResult) {
+    if (parameters.isDexRuntime() && runApiLevel().isGreaterThanOrEqualTo(methodApiLevel)) {
+      runResult.assertSuccessWithOutputLines(
+          "Could not access LibraryClass::addedOn27",
+          "LibraryClass::addedOn27",
+          "LibraryClass::addedOn27",
+          "LibraryCLass::alsoAddedOn27",
+          "TestClass::superInvokeOn27",
+          "LibraryCLass::superInvokeOn27");
+    } else {
+      runResult.assertSuccessWithOutputLines("Not calling API");
+    }
   }
 
   // Only present from api level 23.

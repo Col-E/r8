@@ -9,17 +9,23 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NoReturnTypeStrengthening;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,51 +45,86 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    Method methodOn23 = LibraryClass.class.getDeclaredMethod("methodOn23");
+    testBuilder
+        .addProgramClasses(Main.class)
+        .addLibraryClasses(LibraryClass.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
+        .addAndroidBuildVersion()
+        .apply(setMockApiLevelForClass(LibraryClass.class, libraryApiLevel))
+        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, libraryApiLevel))
+        .apply(setMockApiLevelForMethod(methodOn23, libraryApiLevel))
+        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::enableStubbingOfClasses);
+  }
+
+  private boolean addToBootClasspath() {
+    return parameters.isDexRuntime()
+        && parameters.getRuntime().maxSupportedApiLevel().isGreaterThanOrEqualTo(libraryApiLevel);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    String result;
+    if (parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(libraryApiLevel)) {
+      result = StringUtils.lines("LibraryClass::methodOn23", "Hello World");
+    } else {
+      result = StringUtils.lines("Hello World");
+    }
+    testForD8()
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(result)
+        // TODO(b/213552119): Add stubs to D8
+        .inspect(inspector -> inspect(inspector, false));
+  }
+
   @Test
   public void testR8() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeFalse(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
-    boolean isLibraryApiLevel =
-        parameters.isDexRuntime()
-            && parameters.getApiLevel().isGreaterThanOrEqualTo(libraryApiLevel);
-    Method methodOn23 = LibraryClass.class.getDeclaredMethod("methodOn23");
-    Method mainMethod = Main.class.getDeclaredMethod("main", String[].class);
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class)
-        .addLibraryClasses(LibraryClass.class)
-        .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
-        .addAndroidBuildVersion()
-        .apply(setMockApiLevelForClass(LibraryClass.class, libraryApiLevel))
-        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, libraryApiLevel))
-        .apply(setMockApiLevelForMethod(methodOn23, libraryApiLevel))
-        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .enableInliningAnnotations()
         .enableNoReturnTypeStrengtheningAnnotations()
         .compile()
-        .applyIf(
-            parameters.isDexRuntime()
-                && parameters
-                    .getRuntime()
-                    .maxSupportedApiLevel()
-                    .isGreaterThanOrEqualTo(libraryApiLevel),
-            b -> b.addBootClasspathClasses(LibraryClass.class))
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(!isLibraryApiLevel, "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            isLibraryApiLevel, "LibraryClass::methodOn23", "Hello World")
-        .inspect(
-            inspector -> {
-              assertThat(inspector.method(mainMethod), isPresent());
-              // TODO(b/211720912): We should never outline since the library class and method is
-              //  introduced at the same level.
-              verifyThat(inspector, parameters, methodOn23).isNotOutlinedFrom(mainMethod);
-              verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryApiLevel);
-            });
+        .apply(this::checkOutput)
+        .inspect(inspector -> inspect(inspector, true));
+  }
+
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    if (parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(libraryApiLevel)) {
+      runResult.assertSuccessWithOutputLines("LibraryClass::methodOn23", "Hello World");
+    } else {
+      runResult.assertSuccessWithOutputLines("Hello World");
+    }
+  }
+
+  private void inspect(CodeInspector inspector, boolean canStub) throws Exception {
+    Method methodOn23 = LibraryClass.class.getDeclaredMethod("methodOn23");
+    Method mainMethod = Main.class.getDeclaredMethod("main", String[].class);
+    assertThat(inspector.method(mainMethod), isPresent());
+    verifyThat(inspector, parameters, methodOn23).isNotOutlinedFrom(mainMethod);
+    if (canStub) {
+      verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryApiLevel);
+    } else {
+      assertThat(inspector.clazz(LibraryClass.class), not(isPresent()));
+    }
   }
 
   // Only present from api level 23.

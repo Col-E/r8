@@ -14,9 +14,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -45,41 +48,59 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
+  private Method addedOn23() throws Exception {
+    return LibraryClass.class.getMethod("addedOn23");
+  }
+
+  private void setupTestBuilder(TestCompilerBuilder<?, ?, ?, ?, ?> testBuilder) throws Exception {
+    testBuilder
+        .addProgramClasses(Main.class, TestClass.class)
+        .addLibraryClasses(LibraryClass.class)
+        .addDefaultRuntimeLibrary(parameters)
+        .setMinApi(parameters.getApiLevel())
+        .addAndroidBuildVersion()
+        .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
+        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
+        .apply(setMockApiLevelForMethod(addedOn23(), methodApiLevel))
+        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
+        .apply(ApiModelingTestHelper::disableStubbingOfClasses);
+  }
+
+  public boolean addToBootClasspath() {
+    return parameters.isDexRuntime()
+        && parameters.getRuntime().maxSupportedApiLevel().isGreaterThanOrEqualTo(classApiLevel);
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    testForD8()
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        // TODO(b/213552119): Assert that we did not outline any methods.
+        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+  }
+
   @Test
   public void testR8() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeFalse(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
-    boolean isMethodApiLevel =
-        parameters.isDexRuntime()
-            && parameters.getApiLevel().isGreaterThanOrEqualTo(methodApiLevel);
-    Method adeddOn23 = LibraryClass.class.getMethod("addedOn23");
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, TestClass.class)
-        .addLibraryClasses(LibraryClass.class)
-        .addDefaultRuntimeLibrary(parameters)
-        .setMinApi(parameters.getApiLevel())
+        .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
-        .addAndroidBuildVersion()
-        .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
-        .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
-        .apply(setMockApiLevelForMethod(adeddOn23, methodApiLevel))
-        .apply(ApiModelingTestHelper::enableOutliningOfMethods)
-        .apply(ApiModelingTestHelper::disableStubbingOfClasses)
         .enableInliningAnnotations()
         .compile()
-        .applyIf(
-            parameters.isDexRuntime()
-                && parameters
-                    .getRuntime()
-                    .maxSupportedApiLevel()
-                    .isGreaterThanOrEqualTo(classApiLevel),
-            b -> b.addBootClasspathClasses(LibraryClass.class))
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLinesIf(!isMethodApiLevel, "Hello World")
-        .assertSuccessWithOutputLinesIf(
-            isMethodApiLevel, "LibraryClass::addedOn23", "LibraryClass::addedOn23", "Hello World")
+        .apply(this::checkOutput)
         .inspect(
             inspector -> {
               int classCount =
@@ -88,7 +109,7 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
                       : 3;
               assertEquals(classCount, inspector.allClasses().size());
               Method testMethod = TestClass.class.getDeclaredMethod("test");
-              verifyThat(inspector, parameters, adeddOn23)
+              verifyThat(inspector, parameters, addedOn23())
                   .isOutlinedFromUntil(testMethod, methodApiLevel);
               if (parameters.isDexRuntime()
                   && parameters.getApiLevel().isLessThan(methodApiLevel)) {
@@ -121,6 +142,16 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
                         .count());
               }
             });
+  }
+
+  private void checkOutput(SingleTestRunResult<?> runResult) {
+    if (parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(methodApiLevel)) {
+      runResult.assertSuccessWithOutputLines(
+          "LibraryClass::addedOn23", "LibraryClass::addedOn23", "Hello World");
+    } else {
+      runResult.assertSuccessWithOutputLines("Hello World");
+    }
   }
 
   // Only present from api level 19.
