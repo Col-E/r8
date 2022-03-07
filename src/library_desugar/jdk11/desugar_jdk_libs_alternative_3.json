@@ -176,6 +176,7 @@
     {
       "api_level_below_or_equal": 18,
       "rewrite_prefix": {
+        "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter",
         "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
       },
       "retarget_method": {
@@ -217,12 +218,6 @@
       "dont_retarget": [
         "android.support.multidex.MultiDexExtractor$ExtractedDex"
       ]
-    },
-    {
-      "api_level_below_or_equal": 18,
-      "rewrite_prefix": {
-        "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter"
-      }
     }
   ],
   "library_flags": [
