@@ -206,13 +206,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   public boolean satisfiesRequirementsForSimpleInlining(InvokeMethod invoke, ProgramMethod target) {
-    // If we are looking for a simple method, only inline if actually simple.
-    Code code = target.getDefinition().getCode();
-    int instructionLimit =
-        inlinerOptions.getSimpleInliningInstructionLimit()
-            + getInliningInstructionLimitIncrement(invoke, target);
-    if (code.estimatedSizeForInliningAtMost(instructionLimit)) {
-      return true;
+    // Code size modified by inlining, so only read for non-concurrent methods.
+    boolean deterministic = !methodProcessor.isProcessedConcurrently(target);
+    if (deterministic) {
+      // If we are looking for a simple method, only inline if actually simple.
+      Code code = target.getDefinition().getCode();
+      int instructionLimit =
+          inlinerOptions.getSimpleInliningInstructionLimit()
+              + getInliningInstructionLimitIncrement(invoke, target);
+      if (code.estimatedSizeForInliningAtMost(instructionLimit)) {
+        return true;
+      }
     }
     // Even if the inlinee is big it may become simple after inlining. We therefore check if the
     // inlinee's simple inlining constraint is satisfied by the invoke.
