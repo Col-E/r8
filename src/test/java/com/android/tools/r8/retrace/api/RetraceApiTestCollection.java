@@ -32,16 +32,16 @@ public class RetraceApiTestCollection
           RetraceApiUnknownJsonTest.ApiTest.class,
           RetraceApiRewriteFrameInlineNpeTest.ApiTest.class,
           RetraceApiAmbiguousOriginalRangeTest.ApiTest.class,
-          RetraceApiOutsideLineRangeTest.ApiTest.class);
-
-  public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(
+          RetraceApiOutsideLineRangeTest.ApiTest.class,
           RetraceApiRewriteFrameInlineNpeResidualTest.ApiTest.class,
           RetraceApiOutlineNoInlineTest.ApiTest.class,
           RetraceApiOutlineInlineTest.ApiTest.class,
           RetraceApiOutlineInOutlineStackTrace.ApiTest.class,
           RetraceApiInlineInOutlineTest.ApiTest.class,
           RetraceApiSingleFrameTest.ApiTest.class);
+
+  public static List<Class<? extends RetraceApiBinaryTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 

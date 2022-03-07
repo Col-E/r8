@@ -75,6 +75,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
   }
 
   // The API tests always link against the jar that the test runner is using.
+  @Override
   public Path getTargetJar() {
     return isTestingR8Lib() ? R8LIB_JAR : R8_JAR;
   }
