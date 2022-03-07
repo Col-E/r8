@@ -488,13 +488,6 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.outline.enabled;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
-    // TODO(b/187675788): Enable class merging for synthetics in D8.
-    HorizontalClassMergerOptions horizontalClassMergerOptions =
-        internal.horizontalClassMergerOptions();
-    horizontalClassMergerOptions.disable();
-    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL);
-    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
-
     internal.desugarState = getDesugarState();
     internal.encodeChecksums = getIncludeClassesChecksum();
     internal.dexClassChecksumFilter = getDexClassChecksumFilter();
@@ -519,6 +512,16 @@ public final class D8Command extends BaseCompilerCommand {
       assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
       internal.threadCount = getThreadCount();
     }
+
+    // Disable global optimizations.
+    internal.disableGlobalOptimizations();
+
+    // TODO(b/187675788): Enable class merging for synthetics in D8.
+    HorizontalClassMergerOptions horizontalClassMergerOptions =
+        internal.horizontalClassMergerOptions();
+    horizontalClassMergerOptions.disable();
+    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL);
+    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
 
     internal.setDumpInputFlags(getDumpInputFlags(), skipDump);
     internal.dumpOptions = dumpOptions();

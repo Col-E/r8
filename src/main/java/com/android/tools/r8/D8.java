@@ -190,9 +190,6 @@ public final class D8 {
     }
     Timing timing = Timing.create("D8", options);
     try {
-      // Disable global optimizations.
-      options.disableGlobalOptimizations();
-
       // Synthetic assertion to check that testing assertions works and can be enabled.
       assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
 

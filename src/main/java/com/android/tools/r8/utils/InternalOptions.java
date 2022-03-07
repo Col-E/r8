@@ -178,7 +178,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     enableMinification = false;
   }
 
-  // Constructor for D8.
+  // Constructor for D8, L8, Lint and other non-shrinkers.
   public InternalOptions(DexItemFactory factory, Reporter reporter) {
     assert reporter != null;
     assert factory != null;

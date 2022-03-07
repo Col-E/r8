@@ -128,8 +128,6 @@ public class L8 {
     Timing timing = Timing.create("L8 desugaring", options);
     assert options.cfToCfDesugar;
     try {
-      // Disable global optimizations.
-      options.disableGlobalOptimizations();
       // Since L8 Cf representation is temporary, just disable long running back-end optimizations
       // on it.
       options.enableLoadStoreOptimization = false;

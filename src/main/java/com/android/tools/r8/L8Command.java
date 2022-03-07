@@ -214,6 +214,9 @@ public final class L8Command extends BaseCompilerCommand {
       internal.threadCount = getThreadCount();
     }
 
+    // Disable global optimizations.
+    internal.disableGlobalOptimizations();
+
     internal.setDumpInputFlags(getDumpInputFlags(), false);
     internal.dumpOptions = dumpOptions();
 
