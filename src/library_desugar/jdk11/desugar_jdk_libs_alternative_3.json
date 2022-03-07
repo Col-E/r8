@@ -99,11 +99,11 @@
         "java.util.stream.IntStream java.util.Arrays#stream(int[], int, int)": "java.util.DesugarArrays",
         "java.util.stream.LongStream java.util.Arrays#stream(long[])": "java.util.DesugarArrays",
         "java.util.stream.LongStream java.util.Arrays#stream(long[], int, int)": "java.util.DesugarArrays",
-        "java.util.stream.Stream java.io.BufferedReader#lines()": "java.io.DesugarBufferedReader",
         "java.util.stream.Stream java.util.Arrays#stream(java.lang.Object[])": "java.util.DesugarArrays",
         "java.util.stream.Stream java.util.Arrays#stream(java.lang.Object[], int, int)": "java.util.DesugarArrays"
       },
       "retarget_method_with_emulated_dispatch": {
+        "java.util.stream.Stream java.io.BufferedReader#lines()": "java.io.DesugarBufferedReader",
         "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet"
       },
       "wrapper_conversion": [
@@ -338,6 +338,7 @@
     "-keepattributes Signature",
     "-keepattributes EnclosingMethod",
     "-keepattributes InnerClasses",
-    "-dontwarn sun.misc.Unsafe"
+    "-dontwarn sun.misc.Unsafe",
+    "-dontwarn wrapper.**"
   ]
 }

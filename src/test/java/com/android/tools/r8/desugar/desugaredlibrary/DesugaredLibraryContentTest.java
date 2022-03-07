@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
@@ -118,7 +120,13 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     ToolHelper.runL8(l8Builder.build(), options -> {});
     CodeInspector codeInspector = new CodeInspector(desugaredLib);
     assertCorrect(codeInspector);
-    diagnosticsHandler.assertNoMessages();
+    if (isJDK11DesugaredLibrary()) {
+      diagnosticsHandler.assertNoErrors();
+      diagnosticsHandler.assertAllWarningsMatch(
+          diagnosticMessage(containsString("Specification conversion")));
+    } else {
+      diagnosticsHandler.assertNoMessages();
+    }
   }
 
   private void assertCorrect(CodeInspector inspector) {

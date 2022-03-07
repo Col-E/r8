@@ -334,6 +334,7 @@
     "-keepattributes Signature",
     "-keepattributes EnclosingMethod",
     "-keepattributes InnerClasses",
-    "-dontwarn sun.misc.Unsafe"
+    "-dontwarn sun.misc.Unsafe",
+    "-dontwarn wrapper.**"
   ]
 }

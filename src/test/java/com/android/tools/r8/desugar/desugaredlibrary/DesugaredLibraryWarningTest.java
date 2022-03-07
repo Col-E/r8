@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static org.hamcrest.core.StringContains.containsString;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
@@ -65,6 +68,12 @@ public class DesugaredLibraryWarningTest extends DesugaredLibraryTestBase {
           Arrays.asList(FUNCTION_KEEP.split(System.lineSeparator())), Origin.unknown());
     }
     ToolHelper.runL8(l8Builder.build(), options -> {});
-    diagnosticsHandler.assertNoMessages();
+    if (isJDK11DesugaredLibrary()) {
+      diagnosticsHandler.assertNoErrors();
+      diagnosticsHandler.assertAllWarningsMatch(
+          diagnosticMessage(containsString("Specification conversion")));
+    } else {
+      diagnosticsHandler.assertNoMessages();
+    }
   }
 }
