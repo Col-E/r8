@@ -52,9 +52,16 @@ public class VisibilityBridgeRemover {
       return false;
     }
     // This is a visibility forward, so check for the direct target.
-    DexEncodedMethod targetMethod =
-        appView.appInfo().unsafeResolveMethodDueToDexFormat(target).getSingleTarget();
-    if (targetMethod == null || !targetMethod.accessFlags.isPublic()) {
+    ProgramMethod targetMethod =
+        appView.appInfo().unsafeResolveMethodDueToDexFormat(target).getResolvedProgramMethod();
+    if (targetMethod == null || !targetMethod.getAccessFlags().isPublic()) {
+      return false;
+    }
+    if (definition.isStatic()
+        && method.getHolder().hasClassInitializer()
+        && method
+            .getHolder()
+            .classInitializationMayHaveSideEffectsInContext(appView, targetMethod)) {
       return false;
     }
     if (Log.ENABLED) {

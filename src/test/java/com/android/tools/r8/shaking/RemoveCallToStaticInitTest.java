@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -51,14 +50,12 @@ public class RemoveCallToStaticInitTest extends TestBase {
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/220667525): R8 should emit EXPECTED
-        .assertSuccessWithOutputLines(R8_EXPECTED)
+        .assertSuccessWithOutputLines(EXPECTED)
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(B.class);
               assertThat(clazz, isPresent());
-              // TODO(b/220667525): Should not remove bridge due to class init.
-              assertThat(clazz.uniqueMethodWithName("foo"), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithName("foo"), isPresent());
             });
   }
 
