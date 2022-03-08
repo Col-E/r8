@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -408,11 +409,15 @@ final class ClassProcessor {
 
   // We introduce forwarding methods only once all desugaring has been performed to avoid
   // confusing the look-up with inserted forwarding methods.
-  public final void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
+  public void finalizeProcessing(InterfaceProcessingDesugaringEventConsumer eventConsumer) {
     newSyntheticMethods.forEach(
         (clazz, newForwardingMethods) -> {
-          clazz.addVirtualMethods(newForwardingMethods.toDefinitionSet());
-          newForwardingMethods.forEach(eventConsumer::acceptForwardingMethod);
+          List<ProgramMethod> sorted = new ArrayList<>(newForwardingMethods.toCollection());
+          sorted.sort(Comparator.comparing(ProgramMethod::getReference));
+          for (ProgramMethod method : sorted) {
+            clazz.addVirtualMethod(method.getDefinition());
+            eventConsumer.acceptForwardingMethod(method);
+          }
         });
     newExtraInterfaceSignatures.forEach(
         (clazz, extraInterfaceSignatures) -> {

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.SetUtils;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -94,6 +95,10 @@ public abstract class DexClassAndMethodSetBase<T extends DexClassAndMethod> impl
 
   public Stream<T> stream() {
     return backing.values().stream();
+  }
+
+  public Collection<T> toCollection() {
+    return backing.values();
   }
 
   public Set<DexEncodedMethod> toDefinitionSet() {
