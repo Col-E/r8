@@ -9,12 +9,17 @@ import java.nio.file.Paths;
 public class BenchmarkDependency {
 
   public static BenchmarkDependency getRuntimeJarJava8() {
-    return new BenchmarkDependency("openjdk-rt-1.8", Paths.get("third_party", "openjdk"));
+    return new BenchmarkDependency(
+        "java8rtjar", "openjdk-rt-1.8", Paths.get("third_party", "openjdk"));
   }
 
   public static BenchmarkDependency getAndroidJar30() {
-    return new BenchmarkDependency("lib-v30", Paths.get("third_party", "android_jar"));
+    return new BenchmarkDependency(
+        "android30jar", "lib-v30", Paths.get("third_party", "android_jar"));
   }
+
+  // Nice name of the dependency. Must be a valid dart identifier.
+  private final String name;
 
   // Directory name of the dependency.
   private final String directoryName;
@@ -24,9 +29,14 @@ public class BenchmarkDependency {
   // See `getRoot` to obtain the actual dependency root.
   private final Path location;
 
-  public BenchmarkDependency(String directoryName, Path location) {
+  public BenchmarkDependency(String name, String directoryName, Path location) {
+    this.name = name;
     this.directoryName = directoryName;
     this.location = location;
+  }
+
+  public String getName() {
+    return name;
   }
 
   public Path getTarball() {

@@ -141,7 +141,7 @@ public class BenchmarkCollectionPrinter {
             for (BenchmarkDependency dependency : benchmark.getDependencies()) {
               scopeBraces(
                   () -> {
-                    addGolemResource("dependency", dependency.getTarball());
+                    addGolemResource(dependency.getName(), dependency.getTarball());
                     printSemi("options.resources.add(dependency)");
                   });
             }

@@ -25,7 +25,8 @@ public class LegacyDesugaredLibraryBenchmark extends BenchmarkBase {
 
   private static final BenchmarkDependency androidJar = BenchmarkDependency.getAndroidJar30();
   private static final BenchmarkDependency legacyConf =
-      new BenchmarkDependency("desugar_jdk_libs_legacy", Paths.get("third_party", "openjdk"));
+      new BenchmarkDependency(
+          "legacyConf", "desugar_jdk_libs_legacy", Paths.get("third_party", "openjdk"));
 
   public LegacyDesugaredLibraryBenchmark(BenchmarkConfig config, TestParameters parameters) {
     super(config, parameters);

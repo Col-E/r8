@@ -48,7 +48,9 @@ public class AppDumpBenchmarkBuilder {
   public AppDumpBenchmarkBuilder setDumpDependencyPath(Path dumpDependencyPath) {
     return setDumpDependency(
         new BenchmarkDependency(
-            dumpDependencyPath.getFileName().toString(), dumpDependencyPath.getParent()));
+            "appdump",
+            dumpDependencyPath.getFileName().toString(),
+            dumpDependencyPath.getParent()));
   }
 
   public AppDumpBenchmarkBuilder setDumpDependency(BenchmarkDependency dependency) {
