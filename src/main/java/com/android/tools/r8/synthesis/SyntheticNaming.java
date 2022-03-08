@@ -60,6 +60,7 @@ public class SyntheticNaming {
     EMULATED_INTERFACE_MARKER_CLASS("", 29, false, true, true),
     CONST_DYNAMIC("$Condy", 30, false),
     ENUM_CONVERSION("$EnumConversion", 31, false, true),
+    ARRAY_CONVERSION("$ArrayConversion", 37, true, false),
     API_MODEL_OUTLINE("ApiModelOutline", 32, true, false, false),
     API_MODEL_STUB("ApiModelStub", 33, false, true, true);
 

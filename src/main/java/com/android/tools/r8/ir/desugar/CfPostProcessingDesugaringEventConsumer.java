@@ -92,6 +92,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
     }
 
     @Override
+    public void acceptArrayConversion(ProgramMethod method) {
+      addMethodToReprocess(method);
+    }
+
+    @Override
     public void finalizeDesugaring() throws ExecutionException {
       assert methodProcessor.verifyNoPendingMethodProcessing();
       methodProcessor.newWave();
@@ -161,6 +166,11 @@ public abstract class CfPostProcessingDesugaringEventConsumer
 
     @Override
     public void acceptForwardingMethod(ProgramMethod method) {
+      additions.addLiveMethod(method);
+    }
+
+    @Override
+    public void acceptArrayConversion(ProgramMethod method) {
       additions.addLiveMethod(method);
     }
 

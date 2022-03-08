@@ -110,6 +110,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     }
 
     @Override
+    public void acceptArrayConversion(ProgramMethod arrayConversion) {
+      methodProcessor.scheduleMethodForProcessing(arrayConversion, this);
+    }
+
+    @Override
     public void acceptBackportedMethod(ProgramMethod backportedMethod, ProgramMethod context) {
       methodProcessor.scheduleMethodForProcessing(backportedMethod, this);
     }
@@ -323,6 +328,11 @@ public abstract class CfInstructionDesugaringEventConsumer
     @Override
     public void acceptRecordClass(DexProgramClass recordClass) {
       // Intentionally empty. The class will be hit by tracing if required.
+    }
+
+    @Override
+    public void acceptArrayConversion(ProgramMethod arrayConversion) {
+      // Intentionally empty. The method will be hit by tracing if required.
     }
 
     @Override

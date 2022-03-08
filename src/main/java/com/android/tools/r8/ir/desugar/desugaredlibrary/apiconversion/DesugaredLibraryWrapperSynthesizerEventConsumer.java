@@ -22,6 +22,8 @@ public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
     void acceptWrapperClasspathClass(DexClasspathClass clazz);
 
     void acceptEnumConversionClasspathClass(DexClasspathClass clazz);
+
+    void acceptArrayConversion(ProgramMethod arrayConversion);
   }
 
   interface DesugaredLibraryAPIConverterEventConsumer

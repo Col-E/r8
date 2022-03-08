@@ -290,12 +290,13 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   private DexMethod computeReturnConversion(
       DexMethod invokedMethod,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
-      ProgramMethod context) {
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
     DexType returnType = invokedMethod.proto.returnType;
     if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod, context)) {
       DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
       return wrapperSynthesizor.ensureConversionMethod(
-          returnType, newReturnType, returnType, eventConsumer);
+          returnType, newReturnType, returnType, eventConsumer, methodProcessingContext);
     }
     return null;
   }
@@ -303,7 +304,8 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   private DexMethod[] computeParameterConversions(
       DexMethod invokedMethod,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
-      ProgramMethod context) {
+      ProgramMethod context,
+      MethodProcessingContext methodProcessingContext) {
     DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
     DexType[] parameters = invokedMethod.proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
@@ -312,7 +314,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         DexType argVivifiedType = vivifiedTypeFor(argType, appView);
         parameterConversions[i] =
             wrapperSynthesizor.ensureConversionMethod(
-                argType, argType, argVivifiedType, eventConsumer);
+                argType, argType, argVivifiedType, eventConsumer, methodProcessingContext);
       }
     }
     return parameterConversions;
@@ -362,9 +364,10 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
       ProgramMethod context) {
 
     DexMethod invokedMethod = invoke.getMethod();
-    DexMethod returnConversion = computeReturnConversion(invokedMethod, eventConsumer, context);
+    DexMethod returnConversion =
+        computeReturnConversion(invokedMethod, eventConsumer, context, methodProcessingContext);
     DexMethod[] parameterConversions =
-        computeParameterConversions(invokedMethod, eventConsumer, context);
+        computeParameterConversions(invokedMethod, eventConsumer, context, methodProcessingContext);
 
     // If only the last 2 parameters require conversion, we do everything inlined.
     // If other parameters require conversion, we outline the parameter conversion but keep the API
@@ -515,9 +518,10 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         invoke.isInvokeStatic()
             ? invokedMethod.proto
             : factory.prependTypeToProto(invokedMethod.getHolderType(), invokedMethod.getProto());
-    DexMethod returnConversion = computeReturnConversion(invokedMethod, eventConsumer, context);
+    DexMethod returnConversion =
+        computeReturnConversion(invokedMethod, eventConsumer, context, methodProcessingContext);
     DexMethod[] parameterConversions =
-        computeParameterConversions(invokedMethod, eventConsumer, context);
+        computeParameterConversions(invokedMethod, eventConsumer, context, methodProcessingContext);
     ProgramMethod outline =
         appView
             .getSyntheticItems()

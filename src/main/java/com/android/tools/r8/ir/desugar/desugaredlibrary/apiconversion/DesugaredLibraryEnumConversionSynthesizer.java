@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.EnumArrayConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.EnumConversionCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticClasspathClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
@@ -57,8 +56,6 @@ public class DesugaredLibraryEnumConversionSynthesizer {
       Iterable<DexEncodedField> enumFields,
       DexType enumType,
       DexType convertType) {
-    DexType enumArray = factory.createArrayType(1, enumType);
-    DexType convertArray = factory.createArrayType(1, convertType);
     builder
         .addMethod(
             methodBuilder ->
@@ -87,46 +84,18 @@ public class DesugaredLibraryEnumConversionSynthesizer {
                                 enumFields,
                                 convertType,
                                 enumType)
-                            .generateCfCode()))
-        .addMethod(
-            methodBuilder ->
-                buildEnumConvert(
-                    methodBuilder,
-                    enumArray,
-                    convertArray,
-                    codeSynthesizor ->
-                        new EnumArrayConversionCfCodeProvider(
-                                appView, codeSynthesizor.getHolderType(), enumType, convertType)
-                            .generateCfCode()))
-        .addMethod(
-            methodBuilder ->
-                buildEnumConvert(
-                    methodBuilder,
-                    convertArray,
-                    enumArray,
-                    codeSynthesizor ->
-                        new EnumArrayConversionCfCodeProvider(
-                                appView, codeSynthesizor.getHolderType(), convertType, enumType)
                             .generateCfCode()));
   }
 
   private void buildEnumMethodsWithoutCode(
       SyntheticClasspathClassBuilder builder, DexType enumType, DexType convertType) {
-    DexType enumArray = factory.createArrayType(1, enumType);
-    DexType convertArray = factory.createArrayType(1, convertType);
     builder
         .addMethod(
             methodBuilder ->
                 buildEnumConvert(methodBuilder, enumType, convertType, ignored -> null))
         .addMethod(
             methodBuilder ->
-                buildEnumConvert(methodBuilder, convertType, enumType, ignored -> null))
-        .addMethod(
-            methodBuilder ->
-                buildEnumConvert(methodBuilder, enumArray, convertArray, ignored -> null))
-        .addMethod(
-            methodBuilder ->
-                buildEnumConvert(methodBuilder, convertArray, enumArray, ignored -> null));
+                buildEnumConvert(methodBuilder, convertType, enumType, ignored -> null));
   }
 
   DexMethod ensureEnumConversionMethod(

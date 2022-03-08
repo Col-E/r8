@@ -24,7 +24,7 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
-  private static final String EXPECTED_RESULT = StringUtils.lines("Z", "Z", "true");
+  private static final String EXPECTED_RESULT = StringUtils.lines("Z", "Z", "true", "Z", "Z");
   private static Path CUSTOM_LIB;
 
   @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
@@ -100,6 +100,8 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
       System.out.println(clock1.getZone());
       System.out.println(clock2.getZone());
       System.out.println(localClock == clock2);
+      System.out.println(CustomLibClass.getClocks()[0].getZone());
+      System.out.println(CustomLibClass.getClockss()[0][0].getZone());
     }
   }
 
@@ -111,6 +113,14 @@ public class ClockAPIConversionTest extends DesugaredLibraryTestBase {
     @SuppressWarnings("all")
     public static Clock getClock() {
       return Clock.systemUTC();
+    }
+
+    public static Clock[] getClocks() {
+      return new Clock[] {Clock.systemUTC()};
+    }
+
+    public static Clock[][] getClockss() {
+      return new Clock[][] {new Clock[] {Clock.systemUTC()}};
     }
 
     @SuppressWarnings("WeakerAccess")

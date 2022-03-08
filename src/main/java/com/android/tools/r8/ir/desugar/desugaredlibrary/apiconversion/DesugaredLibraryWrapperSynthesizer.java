@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
+import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -33,6 +34,7 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.ArrayConversionCfCodeProvider;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.position.Position;
@@ -130,7 +132,12 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       DexType type,
       DexType srcType,
       DexType destType,
-      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer) {
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
+    if (type.isArrayType()) {
+      return ensureArrayConversionMethod(
+          type, srcType, destType, eventConsumer, methodProcessingContext);
+    }
     DexMethod customConversion = getCustomConversion(type, srcType, destType);
     if (customConversion != null) {
       return customConversion;
@@ -150,8 +157,46 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return conversion;
   }
 
+  private DexMethod ensureArrayConversionMethod(
+      DexType type,
+      DexType srcType,
+      DexType destType,
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      MethodProcessingContext methodProcessingContext) {
+    DexMethod conversion =
+        ensureConversionMethod(
+            type.toDimensionMinusOneType(factory),
+            srcType.toDimensionMinusOneType(factory),
+            destType.toDimensionMinusOneType(factory),
+            eventConsumer,
+            methodProcessingContext);
+    ProgramMethod arrayConversion =
+        appView
+            .getSyntheticItems()
+            .createMethod(
+                SyntheticKind.ARRAY_CONVERSION,
+                methodProcessingContext.createUniqueContext(),
+                appView,
+                builder ->
+                    builder
+                        .setProto(factory.createProto(destType, srcType))
+                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        .setCode(
+                            codeSynthesizor ->
+                                new ArrayConversionCfCodeProvider(
+                                        appView,
+                                        codeSynthesizor.getHolderType(),
+                                        srcType,
+                                        destType,
+                                        conversion)
+                                    .generateCfCode()));
+    eventConsumer.acceptArrayConversion(arrayConversion);
+    return arrayConversion.getReference();
+  }
+
   public DexMethod getExistingProgramConversionMethod(
       DexType type, DexType srcType, DexType destType) {
+    assert !type.isArrayType();
     DexMethod customConversion = getCustomConversion(type, srcType, destType);
     if (customConversion != null) {
       return customConversion;
@@ -224,9 +269,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private DexClass getValidClassToWrap(DexType type) {
-    if (type.isArrayType()) {
-      return getValidClassToWrap(type.toBaseType(factory));
-    }
+    assert !type.isArrayType();
     DexClass dexClass = appView.definitionFor(type);
     // The dexClass should be a library class, so it cannot be null.
     assert dexClass != null;
