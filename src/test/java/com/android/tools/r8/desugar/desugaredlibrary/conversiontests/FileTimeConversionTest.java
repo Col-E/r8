@@ -1,22 +1,25 @@
-// Copyright (c) 2021, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyRewritingFlags;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.legacyspecification.LegacyTopLevelFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.AccessMode;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.List;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -26,14 +29,13 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class AccessModeConversionTest extends DesugaredLibraryTestBase {
+public class FileTimeConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
 
   private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
-  private static final String EXPECTED_RESULT =
-      StringUtils.lines("READ", "WRITE", "READ", "WRITE", "EXECUTE");
+  private static final String EXPECTED_RESULT = StringUtils.lines("1970-01-01T00:00:01.234Z");
 
   private static Path CUSTOM_LIB;
 
@@ -43,7 +45,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
         getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
   }
 
-  public AccessModeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+  public FileTimeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
     this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
@@ -59,14 +61,25 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
   }
 
   private void configureDesugaredLibrary(InternalOptions options, boolean l8Compilation) {
-    LegacyRewritingFlags rewritingFlags =
-        LegacyRewritingFlags.builder(options.itemFactory, options.reporter, Origin.unknown())
-            .putRewritePrefix("java.nio.file.AccessMode", "j$.nio.file.AccessMode")
-            .addWrapperConversion("java.nio.file.AccessMode")
+    HumanRewritingFlags rewritingFlags =
+        HumanRewritingFlags.builder(options.reporter, Origin.unknown())
+            .putRewritePrefix("java.nio.file.attribute.FileTime", "j$.nio.file.attribute.FileTime")
+            .putRewritePrefix(
+                "java.nio.file.attribute.FileAttributeConversions",
+                "j$.nio.file.attribute.FileAttributeConversions")
+            .putRewriteDerivedPrefix(
+                "java.nio.file.attribute.FileTime",
+                "j$.nio.file.attribute.FileTime",
+                "java.nio.file.attribute.FileTime")
+            .putCustomConversion(
+                options.dexItemFactory().createType("Ljava/nio/file/attribute/FileTime;"),
+                options
+                    .dexItemFactory()
+                    .createType("Ljava/nio/file/attribute/FileAttributeConversions;"))
             .build();
-    LegacyDesugaredLibrarySpecification specification =
-        new LegacyDesugaredLibrarySpecification(
-            LegacyTopLevelFlags.testing(), rewritingFlags, l8Compilation);
+    HumanDesugaredLibrarySpecification specification =
+        new HumanDesugaredLibrarySpecification(
+            HumanTopLevelFlags.testing(), rewritingFlags, l8Compilation);
     setDesugaredLibrarySpecificationForTesting(options, specification);
   }
 
@@ -94,6 +107,7 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
+        .inspect(this::assertCallsToConversion)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
@@ -127,20 +141,25 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
+  private void assertCallsToConversion(CodeInspector codeInspector) {
+    assertTrue(
+        codeInspector
+            .clazz(Executor.class)
+            .uniqueMethodWithFinalName("main")
+            .streamInstructions()
+            .anyMatch(
+                i ->
+                    i.isInvokeStatic()
+                        && i.getMethod()
+                            .getHolderType()
+                            .toString()
+                            .contains("ExternalSyntheticAPIConversion")));
+  }
+
   static class Executor {
 
     public static void main(String[] args) {
-      System.out.println(CustomLibClass.get(AccessMode.READ));
-      System.out.println(CustomLibClass.get(AccessMode.WRITE));
-      System.out.println(
-          CustomLibClass.get(
-              new AccessMode[] {AccessMode.READ, AccessMode.WRITE, AccessMode.EXECUTE})[0]);
-      System.out.println(
-          CustomLibClass.get(
-              new AccessMode[] {AccessMode.READ, AccessMode.WRITE, AccessMode.EXECUTE})[1]);
-      System.out.println(
-          CustomLibClass.get(
-              new AccessMode[] {AccessMode.READ, AccessMode.WRITE, AccessMode.EXECUTE})[2]);
+      System.out.println(CustomLibClass.get(FileTime.fromMillis(1234L)));
     }
   }
 
@@ -149,12 +168,8 @@ public class AccessModeConversionTest extends DesugaredLibraryTestBase {
   // platform APIs for which argument/return values need conversion.
   static class CustomLibClass {
 
-    public static AccessMode get(AccessMode mode) {
-      return mode;
-    }
-
-    public static AccessMode[] get(AccessMode[] modes) {
-      return modes;
+    public static FileTime get(FileTime fileTime) {
+      return fileTime;
     }
   }
 }

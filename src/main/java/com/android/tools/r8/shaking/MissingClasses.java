@@ -259,7 +259,7 @@ public class MissingClasses {
     }
 
     private static Predicate<DexType> getIsAllowedMissingClassesPredicate(AppView<?> appView) {
-      Set<DexType> allowedMissingClasses = getAllowedMissingClasses(appView.dexItemFactory());
+      Set<DexType> allowedMissingClasses = getAllowedMissingClasses(appView);
       Predicate<DexType> compilerSynthesizedAllowingMissingClassPredicate =
           getIsCompilerSynthesizedAllowedMissingClassesPredicate(appView);
       DontWarnConfiguration dontWarnConfiguration = appView.getDontWarnConfiguration();
@@ -269,19 +269,39 @@ public class MissingClasses {
               || dontWarnConfiguration.matches(type);
     }
 
-    private static Set<DexType> getAllowedMissingClasses(DexItemFactory dexItemFactory) {
-      return ImmutableSet.<DexType>builder()
-          .add(
-              dexItemFactory.annotationDefault,
-              dexItemFactory.annotationMethodParameters,
-              dexItemFactory.annotationSourceDebugExtension,
-              dexItemFactory.annotationSynthesizedClass,
-              dexItemFactory.annotationThrows,
-              dexItemFactory.serializedLambdaType,
-              dexItemFactory.unsafeType)
-          .addAll(dexItemFactory.getJavaConversionTypes())
-          .addAll(dexItemFactory.getJ$ConversionTypes())
-          .build();
+    private static Set<DexType> getAllowedMissingClasses(AppView<?> appView) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      ImmutableSet.Builder<DexType> allowedMissingClasses =
+          ImmutableSet.<DexType>builder()
+              .add(
+                  dexItemFactory.annotationDefault,
+                  dexItemFactory.annotationMethodParameters,
+                  dexItemFactory.annotationSourceDebugExtension,
+                  dexItemFactory.annotationSynthesizedClass,
+                  dexItemFactory.annotationThrows,
+                  dexItemFactory.serializedLambdaType,
+                  dexItemFactory.unsafeType);
+      appView
+          .options()
+          .machineDesugaredLibrarySpecification
+          .getCustomConversions()
+          .forEach(
+              (type, conversions) -> {
+                addWithRewrittenType(
+                    allowedMissingClasses, conversions.getFrom().getHolderType(), appView);
+                addWithRewrittenType(
+                    allowedMissingClasses, conversions.getTo().getHolderType(), appView);
+              });
+      return allowedMissingClasses.build();
+    }
+
+    private static void addWithRewrittenType(
+        ImmutableSet.Builder<DexType> builder, DexType type, AppView<?> appView) {
+      builder.add(type);
+      DexType rewrittenType = appView.typeRewriter.rewrittenType(type, appView);
+      if (rewrittenType != null) {
+        builder.add(rewrittenType);
+      }
     }
 
     private static Predicate<DexType> getIsCompilerSynthesizedAllowedMissingClassesPredicate(
