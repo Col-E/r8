@@ -293,6 +293,13 @@ public class VirtualMethodMerger {
       virtuallyMergedMethodsKeepInfo.amendKeepInfo(appView.getKeepInfo(oldMethod));
     }
 
+    // The super method reference is not guaranteed to be rebound to a definition. To ensure correct
+    // lens code rewriting we need to disable proto normalization until lens code rewriting no
+    // longer relies on member rebinding (b/182129249).
+    if (superMethod != null) {
+      virtuallyMergedMethodsKeepInfo.getKeepInfo().disallowParameterReordering();
+    }
+
     // Add a mapping from a synthetic name to the synthetic merged method.
     lensBuilder.recordNewMethodSignature(bridgeMethodReference, newMethodReference);
 
