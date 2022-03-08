@@ -575,10 +575,7 @@ public class SyntheticFinalization {
         });
     groupsPerPrefix.forEach(
         (externalSyntheticTypePrefix, groups) -> {
-          // Sort the equivalence groups that go into 'context' including the context type of the
-          // representative which is equal to 'context' here (see assert below).
-          Comparator<EquivalenceGroup<T>> comparator =
-              (a, b) -> a.compareToIncludingContext(b, appView.graphLens(), classToFeatureSplitMap);
+          Comparator<EquivalenceGroup<T>> comparator = this::compareForFinalGroupSorting;
           ListUtils.destructiveSort(groups, comparator);
           for (int i = 0; i < groups.size(); i++) {
             EquivalenceGroup<T> group = groups.get(i);
@@ -588,9 +585,7 @@ public class SyntheticFinalization {
                 .equals(externalSyntheticTypePrefix);
             // Two equivalence groups in same context type must be distinct otherwise the assignment
             // of the synthetic name will be non-deterministic between the two.
-            assert i == 0
-                || checkGroupsAreDistinct(
-                    groups.get(i - 1), group, appView.graphLens(), classToFeatureSplitMap);
+            assert i == 0 || checkGroupsAreDistinct(groups.get(i - 1), group, comparator);
             SyntheticKind kind = group.getRepresentative().getKind();
             DexType representativeType =
                 intermediate
@@ -615,6 +610,17 @@ public class SyntheticFinalization {
             group.forEach(
                 member -> lensBuilder.move(member.getHolder().getType(), representativeType)));
     return equivalences;
+  }
+
+  private <T extends SyntheticDefinition<?, T, ?>> int compareForFinalGroupSorting(
+      EquivalenceGroup<T> a, EquivalenceGroup<T> b) {
+    // Sort the equivalence groups based on the representative types. The representatives are
+    // deterministically chosen and the internal synthetics deterministically named so using
+    // the internal type as the order is deterministic.
+    return a.getRepresentative()
+        .getHolder()
+        .getType()
+        .compareTo(b.getRepresentative().getHolder().getType());
   }
 
   private static <T extends SyntheticDefinition<?, T, ?>> List<EquivalenceGroup<T>> groupEquivalent(
@@ -695,13 +701,11 @@ public class SyntheticFinalization {
   }
 
   private static <T extends SyntheticDefinition<?, T, ?>> boolean checkGroupsAreDistinct(
-      EquivalenceGroup<T> g1,
-      EquivalenceGroup<T> g2,
-      GraphLens graphLens,
-      ClassToFeatureSplitMap classToFeatureSplitMap) {
-    int order = g1.compareToIncludingContext(g2, graphLens, classToFeatureSplitMap);
-    assert order != 0;
-    assert order != g2.compareToIncludingContext(g1, graphLens, classToFeatureSplitMap);
+      EquivalenceGroup<T> g1, EquivalenceGroup<T> g2, Comparator<EquivalenceGroup<T>> comparator) {
+    int smaller = comparator.compare(g1, g2);
+    assert smaller < 0;
+    int bigger = comparator.compare(g2, g1);
+    assert bigger > 0;
     return true;
   }
 
