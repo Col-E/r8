@@ -31,9 +31,9 @@ public class TiviBenchmarks extends BenchmarkBase {
   public static List<BenchmarkConfig> configs() {
     return ImmutableList.of(
         AppDumpBenchmarkBuilder.builder()
-            .setName("Tivi")
+            .setName("TiviApp")
             .setDumpDependencyPath(dump)
-            .setFromRevision(12170)
+            .setFromRevision(12215)
             .build());
   }
 }

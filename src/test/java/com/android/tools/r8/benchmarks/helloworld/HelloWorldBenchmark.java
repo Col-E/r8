@@ -86,7 +86,7 @@ public class HelloWorldBenchmark extends BenchmarkBase {
                 .setMethod(method.apply(options))
                 // The benchmark is required to set a "golem from revision".
                 // Find this value by looking at the current revision on golem.
-                .setFromRevision(12150)
+                .setFromRevision(12215)
                 // The benchmark can optionally time the warmup. This is not needed to use a warmup
                 // in the actual run, only to include it as its own benchmark entry on golem.
                 .measureWarmup();

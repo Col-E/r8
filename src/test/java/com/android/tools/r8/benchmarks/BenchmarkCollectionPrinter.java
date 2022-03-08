@@ -117,7 +117,7 @@ public class BenchmarkCollectionPrinter {
     metrics.sort(String::compareTo);
     printSemi("final name = " + quote(benchmarkName));
     printSemi("final metrics = " + StringUtils.join(", ", metrics, BraceType.SQUARE));
-    printSemi("final benchmark = new StandardBenchmark(name, metrics)");
+    printSemi("final benchmark = StandardBenchmark(name, metrics)");
     for (BenchmarkConfig benchmark : benchmarkVariants) {
       scopeBraces(
           () -> {
@@ -159,7 +159,7 @@ public class BenchmarkCollectionPrinter {
     indentScope(
         4,
         () -> {
-          print("type: BenchmarkResourceType.Storage,");
+          print("type: BenchmarkResourceType.storage,");
           print("uri: " + quote("gs://r8-deps/" + shaFileContent) + ",");
           // Make dart formatter happy.
           if (currentIndent > 6) {

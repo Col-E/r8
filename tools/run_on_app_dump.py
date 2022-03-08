@@ -1070,7 +1070,7 @@ def print_golem_config(options):
       print_indented('final name = "%s";' % app.name, indentation)
       print_indented('final benchmark =', indentation)
       print_indented(
-          'new StandardBenchmark(name, [Metric.RunTimeRaw, Metric.CodeSize]);',
+          'StandardBenchmark(name, [Metric.RunTimeRaw, Metric.CodeSize]);',
           indentation + 4)
       app_gz = os.path.join(utils.OPENSOURCE_DUMPS_DIR, app.folder + '.tar.gz')
       name = 'appResource'
@@ -1119,7 +1119,7 @@ def add_golem_resource(indentation, gz, name, sha256=None):
     sha256 = get_sha256(gz)
   sha = get_sha_from_file(sha)
   print_indented('final %s = BenchmarkResource("",' % name, indentation)
-  print_indented('type: BenchmarkResourceType.Storage,', indentation + 4)
+  print_indented('type: BenchmarkResourceType.storage,', indentation + 4)
   print_indented('uri: "gs://r8-deps/%s",' % sha, indentation + 4)
   # Make dart formatter happy.
   if indentation > 2:
