@@ -41,8 +41,8 @@ def parse_options(argv):
   result.add_argument('--target',
                       help='The test target to run',
                       required=True,
-                      # These should 1:1 with BenchmarkTarget.java
-                      choices=['d8', 'r8', 'r8-force', 'r8-compat'])
+                      # These should 1:1 with benchmarks/BenchmarkTarget.java
+                      choices=['d8', 'r8-full', 'r8-force', 'r8-compat'])
   result.add_argument('--nolib', '--no-lib', '--no-r8lib',
                       help='Run the non-lib R8 build (default false)',
                       default=False,

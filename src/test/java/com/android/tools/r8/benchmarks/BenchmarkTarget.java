@@ -6,6 +6,7 @@ package com.android.tools.r8.benchmarks;
 public enum BenchmarkTarget {
 
   // Possible dashboard targets on golem.
+  // WARNING: make sure the id-name is 1:1 with tools/run_benchmark.py!
   D8("d8", "D8"),
   R8_COMPAT("r8-compat", "R8"),
   R8_NON_COMPAT("r8-full", "R8-full"),
