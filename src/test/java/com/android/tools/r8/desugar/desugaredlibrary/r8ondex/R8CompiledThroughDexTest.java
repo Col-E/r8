@@ -23,6 +23,7 @@ import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -125,10 +126,14 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
 
     Path outputFolder = temp.newFolder("output").toPath();
     Path outputThroughCf = outputFolder.resolve("outThroughCf.zip");
+    Path determinismLogsDir = temp.newFolder("logs").toPath();
+    String checkDeterminismKey = "com.android.tools.r8.checkdeterminism";
 
     // First run compiles with R8 in process and thus with assertions.
     {
       long start = System.nanoTime();
+      // Set the system property to check determinism.
+      System.setProperty(checkDeterminismKey, determinismLogsDir.toString());
       // Manually construct the R8 command as the test builder will change defaults compared
       // to the CLI invocation (eg, compressed and pg-map output).
       Builder builder = R8Command.builder().setOutput(outputThroughCf, OutputMode.DexIndexed);
@@ -150,6 +155,8 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
               Collections.singletonList(r8jar),
               ImmutableList.builder()
                   .add("-Xmx1g")
+                  // Set the system property to check determinism.
+                  .add("-D" + checkDeterminismKey + "=" + determinismLogsDir)
                   .add(R8.class.getTypeName())
                   .add("--output")
                   .add(commandLinePathFor(outputThroughCfExternal))
@@ -171,6 +178,9 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
               + ". If up-to-date, the likely cause of this error is that R8 is non-deterministic.";
       assertTrue(message, filesAreEqual(outputThroughCf, outputThroughCfExternal));
     }
+
+    // Check that setting the determinism checker wrote a log file.
+    assertTrue(Files.exists(determinismLogsDir.resolve("0.log")));
 
     // Finally compile R8 on the ART runtime using the already compiled DEX version of R8.
     // We need the extra parameter --64 to use 64 bits frameworks.

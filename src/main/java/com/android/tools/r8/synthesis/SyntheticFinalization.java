@@ -198,6 +198,7 @@ public class SyntheticFinalization {
   public static void finalizeWithLiveness(
       AppView<AppInfoWithLiveness> appView, ExecutorService executorService)
       throws ExecutionException {
+    appView.options().testing.checkDeterminism(appView);
     Result result = appView.getSyntheticItems().computeFinalSynthetics(appView);
     appView.setAppInfo(appView.appInfo().rebuildWithMainDexInfo(result.mainDexInfo));
     if (result.lens != null) {

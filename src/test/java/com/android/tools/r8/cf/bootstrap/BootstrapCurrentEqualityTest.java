@@ -241,7 +241,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     assertEquals(result.getStderr(), runR8R8.getStderr());
     // Check that the output jars are the same.
     uploadJarsToCloudStorageIfTestFails(
-        BootstrapCurrentEqualityTest::assertProgramsEqual, result.outputJar(), runR8R8.outputJar());
+        TestBase::assertProgramsEqual, result.outputJar(), runR8R8.outputJar());
   }
 
   private static TemporaryFolder newTempFolder() throws IOException {

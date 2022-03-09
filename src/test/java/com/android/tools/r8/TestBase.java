@@ -11,6 +11,7 @@ import static com.google.common.collect.Lists.cartesianProduct;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
@@ -1951,6 +1952,8 @@ public class TestBase {
       return true;
     }
     assertIdenticalInspectors(new CodeInspector(expectedJar), new CodeInspector(actualJar));
+    // The above may not fail but the programs are not equal so force fail in any case.
+    fail();
     return false;
   }
 

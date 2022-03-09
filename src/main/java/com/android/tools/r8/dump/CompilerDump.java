@@ -5,6 +5,7 @@ package com.android.tools.r8.dump;
 
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,6 +43,16 @@ public class CompilerDump {
 
   public Path getProguardConfigFile() {
     return directory.resolve("proguard.config");
+  }
+
+  public void sanitizeProguardConfig(ProguardConfigSanitizer sanitizer) throws IOException {
+    try (BufferedReader reader = Files.newBufferedReader(getProguardConfigFile())) {
+      String next = reader.readLine();
+      while (next != null) {
+        sanitizer.sanitize(next);
+        next = reader.readLine();
+      }
+    }
   }
 
   public DumpOptions getBuildProperties() throws IOException {

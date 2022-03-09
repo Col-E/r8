@@ -90,6 +90,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1662,6 +1663,27 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public static class TestingOptions {
+
+    private boolean hasReadCheckDeterminism = false;
+    private DeterminismChecker determinismChecker = null;
+
+    public void setDeterminismChecker(DeterminismChecker checker) {
+      determinismChecker = checker;
+    }
+
+    public void checkDeterminism(AppView<?> appView) {
+      // Lazily read the env-var so that it can be set after options init.
+      if (determinismChecker == null && !hasReadCheckDeterminism) {
+        hasReadCheckDeterminism = true;
+        String dir = System.getProperty("com.android.tools.r8.checkdeterminism");
+        if (dir != null) {
+          determinismChecker = DeterminismChecker.createWithFileBacking(Paths.get(dir));
+        }
+      }
+      if (determinismChecker != null) {
+        determinismChecker.check(appView);
+      }
+    }
 
     public static void allowExperimentClassFileVersion(InternalOptions options) {
       options.reportedExperimentClassFileVersion.set(true);
