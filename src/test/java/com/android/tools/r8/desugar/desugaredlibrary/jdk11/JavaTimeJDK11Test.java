@@ -13,6 +13,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.Collection;
@@ -27,10 +32,10 @@ import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class DurationJDK11Test extends DesugaredLibraryTestBase {
+public class JavaTimeJDK11Test extends DesugaredLibraryTestBase {
 
   private static final String EXPECTED_RESULT =
-      StringUtils.lines("0", "1", "2", "3", "4", "5", "6", "7", "8");
+      StringUtils.lines("0", "1", "2", "3", "4", "5", "6", "7", "8", "00:00", "0");
 
   @Parameter(0)
   public TestParameters parameters;
@@ -117,6 +122,20 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
                           isInterface);
                       return;
                     }
+                    if (opcode == Opcodes.INVOKESTATIC && name.equals("ofInstant")) {
+                      super.visitMethodInsn(
+                          opcode, "java/time/LocalTime", name, descriptor, isInterface);
+                      return;
+                    }
+                    if (opcode == Opcodes.INVOKESTATIC && name.equals("toEpochSecond")) {
+                      super.visitMethodInsn(
+                          Opcodes.INVOKEVIRTUAL,
+                          "java/time/LocalTime",
+                          name,
+                          withoutFirstObjectArg(descriptor),
+                          isInterface);
+                      return;
+                    }
                     super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                   }
                 })
@@ -141,51 +160,66 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
       System.out.println(toMillisPart(Duration.ofNanos(6000002)));
       System.out.println(toNanosPart(Duration.ofNanos(1000000007)));
       System.out.println(dividedBy(Duration.ofHours(4), Duration.ofMinutes(30)));
+
+      // Test all java.time.LocalTime methods added in Android S (where added in JDK 9).
+      System.out.println(ofInstant(Instant.ofEpochSecond(0), ZoneId.of("UTC")));
+      System.out.println(
+          toEpochSecond(LocalTime.of(0, 0), LocalDate.ofEpochDay(0), ZoneOffset.UTC));
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toDaysPart().
+    // Replaced in the transformer by JDK 11 virtual Duration#toDaysPart().
     private static long toDaysPart(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toHoursPart().
+    // Replaced in the transformer by JDK 11 virtual Duration#toHoursPart().
     private static int toHoursPart(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toMillisPart().
+    // Replaced in the transformer by JDK 11 virtual Duration#toMillisPart().
     private static int toMillisPart(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toMinutesPart().
+    // Replaced in the transformer by JDK 11 virtual Duration#toMinutesPart().
     private static int toMinutesPart(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toNanosPart().
+    // Replaced in the transformer by JDK 11 virtual Duration#toNanosPart().
     private static int toNanosPart(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toSeconds().
+    // Replaced in the transformer by JDK 11 virtual Duration#toSeconds().
     private static long toSeconds(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toSecondsPart().
+    // Replaced in the transformer by JDK 11 virtual Duration#toSecondsPart().
     private static int toSecondsPart(Duration receiver) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#dividedBy(Duration).
+    // Replaced in the transformer by JDK 11 virtual Duration#dividedBy(Duration).
     private static long dividedBy(Duration receiver, Duration divisor) {
       return -1;
     }
 
-    // Replaced in the transformer by JDK 11 Duration#truncatedTo(TemporalUnit).
+    // Replaced in the transformer by JDK 11 virtual Duration#truncatedTo(TemporalUnit).
     private static Duration truncatedTo(Duration receiver, TemporalUnit unit) {
       return null;
+    }
+
+    // Replaced in the transformer by JDK 11 static LocalTime#ofInstant.
+    private static LocalTime ofInstant(Instant instant, ZoneId zone) {
+      return null;
+    }
+
+    // Replaced in the transformer by JDK 11 virtual LocalTime#toEpochSecond.
+    private static long toEpochSecond(LocalTime receiver, LocalDate date, ZoneOffset offset) {
+      return -1;
     }
   }
 }
