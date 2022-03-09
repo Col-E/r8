@@ -76,6 +76,7 @@ public class MarkersTest extends DesugaredLibraryTestBase {
         L8Command.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .setMinApiLevel(apiLevel.getLevel())
             .setMode(compilationMode)
             .addDesugaredLibraryConfiguration(

@@ -59,6 +59,10 @@ public class ConversionsPresentTest extends DesugaredLibraryTestBase {
     List<FoundClassSubject> conversionsClasses =
         inspector.allClasses().stream()
             .filter(c -> c.getOriginalName().contains("Conversions"))
+            .filter(
+                c ->
+                    c.getOriginalName().contains(".util.")
+                        || c.getOriginalName().contains(".time."))
             .collect(Collectors.toList());
     if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       assertEquals(5, conversionsClasses.size());

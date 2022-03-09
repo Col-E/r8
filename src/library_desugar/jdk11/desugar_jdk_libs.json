@@ -270,6 +270,11 @@
         "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
         "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
       },
+      "rewrite_derived_prefix": {
+        "java.nio.file.attribute.": {
+          "j$.nio.file.attribute.": "java.nio.file.attribute."
+        }
+      },
       "retarget_method": {
         "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
       },
