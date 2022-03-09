@@ -7,38 +7,42 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.transformers.MethodTransformer;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
 public class DurationJDK11Test extends DesugaredLibraryTestBase {
 
-  private static final String EXPECTED_RESULT = StringUtils.lines("7");
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines("0", "1", "2", "3", "4", "5", "6", "7", "8");
 
-  private final TestParameters parameters;
-  private final boolean shrinkDesugaredLibrary;
+  @Parameter(0)
+  public TestParameters parameters;
+
+  @Parameter(1)
+  public boolean shrinkDesugaredLibrary;
 
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
-  }
-
-  public DurationJDK11Test(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
-    this.parameters = parameters;
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        BooleanUtils.falseValues());
   }
 
   @Test
@@ -81,6 +85,17 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
   }
 
   private Collection<byte[]> getProgramClassFileData() throws IOException {
+    Set<String> methodsToRewriteToDurationVirtualInvoke =
+        ImmutableSet.of(
+            "toDaysPart",
+            "toHoursPart",
+            "toMillisPart",
+            "toMinutesPart",
+            "toNanosPart",
+            "toSeconds",
+            "toSecondsPart",
+            "dividedBy",
+            "truncatedTo");
     return ImmutableList.of(
         transformer(TestClass.class)
             .addMethodTransformer(
@@ -92,7 +107,8 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
                       String name,
                       String descriptor,
                       boolean isInterface) {
-                    if (opcode == Opcodes.INVOKESTATIC && name.equals("toHoursPart")) {
+                    if (opcode == Opcodes.INVOKESTATIC
+                        && methodsToRewriteToDurationVirtualInvoke.contains(name)) {
                       super.visitMethodInsn(
                           Opcodes.INVOKEVIRTUAL,
                           "java/time/Duration",
@@ -115,13 +131,61 @@ public class DurationJDK11Test extends DesugaredLibraryTestBase {
   public static class TestClass {
 
     public static void main(String[] args) {
-      Duration duration = Duration.ofHours(31);
-      System.out.println(toHoursPart(duration));
+      // Test all java.time.Duration methods added in Android S (where added in JDK 9).
+      System.out.println(toSecondsPart(truncatedTo(Duration.ofSeconds(62), ChronoUnit.MINUTES)));
+      System.out.println(toDaysPart(Duration.ofHours(31)));
+      System.out.println(toHoursPart(Duration.ofHours(26)));
+      System.out.println(toSeconds(Duration.ofSeconds(3)));
+      System.out.println(toSecondsPart(Duration.ofSeconds(64)));
+      System.out.println(toMinutesPart(Duration.ofSeconds(301)));
+      System.out.println(toMillisPart(Duration.ofNanos(6000002)));
+      System.out.println(toNanosPart(Duration.ofNanos(1000000007)));
+      System.out.println(dividedBy(Duration.ofHours(4), Duration.ofMinutes(30)));
     }
 
-    // Replaced in the transformer by JDK 11 Duration#toHoursPart.
-    private static int toHoursPart(Duration duration) {
+    // Replaced in the transformer by JDK 11 Duration#toDaysPart().
+    private static long toDaysPart(Duration receiver) {
       return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#toHoursPart().
+    private static int toHoursPart(Duration receiver) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#toMillisPart().
+    private static int toMillisPart(Duration receiver) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#toMinutesPart().
+    private static int toMinutesPart(Duration receiver) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#toNanosPart().
+    private static int toNanosPart(Duration receiver) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#toSeconds().
+    private static long toSeconds(Duration receiver) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#toSecondsPart().
+    private static int toSecondsPart(Duration receiver) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#dividedBy(Duration).
+    private static long dividedBy(Duration receiver, Duration divisor) {
+      return -1;
+    }
+
+    // Replaced in the transformer by JDK 11 Duration#truncatedTo(TemporalUnit).
+    private static Duration truncatedTo(Duration receiver, TemporalUnit unit) {
+      return null;
     }
   }
 }
