@@ -22,7 +22,7 @@ R8LIB_TEST_BUILD_TARGETS = [utils.R8LIB_TESTS_TARGET, utils.R8LIB_TESTS_DEPS_TAR
 GOLEM_BUILD_TARGETS = [R8LIB_BUILD_TARGET] + R8LIB_TEST_BUILD_TARGETS
 
 def get_golem_resource_path(benchmark):
-  return os.path.join('benchmarks', benchmark + 'Group')
+  return os.path.join('benchmarks', benchmark)
 
 def get_jdk_home(options, benchmark):
   if options.golem:
