@@ -308,9 +308,6 @@ public final class StackTraceElementStringProxy
     }
 
     public StackTraceElementStringProxy build() {
-      if (!lineNumber.hasIndex() && sourceFile.hasIndex()) {
-        registerLineNumber(sourceFile.endIndex, sourceFile.endIndex, true);
-      }
       return new StackTraceElementStringProxy(
           line,
           orderedIndices,

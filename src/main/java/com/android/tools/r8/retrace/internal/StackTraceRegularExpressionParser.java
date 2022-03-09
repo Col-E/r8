@@ -20,7 +20,7 @@ public class StackTraceRegularExpressionParser
   // that allow for retracing classes in the form <class>: lorem ipsum...
   // Seems like Proguard retrace is expecting the form "Caused by: <class>".
   public static final String DEFAULT_REGULAR_EXPRESSION =
-      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%s(?::%l)?\\)\\s*(?:~\\[.*\\])?)"
+      "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%S\\)\\s*(?:~\\[.*\\])?)"
           + "|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
 
   private final Pattern compiledPattern;
@@ -274,12 +274,16 @@ public class StackTraceRegularExpressionParser
 
   private static class SourceFileGroup extends RegularExpressionGroup {
 
-    @Override
-    String subExpression() {
+    static String subExpressionInternal() {
       String anyNonDigitNonColonChar = "^\\d:";
       String anyNonColonChar = "^:";
       String colonWithNonDigitSuffix = ":+[" + anyNonDigitNonColonChar + "]";
       return "((?:(?:(?:" + colonWithNonDigitSuffix + "))|(?:[" + anyNonColonChar + "]))+)?";
+    }
+
+    @Override
+    String subExpression() {
+      return subExpressionInternal();
     }
 
     @Override
@@ -319,17 +323,41 @@ public class StackTraceRegularExpressionParser
 
     @Override
     String subExpression() {
-      return "%s(?::%l)?";
+      return SourceFileGroup.subExpressionInternal() + "(?::\\d*)?";
     }
 
     @Override
     RegularExpressionGroupHandler createHandler(String captureGroup) {
-      throw new Unreachable("Should never be called");
+      return (builder, matcher) -> {
+        int startOfGroup = matcher.start(captureGroup);
+        if (startOfGroup == NO_MATCH) {
+          return false;
+        }
+        int endOfSourceFineInGroup = findEndOfSourceFile(matcher.group(captureGroup));
+        int sourceFileEnd = startOfGroup + endOfSourceFineInGroup;
+        builder.registerSourceFile(startOfGroup, sourceFileEnd);
+        int endOfMatch = matcher.end(captureGroup);
+        int lineNumberStart = sourceFileEnd + 1;
+        builder.registerLineNumber(
+            Integer.min(lineNumberStart, endOfMatch), endOfMatch, lineNumberStart > endOfMatch);
+        return true;
+      };
     }
 
-    @Override
-    boolean isSynthetic() {
-      return true;
+    private int findEndOfSourceFile(String group) {
+      int index = group.length();
+      while (index > 0) {
+        char currentChar = group.charAt(index - 1);
+        if (currentChar == ':' && index < group.length()) {
+          // Subtract the ':' from the length.
+          return index - 1;
+        }
+        if (!Character.isDigit(currentChar)) {
+          return group.length();
+        }
+        index--;
+      }
+      return group.length();
     }
   }
 

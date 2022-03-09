@@ -673,8 +673,7 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
         });
   }
 
-  // TODO(b/223170173): Should not throw index of out bounds
-  @Test(expected = IndexOutOfBoundsException.class)
+  @Test()
   public void testSourceFileBeforeClassStackTrace() {
     runRetraceTest(
         "\\S* \\(%s: 70\\) %c.%m",
@@ -694,14 +693,14 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
           @Override
           public List<String> retracedStackTrace() {
             return Collections.singletonList(
-                "0xffffffffffffffff (some-bundle.aab-canary-42: 70)"
+                "0xffffffffffffffff (Main.java: 70)"
                     + " com.android.tools.r8.naming.retrace.Main.test");
           }
 
           @Override
           public List<String> retraceVerboseStackTrace() {
             return Collections.singletonList(
-                "0xffffffffffffffff (some-bundle.aab-canary-42: 70)"
+                "0xffffffffffffffff (Main.java: 70)"
                     + " com.android.tools.r8.naming.retrace.Main.void test()");
           }
 
