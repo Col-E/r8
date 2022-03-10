@@ -80,20 +80,20 @@ def ParseOptions():
 def Main():
   (options, args) = ParseOptions()
   if len(args) != 1:
-    print "Can only take a single dex/zip/jar/apk file as input."
+    print("Can only take a single dex/zip/jar/apk file as input.")
     return 1
   if options.all and options.output:
-    print "Can't write output when running all versions."
+    print("Can't write output when running all versions.")
     return 1
   dexfile = args[0]
   oatfile = options.output
   versions = VERSIONS if options.all else [options.version]
   verbose = [options.verbose] if options.verbose else []
   if 'all' in verbose:
-    verbose = [x for x in VERBOSE_OPTIONS if x is not 'all']
+    verbose = [x for x in VERBOSE_OPTIONS if x != 'all']
   for version in versions:
     run(dexfile, oatfile, version, verbose)
-    print
+    print("")
   return 0
 
 def run(dexfile, oatfile=None, version='default', verbose=[]):
