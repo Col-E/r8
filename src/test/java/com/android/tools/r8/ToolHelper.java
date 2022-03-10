@@ -1272,6 +1272,15 @@ public class ToolHelper {
     return runR8WithFullResult(command, optionsConsumer);
   }
 
+  public static void runR8WithOptionsModificationOnly(
+      R8Command command, Consumer<InternalOptions> optionsConsumer)
+      throws CompilationFailedException {
+    AndroidApp app = command.getInputApp();
+    InternalOptions options = command.getInternalOptions();
+    optionsConsumer.accept(options);
+    R8.runForTesting(app, options);
+  }
+
   public static void runAndBenchmarkR8WithoutResult(
       R8Command.Builder commandBuilder,
       Consumer<InternalOptions> optionsConsumer,

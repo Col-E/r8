@@ -21,6 +21,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.DeterminismChecker;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -132,13 +133,15 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     // First run compiles with R8 in process and thus with assertions.
     {
       long start = System.nanoTime();
-      // Set the system property to check determinism.
-      System.setProperty(checkDeterminismKey, determinismLogsDir.toString());
       // Manually construct the R8 command as the test builder will change defaults compared
       // to the CLI invocation (eg, compressed and pg-map output).
       Builder builder = R8Command.builder().setOutput(outputThroughCf, OutputMode.DexIndexed);
       getSharedBuilder().accept(builder);
-      R8.run(builder.build());
+      ToolHelper.runR8WithOptionsModificationOnly(
+          builder.build(),
+          o ->
+              o.testing.setDeterminismChecker(
+                  DeterminismChecker.createWithFileBacking(determinismLogsDir)));
       printTime("R8/JVM in-process", start);
     }
 
