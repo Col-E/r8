@@ -47,6 +47,11 @@ public class TestParameters {
         .isGreaterThanOrEqualTo(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());
   }
 
+  public boolean canUseNativeDexPC() {
+    assert isCfRuntime() || isDexRuntime();
+    return isDexRuntime() && getDexRuntimeVersion().isNewerThanOrEqual(DexVm.Version.V8_1_0);
+  }
+
   public boolean canUseNestBasedAccesses() {
     assert isCfRuntime() || isDexRuntime();
     return isCfRuntime() && getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11);

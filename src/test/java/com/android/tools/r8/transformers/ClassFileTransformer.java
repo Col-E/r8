@@ -949,6 +949,20 @@ public class ClassFileTransformer {
     };
   }
 
+  public ClassFileTransformer removeLineNumberTable(MethodPredicate predicate) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitLineNumber(int line, Label start) {
+            if (MethodPredicate.testContext(predicate, getContext())) {
+              // Empty to ensure no line numbers are added to the code.
+            } else {
+              super.visitLineNumber(line, start);
+            }
+          }
+        });
+  }
+
   public ClassFileTransformer transformInvokeDynamicInsnInMethod(
       String methodName, InvokeDynamicInsnTransform transform) {
     return addMethodTransformer(
