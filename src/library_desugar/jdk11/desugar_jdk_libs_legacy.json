@@ -37,7 +37,7 @@
       }
     },
     {
-      "api_level_below_or_equal": 23,
+      "api_level_below_or_equal": 28,
       "rewrite_prefix": {
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
@@ -181,7 +181,7 @@
       }
     },
     {
-      "api_level_below_or_equal": 23,
+      "api_level_below_or_equal": 28,
       "rewrite_prefix": {
         "java.util.AbstractList": "j$.util.AbstractList",
         "java.util.CollSer": "j$.util.CollSer",
