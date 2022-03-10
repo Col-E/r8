@@ -6,15 +6,10 @@
   "support_all_callbacks_from_library": true,
   "common_flags": [
     {
-      "api_level_below_or_equal": 10000,
-      "rewrite_prefix": {
-        "java.net.URLDecoder": "j$.net.URLDecoder",
-        "java.net.URLEncoder": "j$.net.URLEncoder"
-      }
-    },
-    {
       "api_level_below_or_equal": 32,
       "rewrite_prefix": {
+        "java.net.URLDecoder": "j$.net.URLDecoder",
+        "java.net.URLEncoder": "j$.net.URLEncoder",
         "java.io.DesugarInputStream": "j$.io.DesugarInputStream"
       },
       "retarget_method_with_emulated_dispatch": {
@@ -48,6 +43,12 @@
         "java.time.MonthDay": "java.time.TimeConversions",
         "java.time.ZoneId": "java.time.TimeConversions",
         "java.time.ZonedDateTime": "java.time.TimeConversions"
+      }
+    },
+    {
+      "api_level_below_or_equal": 29,
+      "rewrite_prefix": {
+        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
       }
     },
     {
@@ -244,12 +245,6 @@
         "java.time.": {
           "j$.time.": "java.time."
         }
-      }
-    },
-    {
-      "api_level_below_or_equal": 29,
-      "rewrite_prefix": {
-        "java.util.concurrent.Flow": "j$.util.concurrent.Flow"
       }
     },
     {
