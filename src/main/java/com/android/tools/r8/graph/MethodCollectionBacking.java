@@ -36,7 +36,8 @@ public abstract class MethodCollectionBacking {
 
   // Traversal methods.
 
-  abstract TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn);
+  abstract TraversalContinuation<?> traverse(
+      Function<DexEncodedMethod, TraversalContinuation<?>> fn);
 
   void forEachMethod(Consumer<DexEncodedMethod> fn) {
     forEachMethod(fn, alwaysTrue());
@@ -48,7 +49,7 @@ public abstract class MethodCollectionBacking {
           if (predicate.test(method)) {
             fn.accept(method);
           }
-          return TraversalContinuation.CONTINUE;
+          return TraversalContinuation.doContinue();
         });
   }
 

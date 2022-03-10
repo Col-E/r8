@@ -7,8 +7,8 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.InstructionEffect.NO_EFFECT;
 import static com.android.tools.r8.ir.optimize.SimpleDominatingEffectAnalysis.InstructionEffect.OTHER_EFFECT;
-import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
-import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
+import static com.android.tools.r8.utils.TraversalContinuation.doBreak;
+import static com.android.tools.r8.utils.TraversalContinuation.doContinue;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -249,7 +249,7 @@ public class SimpleDominatingEffectAnalysis {
     new StatefulDepthFirstSearchWorkList<BasicBlock, ResultStateWithPartialBlocks>() {
 
       @Override
-      protected TraversalContinuation process(
+      protected TraversalContinuation<?> process(
           DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
           Function<BasicBlock, DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>>
               childNodeConsumer) {
@@ -257,7 +257,7 @@ public class SimpleDominatingEffectAnalysis {
         for (Instruction instruction : node.getNode().getInstructions()) {
           if (visitedInstructions.getAndIncrement() > analysis.maxNumberOfInstructions()) {
             builder.fail();
-            return BREAK;
+            return doBreak();
           }
           effect = analysis.analyze(instruction);
           if (!effect.isNoEffect()) {
@@ -276,16 +276,16 @@ public class SimpleDominatingEffectAnalysis {
               // If we see a block where the children have not been processed we cannot guarantee
               // all paths having the effect since - ex. we could have a non-terminating loop.
               builder.fail();
-              return BREAK;
+              return doBreak();
             }
           }
         }
         node.setState(new ResultStateWithPartialBlocks(effect.toResultState(), ImmutableList.of()));
-        return CONTINUE;
+        return doContinue();
       }
 
       @Override
-      protected TraversalContinuation joiner(
+      protected TraversalContinuation<?> joiner(
           DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
           List<DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>> childNodes) {
         ResultStateWithPartialBlocks resultState = node.getState();
@@ -300,7 +300,7 @@ public class SimpleDominatingEffectAnalysis {
           builder.setResult(resultState.state);
           builder.setFailingBlocksForPartialResults(resultState.failingBlocks);
         }
-        return CONTINUE;
+        return doContinue();
       }
     }.run(code.entryBlock());
 

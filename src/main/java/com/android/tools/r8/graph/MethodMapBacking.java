@@ -88,14 +88,14 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
-  TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn) {
+  TraversalContinuation<?> traverse(Function<DexEncodedMethod, TraversalContinuation<?>> fn) {
     for (Entry<DexMethodSignature, DexEncodedMethod> entry : methodMap.entrySet()) {
-      TraversalContinuation result = fn.apply(entry.getValue());
+      TraversalContinuation<?> result = fn.apply(entry.getValue());
       if (result.shouldBreak()) {
         return result;
       }
     }
-    return TraversalContinuation.CONTINUE;
+    return TraversalContinuation.doContinue();
   }
 
   @Override
@@ -128,9 +128,9 @@ public class MethodMapBacking extends MethodCollectionBacking {
         method -> {
           if (predicate.test(method)) {
             found.set(method);
-            return TraversalContinuation.BREAK;
+            return TraversalContinuation.doBreak();
           }
-          return TraversalContinuation.CONTINUE;
+          return TraversalContinuation.doContinue();
         });
     return found.get();
   }

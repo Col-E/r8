@@ -65,16 +65,16 @@ public class RespectPackageBoundaries extends MultiClassPolicy {
     // Check that all accesses from [clazz] to classes or members from the current package of
     // [clazz] will continue to work. This is guaranteed if the methods of [clazz] do not access
     // any private or protected classes or members from the current package of [clazz].
-    TraversalContinuation result =
+    TraversalContinuation<?> result =
         clazz.traverseProgramMethods(
             method -> {
               boolean foundIllegalAccess =
                   method.registerCodeReferencesWithResult(
                       new IllegalAccessDetector(appView, method));
               if (foundIllegalAccess) {
-                return TraversalContinuation.BREAK;
+                return TraversalContinuation.doBreak();
               }
-              return TraversalContinuation.CONTINUE;
+              return TraversalContinuation.doContinue();
             });
     return result.shouldBreak();
   }

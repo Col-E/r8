@@ -90,7 +90,8 @@ public class MethodCollection {
     return backing.size();
   }
 
-  public TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn) {
+  public TraversalContinuation<?> traverse(
+      Function<DexEncodedMethod, TraversalContinuation<?>> fn) {
     return backing.traverse(fn);
   }
 
@@ -340,8 +341,8 @@ public class MethodCollection {
     return traverse(
             method ->
                 method.hasAnyAnnotations()
-                    ? TraversalContinuation.BREAK
-                    : TraversalContinuation.CONTINUE)
+                    ? TraversalContinuation.doBreak()
+                    : TraversalContinuation.doContinue())
         .shouldBreak();
   }
 

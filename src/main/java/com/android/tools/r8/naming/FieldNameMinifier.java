@@ -180,7 +180,7 @@ class FieldNameMinifier {
                   reservedNamingState.add(reservationState);
                 }
               }
-              return TraversalContinuation.CONTINUE;
+              return TraversalContinuation.doContinue();
             });
   }
 

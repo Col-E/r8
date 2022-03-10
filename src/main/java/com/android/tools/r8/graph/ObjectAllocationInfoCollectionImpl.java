@@ -174,19 +174,19 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         type,
         clazz -> {
           onClass.accept(clazz);
-          return TraversalContinuation.CONTINUE;
+          return TraversalContinuation.doContinue();
         },
         lambda -> {
           onLambda.accept(lambda);
-          return TraversalContinuation.CONTINUE;
+          return TraversalContinuation.doContinue();
         },
         appInfo);
   }
 
-  public TraversalContinuation traverseInstantiatedSubtypes(
+  public TraversalContinuation<?> traverseInstantiatedSubtypes(
       DexType type,
-      Function<DexProgramClass, TraversalContinuation> onClass,
-      Function<LambdaDescriptor, TraversalContinuation> onLambda,
+      Function<DexProgramClass, TraversalContinuation<?>> onClass,
+      Function<LambdaDescriptor, TraversalContinuation<?>> onLambda,
       AppInfo appInfo) {
     WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
     if (type == appInfo.dexItemFactory().objectType) {
@@ -208,7 +208,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         for (LambdaDescriptor lambda :
             instantiatedLambdas.getOrDefault(type, Collections.emptyList())) {
           if (onLambda.apply(lambda).shouldBreak()) {
-            return TraversalContinuation.BREAK;
+            return TraversalContinuation.doBreak();
           }
         }
       } else {
@@ -223,7 +223,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         if (isInstantiatedDirectly(programClass)
             || isInterfaceWithUnknownSubtypeHierarchy(programClass)) {
           if (onClass.apply(programClass).shouldBreak()) {
-            return TraversalContinuation.BREAK;
+            return TraversalContinuation.doBreak();
           }
         }
       }
@@ -231,11 +231,11 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       for (LambdaDescriptor lambda :
           instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList())) {
         if (onLambda.apply(lambda).shouldBreak()) {
-          return TraversalContinuation.BREAK;
+          return TraversalContinuation.doBreak();
         }
       }
     }
-    return TraversalContinuation.CONTINUE;
+    return TraversalContinuation.doContinue();
   }
 
   public Set<DexType> getInstantiatedLambdaInterfaces() {

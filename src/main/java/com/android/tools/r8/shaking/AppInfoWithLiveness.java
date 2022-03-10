@@ -1126,9 +1126,9 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
         .traverseProgramMembers(
             member -> {
               if (keepInfo.getInfo(member).isRepackagingAllowed(member, options())) {
-                return TraversalContinuation.CONTINUE;
+                return TraversalContinuation.doContinue();
               }
-              return TraversalContinuation.BREAK;
+              return TraversalContinuation.doBreak();
             })
         .shouldContinue();
   }
@@ -1574,20 +1574,20 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
             type,
             clazz -> {
               if (objectAllocationInfoCollection.isInterfaceWithUnknownSubtypeHierarchy(clazz)) {
-                return TraversalContinuation.BREAK;
+                return TraversalContinuation.doBreak();
               } else {
                 SingleResolutionResult resolution =
                     resolveMethodOn(clazz, dexItemFactory().objectMembers.finalize)
                         .asSingleResolution();
                 if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
-                  return TraversalContinuation.BREAK;
+                  return TraversalContinuation.doBreak();
                 }
               }
-              return TraversalContinuation.CONTINUE;
+              return TraversalContinuation.doContinue();
             },
             lambda -> {
               // Lambda classes do not have finalizers.
-              return TraversalContinuation.CONTINUE;
+              return TraversalContinuation.doContinue();
             },
             this)
         .shouldBreak();

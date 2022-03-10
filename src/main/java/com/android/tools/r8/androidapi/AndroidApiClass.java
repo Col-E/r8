@@ -30,28 +30,28 @@ public abstract class AndroidApiClass {
 
   public abstract int getMemberCount();
 
-  public TraversalContinuation visitFields(
-      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor) {
+  public TraversalContinuation<?> visitFields(
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation<?>> visitor) {
     return visitFields(visitor, classReference, 1);
   }
 
-  public TraversalContinuation visitMethods(
-      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor) {
+  public TraversalContinuation<?> visitMethods(
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation<?>> visitor) {
     return visitMethods(visitor, classReference, 1);
   }
 
-  protected abstract TraversalContinuation visitFields(
-      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+  protected abstract TraversalContinuation<?> visitFields(
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation<?>> visitor,
       ClassReference holder,
       int minApiClass);
 
-  protected abstract TraversalContinuation visitMethods(
-      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+  protected abstract TraversalContinuation<?> visitMethods(
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation<?>> visitor,
       ClassReference holder,
       int minApiClass);
 
-  protected TraversalContinuation visitField(
-      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation> visitor,
+  protected TraversalContinuation<?> visitField(
+      BiFunction<FieldReference, AndroidApiLevel, TraversalContinuation<?>> visitor,
       ClassReference holder,
       int minApiClass,
       int minApiField,
@@ -62,8 +62,8 @@ public abstract class AndroidApiClass {
         getAndroidApiLevel(Integer.max(minApiClass, minApiField)));
   }
 
-  protected TraversalContinuation visitMethod(
-      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation> visitor,
+  protected TraversalContinuation<?> visitMethod(
+      BiFunction<MethodReference, AndroidApiLevel, TraversalContinuation<?>> visitor,
       ClassReference holder,
       int minApiClass,
       int minApiMethod,

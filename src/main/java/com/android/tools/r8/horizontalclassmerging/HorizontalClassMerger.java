@@ -326,7 +326,7 @@ public class HorizontalClassMerger {
               (superType, subclass, isInterface) -> {
                 assert superType != interfaceClass.getType()
                     : "Interface " + interfaceClass.getTypeName() + " inherits from itself";
-                return TraversalContinuation.CONTINUE;
+                return TraversalContinuation.doContinue();
               });
     }
     return true;

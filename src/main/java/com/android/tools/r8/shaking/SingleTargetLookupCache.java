@@ -38,9 +38,9 @@ public class SingleTargetLookupCache {
                 (superType, subclass, ignore) -> {
                   if (seen.add(superType)) {
                     cache.remove(superType);
-                    return TraversalContinuation.CONTINUE;
+                    return TraversalContinuation.doContinue();
                   } else {
-                    return TraversalContinuation.BREAK;
+                    return TraversalContinuation.doBreak();
                   }
                 }),
         lambda -> {

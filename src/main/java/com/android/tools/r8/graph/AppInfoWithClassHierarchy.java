@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
-import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
+import static com.android.tools.r8.utils.TraversalContinuation.doBreak;
+import static com.android.tools.r8.utils.TraversalContinuation.doContinue;
 
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.MethodResolutionResult.ArrayCloneMethodResult;
@@ -21,7 +21,6 @@ import com.android.tools.r8.shaking.MainDexInfo;
 import com.android.tools.r8.shaking.MissingClasses;
 import com.android.tools.r8.synthesis.CommittedItems;
 import com.android.tools.r8.synthesis.SyntheticItems;
-import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -159,19 +158,19 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /** Primitive traversal over all (non-interface) superclasses of a given type. */
-  public TraversalContinuation traverseSuperClasses(
-      DexClass clazz, TriFunction<DexType, DexClass, DexClass, TraversalContinuation> fn) {
+  public <T> TraversalContinuation<T> traverseSuperClasses(
+      DexClass clazz, TriFunction<DexType, DexClass, DexClass, TraversalContinuation<T>> fn) {
     DexClass currentClass = clazz;
     while (currentClass != null && currentClass.getSuperType() != null) {
       DexClass superclass = definitionFor(currentClass.getSuperType());
-      TraversalContinuation stepResult =
+      TraversalContinuation<T> stepResult =
           fn.apply(currentClass.getSuperType(), superclass, currentClass);
       if (stepResult.shouldBreak()) {
         return stepResult;
       }
       currentClass = superclass;
     }
-    return CONTINUE;
+    return doContinue();
   }
 
   /**
@@ -181,8 +180,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * given type is *not* visited. The function indicates if traversal should continue or break. The
    * result of the traversal is BREAK iff the function returned BREAK.
    */
-  public TraversalContinuation traverseSuperTypes(
-      final DexClass clazz, TriFunction<DexType, DexClass, Boolean, TraversalContinuation> fn) {
+  public TraversalContinuation<?> traverseSuperTypes(
+      final DexClass clazz, TriFunction<DexType, DexClass, Boolean, TraversalContinuation<?>> fn) {
     // We do an initial zero-allocation pass over the class super chain as it does not require a
     // worklist/seen-set. Only if the traversal is not aborted and there actually are interfaces,
     // do we continue traversal over the interface types. This is assuming that the second pass
@@ -195,7 +194,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         if (currentClass.superType == null) {
           break;
         }
-        TraversalContinuation stepResult = fn.apply(currentClass.superType, currentClass, false);
+        TraversalContinuation<?> stepResult = fn.apply(currentClass.superType, currentClass, false);
         if (stepResult.shouldBreak()) {
           return stepResult;
         }
@@ -203,7 +202,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       }
     }
     if (interfaceCount == 0) {
-      return CONTINUE;
+      return doContinue();
     }
     // Interfaces exist, create a worklist and seen set to ensure single visits.
     Set<DexType> seen = Sets.newIdentityHashSet();
@@ -214,7 +213,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       while (currentClass != null) {
         for (DexType iface : currentClass.interfaces.values) {
           if (seen.add(iface)) {
-            TraversalContinuation stepResult = fn.apply(iface, currentClass, true);
+            TraversalContinuation<?> stepResult = fn.apply(iface, currentClass, true);
             if (stepResult.shouldBreak()) {
               return stepResult;
             }
@@ -234,7 +233,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       if (definition != null) {
         for (DexType iface : definition.interfaces.values) {
           if (seen.add(iface)) {
-            TraversalContinuation stepResult = fn.apply(iface, definition, true);
+            TraversalContinuation<?> stepResult = fn.apply(iface, definition, true);
             if (stepResult.shouldBreak()) {
               return stepResult;
             }
@@ -243,7 +242,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         }
       }
     }
-    return CONTINUE;
+    return doContinue();
   }
 
   /**
@@ -256,7 +255,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         clazz,
         (superType, subclass, isInterface) -> {
           fn.accept(superType, subclass, isInterface);
-          return CONTINUE;
+          return doContinue();
         });
   }
 
@@ -292,7 +291,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     // TODO(b/123506120): Report missing types when the predicate is inconclusive.
     return traverseSuperTypes(
-            clazz, (superType, subclass, isInterface) -> superType == supertype ? BREAK : CONTINUE)
+            clazz,
+            (superType, subclass, isInterface) -> superType == supertype ? doBreak() : doContinue())
         .shouldBreak();
   }
 
@@ -327,23 +327,22 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (superclass.getType() == dexItemFactory().objectType) {
       return true;
     }
-    BooleanBox result = new BooleanBox();
-    traverseSuperClasses(
-        subclass,
-        (currentType, currentClass, immediateSubclass) -> {
-          if (currentType == superclass.getType()) {
-            result.set();
-            return BREAK;
-          }
-          if (currentClass == null) {
-            return BREAK;
-          }
-          if (superclass.isProgramClass() && !currentClass.isProgramClass()) {
-            return BREAK;
-          }
-          return CONTINUE;
-        });
-    return result.isTrue();
+    TraversalContinuation<Boolean> result =
+        traverseSuperClasses(
+            subclass,
+            (currentType, currentClass, immediateSubclass) -> {
+              if (currentType == superclass.getType()) {
+                return doBreak(true);
+              }
+              if (currentClass == null) {
+                return doBreak(false);
+              }
+              if (superclass.isProgramClass() && !currentClass.isProgramClass()) {
+                return doBreak(false);
+              }
+              return doContinue();
+            });
+    return result.isBreak() && result.asBreak().getValue();
   }
 
   public boolean inSameHierarchy(DexType type, DexType other) {

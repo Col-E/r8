@@ -208,9 +208,9 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
             (supertype, superclass, immediateSubclass) -> {
               if (superclass != null && superclass.isProgramClass()) {
                 superclasses.add(superclass.asProgramClass());
-                return TraversalContinuation.CONTINUE;
+                return TraversalContinuation.doContinue();
               }
-              return TraversalContinuation.BREAK;
+              return TraversalContinuation.doBreak();
             });
 
     // Run the tracer from the class initializers of the superclasses.
