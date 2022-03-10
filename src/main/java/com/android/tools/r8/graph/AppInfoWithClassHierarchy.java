@@ -1011,7 +1011,6 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   /** Intentionally drops {@param context} since this is only needed in D8. */
   @Override
   public FieldResolutionResult resolveFieldOn(DexType type, DexField field, ProgramMethod context) {
-    assert checkIfObsolete();
     return resolveFieldOn(type, field);
   }
 
@@ -1026,6 +1025,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert checkIfObsolete();
     return new FieldResolution(this).resolveFieldOn(clazz, field);
   }
+
+  // public FieldResolutionResult resolveField(
+  //     DexField field, Function<DexType, ClassResolutionResult> definitionFor) {
+  //   assert checkIfObsolete();
+  //   return resolveFieldOn(field.holder, field, definitionFor);
+  // }
 
   private static class MaximallySpecificMethodsBuilder {
 
