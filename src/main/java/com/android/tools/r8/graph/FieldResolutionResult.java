@@ -63,10 +63,6 @@ public abstract class FieldResolutionResult
     return false;
   }
 
-  public boolean hasSuccessfulResolutionResult() {
-    return false;
-  }
-
   public SingleFieldResolutionResult<?> asSingleFieldResolutionResult() {
     return null;
   }
@@ -108,7 +104,6 @@ public abstract class FieldResolutionResult
   public boolean isMultiFieldResolutionResult() {
     return false;
   }
-
 
   public final void forEachFieldResolutionResult(Consumer<FieldResolutionResult> resultConsumer) {
     visitFieldResolutionResults(resultConsumer, resultConsumer, resultConsumer);
@@ -220,11 +215,6 @@ public abstract class FieldResolutionResult
     @Override
     public SingleFieldResolutionResult<T> asSuccessfulMemberResolutionResult() {
       return this;
-    }
-
-    @Override
-    public boolean hasSuccessfulResolutionResult() {
-      return true;
     }
   }
 
@@ -407,11 +397,6 @@ public abstract class FieldResolutionResult
       }
       libraryResolutionResults.forEach(libraryResultConsumer);
       failedOrUnknownResolutionResults.forEach(failedResolutionConsumer);
-    }
-
-    @Override
-    public boolean hasSuccessfulResolutionResult() {
-      return hasProgramOrClasspathResult() || !libraryResolutionResults.isEmpty();
     }
   }
 
