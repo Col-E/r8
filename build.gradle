@@ -477,7 +477,6 @@ def x20Dependencies = [
         "protobuf-lite",
         "retrace_internal",
         "youtube/youtube.android_15.33",
-        "youtube/youtube.android_16.12",
         "youtube/youtube.android_16.20"
     ],
 ]
