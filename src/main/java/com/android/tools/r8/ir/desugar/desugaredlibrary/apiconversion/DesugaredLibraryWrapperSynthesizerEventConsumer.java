@@ -10,20 +10,22 @@ import com.android.tools.r8.graph.ProgramMethod;
 
 public interface DesugaredLibraryWrapperSynthesizerEventConsumer {
 
-  interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer {
+  void acceptArrayConversion(ProgramMethod arrayConversion);
+
+  interface DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer
+      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
 
     void acceptWrapperProgramClass(DexProgramClass clazz);
 
     void acceptEnumConversionProgramClass(DexProgramClass clazz);
   }
 
-  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer {
+  interface DesugaredLibraryClasspathWrapperSynthesizeEventConsumer
+      extends DesugaredLibraryWrapperSynthesizerEventConsumer {
 
     void acceptWrapperClasspathClass(DexClasspathClass clazz);
 
     void acceptEnumConversionClasspathClass(DexClasspathClass clazz);
-
-    void acceptArrayConversion(ProgramMethod arrayConversion);
   }
 
   interface DesugaredLibraryAPIConverterEventConsumer

@@ -3,24 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.itf;
 
+import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaringContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.LinkedHashMap;
@@ -75,17 +73,6 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
                         methodBuilder)));
   }
 
-  private DexMethod emulatedMethod(DerivedMethod method, DexType holder) {
-    assert method.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
-    DexProto newProto = appView.dexItemFactory().prependHolderToProto(method.getMethod());
-    return appView.dexItemFactory().createMethod(holder, newProto, method.getName());
-  }
-
-  private DexMethod interfaceMethod(DerivedMethod method) {
-    assert method.getHolderKind() == null;
-    return method.getMethod();
-  }
-
   private void synthesizeEmulatedInterfaceMethod(
       ProgramMethod method,
       EmulatedDispatchMethodDescriptor descriptor,
@@ -127,7 +114,14 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
   }
 
   @Override
-  public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
+  public String uniqueIdentifier() {
+    return "$emulatedInterface$";
+  }
+
+  @Override
+  public void synthesizeClasses(
+      ClassSynthesisDesugaringContext processingContext,
+      CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     assert appView.options().isDesugaredLibraryCompilation();
     appView
         .options()

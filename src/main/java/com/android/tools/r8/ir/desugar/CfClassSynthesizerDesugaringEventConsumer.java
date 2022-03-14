@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterL8SynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
@@ -47,5 +48,10 @@ public class CfClassSynthesizerDesugaringEventConsumer
 
   public Set<DexProgramClass> getSynthesizedClasses() {
     return synthesizedClasses;
+  }
+
+  @Override
+  public void acceptArrayConversion(ProgramMethod arrayConversion) {
+    synthesizedClasses.add(arrayConversion.getHolder());
   }
 }

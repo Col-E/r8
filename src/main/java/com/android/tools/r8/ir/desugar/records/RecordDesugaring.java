@@ -18,6 +18,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfTypeInstruction;
+import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaringContext;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
@@ -476,7 +477,14 @@ public class RecordDesugaring
   }
 
   @Override
-  public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
+  public String uniqueIdentifier() {
+    return "$record$";
+  }
+
+  @Override
+  public void synthesizeClasses(
+      ClassSynthesisDesugaringContext processingContext,
+      CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     if (appView.appInfo().app().getFlags().hasReadRecordReferenceFromProgramClass()) {
       ensureRecordClass(eventConsumer);
     }

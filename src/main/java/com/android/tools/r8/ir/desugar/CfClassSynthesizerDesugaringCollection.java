@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaringContext;
+import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterL8Synthesizer;
@@ -13,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 public abstract class CfClassSynthesizerDesugaringCollection {
 
@@ -38,7 +41,7 @@ public abstract class CfClassSynthesizerDesugaringCollection {
     if (synthesizers.isEmpty()) {
       return new EmptyCfClassSynthesizerCollection();
     }
-    return new NonEmptyCfClassSynthesizerCollection(synthesizers);
+    return new NonEmptyCfClassSynthesizerCollection(appView, synthesizers);
   }
 
   public abstract void synthesizeClasses(
@@ -47,11 +50,13 @@ public abstract class CfClassSynthesizerDesugaringCollection {
 
   static class NonEmptyCfClassSynthesizerCollection extends CfClassSynthesizerDesugaringCollection {
 
+    private final AppView<?> appView;
     private final Collection<CfClassSynthesizerDesugaring> synthesizers;
 
     public NonEmptyCfClassSynthesizerCollection(
-        Collection<CfClassSynthesizerDesugaring> synthesizers) {
+        AppView<?> appView, Collection<CfClassSynthesizerDesugaring> synthesizers) {
       assert !synthesizers.isEmpty();
+      this.appView = appView;
       this.synthesizers = synthesizers;
     }
 
@@ -59,9 +64,19 @@ public abstract class CfClassSynthesizerDesugaringCollection {
     public void synthesizeClasses(
         ExecutorService executorService, CfClassSynthesizerDesugaringEventConsumer eventConsumer)
         throws ExecutionException {
+      assert synthesizers.stream()
+              .map(CfClassSynthesizerDesugaring::uniqueIdentifier)
+              .collect(Collectors.toSet())
+              .size()
+          == synthesizers.size();
+      ProcessorContext processorContext = appView.createProcessorContext();
       ThreadUtils.processItems(
           synthesizers,
-          synthesizer -> synthesizer.synthesizeClasses(eventConsumer),
+          synthesizer -> {
+            ClassSynthesisDesugaringContext classSynthesisDesugaringContext =
+                processorContext.createClassSynthesisDesugaringContext(synthesizer);
+            synthesizer.synthesizeClasses(classSynthesisDesugaringContext, eventConsumer);
+          },
           executorService);
     }
   }

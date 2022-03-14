@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
+import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaringContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
@@ -33,7 +34,14 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesiz
   }
 
   @Override
-  public void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
+  public String uniqueIdentifier() {
+    return "$retargeter$";
+  }
+
+  @Override
+  public void synthesizeClasses(
+      ClassSynthesisDesugaringContext processingContext,
+      CfClassSynthesizerDesugaringEventConsumer eventConsumer) {
     Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget =
         appView.options().machineDesugaredLibrarySpecification.getEmulatedVirtualRetarget();
     for (EmulatedDispatchMethodDescriptor emulatedDispatchMethod :

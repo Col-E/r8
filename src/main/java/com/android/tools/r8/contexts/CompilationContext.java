@@ -5,6 +5,7 @@ package com.android.tools.r8.contexts;
 
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaring;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.structural.HasherWrapper;
 import java.util.Map;
@@ -96,6 +97,20 @@ public class CompilationContext {
       return methodProcessingContext;
     }
 
+    public MainThreadContext createMainThreadContext() {
+      MainThreadContext singleThreadContext = new MainThreadContext(this, parent.mainThread);
+      assert verifyContext(singleThreadContext);
+      return singleThreadContext;
+    }
+
+    public ClassSynthesisDesugaringContext createClassSynthesisDesugaringContext(
+        CfClassSynthesizerDesugaring desugaring) {
+      ClassSynthesisDesugaringContext classSynthesisDesugaringContext =
+          new ClassSynthesisDesugaringContext(this, desugaring);
+      assert verifyContext(classSynthesisDesugaringContext);
+      return classSynthesisDesugaringContext;
+    }
+
     private StringBuilder buildSuffix(StringBuilder builder) {
       return builder.append('$').append(processorId);
     }
@@ -111,14 +126,91 @@ public class CompilationContext {
     }
   }
 
-  /** Description of the method context from which to synthesize. */
-  public static class MethodProcessingContext extends ContextDescriptorProvider {
+  /** The processor context is responsible in creating a task context per thread. */
+  public abstract static class ThreadTaskContext extends ContextDescriptorProvider {
     private final ProcessorContext parent;
-    private final ProgramMethod method;
     private int nextId = 0;
 
-    private MethodProcessingContext(ProcessorContext parent, ProgramMethod method) {
+    private ThreadTaskContext(ProcessorContext parent) {
       this.parent = parent;
+    }
+
+    public ProcessorContext getParent() {
+      return parent;
+    }
+
+    int incrementAndGetNextId() {
+      return nextId++;
+    }
+  }
+
+  /**
+   * If no threading is used, the MainThreadContext allows one to generate UniqueContext instances
+   * without a thread specific identifier.
+   */
+  public static class MainThreadContext extends ThreadTaskContext {
+
+    private static final String IDENTIFIER = "main";
+
+    private final Thread mainThread;
+
+    private MainThreadContext(ProcessorContext parent, Thread mainThread) {
+      super(parent);
+      this.mainThread = mainThread;
+    }
+
+    @Override
+    StringBuilder buildContextDescriptorForTesting(StringBuilder builder) {
+      return getParent().buildContextDescriptorForTesting(builder).append(IDENTIFIER);
+    }
+
+    @Override
+    StringBuilder buildSyntheticSuffix(StringBuilder builder) {
+      return getParent().buildSyntheticSuffix(builder).append(IDENTIFIER);
+    }
+
+    public UniqueContext createUniqueContext(DexProgramClass context) {
+      assert mainThread == Thread.currentThread() : "Invoked on another thread than main";
+      UniqueContext uniqueContext = new UniqueContext(this, context, incrementAndGetNextId());
+      assert getParent().verifyContext(uniqueContext);
+      return uniqueContext;
+    }
+  }
+
+  public static class ClassSynthesisDesugaringContext extends ThreadTaskContext {
+    private final CfClassSynthesizerDesugaring desugaring;
+
+    private ClassSynthesisDesugaringContext(
+        ProcessorContext parent, CfClassSynthesizerDesugaring desugaring) {
+      super(parent);
+      this.desugaring = desugaring;
+    }
+
+    @Override
+    StringBuilder buildContextDescriptorForTesting(StringBuilder builder) {
+      return getParent()
+          .buildContextDescriptorForTesting(builder)
+          .append(desugaring.uniqueIdentifier());
+    }
+
+    @Override
+    StringBuilder buildSyntheticSuffix(StringBuilder builder) {
+      return getParent().buildSyntheticSuffix(builder).append(desugaring.uniqueIdentifier());
+    }
+
+    public UniqueContext createUniqueContext(DexProgramClass context) {
+      UniqueContext uniqueContext = new UniqueContext(this, context, incrementAndGetNextId());
+      assert getParent().verifyContext(uniqueContext);
+      return uniqueContext;
+    }
+  }
+
+  /** Description of the method context from which to synthesize. */
+  public static class MethodProcessingContext extends ThreadTaskContext {
+    private final ProgramMethod method;
+
+    private MethodProcessingContext(ProcessorContext parent, ProgramMethod method) {
+      super(parent);
       this.method = method;
     }
 
@@ -130,12 +222,13 @@ public class CompilationContext {
      * deterministic order, eg, by the processing of method instructions being single threaded.
      */
     public UniqueContext createUniqueContext() {
-      UniqueContext uniqueContext = new UniqueContext(this, nextId++);
-      assert parent.verifyContext(uniqueContext);
+      UniqueContext uniqueContext =
+          new UniqueContext(this, getClassContext(), incrementAndGetNextId());
+      assert getParent().verifyContext(uniqueContext);
       return uniqueContext;
     }
 
-    DexProgramClass getClassContext() {
+    private DexProgramClass getClassContext() {
       return method.getHolder();
     }
 
@@ -154,21 +247,26 @@ public class CompilationContext {
     StringBuilder buildContextDescriptorForTesting(StringBuilder builder) {
       // Put the type first in the context descriptor.
       builder.append(getClassContext().getType().toDescriptorString());
-      return buildSuffix(parent.buildContextDescriptorForTesting(builder));
+      return buildSuffix(getParent().buildContextDescriptorForTesting(builder));
     }
 
     @Override
     StringBuilder buildSyntheticSuffix(StringBuilder builder) {
-      return buildSuffix(parent.buildSyntheticSuffix(builder));
+      return buildSuffix(getParent().buildSyntheticSuffix(builder));
     }
   }
 
   public static class UniqueContext extends ContextDescriptorProvider {
-    private final MethodProcessingContext parent;
+    private final ThreadTaskContext parent;
+    // The class context is required to:
+    // - determine in which feature the method should be put (feature split),
+    // - put the synthetic in the correct package.
+    private final DexProgramClass classContext;
     private final int positionId;
 
-    private UniqueContext(MethodProcessingContext parent, int positionId) {
+    private UniqueContext(ThreadTaskContext parent, DexProgramClass classContext, int positionId) {
       this.parent = parent;
+      this.classContext = classContext;
       this.positionId = positionId;
     }
 
@@ -187,7 +285,7 @@ public class CompilationContext {
     }
 
     public DexProgramClass getClassContext() {
-      return parent.getClassContext();
+      return classContext;
     }
 
     public String getSyntheticSuffix() {

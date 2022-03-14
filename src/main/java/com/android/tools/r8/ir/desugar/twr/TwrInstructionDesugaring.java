@@ -62,7 +62,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
       return null;
     }
     if (isTwrCloseResourceInvoke(instruction)) {
-      return rewriteTwrCloseResourceInvoke(eventConsumer, context, methodProcessingContext);
+      return rewriteTwrCloseResourceInvoke(eventConsumer, methodProcessingContext);
     }
     if (!appView.options().canUseSuppressedExceptions()) {
       if (isTwrSuppressedInvoke(instruction, addSuppressed)) {
@@ -108,7 +108,6 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
 
   private ImmutableList<CfInstruction> rewriteTwrCloseResourceInvoke(
       CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context,
       MethodProcessingContext methodProcessingContext) {
     // Synthesize a new method.
     return createAndCallSyntheticMethod(
@@ -117,7 +116,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
         BackportedMethods::CloseResourceMethod_closeResourceImpl,
         methodProcessingContext,
         eventConsumer::acceptTwrCloseResourceMethod,
-        context);
+        methodProcessingContext.getMethodContext());
   }
 
   private ImmutableList<CfInstruction> createAndCallSyntheticMethod(

@@ -4,7 +4,13 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaringContext;
+
 public interface CfClassSynthesizerDesugaring {
 
-  void synthesizeClasses(CfClassSynthesizerDesugaringEventConsumer eventConsumer);
+  String uniqueIdentifier();
+
+  void synthesizeClasses(
+      ClassSynthesisDesugaringContext processingContext,
+      CfClassSynthesizerDesugaringEventConsumer eventConsumer);
 }
