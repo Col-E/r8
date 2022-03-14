@@ -273,4 +273,5 @@ tools/*/dalvik-4.0.4.tar.gz
 tools/*/dalvik.tar.gz
 tools/*/dx
 tools/*/dx.tar.gz
+tools/startup/__pycache__
 venv/

@@ -1,0 +1,38 @@
+buffers: {
+    size_kb: 63488
+    fill_policy: DISCARD
+}
+buffers: {
+    size_kb: 2048
+    fill_policy: DISCARD
+}
+data_sources: {
+    config {
+        name: "linux.ftrace"
+        ftrace_config {
+            # ftrace_events: "ftrace/print"
+            # ftrace_events: "mm_event"
+            # ftrace_events: "power/suspend_resume"
+            # ftrace_events: "sched/sched_switch"
+            # ftrace_events: "sched/sched_process_exit"
+            # ftrace_events: "sched/sched_process_free"
+
+            ftrace_events: "task/task_newtask"
+            ftrace_events: "task/task_rename"
+
+            # atrace_categories: "gfx"
+            # atrace_categories: "webview"
+            # atrace_categories: "camera"
+            # atrace_categories: "power"
+
+            atrace_categories: "dalvik"
+            atrace_categories: "view"
+            atrace_categories: "am"
+            atrace_categories: "wm"
+
+            # Enables events for a specific app.
+            atrace_apps: "app.tivi"
+        }
+    }
+}
+duration_ms: 15000
