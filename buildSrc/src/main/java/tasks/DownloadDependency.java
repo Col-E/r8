@@ -71,6 +71,10 @@ public class DownloadDependency extends DefaultTask {
 
   @TaskAction
   public void execute() throws IOException, InterruptedException {
+    if (!sha1File.exists()) {
+      throw new RuntimeException("Missing sha1 file: " + sha1File);
+    }
+
     // First run will write the tar.gz file, causing the second run to still be out-of-date.
     // Check if the modification time of the tar is newer than the sha in which case we are done.
     // Also, check the contents of the out directory because gradle appears to create it for us...
