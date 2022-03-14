@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -31,7 +32,12 @@ public class FlowTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        BooleanUtils.values(),
+        // The test uses ForkJoinPool which is available starting from V4.4.4.
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V4_4_4)
+            .withAllApiLevels()
+            .build());
   }
 
   public FlowTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {

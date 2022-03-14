@@ -116,7 +116,7 @@ public class DesugaredLibraryTestBase extends TestBase {
   protected boolean requiresAnyCoreLibDesugaring(AndroidApiLevel apiLevel) {
     return apiLevel.getLevel()
         <= (isJDK11DesugaredLibrary()
-            ? AndroidApiLevel.LATEST.getLevel()
+            ? AndroidApiLevel.Sv2.getLevel()
             : AndroidApiLevel.N_MR1.getLevel());
   }
 

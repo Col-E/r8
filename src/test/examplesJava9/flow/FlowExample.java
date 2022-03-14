@@ -10,19 +10,20 @@ import java.util.concurrent.Flow.Subscriber;
 import java.util.concurrent.Flow.Subscription;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class FlowExample {
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     OneShotPublisher oneShotPublisher = new OneShotPublisher();
     SampleSubscriber<Object> subscriber = new SampleSubscriber<>(50L, System.out::println);
     oneShotPublisher.subscribe(subscriber);
+    oneShotPublisher.awaitPublishing();
   }
 
   static class OneShotPublisher implements Publisher<Boolean> {
 
-    @SuppressWarnings("CommonForkJoinPool")
-    private final ExecutorService executor = new ForkJoinPool(2); // daemon-based
+    private final ForkJoinPool executor = new ForkJoinPool(); // daemon-based
 
     private boolean subscribed; // true after first subscribe
 
@@ -33,6 +34,14 @@ public class FlowExample {
         subscribed = true;
         subscriber.onSubscribe(new OneShotSubscription(subscriber, executor));
       }
+    }
+
+    void awaitPublishing() throws InterruptedException {
+      // On Android 7 and higher, calling System.exit() terminates all threads without waiting for
+      // tasks on the fork join pool to be finished. For the test to be completed we need such
+      // tasks to finish.
+      int seconds = 60;
+      executor.awaitTermination(seconds, TimeUnit.SECONDS);
     }
 
     static class OneShotSubscription implements Subscription {
