@@ -203,9 +203,11 @@ def parse_options(argv):
 def main(argv):
   (options, args) = parse_options(argv)
   with utils.TempDir() as tmp_dir:
-    tear_down_options = setup(options)
+    tear_down_options = adb_utils.prepare_for_interaction_with_device(
+        options.device_id, options.device_pin)
     run_all(options, tmp_dir)
-    tear_down(options, tear_down_options)
+    adb_utils.tear_down_after_interaction_with_device(
+        tear_down_options, options.device_id)
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))

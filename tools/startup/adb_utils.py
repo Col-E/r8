@@ -36,6 +36,24 @@ def create_adb_cmd(arguments, device_id=None):
   cmd.extend(arguments if isinstance(arguments, list) else arguments.split(' '))
   return cmd
 
+def capture_app_profile_data(app_id, device_id=None):
+  cmd = create_adb_cmd(
+      'shell killall -s SIGUSR1 %s' % app_id, device_id)
+  subprocess.check_output(cmd)
+  time.sleep(5)
+
+def check_app_has_profile_data(app_id, device_id=None):
+  profile_path = get_profile_path(app_id)
+  cmd = create_adb_cmd(
+      'shell du /data/misc/profiles/cur/0/%s/primary.prof' % app_id,
+      device_id)
+  stdout = subprocess.check_output(cmd).decode('utf-8').strip()
+  size_str = stdout[:stdout.index('\t')]
+  assert size_str.isdigit()
+  size = int(size_str)
+  if size == 4:
+    raise ValueError('Expected size of profile at %s to be > 4K' % profile_path)
+
 def clear_profile_data(app_id, device_id=None):
   cmd = create_adb_cmd(
       'shell cmd package compile --reset %s' % app_id, device_id)
@@ -55,6 +73,21 @@ def force_profile_compilation(app_id, device_id=None):
   cmd = create_adb_cmd(
       'shell cmd package compile -m speed-profile -f %s' % app_id, device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+def get_apk_path(app_id, device_id=None):
+  cmd = create_adb_cmd('shell pm path %s' % app_id, device_id)
+  stdout = subprocess.check_output(cmd).decode('utf-8').strip()
+  if not stdout.startswith('package:'):
+    raise ValueError(
+        'Expected stdout to start with "package:", was: %s' % stdout)
+  apk_path = stdout[len('package:'):]
+  if not apk_path.endswith('.apk'):
+    raise ValueError(
+        'Expected stdout to end with ".apk", was: %s' % stdout)
+  return apk_path
+
+def get_profile_path(app_id):
+  return '/data/misc/profiles/cur/0/%s/primary.prof' % app_id
 
 def get_minor_major_page_faults(app_id, device_id=None):
   pid = get_pid(app_id, device_id)
@@ -92,6 +125,42 @@ def get_screen_state(device_id=None):
             % screen_state_value)
   return ScreenState[screen_state_value]
 
+def get_classes_and_methods_from_app_profile(app_id, device_id=None):
+  apk_path = get_apk_path(app_id, device_id)
+  profile_path = get_profile_path(app_id)
+
+  # Generates a list of class and method descriptors, prefixed with one or more
+  # flags 'H' (hot), 'S' (startup), 'P' (post startup).
+  #
+  # Example:
+  #
+  # HSPLandroidx/compose/runtime/ComposerImpl;->updateValue(Ljava/lang/Object;)V
+  # HSPLandroidx/compose/runtime/ComposerImpl;->updatedNodeCount(I)I
+  # HLandroidx/compose/runtime/ComposerImpl;->validateNodeExpected()V
+  # PLandroidx/compose/runtime/CompositionImpl;->applyChanges()V
+  # HLandroidx/compose/runtime/ComposerKt;->findLocation(Ljava/util/List;I)I
+  # Landroidx/compose/runtime/ComposerImpl;
+  #
+  # See also https://developer.android.com/studio/profile/baselineprofiles.
+  cmd = create_adb_cmd(
+    'shell profman --dump-classes-and-methods'
+    ' --profile-file=%s --apk=%s --dex-location=%s'
+        % (profile_path, apk_path, apk_path))
+  stdout = subprocess.check_output(cmd).decode('utf-8').strip()
+  lines = stdout.splitlines()
+  classes_and_methods = []
+  flags_to_name = { 'H': 'hot', 'S': 'startup', 'P': 'post_startup' }
+  for line in lines:
+    flags = { 'hot': False, 'startup': False, 'post_startup': False }
+    while line[0] in flags_to_name:
+      flag_abbreviation = line[0]
+      flag_name = flags_to_name.get(flag_abbreviation)
+      flags[flag_name] = True
+      line = line[1:]
+    assert line.startswith('L')
+    classes_and_methods.append({ 'descriptor': line, 'flags': flags })
+  return classes_and_methods
+
 def get_screen_off_timeout(device_id=None):
   cmd = create_adb_cmd(
       'shell settings get system screen_off_timeout', device_id)
@@ -119,6 +188,20 @@ def launch_activity(app_id, activity, device_id=None):
       'Starting: Intent { cmp=%s/.%s }' % (app_id, activity[len(app_id)+1:]))
   assert stdout == expected_stdout, 'was %s' % stdout
 
+def prepare_for_interaction_with_device(device_id=None, device_pin=None):
+  # Increase screen off timeout to avoid device screen turns off.
+  twenty_four_hours_in_millis = 24 * 60 * 60 * 1000
+  previous_screen_off_timeout = get_screen_off_timeout(device_id)
+  set_screen_off_timeout(twenty_four_hours_in_millis, device_id)
+
+  # Unlock device.
+  unlock(device_id, device_pin)
+
+  tear_down_options = {
+    'previous_screen_off_timeout': previous_screen_off_timeout
+  }
+  return tear_down_options
+
 def root(device_id=None):
   cmd = create_adb_cmd('root', device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
@@ -132,8 +215,14 @@ def set_screen_off_timeout(screen_off_timeout_in_millis, device_id=None):
   assert len(stdout) == 0
 
 def stop_app(app_id, device_id=None):
-  cmd = create_adb_cmd('shell am force-stop %s' % apk, device_id)
+  cmd = create_adb_cmd('shell am force-stop %s' % app_id, device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
+def tear_down_after_interaction_with_device(tear_down_options, device_id=None):
+  # Reset screen off timeout.
+  set_screen_off_timeout(
+      tear_down_options['previous_screen_off_timeout'],
+      device_id)
 
 def uninstall(app_id, device_id=None):
   cmd = create_adb_cmd('uninstall %s' % app_id, device_id)
