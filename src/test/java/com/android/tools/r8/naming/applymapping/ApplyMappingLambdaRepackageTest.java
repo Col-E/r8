@@ -50,8 +50,10 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
             .addApplyMapping(firstRunResult.proguardMap())
             .compile()
             .run(parameters.getRuntime(), Main.class);
-    // TODO(b/218793832): Should be the same map.
-    assertNotEquals(firstRunResult.proguardMap(), secondRunResult.proguardMap());
+    if (parameters.isDexRuntime()) {
+      // TODO(b/218793832): Should be the same map.
+      assertNotEquals(firstRunResult.proguardMap(), secondRunResult.proguardMap());
+    }
     secondRunResult
         .assertSuccessWithOutputLinesIf(parameters.isCfRuntime(), "Hello World")
         // TODO(b/218793832): Should not fail with an error.
