@@ -109,7 +109,6 @@ public abstract class FieldResolutionResult
     return false;
   }
 
-
   public final void forEachFieldResolutionResult(Consumer<FieldResolutionResult> resultConsumer) {
     visitFieldResolutionResults(resultConsumer, resultConsumer, resultConsumer);
   }
