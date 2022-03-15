@@ -90,10 +90,8 @@ public class NonEmptyCfInstructionDesugaringCollection extends CfInstructionDesu
     if (appView.options().enableBackportedMethodRewriting()) {
       backportedMethodRewriter = new BackportedMethodRewriter(appView);
     }
-    if (appView.options().apiModelingOptions().enableOutliningOfMethods
-        && appView.hasClassHierarchy()) {
-      yieldingDesugarings.add(
-          new ApiInvokeOutlinerDesugaring(appView.withClassHierarchy(), apiLevelCompute));
+    if (appView.options().apiModelingOptions().enableOutliningOfMethods) {
+      yieldingDesugarings.add(new ApiInvokeOutlinerDesugaring(appView, apiLevelCompute));
     }
     if (appView.options().enableTryWithResourcesDesugaring()) {
       desugarings.add(new TwrInstructionDesugaring(appView));

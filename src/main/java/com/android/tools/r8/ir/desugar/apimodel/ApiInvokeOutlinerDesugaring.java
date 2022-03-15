@@ -17,12 +17,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
-import com.android.tools.r8.graph.MethodResolutionResult;
-import com.android.tools.r8.graph.MethodResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
@@ -32,6 +31,7 @@ import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 
@@ -41,14 +41,13 @@ import java.util.Collection;
  */
 public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
+  private final AppInfoWithClassHierarchy appInfoWithClassHierarchy;
   private final AndroidApiLevelCompute apiLevelCompute;
 
-  public ApiInvokeOutlinerDesugaring(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      AndroidApiLevelCompute apiLevelCompute) {
-    // TODO(b/216277460) We should only need AppView<?>.
+  public ApiInvokeOutlinerDesugaring(AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
+    this.appInfoWithClassHierarchy = appView.appInfoForDesugaring();
     this.apiLevelCompute = apiLevelCompute;
   }
 
@@ -117,13 +116,30 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (holder.isInterface()) {
       return methodApiLevel;
     } else {
-      MethodResolutionResult methodResolutionResult =
-          appView.appInfo().resolveMethod(cfInvoke.getMethod(), false);
-      SingleResolutionResult singleResolutionResult = methodResolutionResult.asSingleResolution();
-      return singleResolutionResult != null && singleResolutionResult.getResolvedMethod().isPublic()
+      DexEncodedMethod methodDefinition =
+          simpleLookupInClassHierarchy(holder.asLibraryClass(), cfInvoke.getMethod());
+      return methodDefinition != null && methodDefinition.isPublic()
           ? methodApiLevel
           : appView.computedMinApiLevel();
     }
+  }
+
+  private DexEncodedMethod simpleLookupInClassHierarchy(DexLibraryClass holder, DexMethod method) {
+    DexEncodedMethod result = holder.lookupMethod(method);
+    if (result != null) {
+      return result;
+    }
+    TraversalContinuation<DexEncodedMethod> traversalResult =
+        appInfoWithClassHierarchy.traverseSuperClasses(
+            holder,
+            (ignored, superClass, ignored_) -> {
+              DexEncodedMethod definition = superClass.lookupMethod(method);
+              if (definition != null) {
+                return TraversalContinuation.doBreak(definition);
+              }
+              return TraversalContinuation.doContinue();
+            });
+    return traversalResult.isBreak() ? traversalResult.asBreak().getValue() : null;
   }
 
   private boolean isApiLevelLessThanOrEqualTo9(ComputedApiLevel apiLevel) {
