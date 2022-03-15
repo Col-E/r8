@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -185,6 +186,11 @@ public class CodeMatchers {
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(DexMethod target) {
     return instruction -> instruction.isInvoke() && instruction.getMethod() == target;
+  }
+
+  public static Predicate<InstructionSubject> isInvokeWithTarget(
+      String returnType, String holderType, String methodName, String... parameterTypes) {
+    return isInvokeWithTarget(returnType, holderType, methodName, Arrays.asList(parameterTypes));
   }
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(

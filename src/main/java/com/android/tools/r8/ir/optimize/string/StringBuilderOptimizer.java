@@ -373,9 +373,10 @@ public class StringBuilderOptimizer {
               continue;
             }
             assert invoke.inValues().size() == 2;
-            Value arg = invoke.inValues().get(1).getAliasedValue();
-            DexType argType = invoke.getInvokedMethod().proto.parameters.values[0];
-            String addition = extractConstantArgument(arg, argType);
+            Value arg = invoke.getFirstNonReceiverArgument().getAliasedValue();
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            DexType parameterType = invokedMethod.getParameter(0);
+            String addition = extractConstantArgument(arg, invokedMethod, parameterType);
             Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
             BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
             if (dominantState != null) {
@@ -404,9 +405,10 @@ public class StringBuilderOptimizer {
               candidateBuilders.remove(builder);
               continue;
             }
-            Value arg = invoke.inValues().get(1).getAliasedValue();
-            DexType argType = invoke.getInvokedMethod().proto.parameters.values[0];
-            String addition = extractConstantArgument(arg, argType);
+            Value arg = invoke.getFirstNonReceiverArgument().getAliasedValue();
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            DexType parameterType = invokedMethod.getParameter(0);
+            String addition = extractConstantArgument(arg, invokedMethod, parameterType);
             Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
             BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
             if (dominantState != null) {
@@ -442,7 +444,7 @@ public class StringBuilderOptimizer {
       return this;
     }
 
-    private String extractConstantArgument(Value arg, DexType argType) {
+    private String extractConstantArgument(Value arg, DexMethod method, DexType argType) {
       String addition = ANY_STRING;
       if (arg.isPhi()) {
         return addition;
@@ -472,7 +474,9 @@ public class StringBuilderOptimizer {
           } else if (argType == factory.doubleType) {
             addition = String.valueOf(number.doubleValue());
           }
-        } else if (arg.getType().isNullType()) {
+        } else if (arg.getType().isNullType()
+            && !method.isInstanceInitializer(factory)
+            && argType != factory.charArrayType) {
           assert number.intValue() == 0;
           addition = "null";
         }
