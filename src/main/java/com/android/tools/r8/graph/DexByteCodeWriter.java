@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.io.File;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
 
 public abstract class DexByteCodeWriter {
 
-  private interface OutputStreamProvider {
+  public interface OutputStreamProvider {
     PrintStream get(DexClass clazz) throws IOException;
   }
 
@@ -29,45 +30,38 @@ public abstract class DexByteCodeWriter {
     this.options = options;
   }
 
-  private void ensureParentExists(Path path) throws IOException {
+  private static void ensureParentExists(Path path) throws IOException {
     Path parent = path.getParent();
     if (parent != null) {
       Files.createDirectories(parent);
     }
   }
 
-  private OutputStreamProvider oneFilePerClass(Path path) {
+  public static OutputStreamProvider oneFilePerClass(
+      ClassNameMapper classNameMapper, Path path, String fileEnding) {
     return (clazz) -> {
-      String className = DescriptorUtils.descriptorToJavaType(clazz.type.toDescriptorString(),
-          application.getProguardMap());
-      Path classOutput = path.resolve(className.replace('.', File.separatorChar)
-          + getFileEnding());
+      String className =
+          DescriptorUtils.descriptorToJavaType(clazz.type.toDescriptorString(), classNameMapper);
+      Path classOutput = path.resolve(className.replace('.', File.separatorChar) + fileEnding);
       ensureParentExists(classOutput);
       return new PrintStream(Files.newOutputStream(classOutput));
     };
   }
 
-  public void write(Path path) throws IOException {
-    if (Files.isDirectory(path)) {
-      write(oneFilePerClass(path), PrintStream::close);
-    } else {
-      ensureParentExists(path);
-      try (PrintStream ps = new PrintStream(Files.newOutputStream(path))) {
-        write(ps);
-      }
-    }
-  }
-
-  public void write(PrintStream output) throws IOException {
+  public void writeMarkers(PrintStream output) {
     List<Marker> markers = application.dexItemFactory.extractMarkers();
     System.out.println("Number of markers: " + markers.size());
     for (Marker marker : markers) {
       output.println(marker.toString());
     }
+  }
+
+  public void write(PrintStream output) throws IOException {
+    writeMarkers(output);
     write(x -> output, x -> {});
   }
 
-  private void write(OutputStreamProvider outputStreamProvider, Consumer<PrintStream> closer)
+  public void write(OutputStreamProvider outputStreamProvider, Consumer<PrintStream> closer)
       throws IOException {
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
     for (DexProgramClass clazz : classes) {
@@ -97,8 +91,6 @@ public abstract class DexByteCodeWriter {
     writeMethodsFooter(clazz, ps);
     writeClassFooter(clazz, ps);
   }
-
-  abstract String getFileEnding();
 
   abstract void writeClassHeader(DexProgramClass clazz, PrintStream ps);
 

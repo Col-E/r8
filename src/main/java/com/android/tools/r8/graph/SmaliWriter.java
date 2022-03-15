@@ -16,8 +16,7 @@ import java.nio.charset.StandardCharsets;
 
 public class SmaliWriter extends DexByteCodeWriter {
 
-  public SmaliWriter(DexApplication application,
-      InternalOptions options) {
+  public SmaliWriter(DexApplication application, InternalOptions options) {
     super(application, options);
   }
 
@@ -35,8 +34,7 @@ public class SmaliWriter extends DexByteCodeWriter {
     return new String(os.toByteArray(), StandardCharsets.UTF_8);
   }
 
-  @Override
-  String getFileEnding() {
+  public static String getFileEnding() {
     return ".smali";
   }
 

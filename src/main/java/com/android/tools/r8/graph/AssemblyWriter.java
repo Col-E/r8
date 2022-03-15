@@ -61,8 +61,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     kotlin = new Kotlin(application.dexItemFactory);
   }
 
-  @Override
-  String getFileEnding() {
+  public static String getFileEnding() {
     return ".dump";
   }
 
