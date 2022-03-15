@@ -282,6 +282,7 @@ public class DexItemFactory {
   public final DexString comparatorDescriptor = createString("Ljava/util/Comparator;");
   public final DexString callableDescriptor = createString("Ljava/util/concurrent/Callable;");
   public final DexString supplierDescriptor = createString("Ljava/util/function/Supplier;");
+  public final DexString predicateDescriptor = createString("Ljava/util/function/Predicate;");
   public final DexString consumerDescriptor = createString("Ljava/util/function/Consumer;");
   public final DexString runnableDescriptor = createString("Ljava/lang/Runnable;");
   public final DexString optionalDescriptor = createString("Ljava/util/Optional;");
@@ -435,6 +436,7 @@ public class DexItemFactory {
   public final DexType comparatorType = createStaticallyKnownType(comparatorDescriptor);
   public final DexType callableType = createStaticallyKnownType(callableDescriptor);
   public final DexType supplierType = createStaticallyKnownType(supplierDescriptor);
+  public final DexType predicateType = createStaticallyKnownType(predicateDescriptor);
   public final DexType consumerType = createStaticallyKnownType(consumerDescriptor);
   public final DexType runnableType = createStaticallyKnownType(runnableDescriptor);
   public final DexType optionalType = createStaticallyKnownType(optionalDescriptor);

@@ -104,6 +104,7 @@ public final class BackportedMethods {
     factory.createSynthesizedType("Ljava/util/function/DoubleConsumer;");
     factory.createSynthesizedType("Ljava/util/function/IntConsumer;");
     factory.createSynthesizedType("Ljava/util/function/LongConsumer;");
+    factory.createSynthesizedType("Ljava/util/function/Predicate;");
     factory.createSynthesizedType("Ljava/util/function/Supplier;");
     factory.createSynthesizedType("Ljava/util/stream/DoubleStream;");
     factory.createSynthesizedType("Ljava/util/stream/IntStream;");
@@ -8128,6 +8129,42 @@ public final class BackportedMethods {
                 true),
             new CfReturn(ValueType.OBJECT),
             label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode PredicateMethods_not(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.objectType, options.itemFactory.objectType),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/function/Predicate;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/function/Predicate;")),
+                    options.itemFactory.createString("negate")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label2),
         ImmutableList.of(),
         ImmutableList.of());
   }

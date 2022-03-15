@@ -195,11 +195,20 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
       // The following providers are currently not implemented at any API level in Android. For
       // backporting they require the java.util.stream.Stream class to be present, either through
-      // library desugaring or natively. If the java.util.stream.Stream class is not present, we do
-      // not desugar to avoid confusion in error messages.
+      // library desugaring or natively. If the class is not present, we do not desugar to avoid
+      // confusion in error messages.
       if (appView.typeRewriter.hasRewrittenType(factory.streamType, appView)
           || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
         initializeStreamMethodProviders(factory);
+      }
+
+      // The following providers are currently not implemented at any API level in Android. For
+      // backporting they require the java.util.function.Predicate class to be present, either
+      // through library desugaring or natively. If the class is not present, we do not desugar to
+      // avoid confusion in error messages.
+      if (appView.typeRewriter.hasRewrittenType(factory.predicateType, appView)
+          || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
+        initializePredicateMethodProviders(factory);
       }
 
       if (appView.typeRewriter.hasRewrittenType(factory.supplierType, appView)) {
@@ -1459,6 +1468,17 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       DexMethod method = factory.createMethod(streamType, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
+    }
+
+    private void initializePredicateMethodProviders(DexItemFactory factory) {
+      // Predicate
+      DexType predicateType = factory.predicateType;
+
+      // Predicate.not(Predicate)
+      DexString name = factory.createString("not");
+      DexProto proto = factory.createProto(predicateType, predicateType);
+      DexMethod method = factory.createMethod(predicateType, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::PredicateMethods_not, "not"));
     }
 
     private void initializeObjectsMethodProviders(DexItemFactory factory) {
