@@ -10,6 +10,7 @@ import com.android.tools.r8.diagnostic.internal.DefinitionContextUtils;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -25,6 +26,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.FieldLookupResult;
 import com.android.tools.r8.graph.GraphLens.MethodLookupResult;
@@ -159,9 +161,10 @@ public class Tracer {
 
     private void addClassType(DexType type, DefinitionContext referencedFrom) {
       assert type.isClassType();
-      DexClass clazz = appView.definitionFor(type);
-      if (clazz != null) {
-        addClass(clazz, referencedFrom);
+      ClassResolutionResult result =
+          appView.contextIndependentDefinitionForWithResolutionResult(type);
+      if (result.hasClassResolutionResult()) {
+        result.forEachClassResolutionResult(clazz -> addClass(clazz, referencedFrom));
       } else {
         TracedClassImpl tracedClass = new TracedClassImpl(type, referencedFrom);
         collectMissingClass(tracedClass);
@@ -437,21 +440,27 @@ public class Tracer {
         addType(field.getHolderType(), referencedFrom);
         addType(field.getType(), referencedFrom);
 
-        DexClassAndField resolvedField = appInfo().resolveField(field).getResolutionPair();
-        if (resolvedField != null) {
-          if (isTargetType(resolvedField.getHolderType())) {
-            if (resolvedField.getHolderType() != field.getHolderType()) {
-              addClass(resolvedField.getHolder(), referencedFrom);
-            }
-            TracedFieldImpl tracedField = new TracedFieldImpl(resolvedField, referencedFrom);
-            consumer.acceptField(tracedField, diagnostics);
-            if (resolvedField.getAccessFlags().isVisibilityDependingOnPackage()) {
-              consumer.acceptPackage(
-                  Reference.packageFromString(resolvedField.getHolderType().getPackageName()),
-                  diagnostics);
-            }
-          }
-        } else {
+        FieldResolutionResult resolutionResult = appInfo().resolveField(field);
+        resolutionResult.forEachFieldResolutionResult(
+            singleResolutionResult -> {
+              if (!singleResolutionResult.isSingleFieldResolutionResult()) {
+                return;
+              }
+              DexClassAndField resolvedField = singleResolutionResult.getResolutionPair();
+              if (isTargetType(resolvedField.getHolderType())) {
+                if (resolvedField.getHolderType() != field.getHolderType()) {
+                  addClass(resolvedField.getHolder(), referencedFrom);
+                }
+                TracedFieldImpl tracedField = new TracedFieldImpl(resolvedField, referencedFrom);
+                consumer.acceptField(tracedField, diagnostics);
+                if (resolvedField.getAccessFlags().isVisibilityDependingOnPackage()) {
+                  consumer.acceptPackage(
+                      Reference.packageFromString(resolvedField.getHolderType().getPackageName()),
+                      diagnostics);
+                }
+              }
+            });
+        if (!resolutionResult.hasSuccessfulResolutionResult()) {
           TracedFieldImpl tracedField = new TracedFieldImpl(field, referencedFrom);
           collectMissingField(tracedField);
           consumer.acceptField(tracedField, diagnostics);
@@ -476,20 +485,28 @@ public class Tracer {
         LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo(), getContext());
         if (descriptor != null) {
           for (DexType interfaceType : descriptor.interfaces) {
-            DexClass interfaceDefinition = appView.definitionFor(interfaceType);
-            if (interfaceDefinition != null) {
-              DexEncodedMethod mainMethod =
-                  interfaceDefinition.lookupMethod(descriptor.getMainMethod());
-              if (mainMethod != null) {
-                registerInvokeInterface(mainMethod.getReference());
-              }
-              for (DexProto bridgeProto : descriptor.bridges) {
-                DexEncodedMethod bridgeMethod =
-                    interfaceDefinition.lookupMethod(bridgeProto, descriptor.name);
-                if (bridgeMethod != null) {
-                  registerInvokeInterface(bridgeMethod.getReference());
-                }
-              }
+            ClassResolutionResult classResolutionResult =
+                appView.contextIndependentDefinitionForWithResolutionResult(interfaceType);
+            if (classResolutionResult.hasClassResolutionResult()) {
+              classResolutionResult.forEachClassResolutionResult(
+                  interfaceDefinition -> {
+                    DexEncodedMethod mainMethod =
+                        interfaceDefinition.lookupMethod(descriptor.getMainMethod());
+                    if (mainMethod != null) {
+                      registerInvokeInterface(mainMethod.getReference());
+                    }
+                    for (DexProto bridgeProto : descriptor.bridges) {
+                      DexEncodedMethod bridgeMethod =
+                          interfaceDefinition.lookupMethod(bridgeProto, descriptor.name);
+                      if (bridgeMethod != null) {
+                        registerInvokeInterface(bridgeMethod.getReference());
+                      }
+                    }
+                  });
+            } else {
+              TracedClassImpl tracedClass = new TracedClassImpl(interfaceType, referencedFrom);
+              collectMissingClass(tracedClass);
+              consumer.acceptType(tracedClass, diagnostics);
             }
           }
         }

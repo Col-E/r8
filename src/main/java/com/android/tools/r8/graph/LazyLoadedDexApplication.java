@@ -171,7 +171,8 @@ public class LazyLoadedDexApplication extends DexApplication {
       if (options.loadAllClassDefinitions) {
         libraryClasses = allLibraryClasses;
         programClasses = allProgramClasses;
-        classpathClasses = allClasspathClasses;
+        classpathClasses =
+            fillPrioritizedClasses(allClasspathClasses, programClasses::get, options);
       } else {
         if (options.lookupLibraryBeforeProgram) {
           libraryClasses = fillPrioritizedClasses(allLibraryClasses, type -> null, options);
