@@ -13,6 +13,7 @@ import org.hamcrest.TypeSafeMatcher;
 
 public class AnnotationMatchers {
 
+  @SafeVarargs
   public static Matcher<MethodSubject> hasParameterAnnotationTypes(
       List<TypeSubject>... typeSubjects) {
     return hasParameterAnnotationTypes(Arrays.asList(typeSubjects));

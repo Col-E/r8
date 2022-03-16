@@ -75,6 +75,7 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
 
   static class Main {
 
+    @SuppressWarnings("rawtypes")
     public static void main(String[] args) {
       C<String> stringC = new C<>();
       for (TypeVariable<? extends Class<? extends C>> typeParameter :
@@ -100,11 +101,13 @@ public class VerticalClassMergingWithMissingTypeArgsSubstitutionTest extends Tes
     }
   }
 
+  @SuppressWarnings("rawtypes")
   static class C<T> extends B {
 
     @NoMethodStaticizing
     @KeepConstantArguments
     @NeverInline
+    @SuppressWarnings("unchecked")
     void bar(T t) {
       System.out.println(foo(t));
     }
