@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticMarker;
 import java.util.List;
@@ -52,8 +53,7 @@ public class ClassKind<C extends DexClass> {
                   classAnnotations,
                   staticFields,
                   instanceFields,
-                  directMethods,
-                  virtualMethods,
+                  MethodCollectionFactory.fromMethods(directMethods, virtualMethods),
                   skipNameValidationForTesting,
                   checksumSupplier,
                   syntheticMarker),
@@ -96,8 +96,7 @@ public class ClassKind<C extends DexClass> {
                   annotations,
                   staticFields,
                   instanceFields,
-                  directMethods,
-                  virtualMethods,
+                  MethodCollectionFactory.fromMethods(directMethods, virtualMethods),
                   skipNameValidationForTesting),
           DexClass::isClasspathClass);
   public static final ClassKind<DexLibraryClass> LIBRARY =
@@ -138,8 +137,7 @@ public class ClassKind<C extends DexClass> {
                   annotations,
                   staticFields,
                   instanceFields,
-                  directMethods,
-                  virtualMethods,
+                  MethodCollectionFactory.fromMethods(directMethods, virtualMethods),
                   skipNameValidationForTesting),
           DexClass::isLibraryClass);
 

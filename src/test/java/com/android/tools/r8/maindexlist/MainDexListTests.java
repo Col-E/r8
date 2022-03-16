@@ -51,6 +51,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
@@ -839,8 +840,7 @@ public class MainDexListTests extends TestBase {
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
+              MethodCollectionFactory.empty(),
               false,
               DexProgramClass::invalidChecksumRequest);
       DexEncodedMethod[] directMethods = new DexEncodedMethod[methodCount];

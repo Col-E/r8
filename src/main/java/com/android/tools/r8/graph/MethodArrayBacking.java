@@ -21,8 +21,18 @@ import java.util.function.Predicate;
 
 public class MethodArrayBacking extends MethodCollectionBacking {
 
-  private DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
-  private DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
+  private DexEncodedMethod[] directMethods;
+  private DexEncodedMethod[] virtualMethods;
+
+  private MethodArrayBacking(DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
+    this.directMethods = directMethods;
+    this.virtualMethods = virtualMethods;
+  }
+
+  public static MethodArrayBacking fromArrays(
+      DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
+    return new MethodArrayBacking(directMethods, virtualMethods);
+  }
 
   private boolean verifyNoDuplicateMethods() {
     Set<DexMethod> unique = Sets.newIdentityHashSet();
@@ -38,6 +48,11 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   boolean verify() {
     assert verifyNoDuplicateMethods();
     return true;
+  }
+
+  @Override
+  String getDescriptionString() {
+    return "<method-arraybacking>";
   }
 
   @Override
@@ -429,5 +444,22 @@ public class MethodArrayBacking extends MethodCollectionBacking {
       newMethods[i] = replacement.apply(oldMethods[i]);
     }
     virtualMethods = newMethods;
+  }
+
+  @Override
+  MethodCollectionBacking map(Function<DexEncodedMethod, DexEncodedMethod> fn) {
+    DexEncodedMethod[] newDirectMethods = new DexEncodedMethod[directMethods.length];
+    DexEncodedMethod[] newVirtualMethods = new DexEncodedMethod[virtualMethods.length];
+    for (int i = 0; i < directMethods.length; i++) {
+      DexEncodedMethod newDirectMethod = fn.apply(directMethods[i]);
+      newDirectMethods[i] = newDirectMethod;
+      assert belongsToDirectPool(newDirectMethod);
+    }
+    for (int i = 0; i < virtualMethods.length; i++) {
+      DexEncodedMethod newVirtualMethod = fn.apply(virtualMethods[i]);
+      newVirtualMethods[i] = newVirtualMethod;
+      assert belongsToVirtualPool(newVirtualMethod);
+    }
+    return MethodArrayBacking.fromArrays(newDirectMethods, newVirtualMethods);
   }
 }

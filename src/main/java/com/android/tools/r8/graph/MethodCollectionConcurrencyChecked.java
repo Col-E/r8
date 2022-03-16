@@ -15,9 +15,8 @@ public class MethodCollectionConcurrencyChecked extends MethodCollection {
   private AtomicInteger readCount = new AtomicInteger();
   private AtomicInteger writeCount = new AtomicInteger();
 
-  MethodCollectionConcurrencyChecked(
-      DexClass holder, DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
-    super(holder, directMethods, virtualMethods);
+  MethodCollectionConcurrencyChecked(DexClass holder, MethodCollectionBacking backing) {
+    super(holder, backing);
   }
 
   private boolean assertReadEntry() {

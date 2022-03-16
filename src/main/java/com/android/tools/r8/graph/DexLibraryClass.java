@@ -8,8 +8,10 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
+import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,8 +39,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
       DexAnnotationSet annotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods,
+      MethodCollectionFactory methodCollectionFactory,
       boolean skipNameValidationForTesting) {
     super(
         sourceFile,
@@ -48,8 +49,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
         type,
         staticFields,
         instanceFields,
-        directMethods,
-        virtualMethods,
+        methodCollectionFactory,
         nestHost,
         nestMembers,
         enclosingMember,
@@ -58,8 +58,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
         annotations,
         origin,
         skipNameValidationForTesting);
-    assert Arrays.stream(directMethods).allMatch(DexLibraryClass::verifyLibraryMethod);
-    assert Arrays.stream(virtualMethods).allMatch(DexLibraryClass::verifyLibraryMethod);
+    assert Streams.stream(methods()).allMatch(DexLibraryClass::verifyLibraryMethod);
     assert Arrays.stream(staticFields).allMatch(DexLibraryClass::verifyLibraryField);
     assert Arrays.stream(instanceFields).allMatch(DexLibraryClass::verifyLibraryField);
     // Set all static field values to unknown. We don't want to use the value from the library
@@ -220,8 +219,7 @@ public class DexLibraryClass extends DexClass implements LibraryClass, Supplier<
           annotations,
           staticFields,
           instanceFields,
-          directMethods,
-          virtualMethods,
+          MethodCollectionFactory.fromMethods(directMethods, virtualMethods),
           skipNameValidationForTesting);
     }
 

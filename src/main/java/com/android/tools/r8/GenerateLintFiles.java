@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
@@ -192,8 +193,7 @@ public class GenerateLintFiles {
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
-            directMethodsArray,
-            virtualMethodsArray,
+            MethodCollectionFactory.fromMethods(directMethodsArray, virtualMethodsArray),
             false,
             checksumSupplier);
     builder.addProgramClass(programClass);

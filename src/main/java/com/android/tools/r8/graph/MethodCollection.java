@@ -17,6 +17,21 @@ import java.util.function.Predicate;
 
 public class MethodCollection {
 
+  @FunctionalInterface
+  public interface MethodCollectionFactory {
+
+    MethodCollection create(DexClass holder);
+
+    static MethodCollectionFactory empty() {
+      return fromMethods(DexEncodedMethod.EMPTY_ARRAY, DexEncodedMethod.EMPTY_ARRAY);
+    }
+
+    static MethodCollectionFactory fromMethods(
+        DexEncodedMethod[] directs, DexEncodedMethod[] virtuals) {
+      return holder -> MethodCollection.create(holder, directs, virtuals);
+    }
+  }
+
   // Threshold between using an array and a map for the backing store.
   // Compiling R8 plus library shows classes with up to 30 methods account for about 95% of classes.
   private static final int ARRAY_BACKING_THRESHOLD = 30;
@@ -25,24 +40,36 @@ public class MethodCollection {
   private MethodCollectionBacking backing;
   private DexEncodedMethod cachedClassInitializer = DexEncodedMethod.SENTINEL;
 
-  MethodCollection(
-      DexClass holder, DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
+  /** Should only be called via 'createInternal' (and the concurrency checking subtype). */
+  MethodCollection(DexClass holder, MethodCollectionBacking backing) {
     this.holder = holder;
-    if (directMethods.length + virtualMethods.length > ARRAY_BACKING_THRESHOLD) {
-      backing = new MethodMapBacking();
-    } else {
-      backing = new MethodArrayBacking();
-    }
-    backing.setDirectMethods(directMethods);
-    backing.setVirtualMethods(virtualMethods);
+    this.backing = backing;
   }
 
   public static MethodCollection create(
       DexClass holder, DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
-    if (InternalOptions.USE_METHOD_COLLECTION_CONCURRENCY_CHECKED) {
-      return new MethodCollectionConcurrencyChecked(holder, directMethods, virtualMethods);
+    int methodCount = directMethods.length + virtualMethods.length;
+    MethodCollectionBacking backing;
+    if (methodCount > ARRAY_BACKING_THRESHOLD) {
+      backing = MethodMapBacking.createLinked(methodCount);
+      backing.setDirectMethods(directMethods);
+      backing.setVirtualMethods(virtualMethods);
+    } else {
+      backing = MethodArrayBacking.fromArrays(directMethods, virtualMethods);
     }
-    return new MethodCollection(holder, directMethods, virtualMethods);
+    return createInternal(holder, backing);
+  }
+
+  private static MethodCollection createInternal(DexClass holder, MethodCollectionBacking backing) {
+    return InternalOptions.USE_METHOD_COLLECTION_CONCURRENCY_CHECKED
+        ? new MethodCollectionConcurrencyChecked(holder, backing)
+        : new MethodCollection(holder, backing);
+  }
+
+  public MethodCollection fixup(
+      DexClass newHolder, Function<DexEncodedMethod, DexEncodedMethod> fn) {
+    MethodCollectionBacking newBacking = backing.map(fn);
+    return createInternal(newHolder, newBacking);
   }
 
   private void resetCaches() {
@@ -382,5 +409,9 @@ public class MethodCollection {
       assert verifyCorrectnessOfMethodHolder(method);
     }
     return true;
+  }
+
+  public String getBackingDescriptionString() {
+    return backing.getDescriptionString();
   }
 }

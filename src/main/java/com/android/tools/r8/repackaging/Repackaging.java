@@ -80,7 +80,7 @@ public class Repackaging {
   }
 
   public static boolean verifyIdentityRepackaging(AppView<AppInfoWithLiveness> appView) {
-    // Running the tree fixer with an identity mapping helps ensure that the fixup of of items is
+    // Running the tree fixer with an identity mapping helps ensure that the fixup of items is
     // complete as the rewrite replaces all items regardless of repackaging.
     // The identity mapping should result in no move callbacks being called.
     Collection<DexProgramClass> newProgramClasses =

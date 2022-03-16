@@ -10,6 +10,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -40,8 +41,7 @@ public class DexClasspathClass extends DexClass
       DexAnnotationSet annotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods,
+      MethodCollectionFactory methodCollectionFactory,
       boolean skipNameValidationForTesting) {
     super(
         sourceFile,
@@ -51,8 +51,7 @@ public class DexClasspathClass extends DexClass
         type,
         staticFields,
         instanceFields,
-        directMethods,
-        virtualMethods,
+        methodCollectionFactory,
         nestHost,
         nestMembers,
         enclosingMember,

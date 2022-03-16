@@ -113,20 +113,11 @@ public abstract class TreeFixerBase {
             clazz.annotations(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
-            DexEncodedMethod.EMPTY_ARRAY,
-            DexEncodedMethod.EMPTY_ARRAY,
+            newHolder -> clazz.getMethodCollection().fixup(newHolder, this::fixupMethod),
             dexItemFactory.getSkipNameValidationForTesting(),
             clazz.getChecksumSupplier());
     newClass.setInstanceFields(fixupFields(clazz.instanceFields()));
     newClass.setStaticFields(fixupFields(clazz.staticFields()));
-    newClass.setDirectMethods(
-        fixupMethods(
-            clazz.getMethodCollection().directMethods(),
-            clazz.getMethodCollection().numberOfDirectMethods()));
-    newClass.setVirtualMethods(
-        fixupMethods(
-            clazz.getMethodCollection().virtualMethods(),
-            clazz.getMethodCollection().numberOfVirtualMethods()));
     // Transfer properties that are not passed to the constructor.
     if (clazz.hasClassFileVersion()) {
       newClass.setInitialClassFileVersion(clazz.getInitialClassFileVersion());
@@ -241,17 +232,6 @@ public abstract class TreeFixerBase {
     return changed ? newInnerClassAttributes : innerClassAttributes;
   }
 
-  private DexEncodedMethod[] fixupMethods(Iterable<DexEncodedMethod> methods, int size) {
-    if (size == 0) {
-      return DexEncodedMethod.EMPTY_ARRAY;
-    }
-    int i = 0;
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[size];
-    for (DexEncodedMethod method : methods) {
-      newMethods[i++] = fixupMethod(method);
-    }
-    return newMethods;
-  }
   /** Fixup a method definition. */
   public DexEncodedMethod fixupMethod(DexEncodedMethod method) {
     DexMethod methodReference = method.getReference();

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.callgraph.Node;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -39,8 +40,7 @@ class CallGraphTestBase extends TestBase {
           DexAnnotationSet.empty(),
           DexEncodedField.EMPTY_ARRAY,
           DexEncodedField.EMPTY_ARRAY,
-          DexEncodedMethod.EMPTY_ARRAY,
-          DexEncodedMethod.EMPTY_ARRAY,
+          MethodCollectionFactory.empty(),
           false,
           DexProgramClass::invalidChecksumRequest);
 

@@ -75,12 +75,12 @@ public abstract class DexMethodSignature implements StructuralItem<DexMethodSign
     if (this == o) return true;
     if (!(o instanceof DexMethodSignature)) return false;
     DexMethodSignature that = (DexMethodSignature) o;
-    return getProto() == that.getProto() && getName() == that.getName();
+    return getName() == that.getName() && getProto() == that.getProto();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getProto(), getName());
+    return Objects.hash(getName(), getProto());
   }
 
   @Override

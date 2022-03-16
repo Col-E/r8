@@ -7,8 +7,8 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ReferenceRBTreeMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -20,23 +20,35 @@ import java.util.function.Predicate;
 
 public class MethodMapBacking extends MethodCollectionBacking {
 
+  private final boolean isSorted;
   private SortedMap<DexMethodSignature, DexEncodedMethod> methodMap;
 
-  public MethodMapBacking() {
-    this(createdLinkedMap());
+  @Override
+  String getDescriptionString() {
+    return "<method-mapbacking/" + (isSorted ? "sorted" : "linked") + ">";
   }
 
-  private MethodMapBacking(SortedMap<DexMethodSignature, DexEncodedMethod> methodMap) {
+  private MethodMapBacking(
+      boolean isSorted, SortedMap<DexMethodSignature, DexEncodedMethod> methodMap) {
+    this.isSorted = isSorted;
     this.methodMap = methodMap;
   }
 
   public static MethodMapBacking createSorted() {
-    return new MethodMapBacking(new Object2ReferenceRBTreeMap<>());
+    return new MethodMapBacking(true, createSortedMap());
   }
 
-  private static SortedMap<DexMethodSignature, DexEncodedMethod> createdLinkedMap() {
-    // Maintain a linked map so the output order remains a deterministic function of the input.
-    return new Object2ReferenceLinkedOpenHashMap<>();
+  public static MethodMapBacking createLinked(int capacity) {
+    return new MethodMapBacking(false, createdLinkedMap(capacity));
+  }
+
+  // Internal create for reallocating.
+  private SortedMap<DexMethodSignature, DexEncodedMethod> createMap(int capacity) {
+    return isSorted ? createSortedMap() : createdLinkedMap(capacity);
+  }
+
+  private static SortedMap<DexMethodSignature, DexEncodedMethod> createSortedMap() {
+    return new Object2ObjectRBTreeMap<>();
   }
 
   private static SortedMap<DexMethodSignature, DexEncodedMethod> createdLinkedMap(int capacity) {
@@ -224,8 +236,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
     if (methods == null) {
       methods = DexEncodedMethod.EMPTY_ARRAY;
     }
-    SortedMap<DexMethodSignature, DexEncodedMethod> newMap =
-        createdLinkedMap(size() + methods.length);
+    SortedMap<DexMethodSignature, DexEncodedMethod> newMap = createMap(size() + methods.length);
     forEachMethod(
         method -> {
           if (belongsToVirtualPool(method)) {
@@ -247,8 +258,7 @@ public class MethodMapBacking extends MethodCollectionBacking {
     if (methods == null) {
       methods = DexEncodedMethod.EMPTY_ARRAY;
     }
-    SortedMap<DexMethodSignature, DexEncodedMethod> newMap =
-        createdLinkedMap(size() + methods.length);
+    SortedMap<DexMethodSignature, DexEncodedMethod> newMap = createMap(size() + methods.length);
     forEachMethod(
         method -> {
           if (belongsToDirectPool(method)) {
@@ -365,5 +375,12 @@ public class MethodMapBacking extends MethodCollectionBacking {
       assert methodMap.get(method.getSignature()) == method;
     }
     return true;
+  }
+
+  @Override
+  MethodMapBacking map(Function<DexEncodedMethod, DexEncodedMethod> fn) {
+    MethodMapBacking newBacking = new MethodMapBacking(isSorted, createMap(methodMap.size()));
+    methodMap.forEach((ignore, method) -> newBacking.addMethod(fn.apply(method)));
+    return newBacking;
   }
 }

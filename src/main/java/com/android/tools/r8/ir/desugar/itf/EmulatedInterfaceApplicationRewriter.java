@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.utils.IterableUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,8 +84,7 @@ public final class EmulatedInterfaceApplicationRewriter {
             emulatedInterface.annotations(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
-            newDirectMethods,
-            newVirtualMethods,
+            MethodCollectionFactory.fromMethods(newDirectMethods, newVirtualMethods),
             false,
             emulatedInterface.getChecksumSupplier());
     newEmulatedInterface.addExtraInterfaces(

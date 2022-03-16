@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
@@ -24,6 +25,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DeterminismChecker;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -125,52 +127,23 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     // --pg-conf R8KeepRules r8.jar
     // The 512m memory is required to run on ART but any higher and the runtime will fail too.
 
+    Path r8jar = ToolHelper.R8_WITH_RELOCATED_DEPS_JAR;
     Path outputFolder = temp.newFolder("output").toPath();
     Path outputThroughCf = outputFolder.resolve("outThroughCf.zip");
+    Path outputThroughCfExternal = outputFolder.resolve("outThroughCf_external.zip");
     Path determinismLogsDir = temp.newFolder("logs").toPath();
-    String checkDeterminismKey = "com.android.tools.r8.checkdeterminism";
 
-    // First run compiles with R8 in process and thus with assertions.
-    {
-      long start = System.nanoTime();
-      // Manually construct the R8 command as the test builder will change defaults compared
-      // to the CLI invocation (eg, compressed and pg-map output).
-      Builder builder = R8Command.builder().setOutput(outputThroughCf, OutputMode.DexIndexed);
-      getSharedBuilder().accept(builder);
-      ToolHelper.runR8WithOptionsModificationOnly(
-          builder.build(),
-          o ->
-              o.testing.setDeterminismChecker(
-                  DeterminismChecker.createWithFileBacking(determinismLogsDir)));
-      printTime("R8/JVM in-process", start);
-    }
+    // First run compiles with R8 externally.
+    runExternalR8(r8jar, outputThroughCfExternal, determinismLogsDir);
 
-    // Second run compiles with R8 externally checking it to be equal with the first compilation.
+    // Second run compiles with R8 in process checking it to be equal with the first compilation.
     // If this fails, likely due to non-determinism, then that is much faster than waiting for the
     // Art run compilation to finish if the same error can be found directly.
+    // Run the in-process second to allow hitting the in-process breakpoint on failure.
+    runInProcessR8(outputThroughCf, determinismLogsDir);
+
+    // Check the outputs are identical.
     {
-      long start = System.nanoTime();
-      Path outputThroughCfExternal = outputFolder.resolve("outThroughCf_external.zip");
-      Path r8jar = ToolHelper.R8_WITH_RELOCATED_DEPS_JAR;
-      ProcessResult javaProcessResult =
-          ToolHelper.runJava(
-              TestRuntime.getCheckedInJdk9(),
-              Collections.singletonList(r8jar),
-              ImmutableList.builder()
-                  .add("-Xmx1g")
-                  // Set the system property to check determinism.
-                  .add("-D" + checkDeterminismKey + "=" + determinismLogsDir)
-                  .add(R8.class.getTypeName())
-                  .add("--output")
-                  .add(commandLinePathFor(outputThroughCfExternal))
-                  .addAll(getSharedArguments())
-                  .build()
-                  .toArray(new String[0]));
-      printTime("R8/JVM external", start);
-      assertEquals(javaProcessResult.toString(), 0, javaProcessResult.exitCode);
-      uploadJarsToCloudStorageIfTestFails(
-          TestBase::filesAreEqual, outputThroughCf, outputThroughCfExternal);
-      assertProgramsEqual(outputThroughCf, outputThroughCfExternal);
       String message =
           "The output of R8/JVM in-process and R8/JVM external differ."
               + " Make sure you have an up-to-date compilation of "
@@ -179,7 +152,9 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
               + " differ from the external run which uses "
               + r8jar
               + ". If up-to-date, the likely cause of this error is that R8 is non-deterministic.";
-      assertTrue(message, filesAreEqual(outputThroughCf, outputThroughCfExternal));
+      uploadJarsToCloudStorageIfTestFails(
+          TestBase::filesAreEqual, outputThroughCf, outputThroughCfExternal);
+      assertProgramsEqual(message, outputThroughCf, outputThroughCfExternal);
     }
 
     // Check that setting the determinism checker wrote a log file.
@@ -212,5 +187,42 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
           "The output of R8/JVM in-process and R8/ART external differ.",
           TestBase.filesAreEqual(outputThroughCf, outputThroughDex));
     }
+  }
+
+  private void runExternalR8(Path r8jar, Path outputThroughCfExternal, Path determinismLogsDir)
+      throws IOException {
+    String checkDeterminismKey = "com.android.tools.r8.checkdeterminism";
+    long start = System.nanoTime();
+    ProcessResult javaProcessResult =
+        ToolHelper.runJava(
+            TestRuntime.getCheckedInJdk9(),
+            Collections.singletonList(r8jar),
+            ImmutableList.builder()
+                .add("-Xmx1g")
+                // Set the system property to check determinism.
+                .add("-D" + checkDeterminismKey + "=" + determinismLogsDir)
+                .add(R8.class.getTypeName())
+                .add("--output")
+                .add(commandLinePathFor(outputThroughCfExternal))
+                .addAll(getSharedArguments())
+                .build()
+                .toArray(new String[0]));
+    printTime("R8/JVM external", start);
+    assertEquals(javaProcessResult.toString(), 0, javaProcessResult.exitCode);
+  }
+
+  private void runInProcessR8(Path outputThroughCf, Path determinismLogsDir)
+      throws CompilationFailedException {
+    long start = System.nanoTime();
+    // Manually construct the R8 command as the test builder will change defaults compared
+    // to the CLI invocation (eg, compressed and pg-map output).
+    Builder builder = R8Command.builder().setOutput(outputThroughCf, OutputMode.DexIndexed);
+    getSharedBuilder().accept(builder);
+    ToolHelper.runR8WithOptionsModificationOnly(
+        builder.build(),
+        o ->
+            o.testing.setDeterminismChecker(
+                DeterminismChecker.createWithFileBacking(determinismLogsDir)));
+    printTime("R8/JVM in-process", start);
   }
 }

@@ -73,7 +73,9 @@ public class DeterminismChecker {
   }
 
   private static String fmtClass(DexProgramClass clazz) {
-    return clazz.getType().toSourceString();
+    return clazz.getType().toSourceString()
+        + " "
+        + clazz.getMethodCollection().getBackingDescriptionString();
   }
 
   private static String fmtMethod(DexEncodedMethod method) {
@@ -96,7 +98,7 @@ public class DeterminismChecker {
   private void checkClass(LineCallback callback, DexProgramClass clazz) throws IOException {
     String line = fmtClass(clazz);
     if (!callback.onLine(line)) {
-      throw new RuntimeException();
+      return;
     }
     for (DexEncodedMethod method : clazz.methods()) {
       checkMethod(callback, method);

@@ -14,6 +14,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
+import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
@@ -72,8 +73,7 @@ public class DexProgramClass extends DexClass
       DexAnnotationSet classAnnotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods,
+      MethodCollectionFactory methodCollectionFactory,
       boolean skipNameValidationForTesting,
       ChecksumSupplier checksumSupplier,
       SyntheticMarker syntheticMarker) {
@@ -85,8 +85,7 @@ public class DexProgramClass extends DexClass
         type,
         staticFields,
         instanceFields,
-        directMethods,
-        virtualMethods,
+        methodCollectionFactory,
         nestHost,
         nestMembers,
         enclosingMember,
@@ -118,8 +117,7 @@ public class DexProgramClass extends DexClass
       DexAnnotationSet classAnnotations,
       DexEncodedField[] staticFields,
       DexEncodedField[] instanceFields,
-      DexEncodedMethod[] directMethods,
-      DexEncodedMethod[] virtualMethods,
+      MethodCollectionFactory methodCollectionFactory,
       boolean skipNameValidationForTesting,
       ChecksumSupplier checksumSupplier) {
     this(
@@ -138,8 +136,7 @@ public class DexProgramClass extends DexClass
         classAnnotations,
         staticFields,
         instanceFields,
-        directMethods,
-        virtualMethods,
+        methodCollectionFactory,
         skipNameValidationForTesting,
         checksumSupplier,
         null);
