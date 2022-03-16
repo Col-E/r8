@@ -89,14 +89,17 @@ def run(out_dir, options, tmp_dir):
       out_dir, tmp_dir)
 
   # Launch main activity.
-  adb_utils.launch_activity(
-      options.app_id, options.main_activity, options.device_id)
+  launch_activity_result = adb_utils.launch_activity(
+      options.app_id,
+      options.main_activity,
+      options.device_id,
+      wait_for_activity_to_launch=True)
 
   # Wait for perfetto trace collector to stop.
   perfetto_utils.stop_record_android_trace(perfetto_process, out_dir)
 
   # Get minor and major page faults from app process.
-  data = compute_data(perfetto_trace_path, options)
+  data = compute_data(launch_activity_result, perfetto_trace_path, options)
   write_data(out_dir, data)
   return data
 
@@ -104,7 +107,7 @@ def add_data(sum_data, data):
   for key, value in data.items():
     if key == 'time':
       continue
-    if hasattr(sum_data, key):
+    if key in sum_data:
       if key == 'app_id':
         assert sum_data[key] == value
       else:
@@ -115,7 +118,7 @@ def add_data(sum_data, data):
     else:
       sum_data[key] = value
 
-def compute_data(perfetto_trace_path, options):
+def compute_data(launch_activity_result, perfetto_trace_path, options):
   minfl, majfl = adb_utils.get_minor_major_page_faults(
       options.app_id, options.device_id)
   data = {
@@ -124,36 +127,45 @@ def compute_data(perfetto_trace_path, options):
     'minfl': minfl,
     'majfl': majfl
   }
-  startup_data = compute_startup_data(perfetto_trace_path, options)
+  startup_data = compute_startup_data(
+      launch_activity_result, perfetto_trace_path, options)
   return data | startup_data
 
-def compute_startup_data(perfetto_trace_path, options):
-  trace_processor = TraceProcessor(file_path=perfetto_trace_path)
-
-  # Compute time to first frame according to the builtin android_startup metric.
-  startup_metric = trace_processor.metric(['android_startup'])
-  time_to_first_frame_ms = \
-      startup_metric.android_startup.startup[0].to_first_frame.dur_ms
-
-  # Compute time to first and last doFrame event.
-  bind_application_slice = perfetto_utils.find_unique_slice_by_name(
-      'bindApplication', options, trace_processor)
-  activity_start_slice = perfetto_utils.find_unique_slice_by_name(
-      'activityStart', options, trace_processor)
-  do_frame_slices = perfetto_utils.find_slices_by_name(
-      'Choreographer#doFrame', options, trace_processor)
-  first_do_frame_slice = next(do_frame_slices)
-  *_, last_do_frame_slice = do_frame_slices
-
-  return {
-    'time_to_first_frame_ms': time_to_first_frame_ms,
-    'time_to_first_choreographer_do_frame_ms':
-        perfetto_utils.get_slice_end_since_start(
-            first_do_frame_slice, bind_application_slice),
-    'time_to_last_choreographer_do_frame_ms':
-        perfetto_utils.get_slice_end_since_start(
-            last_do_frame_slice, bind_application_slice)
+def compute_startup_data(launch_activity_result, perfetto_trace_path, options):
+  startup_data = {
+    'time_to_activity_started_ms': launch_activity_result.get('total_time')
   }
+  perfetto_startup_data = {}
+  if not options.no_perfetto:
+    trace_processor = TraceProcessor(file_path=perfetto_trace_path)
+
+    # Compute time to first frame according to the builtin android_startup metric.
+    startup_metric = trace_processor.metric(['android_startup'])
+    time_to_first_frame_ms = \
+        startup_metric.android_startup.startup[0].to_first_frame.dur_ms
+
+    # Compute time to first and last doFrame event.
+    bind_application_slice = perfetto_utils.find_unique_slice_by_name(
+        'bindApplication', options, trace_processor)
+    activity_start_slice = perfetto_utils.find_unique_slice_by_name(
+        'activityStart', options, trace_processor)
+    do_frame_slices = perfetto_utils.find_slices_by_name(
+        'Choreographer#doFrame', options, trace_processor)
+    first_do_frame_slice = next(do_frame_slices)
+    *_, last_do_frame_slice = do_frame_slices
+
+    perfetto_startup_data = {
+      'time_to_first_frame_ms': round(time_to_first_frame_ms),
+      'time_to_first_choreographer_do_frame_ms':
+          round(perfetto_utils.get_slice_end_since_start(
+              first_do_frame_slice, bind_application_slice)),
+      'time_to_last_choreographer_do_frame_ms':
+          round(perfetto_utils.get_slice_end_since_start(
+              last_do_frame_slice, bind_application_slice))
+    }
+
+  # Return combined startup data.
+  return startup_data | perfetto_startup_data
 
 def write_data(out_dir, data):
   data_path = os.path.join(out_dir, 'data.txt')
@@ -193,6 +205,10 @@ def parse_options(argv):
   result.add_argument('--main-activity',
                       help='Main activity class name',
                       required=True)
+  result.add_argument('--no-perfetto',
+                      help='Disables perfetto trace generation',
+                      action='store_true',
+                      default=False)
   result.add_argument('--out-dir',
                       help='Directory to store trace files in',
                       required=True)

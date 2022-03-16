@@ -180,13 +180,25 @@ def issue_key_event(key_event, device_id=None, sleep_in_seconds=1):
   assert len(stdout) == 0
   time.sleep(sleep_in_seconds)
 
-def launch_activity(app_id, activity, device_id=None):
-  cmd = create_adb_cmd(
-    'shell am start -n %s/%s' % (app_id, activity), device_id)
+def launch_activity(
+    app_id, activity, device_id=None, wait_for_activity_to_launch=False):
+  args = ['shell', 'am', 'start', '-n', '%s/%s' % (app_id, activity)]
+  if wait_for_activity_to_launch:
+    args.append('-W')
+  cmd = create_adb_cmd(args, device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
   expected_stdout = (
       'Starting: Intent { cmp=%s/.%s }' % (app_id, activity[len(app_id)+1:]))
-  assert stdout == expected_stdout, 'was %s' % stdout
+  assert stdout.startswith(expected_stdout), 'was %s' % stdout
+  lines = stdout.splitlines()
+  result = {}
+  for line in lines:
+    if line.startswith('TotalTime: '):
+      total_time_str = line.removeprefix('TotalTime: ')
+      assert total_time_str.isdigit()
+      result['total_time'] = int(total_time_str)
+  assert not wait_for_activity_to_launch or 'total_time' in result
+  return result
 
 def prepare_for_interaction_with_device(device_id=None, device_pin=None):
   # Increase screen off timeout to avoid device screen turns off.
