@@ -48,6 +48,7 @@ import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -127,26 +128,44 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   private AppView(
       T appInfo, WholeProgramOptimizations wholeProgramOptimizations, TypeRewriter mapper) {
-    assert appInfo != null;
-    this.context = CompilationContext.createInitialContext(appInfo.options());
-    this.appInfo = appInfo;
-    this.dontWarnConfiguration = DontWarnConfiguration.create(options().getProguardConfiguration());
-    this.wholeProgramOptimizations = wholeProgramOptimizations;
-    this.initClassLens = InitClassLens.getThrowingInstance();
-    this.typeRewriter = mapper;
+    this(appInfo, wholeProgramOptimizations, mapper, Timing.empty());
+  }
 
+  private AppView(
+      T appInfo,
+      WholeProgramOptimizations wholeProgramOptimizations,
+      TypeRewriter mapper,
+      Timing timing) {
+    assert appInfo != null;
+    this.context =
+        timing.time(
+            "Compilation context",
+            () -> CompilationContext.createInitialContext(appInfo.options()));
+    this.appInfo = appInfo;
+    this.dontWarnConfiguration =
+        timing.time(
+            "Dont warn config",
+            () -> DontWarnConfiguration.create(options().getProguardConfiguration()));
+    this.wholeProgramOptimizations = wholeProgramOptimizations;
+    this.initClassLens = timing.time("Init class lens", InitClassLens::getThrowingInstance);
+    this.typeRewriter = mapper;
+    timing.begin("Create argument propagator");
     if (enableWholeProgramOptimizations() && options().callSiteOptimizationOptions().isEnabled()) {
       this.argumentPropagator = new ArgumentPropagator(withLiveness());
     } else {
       this.argumentPropagator = null;
     }
-
-    this.libraryMethodSideEffectModelCollection = new LibraryMethodSideEffectModelCollection(this);
-    this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
-    this.protoShrinker = ProtoShrinker.create(withLiveness());
-
-    this.apiLevelCompute = AndroidApiLevelCompute.create(this);
-    this.computedMinApiLevel = apiLevelCompute.computeInitialMinApiLevel(options());
+    timing.end();
+    this.libraryMethodSideEffectModelCollection =
+        timing.time("Library side-effects", () -> new LibraryMethodSideEffectModelCollection(this));
+    this.libraryMemberOptimizer =
+        timing.time("Library optimizer", () -> new LibraryMemberOptimizer(this, timing));
+    this.protoShrinker = timing.time("Proto shrinker", () -> ProtoShrinker.create(withLiveness()));
+    this.apiLevelCompute =
+        timing.time("ApiLevel compute", () -> AndroidApiLevelCompute.create(this));
+    this.computedMinApiLevel =
+        timing.time(
+            "ApiLevel computed", () -> apiLevelCompute.computeInitialMinApiLevel(options()));
   }
 
   public boolean verifyMainThread() {
@@ -168,8 +187,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, defaultTypeRewriter(appInfo));
   }
 
-  public static <T extends AppInfo> AppView<T> createForD8(T appInfo, TypeRewriter mapper) {
-    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper);
+  public static <T extends AppInfo> AppView<T> createForD8(
+      T appInfo, TypeRewriter mapper, Timing timing) {
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, mapper, timing);
   }
 
   public static AppView<AppInfoWithClassHierarchy> createForR8(DexApplication application) {

@@ -41,9 +41,8 @@ public class LibraryOptimizationInfoInitializer {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  void run(Set<DexEncodedField> finalLibraryFields) {
+  void run() {
     modelInstanceInitializers();
-    modelStaticFinalLibraryFields(finalLibraryFields);
     modelLibraryMethodsNonNullParamOrThrow();
     modelLibraryMethodsReturningNonNull();
     modelLibraryMethodsReturningReceiver();

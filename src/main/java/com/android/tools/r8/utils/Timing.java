@@ -57,16 +57,6 @@ public class Timing {
         public void report() {
           // Ignore.
         }
-
-        @Override
-        public <T> T scope(String title, TimingScope<T> fn) {
-          return fn.apply();
-        }
-
-        @Override
-        public void vscope(String title, VoidTimingScope fn) {
-          fn.apply();
-        }
       };
 
   public static Timing empty() {
@@ -405,32 +395,6 @@ public class Timing {
     top.end();
     System.out.println("Recorded timings:");
     top.report(0, top);
-  }
-
-  public void vscope(String title, VoidTimingScope fn) {
-    begin(title);
-    try {
-      fn.apply();
-    } finally {
-      end();
-    }
-  }
-
-  public <T> T scope(String title, TimingScope<T> fn) {
-    begin(title);
-    try {
-      return fn.apply();
-    } finally {
-      end();
-    }
-  }
-
-  public interface TimingScope<T> {
-    T apply();
-  }
-
-  public interface VoidTimingScope {
-    void apply();
   }
 
   private static Map<String, MemInfo> computeMemoryInformation() {

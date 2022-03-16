@@ -8,6 +8,7 @@ import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory.LibraryMembers;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -22,6 +23,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -32,7 +34,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
   private final AppView<?> appView;
 
   /** Library fields that are assumed to be final. */
-  private final Set<DexEncodedField> finalLibraryFields = Sets.newIdentityHashSet();
+  private final Set<DexField> finalLibraryFields = Sets.newIdentityHashSet();
 
   /** The library types that are modeled. */
   private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
@@ -40,8 +42,9 @@ public class LibraryMemberOptimizer implements CodeOptimization {
   private final Map<DexType, LibraryMethodModelCollection<?>> libraryMethodModelCollections =
       new IdentityHashMap<>();
 
-  public LibraryMemberOptimizer(AppView<?> appView) {
+  public LibraryMemberOptimizer(AppView<?> appView, Timing timing) {
     this.appView = appView;
+    timing.begin("Register optimizers");
     register(new BooleanMethodOptimizer(appView));
     register(new ByteMethodOptimizer(appView));
     register(new ObjectMethodOptimizer(appView));
@@ -56,34 +59,30 @@ public class LibraryMemberOptimizer implements CodeOptimization {
     if (LogMethodOptimizer.isEnabled(appView)) {
       register(new LogMethodOptimizer(appView));
     }
+    timing.end();
 
-    initializeFinalLibraryFields();
+    timing.time("Initialize final fields", this::initializeFinalLibraryFields);
 
-    LibraryOptimizationInfoInitializer libraryOptimizationInfoInitializer =
-        new LibraryOptimizationInfoInitializer(appView);
-    libraryOptimizationInfoInitializer.run(finalLibraryFields);
-    modeledLibraryTypes.addAll(libraryOptimizationInfoInitializer.getModeledLibraryTypes());
+    // TODO(b/224959526): Implement support for lazy computation of optimization info in D8.
+    if (appView.enableWholeProgramOptimizations()) {
+      timing.begin("Initialize opt info");
+      LibraryOptimizationInfoInitializer libraryOptimizationInfoInitializer =
+          new LibraryOptimizationInfoInitializer(appView);
+      libraryOptimizationInfoInitializer.run();
+      modeledLibraryTypes.addAll(libraryOptimizationInfoInitializer.getModeledLibraryTypes());
+      timing.end();
+    }
   }
 
   private void initializeFinalLibraryFields() {
     for (LibraryMembers libraryMembers : appView.dexItemFactory().libraryMembersCollection) {
-      libraryMembers.forEachFinalField(
-          field -> {
-            DexEncodedField definition = field.lookupOnClass(appView.definitionForHolder(field));
-            if (definition != null) {
-              if (definition.isFinal()) {
-                finalLibraryFields.add(definition);
-              } else {
-                assert false : "Field `" + field.toSourceString() + "` is not final";
-              }
-            }
-          });
+      libraryMembers.forEachFinalField(finalLibraryFields::add);
     }
   }
 
   /** Returns true if it is safe to assume that the given library field is final. */
   public boolean isFinalLibraryField(DexEncodedField field) {
-    return finalLibraryFields.contains(field);
+    return field.isFinal() && finalLibraryFields.contains(field.getReference());
   }
 
   /**

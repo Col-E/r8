@@ -170,12 +170,19 @@ public final class D8 {
   private static AppView<AppInfo> readApp(
       AndroidApp inputApp, InternalOptions options, ExecutorService executor, Timing timing)
       throws IOException {
+    timing.begin("Application read");
     ApplicationReader applicationReader = new ApplicationReader(inputApp, options, timing);
     LazyLoadedDexApplication app = applicationReader.read(executor);
+    timing.end();
+    timing.begin("Load desugared lib");
     options.loadMachineDesugaredLibrarySpecification(timing, app);
+    timing.end();
     TypeRewriter typeRewriter = options.getTypeRewriter();
-    AppInfo appInfo = AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app));
-    return AppView.createForD8(appInfo, typeRewriter);
+    AppInfo appInfo =
+        timing.time(
+            "Create app-info",
+            () -> AppInfo.createInitialAppInfo(app, applicationReader.readMainDexClasses(app)));
+    return timing.time("Create app-view", () -> AppView.createForD8(appInfo, typeRewriter, timing));
   }
 
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
@@ -194,9 +201,15 @@ public final class D8 {
       // Synthetic assertion to check that testing assertions works and can be enabled.
       assert forTesting(options, () -> !options.testing.testEnableTestAssertions);
 
+      timing.begin("Read input app");
       AppView<AppInfo> appView = readApp(inputApp, options, executor, timing);
+      timing.end();
+      timing.begin("Desugared library amend");
       DesugaredLibraryAmender.run(appView);
+      timing.end();
+      timing.begin("Collect input synthetics");
       SyntheticItems.collectSyntheticInputs(appView);
+      timing.end();
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 

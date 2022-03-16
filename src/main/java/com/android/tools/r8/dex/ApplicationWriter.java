@@ -807,9 +807,9 @@ public class ApplicationWriter {
             namingLens,
             desugaredLibraryCodeToKeep);
     // Collect the non-fixed sections.
-    timing.scope("collect", () -> fileWriter.collect());
+    timing.time("collect", fileWriter::collect);
     // Generate and write the bytes.
-    return timing.scope("generate", () -> fileWriter.generate());
+    return timing.time("generate", fileWriter::generate);
   }
 
   private static String mapMainDexListName(DexType type, NamingLens namingLens) {

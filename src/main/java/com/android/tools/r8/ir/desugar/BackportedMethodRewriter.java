@@ -108,7 +108,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       appInfo = AppInfo.createInitialAppInfo(app);
     }
     TypeRewriter typeRewriter = options.getTypeRewriter();
-    AppView<?> appView = AppView.createForD8(appInfo, typeRewriter);
+    AppView<?> appView = AppView.createForD8(appInfo, typeRewriter, Timing.empty());
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
         new BackportedMethodRewriter.RewritableMethods(options, appView);
     rewritableMethods.visit(methods::add);
