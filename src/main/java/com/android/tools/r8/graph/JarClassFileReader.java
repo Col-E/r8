@@ -119,6 +119,9 @@ public class JarClassFileReader<T extends DexClass> {
         parsingOptions |= SKIP_DEBUG;
       }
     }
+    if (classKind != ClassKind.PROGRAM) {
+      parsingOptions |= SKIP_DEBUG;
+    }
     reader.accept(
         new CreateDexClassVisitor<>(origin, classKind, reader.b, application, classConsumer),
         new Attribute[] {SyntheticMarker.getMarkerAttributePrototype()},
