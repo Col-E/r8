@@ -258,7 +258,7 @@ but IS NOT suitable for public release.
 
 Built here: go/r8-releases/raw/%s
 Test: ./gradlew check
-Bug: %s""" % (version, version, '\nBug: '.join(bugs))
+Bug: %s""" % (version, version, '\nBug: '.join(map(bug_fmt, bugs)))
 
 
 def git_message_release(version, bugs):
@@ -267,8 +267,10 @@ def git_message_release(version, bugs):
 Built here: go/r8-releases/raw/%s/
 Test: ./gradlew check
 
-Bug: %s""" % (version, version, '\nBug: '.join(bugs))
+Bug: %s""" % (version, version, '\nBug: '.join(map(bug_fmt, bugs)))
 
+def bug_fmt(bug):
+  return "b/%s" % bug
 
 def prepare_studio(args):
   assert args.version
@@ -459,7 +461,7 @@ Bug: %s
 Test: L8ToolTest, L8DexDesugarTest"""
                      % (library_version,
                         configuration_version,
-                        '\nBug: '.join(args.bug)))
+                        '\nBug: '.join(map(bug_fmt, args.bug))))
 
       if not args.use_existing_work_branch:
         subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
