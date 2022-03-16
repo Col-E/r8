@@ -118,6 +118,11 @@ public class BenchmarkCollectionPrinter {
     printSemi("final name = " + quote(benchmarkName));
     printSemi("final metrics = " + StringUtils.join(", ", metrics, BraceType.SQUARE));
     printSemi("final benchmark = StandardBenchmark(name, metrics)");
+    BenchmarkTimeout timeout = BenchmarkConfig.getCommonTimeout(benchmarkVariants);
+    if (timeout != null) {
+      printSemi("final timeout = const Duration(seconds: " + timeout.asSeconds() + ")");
+      printSemi("ExecutionManagement.addTimeoutConstraint(timeout, benchmark: benchmark)");
+    }
     for (BenchmarkConfig benchmark : benchmarkVariants) {
       scopeBraces(
           () -> {
@@ -141,8 +146,9 @@ public class BenchmarkCollectionPrinter {
             for (BenchmarkDependency dependency : benchmark.getDependencies()) {
               scopeBraces(
                   () -> {
-                    addGolemResource(dependency.getName(), dependency.getTarball());
-                    printSemi("options.resources.add(dependency)");
+                    String dependencyName = dependency.getName();
+                    addGolemResource(dependencyName, dependency.getTarball());
+                    printSemi("options.resources.add(" + dependencyName + ")");
                   });
             }
           });

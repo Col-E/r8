@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class BenchmarkConfig {
 
@@ -39,6 +40,20 @@ public class BenchmarkConfig {
     return getConsistentRepresentative(variants).getSuite();
   }
 
+  // Use the largest configured timeout as the timeout for the full group.
+  public static BenchmarkTimeout getCommonTimeout(List<BenchmarkConfig> variants) {
+    BenchmarkTimeout timeout = null;
+    for (BenchmarkConfig variant : variants) {
+      BenchmarkTimeout variantTimeout = variant.getTimeout();
+      if (timeout == null) {
+        timeout = variantTimeout;
+      } else if (variantTimeout != null && timeout.asSeconds() < variantTimeout.asSeconds()) {
+        timeout = variantTimeout;
+      }
+    }
+    return timeout;
+  }
+
   private static BenchmarkConfig getConsistentRepresentative(List<BenchmarkConfig> variants) {
     if (variants.isEmpty()) {
       throw new BenchmarkConfigError("Unexpected attempt to check consistency of empty collection");
@@ -59,6 +74,7 @@ public class BenchmarkConfig {
     private BenchmarkSuite suite = BenchmarkSuite.getDefault();
     private Collection<BenchmarkDependency> dependencies = new ArrayList<>();
     private int fromRevision = -1;
+    private BenchmarkTimeout timeout = null;
 
     private Builder() {}
 
@@ -88,7 +104,8 @@ public class BenchmarkConfig {
           ImmutableSet.copyOf(metrics),
           suite,
           fromRevision,
-          dependencies);
+          dependencies,
+          timeout);
     }
 
     public Builder setName(String name) {
@@ -135,6 +152,11 @@ public class BenchmarkConfig {
       dependencies.add(dependency);
       return this;
     }
+
+    public Builder setTimeout(long duration, TimeUnit unit) {
+      timeout = new BenchmarkTimeout(duration, unit);
+      return this;
+    }
   }
 
   public static Builder builder() {
@@ -147,6 +169,7 @@ public class BenchmarkConfig {
   private final BenchmarkSuite suite;
   private final Collection<BenchmarkDependency> dependencies;
   private final int fromRevision;
+  private final BenchmarkTimeout timeout;
 
   private BenchmarkConfig(
       String name,
@@ -155,13 +178,15 @@ public class BenchmarkConfig {
       ImmutableSet<BenchmarkMetric> metrics,
       BenchmarkSuite suite,
       int fromRevision,
-      Collection<BenchmarkDependency> dependencies) {
+      Collection<BenchmarkDependency> dependencies,
+      BenchmarkTimeout timeout) {
     this.id = new BenchmarkIdentifier(name, target);
     this.method = benchmarkMethod;
     this.metrics = metrics;
     this.suite = suite;
     this.fromRevision = fromRevision;
     this.dependencies = dependencies;
+    this.timeout = timeout;
   }
 
   public BenchmarkIdentifier getIdentifier() {
@@ -202,6 +227,10 @@ public class BenchmarkConfig {
 
   public Collection<BenchmarkDependency> getDependencies() {
     return dependencies;
+  }
+
+  public BenchmarkTimeout getTimeout() {
+    return timeout;
   }
 
   public void run(BenchmarkEnvironment environment) throws Exception {

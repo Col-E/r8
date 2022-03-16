@@ -17,6 +17,7 @@ import com.android.tools.r8.dump.CompilerDump;
 import com.android.tools.r8.dump.DumpOptions;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 public class AppDumpBenchmarkBuilder {
 
@@ -74,6 +75,7 @@ public class AppDumpBenchmarkBuilder {
         .addDependency(dumpDependency)
         .measureRunTime()
         .measureCodeSize()
+        .setTimeout(10, TimeUnit.MINUTES)
         .build();
   }
 
