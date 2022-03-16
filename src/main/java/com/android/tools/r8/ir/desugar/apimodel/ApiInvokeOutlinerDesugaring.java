@@ -12,7 +12,6 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -42,12 +41,10 @@ import java.util.Collection;
 public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
 
   private final AppView<?> appView;
-  private final AppInfoWithClassHierarchy appInfoWithClassHierarchy;
   private final AndroidApiLevelCompute apiLevelCompute;
 
   public ApiInvokeOutlinerDesugaring(AppView<?> appView, AndroidApiLevelCompute apiLevelCompute) {
     this.appView = appView;
-    this.appInfoWithClassHierarchy = appView.appInfoForDesugaring();
     this.apiLevelCompute = apiLevelCompute;
   }
 
@@ -130,15 +127,17 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
       return result;
     }
     TraversalContinuation<DexEncodedMethod> traversalResult =
-        appInfoWithClassHierarchy.traverseSuperClasses(
-            holder,
-            (ignored, superClass, ignored_) -> {
-              DexEncodedMethod definition = superClass.lookupMethod(method);
-              if (definition != null) {
-                return TraversalContinuation.doBreak(definition);
-              }
-              return TraversalContinuation.doContinue();
-            });
+        appView
+            .appInfoForDesugaring()
+            .traverseSuperClasses(
+                holder,
+                (ignored, superClass, ignored_) -> {
+                  DexEncodedMethod definition = superClass.lookupMethod(method);
+                  if (definition != null) {
+                    return TraversalContinuation.doBreak(definition);
+                  }
+                  return TraversalContinuation.doContinue();
+                });
     return traversalResult.isBreak() ? traversalResult.asBreak().getValue() : null;
   }
 
