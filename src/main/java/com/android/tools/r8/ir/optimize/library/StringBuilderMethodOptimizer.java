@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.UtilityMethodsForCodeOptimizations;
@@ -81,7 +82,6 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
       InvokeMethodWithReceiver invokeWithReceiver = invoke.asInvokeMethodWithReceiver();
       if (stringBuilderMethods.isAppendMethod(singleTarget.getReference())) {
         optimizeAppend(
-            code,
             instructionIterator,
             invokeWithReceiver,
             singleTarget,
@@ -94,18 +94,30 @@ public class StringBuilderMethodOptimizer implements LibraryMethodModelCollectio
   }
 
   private void optimizeAppend(
-      IRCode code,
       InstructionListIterator instructionIterator,
       InvokeMethodWithReceiver invoke,
       DexClassAndMethod singleTarget,
       State state,
       MethodProcessingContext methodProcessingContext) {
-    if (!state.isUnusedBuilder(invoke.getReceiver())) {
-      return;
-    }
-    if (invoke.hasOutValue()) {
+    boolean isStringBuilderUnused = state.isUnusedBuilder(invoke.getReceiver());
+    if (invoke.hasOutValue() && (options.isGeneratingDex() || isStringBuilderUnused)) {
       invoke.outValue().replaceUsers(invoke.getReceiver());
+      invoke.getReceiver().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
+      invoke.clearOutValue();
     }
+    if (isStringBuilderUnused) {
+      optimizeAppendOnUnusedStringBuilder(
+          instructionIterator, invoke, singleTarget, state, methodProcessingContext);
+    }
+  }
+
+  private void optimizeAppendOnUnusedStringBuilder(
+      InstructionListIterator instructionIterator,
+      InvokeMethodWithReceiver invoke,
+      DexClassAndMethod singleTarget,
+      State state,
+      MethodProcessingContext methodProcessingContext) {
+    assert !invoke.hasOutValue();
     DexMethod appendMethod = singleTarget.getReference();
     if (stringBuilderMethods.isAppendPrimitiveMethod(appendMethod)
         || stringBuilderMethods.isAppendStringMethod(appendMethod)) {
