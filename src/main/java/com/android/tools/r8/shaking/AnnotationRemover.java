@@ -217,7 +217,7 @@ public class AnnotationRemover {
       Set<KotlinPropertyInfo> pinnedKotlinProperties) {
     KeepMemberInfo<?, ?> memberInfo = appView.getKeepInfo().getMemberInfo(member);
     removeAnnotations(member, memberInfo);
-    if (memberInfo.isSignatureAttributeRemovalAllowed(options)) {
+    if (memberInfo.isSignatureRemovalAllowed(options)) {
       member.clearGenericSignature();
     }
     if (!member.getKotlinInfo().isProperty()
@@ -346,8 +346,7 @@ public class AnnotationRemover {
     clazz.removeInnerClasses(
         attribute ->
             canRemoveInnerClassAttribute(clazz, attribute, clazz.getEnclosingMethodAttribute()));
-    if (clazz.getClassSignature().isValid()
-        && keepInfo.isSignatureAttributeRemovalAllowed(options)) {
+    if (clazz.getClassSignature().isValid() && keepInfo.isSignatureRemovalAllowed(options)) {
       clazz.clearClassSignature();
     }
   }

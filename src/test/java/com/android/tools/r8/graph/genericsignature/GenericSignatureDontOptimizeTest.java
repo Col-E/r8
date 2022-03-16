@@ -7,6 +7,7 @@ package com.android.tools.r8.graph.genericsignature;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,11 +46,10 @@ public class GenericSignatureDontOptimizeTest extends TestBase {
         .addKeepClassRules(Foo.class)
         .addKeepMainRule(Main.class)
         .addDontOptimize()
-        .run(parameters.getRuntime(), Main.class)
+        .compile()
         .inspect(this::inspect)
-        // TODO(b/221404266): We should fail with an exception since the parameterized generic type
-        //   should be removed.
-        .assertSuccessWithOutputLines(EXPECTED);
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatThrows(ClassCastException.class);
   }
 
   private void inspect(CodeInspector inspector) {
@@ -57,11 +57,9 @@ public class GenericSignatureDontOptimizeTest extends TestBase {
     assertThat(foo, isPresent());
     assertEquals("<T:Ljava/lang/Object;>Ljava/lang/Object;", foo.getFinalSignatureAttribute());
 
-    // TODO(b/221404266): We should not keep generic signatures when having -dontoptimize
     ClassSubject main$1 = inspector.clazz(Main.class.getTypeName() + "$1");
     assertThat(main$1, isPresent());
-    assertEquals(
-        "L" + binaryName(Foo.class) + "<Ljava/lang/String;>;", main$1.getFinalSignatureAttribute());
+    assertNull(main$1.getFinalSignatureAttribute());
   }
 
   public static class Foo<T> {

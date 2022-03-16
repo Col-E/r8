@@ -1532,6 +1532,13 @@ public class RootSetUtils {
         context.markAsUsed();
       }
 
+      if (appView.options().isKeepAttributesSignatureEnabled()) {
+        dependentMinimumKeepInfo
+            .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())
+            .disallowSignatureRemoval();
+        context.markAsUsed();
+      }
+
       if (appView.options().isMinificationEnabled() && !modifiers.allowsObfuscation) {
         dependentMinimumKeepInfo
             .getOrCreateMinimumKeepInfoFor(preconditionEvent, item.getReference())

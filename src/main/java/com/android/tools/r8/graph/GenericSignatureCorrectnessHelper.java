@@ -139,7 +139,7 @@ public class GenericSignatureCorrectnessHelper {
       KeepClassInfo classInfo = appView.getKeepInfo().getClassInfo(clazz);
       if (appView.hasLiveness() && !classInfo.isShrinkingAllowed(appView.options())) {
         // If/when this no longer holds it should be moved into the condition.
-        assert !classInfo.isSignatureAttributeRemovalAllowed(appView.options());
+        assert !classInfo.isSignatureRemovalAllowed(appView.options());
         appView
             .options()
             .reporter
@@ -167,7 +167,7 @@ public class GenericSignatureCorrectnessHelper {
                     if (appView.hasLiveness()
                         && !methodInfo.isShrinkingAllowed(appView.options())) {
                       // If/when this no longer holds it should be moved into the condition.
-                      assert !methodInfo.isSignatureAttributeRemovalAllowed(appView.options());
+                      assert !methodInfo.isSignatureRemovalAllowed(appView.options());
                       appView
                           .options()
                           .reporter
@@ -195,7 +195,7 @@ public class GenericSignatureCorrectnessHelper {
                     // ensure we do not spam the developer with messages they can do nothing about.
                     if (appView.hasLiveness() && !fieldInfo.isShrinkingAllowed(appView.options())) {
                       // If/when this no longer holds it should be moved into the condition.
-                      assert !fieldInfo.isSignatureAttributeRemovalAllowed(appView.options());
+                      assert !fieldInfo.isSignatureRemovalAllowed(appView.options());
                       appView
                           .options()
                           .reporter

@@ -636,12 +636,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public boolean parseSignatureAttribute() {
-    return proguardConfiguration == null || isKeepAttributesSignatureEnabled();
+    return isKeepAttributesSignatureEnabled();
   }
 
   @Override
   public boolean isKeepAttributesSignatureEnabled() {
-    return proguardConfiguration.getKeepAttributes().signature;
+    return proguardConfiguration == null || proguardConfiguration.getKeepAttributes().signature;
   }
 
   @Override
