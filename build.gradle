@@ -342,6 +342,7 @@ def cloudDependencies = [
                 "api-outlining/simple-app-dump",
                 "binary_compatibility_tests/compiler_api_tests",
                 "core-lambda-stubs",
+                "dagger/2.41",
                 "dart-sdk",
                 "ddmlib",
                 "gradle/gradle",
