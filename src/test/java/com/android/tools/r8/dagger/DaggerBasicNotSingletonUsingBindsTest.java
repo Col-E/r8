@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.DaggerUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -26,7 +27,12 @@ public class DaggerBasicNotSingletonUsingBindsTest extends DaggerBasicTestBase {
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().withAllApiLevels().build());
+    return buildParameters(
+        getTestParameters()
+            .withDexRuntimes()
+            .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+            .withAllApiLevels()
+            .build());
   }
 
   @BeforeClass

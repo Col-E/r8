@@ -73,7 +73,7 @@ public class DaggerUtils {
             }
           });
     }
-    return TestBase.javac(TestRuntime.getCheckedInJdk8(), TestBase.getStaticTemp())
+    return TestBase.javac(TestRuntime.getCheckedInJdk11(), TestBase.getStaticTemp())
         .addSourceFiles(sourceFiles)
         .addClassNames(classNames)
         .addClasspathFiles(classFiles)
@@ -95,7 +95,7 @@ public class DaggerUtils {
   }
 
   public static Path compileWithoutAnnotationProcessing(Collection<Path> files) throws Exception {
-    return TestBase.javac(TestRuntime.getCheckedInJdk8(), TestBase.getStaticTemp())
+    return TestBase.javac(TestRuntime.getCheckedInJdk11(), TestBase.getStaticTemp())
         .addSourceFiles(files)
         .addClasspathFiles(getDaggerRuntime())
         .compile();
