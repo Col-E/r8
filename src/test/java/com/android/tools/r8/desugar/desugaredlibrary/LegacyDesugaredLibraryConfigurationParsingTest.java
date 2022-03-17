@@ -166,7 +166,8 @@ public class LegacyDesugaredLibraryConfigurationParsingTest extends DesugaredLib
     SemanticVersion minVersion = LegacyDesugaredLibrarySpecificationParser.MIN_SUPPORTED_VERSION;
     data.put(
         "version",
-        new SemanticVersion(minVersion.getMajor(), minVersion.getMinor(), minVersion.getPatch() - 1)
+        SemanticVersion.create(
+                minVersion.getMajor(), minVersion.getMinor(), minVersion.getPatch() - 1)
             .toString());
     runFailing(
         toJson(data),

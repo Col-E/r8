@@ -115,10 +115,15 @@ DESUGAR_CONFIGUATION_POMTEMPLATE = Template(
 def parse_options(argv):
   result = argparse.ArgumentParser()
   result.add_argument('--out', help='The zip file to output')
-  result.add_argument('--r8lib', action='store_true',
+  group = result.add_mutually_exclusive_group()
+  group.add_argument('--r8lib', action='store_true',
                       help='Build r8 with dependencies included shrunken')
-  result.add_argument('--desugar-configuration', action='store_true',
-                      help='Build r8 with dependencies included shrunken')
+  group.add_argument('--desugar-configuration', action='store_true',
+                      help='Build desugar library configuration (original JDK-8)')
+  group.add_argument('--desugar-configuration-jdk8', action='store_true',
+                      help='Build desugar library configuration (original JDK-8)')
+  group.add_argument('--desugar-configuration-jdk11-legacy', action='store_true',
+                      help='Build desugar library configuration (JDK-11 legacy)')
   return result.parse_args(argv)
 
 def determine_version():
@@ -371,17 +376,17 @@ def generate_jar_with_desugar_configuration(
     move(destination + '.zip', destination)
 
 # Generate the maven zip for the configuration to desugar desugar_jdk_libs.
-def generate_desugar_configuration_maven_zip(out):
+def generate_desugar_configuration_maven_zip(out, configuration, implementation):
   with utils.TempDir() as tmp_dir:
-    version = utils.desugar_configuration_version()
+    version = utils.desugar_configuration_version(configuration)
     # Generate the pom file.
     pom_file = join(tmp_dir, 'desugar_configuration.pom')
     write_pom_file(DESUGAR_CONFIGUATION_POMTEMPLATE, pom_file, version)
     # Generate the jar with the configuration file.
     jar_file = join(tmp_dir, 'desugar_configuration.jar')
     generate_jar_with_desugar_configuration(
-        utils.DESUGAR_CONFIGURATION,
-        utils.DESUGAR_IMPLEMENTATION,
+        configuration,
+        implementation,
         utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
         jar_file)
     # Write the maven zip file.
@@ -390,14 +395,16 @@ def generate_desugar_configuration_maven_zip(out):
 
 def main(argv):
   options = parse_options(argv)
-  if options.r8lib and options.desugar_configuration:
-    raise Exception(
-        'Cannot combine options --r8lib and --desugar-configuration')
   if options.out == None:
     raise Exception(
         'Need to supply output zip with --out.')
-  if options.desugar_configuration:
-    generate_desugar_configuration_maven_zip(options.out)
+  if options.desugar_configuration or options.desugar_configuration_jdk8:
+    generate_desugar_configuration_maven_zip(
+      options.out, utils.DESUGAR_CONFIGURATION, utils.DESUGAR_IMPLEMENTATION)
+  elif options.desugar_configuration_jdk11_legacy:
+    generate_desugar_configuration_maven_zip(
+      options.out, utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
+      utils.DESUGAR_IMPLEMENTATION_JDK11)
   else:
     generate_r8_maven_zip(options.out, options.r8lib)
 

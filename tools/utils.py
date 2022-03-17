@@ -73,8 +73,14 @@ DESUGAR_CONFIGURATION = os.path.join(
       'src', 'library_desugar', 'desugar_jdk_libs.json')
 DESUGAR_IMPLEMENTATION = os.path.join(
       'third_party', 'openjdk', 'desugar_jdk_libs', 'desugar_jdk_libs.jar')
+DESUGAR_CONFIGURATION_JDK11_LEGACY = os.path.join(
+      'src', 'library_desugar', 'jdk11', 'desugar_jdk_libs_legacy.json')
+DESUGAR_IMPLEMENTATION_JDK11 = os.path.join(
+      'third_party', 'openjdk', 'desugar_jdk_libs_11', 'desugar_jdk_libs.jar')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
+DESUGAR_CONFIGURATION_LEGACY_JDK11_MAVEN_ZIP = os.path.join(
+  LIBS, 'desugar_jdk_libs_configuration_legacy_jdk11.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
@@ -609,26 +615,29 @@ def getR8Version(path):
   # so we split on '('; clean up tailing spaces; and strip off 'R8 '.
   return output.split('(')[0].strip()[3:]
 
-def desugar_configuration_version():
-  with open(DESUGAR_CONFIGURATION, 'r') as f:
+def desugar_configuration_version(configuration):
+  with open(configuration, 'r') as f:
     configuration_json = json.loads(f.read())
     configuration_format_version = \
         configuration_json.get('configuration_format_version')
     version = configuration_json.get('version')
     if not version:
       raise Exception(
-          'No "version" found in ' + utils.DESUGAR_CONFIGURATION)
-    check_basic_semver_version(version, 'in ' + DESUGAR_CONFIGURATION)
+          'No "version" found in ' + configuration)
+    check_basic_semver_version(version, 'in ' + configuration, allowPrerelease = True)
     return version
 
 class SemanticVersion:
-  def __init__(self, major, minor, patch):
+  def __init__(self, major, minor, patch, prerelease):
     self.major = major
     self.minor = minor
     self.patch = patch
+    self.prerelease = prerelease
     # Build metadata currently not suppported
 
   def larger_than(self, other):
+    if self.prepelease or other.prepelease:
+      raise Exception("Comparison with prerelease not implemented")
     if self.major > other.major:
       return True
     if self.major == other.major and self.minor > other.minor:
@@ -641,14 +650,20 @@ class SemanticVersion:
       return False
 
 
-# Check that the passed string is formatted as a basic semver version (x.y.z)
-# See https://semver.org/.
-def check_basic_semver_version(version, error_context = '', components = 3):
+# Check that the passed string is formatted as a basic semver version (x.y.z or x.y.z-prerelease
+# depending on the value of allowPrerelease).
+# See https://semver.org/. The regexp parts used are not all complient with what is suggested
+# on https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string.
+def check_basic_semver_version(version, error_context = '', components = 3, allowPrerelease = False):
     regexp = '^'
     for x in range(components):
       regexp += '([0-9]+)'
       if x < components - 1:
         regexp += '\\.'
+    if allowPrerelease:
+      # This part is from
+      # https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+      regexp += r'(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?'
     regexp += '$'
     reg = re.compile(regexp)
     match = reg.match(version)
@@ -658,9 +673,12 @@ def check_basic_semver_version(version, error_context = '', components = 3):
             + "'"
             + (' ' + error_context) if len(error_context) > 0 else '')
     if components == 2:
-      return SemanticVersion(int(match.group(1)), int(match.group(2)), None)
-    elif components == 3:
+      return SemanticVersion(int(match.group(1)), int(match.group(2)), None, None)
+    elif components == 3 and not allowPrerelease:
       return SemanticVersion(
-        int(match.group(1)), int(match.group(2)), int(match.group(3)))
+        int(match.group(1)), int(match.group(2)), int(match.group(3)), None)
+    elif components == 3 and allowPrerelease:
+      return SemanticVersion(
+        int(match.group(1)), int(match.group(2)), int(match.group(3)), match.group('prerelease'))
     else:
       raise Exception('Argument "components" must be 2 or 3')

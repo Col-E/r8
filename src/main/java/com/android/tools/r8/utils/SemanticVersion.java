@@ -13,32 +13,52 @@ public class SemanticVersion {
       throw new IllegalArgumentException("Invalid semantic version: " + version);
     }
     int minorEnd = version.indexOf('.', majorEnd + 1);
-    if (minorEnd <= majorEnd) {
+    if (minorEnd <= majorEnd + 1) {
       throw new IllegalArgumentException("Invalid semantic version: " + version);
     }
-    // No current support for extensions.
-    int patchEnd = version.length();
+    int patchEnd = version.indexOf('-', minorEnd + 1);
+    int prereleaseEnd = -1;
+    if (patchEnd == -1) {
+      patchEnd = version.length();
+    } else {
+      if (patchEnd <= minorEnd + 1) {
+        throw new IllegalArgumentException("Invalid semantic version: " + version);
+      }
+      prereleaseEnd = version.length();
+    }
     int major;
     int minor;
     int patch;
+    String prerelease;
     try {
       major = Integer.parseInt(version.substring(0, majorEnd));
       minor = Integer.parseInt(version.substring(majorEnd + 1, minorEnd));
       patch = Integer.parseInt(version.substring(minorEnd + 1, patchEnd));
+      prerelease = prereleaseEnd < 0 ? null : version.substring(patchEnd + 1, prereleaseEnd);
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("Invalid semantic version: " + version, e);
     }
-    return new SemanticVersion(major, minor, patch);
+    return create(major, minor, patch, prerelease);
   }
 
   private final int major;
   private final int minor;
   private final int patch;
+  private final String prerelease;
 
-  public SemanticVersion(int major, int minor, int patch) {
+  private SemanticVersion(int major, int minor, int patch, String prerelease) {
     this.major = major;
     this.minor = minor;
     this.patch = patch;
+    this.prerelease = prerelease;
+  }
+
+  public static SemanticVersion create(int major, int minor, int patch) {
+    return create(major, minor, patch, null);
+  }
+
+  public static SemanticVersion create(int major, int minor, int patch, String prerelease) {
+    return new SemanticVersion(major, minor, patch, prerelease);
   }
 
   public int getMajor() {
@@ -69,16 +89,19 @@ public class SemanticVersion {
       return false;
     }
     SemanticVersion other = (SemanticVersion) obj;
-    return major == other.major && minor == other.minor && patch == other.patch;
+    return major == other.major
+        && minor == other.minor
+        && patch == other.patch
+        && Objects.equals(prerelease, other.prerelease);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(major, minor, patch);
+    return Objects.hash(major, minor, patch, prerelease);
   }
 
   @Override
   public String toString() {
-    return "" + major + "." + minor + "." + patch;
+    return "" + major + "." + minor + "." + patch + (prerelease != null ? "-" + prerelease : "");
   }
 }
