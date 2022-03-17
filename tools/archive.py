@@ -155,7 +155,7 @@ def Main():
   # an r8.jar with dependencies to have been built.
   create_maven_release.generate_desugar_configuration_maven_zip(
       utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
-      utils.DESUGAR_CONFIGURTION,
+      utils.DESUGAR_CONFIGURATION,
       utils.DESUGAR_IMPLEMENTATION)
   create_maven_release.generate_desugar_configuration_maven_zip(
       utils.DESUGAR_CONFIGURATION_LEGACY_JDK11_MAVEN_ZIP,
