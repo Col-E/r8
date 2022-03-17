@@ -154,9 +154,12 @@ def Main():
   # Create maven release of the desuage_jdk_libs configuration. This require
   # an r8.jar with dependencies to have been built.
   create_maven_release.generate_desugar_configuration_maven_zip(
-      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP, utils.DESUGAR_IMPLEMENTATION)
+      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
+      utils.DESUGAR_CONFIGURTION,
+      utils.DESUGAR_IMPLEMENTATION)
   create_maven_release.generate_desugar_configuration_maven_zip(
       utils.DESUGAR_CONFIGURATION_LEGACY_JDK11_MAVEN_ZIP,
+      utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
       utils.DESUGAR_IMPLEMENTATION_JDK11)
 
   version = GetVersion()
