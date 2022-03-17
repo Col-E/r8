@@ -62,7 +62,7 @@ public class SyntheticNaming {
     ENUM_CONVERSION("$EnumConversion", 31, false, true),
     ARRAY_CONVERSION("$ArrayConversion", 37, true, false),
     API_MODEL_OUTLINE("ApiModelOutline", 32, true, false, false),
-    API_MODEL_STUB("ApiModelStub", 33, false, true, true);
+    API_MODEL_STUB("", 33, false, true, true);
 
     static {
       assert verifyNoOverlappingIds();
@@ -101,6 +101,10 @@ public class SyntheticNaming {
 
     public boolean allowSyntheticContext() {
       return this == RECORD_TAG;
+    }
+
+    public boolean isGlobal() {
+      return isFixedSuffixSynthetic && descriptor.isEmpty();
     }
 
     public boolean isShareable() {

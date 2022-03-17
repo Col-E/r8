@@ -234,11 +234,10 @@ public class ApiReferenceStubber {
     appView
         .appInfo()
         .getSyntheticItems()
-        .addSyntheticClassWithLibraryContext(
-            appView,
-            libraryClass,
+        .ensureFixedClassFromType(
             SyntheticKind.API_MODEL_STUB,
             libraryClass.getType(),
+            appView,
             classBuilder -> {
               classBuilder
                   .setSuperType(libraryClass.getSuperType())
@@ -268,7 +267,8 @@ public class ApiReferenceStubber {
                       .setCode(throwExceptionCode)
                       .build());
               classBuilder.setDirectMethods(directMethods);
-            });
+            },
+            ignored -> {});
   }
 
   private List<DexEncodedMethod> buildLibraryMethodsForProgram(
