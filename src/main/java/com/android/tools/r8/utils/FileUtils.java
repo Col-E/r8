@@ -45,13 +45,17 @@ public class FileUtils {
     return name.endsWith(VDEX_EXTENSION);
   }
 
-  public static boolean isClassFile(Path path) {
-    String name = path.getFileName().toString().toLowerCase();
+  public static boolean isClassFile(String path) {
+    String name = path.toLowerCase();
     // Android does not support Java 9 module, thus skip module-info.
     if (name.equals(MODULE_INFO_CLASS)) {
       return false;
     }
     return name.endsWith(CLASS_EXTENSION);
+  }
+
+  public static boolean isClassFile(Path path) {
+    return isClassFile(path.getFileName().toString());
   }
 
   public static boolean isJarFile(Path path) {
@@ -72,6 +76,11 @@ public class FileUtils {
   public static boolean isAarFile(Path path) {
     String name = path.getFileName().toString().toLowerCase();
     return name.endsWith(AAR_EXTENSION);
+  }
+
+  public static boolean isJavaFile(Path path) {
+    String name = path.getFileName().toString().toLowerCase();
+    return name.endsWith(JAVA_EXTENSION);
   }
 
   public static boolean isArchive(Path path) {

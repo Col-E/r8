@@ -26,8 +26,11 @@ public class JavaCompilerTool {
   private final CfRuntime jdk;
   private final TestState state;
   private final List<Path> sources = new ArrayList<>();
+  private final List<String> classNames = new ArrayList<>();
   private final List<Path> classpath = new ArrayList<>();
   private final List<String> options = new ArrayList<>();
+  private final List<Path> annotationProcessorPath = new ArrayList<>();
+  private final List<String> annotationProcessors = new ArrayList<>();
   private Path output = null;
 
   private JavaCompilerTool(CfRuntime jdk, TestState state) {
@@ -63,12 +66,35 @@ public class JavaCompilerTool {
     return this;
   }
 
+  public JavaCompilerTool addClassNames(Collection<String> classNames) {
+    this.classNames.addAll(classNames);
+    return this;
+  }
+
   public JavaCompilerTool addClasspathFiles(Path... files) {
     return addClasspathFiles(Arrays.asList(files));
   }
 
   public JavaCompilerTool addClasspathFiles(Collection<Path> files) {
     classpath.addAll(files);
+    return this;
+  }
+
+  public JavaCompilerTool addAnnotationProcessorPathFiles(Path... files) {
+    return addAnnotationProcessorPathFiles(Arrays.asList(files));
+  }
+
+  public JavaCompilerTool addAnnotationProcessorPathFiles(Collection<Path> files) {
+    annotationProcessorPath.addAll(files);
+    return this;
+  }
+
+  public JavaCompilerTool addAnnotationProcessors(String... processors) {
+    return addAnnotationProcessor(Arrays.asList(processors));
+  }
+
+  public JavaCompilerTool addAnnotationProcessor(Collection<String> processors) {
+    annotationProcessors.addAll(processors);
     return this;
   }
 
@@ -103,6 +129,8 @@ public class JavaCompilerTool {
     return output;
   }
 
+  // For javac command line options see
+  // https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html.
   private ProcessResult compileInternal(Path output) throws IOException {
     Path outdir = Files.isDirectory(output) ? output : state.getNewTempFolder();
     List<String> cmdline = new ArrayList<>();
@@ -115,11 +143,23 @@ public class JavaCompilerTool {
               .map(Path::toString)
               .collect(Collectors.joining(isWindows() ? ";" : ":")));
     }
+    if (!annotationProcessorPath.isEmpty()) {
+      cmdline.add("-processorpath");
+      cmdline.add(
+          annotationProcessorPath.stream()
+              .map(Path::toString)
+              .collect(Collectors.joining(isWindows() ? ";" : ":")));
+    }
+    if (!annotationProcessors.isEmpty()) {
+      cmdline.add("-processor");
+      cmdline.add(String.join(",", annotationProcessors));
+    }
     cmdline.add("-d");
     cmdline.add(outdir.toString());
     for (Path source : sources) {
       cmdline.add(source.toString());
     }
+    cmdline.addAll(classNames);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
     ProcessResult javacResult = ToolHelper.runProcess(builder);
     if (FileUtils.isJarFile(output)) {

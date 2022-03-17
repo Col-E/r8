@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -82,6 +83,31 @@ public class ZipUtils {
         }
       }
     }
+  }
+
+  public static Path map(
+      Path zipFilePath, Path mappedFilePath, BiFunction<ZipEntry, byte[], byte[]> map)
+      throws IOException {
+    ZipBuilder builder = ZipBuilder.builder(mappedFilePath);
+    ZipUtils.iter(
+        zipFilePath,
+        ((entry, input) -> {
+          builder.addBytes(entry.getName(), map.apply(entry, ByteStreams.toByteArray(input)));
+        }));
+    return builder.build();
+  }
+
+  public static Path filter(Path zipFilePath, Path filteredFilePath, Predicate<ZipEntry> predicate)
+      throws IOException {
+    ZipBuilder builder = ZipBuilder.builder(filteredFilePath);
+    ZipUtils.iter(
+        zipFilePath,
+        ((entry, input) -> {
+          if (predicate.test(entry)) {
+            builder.addBytes(entry.getName(), ByteStreams.toByteArray(input));
+          }
+        }));
+    return builder.build();
   }
 
   public static byte[] readSingleEntry(Path zipFilePath, String name) throws IOException {

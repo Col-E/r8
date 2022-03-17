@@ -9,6 +9,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.Reference;
 
 public class VerticallyMergedClassesInspector {
 
@@ -29,6 +31,20 @@ public class VerticallyMergedClassesInspector {
   public VerticallyMergedClassesInspector assertMergedIntoSubtype(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       assertMergedIntoSubtype(clazz);
+    }
+    return this;
+  }
+
+  public VerticallyMergedClassesInspector assertMergedIntoSubtype(ClassReference classReference) {
+    assertTrue(
+        verticallyMergedClasses.hasBeenMergedIntoSubtype(
+            toDexType(classReference, dexItemFactory)));
+    return this;
+  }
+
+  public VerticallyMergedClassesInspector assertMergedIntoSubtype(String... typeNames) {
+    for (String typeName : typeNames) {
+      assertMergedIntoSubtype(Reference.classFromTypeName(typeName));
     }
     return this;
   }
