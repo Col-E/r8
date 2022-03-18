@@ -8,7 +8,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.DaggerUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +27,18 @@ public class DaggerBasicSingletonUsingBindsTest extends DaggerBasicTestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
+  @Parameter(1)
+  public String target;
+
+  @Parameters(name = "{0}, javac -target {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters()
             .withDexRuntimes()
             .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
             .withAllApiLevels()
-            .build());
+            .build(),
+        javacTargets);
   }
 
   @BeforeClass
@@ -51,9 +54,7 @@ public class DaggerBasicSingletonUsingBindsTest extends DaggerBasicTestBase {
   public void testJvm() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramNotDependingOnDagger)
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramDependingOnDagger)
-        .addProgramFiles(DaggerUtils.getDaggerRuntime())
+        .addProgramFiles(getProgramFiles(target))
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -62,9 +63,7 @@ public class DaggerBasicSingletonUsingBindsTest extends DaggerBasicTestBase {
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramNotDependingOnDagger)
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramDependingOnDagger)
-        .addProgramFiles(DaggerUtils.getDaggerRuntime())
+        .addProgramFiles(getProgramFiles(target))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
@@ -89,20 +88,26 @@ public class DaggerBasicSingletonUsingBindsTest extends DaggerBasicTestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramNotDependingOnDagger)
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramDependingOnDagger)
-        .addProgramFiles(DaggerUtils.getDaggerRuntime())
+        .addProgramFiles(getProgramFiles(target))
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               inspector
-                  .assertIsCompleteMergeGroup(
-                      "basic.I1Impl1_Factory", "basic.I2Impl1_Factory", "basic.I3Impl1_Factory")
-                  .assertIsCompleteMergeGroup(
-                      "basic.I1Impl1_Factory$InstanceHolder",
-                      "basic.I2Impl1_Factory$InstanceHolder",
-                      "basic.I3Impl1_Factory$InstanceHolder")
+                  .applyIf(
+                      target.equals("1.8") || parameters.isDexRuntime(),
+                      i ->
+                          i.assertIsCompleteMergeGroup(
+                              "basic.I1Impl1_Factory",
+                              "basic.I2Impl1_Factory",
+                              "basic.I3Impl1_Factory"))
+                  .applyIf(
+                      target.equals("1.8") || parameters.isDexRuntime(),
+                      i ->
+                          i.assertIsCompleteMergeGroup(
+                              "basic.I1Impl1_Factory$InstanceHolder",
+                              "basic.I2Impl1_Factory$InstanceHolder",
+                              "basic.I3Impl1_Factory$InstanceHolder"))
                   .assertNoOtherClassesMerged();
             })
         .addVerticallyMergedClassesInspector(

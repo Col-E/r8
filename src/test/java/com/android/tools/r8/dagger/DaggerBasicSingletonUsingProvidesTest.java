@@ -8,7 +8,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.DaggerUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +27,18 @@ public class DaggerBasicSingletonUsingProvidesTest extends DaggerBasicTestBase {
   @Parameter(0)
   public TestParameters parameters;
 
-  @Parameters(name = "{0}")
+  @Parameter(1)
+  public String target;
+
+  @Parameters(name = "{0}, javac -target {1}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters()
             .withDexRuntimes()
             .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
             .withAllApiLevels()
-            .build());
+            .build(),
+        javacTargets);
   }
 
   @BeforeClass
@@ -67,9 +70,7 @@ public class DaggerBasicSingletonUsingProvidesTest extends DaggerBasicTestBase {
   public void testJvm() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramNotDependingOnDagger)
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramDependingOnDagger)
-        .addProgramFiles(DaggerUtils.getDaggerRuntime())
+        .addProgramFiles(getProgramFiles(target))
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
   }
@@ -78,9 +79,7 @@ public class DaggerBasicSingletonUsingProvidesTest extends DaggerBasicTestBase {
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramNotDependingOnDagger)
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramDependingOnDagger)
-        .addProgramFiles(DaggerUtils.getDaggerRuntime())
+        .addProgramFiles(getProgramFiles(target))
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutputLines(EXPECTED_OUTPUT);
@@ -89,24 +88,33 @@ public class DaggerBasicSingletonUsingProvidesTest extends DaggerBasicTestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramNotDependingOnDagger)
-        .addProgramFiles(DaggerBasicTestBase.compiledProgramDependingOnDagger)
-        .addProgramFiles(DaggerUtils.getDaggerRuntime())
+        .addProgramFiles(getProgramFiles(target))
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
+        .allowStdoutMessages()
         .addHorizontallyMergedClassesInspector(
             inspector -> {
               inspector
-                  .assertIsCompleteMergeGroup(
-                      "basic.ModuleUsingProvides_I1Factory",
-                      "basic.ModuleUsingProvides_I2Factory",
-                      "basic.ModuleUsingProvides_I3Factory")
-                  .assertIsCompleteMergeGroup(
-                      "basic.ModuleUsingProvides_I1Factory$InstanceHolder",
-                      "basic.ModuleUsingProvides_I2Factory$InstanceHolder",
-                      "basic.ModuleUsingProvides_I3Factory$InstanceHolder")
-                  .assertIsCompleteMergeGroup(
-                      "basic.ModuleUsingProvides", "basic.DaggerMainComponentUsingProvides$1")
+                  .applyIf(
+                      target.equals("1.8") || parameters.isDexRuntime(),
+                      i ->
+                          i.assertIsCompleteMergeGroup(
+                              "basic.ModuleUsingProvides_I1Factory",
+                              "basic.ModuleUsingProvides_I2Factory",
+                              "basic.ModuleUsingProvides_I3Factory"))
+                  .applyIf(
+                      target.equals("1.8") || parameters.isDexRuntime(),
+                      i ->
+                          i.assertIsCompleteMergeGroup(
+                              "basic.ModuleUsingProvides_I1Factory$InstanceHolder",
+                              "basic.ModuleUsingProvides_I2Factory$InstanceHolder",
+                              "basic.ModuleUsingProvides_I3Factory$InstanceHolder"))
+                  .applyIf(
+                      target.equals("1.8"),
+                      i ->
+                          i.assertIsCompleteMergeGroup(
+                              "basic.ModuleUsingProvides",
+                              "basic.DaggerMainComponentUsingProvides$1"))
                   .assertNoOtherClassesMerged();
             })
         .addVerticallyMergedClassesInspector(

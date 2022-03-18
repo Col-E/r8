@@ -59,7 +59,7 @@ public class DaggerUtils {
   }
 
   public static Path compileWithAnnotationProcessing(
-      Collection<Path> sourceFiles, Collection<Path> classFiles) throws Exception {
+      String target, Collection<Path> sourceFiles, Collection<Path> classFiles) throws Exception {
     // Class files are provided in JAR files. Extract all the class names to pass to javac for
     // annotation processing.
     List<String> classNames = new ArrayList<>();
@@ -75,8 +75,8 @@ public class DaggerUtils {
           });
     }
     return TestBase.javac(getJdk(), TestBase.getStaticTemp())
-        .setSource("1.8")
-        .setTarget("1.8")
+        .setSource(target)
+        .setTarget(target)
         .addSourceFiles(sourceFiles)
         .addClassNames(classNames)
         .addClasspathFiles(classFiles)
@@ -86,7 +86,8 @@ public class DaggerUtils {
         .compile();
   }
 
-  public static Path compileWithAnnotationProcessing(Collection<Path> files) throws Exception {
+  public static Path compileWithAnnotationProcessing(String target, Collection<Path> files)
+      throws Exception {
     // Split the files passed into source files and class files. Class files are expected to be in
     // JARs.
     List<Path> sourceFiles =
@@ -94,24 +95,25 @@ public class DaggerUtils {
     List<Path> classFiles =
         files.stream().filter(FileUtils::isJarFile).collect(Collectors.toList());
     assertEquals(files.size(), sourceFiles.size() + classFiles.size());
-    return compileWithAnnotationProcessing(sourceFiles, classFiles);
+    return compileWithAnnotationProcessing(target, sourceFiles, classFiles);
   }
 
-  public static Path compileWithoutAnnotationProcessing(Collection<Path> files) throws Exception {
+  public static Path compileWithoutAnnotationProcessing(String target, Collection<Path> files)
+      throws Exception {
     return TestBase.javac(getJdk(), TestBase.getStaticTemp())
-        .setSource("1.8")
-        .setTarget("1.8")
         .addSourceFiles(files)
         .addClasspathFiles(getDaggerRuntime())
         .compile();
   }
 
-  public static Path compileWithoutAnnotationProcessing(Path... files) throws Exception {
-    return compileWithoutAnnotationProcessing(Arrays.asList(files));
+  public static Path compileWithoutAnnotationProcessing(String target, Path... files)
+      throws Exception {
+    return compileWithoutAnnotationProcessing(target, Arrays.asList(files));
   }
 
-  public static Path compileWithAnnotationProcessing(Path... files) throws Exception {
-    return compileWithAnnotationProcessing(Arrays.asList(files));
+  public static Path compileWithAnnotationProcessing(String target, Path... files)
+      throws Exception {
+    return compileWithAnnotationProcessing(target, Arrays.asList(files));
   }
 
   private static CfRuntime getJdk() {
