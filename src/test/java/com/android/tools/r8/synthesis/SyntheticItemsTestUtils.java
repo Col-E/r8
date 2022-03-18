@@ -75,9 +75,7 @@ public class SyntheticItemsTestUtils {
 
   public static boolean isExternalSynthetic(ClassReference reference) {
     for (SyntheticKind kind : SyntheticKind.values()) {
-      if (kind == SyntheticKind.RECORD_TAG
-          || kind == SyntheticKind.EMULATED_INTERFACE_MARKER_CLASS
-          || kind == SyntheticKind.RETARGET_STUB) {
+      if (kind.isGlobal()) {
         continue;
       }
       if (kind.isFixedSuffixSynthetic) {
