@@ -115,6 +115,6 @@ public class DaggerUtils {
   }
 
   private static CfRuntime getJdk() {
-    return TestRuntime.getCheckedInJdk8();
+    return TestRuntime.getCheckedInJdk11();
   }
 }
