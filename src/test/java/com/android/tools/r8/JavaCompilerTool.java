@@ -25,6 +25,8 @@ public class JavaCompilerTool {
 
   private final CfRuntime jdk;
   private final TestState state;
+  private String source = null;
+  private String target = null;
   private final List<Path> sources = new ArrayList<>();
   private final List<String> classNames = new ArrayList<>();
   private final List<Path> classpath = new ArrayList<>();
@@ -54,6 +56,16 @@ public class JavaCompilerTool {
 
   public JavaCompilerTool addOptions(Collection<String> options) {
     this.options.addAll(options);
+    return this;
+  }
+
+  public JavaCompilerTool setSource(String source) {
+    this.source = source;
+    return this;
+  }
+
+  public JavaCompilerTool setTarget(String target) {
+    this.target = target;
     return this;
   }
 
@@ -153,6 +165,14 @@ public class JavaCompilerTool {
     if (!annotationProcessors.isEmpty()) {
       cmdline.add("-processor");
       cmdline.add(String.join(",", annotationProcessors));
+    }
+    if (source != null) {
+      cmdline.add("-source");
+      cmdline.add(source);
+    }
+    if (target != null) {
+      cmdline.add("-target");
+      cmdline.add(target);
     }
     cmdline.add("-d");
     cmdline.add(outdir.toString());

@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import java.nio.file.Path;
@@ -73,7 +74,9 @@ public class DaggerUtils {
             }
           });
     }
-    return TestBase.javac(TestRuntime.getCheckedInJdk11(), TestBase.getStaticTemp())
+    return TestBase.javac(getJdk(), TestBase.getStaticTemp())
+        .setSource("1.8")
+        .setTarget("1.8")
         .addSourceFiles(sourceFiles)
         .addClassNames(classNames)
         .addClasspathFiles(classFiles)
@@ -95,7 +98,9 @@ public class DaggerUtils {
   }
 
   public static Path compileWithoutAnnotationProcessing(Collection<Path> files) throws Exception {
-    return TestBase.javac(TestRuntime.getCheckedInJdk11(), TestBase.getStaticTemp())
+    return TestBase.javac(getJdk(), TestBase.getStaticTemp())
+        .setSource("1.8")
+        .setTarget("1.8")
         .addSourceFiles(files)
         .addClasspathFiles(getDaggerRuntime())
         .compile();
@@ -107,5 +112,9 @@ public class DaggerUtils {
 
   public static Path compileWithAnnotationProcessing(Path... files) throws Exception {
     return compileWithAnnotationProcessing(Arrays.asList(files));
+  }
+
+  private static CfRuntime getJdk() {
+    return TestRuntime.getCheckedInJdk8();
   }
 }
