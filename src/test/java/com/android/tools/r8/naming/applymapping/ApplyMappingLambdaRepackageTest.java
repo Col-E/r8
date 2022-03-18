@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming.applymapping;
 
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -50,14 +50,8 @@ public class ApplyMappingLambdaRepackageTest extends TestBase {
             .addApplyMapping(firstRunResult.proguardMap())
             .compile()
             .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()) {
-      // TODO(b/218793832): Should be the same map.
-      assertNotEquals(firstRunResult.proguardMap(), secondRunResult.proguardMap());
-    }
-    secondRunResult
-        .assertSuccessWithOutputLinesIf(parameters.isCfRuntime(), "Hello World")
-        // TODO(b/218793832): Should not fail with an error.
-        .assertFailureWithErrorThatThrowsIf(parameters.isDexRuntime(), IllegalAccessError.class);
+    assertEquals(firstRunResult.proguardMap(), secondRunResult.proguardMap());
+    secondRunResult.assertSuccessWithOutputLines("Hello World");
   }
 
   @NeverClassInline

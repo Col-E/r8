@@ -10,7 +10,6 @@ import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8;
@@ -292,8 +291,7 @@ public class KeepAnnotatedMemberTest extends TestBase {
             .apply(this::configureHorizontalClassMerging)
             .compile()
             .graphInspector();
-    assertRetainedClassesEqual(
-        referenceInspector, ifHasMemberThenKeepClassInspector, true, true, true, true);
+    assertRetainedClassesEqual(referenceInspector, ifHasMemberThenKeepClassInspector);
   }
 
   private void configureHorizontalClassMerging(R8FullTestBuilder testBuilder) {
@@ -313,58 +311,27 @@ public class KeepAnnotatedMemberTest extends TestBase {
 
   private void assertRetainedClassesEqual(
       GraphInspector referenceResult, GraphInspector conditionalResult) {
-    assertRetainedClassesEqual(referenceResult, conditionalResult, false, false, false, false);
-  }
-
-  private void assertRetainedClassesEqual(
-      GraphInspector referenceResult,
-      GraphInspector conditionalResult,
-      boolean expectReferenceIsLarger,
-      boolean expectReferenceIsLargerOnlyBySynthetics,
-      boolean expectConditionalIsLarger,
-      boolean expectConditionalIsLargerOnlyBySynthetics) {
     Set<String> referenceClasses =
         new TreeSet<>(
             referenceResult.codeInspector().allClasses().stream()
                 .map(FoundClassSubject::getOriginalName)
                 .collect(Collectors.toSet()));
-
     Set<String> conditionalClasses =
         conditionalResult.codeInspector().allClasses().stream()
             .map(FoundClassSubject::getOriginalName)
             .collect(Collectors.toSet());
-    {
-      Set<String> notInReference =
-          new TreeSet<>(Sets.difference(conditionalClasses, referenceClasses));
-      if (expectConditionalIsLarger) {
-        assertFalse("Expected classes in -if rule to retain more.", notInReference.isEmpty());
-        if (expectConditionalIsLargerOnlyBySynthetics) {
-          assertAllClassesAreSynthetics(notInReference);
-        }
-      } else {
-        assertEquals(
-            "Classes in -if rule that are not in -keepclassmembers rule",
-            Collections.emptySet(),
-            notInReference);
-      }
-    }
-    {
-      Set<String> notInConditional =
-          new TreeSet<>(Sets.difference(referenceClasses, conditionalClasses));
-      if (expectReferenceIsLarger) {
-        assertFalse(
-            "Expected classes in -keepclassmembers rule to retain more.",
-            notInConditional.isEmpty());
-        if (expectReferenceIsLargerOnlyBySynthetics) {
-          assertAllClassesAreSynthetics(notInConditional);
-        }
-      } else {
-        assertEquals(
-            "Classes in -keepclassmembers rule that are not in -if rule",
-            Collections.emptySet(),
-            notInConditional);
-      }
-    }
+    Set<String> notInReference =
+        new TreeSet<>(Sets.difference(conditionalClasses, referenceClasses));
+    assertEquals(
+        "Classes in -if rule that are not in -keepclassmembers rule",
+        Collections.emptySet(),
+        notInReference);
+    Set<String> notInConditional =
+        new TreeSet<>(Sets.difference(referenceClasses, conditionalClasses));
+    assertEquals(
+        "Classes in -keepclassmembers rule that are not in -if rule",
+        Collections.emptySet(),
+        notInConditional);
   }
 
   private void assertAllClassesAreSynthetics(Set<String> classNames) {

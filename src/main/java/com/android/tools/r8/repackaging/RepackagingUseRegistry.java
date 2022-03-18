@@ -9,6 +9,7 @@ import static com.google.common.base.Predicates.alwaysTrue;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexField;
@@ -16,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MemberResolutionResult;
@@ -36,10 +38,13 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
 
   private final AppInfoWithLiveness appInfo;
   private final InternalOptions options;
+  private final GraphLens graphLens;
   private final RepackagingConstraintGraph constraintGraph;
   private final InitClassLens initClassLens;
   private final RepackagingConstraintGraph.Node node;
   private final RepackagingConstraintGraph.Node missingTypeNode;
+  private final GraphLens codeLens;
+  private final ProgramMethod methodContext;
 
   public RepackagingUseRegistry(
       AppView<AppInfoWithLiveness> appView,
@@ -51,8 +56,18 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
     this.options = appView.options();
     this.constraintGraph = constraintGraph;
     this.initClassLens = appView.initClassLens();
+    this.graphLens = appView.graphLens();
     this.node = constraintGraph.getNode(context.getDefinition());
     this.missingTypeNode = missingTypeNode;
+    GraphLens codeLens = appView.graphLens();
+    if (context.isMethod()) {
+      Code code = context.asMethod().getDefinition().getCode();
+      if (code != null) {
+        codeLens = code.getCodeLens(appView);
+      }
+    }
+    this.codeLens = codeLens;
+    methodContext = context.isMethod() ? context.asMethod() : null;
   }
 
   private boolean isOnlyAccessibleFromSamePackage(DexClass referencedClass) {
@@ -60,11 +75,8 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
     if (accessFlags.isPackagePrivate()) {
       return true;
     }
-    if (accessFlags.isProtected()
-        && !appInfo.isSubtype(getContext().getContextType(), referencedClass.getType())) {
-      return true;
-    }
-    return false;
+    return accessFlags.isProtected()
+        && !appInfo.isSubtype(getContext().getContextType(), referencedClass.getType());
   }
 
   private boolean isOnlyAccessibleFromSamePackage(
@@ -92,7 +104,7 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
   }
 
   public void registerFieldAccess(DexField field) {
-    registerMemberAccess(appInfo.resolveField(field), false);
+    registerMemberAccess(appInfo.resolveField(graphLens.lookupField(field)), false);
   }
 
   public ProgramMethod registerMethodReference(DexMethod method) {
@@ -189,32 +201,46 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
 
   @Override
   public void registerInitClass(DexType type) {
-    registerFieldAccess(initClassLens.getInitClassField(type));
+    registerMemberAccess(
+        appInfo.resolveField(initClassLens.getInitClassField(graphLens.lookupClassType(type))),
+        false);
   }
 
   @Override
   public void registerInvokeVirtual(DexMethod invokedMethod) {
-    registerMemberAccessForInvoke(appInfo.resolveMethod(invokedMethod, false));
+    registerMemberAccessForInvoke(
+        appInfo.resolveMethod(
+            graphLens.lookupInvokeVirtual(invokedMethod, methodContext, codeLens).getReference(),
+            false));
   }
 
   @Override
   public void registerInvokeDirect(DexMethod invokedMethod) {
-    registerMemberAccessForInvoke(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
+    registerMemberAccessForInvoke(
+        appInfo.unsafeResolveMethodDueToDexFormat(
+            graphLens.lookupInvokeDirect(invokedMethod, methodContext, codeLens).getReference()));
   }
 
   @Override
   public void registerInvokeStatic(DexMethod invokedMethod) {
-    registerMemberAccessForInvoke(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
+    registerMemberAccessForInvoke(
+        appInfo.unsafeResolveMethodDueToDexFormat(
+            graphLens.lookupInvokeStatic(invokedMethod, methodContext, codeLens).getReference()));
   }
 
   @Override
   public void registerInvokeInterface(DexMethod invokedMethod) {
-    registerMemberAccessForInvoke(appInfo.resolveMethod(invokedMethod, true));
+    registerMemberAccessForInvoke(
+        appInfo.resolveMethod(
+            graphLens.lookupInvokeInterface(invokedMethod, methodContext, codeLens).getReference(),
+            true));
   }
 
   @Override
   public void registerInvokeSuper(DexMethod invokedMethod) {
-    registerMemberAccessForInvoke(appInfo.unsafeResolveMethodDueToDexFormat(invokedMethod));
+    registerMemberAccessForInvoke(
+        appInfo.unsafeResolveMethodDueToDexFormat(
+            graphLens.lookupInvokeSuper(invokedMethod, methodContext, codeLens).getReference()));
   }
 
   @Override
@@ -229,7 +255,7 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
 
   @Override
   public void registerNewInstance(DexType type) {
-    registerTypeAccess(type);
+    registerTypeAccess(graphLens.lookupClassType(type));
   }
 
   @Override
@@ -244,12 +270,16 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
 
   @Override
   public void registerTypeReference(DexType type) {
-    registerTypeAccess(type);
+    registerTypeReference(type, codeLens);
+  }
+
+  public void registerTypeReference(DexType type, GraphLens applied) {
+    registerTypeAccess(graphLens.lookupType(type, applied));
   }
 
   @Override
   public void registerInstanceOf(DexType type) {
-    registerTypeAccess(type);
+    registerTypeAccess(graphLens.lookupType(type));
   }
 
   public void registerEnclosingMethodAttribute(EnclosingMethodAttribute enclosingMethodAttribute) {

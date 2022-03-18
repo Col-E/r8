@@ -400,7 +400,7 @@ public abstract class GraphLens {
 
   public abstract DexType lookupType(DexType type, GraphLens applied);
 
-  // This overload can be used when the graph lens is known to be context insensitive.
+  @Deprecated
   public final DexMethod lookupMethod(DexMethod method) {
     assert verifyIsContextFreeForMethod(method);
     return lookupMethod(method, null, null).getReference();
@@ -410,20 +410,45 @@ public abstract class GraphLens {
     return lookupMethod(method, context.getReference(), Type.DIRECT);
   }
 
+  public final MethodLookupResult lookupInvokeDirect(
+      DexMethod method, ProgramMethod context, GraphLens codeLens) {
+    return lookupMethod(method, context.getReference(), Type.DIRECT, codeLens);
+  }
+
   public final MethodLookupResult lookupInvokeInterface(DexMethod method, ProgramMethod context) {
     return lookupMethod(method, context.getReference(), Type.INTERFACE);
+  }
+
+  public final MethodLookupResult lookupInvokeInterface(
+      DexMethod method, ProgramMethod context, GraphLens codeLens) {
+    return lookupMethod(method, context.getReference(), Type.INTERFACE, codeLens);
   }
 
   public final MethodLookupResult lookupInvokeStatic(DexMethod method, ProgramMethod context) {
     return lookupMethod(method, context.getReference(), Type.STATIC);
   }
 
+  public final MethodLookupResult lookupInvokeStatic(
+      DexMethod method, ProgramMethod context, GraphLens codeLens) {
+    return lookupMethod(method, context.getReference(), Type.STATIC, codeLens);
+  }
+
   public final MethodLookupResult lookupInvokeSuper(DexMethod method, ProgramMethod context) {
     return lookupMethod(method, context.getReference(), Type.SUPER);
   }
 
+  public final MethodLookupResult lookupInvokeSuper(
+      DexMethod method, ProgramMethod context, GraphLens codeLens) {
+    return lookupMethod(method, context.getReference(), Type.SUPER, codeLens);
+  }
+
   public final MethodLookupResult lookupInvokeVirtual(DexMethod method, ProgramMethod context) {
     return lookupMethod(method, context.getReference(), Type.VIRTUAL);
+  }
+
+  public final MethodLookupResult lookupInvokeVirtual(
+      DexMethod method, ProgramMethod context, GraphLens codeLens) {
+    return lookupMethod(method, context.getReference(), Type.VIRTUAL, codeLens);
   }
 
   public final MethodLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
@@ -814,6 +839,13 @@ public abstract class GraphLens {
         Predicate<NonIdentityGraphLens> predicate) {
       GraphLens previous = getPrevious();
       return previous.isNonIdentityLens() ? previous.asNonIdentityLens().find(predicate) : null;
+    }
+
+    public final <T extends NonIdentityGraphLens> T findPreviousUntil(
+        Predicate<NonIdentityGraphLens> predicate,
+        Predicate<NonIdentityGraphLens> stoppingCriterion) {
+      T found = findPrevious(predicate.or(stoppingCriterion));
+      return (found == null || stoppingCriterion.test(found)) ? null : found;
     }
 
     public final void withAlternativeParentLens(GraphLens lens, Action action) {

@@ -70,7 +70,6 @@ import com.android.tools.r8.naming.RecordRewritingNamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
-import com.android.tools.r8.optimize.MemberRebindingIdentityLens;
 import com.android.tools.r8.optimize.MemberRebindingIdentityLensFactory;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
 import com.android.tools.r8.optimize.bridgehoisting.BridgeHoisting;
@@ -712,9 +711,15 @@ public class R8 {
         assert !options.isShrinking();
       }
 
-      MemberRebindingIdentityLens memberRebindingLens =
-          MemberRebindingIdentityLensFactory.create(appView, executorService);
-      appView.setGraphLens(memberRebindingLens);
+      // Insert a member rebinding oracle in the graph to ensure that all subsequent rewritings of
+      // the application has an applied oracle for looking up non-rebound references.
+      appView.setGraphLens(MemberRebindingIdentityLensFactory.create(appView, executorService));
+
+      if (appView.appInfo().hasLiveness()) {
+        SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService);
+      } else {
+        SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService);
+      }
 
       // Read any -applymapping input to allow for repackaging to not relocate the classes.
       timing.begin("read -applymapping file");
@@ -728,24 +733,13 @@ public class R8 {
         RepackagingLens lens =
             new Repackaging(appView.withLiveness()).run(appBuilder, executorService, timing);
         if (lens != null) {
-          // Specify to use the member rebinding lens as the parent lens during the rewriting. This
-          // is needed to ensure that the rebound references are available during lens lookups.
-          // TODO(b/168282032): This call-site should not have to think about the parent lens that
-          //  is used for the rewriting. Once the new member rebinding lens replaces the old member
-          //  rebinding analysis it should be possible to clean this up.
-          appView.rewriteWithLensAndApplication(
-              lens, appBuilder.build(), memberRebindingLens.getPrevious());
+          appView.rewriteWithLensAndApplication(lens, appBuilder.build());
         }
       }
       if (appView.appInfo().hasLiveness()) {
         assert Repackaging.verifyIdentityRepackaging(appView.withLiveness());
       }
 
-      if (appView.appInfo().hasLiveness()) {
-        SyntheticFinalization.finalizeWithLiveness(appView.withLiveness(), executorService);
-      } else {
-        SyntheticFinalization.finalizeWithClassHierarchy(appView, executorService);
-      }
 
       // Clear the reference type lattice element cache. This is required since class merging may
       // need to build IR.

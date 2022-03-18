@@ -105,8 +105,8 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, clazz, libraryBoundaryNode);
 
     // Trace the references to the immediate super types.
-    registry.registerTypeReference(clazz.getSuperType());
-    clazz.interfaces.forEach(registry::registerTypeReference);
+    registry.registerTypeReference(clazz.getSuperType(), appView.graphLens());
+    clazz.interfaces.forEach(type -> registry.registerTypeReference(type, appView.graphLens()));
 
     // Trace the references from the class annotations.
     new RepackagingAnnotationTracer(appView, registry).trace(clazz.annotations());
@@ -114,10 +114,10 @@ public class RepackagingConstraintGraph {
     // Trace the references in the nest host and/or members.
     if (clazz.isInANest()) {
       if (clazz.isNestHost()) {
-        clazz.forEachNestMember(registry::registerTypeReference);
+        clazz.forEachNestMember(type -> registry.registerTypeReference(type, appView.graphLens()));
       } else {
         assert clazz.isNestMember();
-        registry.registerTypeReference(clazz.getNestHost());
+        registry.registerTypeReference(clazz.getNestHost(), appView.graphLens());
       }
     }
 
@@ -139,7 +139,7 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, field, libraryBoundaryNode);
 
     // Trace the type of the field.
-    registry.registerTypeReference(field.getReference().getType());
+    registry.registerTypeReference(field.getReference().getType(), appView.graphLens());
 
     // Trace the references in the field annotations.
     new RepackagingAnnotationTracer(appView, registry).trace(field.getDefinition().annotations());
@@ -151,7 +151,9 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, method, libraryBoundaryNode);
 
     // Trace the type references in the method signature.
-    definition.getProto().forEachType(registry::registerTypeReference);
+    definition
+        .getProto()
+        .forEachType(type -> registry.registerTypeReference(type, appView.graphLens()));
 
     // Check if this overrides a package-private method.
     DexClass superClass =
