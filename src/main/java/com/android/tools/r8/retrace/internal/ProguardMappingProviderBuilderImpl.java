@@ -10,7 +10,6 @@ import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingProvider;
 import java.io.BufferedReader;
-import java.io.IOException;
 
 public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.Builder {
 
@@ -52,7 +51,7 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
               diagnosticsHandler,
               true,
               allowExperimental));
-    } catch (IOException e) {
+    } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }
   }

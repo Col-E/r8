@@ -14,6 +14,7 @@ public abstract class ProguardMappingProvider extends MappingProvider {
     return new ProguardMappingProviderBuilderImpl();
   }
 
+  @Keep
   public abstract static class Builder
       extends MappingProviderBuilder<ProguardMappingProvider, Builder> {
 
