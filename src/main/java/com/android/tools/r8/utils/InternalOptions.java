@@ -1764,6 +1764,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean enableEnumUnboxingDebugLogs = false;
     public boolean forceRedundantConstNumberRemoval = false;
     public boolean enableExperimentalDesugaredLibraryKeepRuleGenerator = false;
+    public boolean enableExperimentalLoopUnrolling = false;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;

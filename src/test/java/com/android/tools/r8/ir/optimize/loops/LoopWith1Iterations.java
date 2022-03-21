@@ -33,6 +33,7 @@ public class LoopWith1Iterations extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
+        .addOptionsModification(options -> options.testing.enableExperimentalLoopUnrolling = true)
         .enableInliningAnnotations()
         .noMinification()
         .compile()

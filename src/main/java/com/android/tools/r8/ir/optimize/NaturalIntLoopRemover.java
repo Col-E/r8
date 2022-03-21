@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
@@ -28,7 +29,10 @@ import java.util.Set;
  */
 public class NaturalIntLoopRemover {
 
-  public void run(IRCode code) {
+  public void run(AppView<?> appView, IRCode code) {
+    if (!appView.testing().enableExperimentalLoopUnrolling) {
+      return;
+    }
     boolean loopRemoved = false;
     for (BasicBlock comparisonBlockCandidate : code.blocks) {
       if (isComparisonBlock(comparisonBlockCandidate)) {

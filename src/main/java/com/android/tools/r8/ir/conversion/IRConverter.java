@@ -1313,7 +1313,7 @@ public class IRConverter {
     codeRewriter.rewriteKnownArrayLengthCalls(code);
     timing.end();
     timing.begin("Natural Int Loop Remover");
-    naturalIntLoopRemover.run(code);
+    naturalIntLoopRemover.run(appView, code);
     timing.end();
     timing.begin("Rewrite AssertionError");
     codeRewriter.rewriteAssertionErrorTwoArgumentConstructor(code, options);
