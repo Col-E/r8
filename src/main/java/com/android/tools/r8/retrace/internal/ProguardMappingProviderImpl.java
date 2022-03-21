@@ -19,6 +19,7 @@ public class ProguardMappingProviderImpl extends ProguardMappingProvider {
     this.classNameMapper = classNameMapper;
   }
 
+  @Override
   ClassNameMapper getClassNameMapper() {
     return classNameMapper;
   }
