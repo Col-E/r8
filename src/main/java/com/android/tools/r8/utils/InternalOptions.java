@@ -362,7 +362,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Flag to control the representation of stateless lambdas.
   // See b/222081665 for context.
-  public boolean createSingletonsForStatelessLambdas = false;
+  public boolean createSingletonsForStatelessLambdas =
+      System.getProperty("com.android.tools.r8.createSingletonsForStatelessLambdas") != null;
 
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
