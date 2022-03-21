@@ -36,12 +36,12 @@ public final class ObjectsBackportJava9Test extends AbstractBackportTest {
 
   public ObjectsBackportJava9Test(TestParameters parameters) {
     super(parameters, Objects.class, TEST_JAR, TEST_CLASS);
-    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to ObjectsBackportTest.
-
     // Objects.checkFromIndexSize, Objects.checkFromToIndex, Objects.checkIndex,
     // Objects.requireNonNullElse and Objects.requireNonNullElseGet added in API 30.
     registerTarget(AndroidApiLevel.R, 28);
+    registerTarget(AndroidApiLevel.N, 0);
+    // Objects.requireNonNullElseGet is not desugared if Supplier is absent.
+    registerTarget(AndroidApiLevel.B, 4);
   }
 
   @Test

@@ -245,7 +245,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
         onlyIf(invokeJavaUtilObjects, invokesObjectsRequireNonNull("java.util.Objects")));
     assertThat(
         testClass.uniqueMethodWithName("objectsRequireNonNull"),
-        onlyIf(parameters.getApiLevel().isLessThan(AndroidApiLevel.K), invokesClassGetClass()));
+        onlyIf(invokeJDollarUtilObjects, invokesObjectsRequireNonNull("j$.util.Objects")));
 
     assertThat(
         testClass.uniqueMethodWithName("objectsRequireNonNullWithMessage"),

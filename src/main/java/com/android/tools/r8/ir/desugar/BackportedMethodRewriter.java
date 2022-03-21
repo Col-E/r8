@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
@@ -40,6 +41,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -148,6 +150,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
   private static final class RewritableMethods {
 
+    private final Map<DexType, AndroidApiLevel> typeMinApi;
+
     private final AppView<?> appView;
 
     // Map backported method to a provider for creating the actual target method (with code).
@@ -155,7 +159,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
       this.appView = appView;
-
+      this.typeMinApi = initializeTypeMinApi(appView.dexItemFactory());
       if (!options.shouldBackportMethods()) {
         return;
       }
@@ -164,63 +168,123 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
 
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.K)) {
         initializeAndroidKMethodProviders(factory);
+        if (typeIsAbsentOrPresentWithoutBackportsFrom(factory.objectsType, AndroidApiLevel.K)) {
+          initializeAndroidKObjectsMethodProviders(factory);
+        }
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.N)) {
         initializeAndroidNMethodProviders(factory);
+        if (typeIsAbsentOrPresentWithoutBackportsFrom(factory.objectsType, AndroidApiLevel.N)) {
+          initializeAndroidNObjectsMethodProviders(factory);
+          if (typeIsPresent(factory.supplierType)) {
+            initializeAndroidNObjectsMethodProviderWithSupplier(factory);
+          }
+        }
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.O)) {
         initializeAndroidOMethodProviders(factory);
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.R)) {
-        initializeAndroidRMethodProviders(factory);
+        if (typeIsPresentWithoutBackportsFrom(factory.setType, AndroidApiLevel.R)) {
+          initializeAndroidRSetListMapMethodProviders(factory);
+        }
+        if (typeIsAbsentOrPresentWithoutBackportsFrom(factory.objectsType, AndroidApiLevel.R)) {
+          initializeAndroidRObjectsMethodProviders(factory);
+          if (typeIsPresent(factory.supplierType)) {
+            initializeAndroidRObjectsMethodProviderWithSupplier(factory);
+          }
+        }
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.S)) {
         initializeAndroidSMethodProviders(factory);
+        if (typeIsPresentWithoutBackportsFrom(factory.setType, AndroidApiLevel.S)) {
+          initializeAndroidSSetListMapMethodProviders(factory);
+        }
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.Sv2)) {
         initializeAndroidSv2MethodProviders(factory);
       }
       if (options.getMinApiLevel().isLessThan(AndroidApiLevel.T)) {
         initializeAndroidTMethodProviders(factory);
-      }
-
-      // The following providers are implemented at API level T. For backporting they require
-      // the java.util.Optional class to be present, either through library desugaring or natively.
-      // If the java.util.Optional class is not present, we do not backport to avoid confusion in
-      // error messages.
-      if (appView.typeRewriter.hasRewrittenType(factory.optionalType, appView)
-          || options.getMinApiLevel().betweenBothIncluded(AndroidApiLevel.N, AndroidApiLevel.Sv2)) {
-        initializeAndroidOptionalTMethodProviders(factory);
-      }
-
-      // The following providers are currently not implemented at any API level in Android. For
-      // backporting they require the java.util.stream.Stream class to be present, either through
-      // library desugaring or natively. If the class is not present, we do not desugar to avoid
-      // confusion in error messages.
-      if (appView.typeRewriter.hasRewrittenType(factory.streamType, appView)
-          || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
-        initializeStreamMethodProviders(factory);
-      }
-
-      // The following providers are currently not implemented at any API level in Android. For
-      // backporting they require the java.util.function.Predicate class to be present, either
-      // through library desugaring or natively. If the class is not present, we do not desugar to
-      // avoid confusion in error messages.
-      if (appView.typeRewriter.hasRewrittenType(factory.predicateType, appView)
-          || options.getMinApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
-        initializePredicateMethodProviders(factory);
-      }
-
-      if (appView.typeRewriter.hasRewrittenType(factory.supplierType, appView)) {
-        // TODO(b/191188594): Consider adding the Objects method from R here, or instead
-        //  rely on desugared library to support them.
-        initializeObjectsMethodProviders(factory);
+        if (typeIsPresentWithoutBackportsFrom(factory.optionalType, AndroidApiLevel.T)) {
+          initializeAndroidOptionalTMethodProviders(factory);
+        }
       }
 
       // These are currently not implemented at any API level in Android.
+      if (typeIsPresentWithoutNeverIntroducedBackports(factory.streamType)) {
+        initializeStreamMethodProviders(factory);
+      }
+      if (typeIsPresentWithoutNeverIntroducedBackports(factory.predicateType)) {
+        initializePredicateMethodProviders(factory);
+      }
       initializeJava9MethodProviders(factory);
       initializeJava10MethodProviders(factory);
       initializeJava11MethodProviders(factory);
+    }
+
+    private Map<DexType, AndroidApiLevel> initializeTypeMinApi(DexItemFactory factory) {
+      ImmutableMap.Builder<DexType, AndroidApiLevel> builder = ImmutableMap.builder();
+      builder.put(factory.objectsType, AndroidApiLevel.K);
+      builder.put(factory.optionalType, AndroidApiLevel.N);
+      builder.put(factory.predicateType, AndroidApiLevel.N);
+      builder.put(factory.setType, AndroidApiLevel.B);
+      builder.put(factory.streamType, AndroidApiLevel.N);
+      builder.put(factory.supplierType, AndroidApiLevel.N);
+      ImmutableMap<DexType, AndroidApiLevel> typeMinApi = builder.build();
+      assert minApiMatchDatabaseMinApi(typeMinApi);
+      return typeMinApi;
+    }
+
+    private boolean minApiMatchDatabaseMinApi(ImmutableMap<DexType, AndroidApiLevel> typeMinApi) {
+      // TODO(b/224954240): Remove the assertion and always use the apiDatabase.
+      typeMinApi.forEach(
+          (type, api) -> {
+            ComputedApiLevel apiLevel =
+                appView
+                    .apiLevelCompute()
+                    .computeApiLevelForLibraryReference(type, ComputedApiLevel.unknown());
+            if (!apiLevel.isKnownApiLevel()) {
+              // API database is missing.
+              return;
+            }
+            AndroidApiLevel theApi = apiLevel.asKnownApiLevel().getApiLevel();
+            if (appView.typeRewriter.hasRewrittenType(type, appView)) {
+              assert theApi.equals(appView.options().getMinApiLevel());
+              return;
+            }
+            assert theApi.equals(api.max(appView.options().getMinApiLevel()));
+          });
+      return true;
+    }
+
+    private boolean typeIsAbsentOrPresentWithoutBackportsFrom(
+        DexType type, AndroidApiLevel apiLevel) {
+      return !typeIsPresent(type) || typeIsPresentWithoutBackportsFrom(type, apiLevel);
+    }
+
+    private boolean typeIsPresentWithoutNeverIntroducedBackports(DexType type) {
+      return typeIsPresentWithoutBackportsFrom(type, AndroidApiLevel.ANDROID_PLATFORM);
+    }
+
+    private boolean typeIsPresentWithoutBackportsFrom(DexType type, AndroidApiLevel methodsMinAPI) {
+      if (appView.typeRewriter.hasRewrittenType(type, appView)) {
+        // Desugared library is enabled, the methods are present if desugared library specifies it.
+        return methodsMinAPI.isGreaterThan(AndroidApiLevel.N)
+            && !appView.options().machineDesugaredLibrarySpecification.includesJDK11Methods();
+      }
+      // TODO(b/224954240): Always use the apiDatabase when always available.
+      if (!appView.options().getMinApiLevel().isGreaterThanOrEqualTo(typeMinApi.get(type))) {
+        // If the class is not present, we do not backport to avoid confusion in error messages.
+        return false;
+      }
+      return appView.options().getMinApiLevel().isLessThan(methodsMinAPI);
+    }
+
+    private boolean typeIsPresent(DexType type) {
+      // TODO(b/224954240): Always use the apiDatabase when always available.
+      return appView.options().getMinApiLevel().isGreaterThanOrEqualTo(typeMinApi.get(type))
+          || appView.typeRewriter.hasRewrittenType(type, appView);
     }
 
     boolean isEmpty() {
@@ -231,54 +295,11 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       rewritable.keySet().forEach(consumer);
     }
 
-    private void initializeAndroidKMethodProviders(DexItemFactory factory) {
-      // Byte
-      DexType type = factory.boxedByteType;
-      // int Byte.compare(byte a, byte b)
-      DexString name = factory.createString("compare");
-      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
-      DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compare));
-
-      // Short
-      type = factory.boxedShortType;
-      // int Short.compare(short a, short b)
-      name = factory.createString("compare");
-      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compare));
-
-      // Integer
-      type = factory.boxedIntType;
-      // int Integer.compare(int a, int b)
-      name = factory.createString("compare");
-      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_compare));
-
-      // Long
-      type = factory.boxedLongType;
-      // int Long.compare(long a, long b)
-      name = factory.createString("compare");
-      proto = factory.createProto(factory.intType, factory.longType, factory.longType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, LongMethodRewrites.rewriteCompare()));
-
-      // Boolean
-      type = factory.boxedBooleanType;
-      // int Boolean.compare(boolean a, boolean b)
-      name = factory.createString("compare");
-      proto = factory.createProto(factory.intType, factory.booleanType, factory.booleanType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_compare));
-
-      // Character
-      type = factory.boxedCharType;
-      // int Character.compare(char a, char b)
-      name = factory.createString("compare");
-      proto = factory.createProto(factory.intType, factory.charType, factory.charType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::CharacterMethods_compare));
+    private void initializeAndroidKObjectsMethodProviders(DexItemFactory factory) {
+      DexType type;
+      DexString name;
+      DexProto proto;
+      DexMethod method;
 
       // Objects
       type = factory.objectsType;
@@ -342,6 +363,56 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(
           new MethodGenerator(
               method, BackportedMethods::ObjectsMethods_toStringDefault, "toStringDefault"));
+    }
+
+    private void initializeAndroidKMethodProviders(DexItemFactory factory) {
+      // Byte
+      DexType type = factory.boxedByteType;
+      // int Byte.compare(byte a, byte b)
+      DexString name = factory.createString("compare");
+      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compare));
+
+      // Short
+      type = factory.boxedShortType;
+      // int Short.compare(short a, short b)
+      name = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compare));
+
+      // Integer
+      type = factory.boxedIntType;
+      // int Integer.compare(int a, int b)
+      name = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_compare));
+
+      // Long
+      type = factory.boxedLongType;
+      // int Long.compare(long a, long b)
+      name = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.longType, factory.longType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new InvokeRewriter(method, LongMethodRewrites.rewriteCompare()));
+
+      // Boolean
+      type = factory.boxedBooleanType;
+      // int Boolean.compare(boolean a, boolean b)
+      name = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.booleanType, factory.booleanType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_compare));
+
+      // Character
+      type = factory.boxedCharType;
+      // int Character.compare(char a, char b)
+      name = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.charType, factory.charType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::CharacterMethods_compare));
 
       // Collections
       type = factory.collectionsType;
@@ -365,6 +436,27 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::CollectionsMethods_emptyListIterator));
+    }
+
+    private void initializeAndroidNObjectsMethodProviders(DexItemFactory factory) {
+      DexString name;
+      DexProto proto;
+      DexMethod method;
+
+      // Objects
+      DexType type = factory.objectsType;
+
+      // boolean Objects.isNull(Object o)
+      name = factory.createString("isNull");
+      proto = factory.createProto(factory.booleanType, factory.objectType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_isNull));
+
+      // boolean Objects.nonNull(Object a)
+      name = factory.createString("nonNull");
+      proto = factory.createProto(factory.booleanType, factory.objectType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_nonNull));
     }
 
     private void initializeAndroidNMethodProviders(DexItemFactory factory) {
@@ -539,21 +631,6 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       proto = factory.createProto(factory.intType, factory.charType);
       method = factory.createMethod(type, proto, name);
       addProvider(new InvokeRewriter(method, NumericMethodRewrites.rewriteAsIdentity()));
-
-      // Objects
-      type = factory.objectsType;
-
-      // boolean Objects.isNull(Object o)
-      name = factory.createString("isNull");
-      proto = factory.createProto(factory.booleanType, factory.objectType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_isNull));
-
-      // boolean Objects.nonNull(Object a)
-      name = factory.createString("nonNull");
-      proto = factory.createProto(factory.booleanType, factory.objectType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_nonNull));
 
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexType[] mathTypes = {factory.mathType, factory.strictMathType};
@@ -876,7 +953,20 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               method, BackportedMethods::StringMethods_joinIterable, "joinIterable"));
     }
 
-    private void initializeAndroidRMethodProviders(DexItemFactory factory) {
+    private void initializeAndroidRObjectsMethodProviderWithSupplier(DexItemFactory factory) {
+      // Objects
+      DexType type = factory.objectsType;
+
+      // T Objects.requireNonNullElseGet(T, Supplier<? extends T>)
+      DexString name = factory.createString("requireNonNullElseGet");
+      DexProto proto =
+          factory.createProto(factory.objectType, factory.objectType, factory.supplierType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullElseGet));
+    }
+
+    private void initializeAndroidRObjectsMethodProviders(DexItemFactory factory) {
       DexType type;
       DexString name;
       DexProto proto;
@@ -891,13 +981,6 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullElse));
-
-      // T Objects.requireNonNullElseGet(T, Supplier<? extends T>)
-      name = factory.createString("requireNonNullElseGet");
-      proto = factory.createProto(factory.objectType, factory.objectType, factory.supplierType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(
-          new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullElseGet));
 
       // int Objects.checkIndex(int, int)
       name = factory.createString("checkIndex");
@@ -919,6 +1002,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkFromIndexSize));
+    }
+
+    private void initializeAndroidRSetListMapMethodProviders(DexItemFactory factory) {
+      DexType type;
+      DexString name;
+      DexProto proto;
+      DexMethod method;
 
       // List<E> List.of(<args>) for 0 to 10 arguments and List.of(E[])
       type = factory.listType;
@@ -989,7 +1079,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(new MethodGenerator(method, BackportedMethods::CollectionMethods_mapEntry));
     }
 
-    private void initializeAndroidSMethodProviders(DexItemFactory factory) {
+    private void initializeAndroidSSetListMapMethodProviders(DexItemFactory factory) {
       DexType type;
       DexString name;
       DexProto proto;
@@ -1027,6 +1117,13 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(
           new MethodGenerator(
               method, BackportedMethods::CollectionsMethods_copyOfMap, "copyOfMap"));
+    }
+
+    private void initializeAndroidSMethodProviders(DexItemFactory factory) {
+      DexType type;
+      DexString name;
+      DexProto proto;
+      DexMethod method;
 
       // Byte
       type = factory.boxedByteType;
@@ -1481,7 +1578,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       addProvider(new MethodGenerator(method, BackportedMethods::PredicateMethods_not, "not"));
     }
 
-    private void initializeObjectsMethodProviders(DexItemFactory factory) {
+    private void initializeAndroidNObjectsMethodProviderWithSupplier(DexItemFactory factory) {
       // Objects
       DexType type = factory.objectsType;
 
@@ -1495,26 +1592,6 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private void addProvider(MethodProvider generator) {
-      if (appView.options().machineDesugaredLibrarySpecification.isSupported(generator.method)) {
-        // TODO(b/174453232): Remove this after the configuration file format has bee updated
-        // with the "rewrite_method" section.
-        if (generator.method.getHolderType() == appView.dexItemFactory().objectsType) {
-          // Still backport the new API level 30 methods and Objects.requireNonNull taking
-          // one argument.
-          String methodName = generator.method.getName().toString();
-          if (!methodName.equals("requireNonNull")
-              && !methodName.equals("requireNonNullElse")
-              && !methodName.equals("requireNonNullElseGet")
-              && !methodName.equals("checkIndex")
-              && !methodName.equals("checkFromToIndex")
-              && !methodName.equals("checkFromIndexSize")) {
-            return;
-          }
-          if (methodName.equals("requireNonNull") && generator.method.getArity() != 1) {
-            return;
-          }
-        }
-      }
       MethodProvider replaced = rewritable.put(generator.method, generator);
       assert replaced == null;
     }
