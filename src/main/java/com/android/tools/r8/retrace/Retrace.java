@@ -314,11 +314,17 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       // The setup of a retracer should likely also follow a builder pattern instead of having
       // static create methods. That would avoid the need to method overload the construction here
       // and the default create would become the default build of a retracer.
+      MappingProvider mappingProvider =
+          ProguardMappingProvider.builder()
+              .setProguardMapProducer(options.getProguardMapProducer())
+              .setDiagnosticsHandler(diagnosticsHandler)
+              .setAllowExperimental(allowExperimentalMapping)
+              .build();
       RetracerImpl retracer =
-          RetracerImpl.create(
-              options.getProguardMapProducer(),
-              options.getDiagnosticsHandler(),
-              allowExperimentalMapping);
+          RetracerImpl.builder()
+              .setMappingProvider(mappingProvider)
+              .setDiagnosticsHandler(diagnosticsHandler)
+              .build();
       retracer
           .getMapVersions()
           .forEach(

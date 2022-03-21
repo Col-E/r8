@@ -7,11 +7,12 @@ package com.android.tools.r8.retrace.api;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.MappingProvider;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingProvider;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceThrownExceptionElement;
@@ -79,9 +80,11 @@ public class RetraceApiRewriteFrameInlineNpeResidualTest extends RetraceApiTestB
 
     @Test
     public void testUsingObfuscatedName() {
-      Retracer retracer =
-          Retracer.createExperimental(
-              ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
+      MappingProvider mappingProvider =
+          ProguardMappingProvider.builder()
+              .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
+              .build();
+      Retracer retracer = Retracer.builder().setMappingProvider(mappingProvider).build();
       List<RetraceThrownExceptionElement> npeRetraced =
           retracer.retraceThrownException(renamedException).stream().collect(Collectors.toList());
       assertEquals(1, npeRetraced.size());

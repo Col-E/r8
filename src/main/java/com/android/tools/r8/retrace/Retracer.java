@@ -72,11 +72,22 @@ public interface Retracer {
 
   static Retracer createDefault(
       ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
-    return RetracerImpl.create(proguardMapProducer, diagnosticsHandler, false);
+    try {
+      ProguardMappingProvider mappingProvider =
+          ProguardMappingProvider.builder()
+              .setProguardMapProducer(proguardMapProducer)
+              .setDiagnosticsHandler(diagnosticsHandler)
+              .build();
+      return Retracer.builder()
+          .setMappingProvider(mappingProvider)
+          .setDiagnosticsHandler(diagnosticsHandler)
+          .build();
+    } catch (Throwable throwable) {
+      throw new InvalidMappingFileException(throwable);
+    }
   }
 
-  static Retracer createExperimental(
-      ProguardMapProducer proguardMapProducer, DiagnosticsHandler diagnosticsHandler) {
-    return RetracerImpl.create(proguardMapProducer, diagnosticsHandler, true);
+  static RetracerBuilder builder() {
+    return RetracerImpl.builder();
   }
 }

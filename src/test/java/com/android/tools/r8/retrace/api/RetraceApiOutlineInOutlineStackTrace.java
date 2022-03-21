@@ -6,12 +6,13 @@ package com.android.tools.r8.retrace.api;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.MappingProvider;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingProvider;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetracedMethodReference;
@@ -70,9 +71,11 @@ public class RetraceApiOutlineInOutlineStackTrace extends RetraceApiTestBase {
 
     @Test
     public void test() {
-      Retracer retracer =
-          Retracer.createExperimental(
-              ProguardMapProducer.fromString(mapping), new DiagnosticsHandler() {});
+      MappingProvider mappingProvider =
+          ProguardMappingProvider.builder()
+              .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
+              .build();
+      Retracer retracer = Retracer.builder().setMappingProvider(mappingProvider).build();
       // Retrace the first outline.
       RetraceStackTraceContext outlineContext =
           retraceOutline(

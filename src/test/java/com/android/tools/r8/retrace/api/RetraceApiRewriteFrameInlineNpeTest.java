@@ -11,7 +11,9 @@ import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.MappingProvider;
 import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.ProguardMappingProvider;
 import com.android.tools.r8.retrace.RetraceFrameElement;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.RetraceThrownExceptionElement;
@@ -58,9 +60,16 @@ public class RetraceApiRewriteFrameInlineNpeTest extends RetraceApiTestBase {
     @Test
     public void testFirstStackLineIsRemoved() {
       TestDiagnosticsHandler testDiagnosticsHandler = new TestDiagnosticsHandler();
+      MappingProvider mappingProvider =
+          ProguardMappingProvider.builder()
+              .setProguardMapProducer(ProguardMapProducer.fromString(mapping))
+              .setDiagnosticsHandler(testDiagnosticsHandler)
+              .build();
       Retracer retracer =
-          Retracer.createExperimental(
-              ProguardMapProducer.fromString(mapping), testDiagnosticsHandler);
+          Retracer.builder()
+              .setMappingProvider(mappingProvider)
+              .setDiagnosticsHandler(testDiagnosticsHandler)
+              .build();
 
       List<RetraceThrownExceptionElement> npeRetraced =
           retracer.retraceThrownException(Reference.classFromDescriptor(npeDescriptor)).stream()

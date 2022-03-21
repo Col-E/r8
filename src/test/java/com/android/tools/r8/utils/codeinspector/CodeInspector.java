@@ -36,8 +36,7 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.Retracer;
-import com.android.tools.r8.retrace.internal.DirectClassNameMapperProguardMapProducer;
-import com.android.tools.r8.retrace.internal.RetracerImpl;
+import com.android.tools.r8.retrace.internal.ProguardMappingProviderImpl;
 import com.android.tools.r8.synthesis.SyntheticItemsTestUtils;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
@@ -177,7 +176,11 @@ public class CodeInspector {
 
   public Retracer getRetracer() {
     if (lazyRetracer == null) {
-      lazyRetracer = new RetracerImpl(mapping, new TestDiagnosticMessagesImpl());
+      lazyRetracer =
+          Retracer.builder()
+              .setMappingProvider(new ProguardMappingProviderImpl(mapping))
+              .setDiagnosticsHandler(new TestDiagnosticMessagesImpl())
+              .build();
     }
     return lazyRetracer;
   }
@@ -525,24 +528,11 @@ public class CodeInspector {
   }
 
   public Retracer retrace() {
-    return Retracer.createDefault(
-        new InternalProguardMapProducer(
-            mapping == null ? ClassNameMapper.builder().build() : mapping),
-        new TestDiagnosticMessagesImpl());
-  }
-
-  public static class InternalProguardMapProducer
-      implements DirectClassNameMapperProguardMapProducer {
-
-    public final ClassNameMapper prebuiltMapper;
-
-    public InternalProguardMapProducer(ClassNameMapper prebuiltMapper) {
-      this.prebuiltMapper = prebuiltMapper;
-    }
-
-    @Override
-    public ClassNameMapper getClassNameMapper() {
-      return prebuiltMapper;
-    }
+    return Retracer.builder()
+        .setMappingProvider(
+            new ProguardMappingProviderImpl(
+                mapping == null ? ClassNameMapper.builder().build() : mapping))
+        .setDiagnosticsHandler(new TestDiagnosticMessagesImpl())
+        .build();
   }
 }

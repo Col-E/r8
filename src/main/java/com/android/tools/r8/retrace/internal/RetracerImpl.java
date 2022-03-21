@@ -11,12 +11,11 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.retrace.InvalidMappingFileException;
-import com.android.tools.r8.retrace.ProguardMapProducer;
+import com.android.tools.r8.retrace.MappingProvider;
 import com.android.tools.r8.retrace.RetraceFrameResult;
 import com.android.tools.r8.retrace.RetraceStackTraceContext;
 import com.android.tools.r8.retrace.Retracer;
-import java.io.BufferedReader;
+import com.android.tools.r8.retrace.RetracerBuilder;
 import java.util.OptionalInt;
 import java.util.Set;
 
@@ -26,32 +25,10 @@ public class RetracerImpl implements Retracer {
   private final ClassNameMapper classNameMapper;
   private final DiagnosticsHandler diagnosticsHandler;
 
-  public RetracerImpl(ClassNameMapper classNameMapper, DiagnosticsHandler diagnosticsHandler) {
+  private RetracerImpl(ClassNameMapper classNameMapper, DiagnosticsHandler diagnosticsHandler) {
     this.classNameMapper = classNameMapper;
     this.diagnosticsHandler = diagnosticsHandler;
     assert classNameMapper != null;
-  }
-
-  public static RetracerImpl create(
-      ProguardMapProducer proguardMapProducer,
-      DiagnosticsHandler diagnosticsHandler,
-      boolean allowExperimentalMapping) {
-    if (proguardMapProducer instanceof DirectClassNameMapperProguardMapProducer) {
-      return new RetracerImpl(
-          ((DirectClassNameMapperProguardMapProducer) proguardMapProducer).getClassNameMapper(),
-          diagnosticsHandler);
-    }
-    try {
-      ClassNameMapper classNameMapper =
-          ClassNameMapper.mapperFromBufferedReader(
-              new BufferedReader(proguardMapProducer.get()),
-              diagnosticsHandler,
-              true,
-              allowExperimentalMapping);
-      return new RetracerImpl(classNameMapper, diagnosticsHandler);
-    } catch (Throwable throwable) {
-      throw new InvalidMappingFileException(throwable);
-    }
   }
 
   public DiagnosticsHandler getDiagnosticsHandler() {
@@ -108,5 +85,35 @@ public class RetracerImpl implements Retracer {
 
   public Set<MapVersionMappingInformation> getMapVersions() {
     return classNameMapper.getMapVersions();
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static class Builder implements RetracerBuilder {
+
+    private MappingProvider mappingProvider;
+    private DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
+
+    private Builder() {}
+
+    @Override
+    public Builder setMappingProvider(MappingProvider mappingProvider) {
+      this.mappingProvider = mappingProvider;
+      return this;
+    }
+
+    @Override
+    public Builder setDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler) {
+      this.diagnosticsHandler = diagnosticsHandler;
+      return this;
+    }
+
+    @Override
+    public RetracerImpl build() {
+      return new RetracerImpl(
+          ((MappingProviderInternal) mappingProvider).getClassNameMapper(), diagnosticsHandler);
+    }
   }
 }
