@@ -33,6 +33,8 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.lambda.ForcefullyMovedLambdaMethodConsumer;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.lambda.LambdaInstructionDesugaring.DesugarInvoke;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +61,8 @@ public final class LambdaClass {
   public static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
   public static final String JAVAC_EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   public static final String R8_LAMBDA_ACCESSOR_METHOD_PREFIX = "$r8$lambda$";
+
+  private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   final AppView<?> appView;
   final LambdaInstructionDesugaring desugaring;
@@ -119,7 +123,7 @@ public final class LambdaClass {
     synthesizeVirtualMethods(builder, desugarInvoke);
   }
 
-  DexField getCaptureField(int index) {
+  final DexField getCaptureField(int index) {
     return appView
         .dexItemFactory()
         .createField(
