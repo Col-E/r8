@@ -9,10 +9,53 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import com.android.tools.r8.utils.structural.Equatable;
+import com.android.tools.r8.utils.structural.Ordered;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class SyntheticNaming {
+
+  private static class KindGenerator {
+    private int nextId = 1;
+    private List<SyntheticKind> kinds = new ArrayList<>();
+
+    private int getNextId() {
+      return nextId++;
+    }
+
+    private SyntheticKind register(SyntheticKind kind) {
+      kinds.add(kind);
+      return kind;
+    }
+
+    SyntheticKind forSingleMethod(String descriptor) {
+      return register(new SyntheticMethodKind(getNextId(), descriptor));
+    }
+
+    SyntheticKind forInstanceClass(String descriptor) {
+      return register(new SyntheticClassKind(getNextId(), descriptor));
+    }
+
+    SyntheticKind forFixedClass(String descriptor) {
+      return register(new SyntheticFixedClassKind(getNextId(), descriptor, false, false));
+    }
+
+    SyntheticKind forGlobalClass() {
+      return register(new SyntheticFixedClassKind(getNextId(), "", true, true));
+    }
+
+    SyntheticKind forGlobalClasspathClass() {
+      return register(new SyntheticFixedClassKind(getNextId(), "", false, false));
+    }
+
+    List<SyntheticKind> getAllKinds() {
+      List<SyntheticKind> kinds = this.kinds;
+      this.kinds = null;
+      return kinds;
+    }
+  }
 
   /**
    * Enumeration of all kinds of synthetic items.
@@ -23,95 +66,202 @@ public class SyntheticNaming {
    * will be put into any non-minified synthetic name and thus the kind "descriptor" must be a
    * distinct for each kind.
    */
-  public enum SyntheticKind {
-    // Class synthetics.
-    ENUM_UNBOXING_LOCAL_UTILITY_CLASS("$EnumUnboxingLocalUtility", 24, false, true),
-    ENUM_UNBOXING_SHARED_UTILITY_CLASS("$EnumUnboxingSharedUtility", 25, false, true),
-    RECORD_TAG("", 1, false, true, true),
-    COMPANION_CLASS("$-CC", 2, false, true),
-    EMULATED_INTERFACE_CLASS("$-EL", 3, false, true),
-    RETARGET_CLASS("RetargetClass", 20, false, true),
-    RETARGET_STUB("", 36, false, true),
-    RETARGET_INTERFACE("RetargetInterface", 21, false, true),
-    WRAPPER("$Wrapper", 22, false, true),
-    VIVIFIED_WRAPPER("$VivifiedWrapper", 23, false, true),
-    LAMBDA("Lambda", 4, false),
-    INIT_TYPE_ARGUMENT("-IA", 5, false, true),
-    HORIZONTAL_INIT_TYPE_ARGUMENT_1(SYNTHETIC_CLASS_SEPARATOR + "IA$1", 6, false, true),
-    HORIZONTAL_INIT_TYPE_ARGUMENT_2(SYNTHETIC_CLASS_SEPARATOR + "IA$2", 7, false, true),
-    HORIZONTAL_INIT_TYPE_ARGUMENT_3(SYNTHETIC_CLASS_SEPARATOR + "IA$3", 8, false, true),
-    NON_FIXED_INIT_TYPE_ARGUMENT("$IA", 35, false),
-    // Method synthetics.
-    ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD("CheckNotZero", 27, true),
-    RECORD_HELPER("Record", 9, true),
-    BACKPORT("Backport", 10, true),
-    BACKPORT_WITH_FORWARDING("BackportWithForwarding", 34, true),
-    STATIC_INTERFACE_CALL("StaticInterfaceCall", 11, true),
-    TO_STRING_IF_NOT_NULL("ToStringIfNotNull", 12, true),
-    THROW_CCE_IF_NOT_NULL("ThrowCCEIfNotNull", 13, true),
-    THROW_IAE("ThrowIAE", 14, true),
-    THROW_ICCE("ThrowICCE", 15, true),
-    THROW_NSME("ThrowNSME", 16, true),
-    TWR_CLOSE_RESOURCE("TwrCloseResource", 17, true),
-    SERVICE_LOADER("ServiceLoad", 18, true),
-    OUTLINE("Outline", 19, true),
-    API_CONVERSION("APIConversion", 26, true),
-    API_CONVERSION_PARAMETERS("APIConversionParameters", 28, true),
-    EMULATED_INTERFACE_MARKER_CLASS("", 29, false, true, true),
-    CONST_DYNAMIC("$Condy", 30, false),
-    ENUM_CONVERSION("$EnumConversion", 31, false, true),
-    ARRAY_CONVERSION("$ArrayConversion", 37, true, false),
-    API_MODEL_OUTLINE("ApiModelOutline", 32, true, false, false),
-    API_MODEL_STUB("", 33, false, true, true);
+  public abstract static class SyntheticKind implements Ordered<SyntheticKind> {
+
+    public static final SyntheticKind ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
+        ENUM_UNBOXING_SHARED_UTILITY_CLASS,
+        RECORD_TAG,
+        COMPANION_CLASS,
+        EMULATED_INTERFACE_CLASS,
+        RETARGET_CLASS,
+        RETARGET_STUB,
+        RETARGET_INTERFACE,
+        WRAPPER,
+        VIVIFIED_WRAPPER,
+        LAMBDA,
+        INIT_TYPE_ARGUMENT,
+        HORIZONTAL_INIT_TYPE_ARGUMENT_1,
+        HORIZONTAL_INIT_TYPE_ARGUMENT_2,
+        HORIZONTAL_INIT_TYPE_ARGUMENT_3,
+        NON_FIXED_INIT_TYPE_ARGUMENT,
+        ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD,
+        RECORD_HELPER,
+        BACKPORT,
+        BACKPORT_WITH_FORWARDING,
+        STATIC_INTERFACE_CALL,
+        TO_STRING_IF_NOT_NULL,
+        THROW_CCE_IF_NOT_NULL,
+        THROW_IAE,
+        THROW_ICCE,
+        THROW_NSME,
+        TWR_CLOSE_RESOURCE,
+        SERVICE_LOADER,
+        OUTLINE,
+        API_CONVERSION,
+        API_CONVERSION_PARAMETERS,
+        EMULATED_INTERFACE_MARKER_CLASS,
+        CONST_DYNAMIC,
+        ENUM_CONVERSION,
+        ARRAY_CONVERSION,
+        API_MODEL_OUTLINE,
+        API_MODEL_STUB;
+
+    private static final List<SyntheticKind> ALL_KINDS;
 
     static {
-      assert verifyNoOverlappingIds();
+      KindGenerator generator = new KindGenerator();
+      // Global synthetics.
+      RECORD_TAG = generator.forGlobalClass();
+      API_MODEL_STUB = generator.forGlobalClass();
+
+      // Classpath only synthetics in the global type namespace.
+      RETARGET_STUB = generator.forGlobalClasspathClass();
+      EMULATED_INTERFACE_MARKER_CLASS = generator.forGlobalClasspathClass();
+
+      // Fixed suffix synthetics. Each has a hygienic prefix type.
+      ENUM_UNBOXING_LOCAL_UTILITY_CLASS = generator.forFixedClass("$EnumUnboxingLocalUtility");
+      ENUM_UNBOXING_SHARED_UTILITY_CLASS = generator.forFixedClass("$EnumUnboxingSharedUtility");
+      COMPANION_CLASS = generator.forFixedClass("$-CC");
+      EMULATED_INTERFACE_CLASS = generator.forFixedClass("$-EL");
+      RETARGET_CLASS = generator.forFixedClass("RetargetClass");
+      RETARGET_INTERFACE = generator.forFixedClass("RetargetInterface");
+      WRAPPER = generator.forFixedClass("$Wrapper");
+      VIVIFIED_WRAPPER = generator.forFixedClass("$VivifiedWrapper");
+      INIT_TYPE_ARGUMENT = generator.forFixedClass("-IA");
+      HORIZONTAL_INIT_TYPE_ARGUMENT_1 = generator.forFixedClass(SYNTHETIC_CLASS_SEPARATOR + "IA$1");
+      HORIZONTAL_INIT_TYPE_ARGUMENT_2 = generator.forFixedClass(SYNTHETIC_CLASS_SEPARATOR + "IA$2");
+      HORIZONTAL_INIT_TYPE_ARGUMENT_3 = generator.forFixedClass(SYNTHETIC_CLASS_SEPARATOR + "IA$3");
+      ENUM_CONVERSION = generator.forFixedClass("$EnumConversion");
+
+      // Locally generated synthetic classes.
+      LAMBDA = generator.forInstanceClass("Lambda");
+      NON_FIXED_INIT_TYPE_ARGUMENT = generator.forInstanceClass("$IA");
+      CONST_DYNAMIC = generator.forInstanceClass("$Condy");
+
+      // Method synthetics.
+      ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD = generator.forSingleMethod("CheckNotZero");
+      RECORD_HELPER = generator.forSingleMethod("Record");
+      BACKPORT = generator.forSingleMethod("Backport");
+      BACKPORT_WITH_FORWARDING = generator.forSingleMethod("BackportWithForwarding");
+      STATIC_INTERFACE_CALL = generator.forSingleMethod("StaticInterfaceCall");
+      TO_STRING_IF_NOT_NULL = generator.forSingleMethod("ToStringIfNotNull");
+      THROW_CCE_IF_NOT_NULL = generator.forSingleMethod("ThrowCCEIfNotNull");
+      THROW_IAE = generator.forSingleMethod("ThrowIAE");
+      THROW_ICCE = generator.forSingleMethod("ThrowICCE");
+      THROW_NSME = generator.forSingleMethod("ThrowNSME");
+      TWR_CLOSE_RESOURCE = generator.forSingleMethod("TwrCloseResource");
+      SERVICE_LOADER = generator.forSingleMethod("ServiceLoad");
+      OUTLINE = generator.forSingleMethod("Outline");
+      API_CONVERSION = generator.forSingleMethod("APIConversion");
+      API_CONVERSION_PARAMETERS = generator.forSingleMethod("APIConversionParameters");
+      ARRAY_CONVERSION = generator.forSingleMethod("$ArrayConversion");
+      API_MODEL_OUTLINE = generator.forSingleMethod("ApiModelOutline");
+
+      ALL_KINDS = generator.getAllKinds();
     }
 
-    public final String descriptor;
-    public final int id;
-    public final boolean isSingleSyntheticMethod;
-    public final boolean isFixedSuffixSynthetic;
-    public final boolean mayOverridesNonProgramType;
+    private final int id;
+    private final String descriptor;
 
-    SyntheticKind(String descriptor, int id, boolean isSingleSyntheticMethod) {
-      this(descriptor, id, isSingleSyntheticMethod, false);
-    }
-
-    SyntheticKind(
-        String descriptor,
-        int id,
-        boolean isSingleSyntheticMethod,
-        boolean isFixedSuffixSynthetic) {
-      this(descriptor, id, isSingleSyntheticMethod, isFixedSuffixSynthetic, false);
-    }
-
-    SyntheticKind(
-        String descriptor,
-        int id,
-        boolean isSingleSyntheticMethod,
-        boolean isFixedSuffixSynthetic,
-        boolean mayOverridesNonProgramType) {
-      this.descriptor = descriptor;
+    SyntheticKind(int id, String descriptor) {
       this.id = id;
-      this.isSingleSyntheticMethod = isSingleSyntheticMethod;
-      this.isFixedSuffixSynthetic = isFixedSuffixSynthetic;
-      this.mayOverridesNonProgramType = mayOverridesNonProgramType;
+      this.descriptor = descriptor;
     }
 
-    public boolean allowSyntheticContext() {
-      return this == RECORD_TAG;
+    @Override
+    public int compareTo(SyntheticKind other) {
+      return Integer.compare(id, other.getId());
     }
 
-    public boolean isGlobal() {
-      return isFixedSuffixSynthetic && descriptor.isEmpty();
+    @Override
+    public int hashCode() {
+      return id;
     }
 
-    public boolean isShareable() {
-      if (isFixedSuffixSynthetic) {
-        // Fixed synthetics are non-shareable. Ordered by their unique type.
-        return false;
+    @Override
+    public boolean equals(Object o) {
+      return Equatable.equalsImpl(this, o);
+    }
+
+    public static Collection<SyntheticKind> values() {
+      return ALL_KINDS;
+    }
+
+    public static SyntheticKind fromId(int id) {
+      if (0 < id && id <= ALL_KINDS.size()) {
+        return ALL_KINDS.get(id - 1);
       }
+      assert false;
+      return null;
+    }
+
+    public int getId() {
+      return id;
+    }
+
+    public String getDescriptor() {
+      return descriptor;
+    }
+
+    public abstract boolean isShareable();
+
+    public abstract boolean isSingleSyntheticMethod();
+
+    public abstract boolean isFixedSuffixSynthetic();
+
+    public abstract boolean isGlobal();
+
+    public abstract boolean isMayOverridesNonProgramType();
+
+    public abstract boolean allowSyntheticContext();
+  }
+
+  private static class SyntheticMethodKind extends SyntheticKind {
+
+    public SyntheticMethodKind(int id, String descriptor) {
+      super(id, descriptor);
+    }
+
+    @Override
+    public boolean isShareable() {
+      // Single methods may always be shared.
+      return true;
+    }
+
+    @Override
+    public boolean isSingleSyntheticMethod() {
+      return true;
+    }
+
+    @Override
+    public boolean isFixedSuffixSynthetic() {
+      return false;
+    }
+
+    @Override
+    public boolean isGlobal() {
+      return false;
+    }
+
+    @Override
+    public boolean isMayOverridesNonProgramType() {
+      return false;
+    }
+
+    @Override
+    public boolean allowSyntheticContext() {
+      return false;
+    }
+  }
+
+  private static class SyntheticClassKind extends SyntheticKind {
+
+    public SyntheticClassKind(int id, String descriptor) {
+      super(id, descriptor);
+    }
+
+    @Override
+    public boolean isShareable() {
       if (this == NON_FIXED_INIT_TYPE_ARGUMENT) {
         // TODO(b/214901256): Sharing of synthetic classes may lead to duplicate method errors.
         return false;
@@ -119,32 +269,69 @@ public class SyntheticNaming {
       return true;
     }
 
-    public static SyntheticKind fromDescriptor(String descriptor) {
-      for (SyntheticKind kind : values()) {
-        if (kind.descriptor.equals(descriptor)) {
-          return kind;
-        }
-      }
-      return null;
+    @Override
+    public final boolean isSingleSyntheticMethod() {
+      return false;
     }
 
-    public static SyntheticKind fromId(int id) {
-      for (SyntheticKind kind : values()) {
-        if (kind.id == id) {
-          return kind;
-        }
-      }
-      return null;
+    @Override
+    public boolean isFixedSuffixSynthetic() {
+      return false;
     }
 
-    private static boolean verifyNoOverlappingIds() {
-      Int2ReferenceMap<SyntheticKind> idToKind = new Int2ReferenceOpenHashMap<>();
-      for (SyntheticKind kind : values()) {
-        SyntheticKind kindWithSameId = idToKind.put(kind.id, kind);
-        assert kindWithSameId == null
-            : "Synthetic kind " + idToKind + " has same id as " + kindWithSameId;
-      }
+    @Override
+    public boolean isGlobal() {
+      return false;
+    }
+
+    @Override
+    public boolean isMayOverridesNonProgramType() {
+      return false;
+    }
+
+    @Override
+    public boolean allowSyntheticContext() {
+      return false;
+    }
+  }
+
+  private static class SyntheticFixedClassKind extends SyntheticClassKind {
+    private final boolean mayOverridesNonProgramType;
+    private final boolean allowSyntheticContext;
+
+    private SyntheticFixedClassKind(
+        int id,
+        String descriptor,
+        boolean mayOverridesNonProgramType,
+        boolean allowSyntheticContext) {
+      super(id, descriptor);
+      this.mayOverridesNonProgramType = mayOverridesNonProgramType;
+      this.allowSyntheticContext = allowSyntheticContext;
+    }
+
+    @Override
+    public boolean isShareable() {
+      return false;
+    }
+
+    @Override
+    public boolean isFixedSuffixSynthetic() {
       return true;
+    }
+
+    @Override
+    public boolean isGlobal() {
+      return getDescriptor().isEmpty();
+    }
+
+    @Override
+    public boolean isMayOverridesNonProgramType() {
+      return mayOverridesNonProgramType;
+    }
+
+    @Override
+    public boolean allowSyntheticContext() {
+      return allowSyntheticContext;
     }
   }
 
@@ -169,22 +356,22 @@ public class SyntheticNaming {
     String binaryName = type.toBinaryName();
     int index =
         binaryName.lastIndexOf(
-            kind.isFixedSuffixSynthetic ? kind.descriptor : SYNTHETIC_CLASS_SEPARATOR);
+            kind.isFixedSuffixSynthetic() ? kind.descriptor : SYNTHETIC_CLASS_SEPARATOR);
     if (index < 0) {
       throw new Unreachable("Unexpected failure to compute an synthetic prefix");
     }
     return binaryName.substring(0, index);
   }
 
-  public static DexType createFixedType(
+  static DexType createFixedType(
       SyntheticKind kind, SynthesizingContext context, DexItemFactory factory) {
-    assert kind.isFixedSuffixSynthetic;
+    assert kind.isFixedSuffixSynthetic();
     return createType("", kind, context.getSynthesizingContextType(), "", factory);
   }
 
   static DexType createInternalType(
       SyntheticKind kind, SynthesizingContext context, String id, DexItemFactory factory) {
-    assert !kind.isFixedSuffixSynthetic;
+    assert !kind.isFixedSuffixSynthetic();
     return createType(
         INTERNAL_SYNTHETIC_CLASS_SEPARATOR,
         kind,
@@ -195,9 +382,9 @@ public class SyntheticNaming {
 
   static DexType createExternalType(
       SyntheticKind kind, String externalSyntheticTypePrefix, String id, DexItemFactory factory) {
-    assert kind.isFixedSuffixSynthetic == id.isEmpty();
+    assert kind.isFixedSuffixSynthetic() == id.isEmpty();
     return createType(
-        kind.isFixedSuffixSynthetic ? "" : EXTERNAL_SYNTHETIC_CLASS_SEPARATOR,
+        kind.isFixedSuffixSynthetic() ? "" : EXTERNAL_SYNTHETIC_CLASS_SEPARATOR,
         kind,
         externalSyntheticTypePrefix,
         id,
@@ -257,14 +444,9 @@ public class SyntheticNaming {
         createDescriptor(EXTERNAL_SYNTHETIC_CLASS_SEPARATOR, kind, context.getBinaryName(), id));
   }
 
-  public static boolean isInternalStaticInterfaceCall(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(
-        reference, Phase.INTERNAL, SyntheticKind.STATIC_INTERFACE_CALL);
-  }
-
   static boolean isSynthetic(ClassReference clazz, Phase phase, SyntheticKind kind) {
     String typeName = clazz.getTypeName();
-    if (kind.isFixedSuffixSynthetic) {
+    if (kind.isFixedSuffixSynthetic()) {
       assert phase == null;
       return clazz.getBinaryName().endsWith(kind.descriptor);
     }

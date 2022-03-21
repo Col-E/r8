@@ -190,7 +190,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     if (clazz != null) {
       assert kind != null;
       assert !baseDefinitionFor.apply(type).hasClassResolutionResult()
-              || kind.mayOverridesNonProgramType
+              || kind.isMayOverridesNonProgramType()
           : "Pending synthetic definition also present in the active program: " + type;
       return clazz;
     }
@@ -524,7 +524,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public DexProgramClass getExistingFixedClass(
       SyntheticKind kind, DexClass context, AppView<?> appView) {
-    assert kind.isFixedSuffixSynthetic;
+    assert kind.isFixedSuffixSynthetic();
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     DexClass clazz = appView.definitionFor(type);
@@ -553,7 +553,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
-    assert kind.isFixedSuffixSynthetic;
+    assert kind.isFixedSuffixSynthetic();
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     return internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
   }
@@ -832,7 +832,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         if (!removedClasses.contains(definition.getHolder().getType())) {
           if (definition.isProgramDefinition()) {
             committedProgramTypesBuilder.add(definition.getHolder().getType());
-            if (definition.getKind().mayOverridesNonProgramType) {
+            if (definition.getKind().isMayOverridesNonProgramType()) {
               appBuilder.addProgramClassPotentiallyOverridingNonProgramClass(
                   definition.asProgramDefinition().getHolder());
             } else {

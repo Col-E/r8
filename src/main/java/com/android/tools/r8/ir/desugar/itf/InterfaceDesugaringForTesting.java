@@ -9,7 +9,7 @@ import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 public class InterfaceDesugaringForTesting {
 
   public static String getEmulateLibraryClassNameSuffix() {
-    return SyntheticKind.EMULATED_INTERFACE_CLASS.descriptor;
+    return SyntheticKind.EMULATED_INTERFACE_CLASS.getDescriptor();
   }
 
   public static String getCompanionClassNameSuffix() {

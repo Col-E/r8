@@ -78,7 +78,7 @@ public class SyntheticItemsTestUtils {
       if (kind.isGlobal()) {
         continue;
       }
-      if (kind.isFixedSuffixSynthetic) {
+      if (kind.isFixedSuffixSynthetic()) {
         if (SyntheticNaming.isSynthetic(reference, null, kind)) {
           return true;
         }

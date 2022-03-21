@@ -391,9 +391,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   public static DexAnnotation createAnnotationSynthesizedClass(
       SyntheticKind kind, DexItemFactory dexItemFactory) {
     DexAnnotationElement kindElement =
-        new DexAnnotationElement(
-            dexItemFactory.kindString,
-            new DexValueString(dexItemFactory.createString(kind.descriptor)));
+        new DexAnnotationElement(dexItemFactory.kindString, DexValueInt.create(kind.getId()));
     DexAnnotationElement[] elements = new DexAnnotationElement[] {kindElement};
     return new DexAnnotation(
         VISIBILITY_BUILD,
@@ -423,12 +421,11 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
     if (kindElement.name != factory.kindString) {
       return null;
     }
-    if (!kindElement.value.isDexValueString()) {
+    if (!kindElement.value.isDexValueInt()) {
       return null;
     }
     SyntheticKind kind =
-        SyntheticNaming.SyntheticKind.fromDescriptor(
-            kindElement.value.asDexValueString().getValue().toString());
+        SyntheticNaming.SyntheticKind.fromId(kindElement.value.asDexValueInt().getValue());
     return kind;
   }
 

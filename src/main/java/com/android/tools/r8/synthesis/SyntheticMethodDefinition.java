@@ -11,7 +11,7 @@ import com.android.tools.r8.utils.structural.RepresentativeMap;
 import java.util.function.Consumer;
 
 /**
- * Definition of a synthetic method item.
+ * Definition of a single synthetic method item.
  *
  * <p>This class is internal to the synthetic items collection, thus package-protected.
  */
@@ -24,6 +24,7 @@ class SyntheticMethodDefinition
 
   SyntheticMethodDefinition(SyntheticKind kind, SynthesizingContext context, ProgramMethod method) {
     super(kind, context);
+    assert kind.isSingleSyntheticMethod();
     this.method = method;
   }
 
@@ -70,7 +71,7 @@ class SyntheticMethodDefinition
 
   @Override
   public boolean isValid() {
-    return SyntheticMethodBuilder.isValidSyntheticMethod(method.getDefinition(), getKind());
+    return SyntheticMethodBuilder.isValidSingleSyntheticMethod(method.getDefinition(), getKind());
   }
 
   @Override

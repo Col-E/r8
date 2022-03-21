@@ -717,7 +717,7 @@ public class SyntheticFinalization {
       AppView<?> appView,
       Predicate<DexType> reserved) {
     DexItemFactory factory = appView.dexItemFactory();
-    if (kind.isFixedSuffixSynthetic) {
+    if (kind.isFixedSuffixSynthetic()) {
       return SyntheticNaming.createExternalType(kind, externalSyntheticTypePrefix, "", factory);
     }
     NumberGenerator generator =

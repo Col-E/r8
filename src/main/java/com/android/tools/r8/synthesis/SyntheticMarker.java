@@ -70,8 +70,8 @@ public class SyntheticMarker {
     protected ByteVector write(
         ClassWriter classWriter, byte[] code, int codeLength, int maxStack, int maxLocals) {
       ByteVector byteVector = new ByteVector();
-      assert 0 <= kind.id && kind.id <= Short.MAX_VALUE;
-      byteVector.putShort(kind.id);
+      assert 0 <= kind.getId() && kind.getId() <= Short.MAX_VALUE;
+      byteVector.putShort(kind.getId());
       return byteVector;
     }
   }
@@ -122,7 +122,7 @@ public class SyntheticMarker {
       return NO_MARKER;
     }
     assert clazz.annotations().size() == 1;
-    if (kind.isSingleSyntheticMethod) {
+    if (kind.isSingleSyntheticMethod()) {
       if (!clazz.interfaces.isEmpty()) {
         return NO_MARKER;
       }
@@ -161,11 +161,11 @@ public class SyntheticMarker {
   }
 
   public boolean isSyntheticMethods() {
-    return kind != null && kind.isSingleSyntheticMethod;
+    return kind != null && kind.isSingleSyntheticMethod();
   }
 
   public boolean isSyntheticClass() {
-    return kind != null && !kind.isSingleSyntheticMethod;
+    return kind != null && !kind.isSingleSyntheticMethod();
   }
 
   public SyntheticKind getKind() {

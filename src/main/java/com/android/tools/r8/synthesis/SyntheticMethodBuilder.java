@@ -145,22 +145,21 @@ public class SyntheticMethodBuilder {
             .setOptimizationInfo(optimizationInfo)
             .applyIf(!checkAndroidApiLevels, DexEncodedMethod.Builder::disableAndroidApiLevelCheck)
             .build();
-    assert isValidSyntheticMethod(method, syntheticKind);
+    assert !syntheticKind.isSingleSyntheticMethod()
+        || isValidSingleSyntheticMethod(method, syntheticKind);
     return method;
   }
 
   /**
-   * Predicate for what is a "supported" synthetic method.
+   * Predicate for what is a "supported" single synthetic method.
    *
-   * <p>This method is used when identifying synthetic methods in the program input and should be as
-   * narrow as possible.
-   *
-   * <p>Methods in fixed suffix synthetics are identified differently (through the class name) and
-   * can have different properties.
+   * <p>This method is used when identifying single synthetic methods in the program input and
+   * should be as narrow as possible.
    */
-  public static boolean isValidSyntheticMethod(
+  public static boolean isValidSingleSyntheticMethod(
       DexEncodedMethod method, SyntheticKind syntheticKind) {
-    return isValidSingleSyntheticMethod(method) || syntheticKind.isFixedSuffixSynthetic;
+    assert syntheticKind.isSingleSyntheticMethod();
+    return isValidSingleSyntheticMethod(method);
   }
 
   public static boolean isValidSingleSyntheticMethod(DexEncodedMethod method) {
