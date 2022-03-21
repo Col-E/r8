@@ -64,11 +64,7 @@ public class RepackageWithSyntheticItemTest extends RepackageTestBase {
                       .filter(item -> item.getFinalName().startsWith("foo"))
                       .collect(Collectors.toList());
               assertEquals(1, classesStartingWithfoo.size());
-              // TODO(b/172014416): We should not be able to look this up through the repackage name
-              String expectedOriginalNamePrefix =
-                  isFlattenPackageHierarchy()
-                      ? "foo.a.RepackageWithSyntheticItemTest$A"
-                      : "foo.RepackageWithSyntheticItemTest$A";
+              String expectedOriginalNamePrefix = typeName(A.class) + "$$ExternalSyntheticLambda0";
               assertThat(
                   classesStartingWithfoo.get(0).getOriginalName(),
                   containsString(expectedOriginalNamePrefix));
