@@ -8,10 +8,12 @@ import static com.android.tools.r8.utils.FileUtils.isArchive;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.ProgramResource;
-import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -81,36 +83,18 @@ class InternalArchiveClassFileProvider implements ClassFileResourceProvider, Aut
     if (!descriptors.contains(descriptor)) {
       return null;
     }
-    return new ProgramResource() {
-
-      private final Origin entryOrigin =
-          new ArchiveEntryOrigin(getZipEntryNameFromDescriptor(descriptor), origin);
-
-      @Override
-      public Origin getOrigin() {
-        return entryOrigin;
+    try {
+      ZipEntry zipEntry = getZipEntryFromDescriptor(descriptor);
+      try (InputStream inputStream = getOpenZipFile().getInputStream(zipEntry)) {
+        return ProgramResource.fromBytes(
+            new ArchiveEntryOrigin(zipEntry.getName(), origin),
+            Kind.CF,
+            ByteStreams.toByteArray(inputStream),
+            Collections.singleton(descriptor));
       }
-
-      @Override
-      public Kind getKind() {
-        return Kind.CF;
-      }
-
-      @Override
-      public Set<String> getClassDescriptors() {
-        return Collections.singleton(descriptor);
-      }
-
-      @Override
-      public InputStream getByteStream() throws ResourceException {
-        try {
-          ZipEntry zipEntry = getZipEntryFromDescriptor(descriptor);
-          return getOpenZipFile().getInputStream(zipEntry);
-        } catch (IOException e) {
-          throw new ResourceException(getOrigin(), "Failed to read '" + descriptor + "'");
-        }
-      }
-    };
+    } catch (IOException e) {
+      throw new CompilationError("Failed to read '" + descriptor, origin);
+    }
   }
 
   private ZipFile getOpenZipFile() throws IOException {
@@ -134,11 +118,8 @@ class InternalArchiveClassFileProvider implements ClassFileResourceProvider, Aut
     openedZipFile = null;
   }
 
-  private static String getZipEntryNameFromDescriptor(String descriptor) {
-    return descriptor.substring(1, descriptor.length() - 1) + CLASS_EXTENSION;
-  }
-
   private ZipEntry getZipEntryFromDescriptor(String descriptor) throws IOException {
-    return getOpenZipFile().getEntry(getZipEntryNameFromDescriptor(descriptor));
+    return getOpenZipFile()
+        .getEntry(descriptor.substring(1, descriptor.length() - 1) + CLASS_EXTENSION);
   }
 }
