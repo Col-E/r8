@@ -105,8 +105,8 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, clazz, libraryBoundaryNode);
 
     // Trace the references to the immediate super types.
-    registry.registerTypeReference(clazz.getSuperType(), appView.graphLens());
-    clazz.interfaces.forEach(type -> registry.registerTypeReference(type, appView.graphLens()));
+    registry.registerTypeReference(clazz.getSuperType());
+    clazz.interfaces.forEach(registry::registerTypeReference);
 
     // Trace the references from the class annotations.
     new RepackagingAnnotationTracer(appView, registry).trace(clazz.annotations());
@@ -114,10 +114,10 @@ public class RepackagingConstraintGraph {
     // Trace the references in the nest host and/or members.
     if (clazz.isInANest()) {
       if (clazz.isNestHost()) {
-        clazz.forEachNestMember(type -> registry.registerTypeReference(type, appView.graphLens()));
+        clazz.forEachNestMember(registry::registerTypeReference);
       } else {
         assert clazz.isNestMember();
-        registry.registerTypeReference(clazz.getNestHost(), appView.graphLens());
+        registry.registerTypeReference(clazz.getNestHost());
       }
     }
 
@@ -139,7 +139,7 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, field, libraryBoundaryNode);
 
     // Trace the type of the field.
-    registry.registerTypeReference(field.getReference().getType(), appView.graphLens());
+    registry.registerTypeReference(field.getReference().getType());
 
     // Trace the references in the field annotations.
     new RepackagingAnnotationTracer(appView, registry).trace(field.getDefinition().annotations());
@@ -151,9 +151,7 @@ public class RepackagingConstraintGraph {
         new RepackagingUseRegistry(appView, this, method, libraryBoundaryNode);
 
     // Trace the type references in the method signature.
-    definition
-        .getProto()
-        .forEachType(type -> registry.registerTypeReference(type, appView.graphLens()));
+    definition.getProto().forEachType(registry::registerTypeReference);
 
     // Check if this overrides a package-private method.
     DexClass superClass =

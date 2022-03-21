@@ -795,7 +795,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     while (firstUnappliedLens.getPrevious() != appliedLens) {
       GraphLens previousLens = firstUnappliedLens.getPrevious();
       assert previousLens.isNonIdentityLens();
-      assert previousLens != appView.codeLens();
       firstUnappliedLens = previousLens.asNonIdentityLens();
     }
 
@@ -803,24 +802,22 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     // TODO(b/182129249): Once the member rebinding phase has been removed, the MemberRebindingLens
     //  should be removed and all uses of FieldRebindingIdentityLens should be replaced by
     //  MemberRebindingIdentityLens.
-    GraphLens newMemberRebindingLens = GraphLens.getIdentityLens();
-    if (!firstUnappliedLens.isMemberRebindingLens()
-        && !firstUnappliedLens.isMemberRebindingIdentityLens()) {
-      NonIdentityGraphLens appliedMemberRebindingLens =
-          firstUnappliedLens.findPreviousUntil(
-              previous ->
-                  previous.isMemberRebindingLens() || previous.isMemberRebindingIdentityLens(),
-              previous -> previous != appView.codeLens());
-      if (appliedMemberRebindingLens != null) {
-        newMemberRebindingLens =
-            appliedMemberRebindingLens.isMemberRebindingLens()
-                ? appliedMemberRebindingLens
-                    .asMemberRebindingLens()
-                    .toRewrittenFieldRebindingLens(appView, appliedLens)
-                : appliedMemberRebindingLens
-                    .asMemberRebindingIdentityLens()
-                    .toRewrittenMemberRebindingIdentityLens(appView, appliedLens);
-      }
+    NonIdentityGraphLens appliedMemberRebindingLens =
+        firstUnappliedLens.findPrevious(
+            previous ->
+                previous.isMemberRebindingLens() || previous.isMemberRebindingIdentityLens());
+    GraphLens newMemberRebindingLens;
+    if (appliedMemberRebindingLens != null) {
+      newMemberRebindingLens =
+          appliedMemberRebindingLens.isMemberRebindingLens()
+              ? appliedMemberRebindingLens
+                  .asMemberRebindingLens()
+                  .toRewrittenFieldRebindingLens(appView, appliedLens)
+              : appliedMemberRebindingLens
+                  .asMemberRebindingIdentityLens()
+                  .toRewrittenMemberRebindingIdentityLens(appView, appliedLens);
+    } else {
+      newMemberRebindingLens = GraphLens.getIdentityLens();
     }
 
     firstUnappliedLens.withAlternativeParentLens(

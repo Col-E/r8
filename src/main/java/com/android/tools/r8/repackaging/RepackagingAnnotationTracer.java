@@ -13,19 +13,16 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 
 public class RepackagingAnnotationTracer {
 
   private final AppInfoWithClassHierarchy appInfo;
-  private final GraphLens graphLens;
   private final RepackagingUseRegistry registry;
 
   public RepackagingAnnotationTracer(
       AppView<? extends AppInfoWithClassHierarchy> appView, RepackagingUseRegistry registry) {
     this.appInfo = appView.appInfo();
-    this.graphLens = appView.graphLens();
     this.registry = registry;
   }
 
@@ -42,7 +39,7 @@ public class RepackagingAnnotationTracer {
   }
 
   private void traceEncodedAnnotation(DexEncodedAnnotation annotation) {
-    registry.registerTypeReference(annotation.type, graphLens);
+    registry.registerTypeReference(annotation.type);
     annotation.forEachElement(this::traceAnnotationElement);
   }
 
@@ -97,14 +94,11 @@ public class RepackagingAnnotationTracer {
         break;
 
       case METHOD_TYPE:
-        value
-            .asDexValueMethodType()
-            .getValue()
-            .forEachType(type -> registry.registerTypeReference(type, graphLens));
+        value.asDexValueMethodType().getValue().forEachType(registry::registerTypeReference);
         break;
 
       case TYPE:
-        registry.registerTypeReference(value.asDexValueType().getValue(), graphLens);
+        registry.registerTypeReference(value.asDexValueType().getValue());
         break;
 
       default:
