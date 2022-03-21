@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
@@ -31,6 +32,7 @@ import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.Box;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -118,6 +120,11 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
     }
 
     eventConsumer.acceptLambdaClass(lambdaClass, context);
+
+    if (lambdaClass.isStatelessSingleton()) {
+      return ImmutableList.of(
+          new CfStaticFieldRead(lambdaClass.lambdaField, lambdaClass.lambdaField));
+    }
 
     DexTypeList captureTypes = lambdaClass.descriptor.captures;
     Deque<CfInstruction> replacement = new ArrayDeque<>(3 + captureTypes.size() * 2);

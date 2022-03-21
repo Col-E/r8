@@ -360,6 +360,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Boolean value indicating that byte code pass through may be enabled.
   public boolean enableCfByteCodePassThrough = false;
 
+  // Flag to control the representation of stateless lambdas.
+  // See b/222081665 for context.
+  public boolean createSingletonsForStatelessLambdas = false;
+
   // Contain the contents of the build properties file from the compiler command.
   public DumpOptions dumpOptions;
 

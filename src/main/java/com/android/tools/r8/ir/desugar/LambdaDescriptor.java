@@ -190,6 +190,15 @@ public final class LambdaDescriptor {
     }
   }
 
+  public Iterable<DexType> getReferencedBaseTypes(DexItemFactory dexItemFactory) {
+    return enforcedProto.getBaseTypes(dexItemFactory);
+  }
+
+  /** Is a stateless lambda, i.e. lambda does not capture any values */
+  final boolean isStateless() {
+    return captures.isEmpty();
+  }
+
   /** Checks if call site needs a accessor when referenced from `accessedFrom`. */
   boolean needsAccessor(ProgramMethod accessedFrom) {
     if (implHandle.type.isInvokeInterface()) {
