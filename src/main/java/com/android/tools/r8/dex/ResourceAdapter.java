@@ -40,12 +40,11 @@ public class ResourceAdapter {
   public ResourceAdapter(
       AppView<?> appView,
       DexItemFactory dexItemFactory,
-      GraphLens graphLens,
       NamingLens namingLens,
       InternalOptions options) {
     this.appView = appView;
     this.dexItemFactory = dexItemFactory;
-    this.graphLens = graphLens;
+    this.graphLens = appView.graphLens();
     this.namingLens = namingLens;
     this.options = options;
   }

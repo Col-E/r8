@@ -23,8 +23,6 @@ import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
@@ -2256,13 +2254,11 @@ public class ToolHelper {
     R8.writeApplication(
         Executors.newSingleThreadExecutor(),
         appView,
-        GraphLens.getIdentityLens(),
-        InitClassLens.getThrowingInstance(),
         NamingLens.getIdentityLens(),
         options,
         null);
   }
-  
+
   public static void disassemble(AndroidApp app, PrintStream ps) throws IOException {
     DexApplication application =
         new ApplicationReader(app, new InternalOptions(), Timing.empty()).read().toDirect();

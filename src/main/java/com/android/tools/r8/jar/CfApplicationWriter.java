@@ -35,7 +35,6 @@ import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -87,7 +86,6 @@ public class CfApplicationWriter {
 
   private final DexApplication application;
   private final AppView<?> appView;
-  private final GraphLens graphLens;
   private final NamingLens namingLens;
   private final InternalOptions options;
   private final Marker marker;
@@ -95,11 +93,9 @@ public class CfApplicationWriter {
 
   private static final CfVersion MIN_VERSION_FOR_COMPILER_GENERATED_CODE = CfVersion.V1_6;
 
-  public CfApplicationWriter(
-      AppView<?> appView, Marker marker, GraphLens graphLens, NamingLens namingLens) {
+  public CfApplicationWriter(AppView<?> appView, Marker marker, NamingLens namingLens) {
     this.application = appView.appInfo().app();
     this.appView = appView;
-    this.graphLens = graphLens;
     this.namingLens = namingLens;
     this.options = appView.options();
     assert marker != null;
@@ -180,8 +176,7 @@ public class CfApplicationWriter {
                     e.getCodeSize()));
       }
     }
-    ApplicationWriter.supplyAdditionalConsumers(
-        application, appView, graphLens, namingLens, options);
+    ApplicationWriter.supplyAdditionalConsumers(application, appView, namingLens, options);
   }
 
   private void writeClass(

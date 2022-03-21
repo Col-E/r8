@@ -14,8 +14,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
@@ -112,8 +110,6 @@ public final class DexSplitterHelper {
           new ApplicationWriter(
                   appView,
                   markers,
-                  GraphLens.getIdentityLens(),
-                  InitClassLens.getThrowingInstance(),
                   NamingLens.getIdentityLens(),
                   consumer)
               .write(executor);

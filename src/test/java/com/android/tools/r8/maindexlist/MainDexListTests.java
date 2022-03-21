@@ -48,8 +48,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -883,8 +881,6 @@ public class MainDexListTests extends TestBase {
         new ApplicationWriter(
             AppView.createForD8(AppInfo.createInitialAppInfo(application)),
             null,
-            GraphLens.getIdentityLens(),
-            InitClassLens.getThrowingInstance(),
             NamingLens.getIdentityLens());
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);

@@ -11,8 +11,6 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
@@ -117,8 +115,6 @@ public class Smali {
           new ApplicationWriter(
               AppView.createForD8(AppInfo.createInitialAppInfo(dexApp)),
               null,
-              GraphLens.getIdentityLens(),
-              InitClassLens.getThrowingInstance(),
               NamingLens.getIdentityLens());
       writer.write(executor);
       return consumer.contents;

@@ -30,7 +30,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.MethodCollection.MethodCollectionFactory;
@@ -349,7 +348,6 @@ public class GenerateLintFiles {
         new CfApplicationWriter(
             appView,
             options.getMarker(Tool.L8),
-            GraphLens.getIdentityLens(),
             NamingLens.getIdentityLens());
     ClassFileConsumer consumer =
         new ClassFileConsumer.ArchiveConsumer(

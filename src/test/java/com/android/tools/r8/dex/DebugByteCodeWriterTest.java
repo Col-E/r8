@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.naming.NamingLens;
@@ -51,9 +50,7 @@ public class DebugByteCodeWriterTest {
                     .build()));
     return new ObjectToOffsetMapping(
         appView,
-        GraphLens.getIdentityLens(),
         NamingLens.getIdentityLens(),
-        InitClassLens.getThrowingInstance(),
         new LensCodeRewriterUtils(appView),
         Collections.emptyList(),
         Collections.emptyList(),
@@ -70,7 +67,7 @@ public class DebugByteCodeWriterTest {
   @Test
   public void testEmptyDebugInfo() {
     DexDebugInfo debugInfo =
-        new EventBasedDebugInfo(1, DexString.EMPTY_ARRAY, new DexDebugEvent[] {});
+        new EventBasedDebugInfo(1, DexString.EMPTY_ARRAY, DexDebugEvent.EMPTY_ARRAY);
     DebugBytecodeWriter writer =
         new DebugBytecodeWriter(
             DexDebugInfo.convertToWritable(debugInfo),

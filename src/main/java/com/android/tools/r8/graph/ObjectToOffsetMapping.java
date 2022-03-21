@@ -54,9 +54,7 @@ public class ObjectToOffsetMapping {
 
   public ObjectToOffsetMapping(
       AppView<?> appView,
-      GraphLens graphLens,
       NamingLens namingLens,
-      InitClassLens initClassLens,
       LensCodeRewriterUtils lensCodeRewriter,
       Collection<DexProgramClass> classes,
       Collection<DexProto> protos,
@@ -69,7 +67,6 @@ public class ObjectToOffsetMapping {
       int lazyDexStringsCount,
       Timing timing) {
     assert appView != null;
-    assert graphLens != null;
     assert classes != null;
     assert protos != null;
     assert types != null;
@@ -78,12 +75,11 @@ public class ObjectToOffsetMapping {
     assert strings != null;
     assert callSites != null;
     assert methodHandles != null;
-    assert initClassLens != null;
     this.lazyDexStringsCount = lazyDexStringsCount;
     this.appView = appView;
-    this.graphLens = graphLens;
+    this.graphLens = appView.graphLens();
     this.namingLens = namingLens;
-    this.initClassLens = initClassLens;
+    this.initClassLens = appView.initClassLens();
     this.lensCodeRewriter = lensCodeRewriter;
     timing.begin("Sort strings");
     this.strings =

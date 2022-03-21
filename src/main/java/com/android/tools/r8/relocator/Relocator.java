@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
@@ -88,8 +87,7 @@ public class Relocator {
 
       new GenericSignatureRewriter(appView, namingLens).run(appInfo.classes(), executor);
 
-      new CfApplicationWriter(
-              appView, new Marker(Tool.Relocator), GraphLens.getIdentityLens(), namingLens)
+      new CfApplicationWriter(appView, new Marker(Tool.Relocator), namingLens)
           .write(command.getConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {

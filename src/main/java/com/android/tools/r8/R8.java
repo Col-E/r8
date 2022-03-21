@@ -36,7 +36,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GenericSignatureContextBuilder;
 import com.android.tools.r8.graph.GenericSignatureCorrectnessHelper;
 import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.PrunedItems;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -212,8 +211,6 @@ public class R8 {
   static void writeApplication(
       ExecutorService executorService,
       AppView<?> appView,
-      GraphLens graphLens,
-      InitClassLens initClassLens,
       NamingLens namingLens,
       InternalOptions options,
       AndroidApp inputApp)
@@ -227,15 +224,13 @@ public class R8 {
       Set<Marker> markers = new HashSet<>(options.itemFactory.extractMarkers());
       markers.remove(marker);
       if (options.isGeneratingClassFiles()) {
-        new CfApplicationWriter(appView, marker, graphLens, namingLens)
+        new CfApplicationWriter(appView, marker, namingLens)
             .write(options.getClassFileConsumer(), inputApp);
       } else {
         new ApplicationWriter(
                 appView,
                 // Ensure that the marker for this compilation is the first in the list.
                 ImmutableList.<Marker>builder().add(marker).addAll(markers).build(),
-                graphLens,
-                initClassLens,
                 namingLens)
             .write(executorService, inputApp);
       }
@@ -844,8 +839,6 @@ public class R8 {
       writeApplication(
           executorService,
           appView,
-          appView.graphLens(),
-          appView.initClassLens(),
           namingLens,
           options,
           inputApp);

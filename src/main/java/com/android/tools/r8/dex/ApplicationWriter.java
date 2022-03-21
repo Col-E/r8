@@ -39,8 +39,6 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexWritableCode;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -81,8 +79,6 @@ import java.util.stream.Collectors;
 public class ApplicationWriter {
 
   public final AppView<?> appView;
-  public final GraphLens graphLens;
-  public final InitClassLens initClassLens;
   public final NamingLens namingLens;
   public final InternalOptions options;
   private final CodeToKeep desugaredLibraryCodeToKeep;
@@ -158,14 +154,10 @@ public class ApplicationWriter {
   public ApplicationWriter(
       AppView<?> appView,
       List<Marker> markers,
-      GraphLens graphLens,
-      InitClassLens initClassLens,
       NamingLens namingLens) {
     this(
         appView,
         markers,
-        graphLens,
-        initClassLens,
         namingLens,
         null);
   }
@@ -173,16 +165,12 @@ public class ApplicationWriter {
   public ApplicationWriter(
       AppView<?> appView,
       List<Marker> markers,
-      GraphLens graphLens,
-      InitClassLens initClassLens,
       NamingLens namingLens,
       DexIndexedConsumer consumer) {
     this.appView = appView;
     this.options = appView.options();
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
     this.markers = markers;
-    this.graphLens = graphLens;
-    this.initClassLens = initClassLens;
     this.namingLens = namingLens;
     this.programConsumer = consumer;
     this.isTypeMissing =
@@ -297,7 +285,8 @@ public class ApplicationWriter {
                   Timing fileTiming = Timing.create("VirtualFile " + virtualFile.getId(), options);
                   computeOffsetMappingAndRewriteJumboStrings(
                       virtualFile, lazyDexStrings, fileTiming);
-                  DebugRepresentation.computeForFile(virtualFile, graphLens, namingLens, options);
+                  DebugRepresentation.computeForFile(
+                      virtualFile, appView.graphLens(), namingLens, options);
                   fileTiming.end();
                   return fileTiming;
                 },
@@ -351,7 +340,7 @@ public class ApplicationWriter {
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
-      supplyAdditionalConsumers(appView.appInfo().app(), appView, graphLens, namingLens, options);
+      supplyAdditionalConsumers(appView.appInfo().app(), appView, namingLens, options);
     } finally {
       timing.end();
     }
@@ -455,8 +444,7 @@ public class ApplicationWriter {
       return;
     }
     timing.begin("Compute object offset mapping");
-    virtualFile.computeMapping(
-        appView, graphLens, namingLens, initClassLens, lazyDexStrings.size(), timing);
+    virtualFile.computeMapping(appView, namingLens, lazyDexStrings.size(), timing);
     timing.end();
     timing.begin("Rewrite jumbo strings");
     rewriteCodeWithJumboStrings(
@@ -521,7 +509,6 @@ public class ApplicationWriter {
   public static void supplyAdditionalConsumers(
       DexApplication application,
       AppView<?> appView,
-      GraphLens graphLens,
       NamingLens namingLens,
       InternalOptions options) {
     if (options.configurationConsumer != null) {
@@ -540,7 +527,7 @@ public class ApplicationWriter {
     if (dataResourceConsumer != null) {
       ImmutableList<DataResourceProvider> dataResourceProviders = application.dataResourceProviders;
       ResourceAdapter resourceAdapter =
-          new ResourceAdapter(appView, application.dexItemFactory, graphLens, namingLens, options);
+          new ResourceAdapter(appView, application.dexItemFactory, namingLens, options);
 
       adaptAndPassDataResources(
           options, dataResourceConsumer, dataResourceProviders, resourceAdapter);
@@ -575,8 +562,7 @@ public class ApplicationWriter {
       for (DataResourceProvidersAndConsumer entry :
           options.featureSplitConfiguration.getDataResourceProvidersAndConsumers()) {
         ResourceAdapter resourceAdapter =
-            new ResourceAdapter(
-                appView, application.dexItemFactory, graphLens, namingLens, options);
+            new ResourceAdapter(appView, application.dexItemFactory, namingLens, options);
         adaptAndPassDataResources(
             options, entry.getConsumer(), entry.getProviders(), resourceAdapter);
       }

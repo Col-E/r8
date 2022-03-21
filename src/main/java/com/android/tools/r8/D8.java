@@ -17,8 +17,6 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.GraphLens;
-import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
@@ -280,7 +278,7 @@ public final class D8 {
 
       if (options.isGeneratingClassFiles()) {
         finalizeApplication(appView, executor);
-        new CfApplicationWriter(appView, marker, GraphLens.getIdentityLens(), namingLens)
+        new CfApplicationWriter(appView, marker, namingLens)
             .write(options.getClassFileConsumer(), inputApp);
       } else {
         if (!hasDexResources || !hasClassResources || !appView.typeRewriter.isRewriting()) {
@@ -332,8 +330,6 @@ public final class D8 {
         new ApplicationWriter(
                 appView,
                 marker == null ? null : ImmutableList.copyOf(markers),
-                appView.graphLens(),
-                InitClassLens.getThrowingInstance(),
                 namingLens)
             .write(executor, inputApp);
       }
@@ -393,8 +389,6 @@ public final class D8 {
     new ApplicationWriter(
             appView,
             null,
-            GraphLens.getIdentityLens(),
-            InitClassLens.getThrowingInstance(),
             desugaringLens,
             convertedCfFiles)
         .write(executor);
