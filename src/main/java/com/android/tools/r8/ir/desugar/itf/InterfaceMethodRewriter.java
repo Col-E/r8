@@ -43,7 +43,6 @@ import com.android.tools.r8.ir.desugar.stringconcat.StringConcatInstructionDesug
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.structural.Ordered;
@@ -382,7 +381,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
                     appView
                         .getSyntheticItems()
                         .createMethod(
-                            SyntheticNaming.SyntheticKind.STATIC_INTERFACE_CALL,
+                            kind -> kind.STATIC_INTERFACE_CALL,
                             methodProcessingContext.createUniqueContext(),
                             appView,
                             syntheticMethodBuilder ->

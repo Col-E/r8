@@ -48,7 +48,7 @@ public class MainDexDirectReferenceTracer {
       consumer.accept(type);
       // Super and interfaces are live, no need to add them.
       if (!DexAnnotation.hasSynthesizedClassAnnotation(
-          clazz.annotations(), appView.dexItemFactory())) {
+          clazz.annotations(), appView.dexItemFactory(), appView.getSyntheticItems())) {
         traceAnnotationsDirectDependencies(clazz.annotations());
       }
       clazz.forEachField(field -> consumer.accept(field.getReference().type));

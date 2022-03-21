@@ -39,7 +39,6 @@ import com.android.tools.r8.optimize.argumentpropagation.utils.ParameterRemovalU
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepFieldInfo;
 import com.android.tools.r8.shaking.KeepMethodInfo;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AccessUtils;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.IntBox;
@@ -812,7 +811,7 @@ public class ArgumentPropagatorProgramOptimizer {
           appView
               .getSyntheticItems()
               .createClass(
-                  SyntheticKind.NON_FIXED_INIT_TYPE_ARGUMENT,
+                  kinds -> kinds.NON_FIXED_INIT_TYPE_ARGUMENT,
                   processorContext.createMethodProcessingContext(method).createUniqueContext(),
                   appView)
               .getType();

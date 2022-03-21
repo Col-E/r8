@@ -40,8 +40,8 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
+import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -108,8 +108,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   public boolean isSyntheticWrapper(DexType type) {
-    return appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.WRAPPER)
-        || appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.VIVIFIED_WRAPPER);
+    return appView.getSyntheticItems().isSyntheticOfKind(type, kinds -> kinds.WRAPPER)
+        || appView.getSyntheticItems().isSyntheticOfKind(type, kinds -> kinds.VIVIFIED_WRAPPER);
   }
 
   public boolean shouldConvert(DexType type, DexMethod method) {
@@ -202,7 +202,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         appView
             .getSyntheticItems()
             .createMethod(
-                SyntheticKind.ARRAY_CONVERSION,
+                kinds -> kinds.ARRAY_CONVERSION,
                 contextSupplier.get(),
                 appView,
                 builder ->
@@ -351,7 +351,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     DexType vivifiedType = vivifiedTypeFor(type);
     DexClass wrapper =
         ensureClasspathWrapper(
-            SyntheticKind.WRAPPER,
+            kinds -> kinds.WRAPPER,
             vivifiedType,
             type,
             classpathOrLibraryContext,
@@ -363,7 +363,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                     DesugaredLibraryWrapperSynthesizer::codeForClasspathMethod));
     DexClass vivifiedWrapper =
         ensureClasspathWrapper(
-            SyntheticKind.VIVIFIED_WRAPPER,
+            kinds -> kinds.VIVIFIED_WRAPPER,
             type,
             vivifiedType,
             classpathOrLibraryContext,
@@ -382,8 +382,8 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     DexClass vivifiedWrapper;
     DexClass wrapper;
     assert appView.options().isDesugaredLibraryCompilation();
-    wrapper = getExistingProgramWrapper(context, SyntheticKind.WRAPPER);
-    vivifiedWrapper = getExistingProgramWrapper(context, SyntheticKind.VIVIFIED_WRAPPER);
+    wrapper = getExistingProgramWrapper(context, kinds -> kinds.WRAPPER);
+    vivifiedWrapper = getExistingProgramWrapper(context, kinds -> kinds.VIVIFIED_WRAPPER);
     DexField wrapperField = getWrapperUniqueField(wrapper);
     DexField vivifiedWrapperField = getWrapperUniqueField(vivifiedWrapper);
     return new WrapperConversions(
@@ -391,8 +391,9 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         getConversion(vivifiedWrapper, wrapperField.type, vivifiedWrapperField.type));
   }
 
-  private DexProgramClass getExistingProgramWrapper(DexClass context, SyntheticKind kind) {
-    return appView.getSyntheticItems().getExistingFixedClass(kind, context, appView);
+  private DexProgramClass getExistingProgramWrapper(
+      DexClass context, SyntheticKindSelector kindSelector) {
+    return appView.getSyntheticItems().getExistingFixedClass(kindSelector, context, appView);
   }
 
   private DexMethod getConversion(DexClass wrapper, DexType returnType, DexType argType) {
@@ -412,7 +413,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private DexProgramClass ensureProgramWrapper(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexType wrappingType,
       DexType wrappedType,
       DexProgramClass programContext,
@@ -422,7 +423,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return appView
         .getSyntheticItems()
         .ensureFixedClass(
-            kind,
+            kindSelector,
             programContext,
             appView,
             builder -> buildWrapper(wrappingType, wrappedType, programContext, builder),
@@ -432,7 +433,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private DexClasspathClass ensureClasspathWrapper(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexType wrappingType,
       DexType wrappedType,
       ClasspathOrLibraryClass classpathOrLibraryContext,
@@ -442,7 +443,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return appView
         .getSyntheticItems()
         .ensureFixedClasspathClass(
-            kind,
+            kindSelector,
             classpathOrLibraryContext,
             appView,
             builder -> {
@@ -459,7 +460,10 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   }
 
   private void getExistingProgramConversionMethod(
-      SyntheticKind kind, DexProgramClass context, DexClass wrapper, DexClass reverseWrapper) {
+      SyntheticKindSelector kindSelector,
+      DexProgramClass context,
+      DexClass wrapper,
+      DexClass reverseWrapper) {
     DexField wrapperField = getWrapperUniqueField(wrapper);
     DexField reverseWrapperField = getWrapperUniqueField(reverseWrapper);
     DexProto proto = factory.createProto(reverseWrapperField.type, wrapperField.type);
@@ -468,7 +472,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .ensureFixedClassMethod(
             factory.convertMethodName,
             proto,
-            kind,
+            kindSelector,
             context,
             appView,
             ignored -> {},
@@ -694,18 +698,18 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     DexProgramClass programContext = context.asProgramClass();
     DexClass wrapper =
         ensureProgramWrapper(
-            SyntheticKind.WRAPPER, vivifiedTypeFor(type), type, programContext, eventConsumer);
+            kinds -> kinds.WRAPPER, vivifiedTypeFor(type), type, programContext, eventConsumer);
     DexClass vivifiedWrapper =
         ensureProgramWrapper(
-            SyntheticKind.VIVIFIED_WRAPPER,
+            kinds -> kinds.VIVIFIED_WRAPPER,
             type,
             vivifiedTypeFor(type),
             programContext,
             eventConsumer);
     getExistingProgramConversionMethod(
-        SyntheticKind.WRAPPER, programContext, wrapper, vivifiedWrapper);
+        kinds -> kinds.WRAPPER, programContext, wrapper, vivifiedWrapper);
     getExistingProgramConversionMethod(
-        SyntheticKind.VIVIFIED_WRAPPER, programContext, vivifiedWrapper, wrapper);
+        kinds -> kinds.VIVIFIED_WRAPPER, programContext, vivifiedWrapper, wrapper);
   }
 
   private void ensureProgramWrappersVirtualMethods(
@@ -713,7 +717,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Iterable<DexMethod> methods,
       CfClassSynthesizerDesugaringEventConsumer eventConsumer,
       ClassSynthesisDesugaringContext processingContext) {
-    DexProgramClass wrapper = getExistingProgramWrapper(context, SyntheticKind.WRAPPER);
+    DexProgramClass wrapper = getExistingProgramWrapper(context, kinds -> kinds.WRAPPER);
     DexEncodedField wrapperField = getWrapperUniqueEncodedField(wrapper);
     wrapper.addVirtualMethods(
         synthesizeVirtualMethodsForTypeWrapper(
@@ -726,7 +730,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                     eventConsumer,
                     () -> processingContext.createUniqueContext(wrapper))));
     DexProgramClass vivifiedWrapper =
-        getExistingProgramWrapper(context, SyntheticKind.VIVIFIED_WRAPPER);
+        getExistingProgramWrapper(context, kinds -> kinds.VIVIFIED_WRAPPER);
     DexEncodedField vivifiedWrapperField = getWrapperUniqueEncodedField(vivifiedWrapper);
     vivifiedWrapper.addVirtualMethods(
         synthesizeVirtualMethodsForVivifiedTypeWrapper(

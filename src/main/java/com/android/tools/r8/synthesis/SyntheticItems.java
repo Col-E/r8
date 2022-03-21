@@ -55,8 +55,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   static final int INVALID_ID_AFTER_SYNTHETIC_FINALIZATION = -1;
 
+  private final SyntheticNaming naming;
+
   /** Globally incremented id for the next internal synthetic class. */
   private int nextSyntheticId;
+
+  public SyntheticNaming getNaming() {
+    return naming;
+  }
 
   /** Collection of pending items. */
   private static class PendingSynthetics {
@@ -100,13 +106,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // Empty collection for use only in tests and utilities.
   public static SyntheticItems empty() {
-    return new SyntheticItems(-1, CommittedSyntheticsCollection.empty());
+    return new SyntheticItems(-1, CommittedSyntheticsCollection.empty(null));
   }
 
   // Only for use from initial AppInfo/AppInfoWithClassHierarchy create functions. */
   public static CommittedItems createInitialSyntheticItems(DexApplication application) {
     return new CommittedItems(
-        0, application, CommittedSyntheticsCollection.empty(), ImmutableList.of());
+        0,
+        application,
+        CommittedSyntheticsCollection.empty(application.dexItemFactory().getSyntheticNaming()),
+        ImmutableList.of());
   }
 
   // Only for conversion to a mutable synthetic items collection.
@@ -117,6 +126,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   private SyntheticItems(int nextSyntheticId, CommittedSyntheticsCollection committed) {
     this.nextSyntheticId = nextSyntheticId;
     this.committed = committed;
+    this.naming = committed.getNaming();
   }
 
   public static void collectSyntheticInputs(AppView<?> appView) {
@@ -245,11 +255,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     Iterable<SyntheticReference<?, ?, ?>> references = committed.getNonLegacyItems(clazz.getType());
     if (!Iterables.isEmpty(references)) {
       assert Iterables.size(references) == 1;
-      return references.iterator().next().getKind() == SyntheticKind.LAMBDA;
+      return references.iterator().next().getKind() == naming.LAMBDA;
     }
     SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.getType());
     if (definition != null) {
-      return definition.getKind() == SyntheticKind.LAMBDA;
+      return definition.getKind() == naming.LAMBDA;
     }
     assert false;
     return false;
@@ -268,7 +278,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return isSyntheticClass(clazz.type);
   }
 
-  public boolean isSyntheticOfKind(DexType type, SyntheticKind kind) {
+  public boolean isSyntheticOfKind(DexType type, SyntheticKindSelector kindSelector) {
+    SyntheticKind kind = kindSelector.select(naming);
     return pending.containsTypeOfKind(type, kind) || committed.containsTypeOfKind(type, kind);
   }
 
@@ -278,7 +289,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public FeatureSplit getContextualFeatureSplit(
       DexType type, ClassToFeatureSplitMap classToFeatureSplitMap) {
-    if (isSyntheticOfKind(type, SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
+    if (isSyntheticOfKind(type, kinds -> kinds.ENUM_UNBOXING_SHARED_UTILITY_CLASS)) {
       // Use the startup base if there is one, such that we don't merge non-startup classes with the
       // shared utility class in case it is used during startup. The use of base startup allows for
       // merging startup classes with the shared utility class, however, which could be bad for
@@ -341,14 +352,14 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         committed
             .getNonLegacyMethods()
             .getOrDefault(method.getHolderType(), Collections.emptyList())) {
-      if (reference.getKind() == SyntheticKind.STATIC_INTERFACE_CALL) {
+      if (reference.getKind().equals(naming.STATIC_INTERFACE_CALL)) {
         return true;
       }
     }
     SyntheticDefinition<?, ?, ?> definition =
         pending.nonLegacyDefinitions.get(method.getHolderType());
     if (definition != null) {
-      return definition.getKind() == SyntheticKind.STATIC_INTERFACE_CALL;
+      return definition.getKind().equals(naming.STATIC_INTERFACE_CALL);
     }
     return false;
   }
@@ -364,7 +375,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     if (definition != null) {
       references = Iterables.concat(references, IterableUtils.singleton(definition.toReference()));
     }
-    if (Iterables.any(references, reference -> reference.getKind() == SyntheticKind.LAMBDA)) {
+    if (Iterables.any(references, reference -> reference.getKind().equals(naming.LAMBDA))) {
       assert ifIsLambda.test(clazz);
     } else {
       assert ifNotLambda.test(clazz);
@@ -489,15 +500,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public DexProgramClass createClass(
-      SyntheticKind kind, UniqueContext context, AppView<?> appView) {
-    return createClass(kind, context, appView, ConsumerUtils.emptyConsumer());
+      SyntheticKindSelector kindSelector, UniqueContext context, AppView<?> appView) {
+    return createClass(kindSelector, context, appView, ConsumerUtils.emptyConsumer());
   }
 
   public DexProgramClass createClass(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       UniqueContext context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn) {
+    SyntheticKind kind = kindSelector.select(naming);
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = getSynthesizingContext(context.getClassContext(), appView);
@@ -511,10 +523,11 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   // TODO(b/172194101): Make this take a unique context.
   public DexProgramClass createFixedClass(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexProgramClass context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn) {
+    SyntheticKind kind = kindSelector.select(naming);
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     Function<SynthesizingContext, DexType> contextToType =
         c -> SyntheticNaming.createFixedType(kind, c, appView.dexItemFactory());
@@ -523,7 +536,8 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public DexProgramClass getExistingFixedClass(
-      SyntheticKind kind, DexClass context, AppView<?> appView) {
+      SyntheticKindSelector kindSelector, DexClass context, AppView<?> appView) {
+    SyntheticKind kind = kindSelector.select(naming);
     assert kind.isFixedSuffixSynthetic();
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
@@ -542,17 +556,23 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
         : SynthesizingContext.fromNonSyntheticInputContext(context.asClasspathOrLibraryClass());
   }
 
+  @FunctionalInterface
+  public interface SyntheticKindSelector {
+    SyntheticKind select(SyntheticNaming naming);
+  }
+
   /**
    * Ensure that a fixed synthetic class exists.
    *
    * <p>This method is thread safe and will synchronize based on the context of the fixed synthetic.
    */
   public DexProgramClass ensureFixedClass(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexClass context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
+    SyntheticKind kind = kindSelector.select(naming);
     assert kind.isFixedSuffixSynthetic();
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     return internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
@@ -561,7 +581,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public ProgramMethod ensureFixedClassMethod(
       DexString name,
       DexProto proto,
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       ProgramDefinition context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> buildClassCallback,
@@ -569,7 +589,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     return ensureFixedClassMethod(
         name,
         proto,
-        kind,
+        kindSelector,
         context,
         appView,
         buildClassCallback,
@@ -580,15 +600,16 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   public ProgramMethod ensureFixedClassMethod(
       DexString name,
       DexProto proto,
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       ProgramDefinition context,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> buildClassCallback,
       Consumer<SyntheticMethodBuilder> buildMethodCallback,
       Consumer<ProgramMethod> newMethodCallback) {
+    SyntheticKind kind = kindSelector.select(naming);
     DexProgramClass clazz =
         ensureFixedClass(
-            kind, context.getContextClass(), appView, buildClassCallback, emptyConsumer());
+            kindSelector, context.getContextClass(), appView, buildClassCallback, emptyConsumer());
     DexMethod methodReference = appView.dexItemFactory().createMethod(clazz.getType(), proto, name);
     DexEncodedMethod methodDefinition =
         internalEnsureMethod(
@@ -642,18 +663,19 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public DexClasspathClass ensureFixedClasspathClassFromType(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexType contextType,
       AppView<?> appView,
       Consumer<SyntheticClasspathClassBuilder> classConsumer,
       Consumer<DexClasspathClass> onCreationConsumer) {
+    SyntheticKind kind = kindSelector.select(naming);
     SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
     return internalEnsureFixedClasspathClass(
         kind, classConsumer, onCreationConsumer, outerContext, appView);
   }
 
   public DexClasspathClass ensureFixedClasspathClass(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       ClasspathOrLibraryClass context,
       AppView<?> appView,
       Consumer<SyntheticClasspathClassBuilder> classConsumer,
@@ -662,13 +684,13 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = SynthesizingContext.fromNonSyntheticInputContext(context);
     return internalEnsureFixedClasspathClass(
-        kind, classConsumer, onCreationConsumer, outerContext, appView);
+        kindSelector.select(naming), classConsumer, onCreationConsumer, outerContext, appView);
   }
 
   public ClasspathMethod ensureFixedClasspathMethodFromType(
       DexString methodName,
       DexProto methodProto,
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexType contextType,
       AppView<?> appView,
       Consumer<SyntheticClasspathClassBuilder> classConsumer,
@@ -676,15 +698,15 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticMethodBuilder> buildMethodCallback) {
     DexClasspathClass clazz =
         ensureFixedClasspathClassFromType(
-            kind, contextType, appView, classConsumer, onCreationConsumer);
+            kindSelector, contextType, appView, classConsumer, onCreationConsumer);
     return internalEnsureFixedClasspathMethod(
-        methodName, methodProto, kind, appView, buildMethodCallback, clazz);
+        methodName, methodProto, kindSelector.select(naming), appView, buildMethodCallback, clazz);
   }
 
   public ClasspathMethod ensureFixedClasspathClassMethod(
       DexString methodName,
       DexProto methodProto,
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       ClasspathOrLibraryClass context,
       AppView<?> appView,
       Consumer<SyntheticClasspathClassBuilder> buildClassCallback,
@@ -692,9 +714,9 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       Consumer<SyntheticMethodBuilder> buildMethodCallback) {
     DexClasspathClass clazz =
         ensureFixedClasspathClass(
-            kind, context, appView, buildClassCallback, onClassCreationCallback);
+            kindSelector, context, appView, buildClassCallback, onClassCreationCallback);
     return internalEnsureFixedClasspathMethod(
-        methodName, methodProto, kind, appView, buildMethodCallback, clazz);
+        methodName, methodProto, kindSelector.select(naming), appView, buildMethodCallback, clazz);
   }
 
   private ClasspathMethod internalEnsureFixedClasspathMethod(
@@ -748,26 +770,28 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
   }
 
   public DexProgramClass ensureFixedClassFromType(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexType contextType,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
+    SyntheticKind kind = kindSelector.select(naming);
     SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
     return internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
   }
 
   /** Create a single synthetic method item. */
   public ProgramMethod createMethod(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       UniqueContext context,
       AppView<?> appView,
       Consumer<SyntheticMethodBuilder> fn) {
-    return createMethod(kind, context.getClassContext(), appView, fn, context::getSyntheticSuffix);
+    return createMethod(
+        kindSelector, context.getClassContext(), appView, fn, context::getSyntheticSuffix);
   }
 
   private ProgramMethod createMethod(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       ProgramDefinition context,
       AppView<?> appView,
       Consumer<SyntheticMethodBuilder> fn,
@@ -776,6 +800,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     // Obtain the outer synthesizing context in the case the context itself is synthetic.
     // This is to ensure a flat input-type -> synthetic-item mapping.
     SynthesizingContext outerContext = getSynthesizingContext(context, appView);
+    SyntheticKind kind = kindSelector.select(naming);
     DexType type =
         SyntheticNaming.createInternalType(
             kind, outerContext, syntheticIdSupplier.get(), appView.dexItemFactory());
@@ -868,7 +893,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
       // single kind of a synthetic which is required for marking synthetics. This check could be
       // relaxed to ensure that all kinds are equivalent if merging is possible.
       assert !it.hasNext();
-      SyntheticMarker.writeMarkerAttribute(writer, kind);
+      SyntheticMarker.writeMarkerAttribute(writer, kind, appView.getSyntheticItems());
     }
   }
 

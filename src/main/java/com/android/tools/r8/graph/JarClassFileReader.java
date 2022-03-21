@@ -124,7 +124,9 @@ public class JarClassFileReader<T extends DexClass> {
     }
     reader.accept(
         new CreateDexClassVisitor<>(origin, classKind, reader.b, application, classConsumer),
-        new Attribute[] {SyntheticMarker.getMarkerAttributePrototype()},
+        new Attribute[] {
+          SyntheticMarker.getMarkerAttributePrototype(application.getFactory().getSyntheticNaming())
+        },
         parsingOptions);
 
     // Read marker.

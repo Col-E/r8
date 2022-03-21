@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.Box;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -165,7 +164,7 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
         appView
             .getSyntheticItems()
             .createClass(
-                SyntheticNaming.SyntheticKind.LAMBDA,
+                kinds -> kinds.LAMBDA,
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->

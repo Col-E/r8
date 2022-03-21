@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.optimize.enums.EnumDataMap.EnumData;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 
 public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
 
@@ -123,7 +122,7 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         .ensureFixedClassMethod(
             methodName,
             methodProto,
-            SyntheticKind.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
+            kinds -> kinds.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
             getSynthesizingContext(),
             appView,
             emptyConsumer(),
@@ -174,7 +173,7 @@ public class LocalEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           appView
               .getSyntheticItems()
               .createFixedClass(
-                  SyntheticKind.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
+                  kinds -> kinds.ENUM_UNBOXING_LOCAL_UTILITY_CLASS,
                   enumToUnbox,
                   appView,
                   builder -> builder.setUseSortedMethodBacking(true));

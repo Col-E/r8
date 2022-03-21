@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
-import com.android.tools.r8.synthesis.SyntheticNaming;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
@@ -399,12 +399,12 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
   }
 
   public static boolean hasSynthesizedClassAnnotation(
-      DexAnnotationSet annotations, DexItemFactory factory) {
-    return getSynthesizedClassAnnotationInfo(annotations, factory) != null;
+      DexAnnotationSet annotations, DexItemFactory factory, SyntheticItems synthetics) {
+    return getSynthesizedClassAnnotationInfo(annotations, factory, synthetics) != null;
   }
 
   public static SyntheticKind getSynthesizedClassAnnotationInfo(
-      DexAnnotationSet annotations, DexItemFactory factory) {
+      DexAnnotationSet annotations, DexItemFactory factory, SyntheticItems synthetics) {
     if (annotations.size() != 1) {
       return null;
     }
@@ -425,7 +425,7 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     SyntheticKind kind =
-        SyntheticNaming.SyntheticKind.fromId(kindElement.value.asDexValueInt().getValue());
+        synthetics.getNaming().fromId(kindElement.value.asDexValueInt().getValue());
     return kind;
   }
 

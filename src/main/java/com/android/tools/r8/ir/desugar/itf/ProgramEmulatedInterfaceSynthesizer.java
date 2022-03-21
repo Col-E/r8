@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Emu
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.L8ProgramEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.ir.synthetic.EmulateDispatchSyntheticCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.LinkedHashMap;
@@ -48,7 +47,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
     return appView
         .getSyntheticItems()
         .ensureFixedClass(
-            SyntheticNaming.SyntheticKind.EMULATED_INTERFACE_CLASS,
+            kinds -> kinds.EMULATED_INTERFACE_CLASS,
             emulatedInterface,
             appView,
             builder ->

@@ -270,7 +270,8 @@ public class SyntheticFinalization {
         new CommittedItems(
             SyntheticItems.INVALID_ID_AFTER_SYNTHETIC_FINALIZATION,
             application,
-            new CommittedSyntheticsCollection(finalMethods, finalClasses, finalInputSynthetics),
+            new CommittedSyntheticsCollection(
+                synthetics.getNaming(), finalMethods, finalClasses, finalInputSynthetics),
             ImmutableList.of()),
         syntheticFinalizationGraphLens,
         PrunedItems.builder().setPrunedApp(application).addRemovedClasses(prunedSynthetics).build(),

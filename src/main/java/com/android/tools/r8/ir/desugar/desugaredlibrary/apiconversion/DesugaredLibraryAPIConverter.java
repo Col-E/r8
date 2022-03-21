@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConversionCfCodeProvider;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
@@ -126,7 +125,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
   static boolean isAPIConversionSyntheticType(
       DexType type, DesugaredLibraryWrapperSynthesizer wrapperSynthesizor, AppView<?> appView) {
     return wrapperSynthesizor.isSyntheticWrapper(type)
-        || appView.getSyntheticItems().isSyntheticOfKind(type, SyntheticKind.API_CONVERSION);
+        || appView.getSyntheticItems().isSyntheticOfKind(type, kinds -> kinds.API_CONVERSION);
   }
 
   public static boolean isVivifiedType(DexType type) {
@@ -429,7 +428,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         appView
             .getSyntheticItems()
             .createMethod(
-                SyntheticKind.API_CONVERSION_PARAMETERS,
+                kinds -> kinds.API_CONVERSION_PARAMETERS,
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->
@@ -534,7 +533,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         appView
             .getSyntheticItems()
             .createMethod(
-                SyntheticKind.API_CONVERSION,
+                kinds -> kinds.API_CONVERSION,
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->

@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Emu
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedInterfaceDescriptor;
 import com.android.tools.r8.ir.desugar.itf.EmulatedInterfaceSynthesizerEventConsumer.ClasspathEmulatedInterfaceSynthesizerEventConsumer;
 import com.android.tools.r8.synthesis.SyntheticClassBuilder;
+import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
@@ -120,8 +121,14 @@ public class InterfaceDesugaringSyntheticHelper {
     return true;
   }
 
+  public boolean verifyKind(DerivedMethod method, SyntheticKindSelector kindSelector) {
+    SyntheticKind kind = kindSelector.select(appView.getSyntheticItems().getNaming());
+    assert method.getHolderKind().equals(kind);
+    return true;
+  }
+
   DexMethod emulatedInterfaceDispatchMethod(DerivedMethod method, DexType holder) {
-    assert method.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
+    assert verifyKind(method, kinds -> kinds.EMULATED_INTERFACE_CLASS);
     DexProto newProto = appView.dexItemFactory().prependHolderToProto(method.getMethod());
     return appView.dexItemFactory().createMethod(holder, newProto, method.getName());
   }
@@ -168,7 +175,7 @@ public class InterfaceDesugaringSyntheticHelper {
     return appView
         .getSyntheticItems()
         .ensureFixedClasspathClassFromType(
-            SyntheticKind.EMULATED_INTERFACE_MARKER_CLASS,
+            kinds -> kinds.EMULATED_INTERFACE_MARKER_CLASS,
             type,
             appView,
             SyntheticClassBuilder::setInterface,
@@ -247,7 +254,7 @@ public class InterfaceDesugaringSyntheticHelper {
     if (method.getHolderKind() == null) {
       return method.getMethod();
     }
-    assert method.getHolderKind() == SyntheticKind.COMPANION_CLASS;
+    assert verifyKind(method, kinds -> kinds.COMPANION_CLASS);
     DexClassAndMethod resolvedMethod =
         appView.appInfoForDesugaring().resolveMethod(method.getMethod(), true).getResolutionPair();
     return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
@@ -256,20 +263,20 @@ public class InterfaceDesugaringSyntheticHelper {
   DexClassAndMethod ensureEmulatedInterfaceDispatchMethod(
       DerivedMethod emulatedDispatchMethod,
       ClasspathEmulatedInterfaceSynthesizerEventConsumer eventConsumer) {
-    assert emulatedDispatchMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
+    assert verifyKind(emulatedDispatchMethod, kinds -> kinds.EMULATED_INTERFACE_CLASS);
     DexClassAndMethod method =
         appView
             .appInfoForDesugaring()
             .resolveMethod(emulatedDispatchMethod.getMethod(), true)
             .getResolutionPair();
-    assert emulatedDispatchMethod.getHolderKind() == SyntheticKind.EMULATED_INTERFACE_CLASS;
+    assert verifyKind(emulatedDispatchMethod, kinds -> kinds.EMULATED_INTERFACE_CLASS);
     if (method.isProgramMethod()) {
       assert appView.options().isDesugaredLibraryCompilation();
       DexProgramClass emulatedInterface =
           appView
               .getSyntheticItems()
               .getExistingFixedClass(
-                  SyntheticKind.EMULATED_INTERFACE_CLASS,
+                  kinds -> kinds.EMULATED_INTERFACE_CLASS,
                   method.asProgramMethod().getHolder(),
                   appView);
       DexMethod emulatedInterfaceMethod =
@@ -286,7 +293,7 @@ public class InterfaceDesugaringSyntheticHelper {
         .ensureFixedClasspathClassMethod(
             emulatedInterfaceMethod.getName(),
             emulatedInterfaceMethod.getProto(),
-            SyntheticKind.EMULATED_INTERFACE_CLASS,
+            kinds -> kinds.EMULATED_INTERFACE_CLASS,
             method.getHolder().asClasspathOrLibraryClass(),
             appView,
             classBuilder -> {},
@@ -420,7 +427,7 @@ public class InterfaceDesugaringSyntheticHelper {
         .ensureFixedClasspathClassMethod(
             companionMethodReference.getName(),
             companionMethodReference.getProto(),
-            SyntheticKind.COMPANION_CLASS,
+            kinds -> kinds.COMPANION_CLASS,
             context,
             appView,
             classBuilder -> {},

@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.templates.CfUtilityMethodsForCodeOptimizations;
 import com.android.tools.r8.synthesis.SyntheticItems;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class UtilityMethodsForCodeOptimizations {
@@ -36,7 +35,7 @@ public class UtilityMethodsForCodeOptimizations {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.TO_STRING_IF_NOT_NULL,
+            kinds -> kinds.TO_STRING_IF_NOT_NULL,
             methodProcessingContext.createUniqueContext(),
             appView,
             builder ->
@@ -65,7 +64,7 @@ public class UtilityMethodsForCodeOptimizations {
     UniqueContext positionContext = methodProcessingContext.createUniqueContext();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.THROW_CCE_IF_NOT_NULL,
+            kinds -> kinds.THROW_CCE_IF_NOT_NULL,
             positionContext,
             appView,
             builder ->
@@ -95,7 +94,7 @@ public class UtilityMethodsForCodeOptimizations {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.THROW_IAE,
+            kinds -> kinds.THROW_IAE,
             methodProcessingContext.createUniqueContext(),
             appView,
             builder ->
@@ -123,7 +122,7 @@ public class UtilityMethodsForCodeOptimizations {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.THROW_ICCE,
+            kinds -> kinds.THROW_ICCE,
             methodProcessingContext.createUniqueContext(),
             appView,
             builder ->
@@ -153,7 +152,7 @@ public class UtilityMethodsForCodeOptimizations {
     SyntheticItems syntheticItems = appView.getSyntheticItems();
     ProgramMethod syntheticMethod =
         syntheticItems.createMethod(
-            SyntheticNaming.SyntheticKind.THROW_NSME,
+            kinds -> kinds.THROW_NSME,
             methodProcessingContext.createUniqueContext(),
             appView,
             builder ->

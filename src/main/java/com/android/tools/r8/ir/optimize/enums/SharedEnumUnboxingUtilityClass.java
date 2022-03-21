@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.ConsumerUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -139,7 +138,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
         .ensureFixedClassMethod(
             methodName,
             methodProto,
-            SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
+            kinds -> kinds.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
             getSynthesizingContext(),
             appView,
             ConsumerUtils.emptyConsumer(),
@@ -202,7 +201,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
           appView
               .getSyntheticItems()
               .createFixedClass(
-                  SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
+                  kinds -> kinds.ENUM_UNBOXING_SHARED_UTILITY_CLASS,
                   synthesizingContext,
                   appView,
                   classBuilder -> {

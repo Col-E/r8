@@ -16,6 +16,10 @@ import org.hamcrest.Matcher;
 
 public class SyntheticItemsTestUtils {
 
+  // Private copy of the synthetic namings. This is not the compiler instance, but checking on the
+  // id/descriptor content is safe.
+  private static final SyntheticNaming naming = new SyntheticNaming();
+
   public static String syntheticMethodName() {
     return SyntheticNaming.INTERNAL_SYNTHETIC_METHOD_NAME;
   }
@@ -38,8 +42,7 @@ public class SyntheticItemsTestUtils {
   }
 
   public static MethodReference syntheticBackportMethod(Class<?> clazz, int id, Method method) {
-    ClassReference syntheticHolder =
-        syntheticClass(clazz, SyntheticNaming.SyntheticKind.BACKPORT, id);
+    ClassReference syntheticHolder = syntheticClass(clazz, naming.BACKPORT, id);
     MethodReference originalMethod = Reference.methodFromMethod(method);
     return Reference.methodFromDescriptor(
         syntheticHolder.getDescriptor(),
@@ -48,15 +51,15 @@ public class SyntheticItemsTestUtils {
   }
 
   public static ClassReference syntheticOutlineClass(Class<?> clazz, int id) {
-    return syntheticClass(clazz, SyntheticKind.OUTLINE, id);
+    return syntheticClass(clazz, naming.OUTLINE, id);
   }
 
   public static ClassReference syntheticOutlineClass(ClassReference clazz, int id) {
-    return syntheticClass(clazz, SyntheticKind.OUTLINE, id);
+    return syntheticClass(clazz, naming.OUTLINE, id);
   }
 
   public static ClassReference syntheticLambdaClass(Class<?> clazz, int id) {
-    return syntheticClass(clazz, SyntheticNaming.SyntheticKind.LAMBDA, id);
+    return syntheticClass(clazz, naming.LAMBDA, id);
   }
 
   public static MethodReference syntheticLambdaMethod(Class<?> clazz, int id, Method method) {
@@ -69,12 +72,11 @@ public class SyntheticItemsTestUtils {
   }
 
   public static boolean isEnumUnboxingSharedUtilityClass(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(
-        reference, null, SyntheticKind.ENUM_UNBOXING_SHARED_UTILITY_CLASS);
+    return SyntheticNaming.isSynthetic(reference, null, naming.ENUM_UNBOXING_SHARED_UTILITY_CLASS);
   }
 
   public static boolean isExternalSynthetic(ClassReference reference) {
-    for (SyntheticKind kind : SyntheticKind.values()) {
+    for (SyntheticKind kind : naming.kinds()) {
       if (kind.isGlobal()) {
         continue;
       }
@@ -92,52 +94,48 @@ public class SyntheticItemsTestUtils {
   }
 
   public static boolean isInternalLambda(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, Phase.INTERNAL, SyntheticKind.LAMBDA);
+    return SyntheticNaming.isSynthetic(reference, Phase.INTERNAL, naming.LAMBDA);
   }
 
   public static boolean isExternalLambda(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.LAMBDA);
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, naming.LAMBDA);
   }
 
   public static boolean isExternalStaticInterfaceCall(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(
-        reference, Phase.EXTERNAL, SyntheticKind.STATIC_INTERFACE_CALL);
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, naming.STATIC_INTERFACE_CALL);
   }
 
   public static boolean isExternalTwrCloseMethod(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.TWR_CLOSE_RESOURCE);
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, naming.TWR_CLOSE_RESOURCE);
   }
 
   public static boolean isMaybeExternalSuppressedExceptionMethod(ClassReference reference) {
     // The suppressed exception methods are grouped with the backports.
-    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.BACKPORT);
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, naming.BACKPORT);
   }
 
   public static boolean isExternalOutlineClass(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, SyntheticKind.OUTLINE);
+    return SyntheticNaming.isSynthetic(reference, Phase.EXTERNAL, naming.OUTLINE);
   }
 
   public static boolean isInitializerTypeArgument(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, null, SyntheticKind.INIT_TYPE_ARGUMENT);
+    return SyntheticNaming.isSynthetic(reference, null, naming.INIT_TYPE_ARGUMENT);
   }
 
   public static boolean isExternalNonFixedInitializerTypeArgument(ClassReference reference) {
     return SyntheticNaming.isSynthetic(
-        reference, Phase.EXTERNAL, SyntheticKind.NON_FIXED_INIT_TYPE_ARGUMENT);
+        reference, Phase.EXTERNAL, naming.NON_FIXED_INIT_TYPE_ARGUMENT);
   }
 
   public static boolean isHorizontalInitializerTypeArgument(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(
-            reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_1)
-        || SyntheticNaming.isSynthetic(
-            reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_2)
-        || SyntheticNaming.isSynthetic(
-            reference, null, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_3);
+    return SyntheticNaming.isSynthetic(reference, null, naming.HORIZONTAL_INIT_TYPE_ARGUMENT_1)
+        || SyntheticNaming.isSynthetic(reference, null, naming.HORIZONTAL_INIT_TYPE_ARGUMENT_2)
+        || SyntheticNaming.isSynthetic(reference, null, naming.HORIZONTAL_INIT_TYPE_ARGUMENT_3);
   }
 
   public static boolean isWrapper(ClassReference reference) {
-    return SyntheticNaming.isSynthetic(reference, null, SyntheticKind.WRAPPER)
-        || SyntheticNaming.isSynthetic(reference, null, SyntheticKind.VIVIFIED_WRAPPER);
+    return SyntheticNaming.isSynthetic(reference, null, naming.WRAPPER)
+        || SyntheticNaming.isSynthetic(reference, null, naming.VIVIFIED_WRAPPER);
   }
 
   public static Matcher<String> containsInternalSyntheticReference() {
@@ -149,7 +147,6 @@ public class SyntheticItemsTestUtils {
   }
 
   public static boolean isInternalThrowNSME(MethodReference method) {
-    return SyntheticNaming.isSynthetic(
-        method.getHolderClass(), Phase.INTERNAL, SyntheticKind.THROW_NSME);
+    return SyntheticNaming.isSynthetic(method.getHolderClass(), Phase.INTERNAL, naming.THROW_NSME);
   }
 }

@@ -35,6 +35,7 @@ import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
@@ -681,6 +682,12 @@ public class DexItemFactory {
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
   public final StringConcatFactoryMembers stringConcatFactoryMembers =
       new StringConcatFactoryMembers();
+
+  private final SyntheticNaming syntheticNaming = new SyntheticNaming();
+
+  public SyntheticNaming getSyntheticNaming() {
+    return syntheticNaming;
+  }
 
   public final BiMap<DexType, DexType> primitiveToBoxed = HashBiMap.create(
       ImmutableMap.<DexType, DexType>builder()

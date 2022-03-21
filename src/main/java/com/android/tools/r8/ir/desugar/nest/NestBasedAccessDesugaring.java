@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.ProgramAdditions;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -444,7 +443,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                   return appView
                       .getSyntheticItems()
                       .createFixedClass(
-                          SyntheticKind.INIT_TYPE_ARGUMENT,
+                          kinds -> kinds.INIT_TYPE_ARGUMENT,
                           method.asProgramMethod().getHolder(),
                           appView,
                           builder -> {})
@@ -454,7 +453,7 @@ public class NestBasedAccessDesugaring implements CfInstructionDesugaring {
                   return appView
                       .getSyntheticItems()
                       .ensureFixedClasspathClass(
-                          SyntheticKind.INIT_TYPE_ARGUMENT,
+                          kinds -> kinds.INIT_TYPE_ARGUMENT,
                           method.asClasspathMethod().getHolder(),
                           appView,
                           ignored -> {},

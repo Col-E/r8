@@ -22,7 +22,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -82,7 +82,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
     DexProto proto =
         factory.createProto(factory.voidType, factory.throwableType, factory.throwableType);
     return createAndCallSyntheticMethod(
-        SyntheticKind.BACKPORT,
+        kinds -> kinds.BACKPORT,
         proto,
         BackportedMethods::ThrowableMethods_addSuppressed,
         methodProcessingContext,
@@ -98,7 +98,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
         factory.createProto(
             factory.createArrayType(1, factory.throwableType), factory.throwableType);
     return createAndCallSyntheticMethod(
-        SyntheticKind.BACKPORT,
+        kinds -> kinds.BACKPORT,
         proto,
         BackportedMethods::ThrowableMethods_getSuppressed,
         methodProcessingContext,
@@ -111,7 +111,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
       MethodProcessingContext methodProcessingContext) {
     // Synthesize a new method.
     return createAndCallSyntheticMethod(
-        SyntheticKind.TWR_CLOSE_RESOURCE,
+        kinds -> kinds.TWR_CLOSE_RESOURCE,
         twrCloseResourceProto,
         BackportedMethods::CloseResourceMethod_closeResourceImpl,
         methodProcessingContext,
@@ -120,7 +120,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
   }
 
   private ImmutableList<CfInstruction> createAndCallSyntheticMethod(
-      SyntheticKind kind,
+      SyntheticKindSelector kindSelector,
       DexProto proto,
       BiFunction<InternalOptions, DexMethod, CfCode> generator,
       MethodProcessingContext methodProcessingContext,
@@ -130,7 +130,7 @@ public class TwrInstructionDesugaring implements CfInstructionDesugaring {
         appView
             .getSyntheticItems()
             .createMethod(
-                kind,
+                kindSelector,
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->

@@ -25,12 +25,13 @@ public class SyntheticMarker {
   private static final String SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME =
       "com.android.tools.r8.SynthesizedClass";
 
-  public static Attribute getMarkerAttributePrototype() {
-    return MarkerAttribute.PROTOTYPE;
+  public static Attribute getMarkerAttributePrototype(SyntheticNaming syntheticNaming) {
+    return new MarkerAttribute(null, syntheticNaming);
   }
 
-  public static void writeMarkerAttribute(ClassWriter writer, SyntheticKind kind) {
-    writer.visitAttribute(new MarkerAttribute(kind));
+  public static void writeMarkerAttribute(
+      ClassWriter writer, SyntheticKind kind, SyntheticItems syntheticItems) {
+    writer.visitAttribute(new MarkerAttribute(kind, syntheticItems.getNaming()));
   }
 
   public static SyntheticMarker readMarkerAttribute(Attribute attribute) {
@@ -43,13 +44,13 @@ public class SyntheticMarker {
 
   private static class MarkerAttribute extends Attribute {
 
-    private static final MarkerAttribute PROTOTYPE = new MarkerAttribute(null);
-
     private SyntheticKind kind;
+    private final SyntheticNaming syntheticNaming;
 
-    public MarkerAttribute(SyntheticKind kind) {
+    public MarkerAttribute(SyntheticKind kind, SyntheticNaming syntheticNaming) {
       super(SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME);
       this.kind = kind;
+      this.syntheticNaming = syntheticNaming;
     }
 
     @Override
@@ -62,8 +63,8 @@ public class SyntheticMarker {
         Label[] labels) {
       short id = classReader.readShort(offset);
       assert id >= 0;
-      SyntheticKind kind = SyntheticKind.fromId(id);
-      return new MarkerAttribute(kind);
+      SyntheticKind kind = syntheticNaming.fromId(id);
+      return new MarkerAttribute(kind, syntheticNaming);
     }
 
     @Override
@@ -103,7 +104,7 @@ public class SyntheticMarker {
     SyntheticMarker marker = internalStripMarkerFromClass(clazz, appView);
     assert marker != NO_MARKER
         || !DexAnnotation.hasSynthesizedClassAnnotation(
-            clazz.annotations(), appView.dexItemFactory());
+            clazz.annotations(), appView.dexItemFactory(), appView.getSyntheticItems());
     return marker;
   }
 
@@ -117,7 +118,7 @@ public class SyntheticMarker {
     }
     SyntheticKind kind =
         DexAnnotation.getSynthesizedClassAnnotationInfo(
-            clazz.annotations(), appView.dexItemFactory());
+            clazz.annotations(), appView.dexItemFactory(), appView.getSyntheticItems());
     if (kind == null) {
       return NO_MARKER;
     }

@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.Box;
 import java.util.Collection;
 import java.util.HashMap;
@@ -117,7 +116,7 @@ public class ConstantDynamicInstructionDesugaring implements CfInstructionDesuga
         appView
             .getSyntheticItems()
             .createClass(
-                SyntheticKind.CONST_DYNAMIC,
+                kinds -> kinds.CONST_DYNAMIC,
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->

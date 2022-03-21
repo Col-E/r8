@@ -15,7 +15,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Human
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.DerivedMethod;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.EmulatedDispatchMethodDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
@@ -123,11 +123,12 @@ public class HumanToMachineRetargetConverter {
       return;
     }
     // TODO(b/184026720): Implement library boundaries.
+    SyntheticNaming syntheticNaming = appInfo.getSyntheticItems().getNaming();
     DerivedMethod forwardingMethod = new DerivedMethod(forwardingDexMethod);
     DerivedMethod interfaceMethod =
-        new DerivedMethod(src.getReference(), SyntheticKind.RETARGET_INTERFACE);
+        new DerivedMethod(src.getReference(), syntheticNaming.RETARGET_INTERFACE);
     DerivedMethod dispatchMethod =
-        new DerivedMethod(src.getReference(), SyntheticKind.RETARGET_CLASS);
+        new DerivedMethod(src.getReference(), syntheticNaming.RETARGET_CLASS);
     LinkedHashMap<DexType, DerivedMethod> dispatchCases = new LinkedHashMap<>();
     builder.putEmulatedVirtualRetarget(
         src.getReference(),

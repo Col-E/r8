@@ -51,7 +51,6 @@ import com.android.tools.r8.ir.synthetic.CallObjectInitCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordEqualsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.RecordCfCodeProvider.RecordGetFieldsAsObjectsCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.SyntheticCfCodeProvider;
-import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -285,7 +284,7 @@ public class RecordDesugaring
     return appView
         .getSyntheticItems()
         .createMethod(
-            SyntheticNaming.SyntheticKind.RECORD_HELPER,
+            kinds -> kinds.RECORD_HELPER,
             methodProcessingContext.createUniqueContext(),
             appView,
             builder ->
@@ -374,7 +373,7 @@ public class RecordDesugaring
     appView
         .getSyntheticItems()
         .ensureFixedClassFromType(
-            SyntheticNaming.SyntheticKind.RECORD_TAG,
+            kinds -> kinds.RECORD_TAG,
             factory.recordType,
             appView,
             builder -> {

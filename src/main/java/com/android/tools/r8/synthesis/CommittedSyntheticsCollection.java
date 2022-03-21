@@ -107,7 +107,7 @@ class CommittedSyntheticsCollection {
       ImmutableSet<DexType> allSyntheticInputs =
           newSyntheticInputs == null ? parent.syntheticInputs : newSyntheticInputs.build();
       return new CommittedSyntheticsCollection(
-          allNonLegacyMethods, allNonLegacyClasses, allSyntheticInputs);
+          parent.naming, allNonLegacyMethods, allNonLegacyClasses, allSyntheticInputs);
     }
   }
 
@@ -122,8 +122,7 @@ class CommittedSyntheticsCollection {
     return ImmutableMap.copyOf(newSynthetics);
   }
 
-  private static final CommittedSyntheticsCollection EMPTY =
-      new CommittedSyntheticsCollection(ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of());
+  private final SyntheticNaming naming;
 
   /** Mapping from synthetic type to its synthetic method item description. */
   private final ImmutableMap<DexType, List<SyntheticMethodReference>> nonLegacyMethods;
@@ -135,13 +134,19 @@ class CommittedSyntheticsCollection {
   public final ImmutableSet<DexType> syntheticInputs;
 
   public CommittedSyntheticsCollection(
+      SyntheticNaming naming,
       ImmutableMap<DexType, List<SyntheticMethodReference>> nonLegacyMethods,
       ImmutableMap<DexType, List<SyntheticProgramClassReference>> nonLegacyClasses,
       ImmutableSet<DexType> syntheticInputs) {
+    this.naming = naming;
     this.nonLegacyMethods = nonLegacyMethods;
     this.nonLegacyClasses = nonLegacyClasses;
     this.syntheticInputs = syntheticInputs;
     assert verifySyntheticInputsSubsetOfSynthetics();
+  }
+
+  SyntheticNaming getNaming() {
+    return naming;
   }
 
   private boolean verifySyntheticInputsSubsetOfSynthetics() {
@@ -158,8 +163,9 @@ class CommittedSyntheticsCollection {
     return true;
   }
 
-  public static CommittedSyntheticsCollection empty() {
-    return EMPTY;
+  public static CommittedSyntheticsCollection empty(SyntheticNaming naming) {
+    return new CommittedSyntheticsCollection(
+        naming, ImmutableMap.of(), ImmutableMap.of(), ImmutableSet.of());
   }
 
   Builder builder() {
@@ -234,7 +240,7 @@ class CommittedSyntheticsCollection {
     if (removed.isEmpty()) {
       return this;
     }
-    Builder builder = CommittedSyntheticsCollection.empty().builder();
+    Builder builder = CommittedSyntheticsCollection.empty(naming).builder();
     boolean changed = false;
     for (SyntheticMethodReference reference : IterableUtils.flatten(nonLegacyMethods.values())) {
       if (removed.contains(reference.getHolder())) {
@@ -264,6 +270,7 @@ class CommittedSyntheticsCollection {
   CommittedSyntheticsCollection rewriteWithLens(NonIdentityGraphLens lens) {
     ImmutableSet.Builder<DexType> syntheticInputsBuilder = ImmutableSet.builder();
     return new CommittedSyntheticsCollection(
+        naming,
         rewriteItems(nonLegacyMethods, lens, syntheticInputsBuilder),
         rewriteItems(nonLegacyClasses, lens, syntheticInputsBuilder),
         syntheticInputsBuilder.build());

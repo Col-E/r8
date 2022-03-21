@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.NestedGraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.collections.BidirectionalManyToManyRepresentativeMap;
 import com.android.tools.r8.utils.collections.BidirectionalManyToOneRepresentativeMap;
@@ -96,7 +95,7 @@ public final class InterfaceProcessor {
         .ensureFixedClassMethod(
             methodName,
             methodProto,
-            SyntheticKind.COMPANION_CLASS,
+            kinds -> kinds.COMPANION_CLASS,
             iface,
             appView,
             builder ->

@@ -48,7 +48,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.ImmutableArrayUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
@@ -178,7 +177,7 @@ class EnumUnboxingTreeFixer {
               appView
                   .getSyntheticItems()
                   .createMethod(
-                      SyntheticKind.ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD,
+                      kinds -> kinds.ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD,
                       // Use the context of the checkNotNull() method to ensure the method is placed
                       // in the same feature split.
                       processorContext

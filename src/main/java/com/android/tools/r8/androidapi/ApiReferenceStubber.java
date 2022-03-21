@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.ThrowExceptionCode;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.CommittedItems;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -156,7 +155,7 @@ public class ApiReferenceStubber {
   public void processClass(DexProgramClass clazz) {
     if (appView
         .getSyntheticItems()
-        .isSyntheticOfKind(clazz.getType(), SyntheticKind.API_MODEL_OUTLINE)) {
+        .isSyntheticOfKind(clazz.getType(), kinds -> kinds.API_MODEL_OUTLINE)) {
       return;
     }
     findReferencedLibraryClasses(clazz.type);
@@ -235,7 +234,7 @@ public class ApiReferenceStubber {
         .appInfo()
         .getSyntheticItems()
         .ensureFixedClassFromType(
-            SyntheticKind.API_MODEL_STUB,
+            kinds -> kinds.API_MODEL_STUB,
             libraryClass.getType(),
             appView,
             classBuilder -> {

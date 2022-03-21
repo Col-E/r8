@@ -94,7 +94,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
         && getMethodProviderOrNull(instruction.asInvoke().getMethod()) != null
         && !appView
             .getSyntheticItems()
-            .isSyntheticOfKind(context.getContextType(), SyntheticKind.BACKPORT_WITH_FORWARDING);
+            .isSyntheticOfKind(context.getContextType(), kinds -> kinds.BACKPORT_WITH_FORWARDING);
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(
@@ -1575,8 +1575,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       this.methodName = methodName;
     }
 
-    protected SyntheticKind getSyntheticKind() {
-      return SyntheticNaming.SyntheticKind.BACKPORT;
+    protected SyntheticKind getSyntheticKind(SyntheticNaming naming) {
+      return naming.BACKPORT;
     }
 
     @Override
@@ -1596,7 +1596,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
       return appView
           .getSyntheticItems()
           .createMethod(
-              getSyntheticKind(),
+              this::getSyntheticKind,
               methodProcessingContext.createUniqueContext(),
               appView,
               builder ->
@@ -1644,8 +1644,8 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     @Override
-    protected SyntheticKind getSyntheticKind() {
-      return SyntheticKind.BACKPORT_WITH_FORWARDING;
+    protected SyntheticKind getSyntheticKind(SyntheticNaming naming) {
+      return naming.BACKPORT_WITH_FORWARDING;
     }
   }
 

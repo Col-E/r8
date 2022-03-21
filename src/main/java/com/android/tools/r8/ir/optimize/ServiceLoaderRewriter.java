@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
@@ -198,7 +197,7 @@ public class ServiceLoaderRewriter {
         appView
             .getSyntheticItems()
             .createMethod(
-                SyntheticKind.SERVICE_LOADER,
+                kinds -> kinds.SERVICE_LOADER,
                 methodProcessingContext.createUniqueContext(),
                 appView,
                 builder ->

@@ -68,7 +68,6 @@ import com.android.tools.r8.ir.optimize.outliner.Outliner;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
@@ -1525,7 +1524,7 @@ public class OutlinerImpl extends Outliner {
           appView
               .getSyntheticItems()
               .createMethod(
-                  SyntheticKind.OUTLINE,
+                  kinds -> kinds.OUTLINE,
                   methodProcessingContext.createUniqueContext(),
                   appView,
                   builder -> {

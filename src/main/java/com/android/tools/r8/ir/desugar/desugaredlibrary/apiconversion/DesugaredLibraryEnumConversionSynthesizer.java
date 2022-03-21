@@ -21,7 +21,6 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.synthesis.SyntheticClasspathClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.synthesis.SyntheticProgramClassBuilder;
 import com.google.common.collect.Iterables;
 
@@ -116,7 +115,7 @@ public class DesugaredLibraryEnumConversionSynthesizer {
     DexProgramClass enumConversion =
         appView
             .getSyntheticItems()
-            .getExistingFixedClass(SyntheticKind.ENUM_CONVERSION, clazz, appView);
+            .getExistingFixedClass(kinds -> kinds.ENUM_CONVERSION, clazz, appView);
     DexMethod method =
         factory.createMethod(
             enumConversion.type, factory.createProto(destType, srcType), factory.convertMethodName);
@@ -137,7 +136,7 @@ public class DesugaredLibraryEnumConversionSynthesizer {
     return appView
         .getSyntheticItems()
         .ensureFixedClass(
-            SyntheticKind.ENUM_CONVERSION,
+            kinds -> kinds.ENUM_CONVERSION,
             programContext,
             appView,
             builder -> buildEnumMethodsWithCode(builder, enumFields, type, vivifiedType),
@@ -150,14 +149,14 @@ public class DesugaredLibraryEnumConversionSynthesizer {
     if (context.isProgramClass()) {
       return appView
           .getSyntheticItems()
-          .getExistingFixedClass(SyntheticKind.ENUM_CONVERSION, context, appView);
+          .getExistingFixedClass(kinds -> kinds.ENUM_CONVERSION, context, appView);
     }
     DexType type = context.type;
     DexType vivifiedType = vivifiedTypeFor(context.type, appView);
     return appView
         .getSyntheticItems()
         .ensureFixedClasspathClass(
-            SyntheticKind.ENUM_CONVERSION,
+            kinds -> kinds.ENUM_CONVERSION,
             context.asClasspathOrLibraryClass(),
             appView,
             builder -> buildEnumMethodsWithoutCode(builder, type, vivifiedType),

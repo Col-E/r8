@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
+import com.android.tools.r8.synthesis.SyntheticItems.SyntheticKindSelector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -50,21 +50,22 @@ public class SyntheticArgumentClass {
       this.appView = appView;
     }
 
-    private DexProgramClass synthesizeClass(DexProgramClass context, SyntheticKind syntheticKind) {
+    private DexProgramClass synthesizeClass(
+        DexProgramClass context, SyntheticKindSelector syntheticKindSelector) {
       return appView
           .getSyntheticItems()
-          .createFixedClass(syntheticKind, context, appView, builder -> {});
+          .createFixedClass(syntheticKindSelector, context, appView, builder -> {});
     }
 
     public SyntheticArgumentClass build(Collection<MergeGroup> mergeGroups) {
       DexProgramClass context = getDeterministicContext(mergeGroups);
       List<DexType> syntheticArgumentTypes = new ArrayList<>();
       syntheticArgumentTypes.add(
-          synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_1).getType());
+          synthesizeClass(context, kinds -> kinds.HORIZONTAL_INIT_TYPE_ARGUMENT_1).getType());
       syntheticArgumentTypes.add(
-          synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_2).getType());
+          synthesizeClass(context, kinds -> kinds.HORIZONTAL_INIT_TYPE_ARGUMENT_2).getType());
       syntheticArgumentTypes.add(
-          synthesizeClass(context, SyntheticKind.HORIZONTAL_INIT_TYPE_ARGUMENT_3).getType());
+          synthesizeClass(context, kinds -> kinds.HORIZONTAL_INIT_TYPE_ARGUMENT_3).getType());
       return new SyntheticArgumentClass(syntheticArgumentTypes);
     }
 

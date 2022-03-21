@@ -28,7 +28,6 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
-import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.ImmutableList;
@@ -171,7 +170,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     return appView
         .getSyntheticItems()
         .createMethod(
-            SyntheticKind.API_MODEL_OUTLINE,
+            kinds -> kinds.API_MODEL_OUTLINE,
             context,
             appView,
             syntheticMethodBuilder -> {
