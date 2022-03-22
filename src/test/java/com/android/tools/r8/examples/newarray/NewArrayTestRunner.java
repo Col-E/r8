@@ -3,24 +3,34 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.examples.newarray;
 
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class NewArrayTestRunner extends TestBase {
 
-  static final Class<?> CLASS = NewArray.class;
+  private static final Class<?> CLASS = NewArray.class;
 
-  private final TestParameters parameters;
-  private final CompilationMode mode;
+  @Parameter(0)
+  public boolean enableMultiANewArrayDesugaringForClassFiles;
+
+  @Parameter(1)
+  public TestParameters parameters;
+
+  @Parameter(2)
+  public CompilationMode mode;
 
   private static final List<String> EXPECTED =
       ImmutableList.of(
@@ -56,20 +66,19 @@ public class NewArrayTestRunner extends TestBase {
           "8,8,8,8",
           "2,4,6,8,10,12,14,16,false,0,0,0,0,0.0,0.0,null");
 
-  @Parameterized.Parameters(name = "{0}, {1}")
+  @Parameters(name = "{1}, {2}, force desugaring: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevels().build(), CompilationMode.values());
-  }
-
-  public NewArrayTestRunner(TestParameters parameters, CompilationMode mode) {
-    this.parameters = parameters;
-    this.mode = mode;
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values());
   }
 
   @Test
   public void runReference() throws Exception {
-    assumeTrue(parameters.isCfRuntime() && mode == CompilationMode.DEBUG);
+    assumeFalse(enableMultiANewArrayDesugaringForClassFiles);
+    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(mode == CompilationMode.DEBUG);
     testForJvm(getStaticTemp())
         .addProgramClassesAndInnerClasses(CLASS)
         .run(parameters.getRuntime(), CLASS)
@@ -78,6 +87,7 @@ public class NewArrayTestRunner extends TestBase {
 
   @Test
   public void testD8() throws Exception {
+    assumeFalse(enableMultiANewArrayDesugaringForClassFiles);
     assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClassesAndInnerClasses(CLASS)
@@ -89,12 +99,20 @@ public class NewArrayTestRunner extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue(parameters.isCfRuntime() || !enableMultiANewArrayDesugaringForClassFiles);
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepMainRule(CLASS)
+        .addOptionsModification(
+            options ->
+                options.testing.enableMultiANewArrayDesugaringForClassFiles =
+                    enableMultiANewArrayDesugaringForClassFiles)
         .setMinApi(parameters.getApiLevel())
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .applyIf(
+            enableMultiANewArrayDesugaringForClassFiles,
+            runResult -> runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
+            runResult -> runResult.assertSuccessWithOutputLines(EXPECTED));
   }
 }

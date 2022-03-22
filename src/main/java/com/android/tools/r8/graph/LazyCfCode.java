@@ -964,7 +964,9 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitMultiANewArrayInsn(String desc, int dims) {
-      if (!application.options.isGeneratingDex()) {
+      InternalOptions options = application.options;
+      if (options.isGeneratingClassFiles()
+          && !options.testing.enableMultiANewArrayDesugaringForClassFiles) {
         instructions.add(new CfMultiANewArray(factory.createType(desc), dims));
         return;
       }
