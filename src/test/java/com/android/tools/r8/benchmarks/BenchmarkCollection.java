@@ -8,6 +8,7 @@ import static java.util.Collections.emptyList;
 import com.android.tools.r8.benchmarks.appdumps.TiviBenchmarks;
 import com.android.tools.r8.benchmarks.desugaredlib.LegacyDesugaredLibraryBenchmark;
 import com.android.tools.r8.benchmarks.helloworld.HelloWorldBenchmark;
+import com.android.tools.r8.benchmarks.retrace.RetraceStackTraceBenchmark;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,6 +48,7 @@ public class BenchmarkCollection {
     HelloWorldBenchmark.configs().forEach(collection::addBenchmark);
     LegacyDesugaredLibraryBenchmark.configs().forEach(collection::addBenchmark);
     TiviBenchmarks.configs().forEach(collection::addBenchmark);
+    RetraceStackTraceBenchmark.configs().forEach(collection::addBenchmark);
     return collection;
   }
 
