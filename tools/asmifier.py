@@ -25,7 +25,7 @@ def run(args, build=True):
   cmd.append('org.objectweb.asm.util.ASMifier')
   cmd.extend(args)
   utils.PrintCmd(cmd)
-  result = subprocess.check_output(cmd)
+  result = subprocess.check_output(cmd).decode('utf-8')
   print(result)
   return result
 
@@ -45,9 +45,9 @@ def main():
       help = False
       args.append(arg)
   if help:
-    print "asmifier.py [--no-build] [--no-debug] <classfile>*"
-    print "  --no-build    Don't run R8 dependencies."
-    print "  --no-debug    Don't include local variable information in output."
+    print("asmifier.py [--no-build] [--no-debug] <classfile>*")
+    print("  --no-build    Don't run R8 dependencies.")
+    print("  --no-debug    Don't include local variable information in output.")
     return
   try:
     run(args, build)
