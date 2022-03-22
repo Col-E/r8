@@ -846,7 +846,7 @@ public class Value implements Comparable<Value> {
       return UnknownValue.getInstance();
     }
 
-    return root.definition.getAbstractValue(appView.withLiveness(), context);
+    return root.definition.getAbstractValue(appView.withClassHierarchy(), context);
   }
 
   public boolean isDefinedByInstructionSatisfying(Predicate<Instruction> predicate) {

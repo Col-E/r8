@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -20,7 +21,6 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.io.UTFDataFormatException;
 
 public class ConstString extends ConstInstruction {
@@ -164,7 +164,7 @@ public class ConstString extends ConstInstruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     if (!instructionInstanceCanThrow()) {
       return appView.abstractValueFactory().createSingleStringValue(value);
     }

@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -180,7 +181,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   public AbstractValue getAbstractValue(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     assert hasOutValue();
     return UnknownValue.getInstance();
   }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -192,11 +193,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return true;
     }
 
-    assert appView.appInfo().hasLiveness();
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    assert appView.appInfo().hasClassHierarchy();
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
 
     SingleResolutionResult resolutionResult =
-        appViewWithLiveness
+        appViewWithClassHierarchy
             .appInfo()
             .resolveMethod(getInvokedMethod(), getInterfaceBit())
             .asSingleResolution();
@@ -205,9 +207,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
 
     // Verify that the target method is accessible in the current context.
-    if (resolutionResult
-        .isAccessibleFrom(context, appViewWithLiveness.appInfo())
-        .isPossiblyFalse()) {
+    if (resolutionResult.isAccessibleFrom(context, appViewWithClassHierarchy).isPossiblyFalse()) {
       return true;
     }
 
@@ -215,14 +215,16 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return false;
     }
 
-    DexEncodedMethod resolvedMethod = resolutionResult.getResolvedMethod();
-    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(getInvokedMethod())
-        || appViewWithLiveness.appInfo().noSideEffects.containsKey(resolvedMethod.getReference())) {
-      return false;
+    DexClassAndMethod resolvedMethod = resolutionResult.getResolutionPair();
+    if (appView.hasLiveness()) {
+      if (appView.appInfoWithLiveness().isAssumeNoSideEffectsMethod(getInvokedMethod())
+          || appView.appInfoWithLiveness().isAssumeNoSideEffectsMethod(resolvedMethod)) {
+        return false;
+      }
     }
 
     // Find the target and check if the invoke may have side effects.
-    DexClassAndMethod singleTarget = lookupSingleTarget(appViewWithLiveness, context);
+    DexClassAndMethod singleTarget = lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       return true;
     }
@@ -235,8 +237,10 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
 
     // Verify that the target method does not have side-effects.
-    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(singleTarget.getReference())) {
-      return false;
+    if (appView.hasLiveness()) {
+      if (appView.appInfoWithLiveness().isAssumeNoSideEffectsMethod(singleTarget)) {
+        return false;
+      }
     }
 
     DexEncodedMethod singleTargetDefinition = singleTarget.getDefinition();

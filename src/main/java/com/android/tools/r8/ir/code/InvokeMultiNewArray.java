@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfMultiANewArray;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -18,7 +19,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.LongInterval;
 import java.util.List;
 
@@ -134,8 +134,9 @@ public class InvokeMultiNewArray extends Invoke {
       return true;
     }
 
-    assert appView.appInfo().hasLiveness();
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    assert appView.appInfo().hasClassHierarchy();
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
 
     // Check if the type is guaranteed to be present.
     DexClass clazz = appView.definitionFor(baseType);
@@ -149,7 +150,8 @@ public class InvokeMultiNewArray extends Invoke {
     }
 
     // Check if the type is guaranteed to be accessible.
-    if (AccessControl.isClassAccessible(clazz, context, appViewWithLiveness).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(clazz, context, appViewWithClassHierarchy)
+        .isPossiblyFalse()) {
       return true;
     }
 

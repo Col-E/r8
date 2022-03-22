@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessControl;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -158,8 +159,9 @@ public class NewInstance extends Instruction {
           && dexItemFactory.libraryClassesWithoutStaticInitialization.contains(clazz));
     }
 
-    assert appView.appInfo().hasLiveness();
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    assert appView.appInfo().hasClassHierarchy();
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
 
     if (clazz.isPrimitiveType() || clazz.isArrayType()) {
       assert false : "Unexpected new-instance instruction with primitive or array type";
@@ -177,19 +179,20 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the instruction does not lead to an IllegalAccessError.
-    if (AccessControl.isClassAccessible(definition, context, appViewWithLiveness)
+    if (AccessControl.isClassAccessible(definition, context, appViewWithClassHierarchy)
         .isPossiblyFalse()) {
       return true;
     }
 
     // Verify that the new-instance instruction won't lead to class initialization.
-    if (definition.classInitializationMayHaveSideEffectsInContext(appViewWithLiveness, context)) {
+    if (definition.classInitializationMayHaveSideEffectsInContext(
+        appViewWithClassHierarchy, context)) {
       return true;
     }
 
     // Verify that the object does not have a finalizer.
     MethodResolutionResult finalizeResolutionResult =
-        appViewWithLiveness
+        appViewWithClassHierarchy
             .appInfo()
             .resolveMethodOnClass(dexItemFactory.objectMembers.finalize, clazz);
     if (finalizeResolutionResult.isSingleResolution()) {

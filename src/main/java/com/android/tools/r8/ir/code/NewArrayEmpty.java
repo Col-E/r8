@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNewArray;
 import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -21,7 +22,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class NewArrayEmpty extends Instruction {
 
@@ -88,7 +88,7 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context) && size().getType().isInt()) {
       assert !instructionInstanceCanThrow();
       return StatefulObjectValue.create(

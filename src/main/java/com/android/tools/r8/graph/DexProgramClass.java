@@ -19,8 +19,8 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.synthesis.SyntheticMarker;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -445,13 +445,11 @@ public class DexProgramClass extends DexClass
     if (isFinal()) {
       return true;
     }
-    if (appView.enableWholeProgramOptimizations()) {
-      assert appView.appInfo().hasLiveness();
-      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      if (appInfo.isPinned(type)) {
-        return false;
-      }
-      return !appInfo.isInstantiatedIndirectly(this);
+    if (appView.hasLiveness()) {
+      assert appView.enableWholeProgramOptimizations();
+      InternalOptions options = appView.options();
+      return !appView.getKeepInfo(this).isPinned(options)
+          && !appView.appInfoWithLiveness().isInstantiatedIndirectly(this);
     }
     return false;
   }

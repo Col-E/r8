@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessControl;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -21,7 +22,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class ConstClass extends ConstInstruction {
 
@@ -133,8 +133,9 @@ public class ConstClass extends ConstInstruction {
       return true;
     }
 
-    assert appView.appInfo().hasLiveness();
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    assert appView.appInfo().hasClassHierarchy();
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
 
     DexClass clazz = appView.definitionFor(baseType);
     // * Check that the class and its super types are present.
@@ -142,7 +143,8 @@ public class ConstClass extends ConstInstruction {
       return true;
     }
     // * Check that the class is accessible.
-    if (AccessControl.isClassAccessible(clazz, context, appViewWithLiveness).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(clazz, context, appViewWithClassHierarchy)
+        .isPossiblyFalse()) {
       return true;
     }
     return false;
@@ -202,7 +204,7 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context)) {
       return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }

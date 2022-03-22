@@ -697,9 +697,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     // Even if we can compute isSubtype by having class hierarchy we may not be allowed to ask the
     // question for all code paths in D8. Having the check for liveness ensure that we are in R8
     // territory.
-    return appInfo().hasLiveness()
-        ? OptionalBool.of(appInfo().withLiveness().isSubtype(subtype, supertype))
-        : OptionalBool.unknown();
+    if (hasClassHierarchy()) {
+      return OptionalBool.of(appInfo().withClassHierarchy().isSubtype(subtype, supertype));
+    }
+    if (subtype == supertype || supertype == dexItemFactory().objectType) {
+      return OptionalBool.TRUE;
+    }
+    return OptionalBool.unknown();
   }
 
   public boolean isCfByteCodePassThrough(DexEncodedMethod method) {

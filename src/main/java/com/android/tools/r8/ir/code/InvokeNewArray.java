@@ -9,6 +9,7 @@ import com.android.tools.r8.code.FilledNewArray;
 import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -22,7 +23,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
 public class InvokeNewArray extends Invoke {
@@ -144,7 +144,7 @@ public class InvokeNewArray extends Invoke {
 
   @Override
   public AbstractValue getAbstractValue(
-      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context)) {
       int size = inValues.size();
       return StatefulObjectValue.create(
@@ -175,8 +175,9 @@ public class InvokeNewArray extends Invoke {
       return true;
     }
 
-    assert appView.appInfo().hasLiveness();
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    assert appView.appInfo().hasClassHierarchy();
+    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
+        appView.withClassHierarchy();
 
     // Check if the type is guaranteed to be present.
     DexClass clazz = appView.definitionFor(baseType);
@@ -191,7 +192,8 @@ public class InvokeNewArray extends Invoke {
     }
 
     // Check if the type is guaranteed to be accessible.
-    if (AccessControl.isClassAccessible(clazz, context, appViewWithLiveness).isPossiblyFalse()) {
+    if (AccessControl.isClassAccessible(clazz, context, appViewWithClassHierarchy)
+        .isPossiblyFalse()) {
       return true;
     }
 
