@@ -22,6 +22,9 @@ public class DesugarGraphTestConsumer implements DesugarGraphConsumer {
 
   private boolean finished = false;
 
+  // Set of all origins for the desugaring candidates in the compilation unit.
+  private final Set<Origin> desugaringCompilationUnit = new HashSet<>();
+
   // Map from a dependency to its immediate dependents.
   private final Map<Origin, Set<Origin>> dependents = new HashMap<>();
 
@@ -81,9 +84,20 @@ public class DesugarGraphTestConsumer implements DesugarGraphConsumer {
     return count;
   }
 
+  public Set<Origin> getDesugaringCompilationUnit() {
+    assertTrue(finished);
+    return desugaringCompilationUnit;
+  }
+
+  @Override
+  public synchronized void acceptProgramNode(Origin node) {
+    desugaringCompilationUnit.add(node);
+  }
+
   @Override
   public synchronized void accept(Origin dependent, Origin dependency) {
     assertFalse(finished);
+    assertTrue(desugaringCompilationUnit.contains(dependent));
     dependents.computeIfAbsent(dependency, s -> new HashSet<>()).add(dependent);
   }
 
