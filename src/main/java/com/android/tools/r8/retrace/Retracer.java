@@ -82,8 +82,8 @@ public interface Retracer {
           .setMappingProvider(mappingProvider)
           .setDiagnosticsHandler(diagnosticsHandler)
           .build();
-    } catch (Throwable throwable) {
-      throw new InvalidMappingFileException(throwable);
+    } catch (Exception e) {
+      throw new InvalidMappingFileException(e);
     }
   }
 

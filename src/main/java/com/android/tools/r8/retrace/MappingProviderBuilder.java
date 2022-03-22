@@ -5,7 +5,9 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.Keep;
 
+@Keep
 public abstract class MappingProviderBuilder<
     P extends MappingProvider, T extends MappingProviderBuilder<P, T>> {
 
