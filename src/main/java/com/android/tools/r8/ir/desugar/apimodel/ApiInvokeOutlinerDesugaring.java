@@ -63,7 +63,9 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
           methodProcessingContext.createUniqueContext(),
           instruction.asInvoke(),
           computedApiLevel,
-          dexItemFactory);
+          dexItemFactory,
+          eventConsumer,
+          context);
     }
     return null;
   }
@@ -146,14 +148,17 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
   }
 
   private Collection<CfInstruction> desugarLibraryCall(
-      UniqueContext context,
+      UniqueContext uniqueContext,
       CfInvoke invoke,
       ComputedApiLevel computedApiLevel,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      ApiInvokeOutlinerDesugaringEventConsumer eventConsumer,
+      ProgramMethod context) {
     DexMethod method = invoke.getMethod();
-    ProgramMethod programMethod =
-        ensureOutlineMethod(context, method, computedApiLevel, factory, invoke);
-    return ImmutableList.of(new CfInvoke(INVOKESTATIC, programMethod.getReference(), false));
+    ProgramMethod outlinedMethod =
+        ensureOutlineMethod(uniqueContext, method, computedApiLevel, factory, invoke);
+    eventConsumer.acceptOutlinedMethod(outlinedMethod, context);
+    return ImmutableList.of(new CfInvoke(INVOKESTATIC, outlinedMethod.getReference(), false));
   }
 
   private ProgramMethod ensureOutlineMethod(

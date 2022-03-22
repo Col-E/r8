@@ -323,7 +323,7 @@ public final class D8 {
 
         finalizeApplication(appView, executor);
 
-        if (options.apiModelingOptions().enableStubbingOfClasses && !appView.options().debug) {
+        if (options.apiModelingOptions().enableStubbingOfClasses) {
           new ApiReferenceStubber(appView).run(executor);
         }
 

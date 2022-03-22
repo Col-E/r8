@@ -16,6 +16,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -25,6 +26,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
@@ -62,6 +64,8 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForMethod(addedOn23(), methodApiLevel))
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::disableStubbingOfClasses);
   }
@@ -72,19 +76,34 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForD8()
+        .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        // TODO(b/213552119): Assert that we did not outline any methods.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+        .inspect(this::inspect);
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForD8()
+        .setMode(CompilationMode.RELEASE)
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -101,47 +120,44 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(
-            inspector -> {
-              int classCount =
-                  parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(methodApiLevel)
-                      ? 4
-                      : 3;
-              assertEquals(classCount, inspector.allClasses().size());
-              Method testMethod = TestClass.class.getDeclaredMethod("test");
-              verifyThat(inspector, parameters, addedOn23())
-                  .isOutlinedFromUntil(testMethod, methodApiLevel);
-              if (parameters.isDexRuntime()
-                  && parameters.getApiLevel().isLessThan(methodApiLevel)) {
-                // Verify that we invoke the synthesized outline, addedOn23, twice.
-                Optional<FoundMethodSubject> synthesizedAddedOn23 =
-                    inspector.allClasses().stream()
-                        .flatMap(clazz -> clazz.allMethods().stream())
-                        .filter(
-                            methodSubject ->
-                                methodSubject.isSynthetic()
-                                    && invokesMethodWithName("addedOn23").matches(methodSubject))
-                        .findFirst();
-                assertTrue(synthesizedAddedOn23.isPresent());
-                MethodSubject testMethodSubject = inspector.method(testMethod);
-                assertThat(testMethodSubject, isPresent());
-                assertEquals(
-                    2,
-                    testMethodSubject
-                        .streamInstructions()
-                        .filter(
-                            instructionSubject -> {
-                              if (!instructionSubject.isInvoke()) {
-                                return false;
-                              }
-                              return instructionSubject
-                                  .getMethod()
-                                  .asMethodReference()
-                                  .equals(synthesizedAddedOn23.get().asMethodReference());
-                            })
-                        .count());
-              }
-            });
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) throws Exception {
+    int classCount =
+        parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(methodApiLevel) ? 4 : 3;
+    assertEquals(classCount, inspector.allClasses().size());
+    Method testMethod = TestClass.class.getDeclaredMethod("test");
+    verifyThat(inspector, parameters, addedOn23()).isOutlinedFromUntil(testMethod, methodApiLevel);
+    if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(methodApiLevel)) {
+      // Verify that we invoke the synthesized outline, addedOn23, twice.
+      Optional<FoundMethodSubject> synthesizedAddedOn23 =
+          inspector.allClasses().stream()
+              .flatMap(clazz -> clazz.allMethods().stream())
+              .filter(
+                  methodSubject ->
+                      methodSubject.isSynthetic()
+                          && invokesMethodWithName("addedOn23").matches(methodSubject))
+              .findFirst();
+      assertTrue(synthesizedAddedOn23.isPresent());
+      MethodSubject testMethodSubject = inspector.method(testMethod);
+      assertThat(testMethodSubject, isPresent());
+      assertEquals(
+          2,
+          testMethodSubject
+              .streamInstructions()
+              .filter(
+                  instructionSubject -> {
+                    if (!instructionSubject.isInvoke()) {
+                      return false;
+                    }
+                    return instructionSubject
+                        .getMethod()
+                        .asMethodReference()
+                        .equals(synthesizedAddedOn23.get().asMethodReference());
+                  })
+              .count());
+    }
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

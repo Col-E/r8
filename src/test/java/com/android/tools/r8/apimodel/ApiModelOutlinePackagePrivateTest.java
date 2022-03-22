@@ -9,6 +9,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -83,12 +84,31 @@ public class ApiModelOutlinePackagePrivateTest extends TestBase {
         .apply(
             setMockApiLevelForMethod(
                 LibraryClass.class.getDeclaredMethod("addedOn10"), methodApiLevel))
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::disableStubbingOfClasses);
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeTrue(
+        parameters.isDexRuntime()
+            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    testForD8()
+        .setMode(CompilationMode.DEBUG)
+        .apply(this::setupTestBuilder)
+        .compile()
+        // Assert that we did not outline any methods.
+        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses)
+        .applyIf(willInvokeLibraryMethods(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkResultOnBootClassPath);
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()

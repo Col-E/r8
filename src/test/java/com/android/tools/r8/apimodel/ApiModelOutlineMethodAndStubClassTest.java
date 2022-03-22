@@ -11,6 +11,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
@@ -20,6 +21,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.apimodel.ApiModelMockClassTest.TestClass;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.lang.reflect.Method;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,6 +53,8 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
         .addDefaultRuntimeLibrary(parameters)
         .setMinApi(parameters.getApiLevel())
         .addAndroidBuildVersion()
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableStubbingOfClasses)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(setMockApiLevelForClass(LibraryClass.class, libraryClassLevel))
@@ -64,19 +68,35 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForD8(parameters.getBackend())
+        .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        // TODO(b/213552119): Assert that we did not outline any methods.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+        .inspect(this::inspect);
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForD8(parameters.getBackend())
+        .setMode(CompilationMode.RELEASE)
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -92,13 +112,14 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(
-            inspector -> {
-              verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryClassLevel);
-              verifyThat(inspector, parameters, apiMethod())
-                  .isOutlinedFromUntil(
-                      Main.class.getDeclaredMethod("main", String[].class), libraryMethodLevel);
-            });
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) throws Exception {
+    verifyThat(inspector, parameters, LibraryClass.class).stubbedUntil(libraryClassLevel);
+    verifyThat(inspector, parameters, apiMethod())
+        .isOutlinedFromUntil(
+            Main.class.getDeclaredMethod("main", String[].class), libraryMethodLevel);
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

@@ -16,6 +16,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -25,6 +26,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.lang.reflect.Method;
@@ -69,6 +71,8 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
                 LibraryClass.class, initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn23(), initialLibraryMockLevel))
         .apply(setMockApiLevelForMethod(addedOn27(), finalLibraryMethodLevel))
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::disableStubbingOfClasses);
   }
@@ -82,19 +86,34 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForD8(parameters.getBackend())
+        .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        // TODO(b/213552119): Assert that we did not outline any methods.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+        .inspect(this::inspect);
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForD8(parameters.getBackend())
+        .setMode(CompilationMode.RELEASE)
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        .inspect(this::inspect);
   }
 
   @Test
@@ -111,40 +130,37 @@ public class ApiModelOutlineMethodMissingClassTest extends TestBase {
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(
-            inspector -> {
-              // No need to check further on CF.
-              if (parameters.isCfRuntime()) {
-                assertEquals(3, inspector.allClasses().size());
-                return;
-              }
-              Method testMethod = TestClass.class.getDeclaredMethod("test");
-              MethodSubject testMethodSubject = inspector.method(testMethod);
-              assertThat(testMethodSubject, isPresent());
-              Optional<FoundMethodSubject> synthesizedMissingNotReferenced =
-                  inspector.allClasses().stream()
-                      .flatMap(clazz -> clazz.allMethods().stream())
-                      .filter(
-                          methodSubject ->
-                              methodSubject.isSynthetic()
-                                  && invokesMethodWithName("missingNotReferenced")
-                                      .matches(methodSubject))
-                      .findFirst();
-              assertFalse(synthesizedMissingNotReferenced.isPresent());
-              verifyThat(inspector, parameters, addedOn23()).isNotOutlinedFrom(testMethod);
-              verifyThat(inspector, parameters, addedOn27())
-                  .isOutlinedFromUntil(testMethod, finalLibraryMethodLevel);
-              verifyThat(
-                      inspector,
-                      parameters,
-                      LibraryClass.class.getDeclaredMethod("missingAndReferenced"))
-                  .isNotOutlinedFrom(testMethod);
-              if (parameters.getApiLevel().isLessThan(finalLibraryMethodLevel)) {
-                assertEquals(4, inspector.allClasses().size());
-              } else {
-                assertEquals(3, inspector.allClasses().size());
-              }
-            });
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) throws Exception {
+    // No need to check further on CF.
+    if (parameters.isCfRuntime()) {
+      assertEquals(3, inspector.allClasses().size());
+      return;
+    }
+    Method testMethod = TestClass.class.getDeclaredMethod("test");
+    MethodSubject testMethodSubject = inspector.method(testMethod);
+    assertThat(testMethodSubject, isPresent());
+    Optional<FoundMethodSubject> synthesizedMissingNotReferenced =
+        inspector.allClasses().stream()
+            .flatMap(clazz -> clazz.allMethods().stream())
+            .filter(
+                methodSubject ->
+                    methodSubject.isSynthetic()
+                        && invokesMethodWithName("missingNotReferenced").matches(methodSubject))
+            .findFirst();
+    assertFalse(synthesizedMissingNotReferenced.isPresent());
+    verifyThat(inspector, parameters, addedOn23()).isNotOutlinedFrom(testMethod);
+    verifyThat(inspector, parameters, addedOn27())
+        .isOutlinedFromUntil(testMethod, finalLibraryMethodLevel);
+    verifyThat(inspector, parameters, LibraryClass.class.getDeclaredMethod("missingAndReferenced"))
+        .isNotOutlinedFrom(testMethod);
+    if (parameters.getApiLevel().isLessThan(finalLibraryMethodLevel)) {
+      assertEquals(4, inspector.allClasses().size());
+    } else {
+      assertEquals(3, inspector.allClasses().size());
+    }
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

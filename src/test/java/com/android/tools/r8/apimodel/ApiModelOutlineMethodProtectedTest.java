@@ -10,6 +10,7 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
@@ -73,6 +74,8 @@ public class ApiModelOutlineMethodProtectedTest extends TestBase {
                 .transform())
         .setMinApi(AndroidApiLevel.B)
         .addAndroidBuildVersion(runApiLevel())
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(setMockApiLevelForClass(LibraryClass.class, classApiLevel))
         .apply(setMockApiLevelForDefaultInstanceInitializer(LibraryClass.class, classApiLevel))
         .apply(
@@ -89,12 +92,28 @@ public class ApiModelOutlineMethodProtectedTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForD8()
+        .setMode(CompilationMode.DEBUG)
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput);
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForD8()
+        .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(addToBootClasspath(), b -> b.addBootClasspathClasses(LibraryClass.class))

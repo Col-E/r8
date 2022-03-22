@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.SingleTestRunResult;
 import com.android.tools.r8.TestBase;
@@ -22,6 +23,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -72,6 +74,8 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
         .apply(
             setMockApiLevelForMethod(
                 OtherLibraryClass.class.getMethod("addedOn27"), secondMethodApiLevel))
+        // TODO(b/213552119): Remove when enabled by default.
+        .apply(ApiModelingTestHelper::enableApiCallerIdentification)
         .apply(ApiModelingTestHelper::enableOutliningOfMethods)
         .apply(ApiModelingTestHelper::disableStubbingOfClasses);
   }
@@ -85,12 +89,13 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
+  public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
     assumeTrue(
         parameters.isDexRuntime()
             && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForD8(parameters.getBackend())
+        .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
         .compile()
         .applyIf(
@@ -98,8 +103,49 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
             b -> b.addBootClasspathClasses(LibraryClass.class, OtherLibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        // TODO(b/213552119): Assert that we did not outline any methods.
-        .inspect(ApiModelingTestHelper::assertNoSynthesizedClasses);
+        .inspect(
+            inspector -> {
+              // TODO(b/187675788): Update when horizontal merging is enabled for D8.
+              if (parameters.getApiLevel().isLessThan(firstMethodApiLevel)) {
+                // We have generated 4 outlines two having api level 23 and two having api level 27.
+                assertEquals(7, inspector.allClasses().size());
+              } else if (parameters.getApiLevel().isLessThan(secondMethodApiLevel)) {
+                assertEquals(5, inspector.allClasses().size());
+              } else {
+                // No outlining on this api level.
+                assertEquals(3, inspector.allClasses().size());
+              }
+            });
+  }
+
+  @Test
+  public void testD8Release() throws Exception {
+    // TODO(b/197078995): Make this work on 12+.
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    testForD8(parameters.getBackend())
+        .setMode(CompilationMode.RELEASE)
+        .apply(this::setupTestBuilder)
+        .compile()
+        .applyIf(
+            addToBootClasspath(),
+            b -> b.addBootClasspathClasses(LibraryClass.class, OtherLibraryClass.class))
+        .run(parameters.getRuntime(), Main.class)
+        .apply(this::checkOutput)
+        .inspect(
+            inspector -> {
+              // TODO(b/187675788): Update when horizontal merging is enabled for D8.
+              if (parameters.getApiLevel().isLessThan(firstMethodApiLevel)) {
+                // We have generated 4 outlines two having api level 23 and two having api level 27.
+                assertEquals(7, inspector.allClasses().size());
+              } else if (parameters.getApiLevel().isLessThan(secondMethodApiLevel)) {
+                assertEquals(5, inspector.allClasses().size());
+              } else {
+                // No outlining on this api level.
+                assertEquals(3, inspector.allClasses().size());
+              }
+            });
   }
 
   @Test
@@ -118,64 +164,64 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
             b -> b.addBootClasspathClasses(LibraryClass.class, OtherLibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(
-            inspector -> {
-              // No need to check further on CF.
-              List<FoundMethodSubject> outlinedAddedOn23 =
-                  inspector.allClasses().stream()
-                      .flatMap(clazz -> clazz.allMethods().stream())
-                      .filter(
-                          methodSubject ->
-                              methodSubject.isSynthetic()
-                                  && invokesMethodWithName("addedOn23").matches(methodSubject))
-                      .collect(Collectors.toList());
-              List<FoundMethodSubject> outlinedAddedOn27 =
-                  inspector.allClasses().stream()
-                      .flatMap(clazz -> clazz.allMethods().stream())
-                      .filter(
-                          methodSubject ->
-                              methodSubject.isSynthetic()
-                                  && invokesMethodWithName("addedOn27").matches(methodSubject))
-                      .collect(Collectors.toList());
-              if (parameters.isCfRuntime()) {
-                assertTrue(outlinedAddedOn23.isEmpty());
-                assertTrue(outlinedAddedOn27.isEmpty());
-                assertEquals(3, inspector.allClasses().size());
-              } else if (parameters.getApiLevel().isLessThan(firstMethodApiLevel)) {
-                // We have generated 4 outlines two having api level 23 and two having api level 27.
-                // Check that the levels are horizontally merged.
-                assertEquals(5, inspector.allClasses().size());
-                assertEquals(2, outlinedAddedOn23.size());
-                assertTrue(
-                    outlinedAddedOn23.stream()
-                        .allMatch(
-                            outline ->
-                                outline.getMethod().getHolderType()
-                                    == outlinedAddedOn23.get(0).getMethod().getHolderType()));
-                assertEquals(2, outlinedAddedOn27.size());
-                assertTrue(
-                    outlinedAddedOn27.stream()
-                        .allMatch(
-                            outline ->
-                                outline.getMethod().getHolderType()
-                                    == outlinedAddedOn27.get(0).getMethod().getHolderType()));
-              } else if (parameters.getApiLevel().isLessThan(secondMethodApiLevel)) {
-                assertTrue(outlinedAddedOn23.isEmpty());
-                assertEquals(4, inspector.allClasses().size());
-                assertEquals(2, outlinedAddedOn27.size());
-                assertTrue(
-                    outlinedAddedOn27.stream()
-                        .allMatch(
-                            outline ->
-                                outline.getMethod().getHolderType()
-                                    == outlinedAddedOn27.get(0).getMethod().getHolderType()));
-              } else {
-                // No outlining on this api level.
-                assertTrue(outlinedAddedOn23.isEmpty());
-                assertTrue(outlinedAddedOn27.isEmpty());
-                assertEquals(3, inspector.allClasses().size());
-              }
-            });
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) {
+    List<FoundMethodSubject> outlinedAddedOn23 =
+        inspector.allClasses().stream()
+            .flatMap(clazz -> clazz.allMethods().stream())
+            .filter(
+                methodSubject ->
+                    methodSubject.isSynthetic()
+                        && invokesMethodWithName("addedOn23").matches(methodSubject))
+            .collect(Collectors.toList());
+    List<FoundMethodSubject> outlinedAddedOn27 =
+        inspector.allClasses().stream()
+            .flatMap(clazz -> clazz.allMethods().stream())
+            .filter(
+                methodSubject ->
+                    methodSubject.isSynthetic()
+                        && invokesMethodWithName("addedOn27").matches(methodSubject))
+            .collect(Collectors.toList());
+    if (parameters.isCfRuntime()) {
+      assertTrue(outlinedAddedOn23.isEmpty());
+      assertTrue(outlinedAddedOn27.isEmpty());
+      assertEquals(3, inspector.allClasses().size());
+    } else if (parameters.getApiLevel().isLessThan(firstMethodApiLevel)) {
+      // We have generated 4 outlines two having api level 23 and two having api level 27.
+      // Check that the levels are horizontally merged.
+      assertEquals(5, inspector.allClasses().size());
+      assertEquals(2, outlinedAddedOn23.size());
+      assertTrue(
+          outlinedAddedOn23.stream()
+              .allMatch(
+                  outline ->
+                      outline.getMethod().getHolderType()
+                          == outlinedAddedOn23.get(0).getMethod().getHolderType()));
+      assertEquals(2, outlinedAddedOn27.size());
+      assertTrue(
+          outlinedAddedOn27.stream()
+              .allMatch(
+                  outline ->
+                      outline.getMethod().getHolderType()
+                          == outlinedAddedOn27.get(0).getMethod().getHolderType()));
+    } else if (parameters.getApiLevel().isLessThan(secondMethodApiLevel)) {
+      assertTrue(outlinedAddedOn23.isEmpty());
+      assertEquals(4, inspector.allClasses().size());
+      assertEquals(2, outlinedAddedOn27.size());
+      assertTrue(
+          outlinedAddedOn27.stream()
+              .allMatch(
+                  outline ->
+                      outline.getMethod().getHolderType()
+                          == outlinedAddedOn27.get(0).getMethod().getHolderType()));
+    } else {
+      // No outlining on this api level.
+      assertTrue(outlinedAddedOn23.isEmpty());
+      assertTrue(outlinedAddedOn27.isEmpty());
+      assertEquals(3, inspector.allClasses().size());
+    }
   }
 
   private void checkOutput(SingleTestRunResult<?> runResult) {

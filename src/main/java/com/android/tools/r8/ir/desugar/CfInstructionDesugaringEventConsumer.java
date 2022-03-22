@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.ClassConverterResult;
 import com.android.tools.r8.ir.conversion.D8MethodProcessor;
+import com.android.tools.r8.ir.desugar.apimodel.ApiInvokeOutlinerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethodDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicClass;
 import com.android.tools.r8.ir.desugar.constantdynamic.ConstantDynamicDesugaringEventConsumer;
@@ -57,7 +58,8 @@ public abstract class CfInstructionDesugaringEventConsumer
         InterfaceMethodDesugaringEventConsumer,
         DesugaredLibraryRetargeterInstructionEventConsumer,
         DesugaredLibraryAPIConverterEventConsumer,
-        ClasspathEmulatedInterfaceSynthesizerEventConsumer {
+        ClasspathEmulatedInterfaceSynthesizerEventConsumer,
+        ApiInvokeOutlinerDesugaringEventConsumer {
 
   public static D8CfInstructionDesugaringEventConsumer createForD8(
       D8MethodProcessor methodProcessor) {
@@ -266,6 +268,11 @@ public abstract class CfInstructionDesugaringEventConsumer
       assert synthesizedConstantDynamicClasses.isEmpty();
       return true;
     }
+
+    @Override
+    public void acceptOutlinedMethod(ProgramMethod outlinedMethod, ProgramMethod context) {
+      methodProcessor.scheduleDesugaredMethodForProcessing(outlinedMethod);
+    }
   }
 
   public static class R8CfInstructionDesugaringEventConsumer
@@ -458,6 +465,11 @@ public abstract class CfInstructionDesugaringEventConsumer
 
       // Remove all '$deserializeLambda$' methods which are not supported by desugaring.
       LambdaDeserializationMethodRemover.run(appView, classesWithSerializableLambdas);
+    }
+
+    @Override
+    public void acceptOutlinedMethod(ProgramMethod outlinedMethod, ProgramMethod context) {
+      // Intentionally empty. The method will be hit by tracing if required.
     }
   }
 }
