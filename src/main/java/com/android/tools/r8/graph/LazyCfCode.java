@@ -68,6 +68,7 @@ import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -994,7 +995,18 @@ public class LazyCfCode extends Code {
         visitInsn(Opcodes.IASTORE);
         // ..., count1, ..., dim-array
       }
-      visitLdcInsn(Type.getType(desc.substring(dims)));
+      String baseDesc = desc.substring(dims);
+      if (DescriptorUtils.isPrimitiveDescriptor(baseDesc)) {
+        visitFieldInsn(
+            Opcodes.GETSTATIC,
+            DescriptorUtils.primitiveDescriptorToBoxedInternalName(baseDesc.charAt(0)),
+            "TYPE",
+            "Ljava/lang/Class;");
+      } else if (DescriptorUtils.isVoidDescriptor(baseDesc)) {
+        visitFieldInsn(Opcodes.GETSTATIC, "java/lang/Void", "TYPE", "Ljava/lang/Class;");
+      } else {
+        visitLdcInsn(Type.getType(baseDesc));
+      }
       // ..., dim-array, dim-member-type
       visitInsn(Opcodes.SWAP);
       // ..., dim-member-type, dim-array

@@ -38,6 +38,9 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
   }
 
   public CfConstClass(DexType type, boolean ignoreCompatRules) {
+    // Primitive types and void should be retrieved using, for example, java.lang.Integer.TYPE.
+    assert !type.isPrimitiveType();
+    assert !type.isVoidType();
     this.type = type;
     this.ignoreCompatRules = ignoreCompatRules;
   }
@@ -106,22 +109,6 @@ public class CfConstClass extends CfInstruction implements CfTypeInstruction {
       case '[':
       case 'L':
         return namingLens.lookupInternalName(rewrittenType);
-      case 'Z':
-        return "java/lang/Boolean/TYPE";
-      case 'B':
-        return "java/lang/Byte/TYPE";
-      case 'S':
-        return "java/lang/Short/TYPE";
-      case 'C':
-        return "java/lang/Character/TYPE";
-      case 'I':
-        return "java/lang/Integer/TYPE";
-      case 'F':
-        return "java/lang/Float/TYPE";
-      case 'J':
-        return "java/lang/Long/TYPE";
-      case 'D':
-        return "java/lang/Double/TYPE";
       default:
         throw new Unreachable("Unexpected type in const-class: " + rewrittenType);
     }

@@ -229,6 +229,14 @@ public class DescriptorUtils {
         || c == 'D';
   }
 
+  public static boolean isVoidDescriptor(String descriptor) {
+    return descriptor.length() == 1 && isVoidType(descriptor.charAt(0));
+  }
+
+  public static boolean isVoidType(char c) {
+    return c == 'V';
+  }
+
   public static boolean isArrayDescriptor(String descriptor) {
     if (descriptor.length() < 2) {
       return false;
@@ -265,6 +273,31 @@ public class DescriptorUtils {
         return "float";
       case 'D':
         return "double";
+      default:
+        throw new Unreachable("Unknown type " + primitive);
+    }
+  }
+
+  public static String primitiveDescriptorToBoxedInternalName(char primitive) {
+    switch (primitive) {
+      case 'V':
+        return "java/lang/Void";
+      case 'Z':
+        return "java/lang/Boolean";
+      case 'B':
+        return "java/lang/Byte";
+      case 'S':
+        return "java/lang/Short";
+      case 'C':
+        return "java/lang/Character";
+      case 'I':
+        return "java/lang/Integer";
+      case 'J':
+        return "java/lang/Long";
+      case 'F':
+        return "java/lang/Float";
+      case 'D':
+        return "java/lang/Double";
       default:
         throw new Unreachable("Unknown type " + primitive);
     }
@@ -327,7 +360,7 @@ public class DescriptorUtils {
     return Integer.max(classDescriptor.lastIndexOf("/"), 0) + 1;
   }
 
-   /**
+  /**
    * Get canonical class name from its descriptor.
    *
    * @param classDescriptor a class descriptor i.e. "La/b/C$D;"

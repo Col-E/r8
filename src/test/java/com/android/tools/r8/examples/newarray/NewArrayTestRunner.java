@@ -110,9 +110,6 @@ public class NewArrayTestRunner extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
-        .applyIf(
-            enableMultiANewArrayDesugaringForClassFiles,
-            runResult -> runResult.assertFailureWithErrorThatThrows(NoClassDefFoundError.class),
-            runResult -> runResult.assertSuccessWithOutputLines(EXPECTED));
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 }
