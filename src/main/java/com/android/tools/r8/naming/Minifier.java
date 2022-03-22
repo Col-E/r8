@@ -5,7 +5,7 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.graph.DexApplication.classesWithDeterministicOrder;
 import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
-import static com.android.tools.r8.utils.SymbolGenerationUtils.PRIMITIVE_TYPE_NAMES;
+import static com.android.tools.r8.utils.SymbolGenerationUtils.RESERVED_NAMES;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
@@ -132,7 +132,7 @@ public class Minifier {
                 SymbolGenerationUtils.numberToIdentifier(state.incrementNameIndex(), mixedCasing);
           } while (obfuscationDictionaryForLookup.contains(nextString));
         }
-      } while (PRIMITIVE_TYPE_NAMES.contains(nextString));
+      } while (RESERVED_NAMES.contains(nextString));
       nextName.append(nextString);
       return nextName.toString();
     }

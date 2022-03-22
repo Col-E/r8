@@ -17,9 +17,9 @@ public class SymbolGenerationUtils {
     DONT_USE_MIXED_CASE
   }
 
-  public static Set<String> PRIMITIVE_TYPE_NAMES =
+  public static Set<String> RESERVED_NAMES =
       Sets.newHashSet(
-          "boolean", "byte", "char", "double", "float", "int", "long", "short", "void", "it");
+          "boolean", "byte", "char", "double", "float", "int", "long", "short", "void", "it", "by");
 
   // These letters are used not creating fresh names to output and not for parsing dex/class files.
   private static final char[] IDENTIFIER_CHARACTERS =
