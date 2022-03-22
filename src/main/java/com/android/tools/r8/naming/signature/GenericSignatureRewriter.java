@@ -38,6 +38,14 @@ public class GenericSignatureRewriter {
     this.contextBuilder = contextBuilder;
   }
 
+  public void runForD8(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
+      throws ExecutionException {
+    if (namingLens.isIdentityLens()) {
+      return;
+    }
+    run(classes, executorService);
+  }
+
   public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
     // Rewrite signature annotations for applications that are minified or if we have liveness
