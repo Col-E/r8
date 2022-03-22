@@ -75,7 +75,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -236,7 +235,7 @@ public class EnumUnboxerImpl extends EnumUnboxer {
   }
 
   @Override
-  public void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions) {
+  public void analyzeEnums(IRCode code, MethodProcessor methodProcessor) {
     Set<DexType> eligibleEnums = Sets.newIdentityHashSet();
     for (BasicBlock block : code.blocks) {
       for (Instruction instruction : block.getInstructions()) {
@@ -307,7 +306,8 @@ public class EnumUnboxerImpl extends EnumUnboxer {
       }
     }
     if (methodsDependingOnLibraryModelisation.contains(code.context(), appView.graphLens())) {
-      conversionOptions.disablePeepholeOptimizations();
+      code.mutateConversionOptions(
+          conversionOptions -> conversionOptions.disablePeepholeOptimizations(methodProcessor));
     }
   }
 

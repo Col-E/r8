@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxerImpl;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -41,7 +42,11 @@ public class CheckNotZeroCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(ProgramMethod checkNotZeroMethod, AppView<?> appView, Origin origin) {
+  public IRCode buildIR(
+      ProgramMethod checkNotZeroMethod,
+      AppView<?> appView,
+      Origin origin,
+      MutableMethodConversionOptions conversionOptions) {
     // Build IR from the checkNotNull() method.
     IRCode code = checkNotNullMethod.buildIR(appView);
     InstructionListIterator instructionIterator = code.instructionListIterator();
@@ -82,7 +87,8 @@ public class CheckNotZeroCode extends Code {
         code.valueNumberGenerator,
         code.basicBlockNumberGenerator,
         code.metadata(),
-        checkNotZeroMethod.getOrigin());
+        checkNotZeroMethod.getOrigin(),
+        conversionOptions);
   }
 
   @Override

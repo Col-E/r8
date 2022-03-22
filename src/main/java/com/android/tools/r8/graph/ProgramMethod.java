@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
@@ -27,8 +28,14 @@ public final class ProgramMethod extends DexClassAndMethod
   }
 
   public IRCode buildIR(AppView<?> appView) {
+    return buildIR(appView, new MutableMethodConversionOptions(appView.options()));
+  }
+
+  public IRCode buildIR(AppView<?> appView, MutableMethodConversionOptions conversionOptions) {
     DexEncodedMethod method = getDefinition();
-    return method.hasCode() ? method.getCode().buildIR(this, appView, getOrigin()) : null;
+    return method.hasCode()
+        ? method.getCode().buildIR(this, appView, getOrigin(), conversionOptions)
+        : null;
   }
 
   public IRCode buildInliningIR(

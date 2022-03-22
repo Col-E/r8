@@ -19,6 +19,8 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SyntheticStraightLineSourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
@@ -52,9 +54,13 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
   }
 
   @Override
-  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+  public IRCode buildIR(
+      ProgramMethod method,
+      AppView<?> appView,
+      Origin origin,
+      MutableMethodConversionOptions conversionOptions) {
     ThrowNullSourceCode source = new ThrowNullSourceCode(method);
-    return IRBuilder.create(method, appView, source, origin).build(method);
+    return IRBuilder.create(method, appView, source, origin).build(method, conversionOptions);
   }
 
   @Override
@@ -70,7 +76,7 @@ public class ThrowNullCode extends Code implements CfWritableCode, DexWritableCo
     ThrowNullSourceCode source = new ThrowNullSourceCode(method, callerPosition);
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
-        .build(context);
+        .build(context, new ThrowingMethodConversionOptions(appView.options()));
   }
 
   @Override

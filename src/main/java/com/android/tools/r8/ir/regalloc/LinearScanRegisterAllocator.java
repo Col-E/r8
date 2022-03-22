@@ -2508,11 +2508,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private static void addLiveRange(
-      Value value,
-      BasicBlock block,
-      int end,
-      List<LiveIntervals> liveIntervals,
-      InternalOptions options) {
+      Value value, BasicBlock block, int end, List<LiveIntervals> liveIntervals, IRCode code) {
     int firstInstructionInBlock = block.entry().getNumber();
     int instructionsSize = block.getInstructions().size() * INSTRUCTION_NUMBER_DELTA;
     int lastInstructionInBlock =
@@ -2548,8 +2544,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         instructionNumber--;
       }
       intervals.addRange(new LiveRange(instructionNumber, end));
-      assert unconstrainedForCf(intervals.getRegisterLimit(), options);
-      if (options.isGeneratingDex() && !value.isPhi()) {
+      assert unconstrainedForCf(intervals.getRegisterLimit(), code);
+      if (code.getConversionOptions().isGeneratingDex() && !value.isPhi()) {
         int constraint = value.definition.maxOutValueRegister();
         intervals.addUse(new LiveIntervalsUse(instructionNumber, constraint));
       }
@@ -2622,7 +2618,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         if (phiOperands.contains(value)) {
           end--;
         }
-        addLiveRange(value, block, end, liveIntervals, options);
+        addLiveRange(value, block, end, liveIntervals, code);
       }
       InstructionIterator iterator = block.iterator(block.getInstructions().size());
       while (iterator.hasPrevious()) {
@@ -2642,20 +2638,20 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                 block,
                 instruction.getNumber() + INSTRUCTION_NUMBER_DELTA - 1,
                 liveIntervals,
-                options);
-            assert !options.isGeneratingClassFiles() || instruction.isArgument()
+                code);
+            assert !code.getConversionOptions().isGeneratingClassFiles() || instruction.isArgument()
                 : "Arguments should be the only potentially unused local in CF";
           }
           live.remove(definition);
         }
         for (Value use : instruction.inValues()) {
           if (use.needsRegister()) {
-            assert unconstrainedForCf(instruction.maxInValueRegister(), options);
+            assert unconstrainedForCf(instruction.maxInValueRegister(), code);
             if (!live.contains(use)) {
               live.add(use);
-              addLiveRange(use, block, instruction.getNumber(), liveIntervals, options);
+              addLiveRange(use, block, instruction.getNumber(), liveIntervals, code);
             }
-            if (options.isGeneratingDex()) {
+            if (code.getConversionOptions().isGeneratingDex()) {
               int inConstraint = instruction.maxInValueRegister();
               LiveIntervals useIntervals = use.getLiveIntervals();
               // Arguments are always kept in their original, incoming register. For every
@@ -2693,7 +2689,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                   block,
                   getLiveRangeEndOnExceptionalFlow(instruction, use),
                   liveIntervals,
-                  options);
+                  code);
             }
           }
         }
@@ -2707,7 +2703,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             assert use.needsRegister();
             if (!live.contains(use)) {
               live.add(use);
-              addLiveRange(use, block, number, liveIntervals, options);
+              addLiveRange(use, block, number, liveIntervals, code);
             }
           }
         }
@@ -2723,8 +2719,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return end;
   }
 
-  private static boolean unconstrainedForCf(int constraint, InternalOptions options) {
-    return !options.isGeneratingClassFiles() || constraint == Constants.U16BIT_MAX;
+  private static boolean unconstrainedForCf(int constraint, IRCode code) {
+    return code.getConversionOptions().isGeneratingDex() || constraint == Constants.U16BIT_MAX;
   }
 
   private void clearUserInfo() {

@@ -2077,8 +2077,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // and the first register of the result could lead to the wrong exception
   // being thrown on out of bounds.
   public boolean canUseSameArrayAndResultRegisterInArrayGetWide() {
-    assert isGeneratingDex();
-    return getMinApiLevel().isGreaterThan(AndroidApiLevel.O_MR1);
+    return isGeneratingClassFiles() || getMinApiLevel().isGreaterThan(AndroidApiLevel.O_MR1);
   }
 
   // Some Lollipop versions of Art found in the wild perform invalid bounds
@@ -2309,8 +2308,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   //
   // Fixed in Android Q, see b/120985556.
   public boolean canHaveArtInstanceOfVerifierBug() {
-    assert isGeneratingDex();
-    return getMinApiLevel().isLessThan(AndroidApiLevel.Q);
+    return isGeneratingDex() && getMinApiLevel().isLessThan(AndroidApiLevel.Q);
   }
 
   // Some Art Lollipop version do not deal correctly with long-to-int conversions.

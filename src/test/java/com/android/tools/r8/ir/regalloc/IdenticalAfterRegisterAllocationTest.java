@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 import org.junit.Test;
@@ -86,6 +87,8 @@ public class IdenticalAfterRegisterAllocationTest {
     assertTrue(value3.needsRegister());
     // value1 and value2 represent different constants and the additions are therefore
     // not equivalent.
-    assertFalse(add0.identicalAfterRegisterAllocation(add1, allocator));
+    assertFalse(
+        add0.identicalAfterRegisterAllocation(
+            add1, allocator, new MutableMethodConversionOptions(allocator.options())));
   }
 }

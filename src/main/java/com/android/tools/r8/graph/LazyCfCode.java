@@ -60,6 +60,7 @@ import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SourcePosition;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -240,8 +241,12 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
-    return asCfCode().buildIR(method, appView, origin);
+  public IRCode buildIR(
+      ProgramMethod method,
+      AppView<?> appView,
+      Origin origin,
+      MutableMethodConversionOptions conversionOptions) {
+    return asCfCode().buildIR(method, appView, origin, conversionOptions);
   }
 
   @Override

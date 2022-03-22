@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -85,7 +84,6 @@ public class StringBuilderOptimizer {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-  private final ThrowingInfo throwingInfo;
   @VisibleForTesting
   StringConcatenationAnalysis analysis;
   final StringBuilderOptimizationConfiguration optimizationConfiguration;
@@ -108,7 +106,6 @@ public class StringBuilderOptimizer {
   public StringBuilderOptimizer(AppView<? extends AppInfo> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     this.optimizationConfiguration = new DefaultStringBuilderOptimizationConfiguration();
     if (Log.ENABLED && Log.isLoggingEnabledFor(StringBuilderOptimizer.class)) {
       histogramOfLengthOfAppendChains = new Object2IntArrayMap<>();

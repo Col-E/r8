@@ -4,45 +4,64 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.InternalOptions;
+
 public abstract class MethodConversionOptions {
+
+  public abstract boolean isGeneratingClassFiles();
+
+  public final boolean isGeneratingDex() {
+    return !isGeneratingClassFiles();
+  }
 
   public abstract boolean isPeepholeOptimizationsEnabled();
 
   public static class MutableMethodConversionOptions extends MethodConversionOptions {
 
-    private final MethodProcessor methodProcessor;
     private boolean enablePeepholeOptimizations = true;
+    private boolean isGeneratingClassFiles;
 
-    public MutableMethodConversionOptions(MethodProcessor methodProcessor) {
-      this.methodProcessor = methodProcessor;
+    public MutableMethodConversionOptions(InternalOptions options) {
+      this.isGeneratingClassFiles = options.isGeneratingClassFiles();
     }
 
-    public void disablePeepholeOptimizations() {
+    public void disablePeepholeOptimizations(MethodProcessor methodProcessor) {
       assert methodProcessor.isPrimaryMethodProcessor();
       enablePeepholeOptimizations = false;
     }
 
+    public MutableMethodConversionOptions setIsGeneratingClassFiles(
+        boolean isGeneratingClassFiles) {
+      this.isGeneratingClassFiles = isGeneratingClassFiles;
+      return this;
+    }
+
+    @Override
+    public boolean isGeneratingClassFiles() {
+      return isGeneratingClassFiles;
+    }
+
     @Override
     public boolean isPeepholeOptimizationsEnabled() {
-      assert enablePeepholeOptimizations || methodProcessor.isPrimaryMethodProcessor();
       return enablePeepholeOptimizations;
     }
   }
 
-  public static class DefaultMethodConversionOptions extends MethodConversionOptions {
+  public static class ThrowingMethodConversionOptions extends MutableMethodConversionOptions {
 
-    private static final DefaultMethodConversionOptions INSTANCE =
-        new DefaultMethodConversionOptions();
+    public ThrowingMethodConversionOptions(InternalOptions options) {
+      super(options);
+    }
 
-    private DefaultMethodConversionOptions() {}
-
-    public static DefaultMethodConversionOptions getInstance() {
-      return INSTANCE;
+    @Override
+    public boolean isGeneratingClassFiles() {
+      throw new Unreachable();
     }
 
     @Override
     public boolean isPeepholeOptimizationsEnabled() {
-      return true;
+      throw new Unreachable();
     }
   }
 }

@@ -12,13 +12,22 @@ import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
 public abstract class Code extends CachedHashValueDexItem {
 
-  public abstract IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin);
+  public final IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+    return buildIR(method, appView, origin, new MutableMethodConversionOptions(appView.options()));
+  }
+
+  public abstract IRCode buildIR(
+      ProgramMethod method,
+      AppView<?> appView,
+      Origin origin,
+      MutableMethodConversionOptions conversionOptions);
 
   public IRCode buildInliningIR(
       ProgramMethod context,

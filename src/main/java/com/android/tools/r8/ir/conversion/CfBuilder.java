@@ -144,7 +144,8 @@ public class CfBuilder {
     this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
   }
 
-  public CfCode build(DeadCodeRemover deadCodeRemover, MethodConversionOptions conversionOptions) {
+  public CfCode build(DeadCodeRemover deadCodeRemover) {
+    code.traceBlocks();
     computeInitializers();
     TypeVerificationHelper typeVerificationHelper = new TypeVerificationHelper(appView, code);
     typeVerificationHelper.computeVerificationTypes();
@@ -178,7 +179,7 @@ public class CfBuilder {
 
     loadStoreHelper.insertPhiMoves(registerAllocator);
 
-    if (conversionOptions.isPeepholeOptimizationsEnabled()) {
+    if (code.getConversionOptions().isPeepholeOptimizationsEnabled()) {
       for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
         CodeRewriter.collapseTrivialGotos(code);
         PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);

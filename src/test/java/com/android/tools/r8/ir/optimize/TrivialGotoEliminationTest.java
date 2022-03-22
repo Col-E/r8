@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -102,7 +103,8 @@ public class TrivialGotoEliminationTest extends TestBase {
             new NumberGenerator(),
             basicBlockNumberGenerator,
             IRMetadata.unknown(),
-            Origin.unknown());
+            Origin.unknown(),
+            new MutableMethodConversionOptions(options));
     CodeRewriter.collapseTrivialGotos(code);
     assertTrue(code.entryBlock().isTrivialGoto());
     assertTrue(blocks.contains(block0));
@@ -189,7 +191,8 @@ public class TrivialGotoEliminationTest extends TestBase {
             new NumberGenerator(),
             basicBlockNumberGenerator,
             IRMetadata.unknown(),
-            Origin.unknown());
+            Origin.unknown(),
+            new MutableMethodConversionOptions(options));
     CodeRewriter.collapseTrivialGotos(code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());

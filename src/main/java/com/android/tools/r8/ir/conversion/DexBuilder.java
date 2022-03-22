@@ -93,6 +93,7 @@ public class DexBuilder {
   private final RegisterAllocator registerAllocator;
 
   private final InternalOptions options;
+  private final MethodConversionOptions conversionOptions;
 
   // List of information about switch payloads that have to be created at the end of the
   // dex code.
@@ -128,20 +129,23 @@ public class DexBuilder {
   public DexBuilder(
       IRCode ir,
       BytecodeMetadataProvider bytecodeMetadataProvider,
-      RegisterAllocator registerAllocator) {
-    this(ir, bytecodeMetadataProvider, registerAllocator, registerAllocator.options());
-    assert ir != null;
+      RegisterAllocator registerAllocator,
+      InternalOptions options) {
+    this(ir, bytecodeMetadataProvider, registerAllocator, options, ir.getConversionOptions());
   }
 
-  private DexBuilder(
+  public DexBuilder(
       IRCode ir,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       RegisterAllocator registerAllocator,
-      InternalOptions options) {
+      InternalOptions options,
+      MethodConversionOptions conversionOptions) {
+    assert ir == null || conversionOptions == ir.getConversionOptions();
     this.ir = ir;
     this.bytecodeMetadataBuilder = BytecodeMetadata.builder(bytecodeMetadataProvider);
     this.registerAllocator = registerAllocator;
     this.options = options;
+    this.conversionOptions = conversionOptions;
     if (isBuildingForComparison()) {
       instructionToInfo = new Info[1];
     }
@@ -150,9 +154,15 @@ public class DexBuilder {
   public static boolean identicalInstructionsAfterBuildingDexCode(
       com.android.tools.r8.ir.code.Instruction a,
       com.android.tools.r8.ir.code.Instruction b,
-      RegisterAllocator allocator) {
+      RegisterAllocator allocator,
+      MethodConversionOptions conversionOptions) {
     DexBuilder builder =
-        new DexBuilder(null, BytecodeMetadataProvider.empty(), allocator, allocator.options());
+        new DexBuilder(
+            null,
+            BytecodeMetadataProvider.empty(),
+            allocator,
+            allocator.options(),
+            conversionOptions);
     Info infoA = buildInfoForComparison(a, builder);
     Info infoB = buildInfoForComparison(b, builder);
     return infoA.identicalInstructions(infoB, builder);
@@ -647,7 +657,8 @@ public class DexBuilder {
 
   public void addReturn(Return ret, Instruction dex) {
     if (nextBlock != null
-        && ret.identicalAfterRegisterAllocation(nextBlock.entry(), registerAllocator)) {
+        && ret.identicalAfterRegisterAllocation(
+            nextBlock.entry(), registerAllocator, conversionOptions)) {
       addNothing(ret);
     } else {
       add(ret, dex);

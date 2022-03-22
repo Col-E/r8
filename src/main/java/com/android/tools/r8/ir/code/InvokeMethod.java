@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -187,8 +188,9 @@ public abstract class InvokeMethod extends Invoke {
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   @Override
-  public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
-    if (!super.identicalAfterRegisterAllocation(other, allocator)) {
+  public boolean identicalAfterRegisterAllocation(
+      Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
+    if (!super.identicalAfterRegisterAllocation(other, allocator, conversionOptions)) {
       return false;
     }
 

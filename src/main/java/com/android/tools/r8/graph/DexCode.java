@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -366,7 +368,11 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
   }
 
   @Override
-  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+  public IRCode buildIR(
+      ProgramMethod method,
+      AppView<?> appView,
+      Origin origin,
+      MutableMethodConversionOptions conversionOptions) {
     DexSourceCode source =
         new DexSourceCode(
             this,
@@ -374,7 +380,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
             appView.graphLens().getOriginalMethodSignature(method.getReference()),
             null,
             appView.dexItemFactory());
-    return IRBuilder.create(method, appView, source, origin).build(method);
+    return IRBuilder.create(method, appView, source, origin).build(method, conversionOptions);
   }
 
   @Override
@@ -396,7 +402,7 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
             appView.dexItemFactory());
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
-        .build(context);
+        .build(context, new ThrowingMethodConversionOptions(appView.options()));
   }
 
   @Override

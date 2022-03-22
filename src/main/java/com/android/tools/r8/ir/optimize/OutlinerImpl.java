@@ -59,6 +59,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -1794,9 +1795,13 @@ public class OutlinerImpl extends Outliner {
     }
 
     @Override
-    public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+    public IRCode buildIR(
+        ProgramMethod method,
+        AppView<?> appView,
+        Origin origin,
+        MutableMethodConversionOptions conversionOptions) {
       OutlineSourceCode source = new OutlineSourceCode(outline, method.getReference());
-      return IRBuilder.create(method, appView, source, origin).build(method);
+      return IRBuilder.create(method, appView, source, origin).build(method, conversionOptions);
     }
 
     @Override

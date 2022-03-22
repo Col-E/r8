@@ -8,6 +8,7 @@ import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence;
 import java.util.Arrays;
@@ -17,10 +18,12 @@ class BasicBlockInstructionsEquivalence extends Equivalence<BasicBlock> {
   private static final int UNKNOW_HASH = -1;
   private static final int MAX_HASH_INSTRUCTIONS = 5;
   private final RegisterAllocator allocator;
+  private final MethodConversionOptions conversionOptions;
   private final int[] hashes;
 
   BasicBlockInstructionsEquivalence(IRCode code, RegisterAllocator allocator) {
     this.allocator = allocator;
+    this.conversionOptions = code.getConversionOptions();
     hashes = new int[code.getCurrentBlockNumber() + 1];
     Arrays.fill(hashes, UNKNOW_HASH);
   }
@@ -34,7 +37,7 @@ class BasicBlockInstructionsEquivalence extends Equivalence<BasicBlock> {
     for (int i = 0; i < instructions0.size(); i++) {
       Instruction i0 = instructions0.get(i);
       Instruction i1 = instructions1.get(i);
-      if (!i0.identicalAfterRegisterAllocation(i1, allocator)) {
+      if (!i0.identicalAfterRegisterAllocation(i1, allocator, conversionOptions)) {
         return false;
       }
     }

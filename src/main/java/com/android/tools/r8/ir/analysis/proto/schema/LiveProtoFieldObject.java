@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
@@ -32,7 +31,6 @@ public class LiveProtoFieldObject extends ProtoFieldObject {
   public Instruction buildIR(AppView<?> appView, IRCode code) {
     Value value =
         code.createValue(TypeElement.stringClassType(appView, Nullability.definitelyNotNull()));
-    ThrowingInfo throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     if (appView.options().isMinifying()) {
       return new DexItemBasedConstString(value, field, FieldNameComputationInfo.forFieldName());
     }

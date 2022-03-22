@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -35,7 +34,7 @@ public abstract class EnumUnboxer {
   public abstract void prepareForPrimaryOptimizationPass(
       GraphLens graphLensForPrimaryOptimizationPass);
 
-  public abstract void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions);
+  public abstract void analyzeEnums(IRCode code, MethodProcessor methodProcessor);
 
   public abstract void onMethodPruned(ProgramMethod method);
 

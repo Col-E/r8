@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
@@ -113,7 +114,8 @@ public class ArrayGet extends ArrayAccess {
   }
 
   @Override
-  public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
+  public boolean identicalAfterRegisterAllocation(
+      Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
     // We cannot share ArrayGet instructions without knowledge of the type of the array input.
     // If multiple primitive array types flow to the same ArrayGet instruction the art verifier
     // gets confused.

@@ -59,7 +59,9 @@ import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
+import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -868,9 +870,16 @@ public class MainDexListTests extends TestBase {
                 .disableAndroidApiLevelCheck()
                 .build();
         ProgramMethod programMethod = new ProgramMethod(programClass, method);
-        IRCode ir = code.buildIR(programMethod, appView, Origin.unknown());
+        IRCode ir =
+            code.buildIR(
+                programMethod,
+                appView,
+                Origin.unknown(),
+                new MutableMethodConversionOptions(options));
         RegisterAllocator allocator = new LinearScanRegisterAllocator(appView, ir);
-        method.setCode(ir, BytecodeMetadataProvider.empty(), allocator, appView);
+        method.setCode(
+            new DexBuilder(ir, BytecodeMetadataProvider.empty(), allocator, options).build(),
+            appView);
         directMethods[i] = method;
       }
       programClass.getMethodCollection().addDirectMethods(Arrays.asList(directMethods));

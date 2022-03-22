@@ -24,6 +24,8 @@ import com.android.tools.r8.ir.code.Position.SyntheticPosition;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions.ThrowingMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.SyntheticStraightLineSourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
@@ -134,12 +136,16 @@ public class DefaultInstanceInitializerCode extends Code
   }
 
   @Override
-  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+  public IRCode buildIR(
+      ProgramMethod method,
+      AppView<?> appView,
+      Origin origin,
+      MutableMethodConversionOptions conversionOptions) {
     DexMethod originalMethod =
         appView.graphLens().getOriginalMethodSignature(method.getReference());
     DefaultInstanceInitializerSourceCode source =
         new DefaultInstanceInitializerSourceCode(originalMethod);
-    return IRBuilder.create(method, appView, source, origin).build(method);
+    return IRBuilder.create(method, appView, source, origin).build(method, conversionOptions);
   }
 
   @Override
@@ -158,7 +164,7 @@ public class DefaultInstanceInitializerCode extends Code
         new DefaultInstanceInitializerSourceCode(originalMethod, callerPosition);
     return IRBuilder.createForInlining(
             method, appView, codeLens, source, origin, valueNumberGenerator, protoChanges)
-        .build(context);
+        .build(context, new ThrowingMethodConversionOptions(appView.options()));
   }
 
   @Override

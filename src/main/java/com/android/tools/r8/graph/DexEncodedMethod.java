@@ -43,12 +43,9 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexAnnotation.AnnotatedKind;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
-import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
 import com.android.tools.r8.graph.proto.ArgumentInfoCollection;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
@@ -57,7 +54,6 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.MutableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
-import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.ForwardMethodBuilder;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -734,16 +730,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       setParameterInfo(code.collectParameterInfo(this, appView));
     }
     code = newCode;
-  }
-
-  public void setCode(
-      IRCode ir,
-      BytecodeMetadataProvider bytecodeMetadataProvider,
-      RegisterAllocator registerAllocator,
-      AppView<?> appView) {
-    checkIfObsolete();
-    DexBuilder builder = new DexBuilder(ir, bytecodeMetadataProvider, registerAllocator);
-    setCode(builder.build(), appView);
   }
 
   public void unsetCode() {

@@ -50,13 +50,17 @@ public class StringSwitchRemover {
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final ClassTypeElement stringType;
 
+  public StringSwitchRemover(AppView<?> appView) {
+    this(appView, null);
+  }
+
   StringSwitchRemover(AppView<?> appView, IdentifierNameStringMarker identifierNameStringMarker) {
     this.appView = appView;
     this.identifierNameStringMarker = identifierNameStringMarker;
     this.stringType = TypeElement.stringClassType(appView, definitelyNotNull());
   }
 
-  void run(IRCode code) {
+  public void run(IRCode code) {
     if (!code.metadata().mayHaveStringSwitch()) {
       assert Streams.stream(code.instructions()).noneMatch(Instruction::isStringSwitch);
       return;

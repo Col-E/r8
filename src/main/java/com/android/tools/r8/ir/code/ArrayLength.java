@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -84,8 +85,9 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
-    if (super.identicalAfterRegisterAllocation(other, allocator)) {
+  public boolean identicalAfterRegisterAllocation(
+      Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
+    if (super.identicalAfterRegisterAllocation(other, allocator, conversionOptions)) {
       // The array length instruction doesn't carry the element type. The art verifier doesn't
       // allow an array length instruction into which arrays of two different base types can
       // flow. Therefore, as a safe approximation we only consider array length instructions

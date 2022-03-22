@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValues;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.MethodConversionOptions.MutableMethodConversionOptions;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor.Builder;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -38,7 +37,7 @@ public class EmptyEnumUnboxer extends EnumUnboxer {
   }
 
   @Override
-  public void analyzeEnums(IRCode code, MutableMethodConversionOptions conversionOptions) {
+  public void analyzeEnums(IRCode code, MethodProcessor methodProcessor) {
     // Intentionally empty.
   }
 

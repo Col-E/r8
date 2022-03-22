@@ -3,21 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence;
 
 public class InstructionEquivalence extends Equivalence<Instruction> {
   private final RegisterAllocator allocator;
+  private final MethodConversionOptions conversionOptions;
 
-  InstructionEquivalence(RegisterAllocator allocator) {
+  InstructionEquivalence(RegisterAllocator allocator, IRCode code) {
     this.allocator = allocator;
+    this.conversionOptions = code.getConversionOptions();
   }
 
   @Override
   protected boolean doEquivalent(Instruction a, Instruction b) {
-    return a.identicalAfterRegisterAllocation(b, allocator)
+    return a.identicalAfterRegisterAllocation(b, allocator, conversionOptions)
         && a.getBlock().getCatchHandlers().equals(b.getBlock().getCatchHandlers());
   }
 

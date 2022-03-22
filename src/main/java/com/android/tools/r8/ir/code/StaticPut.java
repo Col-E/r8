@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssu
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -149,8 +150,9 @@ public class StaticPut extends FieldInstruction implements FieldPut, StaticField
   }
 
   @Override
-  public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
-    if (!super.identicalAfterRegisterAllocation(other, allocator)) {
+  public boolean identicalAfterRegisterAllocation(
+      Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
+    if (!super.identicalAfterRegisterAllocation(other, allocator, conversionOptions)) {
       return false;
     }
 

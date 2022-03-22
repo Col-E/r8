@@ -26,12 +26,14 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.MethodConversionOptions;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover.DeadInstructionResult;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableSet;
@@ -501,7 +503,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return a.outType() == b.outType();
   }
 
-  public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
+  public boolean identicalAfterRegisterAllocation(
+      Instruction other, RegisterAllocator allocator, MethodConversionOptions conversionOptions) {
     if (other.getClass() != getClass()) {
       return false;
     }
@@ -541,8 +544,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
       }
     }
     // Finally check that the dex instructions for the generated code actually are the same.
-    if (allocator.options().isGeneratingDex()
-        && !DexBuilder.identicalInstructionsAfterBuildingDexCode(this, other, allocator)) {
+    InternalOptions options = allocator.options();
+    if (conversionOptions.isGeneratingDex()
+        && !DexBuilder.identicalInstructionsAfterBuildingDexCode(
+            this, other, allocator, conversionOptions)) {
       return false;
     }
     return true;

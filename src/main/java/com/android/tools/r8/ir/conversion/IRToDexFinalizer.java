@@ -1,0 +1,81 @@
+// Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.ir.conversion;
+
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexCode;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadataProvider;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover;
+import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
+import com.android.tools.r8.ir.optimize.RuntimeWorkaroundCodeRewriter;
+import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
+import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
+
+public class IRToDexFinalizer extends IRFinalizer<DexCode> {
+
+  private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
+
+  private final CodeRewriter codeRewriter;
+  private final InternalOptions options;
+
+  public IRToDexFinalizer(
+      AppView<?> appView, CodeRewriter codeRewriter, DeadCodeRemover deadCodeRemover) {
+    super(appView, deadCodeRemover);
+    this.codeRewriter = codeRewriter;
+    this.options = appView.options();
+  }
+
+  @Override
+  public DexCode finalizeCode(
+      IRCode code, BytecodeMetadataProvider bytecodeMetadataProvider, Timing timing) {
+    DexEncodedMethod method = code.method();
+    code.traceBlocks();
+    RuntimeWorkaroundCodeRewriter.workaroundNumberConversionRegisterAllocationBug(code, options);
+    // Workaround massive dex2oat memory use for self-recursive methods.
+    RuntimeWorkaroundCodeRewriter.workaroundDex2OatInliningIssue(appView, code);
+    // Workaround MAX_INT switch issue.
+    RuntimeWorkaroundCodeRewriter.workaroundSwitchMaxIntBug(code, codeRewriter, options);
+    RuntimeWorkaroundCodeRewriter.workaroundDex2OatLinkedListBug(code, options);
+    RuntimeWorkaroundCodeRewriter.workaroundForwardingInitializerBug(code, options);
+    RuntimeWorkaroundCodeRewriter.workaroundExceptionTargetingLoopHeaderBug(code, options);
+    // Perform register allocation.
+    RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
+    return new DexBuilder(code, bytecodeMetadataProvider, registerAllocator, options).build();
+  }
+
+  private RegisterAllocator performRegisterAllocation(
+      IRCode code, DexEncodedMethod method, Timing timing) {
+    // Always perform dead code elimination before register allocation. The register allocator
+    // does not allow dead code (to make sure that we do not waste registers for unneeded values).
+    assert deadCodeRemover.verifyNoDeadCode(code);
+    timing.begin("Allocate registers");
+    LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(appView, code);
+    registerAllocator.allocateRegisters();
+    timing.end();
+    if (code.getConversionOptions().isPeepholeOptimizationsEnabled()) {
+      timing.begin("Peephole optimize");
+      for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
+        CodeRewriter.collapseTrivialGotos(code);
+        PeepholeOptimizer.optimize(code, registerAllocator);
+      }
+      timing.end();
+    }
+    timing.begin("Clean up");
+    CodeRewriter.removeUnneededMovesOnExitingPaths(code, registerAllocator);
+    CodeRewriter.collapseTrivialGotos(code);
+    timing.end();
+    if (Log.ENABLED) {
+      Log.debug(
+          getClass(), "Final (non-SSA) flow graph for %s:\n%s", method.toSourceString(), code);
+    }
+    return registerAllocator;
+  }
+}
