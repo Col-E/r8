@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.analysis.type;
 
 import static java.util.Collections.emptySet;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
@@ -119,48 +118,24 @@ public abstract class TypeElement {
    * @return {@link TypeElement}, a least upper bound of {@param this} and {@param other}.
    */
   public TypeElement join(TypeElement other, AppView<?> appView) {
-    if (this == other) {
+    if (this == other || other.isBottom()) {
       return this;
     }
     if (isBottom()) {
       return other;
     }
-    if (other.isBottom()) {
-      return this;
-    }
-    if (isTop() || other.isTop()) {
+    if (isTop() || other.isTop() || isPrimitiveType() != other.isPrimitiveType()) {
       return getTop();
     }
     if (isPrimitiveType()) {
-      return other.isPrimitiveType() ? asPrimitiveType().join(other.asPrimitiveType()) : getTop();
-    }
-    if (other.isPrimitiveType()) {
-      // By the above case, !(isPrimitive())
-      return getTop();
+      return asPrimitiveType().join(other.asPrimitiveType());
     }
     // From now on, this and other are precise reference types, i.e., either ArrayType or ClassType.
-    assert isReferenceType() && other.isReferenceType();
-    assert isPreciseType() && other.isPreciseType();
-    Nullability nullabilityJoin = nullability().join(other.nullability());
-    if (isNullType()) {
-      return other.asReferenceType().getOrCreateVariant(nullabilityJoin);
-    }
-    if (other.isNullType()) {
-      return this.asReferenceType().getOrCreateVariant(nullabilityJoin);
-    }
-    if (getClass() != other.getClass()) {
-      return objectClassType(appView, nullabilityJoin);
-    }
-    // From now on, getClass() == other.getClass()
-    if (isArrayType()) {
-      assert other.isArrayType();
-      return asArrayType().join(other.asArrayType(), appView);
-    }
-    if (isClassType()) {
-      assert other.isClassType();
-      return asClassType().join(other.asClassType(), appView);
-    }
-    throw new Unreachable("unless a new type lattice is introduced.");
+    assert isReferenceType();
+    assert isPreciseType();
+    assert other.isReferenceType();
+    assert other.isPreciseType();
+    return asReferenceType().join(other.asReferenceType(), appView);
   }
 
   public static TypeElement join(Iterable<TypeElement> typeLattices, AppView<?> appView) {

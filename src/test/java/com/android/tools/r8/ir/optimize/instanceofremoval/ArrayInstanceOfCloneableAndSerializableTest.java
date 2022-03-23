@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.instanceofremoval;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -71,12 +72,10 @@ public class ArrayInstanceOfCloneableAndSerializableTest extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject mainMethodSubject = inspector.clazz(Main.class).mainMethod();
-              assertEquals(
-                  2,
+              assertTrue(
                   mainMethodSubject
                       .streamInstructions()
-                      .filter(InstructionSubject::isInstanceOf)
-                      .count());
+                      .noneMatch(InstructionSubject::isInstanceOf));
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("true", "true");

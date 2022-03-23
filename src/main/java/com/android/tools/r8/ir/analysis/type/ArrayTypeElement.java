@@ -165,6 +165,22 @@ public class ArrayTypeElement extends ReferenceTypeElement {
     }
   }
 
+  ReferenceTypeElement join(ClassTypeElement other, AppView<?> appView) {
+    return other.join(this, appView);
+  }
+
+  @Override
+  public ReferenceTypeElement join(ReferenceTypeElement other, AppView<?> appView) {
+    if (other.isArrayType()) {
+      return join(other.asArrayType(), appView);
+    }
+    if (other.isClassType()) {
+      return join(other.asClassType(), appView);
+    }
+    assert other.isNullType();
+    return joinNullability(other.nullability());
+  }
+
   private static ReferenceTypeElement joinMember(
       TypeElement aMember, TypeElement bMember, AppView<?> appView, Nullability nullability) {
     if (aMember.equals(bMember)) {

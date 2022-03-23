@@ -63,9 +63,6 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
             builder ->
                 builder.addOptionsModification(
                     options -> {
-                      options
-                          .getOpenClosedInterfacesOptions()
-                          .suppressArrayAssignmentsToJavaLangSerializable();
                       options.testing.processingContextsConsumer =
                           id -> assertTrue(idsRoundOne.add(id));
                     }));
@@ -78,9 +75,6 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
             builder ->
                 builder.addOptionsModification(
                     options -> {
-                      options
-                          .getOpenClosedInterfacesOptions()
-                          .suppressArrayAssignmentsToJavaLangSerializable();
                       options.testing.processingContextsConsumer =
                           id -> assertTrue(idsRoundTwo.add(id));
                     }));
@@ -104,9 +98,6 @@ public class GMSCoreV10Test extends GMSCoreCompilationTestBase {
                 builder.addOptionsModification(
                     options -> {
                       options.testing.forceJumboStringProcessing = true;
-                      options
-                          .getOpenClosedInterfacesOptions()
-                          .suppressArrayAssignmentsToJavaLangSerializable();
                     }))
         .runDex2Oat(parameters.getRuntime())
         .assertNoVerificationErrors();

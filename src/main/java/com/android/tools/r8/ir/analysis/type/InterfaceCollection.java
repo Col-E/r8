@@ -56,6 +56,10 @@ public class InterfaceCollection {
       return this;
     }
 
+    public Builder addKnownInterface(DexType type) {
+      return addInterface(type, true);
+    }
+
     public InterfaceCollection build() {
       if (interfaces.isEmpty()) {
         return InterfaceCollection.empty();

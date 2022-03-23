@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 
 public abstract class ReferenceTypeElement extends TypeElement {
@@ -30,6 +31,11 @@ public abstract class ReferenceTypeElement extends TypeElement {
     @Override
     public boolean isNullType() {
       return true;
+    }
+
+    @Override
+    public ReferenceTypeElement join(ReferenceTypeElement other, AppView<?> appView) {
+      return other.joinNullability(nullability());
     }
 
     @Override
@@ -89,6 +95,8 @@ public abstract class ReferenceTypeElement extends TypeElement {
   public TypeElement asMaybeNull() {
     return getOrCreateVariant(Nullability.maybeNull());
   }
+
+  public abstract ReferenceTypeElement join(ReferenceTypeElement other, AppView<?> appView);
 
   public ReferenceTypeElement joinNullability(Nullability nullability) {
     return getOrCreateVariant(nullability().join(nullability));

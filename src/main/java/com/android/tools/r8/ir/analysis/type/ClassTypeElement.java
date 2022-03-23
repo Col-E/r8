@@ -259,18 +259,39 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   ClassTypeElement join(ClassTypeElement other, AppView<?> appView) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      assert lazyInterfaces != null;
-      assert lazyInterfaces.isEmpty();
-      assert other.lazyInterfaces != null;
-      assert other.lazyInterfaces.isEmpty();
-      return ClassTypeElement.createForD8(
-          getClassType() == other.getClassType()
-              ? getClassType()
-              : appView.dexItemFactory().objectType,
-          nullability().join(other.nullability()));
+    if (appView.enableWholeProgramOptimizations()) {
+      return joinWithClassHierarchy(other);
+    } else {
+      return joinWithoutClassHierarchy(other.getClassType(), other.nullability(), appView);
     }
-    return joinWithClassHierarchy(other);
+  }
+
+  ReferenceTypeElement join(ArrayTypeElement other, AppView<?> appView) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    if (appView.enableWholeProgramOptimizations()) {
+      DexType lubType = appView.dexItemFactory().objectType;
+      return joinWithClassHierarchy(
+          lubType,
+          InterfaceCollection.builder()
+              .addKnownInterface(dexItemFactory.cloneableType)
+              .addKnownInterface(dexItemFactory.serializableType)
+              .build(),
+          other.nullability());
+    } else {
+      return joinWithoutClassHierarchy(dexItemFactory.objectType, other.nullability(), appView);
+    }
+  }
+
+  @Override
+  public ReferenceTypeElement join(ReferenceTypeElement other, AppView<?> appView) {
+    if (other.isArrayType()) {
+      return join(other.asArrayType(), appView);
+    }
+    if (other.isClassType()) {
+      return join(other.asClassType(), appView);
+    }
+    assert other.isNullType();
+    return joinNullability(other.nullability());
   }
 
   private ClassTypeElement joinWithClassHierarchy(ClassTypeElement other) {
@@ -278,17 +299,23 @@ public class ClassTypeElement extends ReferenceTypeElement {
     assert appView.enableWholeProgramOptimizations();
     DexType lubType =
         computeLeastUpperBoundOfClasses(appView.appInfo(), getClassType(), other.getClassType());
-    InterfaceCollection c1lubItfs = getInterfaces();
-    InterfaceCollection c2lubItfs = other.getInterfaces();
-    InterfaceCollection lubItfs =
-        c1lubItfs.equals(c2lubItfs)
-            ? c1lubItfs
-            : computeLeastUpperBoundOfInterfaces(appView, c1lubItfs, c2lubItfs);
-    InterfaceCollection lubItfsDefault =
+    return joinWithClassHierarchy(lubType, other.getInterfaces(), other.nullability());
+  }
+
+  private ClassTypeElement joinWithClassHierarchy(
+      DexType lubType, InterfaceCollection otherInterfaces, Nullability nullability) {
+    assert appView != null;
+    assert appView.enableWholeProgramOptimizations();
+    InterfaceCollection interfaces = getInterfaces();
+    InterfaceCollection lubInterfaces =
+        interfaces.equals(otherInterfaces)
+            ? interfaces
+            : computeLeastUpperBoundOfInterfaces(appView, interfaces, otherInterfaces);
+    InterfaceCollection lubInterfacesDefault =
         appView
             .dexItemFactory()
             .getOrComputeLeastUpperBoundOfImplementedInterfaces(lubType, appView);
-    Nullability lubNullability = nullability().join(other.nullability());
+    Nullability lubNullability = nullability().join(nullability);
 
     // If the computed interfaces are identical to the interfaces of `lubType`, then do not include
     // the interfaces in the ClassTypeElement. This canonicalization of interfaces reduces memory,
@@ -296,9 +323,19 @@ public class ClassTypeElement extends ReferenceTypeElement {
     // element does not require any rewriting).
     //
     // From a correctness point of view, both solutions should work.
-    return lubItfs.equals(lubItfsDefault)
+    return lubInterfaces.equals(lubInterfacesDefault)
         ? create(lubType, lubNullability, appView)
-        : create(lubType, lubNullability, appView, lubItfs);
+        : create(lubType, lubNullability, appView, lubInterfaces);
+  }
+
+  ClassTypeElement joinWithoutClassHierarchy(
+      DexType other, Nullability nullability, AppView<?> appView) {
+    assert !appView.enableWholeProgramOptimizations();
+    assert lazyInterfaces != null;
+    assert lazyInterfaces.isEmpty();
+    return createForD8(
+        getClassType() == other ? getClassType() : appView.dexItemFactory().objectType,
+        nullability().join(nullability));
   }
 
   /**

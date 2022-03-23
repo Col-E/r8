@@ -65,9 +65,6 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
             builder ->
                 builder.addOptionsModification(
                     options -> {
-                      options
-                          .getOpenClosedInterfacesOptions()
-                          .suppressArrayAssignmentsToJavaLangSerializable();
                       options.testing.processingContextsConsumer =
                           id -> assertNull(idsRoundOne.put(id, id));
                     }));
@@ -80,9 +77,6 @@ public class GMSCoreLatestTest extends GMSCoreCompilationTestBase {
             builder ->
                 builder.addOptionsModification(
                     options -> {
-                      options
-                          .getOpenClosedInterfacesOptions()
-                          .suppressArrayAssignmentsToJavaLangSerializable();
                       options.testing.processingContextsConsumer =
                           id -> {
                             AssertionUtils.assertNotNull(idsRoundOne.get(id));
