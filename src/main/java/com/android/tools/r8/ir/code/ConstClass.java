@@ -34,6 +34,7 @@ public class ConstClass extends ConstInstruction {
 
   public ConstClass(Value dest, DexType clazz, boolean ignoreCompatRules) {
     super(dest);
+    assert !clazz.isPrimitiveType();
     this.clazz = clazz;
     this.ignoreCompatRules = ignoreCompatRules;
   }

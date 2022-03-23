@@ -536,6 +536,7 @@ public class DexItemFactory {
   public final FloatMembers floatMembers = new FloatMembers();
   public final IntegerMembers integerMembers = new IntegerMembers();
   public final LongMembers longMembers = new LongMembers();
+  public final VoidMembers voidMembers = new VoidMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMembers objectMembers = new ObjectMembers();
   public final BufferMembers bufferMembers = new BufferMembers();
@@ -744,6 +745,34 @@ public class DexItemFactory {
     return primitiveToBoxed.get(primitive);
   }
 
+  public BoxedPrimitiveMembers getBoxedMembersForPrimitiveOrVoidType(DexType type) {
+    assert type.isPrimitiveType() || type.isVoidType();
+    char c = (char) type.getDescriptor().content[0];
+    assert c == type.toDescriptorString().charAt(0);
+    switch (c) {
+      case 'B':
+        return byteMembers;
+      case 'C':
+        return charMembers;
+      case 'D':
+        return doubleMembers;
+      case 'F':
+        return floatMembers;
+      case 'I':
+        return integerMembers;
+      case 'J':
+        return longMembers;
+      case 'S':
+        return shortMembers;
+      case 'V':
+        return voidMembers;
+      case 'Z':
+        return booleanMembers;
+      default:
+        throw new Unreachable("Unknown type " + type);
+    }
+  }
+
   public DexType getPrimitiveFromBoxed(DexType boxedPrimitive) {
     return primitiveToBoxed.inverse().get(boxedPrimitive);
   }
@@ -884,6 +913,11 @@ public class DexItemFactory {
     public void forEachFinalField(Consumer<DexField> consumer) {}
   }
 
+  public abstract static class BoxedPrimitiveMembers extends LibraryMembers {
+
+    public abstract DexField getTypeField();
+  }
+
   public class AndroidOsBuildMembers extends LibraryMembers {
 
     public final DexField BOOTLOADER = createField(androidOsBuildType, stringType, "BOOTLOADER");
@@ -1004,7 +1038,7 @@ public class DexItemFactory {
         createMethod(androidUtilSparseArrayType, createProto(voidType, intType, objectType), "set");
   }
 
-  public class BooleanMembers extends LibraryMembers {
+  public class BooleanMembers extends BoxedPrimitiveMembers {
 
     public final DexField FALSE = createField(boxedBooleanType, boxedBooleanType, "FALSE");
     public final DexField TRUE = createField(boxedBooleanType, boxedBooleanType, "TRUE");
@@ -1027,9 +1061,16 @@ public class DexItemFactory {
       consumer.accept(TRUE);
       consumer.accept(TYPE);
     }
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
-  public class ByteMembers extends LibraryMembers {
+  public class ByteMembers extends BoxedPrimitiveMembers {
+
+    public final DexField TYPE = createField(boxedByteType, classType, "TYPE");
 
     public final DexMethod byteValue =
         createMethod(boxedByteType, createProto(byteType), "byteValue");
@@ -1039,17 +1080,29 @@ public class DexItemFactory {
         createMethod(boxedByteType, createProto(boxedByteType, byteType), "valueOf");
 
     private ByteMembers() {}
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
-  public class CharMembers extends LibraryMembers {
+  public class CharMembers extends BoxedPrimitiveMembers {
+
+    public final DexField TYPE = createField(boxedCharType, classType, "TYPE");
 
     public final DexMethod toString =
         createMethod(boxedCharType, createProto(stringType), "toString");
 
     private CharMembers() {}
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
-  public class FloatMembers extends LibraryMembers {
+  public class FloatMembers extends BoxedPrimitiveMembers {
 
     public final DexField TYPE = createField(boxedFloatType, classType, "TYPE");
 
@@ -1061,6 +1114,11 @@ public class DexItemFactory {
     @Override
     public void forEachFinalField(Consumer<DexField> consumer) {
       consumer.accept(TYPE);
+    }
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
     }
   }
 
@@ -1207,7 +1265,7 @@ public class DexItemFactory {
     }
   }
 
-  public class LongMembers extends LibraryMembers {
+  public class LongMembers extends BoxedPrimitiveMembers {
 
     public final DexField TYPE = createField(boxedLongType, classType, "TYPE");
 
@@ -1224,9 +1282,16 @@ public class DexItemFactory {
     public void forEachFinalField(Consumer<DexField> consumer) {
       consumer.accept(TYPE);
     }
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
-  public class DoubleMembers {
+  public class DoubleMembers extends BoxedPrimitiveMembers {
+
+    public final DexField TYPE = createField(boxedDoubleType, classType, "TYPE");
 
     public final DexMethod isNaN;
 
@@ -1241,9 +1306,14 @@ public class DexItemFactory {
               booleanDescriptor,
               new DexString[] {doubleDescriptor});
     }
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
-  public class IntegerMembers extends LibraryMembers {
+  public class IntegerMembers extends BoxedPrimitiveMembers {
 
     public final DexField TYPE = createField(boxedIntType, classType, "TYPE");
 
@@ -1253,6 +1323,11 @@ public class DexItemFactory {
     @Override
     public void forEachFinalField(Consumer<DexField> consumer) {
       consumer.accept(TYPE);
+    }
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
     }
   }
 
@@ -1269,6 +1344,16 @@ public class DexItemFactory {
             createProto(
                 callSiteType, lookupType, stringType, methodTypeType, stringType, objectArrayType),
             createString("makeConcatWithConstants"));
+  }
+
+  public class VoidMembers extends BoxedPrimitiveMembers {
+
+    public final DexField TYPE = createField(voidType, classType, "TYPE");
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
   public class ThrowableMethods {
@@ -1823,12 +1908,19 @@ public class DexItemFactory {
     }
   }
 
-  public class ShortMembers extends LibraryMembers {
+  public class ShortMembers extends BoxedPrimitiveMembers {
+
+    public final DexField TYPE = createField(boxedShortType, classType, "TYPE");
 
     public final DexMethod toString =
         createMethod(boxedShortType, createProto(stringType), "toString");
 
     private ShortMembers() {}
+
+    @Override
+    public DexField getTypeField() {
+      return TYPE;
+    }
   }
 
   public class StringMembers extends LibraryMembers {
