@@ -33,13 +33,13 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
       ImmutableList.of(
           ApiTestingSetUpTest.ApiTest.class,
           CustomMapIdTest.ApiTest.class,
-          CustomSourceFileTest.ApiTest.class);
-
-  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of(
+          CustomSourceFileTest.ApiTest.class,
           AssertionConfigurationTest.ApiTest.class,
           InputDependenciesTest.ApiTest.class,
           DesugarDependenciesTest.ApiTest.class);
+
+  private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
+      ImmutableList.of();
 
   private final TemporaryFolder temp;
 
