@@ -106,12 +106,6 @@ public class JarClassFileReader<T extends DexClass> {
       }
     }
 
-    if (classKind == ClassKind.PROGRAM
-        && application.options.isDesugaring()
-        && application.options.desugarGraphConsumer != null) {
-      application.options.desugarGraphConsumer.acceptProgramNode(origin);
-    }
-
     ClassReader reader = new ClassReader(bytes);
 
     int parsingOptions = SKIP_FRAMES | SKIP_CODE;
