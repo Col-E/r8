@@ -23,7 +23,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class CompilationDependentSetTest extends TestBase {
 
   public interface I {
-    // Emtpy.
+    // Empty.
   }
 
   public static class A implements I {

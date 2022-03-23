@@ -33,7 +33,7 @@ public class InterfaceToImplementingClassDependencyTest extends TestBase {
   // Note: the dependency of I for the compilation of A exists even when no default methods do.
 
   public interface I {
-    // Emtpy.
+    // Empty.
   }
 
   public static class A implements I {

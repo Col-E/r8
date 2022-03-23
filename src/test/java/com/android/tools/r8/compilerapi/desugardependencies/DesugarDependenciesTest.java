@@ -14,7 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.compilerapi.CompilerApiTest;
 import com.android.tools.r8.compilerapi.CompilerApiTestRunner;
 import com.android.tools.r8.origin.Origin;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
@@ -57,16 +57,16 @@ public class DesugarDependenciesTest extends CompilerApiTestRunner {
               .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
               .setDesugarGraphConsumer(
                   new DesugarGraphConsumer() {
-                    private final Map<Origin, Origin> desugaringUnit = new ConcurrentHashMap<>();
+                    private final Set<Origin> desugaringUnit = ConcurrentHashMap.newKeySet();
 
                     @Override
                     public void acceptProgramNode(Origin node) {
-                      desugaringUnit.put(node, node);
+                      desugaringUnit.add(node);
                     }
 
                     @Override
                     public void accept(Origin dependent, Origin dependency) {
-                      assertTrue(desugaringUnit.containsKey(dependent));
+                      assertTrue(desugaringUnit.contains(dependent));
                     }
 
                     @Override
