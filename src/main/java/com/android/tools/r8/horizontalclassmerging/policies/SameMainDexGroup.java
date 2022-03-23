@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
@@ -17,7 +16,7 @@ public class SameMainDexGroup extends MultiClassSameReferencePolicy<MainDexGroup
   private final MainDexInfo mainDexInfo;
   private final SyntheticItems synthetics;
 
-  public SameMainDexGroup(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public SameMainDexGroup(AppView<?> appView) {
     mainDexInfo = appView.appInfo().getMainDexInfo();
     synthetics = appView.getSyntheticItems();
   }

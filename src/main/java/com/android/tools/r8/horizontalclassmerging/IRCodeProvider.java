@@ -11,31 +11,56 @@ import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 
-public class IRCodeProvider {
+public interface IRCodeProvider {
 
-  private final AppView<AppInfo> appViewForConversion;
+  IRCode buildIR(ProgramMethod method);
 
-  public IRCodeProvider(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    // At this point the code rewritings described by repackaging and synthetic finalization have
-    // not been applied to the code objects. These code rewritings will be applied in the
-    // application writer. We therefore simulate that we are in D8, to allow building IR for each of
-    // the class initializers without applying the unapplied code rewritings, to avoid that we apply
-    // the lens more than once to the same piece of code.
-    AppView<AppInfo> appViewForConversion =
-        AppView.createForD8(AppInfo.createInitialAppInfo(appView.appInfo().app()));
-    appViewForConversion.setGraphLens(appView.graphLens());
-    appViewForConversion.setCodeLens(appView.codeLens());
-    this.appViewForConversion = appViewForConversion;
+  void setGraphLens(GraphLens graphLens);
+
+  static IRCodeProvider create(AppView<? extends AppInfoWithClassHierarchy> appView) {
+    return new IRCodeProviderImpl(appView);
   }
 
-  public IRCode buildIR(ProgramMethod method) {
-    return method
-        .getDefinition()
-        .getCode()
-        .buildIR(method, appViewForConversion, method.getOrigin());
+  static IRCodeProvider createThrowing() {
+    return new IRCodeProvider() {
+      @Override
+      public IRCode buildIR(ProgramMethod method) {
+        throw new UnsupportedOperationException("Should never build IR for methods in D8");
+      }
+
+      @Override
+      public void setGraphLens(GraphLens graphLens) {}
+    };
   }
 
-  public void setGraphLens(GraphLens graphLens) {
-    appViewForConversion.setGraphLens(graphLens);
+  class IRCodeProviderImpl implements IRCodeProvider {
+
+    private final AppView<AppInfo> appViewForConversion;
+
+    private IRCodeProviderImpl(AppView<? extends AppInfoWithClassHierarchy> appView) {
+      // At this point the code rewritings described by repackaging and synthetic finalization have
+      // not been applied to the code objects. These code rewritings will be applied in the
+      // application writer. We therefore simulate that we are in D8, to allow building IR for each
+      // of the class initializers without applying the unapplied code rewritings, to avoid that we
+      // apply the lens more than once to the same piece of code.
+      AppView<AppInfo> appViewForConversion =
+          AppView.createForD8(AppInfo.createInitialAppInfo(appView.appInfo().app()));
+      appViewForConversion.setGraphLens(appView.graphLens());
+      appViewForConversion.setCodeLens(appView.codeLens());
+      this.appViewForConversion = appViewForConversion;
+    }
+
+    @Override
+    public IRCode buildIR(ProgramMethod method) {
+      return method
+          .getDefinition()
+          .getCode()
+          .buildIR(method, appViewForConversion, method.getOrigin());
+    }
+
+    @Override
+    public void setGraphLens(GraphLens graphLens) {
+      appViewForConversion.setGraphLens(graphLens);
+    }
   }
 }

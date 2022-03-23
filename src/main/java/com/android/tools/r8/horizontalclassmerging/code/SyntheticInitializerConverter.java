@@ -5,7 +5,6 @@
 package com.android.tools.r8.horizontalclassmerging.code;
 
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.horizontalclassmerging.IRCodeProvider;
@@ -25,13 +24,13 @@ import java.util.concurrent.ExecutorService;
  */
 public class SyntheticInitializerConverter {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final IRCodeProvider codeProvider;
   private final List<ProgramMethod> classInitializers;
   private final List<ProgramMethod> instanceInitializers;
 
   private SyntheticInitializerConverter(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       IRCodeProvider codeProvider,
       List<ProgramMethod> classInitializers,
       List<ProgramMethod> instanceInitializers) {
@@ -41,8 +40,7 @@ public class SyntheticInitializerConverter {
     this.instanceInitializers = instanceInitializers;
   }
 
-  public static Builder builder(
-      AppView<? extends AppInfoWithClassHierarchy> appView, IRCodeProvider codeProvider) {
+  public static Builder builder(AppView<?> appView, IRCodeProvider codeProvider) {
     return new Builder(appView, codeProvider);
   }
 
@@ -88,13 +86,12 @@ public class SyntheticInitializerConverter {
 
   public static class Builder {
 
-    private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final AppView<?> appView;
     private final IRCodeProvider codeProvider;
     private final List<ProgramMethod> classInitializers = new ArrayList<>();
     private final List<ProgramMethod> instanceInitializers = new ArrayList<>();
 
-    private Builder(
-        AppView<? extends AppInfoWithClassHierarchy> appView, IRCodeProvider codeProvider) {
+    private Builder(AppView<?> appView, IRCodeProvider codeProvider) {
       this.appView = appView;
       this.codeProvider = codeProvider;
     }

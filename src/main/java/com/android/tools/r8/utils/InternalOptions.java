@@ -1449,8 +1449,12 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       this.enable = enable;
     }
 
-    public int getMaxClassGroupSize() {
+    public int getMaxClassGroupSizeInR8() {
       return 30;
+    }
+
+    public int getMaxClassGroupSizeInD8() {
+      return 100;
     }
 
     public int getMaxInterfaceGroupSize() {

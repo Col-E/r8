@@ -105,7 +105,7 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
         .apply(this::checkOutput)
         .inspect(
             inspector -> {
-              // TODO(b/187675788): Update when horizontal merging is enabled for D8.
+              // TODO(b/187675788): Update when horizontal merging is enabled for D8 for debug mode.
               if (parameters.getApiLevel().isLessThan(firstMethodApiLevel)) {
                 // We have generated 4 outlines two having api level 23 and two having api level 27.
                 assertEquals(7, inspector.allClasses().size());
@@ -133,19 +133,7 @@ public class ApiModelOutlineHorizontalMergingTest extends TestBase {
             b -> b.addBootClasspathClasses(LibraryClass.class, OtherLibraryClass.class))
         .run(parameters.getRuntime(), Main.class)
         .apply(this::checkOutput)
-        .inspect(
-            inspector -> {
-              // TODO(b/187675788): Update when horizontal merging is enabled for D8.
-              if (parameters.getApiLevel().isLessThan(firstMethodApiLevel)) {
-                // We have generated 4 outlines two having api level 23 and two having api level 27.
-                assertEquals(7, inspector.allClasses().size());
-              } else if (parameters.getApiLevel().isLessThan(secondMethodApiLevel)) {
-                assertEquals(5, inspector.allClasses().size());
-              } else {
-                // No outlining on this api level.
-                assertEquals(3, inspector.allClasses().size());
-              }
-            });
+        .inspect(this::inspect);
   }
 
   @Test

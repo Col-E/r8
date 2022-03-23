@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
@@ -12,6 +11,7 @@ import com.android.tools.r8.horizontalclassmerging.MergeGroup;
 import com.android.tools.r8.horizontalclassmerging.MultiClassPolicy;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.collections.EmptyBidirectionalOneToOneMap;
 import java.util.Collection;
 import java.util.Set;
 
@@ -25,23 +25,30 @@ import java.util.Set;
  */
 public class FinalizeMergeGroup extends MultiClassPolicy {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final Mode mode;
 
-  public FinalizeMergeGroup(AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
+  public FinalizeMergeGroup(AppView<?> appView, Mode mode) {
     this.appView = appView;
     this.mode = mode;
   }
 
   @Override
   public Collection<MergeGroup> apply(MergeGroup group) {
-    if (mode.isInitial() || group.isInterfaceGroup()) {
-      group.selectTarget(appView);
-      group.selectInstanceFieldMap(appView);
+    if (appView.enableWholeProgramOptimizations()) {
+      if (mode.isInitial() || group.isInterfaceGroup()) {
+        group.selectTarget(appView);
+        group.selectInstanceFieldMap(appView.withClassHierarchy());
+      } else {
+        // In the final round of merging each group should be finalized by the
+        // NoInstanceInitializerMerging policy.
+        assert verifyAlreadyFinalized(group);
+      }
     } else {
-      // In the final round of merging each group should be finalized by the
-      // NoInstanceInitializerMerging policy.
-      assert verifyAlreadyFinalized(group);
+      assert !group.hasTarget();
+      assert !group.hasInstanceFieldMap();
+      group.selectTarget(appView);
+      group.setInstanceFieldMap(new EmptyBidirectionalOneToOneMap<>());
     }
     return ListUtils.newLinkedList(group);
   }

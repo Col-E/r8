@@ -78,9 +78,9 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
   @Test
   public void testD8Debug() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
-    assumeTrue(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    assumeFalse(
+        parameters.isCfRuntime()
+            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
     testForD8()
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
@@ -109,9 +109,8 @@ public class ApiModelOutlineDuplicateMethodTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     // TODO(b/197078995): Make this work on 12+.
-    assumeFalse(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    assumeTrue(
+        parameters.isCfRuntime() || parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
     testForR8(parameters.getBackend())
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)

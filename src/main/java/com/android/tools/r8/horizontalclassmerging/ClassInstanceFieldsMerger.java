@@ -23,21 +23,31 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-public class ClassInstanceFieldsMerger {
+public interface ClassInstanceFieldsMerger {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
-  private final MergeGroup group;
-  private final Builder lensBuilder;
+  void setClassIdField(DexEncodedField classIdField);
 
-  private DexEncodedField classIdField;
+  DexEncodedField[] merge();
 
-  public ClassInstanceFieldsMerger(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      HorizontalClassMergerGraphLens.Builder lensBuilder,
-      MergeGroup group) {
-    this.appView = appView;
-    this.group = group;
-    this.lensBuilder = lensBuilder;
+  static ClassInstanceFieldsMerger create(
+      AppView<?> appView, HorizontalClassMergerGraphLens.Builder lensBuilder, MergeGroup group) {
+    if (appView.hasClassHierarchy()) {
+      return new ClassInstanceFieldsMergerImpl(appView.withClassHierarchy(), lensBuilder, group);
+    } else {
+      assert group.getInstanceFieldMap().isEmpty();
+      appView.options().horizontalClassMergerOptions().isRestrictedToSynthetics();
+      return new ClassInstanceFieldsMerger() {
+        @Override
+        public void setClassIdField(DexEncodedField classIdField) {
+          throw new UnsupportedOperationException("No instance field merging in D8");
+        }
+
+        @Override
+        public DexEncodedField[] merge() {
+          return DexEncodedField.EMPTY_ARRAY;
+        }
+      };
+    }
   }
 
   /**
@@ -50,7 +60,7 @@ public class ClassInstanceFieldsMerger {
    * Bar has fields 'A b' and 'B a'), we make a prepass that matches fields with the same reference
    * type.
    */
-  public static void mapFields(
+  static void mapFields(
       AppView<? extends AppInfoWithClassHierarchy> appView,
       DexProgramClass source,
       DexProgramClass target,
@@ -90,7 +100,7 @@ public class ClassInstanceFieldsMerger {
     }
   }
 
-  private static Map<InstanceFieldInfo, LinkedList<DexEncodedField>> getAvailableFieldsByExactInfo(
+  static Map<InstanceFieldInfo, LinkedList<DexEncodedField>> getAvailableFieldsByExactInfo(
       DexProgramClass target) {
     Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByInfo =
         new LinkedHashMap<>();
@@ -102,10 +112,9 @@ public class ClassInstanceFieldsMerger {
     return availableFieldsByInfo;
   }
 
-  private static Map<InstanceFieldInfo, LinkedList<DexEncodedField>>
-      getAvailableFieldsByRelaxedInfo(
-          AppView<? extends AppInfoWithClassHierarchy> appView,
-          Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByExactInfo) {
+  static Map<InstanceFieldInfo, LinkedList<DexEncodedField>> getAvailableFieldsByRelaxedInfo(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByExactInfo) {
     Map<InstanceFieldInfo, LinkedList<DexEncodedField>> availableFieldsByRelaxedInfo =
         new LinkedHashMap<>();
     availableFieldsByExactInfo.forEach(
@@ -118,64 +127,85 @@ public class ClassInstanceFieldsMerger {
     return availableFieldsByRelaxedInfo;
   }
 
-  private void fixAccessFlags(DexEncodedField newField, Collection<DexEncodedField> oldFields) {
-    if (newField.isSynthetic() && Iterables.any(oldFields, oldField -> !oldField.isSynthetic())) {
-      newField.getAccessFlags().demoteFromSynthetic();
-    }
-    if (newField.isFinal() && Iterables.any(oldFields, oldField -> !oldField.isFinal())) {
-      newField.getAccessFlags().demoteFromFinal();
-    }
-  }
+  class ClassInstanceFieldsMergerImpl implements ClassInstanceFieldsMerger {
 
-  public void setClassIdField(DexEncodedField classIdField) {
-    this.classIdField = classIdField;
-  }
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final MergeGroup group;
+    private final Builder lensBuilder;
 
-  public DexEncodedField[] merge() {
-    assert group.hasInstanceFieldMap();
-    List<DexEncodedField> newFields = new ArrayList<>();
-    if (classIdField != null) {
-      newFields.add(classIdField);
-    }
-    group
-        .getInstanceFieldMap()
-        .forEachManyToOneMapping(
-            (sourceFields, targetField) ->
-                newFields.add(mergeSourceFieldsToTargetField(targetField, sourceFields)));
-    return newFields.toArray(DexEncodedField.EMPTY_ARRAY);
-  }
+    private DexEncodedField classIdField;
 
-  private DexEncodedField mergeSourceFieldsToTargetField(
-      DexEncodedField targetField, Set<DexEncodedField> sourceFields) {
-    fixAccessFlags(targetField, sourceFields);
-
-    DexEncodedField newField;
-    if (needsRelaxedType(targetField, sourceFields)) {
-      DexType newFieldType =
-          DexTypeUtils.computeLeastUpperBound(
-              appView,
-              Iterables.transform(
-                  Iterables.concat(IterableUtils.singleton(targetField), sourceFields),
-                  DexEncodedField::getType));
-      newField =
-          targetField.toTypeSubstitutedField(
-              appView, targetField.getReference().withType(newFieldType, appView.dexItemFactory()));
-    } else {
-      newField = targetField;
+    private ClassInstanceFieldsMergerImpl(
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        HorizontalClassMergerGraphLens.Builder lensBuilder,
+        MergeGroup group) {
+      this.appView = appView;
+      this.group = group;
+      this.lensBuilder = lensBuilder;
     }
 
-    lensBuilder.recordNewFieldSignature(
-        Iterables.transform(
-            IterableUtils.append(sourceFields, targetField), DexEncodedField::getReference),
-        newField.getReference(),
-        targetField.getReference());
+    @Override
+    public void setClassIdField(DexEncodedField classIdField) {
+      this.classIdField = classIdField;
+    }
 
-    return newField;
-  }
+    @Override
+    public DexEncodedField[] merge() {
+      assert group.hasInstanceFieldMap();
+      List<DexEncodedField> newFields = new ArrayList<>();
+      if (classIdField != null) {
+        newFields.add(classIdField);
+      }
+      group
+          .getInstanceFieldMap()
+          .forEachManyToOneMapping(
+              (sourceFields, targetField) ->
+                  newFields.add(mergeSourceFieldsToTargetField(targetField, sourceFields)));
+      return newFields.toArray(DexEncodedField.EMPTY_ARRAY);
+    }
 
-  private boolean needsRelaxedType(
-      DexEncodedField targetField, Iterable<DexEncodedField> sourceFields) {
-    return Iterables.any(
-        sourceFields, sourceField -> sourceField.getType() != targetField.getType());
+    private DexEncodedField mergeSourceFieldsToTargetField(
+        DexEncodedField targetField, Set<DexEncodedField> sourceFields) {
+      fixAccessFlags(targetField, sourceFields);
+
+      DexEncodedField newField;
+      if (needsRelaxedType(targetField, sourceFields)) {
+        DexType newFieldType =
+            DexTypeUtils.computeLeastUpperBound(
+                appView,
+                Iterables.transform(
+                    Iterables.concat(IterableUtils.singleton(targetField), sourceFields),
+                    DexEncodedField::getType));
+        newField =
+            targetField.toTypeSubstitutedField(
+                appView,
+                targetField.getReference().withType(newFieldType, appView.dexItemFactory()));
+      } else {
+        newField = targetField;
+      }
+
+      lensBuilder.recordNewFieldSignature(
+          Iterables.transform(
+              IterableUtils.append(sourceFields, targetField), DexEncodedField::getReference),
+          newField.getReference(),
+          targetField.getReference());
+
+      return newField;
+    }
+
+    private void fixAccessFlags(DexEncodedField newField, Collection<DexEncodedField> oldFields) {
+      if (newField.isSynthetic() && Iterables.any(oldFields, oldField -> !oldField.isSynthetic())) {
+        newField.getAccessFlags().demoteFromSynthetic();
+      }
+      if (newField.isFinal() && Iterables.any(oldFields, oldField -> !oldField.isFinal())) {
+        newField.getAccessFlags().demoteFromFinal();
+      }
+    }
+
+    private boolean needsRelaxedType(
+        DexEncodedField targetField, Iterable<DexEncodedField> sourceFields) {
+      return Iterables.any(
+          sourceFields, sourceField -> sourceField.getType() != targetField.getType());
+    }
   }
 }

@@ -508,7 +508,7 @@ public class R8 {
         assert appView.verticallyMergedClasses() != null;
 
         HorizontalClassMerger.createForInitialClassMerging(appViewWithLiveness)
-            .runIfNecessary(runtimeTypeCheckInfo, executorService, timing);
+            .runIfNecessary(executorService, timing, runtimeTypeCheckInfo);
       }
 
       new ProtoNormalizer(appViewWithLiveness).run(executorService, timing);
@@ -751,11 +751,11 @@ public class R8 {
       // are always merged.
       HorizontalClassMerger.createForFinalClassMerging(appView)
           .runIfNecessary(
+              executorService,
+              timing,
               classMergingEnqueuerExtensionBuilder != null
                   ? classMergingEnqueuerExtensionBuilder.build(appView.graphLens())
-                  : null,
-              executorService,
-              timing);
+                  : null);
 
       // Perform minification.
       NamingLens namingLens;

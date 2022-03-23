@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger.Mode;
@@ -22,7 +21,7 @@ public class SyntheticItemsPolicy extends MultiClassSameReferencePolicy<ClassKin
   private final Mode mode;
   private final SyntheticItems syntheticItems;
 
-  public SyntheticItemsPolicy(AppView<? extends AppInfoWithClassHierarchy> appView, Mode mode) {
+  public SyntheticItemsPolicy(AppView<?> appView, Mode mode) {
     this.mode = mode;
     this.syntheticItems = appView.getSyntheticItems();
   }

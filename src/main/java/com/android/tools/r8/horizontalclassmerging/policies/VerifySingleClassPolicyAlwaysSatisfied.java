@@ -6,12 +6,13 @@ package com.android.tools.r8.horizontalclassmerging.policies;
 
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
+import com.android.tools.r8.utils.InternalOptions;
 
-public class VerifyPolicyAlwaysSatisfied extends SingleClassPolicy {
+public class VerifySingleClassPolicyAlwaysSatisfied extends SingleClassPolicy {
 
   private final SingleClassPolicy policy;
 
-  public VerifyPolicyAlwaysSatisfied(SingleClassPolicy policy) {
+  public VerifySingleClassPolicyAlwaysSatisfied(SingleClassPolicy policy) {
     this.policy = policy;
   }
 
@@ -23,11 +24,11 @@ public class VerifyPolicyAlwaysSatisfied extends SingleClassPolicy {
 
   @Override
   public String getName() {
-    return "VerifyAlwaysSatisfied(" + policy.getName() + ")";
+    return "VerifySingleClassPolicyAlwaysSatisfied(" + policy.getName() + ")";
   }
 
   @Override
   public boolean shouldSkipPolicy() {
-    return policy.shouldSkipPolicy();
+    return !InternalOptions.assertionsEnabled() || policy.shouldSkipPolicy();
   }
 }

@@ -5,7 +5,6 @@
 package com.android.tools.r8.horizontalclassmerging;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -43,7 +42,7 @@ import java.util.Set;
  */
 class TreeFixer extends TreeFixerBase {
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final HorizontallyMergedClasses mergedClasses;
   private final Mode mode;
   private final HorizontalClassMergerGraphLens.Builder lensBuilder;
@@ -55,7 +54,7 @@ class TreeFixer extends TreeFixerBase {
       HashBiMap.create();
 
   public TreeFixer(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       HorizontallyMergedClasses mergedClasses,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
       Mode mode,
@@ -123,17 +122,20 @@ class TreeFixer extends TreeFixerBase {
    * </ul>
    */
   public HorizontalClassMergerGraphLens fixupTypeReferences() {
-    Collection<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
-    Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
-    classes.forEach(this::fixupAttributes);
-    classes.forEach(this::fixupProgramClassSuperTypes);
-    SubtypingForrestForClasses subtypingForrest = new SubtypingForrestForClasses(appView);
-    // TODO(b/170078037): parallelize this code segment.
-    for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
-      subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
-    }
     HorizontalClassMergerGraphLens lens = lensBuilder.build(appView, mergedClasses);
-    new AnnotationFixer(lens).run(appView.appInfo().classes());
+    if (appView.enableWholeProgramOptimizations()) {
+      Collection<DexProgramClass> classes = appView.appInfo().classesWithDeterministicOrder();
+      Iterables.filter(classes, DexProgramClass::isInterface).forEach(this::fixupInterfaceClass);
+      classes.forEach(this::fixupAttributes);
+      classes.forEach(this::fixupProgramClassSuperTypes);
+      SubtypingForrestForClasses subtypingForrest =
+          new SubtypingForrestForClasses(appView.withClassHierarchy());
+      // TODO(b/170078037): parallelize this code segment.
+      for (DexProgramClass root : subtypingForrest.getProgramRoots()) {
+        subtypingForrest.traverseNodeDepthFirst(root, HashBiMap.create(), this::fixupProgramClass);
+      }
+      new AnnotationFixer(lens).run(appView.appInfo().classes());
+    }
     return lens;
   }
 

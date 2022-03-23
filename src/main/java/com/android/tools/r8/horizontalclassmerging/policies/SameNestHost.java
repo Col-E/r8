@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -15,7 +14,7 @@ public class SameNestHost extends MultiClassSameReferencePolicy<DexType> {
 
   private final DexItemFactory dexItemFactory;
 
-  public SameNestHost(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public SameNestHost(AppView<?> appView) {
     this.dexItemFactory = appView.dexItemFactory();
   }
 

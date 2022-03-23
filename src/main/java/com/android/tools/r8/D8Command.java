@@ -10,7 +10,6 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
@@ -516,12 +515,14 @@ public final class D8Command extends BaseCompilerCommand {
     // Disable global optimizations.
     internal.disableGlobalOptimizations();
 
-    // TODO(b/187675788): Enable class merging for synthetics in D8.
     HorizontalClassMergerOptions horizontalClassMergerOptions =
         internal.horizontalClassMergerOptions();
-    horizontalClassMergerOptions.disable();
-    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.INITIAL);
-    assert !horizontalClassMergerOptions.isEnabled(HorizontalClassMerger.Mode.FINAL);
+    if (internal.isGeneratingDex()) {
+      horizontalClassMergerOptions.setRestrictToSynthetics();
+    } else {
+      assert internal.isGeneratingClassFiles();
+      horizontalClassMergerOptions.disable();
+    }
 
     internal.setDumpInputFlags(getDumpInputFlags(), skipDump);
     internal.dumpOptions = dumpOptions();

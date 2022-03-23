@@ -74,7 +74,7 @@ public class LambdaGroupGCLimitTest extends TestBase {
                               mergeGroup ->
                                   mergeGroup.size()
                                       <= defaultHorizontalClassMergerOptions
-                                          .getMaxClassGroupSize()));
+                                          .getMaxClassGroupSizeInR8()));
                 })
             .allowDiagnosticWarningMessages()
             .compile()

@@ -7,7 +7,6 @@ package com.android.tools.r8.horizontalclassmerging;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.androidapi.ComputedApiLevel;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -37,6 +36,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +55,7 @@ public class ClassMerger {
 
   private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final Mode mode;
   private final MergeGroup group;
   private final DexItemFactory dexItemFactory;
@@ -74,7 +74,7 @@ public class ClassMerger {
   private final Collection<VirtualMethodMerger> virtualMethodMergers;
 
   private ClassMerger(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       IRCodeProvider codeProvider,
       Mode mode,
       HorizontalClassMergerGraphLens.Builder lensBuilder,
@@ -88,7 +88,7 @@ public class ClassMerger {
 
     // Field mergers.
     this.classStaticFieldsMerger = new ClassStaticFieldsMerger(appView, lensBuilder, group);
-    this.classInstanceFieldsMerger = new ClassInstanceFieldsMerger(appView, lensBuilder, group);
+    this.classInstanceFieldsMerger = ClassInstanceFieldsMerger.create(appView, lensBuilder, group);
 
     // Method mergers.
     this.classInitializerMerger = ClassInitializerMerger.create(group);
@@ -344,16 +344,12 @@ public class ClassMerger {
   }
 
   public static class Builder {
-    private final AppView<? extends AppInfoWithClassHierarchy> appView;
+    private final AppView<?> appView;
     private final IRCodeProvider codeProvider;
-    private Mode mode;
+    private final Mode mode;
     private final MergeGroup group;
 
-    public Builder(
-        AppView<? extends AppInfoWithClassHierarchy> appView,
-        IRCodeProvider codeProvider,
-        MergeGroup group,
-        Mode mode) {
+    public Builder(AppView<?> appView, IRCodeProvider codeProvider, MergeGroup group, Mode mode) {
       this.appView = appView;
       this.codeProvider = codeProvider;
       this.group = group;
@@ -361,6 +357,24 @@ public class ClassMerger {
     }
 
     private List<VirtualMethodMerger> createVirtualMethodMergers() {
+      if (!appView.hasClassHierarchy()) {
+        assert getVirtualMethodMergerBuilders().isEmpty();
+        return Collections.emptyList();
+      }
+      Map<DexMethodSignature, VirtualMethodMerger.Builder> virtualMethodMergerBuilders =
+          getVirtualMethodMergerBuilders();
+      if (virtualMethodMergerBuilders.isEmpty()) {
+        return Collections.emptyList();
+      }
+      List<VirtualMethodMerger> virtualMethodMergers =
+          new ArrayList<>(virtualMethodMergerBuilders.size());
+      for (VirtualMethodMerger.Builder builder : virtualMethodMergerBuilders.values()) {
+        virtualMethodMergers.add(builder.build(appView.withClassHierarchy(), group));
+      }
+      return virtualMethodMergers;
+    }
+
+    private Map<DexMethodSignature, VirtualMethodMerger.Builder> getVirtualMethodMergerBuilders() {
       Map<DexMethodSignature, VirtualMethodMerger.Builder> virtualMethodMergerBuilders =
           new LinkedHashMap<>();
       group.forEach(
@@ -372,12 +386,7 @@ public class ClassMerger {
                               virtualMethod.getReference().getSignature(),
                               ignore -> new VirtualMethodMerger.Builder())
                           .add(virtualMethod)));
-      List<VirtualMethodMerger> virtualMethodMergers =
-          new ArrayList<>(virtualMethodMergerBuilders.size());
-      for (VirtualMethodMerger.Builder builder : virtualMethodMergerBuilders.values()) {
-        virtualMethodMergers.add(builder.build(appView, group));
-      }
-      return virtualMethodMergers;
+      return virtualMethodMergerBuilders;
     }
 
     private void createClassIdField() {

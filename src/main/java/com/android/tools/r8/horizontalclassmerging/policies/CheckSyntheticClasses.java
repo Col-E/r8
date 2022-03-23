@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
@@ -16,7 +15,7 @@ public class CheckSyntheticClasses extends SingleClassPolicy {
   private final HorizontalClassMergerOptions options;
   private final SyntheticItems syntheticItems;
 
-  public CheckSyntheticClasses(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public CheckSyntheticClasses(AppView<?> appView) {
     this.options = appView.options().horizontalClassMergerOptions();
     this.syntheticItems = appView.getSyntheticItems();
   }

@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LazyLoadedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
+import com.android.tools.r8.horizontalclassmerging.HorizontalClassMerger;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
@@ -310,6 +311,8 @@ public final class D8 {
       }
 
       finalizeApplication(appView, executor);
+
+      HorizontalClassMerger.createForD8ClassMerging(appView).runIfNecessary(executor, timing);
 
       new GenericSignatureRewriter(appView, namingLens)
           .runForD8(appView.appInfo().classes(), executor);

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.horizontalclassmerging.policies;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.horizontalclassmerging.MultiClassSameReferencePolicy;
@@ -20,7 +19,7 @@ public class CheckAbstractClasses extends MultiClassSameReferencePolicy<Abstract
 
   private final InternalOptions options;
 
-  public CheckAbstractClasses(AppView<? extends AppInfoWithClassHierarchy> appView) {
+  public CheckAbstractClasses(AppView<?> appView) {
     this.options = appView.options();
   }
 
