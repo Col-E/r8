@@ -54,8 +54,6 @@ public abstract class MethodOptimizationInfo
 
   public abstract boolean hasBeenInlinedIntoSingleCallSite();
 
-  public abstract boolean isReachabilitySensitive();
-
   public abstract boolean returnsArgument();
 
   public abstract int getReturnedArgument();

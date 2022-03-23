@@ -221,7 +221,6 @@ public abstract class CfInstructionDesugaringEventConsumer
               info -> {
                 ProgramMethod newDirectMethod = info.getNewDirectMethod();
                 newDirectMethod
-                    .getDefinition()
                     .setCode(info.getVirtualMethod().getDefinition().getCode(), appView);
               });
 
@@ -232,7 +231,6 @@ public abstract class CfInstructionDesugaringEventConsumer
           .forEach(
               info -> {
                 info.getVirtualMethod()
-                    .getDefinition()
                     .setCode(info.getVirtualMethodCode(), appView);
                 needsProcessing.accept(info.getVirtualMethod());
               });
@@ -433,7 +431,6 @@ public abstract class CfInstructionDesugaringEventConsumer
       pendingInvokeSpecialBridges.forEach(
           info ->
               info.getVirtualMethod()
-                  .getDefinition()
                   .setCode(info.getVirtualMethodCode(), appView));
     }
 

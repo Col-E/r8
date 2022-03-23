@@ -68,7 +68,7 @@ public class DefaultInstanceInitializerCode extends Code
 
   public static boolean canonicalizeCodeIfPossible(AppView<?> appView, ProgramMethod method) {
     if (hasDefaultInstanceInitializerCode(method, appView)) {
-      method.getDefinition().setCode(get(), appView);
+      method.setCode(get(), appView);
       return true;
     }
     return false;
@@ -82,7 +82,7 @@ public class DefaultInstanceInitializerCode extends Code
       AppView<?> appView, ProgramMethod method, DexType superType) {
     DexEncodedMethod definition = method.getDefinition();
     assert definition.getCode().isDefaultInstanceInitializerCode();
-    definition.setCode(get().toCfCode(method, appView.dexItemFactory(), superType), appView);
+    method.setCode(get().toCfCode(method, appView.dexItemFactory(), superType), appView);
   }
 
   private static boolean hasDefaultInstanceInitializerCode(

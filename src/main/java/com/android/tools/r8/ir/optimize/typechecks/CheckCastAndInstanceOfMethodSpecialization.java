@@ -133,7 +133,7 @@ public class CheckCastAndInstanceOfMethodSpecialization {
     if (abstractParentReturnValue == abstractReturnValue) {
       // The parent method is already guaranteed to return the same value.
     } else if (isClassAccessible(method.getHolder(), parentMethod, appView).isTrue()) {
-      parentMethodDefinition.setCode(
+      parentMethod.setCode(
           parentMethodDefinition.buildInstanceOfCode(
               method.getHolderType(), abstractParentReturnValue.isTrue(), appView.options()),
           appView);

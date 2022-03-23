@@ -877,7 +877,7 @@ public class MainDexListTests extends TestBase {
                 Origin.unknown(),
                 new MutableMethodConversionOptions(options));
         RegisterAllocator allocator = new LinearScanRegisterAllocator(appView, ir);
-        method.setCode(
+        programMethod.setCode(
             new DexBuilder(ir, BytecodeMetadataProvider.empty(), allocator, options).build(),
             appView);
         directMethods[i] = method;

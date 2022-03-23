@@ -106,11 +106,6 @@ public class DefaultMethodOptimizationInfo extends MethodOptimizationInfo {
   }
 
   @Override
-  public boolean isReachabilitySensitive() {
-    return false;
-  }
-
-  @Override
   public boolean returnsArgument() {
     return false;
   }

@@ -704,7 +704,7 @@ public class Inliner {
       if (options.testing.inlineeIrModifier != null) {
         options.testing.inlineeIrModifier.accept(code);
       }
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
       return new InlineeWithReason(code, reason);
     }
 
@@ -1105,7 +1105,7 @@ public class Inliner {
     classInitializationAnalysis.finish();
     code.removeBlocks(blocksToRemove);
     code.removeAllDeadAndTrivialPhis();
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private boolean tryInlineMethodWithoutSideEffects(

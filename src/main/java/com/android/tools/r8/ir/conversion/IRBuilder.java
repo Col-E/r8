@@ -501,7 +501,7 @@ public class IRBuilder {
   }
 
   public boolean isDebugMode() {
-    return appView.options().debug || getMethod().getOptimizationInfo().isReachabilitySensitive();
+    return appView.options().debug || getProgramMethod().getOrComputeReachabilitySensitive(appView);
   }
 
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
@@ -739,7 +739,7 @@ public class IRBuilder {
       StringSwitchConverter.convertToStringSwitchInstructions(ir, appView.dexItemFactory());
     }
 
-    assert ir.isConsistentSSA();
+    assert ir.isConsistentSSA(appView);
 
     // Clear the code so we don't build multiple times.
     source.clear();

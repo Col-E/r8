@@ -340,7 +340,7 @@ public class AssertionsRewriter {
     if (enabled) {
       timing.begin("Rewrite assertions");
       runInternal(method, code);
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
       timing.end();
     }
   }

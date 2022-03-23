@@ -315,7 +315,7 @@ public class Devirtualizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   /** This rebinds invoke-super instructions to their most specific target. */

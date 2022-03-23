@@ -88,14 +88,9 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   private static final int HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG = 0x4;
   private static final int MAY_HAVE_SIDE_EFFECT_FLAG = 0x8;
   private static final int RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG = 0x10;
-  private static final int UNUSED_FLAG_1 = 0x20;
-  private static final int NEVER_RETURNS_NORMALLY_FLAG = 0x40;
-  private static final int UNUSED_FLAG_2 = 0x80;
-  private static final int UNUSED_FLAG_3 = 0x100;
-  private static final int UNUSED_FLAG_4 = 0x200;
-  private static final int INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG = 0x400;
-  private static final int REACHABILITY_SENSITIVE_FLAG = 0x800;
-  private static final int RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG = 0x1000;
+  private static final int NEVER_RETURNS_NORMALLY_FLAG = 0x20;
+  private static final int INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG = 0x80;
+  private static final int RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG = 0x100;
 
   private static final int DEFAULT_FLAGS;
 
@@ -114,18 +109,11 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.returnValueOnlyDependsOnArguments())
             * RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG;
-    defaultFlags |= 0 * UNUSED_FLAG_1;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.neverReturnsNormally()) * NEVER_RETURNS_NORMALLY_FLAG;
-    defaultFlags |= 0 * UNUSED_FLAG_2;
-    defaultFlags |= 0 * UNUSED_FLAG_3;
-    defaultFlags |= 0 * UNUSED_FLAG_4;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.isInitializerEnablingJavaVmAssertions())
             * INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG;
-    defaultFlags |=
-        BooleanUtils.intValue(defaultOptInfo.isReachabilitySensitive())
-            * REACHABILITY_SENSITIVE_FLAG;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.returnValueHasBeenPropagated())
             * RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG;
@@ -381,11 +369,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   }
 
   @Override
-  public boolean isReachabilitySensitive() {
-    return isFlagSet(REACHABILITY_SENSITIVE_FLAG);
-  }
-
-  @Override
   public boolean returnsArgument() {
     return returnedArgument != -1;
   }
@@ -513,14 +496,6 @@ public class MutableMethodOptimizationInfo extends MethodOptimizationInfo
   @Override
   public boolean returnValueOnlyDependsOnArguments() {
     return isFlagSet(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
-  }
-
-  public void setReachabilitySensitive(boolean reachabilitySensitive) {
-    setFlag(REACHABILITY_SENSITIVE_FLAG, reachabilitySensitive);
-  }
-
-  void unsetReachabilitySensitive() {
-    clearFlag(REACHABILITY_SENSITIVE_FLAG);
   }
 
   void setSimpleInliningConstraint(SimpleInliningConstraint constraint) {

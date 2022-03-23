@@ -468,7 +468,6 @@ public class IRConverter {
       D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       D8MethodProcessor methodProcessor,
       InterfaceProcessor interfaceProcessor) {
-    boolean isReachabilitySensitive = clazz.hasReachabilitySensitiveAnnotation(options.itemFactory);
     // When converting all methods on a class always convert <clinit> first.
     ProgramMethod classInitializer = clazz.getProgramClassInitializer();
 
@@ -479,17 +478,12 @@ public class IRConverter {
     //  the need to copy the method list.
     List<ProgramMethod> methods = ListUtils.newArrayList(clazz::forEachProgramMethod);
     if (classInitializer != null) {
-      classInitializer
-          .getDefinition()
-          .getMutableOptimizationInfo()
-          .setReachabilitySensitive(isReachabilitySensitive);
       methodProcessor.processMethod(classInitializer, desugaringEventConsumer);
     }
 
     for (ProgramMethod method : methods) {
       if (!method.getDefinition().isClassInitializer()) {
         DexEncodedMethod definition = method.getDefinition();
-        definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
         methodProcessor.processMethod(method, desugaringEventConsumer);
         if (interfaceProcessor != null) {
           interfaceProcessor.processMethod(method, desugaringEventConsumer);
@@ -623,9 +617,6 @@ public class IRConverter {
     // Desugaring happens in the enqueuer.
     assert instructionDesugaring.isEmpty();
 
-    DexApplication application = appView.appInfo().app();
-
-    computeReachabilitySensitivity(application);
     workaroundAbstractMethodOnNonAbstractClassVerificationBug(executorService);
 
     // The process is in two phases in general.
@@ -846,18 +837,6 @@ public class IRConverter {
     return onWaveDoneActions != null;
   }
 
-  private void computeReachabilitySensitivity(DexApplication application) {
-    application
-        .classes()
-        .forEach(
-            c -> {
-              if (c.hasReachabilitySensitiveAnnotation(options.itemFactory)) {
-                c.methods()
-                    .forEach(m -> m.getMutableOptimizationInfo().setReachabilitySensitive(true));
-              }
-            });
-  }
-
   private void processSynthesizedServiceLoaderMethods(
       List<ProgramMethod> serviceLoadMethods, ExecutorService executorService)
       throws ExecutionException {
@@ -882,18 +861,16 @@ public class IRConverter {
 
   /**
    * This will replace the Dex code in the method with the Dex code generated from the provided IR.
-   * <p>
-   * This method is *only* intended for testing, where tests manipulate the IR and need runnable Dex
-   * code.
    *
-   * @param method the method to replace code for
+   * <p>This method is *only* intended for testing, where tests manipulate the IR and need runnable
+   * Dex code.
+   *
    * @param code the IR code for the method
    */
-  public void replaceCodeForTesting(DexEncodedMethod method, IRCode code) {
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Initial (SSA) flow graph for %s:\n%s", method.toSourceString(), code);
-    }
-    assert code.isConsistentSSA();
+  public void replaceCodeForTesting(IRCode code) {
+    ProgramMethod method = code.context();
+    DexEncodedMethod definition = method.getDefinition();
+    assert code.isConsistentSSA(appView);
     Timing timing = Timing.empty();
     deadCodeRemover.run(code, timing);
     method.setCode(
@@ -901,8 +878,11 @@ public class IRConverter {
             .finalizeCode(code, BytecodeMetadataProvider.empty(), timing),
         appView);
     if (Log.ENABLED) {
-      Log.debug(getClass(), "Resulting dex code for %s:\n%s",
-          method.toSourceString(), logCode(options, method));
+      Log.debug(
+          getClass(),
+          "Resulting dex code for %s:\n%s",
+          method.toSourceString(),
+          logCode(options, definition));
     }
   }
 
@@ -1101,7 +1081,7 @@ public class IRConverter {
       timing.end();
     }
 
-    boolean isDebugMode = options.debug || method.getOptimizationInfo().isReachabilitySensitive();
+    boolean isDebugMode = options.debug || context.getOrComputeReachabilitySensitive(appView);
 
     if (isDebugMode) {
       codeRewriter.simplifyDebugLocals(code);
@@ -1142,7 +1122,7 @@ public class IRConverter {
     // check. In the latter case, the type checker should be extended to detect the issue such that
     // we will return with a throw-null method above.
     assert code.verifyTypes(appView);
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
 
     openClosedInterfacesAnalysis.analyze(context, code);
 
@@ -1176,7 +1156,7 @@ public class IRConverter {
       timing.begin("Decouple identifier-name strings");
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(code);
       timing.end();
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
     }
 
     if (memberValuePropagation != null) {
@@ -1259,7 +1239,7 @@ public class IRConverter {
           .optimize(code, feedback, methodProcessor, methodProcessingContext);
       timing.end();
       previous = printMethod(code, "IR after class library method optimizer (SSA)", previous);
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
     }
 
     assert code.verifyTypes(appView);
@@ -1366,7 +1346,7 @@ public class IRConverter {
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.
     deadCodeRemover.run(code, timing);
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
 
     previous = printMethod(code, "IR after dead code removal (SSA)", previous);
 
@@ -1399,7 +1379,7 @@ public class IRConverter {
                       // always uses a force inlining oracle for inlining.
                       -1)));
       timing.end();
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
       assert code.verifyTypes(appView);
     }
 
@@ -1451,7 +1431,7 @@ public class IRConverter {
     // Insert code to log arguments if requested.
     if (options.methodMatchesLogArgumentsFilter(method) && !method.isProcessed()) {
       codeRewriter.logArgumentTypes(method, code);
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
     }
 
     previous = printMethod(code, "IR after argument type logging (SSA)", previous);
@@ -1479,7 +1459,7 @@ public class IRConverter {
       timing.begin("Remove assume instructions");
       CodeRewriter.removeAssumeInstructions(appView, code);
       timing.end();
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
 
       // TODO(b/214496607): Remove when dynamic types are safe w.r.t. interface assignment rules.
       codeRewriter.rewriteMoveResult(code);
@@ -1615,7 +1595,7 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    DexEncodedMethod method = code.method();
+    ProgramMethod method = code.context();
     method.setCode(
         new IRToCfFinalizer(appView, deadCodeRemover)
             .finalizeCode(code, bytecodeMetadataProvider, timing),
@@ -1628,13 +1608,14 @@ public class IRConverter {
       OptimizationFeedback feedback,
       BytecodeMetadataProvider bytecodeMetadataProvider,
       Timing timing) {
-    DexEncodedMethod method = code.method();
+    ProgramMethod method = code.context();
+    DexEncodedMethod definition = method.getDefinition();
     method.setCode(
         new IRToDexFinalizer(appView, codeRewriter, deadCodeRemover)
             .finalizeCode(code, bytecodeMetadataProvider, timing),
         appView);
     markProcessed(code, feedback);
-    updateHighestSortingStrings(method);
+    updateHighestSortingStrings(definition);
   }
 
   public void markProcessed(IRCode code, OptimizationFeedback feedback) {
@@ -1652,8 +1633,7 @@ public class IRConverter {
       return false;
     }
     DexEncodedMethod definition = method.getDefinition();
-    if (definition.isClassInitializer()
-        || definition.getOptimizationInfo().isReachabilitySensitive()) {
+    if (definition.isClassInitializer() || method.getOrComputeReachabilitySensitive(appView)) {
       return false;
     }
     KeepMethodInfo keepInfo = appView.getKeepInfo(method);

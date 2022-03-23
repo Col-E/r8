@@ -41,7 +41,7 @@ public class NaturalIntLoopRemover {
     }
     if (loopRemoved) {
       code.removeAllDeadAndTrivialPhis();
-      assert code.isConsistentSSA();
+      assert code.isConsistentSSA(appView);
     }
   }
 

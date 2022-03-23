@@ -587,15 +587,15 @@ public class IRCode implements ValueFactory {
     }
   }
 
-  public boolean isConsistentSSA() {
-    isConsistentSSABeforeTypesAreCorrect();
+  public boolean isConsistentSSA(AppView<?> appView) {
+    isConsistentSSABeforeTypesAreCorrect(appView);
     assert verifyNoImpreciseOrBottomTypes();
     return true;
   }
 
-  public boolean isConsistentSSABeforeTypesAreCorrect() {
-    assert isConsistentGraph(true);
-    assert consistentBlockInstructions(true);
+  public boolean isConsistentSSABeforeTypesAreCorrect(AppView<?> appView) {
+    assert isConsistentGraph(appView, true);
+    assert consistentBlockInstructions(appView, true);
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
@@ -628,16 +628,16 @@ public class IRCode implements ValueFactory {
     return true;
   }
 
-  public boolean isConsistentGraph() {
-    return isConsistentGraph(false);
+  public boolean isConsistentGraph(AppView<?> appView) {
+    return isConsistentGraph(appView, false);
   }
 
-  public boolean isConsistentGraph(boolean ssa) {
+  public boolean isConsistentGraph(AppView<?> appView, boolean ssa) {
     assert noColorsInUse();
     assert consistentBlockNumbering();
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
-    assert consistentBlockInstructions(ssa);
+    assert consistentBlockInstructions(appView, ssa);
     assert consistentMetadata();
     assert !allThrowingInstructionsHavePositions || computeAllThrowingInstructionsHavePositions();
     return true;
@@ -829,12 +829,12 @@ public class IRCode implements ValueFactory {
     return true;
   }
 
-  private boolean consistentBlockInstructions(boolean ssa) {
+  private boolean consistentBlockInstructions(AppView<?> appView, boolean ssa) {
     boolean argumentsAllowed = true;
     for (BasicBlock block : blocks) {
       assert block.consistentBlockInstructions(
           argumentsAllowed,
-          options.debug || method().getOptimizationInfo().isReachabilitySensitive(),
+          options.debug || context().getOrComputeReachabilitySensitive(appView),
           ssa);
       argumentsAllowed = false;
     }

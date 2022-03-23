@@ -235,7 +235,6 @@ public class BridgeHoisting {
 
     // Now update the code of the bridge method chosen as representative.
     representative
-        .getDefinition()
         .setCode(createCodeForVirtualBridge(representative, methodToInvoke), appView);
     feedback.setBridgeInfo(representative.getDefinition(), new VirtualBridgeInfo(methodToInvoke));
 

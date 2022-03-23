@@ -777,7 +777,7 @@ public class ApplicationWriter {
                     mapping,
                     application.dexItemFactory,
                     options.testing.forceJumboStringProcessing);
-            method.getDefinition().setCode(rewrittenCode.asCode(), appView);
+            method.setCode(rewrittenCode.asCode(), appView);
           });
     }
   }

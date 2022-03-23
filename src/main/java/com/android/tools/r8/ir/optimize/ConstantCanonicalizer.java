@@ -270,7 +270,7 @@ public class ConstantCanonicalizer {
       codeRewriter.simplifyIf(code);
     }
 
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private static void insertCanonicalizedConstant(IRCode code, Instruction canonicalizedConstant) {

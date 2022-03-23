@@ -65,7 +65,7 @@ public class NonNullTrackerTest extends TestBase {
     AssumeInserter assumeInserter = new AssumeInserter(appView);
 
     assumeInserter.insertAssumeInstructions(code, Timing.empty());
-    assertTrue(code.isConsistentSSA());
+    assertTrue(code.isConsistentSSA(appView));
     checkCountOfNonNull(code, expectedNumberOfNonNull);
 
     if (testAugmentedIRCode != null) {
@@ -73,7 +73,7 @@ public class NonNullTrackerTest extends TestBase {
     }
 
     CodeRewriter.removeAssumeInstructions(appView, code);
-    assertTrue(code.isConsistentSSA());
+    assertTrue(code.isConsistentSSA(appView));
     checkCountOfNonNull(code, 0);
   }
 

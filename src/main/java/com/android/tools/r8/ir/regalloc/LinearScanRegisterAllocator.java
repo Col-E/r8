@@ -207,7 +207,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   public void allocateRegisters() {
     // There are no linked values prior to register allocation.
     assert noLinkedValues();
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
     if (this.code.method().accessFlags.isBridge() && implementationIsBridge(this.code)) {
       transformBridgeMethod();
     }
@@ -216,7 +216,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     insertRangeInvokeMoves();
     ImmutableList<BasicBlock> blocks = computeLivenessInformation();
     performAllocation();
-    assert code.isConsistentGraph();
+    assert code.isConsistentGraph(appView);
     if (Log.ENABLED) {
       Log.debug(this.getClass(), toString());
     }
@@ -227,7 +227,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // and we do not actually want locals information in the output.
     if (options().debug) {
       computeDebugInfo(code, blocks, liveIntervals, this, liveAtEntrySets);
-    } else if (code.method().getOptimizationInfo().isReachabilitySensitive()) {
+    } else if (code.context().getOrComputeReachabilitySensitive(appView)) {
       InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instruction = it.next();
@@ -1642,7 +1642,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Set all free positions for possible registers to max integer.
     RegisterPositions freePositions = new RegisterPositionsImpl(registerConstraint + 1);
 
-    if ((options().debug || code.method().getOptimizationInfo().isReachabilitySensitive())
+    if ((options().debug || code.context().getOrComputeReachabilitySensitive(appView))
         && !code.method().accessFlags.isStatic()) {
       // If we are generating debug information or if the method is reachability sensitive,
       // we pin the this value register. The debugger expects to always be able to find it in
@@ -2555,7 +2555,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void computeLiveRanges() {
-    computeLiveRanges(options(), code, liveAtEntrySets, liveIntervals);
+    computeLiveRanges(appView, code, liveAtEntrySets, liveIntervals);
     // Art VMs before Android M assume that the register for the receiver never changes its value.
     // This assumption is used during verification. Allowing the receiver register to be
     // overwritten can therefore lead to verification errors. If we could be targeting one of these
@@ -2579,7 +2579,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   /** Compute live ranges based on liveAtEntry sets for all basic blocks. */
   public static void computeLiveRanges(
-      InternalOptions options,
+      AppView<?> appView,
       IRCode code,
       Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets,
       List<LiveIntervals> liveIntervals) {
@@ -2693,7 +2693,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             }
           }
         }
-        if (options.debug || code.method().getOptimizationInfo().isReachabilitySensitive()) {
+        if (appView.options().debug || code.context().getOrComputeReachabilitySensitive(appView)) {
           // In debug mode, or if the method is reachability sensitive, extend the live range
           // to cover the full scope of a local variable (encoded as debug values).
           int number = instruction.getNumber();

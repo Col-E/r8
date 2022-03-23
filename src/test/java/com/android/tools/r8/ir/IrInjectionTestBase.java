@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -14,7 +13,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
@@ -26,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import org.antlr.runtime.RecognitionException;
 
 public class IrInjectionTestBase extends SmaliTestBase {
 
@@ -105,7 +102,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     public String run() throws IOException {
       Timing timing = Timing.empty();
       IRConverter converter = new IRConverter(appView, timing, null);
-      converter.replaceCodeForTesting(method, code);
+      converter.replaceCodeForTesting(code);
       AndroidApp app = writeDex();
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;
     }

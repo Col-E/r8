@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -36,12 +37,13 @@ public class PeepholeOptimizer {
   /**
    * Perform optimizations of the code with register assignments provided by the register allocator.
    */
-  public static void optimize(IRCode code, LinearScanRegisterAllocator allocator) {
+  public static void optimize(
+      AppView<?> appView, IRCode code, LinearScanRegisterAllocator allocator) {
     removeIdenticalPredecessorBlocks(code, allocator);
     removeRedundantInstructions(code, allocator);
     shareIdenticalBlockPrefix(code, allocator);
     shareIdenticalBlockSuffix(code, allocator, 0);
-    assert code.isConsistentGraph();
+    assert code.isConsistentGraph(appView);
   }
 
   /** Identify common prefixes in successor blocks and share them. */

@@ -175,8 +175,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   private ImmutableList<BasicBlock> computeLivenessInformation() {
     ImmutableList<BasicBlock> blocks = code.numberInstructions();
     liveAtEntrySets = code.computeLiveAtEntrySets();
-    LinearScanRegisterAllocator.computeLiveRanges(
-        appView.options(), code, liveAtEntrySets, liveIntervals);
+    LinearScanRegisterAllocator.computeLiveRanges(appView, code, liveAtEntrySets, liveIntervals);
     return blocks;
   }
 

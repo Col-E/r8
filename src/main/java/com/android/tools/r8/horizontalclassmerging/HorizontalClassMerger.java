@@ -225,7 +225,6 @@ public class HorizontalClassMerger {
                 IncompleteHorizontalClassMergerCode code =
                     (IncompleteHorizontalClassMergerCode) method.getDefinition().getCode();
                 method
-                    .getDefinition()
                     .setCode(
                         code.toCfCode(appView, method, horizontalClassMergerGraphLens), appView);
               });

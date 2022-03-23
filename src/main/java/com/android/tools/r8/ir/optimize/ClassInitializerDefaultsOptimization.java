@@ -137,7 +137,7 @@ public class ClassInitializerDefaultsOptimization {
     }
 
     ProgramMethod context = code.context();
-    if (context.getDefinition().getOptimizationInfo().isReachabilitySensitive()) {
+    if (context.getOrComputeReachabilitySensitive(appView)) {
       return ClassInitializerDefaultsResult.empty();
     }
 

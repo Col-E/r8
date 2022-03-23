@@ -62,7 +62,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.function.BiPredicate;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -445,8 +444,8 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     }
     if (parameterLabel != null) {
       assert localVariables.isEmpty();
-      Map<Integer, DebugLocalInfo> parameterInfo = method.getDefinition().getParameterInfo();
-      for (Entry<Integer, DebugLocalInfo> entry : parameterInfo.entrySet()) {
+      Int2ReferenceMap<DebugLocalInfo> parameterInfo = method.getDefinition().getParameterInfo();
+      for (Int2ReferenceMap.Entry<DebugLocalInfo> entry : parameterInfo.int2ReferenceEntrySet()) {
         writeLocalVariableEntry(
             visitor,
             graphLens,
@@ -454,7 +453,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             entry.getValue(),
             parameterLabel,
             parameterLabel,
-            entry.getKey());
+            entry.getIntKey());
       }
     } else {
       for (LocalVariableInfo local : localVariables) {
@@ -561,7 +560,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       Origin origin,
       RewrittenPrototypeDescription protoChanges,
       MutableMethodConversionOptions conversionOptions) {
-    if (!method.getDefinition().keepLocals(appView.options())) {
+    if (!method.keepLocals(appView)) {
       return internalBuild(
           Collections.emptyList(),
           context,

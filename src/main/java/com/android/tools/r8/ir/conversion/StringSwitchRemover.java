@@ -101,7 +101,7 @@ public class StringSwitchRemover {
       identifierNameStringMarker.decoupleIdentifierNameStringsInBlocks(code, newBlocksWithStrings);
     }
 
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   // Returns true if minification is enabled and the switch value is guaranteed to be a class name.

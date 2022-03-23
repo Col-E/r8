@@ -176,9 +176,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void unsetNonNullParamOrThrow(ProgramMethod method) {}
 
   @Override
-  public void unsetReachabilitySensitive(ProgramMethod method) {}
-
-  @Override
   public void unsetReturnedArgument(ProgramMethod method) {}
 
   @Override

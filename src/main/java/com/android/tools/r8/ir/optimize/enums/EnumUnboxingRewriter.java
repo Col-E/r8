@@ -120,7 +120,7 @@ public class EnumUnboxingRewriter {
     if (unboxedEnumsData.isEmpty()) {
       return Sets.newIdentityHashSet();
     }
-    assert code.isConsistentSSABeforeTypesAreCorrect();
+    assert code.isConsistentSSABeforeTypesAreCorrect(appView);
     ProgramMethod context = code.context();
     Map<Instruction, DexType> convertedEnums = createInitialConvertedEnums(code, prototypeChanges);
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
@@ -351,7 +351,7 @@ public class EnumUnboxingRewriter {
         }
       }
     }
-    assert code.isConsistentSSABeforeTypesAreCorrect();
+    assert code.isConsistentSSABeforeTypesAreCorrect(appView);
     return affectedPhis;
   }
 

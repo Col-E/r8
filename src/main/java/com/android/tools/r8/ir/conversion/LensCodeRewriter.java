@@ -809,7 +809,7 @@ public class LensCodeRewriter {
     // Finalize cast and null check insertion.
     interfaceTypeToClassTypeRewriterHelper.processWorklist();
 
-    assert code.isConsistentSSABeforeTypesAreCorrect();
+    assert code.isConsistentSSABeforeTypesAreCorrect(appView);
   }
 
   // Applies the prototype changes of the current method to the argument instructions:

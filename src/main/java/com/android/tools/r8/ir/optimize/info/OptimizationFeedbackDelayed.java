@@ -364,11 +364,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void unsetReachabilitySensitive(ProgramMethod method) {
-    getMethodOptimizationInfoForUpdating(method).unsetReachabilitySensitive();
-  }
-
-  @Override
   public synchronized void unsetReturnedArgument(ProgramMethod method) {
     getMethodOptimizationInfoForUpdating(method).unsetReturnedArgument();
   }

@@ -109,8 +109,6 @@ public interface MethodOptimizationFeedback {
 
   void unsetNonNullParamOrThrow(ProgramMethod method);
 
-  void unsetReachabilitySensitive(ProgramMethod method);
-
   void unsetReturnedArgument(ProgramMethod method);
 
   void unsetReturnValueOnlyDependsOnArguments(ProgramMethod method);
@@ -135,7 +133,6 @@ public interface MethodOptimizationFeedback {
       unsetNeverReturnsNormally(method);
       unsetNonNullParamOnNormalExits(method);
       unsetNonNullParamOrThrow(method);
-      unsetReachabilitySensitive(method);
       unsetReturnedArgument(method);
       unsetReturnValueOnlyDependsOnArguments(method);
       unsetSimpleInliningConstraint(method);

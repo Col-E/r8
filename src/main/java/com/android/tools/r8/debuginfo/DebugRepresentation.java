@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LebUtils;
@@ -79,18 +80,19 @@ public class DebugRepresentation {
     // (the sum of the normal debug info for all methods sharing the same max pc and param count.)
     Int2ReferenceMap<CostSummary> paramCountToCosts = new Int2ReferenceOpenHashMap<>();
     for (DexProgramClass clazz : file.classes()) {
-      IdentityHashMap<DexString, List<DexEncodedMethod>> overloads =
+      IdentityHashMap<DexString, List<ProgramMethod>> overloads =
           LineNumberOptimizer.groupMethodsByRenamedName(graphLens, namingLens, clazz);
-      for (List<DexEncodedMethod> methods : overloads.values()) {
+      for (List<ProgramMethod> methods : overloads.values()) {
         if (methods.size() != 1) {
           // Never use PC info for overloaded methods. They need distinct lines to disambiguate.
           continue;
         }
-        DexEncodedMethod method = methods.get(0);
-        if (!isPcCandidate(method)) {
+        ProgramMethod method = methods.get(0);
+        DexEncodedMethod definition = method.getDefinition();
+        if (!isPcCandidate(definition)) {
           continue;
         }
-        DexCode code = method.getCode().asDexCode();
+        DexCode code = definition.getCode().asDexCode();
         DexDebugInfo debugInfo = code.getDebugInfo();
         Instruction lastInstruction = getLastExecutableInstruction(code);
         if (lastInstruction == null) {

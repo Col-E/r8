@@ -271,7 +271,7 @@ public class IdempotentFunctionCallCanonicalizer {
     }
 
     code.removeAllDeadAndTrivialPhis();
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private boolean isIdempotentLibraryMethodInvoke(InvokeMethod invoke) {

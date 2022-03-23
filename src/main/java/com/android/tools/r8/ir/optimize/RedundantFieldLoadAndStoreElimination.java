@@ -413,7 +413,7 @@ public class RedundantFieldLoadAndStoreElimination {
     }
     processInstructionsToRemove();
     assumeRemover.removeMarkedInstructions().finish();
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private void processInstructionsToRemove() {

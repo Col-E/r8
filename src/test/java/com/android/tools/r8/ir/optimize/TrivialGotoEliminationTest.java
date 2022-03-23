@@ -54,7 +54,9 @@ public class TrivialGotoEliminationTest extends TestBase {
   private final IRMetadata metadata = IRMetadata.unknown();
 
   @Test
-  public void trivialGotoInEntryBlock() {
+  public void trivialGotoInEntryBlock() throws Exception {
+    AppView<AppInfo> appView = computeAppView(AndroidApp.builder().build());
+    InternalOptions options = appView.options();
     // Setup silly block structure:
     //
     // block0:
@@ -93,7 +95,6 @@ public class TrivialGotoEliminationTest extends TestBase {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
-    InternalOptions options = new InternalOptions();
     options.debug = true;
     IRCode code =
         new IRCode(
@@ -105,7 +106,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             IRMetadata.unknown(),
             Origin.unknown(),
             new MutableMethodConversionOptions(options));
-    CodeRewriter.collapseTrivialGotos(code);
+    CodeRewriter.collapseTrivialGotos(appView, code);
     assertTrue(code.entryBlock().isTrivialGoto());
     assertTrue(blocks.contains(block0));
     assertTrue(blocks.contains(block1));
@@ -193,7 +194,7 @@ public class TrivialGotoEliminationTest extends TestBase {
             IRMetadata.unknown(),
             Origin.unknown(),
             new MutableMethodConversionOptions(options));
-    CodeRewriter.collapseTrivialGotos(code);
+    CodeRewriter.collapseTrivialGotos(appView, code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());
     assertTrue(blocks.containsAll(ImmutableList.of(block0, block1, block2, block3)));

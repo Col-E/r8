@@ -175,8 +175,8 @@ public final class InterfaceProcessor {
       DexEncodedMethod.setDebugInfoWithFakeThisParameter(
           code, companion.getReference().getArity(), appView);
     }
-    companion.getDefinition().setCode(code, appView);
-    definition.setCode(InvalidCode.getInstance(), appView);
+    companion.setCode(code, appView);
+    method.setCode(InvalidCode.getInstance(), appView);
   }
 
   private void clearDirectMethods(DexProgramClass iface) {

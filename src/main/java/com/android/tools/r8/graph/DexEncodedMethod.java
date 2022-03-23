@@ -77,7 +77,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -722,14 +721,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     compilationState = CompilationState.NOT_PROCESSED;
   }
 
-  public void setCode(Code newCode, AppView<?> appView) {
+  public void setCode(Code code, Int2ReferenceMap<DebugLocalInfo> parameterInfo) {
     checkIfObsolete();
-    // If the locals are not kept, we might still need information to satisfy -keepparameternames.
-    // The information needs to be retrieved on the original code object before replacing it.
-    if (code != null && code.isCfCode() && !hasParameterInfo() && !keepLocals(appView.options())) {
-      setParameterInfo(code.collectParameterInfo(this, appView));
-    }
-    code = newCode;
+    this.code = code;
+    this.parameterInfo = parameterInfo;
   }
 
   public void unsetCode() {
@@ -737,23 +732,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     code = null;
   }
 
-  public boolean keepLocals(InternalOptions options) {
-    if (options.testing.noLocalsTableOnInput) {
-      return false;
-    }
-    return options.debug || getOptimizationInfo().isReachabilitySensitive();
-  }
-
-  private void setParameterInfo(Int2ReferenceMap<DebugLocalInfo> parameterInfo) {
-    assert this.parameterInfo == NO_PARAMETER_INFO;
-    this.parameterInfo = parameterInfo;
-  }
-
   public boolean hasParameterInfo() {
     return parameterInfo != NO_PARAMETER_INFO;
   }
 
-  public Map<Integer, DebugLocalInfo> getParameterInfo() {
+  public Int2ReferenceMap<DebugLocalInfo> getParameterInfo() {
     return parameterInfo;
   }
 

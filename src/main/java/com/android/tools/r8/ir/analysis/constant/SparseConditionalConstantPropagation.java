@@ -78,7 +78,7 @@ public class SparseConditionalConstantPropagation {
       }
     }
     rewriteCode();
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private void rewriteCode() {

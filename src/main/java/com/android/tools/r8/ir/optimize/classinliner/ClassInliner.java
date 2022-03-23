@@ -229,7 +229,7 @@ public final class ClassInliner {
         assumeRemover.removeMarkedInstructions();
         code.removeAllDeadAndTrivialPhis(affectedValues);
         assumeRemover.finish();
-        assert code.isConsistentSSA();
+        assert code.isConsistentSSA(appView);
         rootsIterator.remove();
         repeat = true;
       }
@@ -253,8 +253,7 @@ public final class ClassInliner {
       codeRewriter.simplifyControlFlow(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
-          appView.options().debug
-              || method.getDefinition().getOptimizationInfo().isReachabilitySensitive();
+          appView.options().debug || method.getOrComputeReachabilitySensitive(appView);
       if (!isDebugMode) {
         // Reflection/string optimization 3. trivial conversion/computation on const-string
         stringOptimizer.computeTrivialOperationsOnConstString(code);

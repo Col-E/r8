@@ -18,6 +18,7 @@ import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
 public final class ProgramMethod extends DexClassAndMethod
@@ -112,7 +113,7 @@ public final class ProgramMethod extends DexClassAndMethod
     MethodAccessFlags accessFlags = getAccessFlags();
     accessFlags.demoteFromAbstract();
     getDefinition().setApiLevelForCode(appView.computedMinApiLevel());
-    getDefinition().setCode(ThrowNullCode.get(), appView);
+    setCode(ThrowNullCode.get(), appView);
     getSimpleFeedback().markProcessed(getDefinition(), ConstraintWithTarget.ALWAYS);
     getSimpleFeedback().unsetOptimizationInfoForThrowNullMethod(this);
   }
@@ -177,5 +178,30 @@ public final class ProgramMethod extends DexClassAndMethod
   @Override
   public KotlinMethodLevelInfo getKotlinInfo() {
     return getDefinition().getKotlinInfo();
+  }
+
+  public boolean getOrComputeReachabilitySensitive(AppView<?> appView) {
+    return getHolder().getOrComputeReachabilitySensitive(appView);
+  }
+
+  public void setCode(Code newCode, AppView<?> appView) {
+    // If the locals are not kept, we might still need information to satisfy -keepparameternames.
+    // The information needs to be retrieved on the original code object before replacing it.
+    Code code = getDefinition().getCode();
+    Int2ReferenceMap<DebugLocalInfo> parameterInfo = getDefinition().getParameterInfo();
+    if (code != null
+        && code.isCfCode()
+        && !getDefinition().hasParameterInfo()
+        && !keepLocals(appView)) {
+      parameterInfo = code.collectParameterInfo(getDefinition(), appView);
+    }
+    getDefinition().setCode(newCode, parameterInfo);
+  }
+
+  public boolean keepLocals(AppView<?> appView) {
+    if (appView.testing().noLocalsTableOnInput) {
+      return false;
+    }
+    return appView.options().debug || getOrComputeReachabilitySensitive(appView);
   }
 }

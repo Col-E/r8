@@ -21,6 +21,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.synthesis.SyntheticMarker;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.Ordered;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -52,6 +53,7 @@ public class DexProgramClass extends DexClass
   private CfVersion initialClassFileVersion = null;
   private boolean deprecated = false;
   private KotlinClassLevelInfo kotlinInfo = getNoKotlinInfo();
+  private OptionalBool reachabilitySensitive = OptionalBool.unknown();
 
   private final ChecksumSupplier checksumSupplier;
 
@@ -158,6 +160,33 @@ public class DexProgramClass extends DexClass
   @Override
   public DexProgramClass getContext() {
     return this;
+  }
+
+  /**
+   * Is the class reachability sensitive.
+   *
+   * <p>A class is reachability sensitive if the
+   * dalvik.annotation.optimization.ReachabilitySensitive annotation is on any field or method. When
+   * that is the case, dead reference elimination is disabled and locals are kept alive for their
+   * entire scope.
+   */
+  public boolean getOrComputeReachabilitySensitive(AppView<?> appView) {
+    if (reachabilitySensitive.isUnknown()) {
+      reachabilitySensitive = OptionalBool.of(internalComputeReachabilitySensitive(appView));
+    }
+    return reachabilitySensitive.isTrue();
+  }
+
+  private boolean internalComputeReachabilitySensitive(AppView<?> appView) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    for (DexEncodedMember<?, ?> member : members()) {
+      for (DexAnnotation annotation : member.annotations().annotations) {
+        if (annotation.annotation.type == dexItemFactory.annotationReachabilitySensitive) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
@@ -748,25 +777,6 @@ public class DexProgramClass extends DexClass
 
   public boolean isDeprecated() {
     return deprecated;
-  }
-
-  /**
-   * Is the class reachability sensitive.
-   *
-   * <p>A class is reachability sensitive if the
-   * dalvik.annotation.optimization.ReachabilitySensitive annotation is on any field or method. When
-   * that is the case, dead reference elimination is disabled and locals are kept alive for their
-   * entire scope.
-   */
-  public boolean hasReachabilitySensitiveAnnotation(DexItemFactory factory) {
-    for (DexEncodedMember<?, ?> member : members()) {
-      for (DexAnnotation annotation : member.annotations().annotations) {
-        if (annotation.annotation.type == factory.annotationReachabilitySensitive) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   public static Iterable<DexProgramClass> asProgramClasses(

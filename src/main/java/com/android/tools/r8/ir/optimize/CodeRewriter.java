@@ -386,7 +386,7 @@ public class CodeRewriter {
         new TypeAnalysis(appView).narrowing(affectedValues);
       }
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   public static boolean isFallthroughBlock(BasicBlock block) {
@@ -954,7 +954,7 @@ public class CodeRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
     return !affectedValues.isEmpty();
   }
 
@@ -1160,8 +1160,8 @@ public class CodeRewriter {
    * rewrite fallthrough targets as that would require block reordering and the transformation only
    * makes sense after SSA destruction where there are no phis.
    */
-  public static void collapseTrivialGotos(IRCode code) {
-    assert code.isConsistentGraph();
+  public static void collapseTrivialGotos(AppView<?> appView, IRCode code) {
+    assert code.isConsistentGraph(appView);
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
     // first round of trivial goto blocks.
@@ -1199,7 +1199,7 @@ public class CodeRewriter {
       code.removeBlocks(blocksToRemove);
     }
     assert removedTrivialGotos(code);
-    assert code.isConsistentGraph();
+    assert code.isConsistentGraph(appView);
   }
 
   private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
@@ -1288,7 +1288,7 @@ public class CodeRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
     return changed;
   }
 
@@ -1379,7 +1379,7 @@ public class CodeRewriter {
         typeAnalysis.narrowing(affectedValues);
       }
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   // Returns true if the given check-cast instruction was removed.
@@ -1657,7 +1657,7 @@ public class CodeRewriter {
         }
       }
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   /**
@@ -1736,7 +1736,7 @@ public class CodeRewriter {
       }
     }
 
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   // Check if a binop can be represented in the binop/lit8 or binop/lit16 form.
@@ -1919,7 +1919,7 @@ public class CodeRewriter {
       }
     }
 
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private void forEachUse(Instruction instruction, Consumer<Value> fn) {
@@ -2244,7 +2244,7 @@ public class CodeRewriter {
         } while (block != null);
       }
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
@@ -2469,7 +2469,7 @@ public class CodeRewriter {
       }
     }
     code.returnMarkingColor(noCandidate);
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   static class ControlFlowSimplificationResult {
@@ -2545,7 +2545,7 @@ public class CodeRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
     return new ControlFlowSimplificationResult(!affectedValues.isEmpty(), simplified);
   }
 
@@ -2901,7 +2901,7 @@ public class CodeRewriter {
     if (changed) {
       code.removeAllDeadAndTrivialPhis();
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private static Long2ReferenceMap<List<ConstNumber>> getConstantsByValue(IRCode code) {
@@ -3116,7 +3116,7 @@ public class CodeRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   /* Identify simple diamond shapes converting boolean true/false to 1/0. We consider the forms:
@@ -3378,7 +3378,7 @@ public class CodeRewriter {
 
       phiUsers.forEach(Phi::removeTrivialPhi);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   public void rewriteAssertionErrorTwoArgumentConstructor(IRCode code, InternalOptions options) {
@@ -3427,7 +3427,7 @@ public class CodeRewriter {
         }
       }
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   /**

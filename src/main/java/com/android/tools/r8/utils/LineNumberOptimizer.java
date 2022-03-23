@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
 import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCallerPositionBuilder;
@@ -493,7 +494,7 @@ public class LineNumberOptimizer {
     for (DexProgramClass clazz : application.classes()) {
       boolean isSyntheticClass = appView.getSyntheticItems().isSyntheticClass(clazz);
 
-      IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
+      IdentityHashMap<DexString, List<ProgramMethod>> methodsByRenamedName =
           groupMethodsByRenamedName(appView.graphLens(), namingLens, clazz);
 
       // At this point we don't know if we really need to add this class to the builder.
@@ -538,7 +539,7 @@ public class LineNumberOptimizer {
       List<DexString> renamedMethodNames = new ArrayList<>(methodsByRenamedName.keySet());
       renamedMethodNames.sort(DexString::compareTo);
       for (DexString methodName : renamedMethodNames) {
-        List<DexEncodedMethod> methods = methodsByRenamedName.get(methodName);
+        List<ProgramMethod> methods = methodsByRenamedName.get(methodName);
         if (methods.size() > 1) {
           // If there are multiple methods with the same name (overloaded) then sort them for
           // deterministic behaviour: the algorithm will assign new line numbers in this order.
@@ -566,26 +567,27 @@ public class LineNumberOptimizer {
             new KotlinInlineFunctionPositionRemapper(
                 appView, positionRemapper, cfLineToMethodMapper);
 
-        for (DexEncodedMethod method : methods) {
-          kotlinRemapper.currentMethod = method;
+        for (ProgramMethod method : methods) {
+          DexEncodedMethod definition = method.getDefinition();
+          kotlinRemapper.currentMethod = definition;
           List<MappedPosition> mappedPositions;
-          Code code = method.getCode();
+          Code code = definition.getCode();
           boolean canUseDexPc =
-              methods.size() == 1 && representation.useDexPcEncoding(clazz, method);
+              methods.size() == 1 && representation.useDexPcEncoding(clazz, definition);
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               if (canUseDexPc) {
                 mappedPositions =
                     optimizeDexCodePositionsForPc(
-                        method, appView, kotlinRemapper, pcBasedDebugInfo);
+                        definition, appView, kotlinRemapper, pcBasedDebugInfo);
               } else {
                 mappedPositions =
                     optimizeDexCodePositions(
-                        method, appView, kotlinRemapper, identityMapping, methods.size() != 1);
+                        definition, appView, kotlinRemapper, identityMapping, methods.size() != 1);
               }
             } else if (code.isCfCode()
                 && doesContainPositions(code.asCfCode())
-                && !appView.isCfByteCodePassThrough(method)) {
+                && !appView.isCfByteCodePassThrough(definition)) {
               mappedPositions = optimizeCfCodePositions(method, kotlinRemapper, appView);
             } else {
               mappedPositions = new ArrayList<>();
@@ -603,7 +605,7 @@ public class LineNumberOptimizer {
           String obfuscatedName = obfuscatedNameDexString.toString();
 
           List<MappingInformation> methodMappingInfo = new ArrayList<>();
-          if (method.isD8R8Synthesized()) {
+          if (definition.isD8R8Synthesized()) {
             methodMappingInfo.add(CompilerSynthesizedMappingInformation.builder().build());
           }
 
@@ -613,8 +615,8 @@ public class LineNumberOptimizer {
               && obfuscatedNameDexString == originalMethod.name
               && originalMethod.holder == originalType) {
             assert appView.options().lineNumberOptimization == LineNumberOptimization.OFF
-                || !doesContainPositions(method)
-                || appView.isCfByteCodePassThrough(method);
+                || !doesContainPositions(definition)
+                || appView.isCfByteCodePassThrough(definition);
             continue;
           }
 
@@ -691,8 +693,8 @@ public class LineNumberOptimizer {
               }
             }
             Range obfuscatedRange;
-            if (method.getCode().isDexCode()
-                && method.getCode().asDexCode().getDebugInfo()
+            if (definition.getCode().isDexCode()
+                && definition.getCode().asDexCode().getDebugInfo()
                     == DexDebugInfoForSingleLineMethod.getInstance()) {
               assert firstPosition.originalLine == lastPosition.originalLine;
               obfuscatedRange = new Range(0, MAX_LINE_NUMBER);
@@ -745,11 +747,11 @@ public class LineNumberOptimizer {
             }
             i = j;
           }
-          if (method.getCode().isDexCode()
-              && method.getCode().asDexCode().getDebugInfo()
+          if (definition.getCode().isDexCode()
+              && definition.getCode().asDexCode().getDebugInfo()
                   == DexDebugInfoForSingleLineMethod.getInstance()) {
             pcBasedDebugInfo.recordSingleLineFor(
-                method.getCode().asDexCode(), method.getParameters().size());
+                definition.getCode().asDexCode(), method.getParameters().size());
           }
         } // for each method of the group
       } // for each method group, grouped by name
@@ -815,7 +817,7 @@ public class LineNumberOptimizer {
   }
 
   private static boolean verifyMethodsAreKeptDirectlyOrIndirectly(
-      AppView<?> appView, List<DexEncodedMethod> methods) {
+      AppView<?> appView, List<ProgramMethod> methods) {
     if (appView.options().isGeneratingClassFiles() || !appView.appInfo().hasClassHierarchy()) {
       return true;
     }
@@ -823,9 +825,9 @@ public class LineNumberOptimizer {
     KeepInfoCollection keepInfo = appView.getKeepInfo();
     boolean allSeenAreInstanceInitializers = true;
     DexString originalName = null;
-    for (DexEncodedMethod method : methods) {
+    for (ProgramMethod method : methods) {
       // We cannot rename instance initializers.
-      if (method.isInstanceInitializer()) {
+      if (method.getDefinition().isInstanceInitializer()) {
         assert allSeenAreInstanceInitializers;
         continue;
       }
@@ -835,7 +837,7 @@ public class LineNumberOptimizer {
         continue;
       }
       // With desugared library, call-backs names are reserved here.
-      if (method.isLibraryMethodOverride().isTrue()) {
+      if (method.getDefinition().isLibraryMethodOverride().isTrue()) {
         continue;
       }
       // We use the same name for interface names even if it has different types.
@@ -856,8 +858,8 @@ public class LineNumberOptimizer {
     return true;
   }
 
-  private static int getMethodStartLine(DexEncodedMethod method) {
-    Code code = method.getCode();
+  private static int getMethodStartLine(ProgramMethod method) {
+    Code code = method.getDefinition().getCode();
     if (code == null) {
       return 0;
     }
@@ -878,14 +880,14 @@ public class LineNumberOptimizer {
 
   // Sort by startline, then DexEncodedMethod.slowCompare.
   // Use startLine = 0 if no debuginfo.
-  private static void sortMethods(List<DexEncodedMethod> methods) {
+  private static void sortMethods(List<ProgramMethod> methods) {
     methods.sort(
         (lhs, rhs) -> {
           int lhsStartLine = getMethodStartLine(lhs);
           int rhsStartLine = getMethodStartLine(rhs);
           int startLineDiff = lhsStartLine - rhsStartLine;
           if (startLineDiff != 0) return startLineDiff;
-          return DexEncodedMethod.slowCompare(lhs, rhs);
+          return DexEncodedMethod.slowCompare(lhs.getDefinition(), rhs.getDefinition());
         });
   }
 
@@ -921,21 +923,22 @@ public class LineNumberOptimizer {
         });
   }
 
-  public static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
+  public static IdentityHashMap<DexString, List<ProgramMethod>> groupMethodsByRenamedName(
       GraphLens graphLens, NamingLens namingLens, DexProgramClass clazz) {
-    IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
+    IdentityHashMap<DexString, List<ProgramMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.getMethodCollection().size());
-    for (DexEncodedMethod encodedMethod : clazz.methods()) {
+    for (ProgramMethod programMethod : clazz.programMethods()) {
       // Add method only if renamed, moved, or contains positions.
-      DexMethod method = encodedMethod.getReference();
+      DexEncodedMethod definition = programMethod.getDefinition();
+      DexMethod method = programMethod.getReference();
       DexString renamedName = namingLens.lookupName(method);
       if (renamedName != method.name
           || graphLens.getOriginalMethodSignature(method) != method
-          || doesContainPositions(encodedMethod)
-          || encodedMethod.isD8R8Synthesized()) {
+          || doesContainPositions(definition)
+          || definition.isD8R8Synthesized()) {
         methodsByRenamedName
             .computeIfAbsent(renamedName, key -> new ArrayList<>())
-            .add(encodedMethod);
+            .add(programMethod);
       }
     }
     return methodsByRenamedName;
@@ -1206,10 +1209,10 @@ public class LineNumberOptimizer {
   }
 
   private static List<MappedPosition> optimizeCfCodePositions(
-      DexEncodedMethod method, PositionRemapper positionRemapper, AppView<?> appView) {
+      ProgramMethod method, PositionRemapper positionRemapper, AppView<?> appView) {
     List<MappedPosition> mappedPositions = new ArrayList<>();
     // Do the actual processing for each method.
-    CfCode oldCode = method.getCode().asCfCode();
+    CfCode oldCode = method.getDefinition().getCode().asCfCode();
     List<CfInstruction> oldInstructions = oldCode.getInstructions();
     List<CfInstruction> newInstructions = new ArrayList<>(oldInstructions.size());
     for (CfInstruction oldInstruction : oldInstructions) {

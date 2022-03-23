@@ -305,12 +305,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void unsetReachabilitySensitive(ProgramMethod method) {
-    withMutableMethodOptimizationInfo(
-        method, MutableMethodOptimizationInfo::unsetReachabilitySensitive);
-  }
-
-  @Override
   public void unsetReturnedArgument(ProgramMethod method) {
     withMutableMethodOptimizationInfo(method, MutableMethodOptimizationInfo::unsetReturnedArgument);
   }

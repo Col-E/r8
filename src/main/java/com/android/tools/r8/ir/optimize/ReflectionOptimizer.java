@@ -74,7 +74,7 @@ public class ReflectionOptimizer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
   }
 
   private static BiConsumer<DexType, DexClass> rewriteSingleGetClassOrForNameToConstClass(

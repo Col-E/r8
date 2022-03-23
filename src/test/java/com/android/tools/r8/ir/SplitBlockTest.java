@@ -87,6 +87,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Try split between all non-argument instructions in the first block.
     for (int i = argumentInstructions; i < firstBlockInstructions; i++) {
       TestApplication test = codeWithoutCatchHandlers();
+      AppView<?> appView = test.appView;
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
@@ -100,7 +101,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code);
-      assertTrue(code.isConsistentSSA());
+      assertTrue(code.isConsistentSSA(appView));
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
       assertEquals(i + 1, code.entryBlock().getInstructions().size());
@@ -121,6 +122,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Try split out all non-argument instructions in the first block.
     for (int i = argumentInstructions; i < firstBlockInstructions - 1; i++) {
       TestApplication test = codeWithoutCatchHandlers();
+      AppView<?> appView = test.appView;
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
@@ -134,7 +136,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code, 1);
-      assertTrue(code.isConsistentSSA());
+      assertTrue(code.isConsistentSSA(appView));
 
       assertEquals(initialBlockCount + 2, code.blocks.size());
       assertEquals(i + 1, code.entryBlock().getInstructions().size());
@@ -208,6 +210,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Try split between all instructions in second block.
     for (int i = 1; i < secondBlockInstructions; i++) {
       TestApplication test = codeWithCatchHandlers(codeThrows, twoGuards);
+      AppView<?> appView = test.appView;
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
@@ -217,7 +220,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code);
-      assertTrue(code.isConsistentSSA());
+      assertTrue(code.isConsistentSSA(appView));
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
       assertEquals(i + 1, code.blocks.get(1).getInstructions().size());
@@ -247,6 +250,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Try split out all instructions in second block.
     for (int i = 1; i < secondBlockInstructions - 1; i++) {
       TestApplication test = codeWithCatchHandlers(codeThrows, twoGuards);
+      AppView<?> appView = test.appView;
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
@@ -256,7 +260,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code, 1);
-      assertTrue(code.isConsistentSSA());
+      assertTrue(code.isConsistentSSA(appView));
 
       assertEquals(initialBlockCount + 2, code.blocks.size());
       assertEquals(i + 1, code.blocks.get(1).getInstructions().size());
@@ -323,6 +327,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Try split between all non-argument instructions in the first block.
     for (int i = argumentInstructions; i < firstBlockInstructions; i++) {
       TestApplication test = codeWithIf(hitTrueBranch);
+      AppView<?> appView = test.appView;
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
@@ -336,7 +341,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code);
-      assertTrue(code.isConsistentSSA());
+      assertTrue(code.isConsistentSSA(appView));
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
       assertEquals(i + 1, code.entryBlock().getInstructions().size());
@@ -444,6 +449,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
     // Try split between all non-argument instructions in the first block.
     for (int i = argumentInstructions; i < firstBlockInstructions; i++) {
       TestApplication test = codeWithSwitch(hitCase);
+      AppView<?> appView = test.appView;
       IRCode code = test.code;
       assertEquals(initialBlockCount, code.blocks.size());
 
@@ -457,7 +463,7 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
       InstructionListIterator iterator = test.listIteratorAt(block, i);
       BasicBlock newBlock = iterator.split(code);
-      assertTrue(code.isConsistentSSA());
+      assertTrue(code.isConsistentSSA(appView));
 
       assertEquals(initialBlockCount + 1, code.blocks.size());
       assertEquals(i + 1, code.entryBlock().getInstructions().size());

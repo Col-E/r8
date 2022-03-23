@@ -510,7 +510,7 @@ public class MemberValuePropagation {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSA(appView);
     assert code.verifyTypes(appView);
   }
 

@@ -84,7 +84,7 @@ public class MoveException extends Instruction {
   public DeadInstructionResult canBeDeadCode(AppView<?> appView, IRCode code) {
     InternalOptions options = appView.options();
     if (options.debug
-        || code.context().getDefinition().getOptimizationInfo().isReachabilitySensitive()
+        || code.context().getOrComputeReachabilitySensitive(appView)
         || code.getConversionOptions().isGeneratingClassFiles()) {
       return DeadInstructionResult.notDead();
     }

@@ -239,8 +239,9 @@ public class RecordDesugaring
             // Will be traced by the enqueuer.
             .disableAndroidApiLevelCheck()
             .build();
-    encodedMethod.setCode(provider.generateCfCode(), appView);
-    return new ProgramMethod(clazz, encodedMethod);
+    ProgramMethod result = new ProgramMethod(clazz, encodedMethod);
+    result.setCode(provider.generateCfCode(), appView);
+    return result;
   }
 
   private DexMethod ensureEqualsRecord(
@@ -462,17 +463,13 @@ public class RecordDesugaring
     MethodAccessFlags methodAccessFlags =
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC | Constants.ACC_PROTECTED, true);
-    DexEncodedMethod init =
-        DexEncodedMethod.syntheticBuilder()
-            .setMethod(factory.recordMembers.constructor)
-            .setAccessFlags(methodAccessFlags)
-            .setCode(null)
-            // Will be traced by the enqueuer.
-            .disableAndroidApiLevelCheck()
-            .build();
-    init.setCode(
-        new CallObjectInitCfCodeProvider(appView, factory.recordTagType).generateCfCode(), appView);
-    return init;
+    return DexEncodedMethod.syntheticBuilder()
+        .setMethod(factory.recordMembers.constructor)
+        .setAccessFlags(methodAccessFlags)
+        .setCode(new CallObjectInitCfCodeProvider(appView, factory.recordTagType).generateCfCode())
+        // Will be traced by the enqueuer.
+        .disableAndroidApiLevelCheck()
+        .build();
   }
 
   @Override
