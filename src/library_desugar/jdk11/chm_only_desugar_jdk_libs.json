@@ -1,7 +1,7 @@
 {
   "identifier": "com.tools.android:chm_only_desugar_jdk_libs:1.0.12",
   "configuration_format_version": 100,
-  "required_compilation_api_level": 30,
+  "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "support_all_callbacks_from_library": false,
   "common_flags": [

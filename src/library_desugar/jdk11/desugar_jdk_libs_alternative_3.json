@@ -223,24 +223,13 @@
   ],
   "library_flags": [
     {
-      "api_level_below_or_equal": 10000,
+      "api_level_below_or_equal": 32,
       "rewrite_prefix": {
         "desugar.": "j$.desugar.",
         "libcore.": "j$.libcore.",
         "java.lang.Desugar": "j$.lang.Desugar",
         "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
-        "wrapper." : "j$.wrapper.",
         "sun.security.action.": "j$.sun.security.action."
-      },
-      "rewrite_derived_prefix": {
-        "java.io.": {
-          "__wrapper__.j$.io.": "j$.io.",
-          "__wrapper__.java.io.": "java.io."
-        },
-        "java.nio.": {
-          "__wrapper__.j$.nio.": "j$.nio.",
-          "__wrapper__.java.nio.": "java.nio."
-        }
       }
     },
     {
@@ -267,11 +256,20 @@
         "sun.nio.fs.AbstractFileTypeDetector": "j$.sun.nio.fs.AbstractFileTypeDetector",
         "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
         "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
-        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
+        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap",
+        "wrapper." : "j$.wrapper."
       },
       "rewrite_derived_prefix": {
         "java.nio.file.attribute.": {
           "j$.nio.file.attribute.": "java.nio.file.attribute."
+        },
+        "java.io.": {
+          "__wrapper__.j$.io.": "j$.io.",
+          "__wrapper__.java.io.": "java.io."
+        },
+        "java.nio.": {
+          "__wrapper__.j$.nio.": "j$.nio.",
+          "__wrapper__.java.nio.": "java.nio."
         }
       },
       "retarget_method": {

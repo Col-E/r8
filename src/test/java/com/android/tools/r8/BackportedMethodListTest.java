@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.isJDK11DesugaredLibrary;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -68,23 +69,30 @@ public class BackportedMethodListTest {
         backports.contains("java/lang/Short#toUnsignedLong(S)J"));
 
     // Java 9, 10 and 11 Optional methods which require Android N or library desugaring.
+    // The methods are not backported in desugared library JDK 11 (already present).
     assertEquals(
-        mode == Mode.LIBRARY_DESUGAR || apiLevel >= AndroidApiLevel.N.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
+            || apiLevel >= AndroidApiLevel.N.getLevel(),
         backports.contains(
             "java/util/Optional#or(Ljava/util/function/Supplier;)Ljava/util/Optional;"));
     assertEquals(
-        mode == Mode.LIBRARY_DESUGAR || apiLevel >= AndroidApiLevel.N.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
+            || apiLevel >= AndroidApiLevel.N.getLevel(),
         backports.contains("java/util/OptionalInt#orElseThrow()I"));
     assertEquals(
-        mode == Mode.LIBRARY_DESUGAR || apiLevel >= AndroidApiLevel.N.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
+            || apiLevel >= AndroidApiLevel.N.getLevel(),
         backports.contains("java/util/OptionalLong#isEmpty()Z"));
 
-    // Java 9, 10 and 11 methods added at API level S.
+    // Java 9, 10 and 11 method added at API level S.
     assertEquals(
         apiLevel < AndroidApiLevel.S.getLevel(),
         backports.contains("java/lang/StrictMath#multiplyExact(JI)J"));
+    // Java 9, 10 and 11 method added at API level S.
+    // The method is not backported in desugared library JDK 11 (already present).
     assertEquals(
-        apiLevel < AndroidApiLevel.S.getLevel(),
+        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
+            || apiLevel < AndroidApiLevel.S.getLevel(),
         backports.contains("java/util/List#copyOf(Ljava/util/Collection;)Ljava/util/List;"));
 
     // Java 9, 10 and 11 methods not yet added.

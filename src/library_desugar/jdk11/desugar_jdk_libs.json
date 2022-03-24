@@ -245,7 +245,6 @@
         "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
         "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
         "java.nio.file.": "j$.nio.file.",
-        "wrapper." : "j$.wrapper.",
         "jdk.internal.": "j$.jdk.internal.",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
         "sun.nio.cs.": "j$.sun.nio.cs.",
@@ -253,7 +252,8 @@
         "sun.nio.fs.AbstractFileTypeDetector": "j$.sun.nio.fs.AbstractFileTypeDetector",
         "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
         "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
-        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap"
+        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap",
+        "wrapper." : "j$.wrapper."
       },
       "rewrite_derived_prefix": {
         "java.nio.file.attribute.": {
