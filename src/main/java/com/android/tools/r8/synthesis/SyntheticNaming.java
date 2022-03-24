@@ -122,15 +122,15 @@ public class SyntheticNaming {
     }
 
     SyntheticKind forFixedClass(String descriptor) {
-      return register(new SyntheticFixedClassKind(getNextId(), descriptor, false, false));
+      return register(new SyntheticFixedClassKind(getNextId(), descriptor, false));
     }
 
     SyntheticKind forGlobalClass() {
-      return register(new SyntheticFixedClassKind(getNextId(), "", true, true));
+      return register(new SyntheticFixedClassKind(getNextId(), "", true));
     }
 
     SyntheticKind forGlobalClasspathClass() {
-      return register(new SyntheticFixedClassKind(getNextId(), "", false, false));
+      return register(new SyntheticFixedClassKind(getNextId(), "", false));
     }
 
     List<SyntheticKind> getAllKinds() {
@@ -192,7 +192,6 @@ public class SyntheticNaming {
 
     public abstract boolean isMayOverridesNonProgramType();
 
-    public abstract boolean allowSyntheticContext();
   }
 
   private static class SyntheticMethodKind extends SyntheticKind {
@@ -227,10 +226,6 @@ public class SyntheticNaming {
       return false;
     }
 
-    @Override
-    public boolean allowSyntheticContext() {
-      return false;
-    }
   }
 
   private static class SyntheticClassKind extends SyntheticKind {
@@ -268,24 +263,14 @@ public class SyntheticNaming {
       return false;
     }
 
-    @Override
-    public boolean allowSyntheticContext() {
-      return false;
-    }
   }
 
   private static class SyntheticFixedClassKind extends SyntheticClassKind {
     private final boolean mayOverridesNonProgramType;
-    private final boolean allowSyntheticContext;
 
-    private SyntheticFixedClassKind(
-        int id,
-        String descriptor,
-        boolean mayOverridesNonProgramType,
-        boolean allowSyntheticContext) {
+    private SyntheticFixedClassKind(int id, String descriptor, boolean mayOverridesNonProgramType) {
       super(id, descriptor, false);
       this.mayOverridesNonProgramType = mayOverridesNonProgramType;
-      this.allowSyntheticContext = allowSyntheticContext;
     }
 
     @Override
@@ -308,10 +293,6 @@ public class SyntheticNaming {
       return mayOverridesNonProgramType;
     }
 
-    @Override
-    public boolean allowSyntheticContext() {
-      return allowSyntheticContext;
-    }
   }
 
   private static final String SYNTHETIC_CLASS_SEPARATOR = "$$";
@@ -333,6 +314,9 @@ public class SyntheticNaming {
 
   static String getPrefixForExternalSyntheticType(SyntheticKind kind, DexType type) {
     String binaryName = type.toBinaryName();
+    if (kind.isGlobal()) {
+      return binaryName;
+    }
     int index =
         binaryName.lastIndexOf(
             kind.isFixedSuffixSynthetic() ? kind.descriptor : SYNTHETIC_CLASS_SEPARATOR);

@@ -147,6 +147,9 @@ public class SyntheticMarker {
 
   private static DexType getSyntheticContextType(
       DexType type, SyntheticKind kind, DexItemFactory factory) {
+    if (kind.isGlobal()) {
+      return type;
+    }
     String prefix = SyntheticNaming.getPrefixForExternalSyntheticType(kind, type);
     return factory.createType(DescriptorUtils.getDescriptorFromClassBinaryName(prefix));
   }

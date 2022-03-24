@@ -315,7 +315,7 @@ public class SyntheticFinalization {
     // Check that the prefix of each synthetic is never itself synthetic.
     committed.forEachNonLegacyItem(
         item -> {
-          if (item.getKind().allowSyntheticContext()) {
+          if (item.getKind().isGlobal()) {
             return;
           }
           String prefix =
