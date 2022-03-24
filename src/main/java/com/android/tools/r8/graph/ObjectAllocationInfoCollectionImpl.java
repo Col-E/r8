@@ -183,6 +183,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         appInfo);
   }
 
+  @Override
   public TraversalContinuation<?> traverseInstantiatedSubtypes(
       DexType type,
       Function<DexProgramClass, TraversalContinuation<?>> onClass,

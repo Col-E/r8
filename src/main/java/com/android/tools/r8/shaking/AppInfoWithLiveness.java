@@ -1554,45 +1554,6 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public SubtypingInfo computeSubtypingInfo() {
     return SubtypingInfo.create(this);
   }
-
-  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeElement type) {
-    // Special case for java.lang.Object.
-    if (type.getClassType() == dexItemFactory().objectType) {
-      if (type.getInterfaces().isEmpty()) {
-        // The type java.lang.Object could be any instantiated type. Assume a finalizer exists.
-        return true;
-      }
-      return type.getInterfaces().anyMatch((iface, isKnown) -> mayHaveFinalizer(iface));
-    }
-    return mayHaveFinalizer(type.getClassType());
-  }
-
-  private boolean mayHaveFinalizer(DexType type) {
-    // A type may have an active finalizer if any derived instance has a finalizer.
-    return objectAllocationInfoCollection
-        .traverseInstantiatedSubtypes(
-            type,
-            clazz -> {
-              if (objectAllocationInfoCollection.isInterfaceWithUnknownSubtypeHierarchy(clazz)) {
-                return TraversalContinuation.doBreak();
-              } else {
-                SingleResolutionResult resolution =
-                    resolveMethodOn(clazz, dexItemFactory().objectMembers.finalize)
-                        .asSingleResolution();
-                if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
-                  return TraversalContinuation.doBreak();
-                }
-              }
-              return TraversalContinuation.doContinue();
-            },
-            lambda -> {
-              // Lambda classes do not have finalizers.
-              return TraversalContinuation.doContinue();
-            },
-            this)
-        .shouldBreak();
-  }
-
   /** Predicate on types that *must* never be merged horizontally. */
   public boolean isNoHorizontalClassMergingOfType(DexType type) {
     return noClassMerging.contains(type) || noHorizontalClassMerging.contains(type);

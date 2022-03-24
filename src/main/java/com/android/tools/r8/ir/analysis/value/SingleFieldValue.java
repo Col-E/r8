@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.enums.EnumDataMap;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ObjectAllocationInfoCollectionUtils;
 import com.android.tools.r8.synthesis.SyntheticItems;
 
 public abstract class SingleFieldValue extends SingleValue {
@@ -59,7 +60,8 @@ public abstract class SingleFieldValue extends SingleValue {
     if (fieldType.isClassType()) {
       ClassTypeElement fieldClassType =
           TypeElement.fromDexType(fieldType, maybeNull(), appView).asClassType();
-      return appView.appInfo().mayHaveFinalizeMethodDirectlyOrIndirectly(fieldClassType);
+      return ObjectAllocationInfoCollectionUtils.mayHaveFinalizeMethodDirectlyOrIndirectly(
+          appView, fieldClassType);
     }
     assert fieldType.isArrayType() || fieldType.isPrimitiveType();
     return false;

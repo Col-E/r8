@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.shaking.ObjectAllocationInfoCollectionUtils.mayHaveFinalizeMethodDirectlyOrIndirectly;
+
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -205,7 +207,7 @@ public abstract class FieldInstruction extends Instruction {
       return resolutionResult != null && resolutionResult.isProgramMethod(appView);
     }
 
-    return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(baseType.asClassType());
+    return mayHaveFinalizeMethodDirectlyOrIndirectly(appView, baseType.asClassType());
   }
 
   @Override
