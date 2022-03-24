@@ -1084,6 +1084,43 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
         });
   }
 
+  /* This is a regression test for b/222749348 */
+  @Test
+  public void testGroups() {
+    runRetraceTest(
+        "(?:(?:.*?%c %m\\(%s(?:: %l)?\\)))",
+        new StackTraceForTest() {
+          @Override
+          public List<String> obfuscatedStackTrace() {
+            return ImmutableList.of("FOO bar(PG: 1)");
+          }
+
+          @Override
+          public String mapping() {
+            return StringUtils.lines(
+                "this.was.Deobfuscated -> FOO:",
+                "    int[] mFontFamily -> a",
+                "    1:3:void someMethod(int,android.os.Bundle):65:67 -> bar");
+          }
+
+          @Override
+          public List<String> retracedStackTrace() {
+            return ImmutableList.of("this.was.Deobfuscated someMethod(Deobfuscated.java)");
+          }
+
+          @Override
+          public List<String> retraceVerboseStackTrace() {
+            return ImmutableList.of(
+                "this.was.Deobfuscated void someMethod(int,android.os.Bundle)(Deobfuscated.java)");
+          }
+
+          @Override
+          public int expectedWarnings() {
+            return 0;
+          }
+        });
+  }
+
   private TestDiagnosticMessagesImpl runRetraceTest(
       String regularExpression, StackTraceForTest stackTraceForTest) {
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
