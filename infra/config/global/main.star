@@ -336,7 +336,13 @@ app_dump()
 
 def desugared_library():
   for name in ["head", "jdk11_head"]:
-    test_options = ["--no_internal", "--desugared-library", "HEAD"]
+    test_options = [
+        "--one_line_per_test",
+        "--archive_failures",
+        "--no_internal",
+        "--desugared-library",
+        "HEAD"
+    ]
     if "jdk11" in name:
       test_options = test_options + ["--desugared-library-configuration", "jdk11"]
     properties = {
