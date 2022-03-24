@@ -76,6 +76,9 @@ public abstract class OpenClosedInterfacesCollection {
       return false;
     }
     TypeElement dynamicUpperBoundType = dynamicType.getDynamicUpperBoundType(staticType);
+    if (dynamicUpperBoundType.isArrayType()) {
+      return dynamicUpperBoundType.lessThanOrEqualUpToNullability(staticType, appView);
+    }
     if (!dynamicUpperBoundType.isClassType()) {
       // Should not happen, since the dynamic type should be assignable to the static type.
       assert false;
