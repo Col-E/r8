@@ -382,6 +382,13 @@ public class MemberValuePropagation {
       return;
     }
 
+    if (current.isStaticGet() && current.hasUnusedOutValue()) {
+      // Replace by initclass.
+      iterator.removeOrReplaceCurrentInstructionByInitClassIfPossible(
+          appView, code, field.getHolderType());
+      return;
+    }
+
     if (!mayPropagateValueFor(target)) {
       return;
     }
