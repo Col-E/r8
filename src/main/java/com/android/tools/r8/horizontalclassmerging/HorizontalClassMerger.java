@@ -19,6 +19,7 @@ import com.android.tools.r8.horizontalclassmerging.code.SyntheticInitializerConv
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.FieldAccessInfoCollectionModifier;
+import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.shaking.RuntimeTypeCheckInfo;
 import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
@@ -153,12 +154,15 @@ public class HorizontalClassMerger {
     // Must rewrite AppInfoWithLiveness before pruning the merged classes, to ensure that allocation
     // sites, fields accesses, etc. are correctly transferred to the target classes.
     DexApplication newApplication = getNewApplication(mergedClasses);
-    if (appView.hasClassHierarchy()) {
+    if (appView.enableWholeProgramOptimizations()) {
+      // Prune keep info.
+      KeepInfoCollection keepInfo = appView.getKeepInfo();
+      keepInfo.mutate(mutator -> mutator.removeKeepInfoForMergedClasses(prunedItems));
+      assert appView.hasClassHierarchy();
       appView.rewriteWithLensAndApplication(
           horizontalClassMergerGraphLens, newApplication.toDirect());
     } else {
       assert mode.isFinal();
-      assert !appView.enableWholeProgramOptimizations();
       SyntheticItems syntheticItems = appView.appInfo().getSyntheticItems();
       assert !syntheticItems.hasPendingSyntheticClasses();
       appView
