@@ -170,7 +170,10 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
               pending.epilogueBegin,
               getLocals(),
               pending.method,
-              pending.callerPosition));
+              pending.callerPosition,
+              pending.isOutline,
+              pending.outlineCallee,
+              pending.outlineCallerPositions));
     }
     pending =
         new DexDebugEntry(
@@ -182,7 +185,10 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
             epilogueBegin,
             null,
             positionState.getCurrentMethod(),
-            positionState.getCurrentCallerPosition());
+            positionState.getCurrentCallerPosition(),
+            positionState.isOutline(),
+            positionState.getOutlineCallee(),
+            positionState.getOutlineCallerPositions());
     prologueEnd = false;
     epilogueBegin = false;
   }

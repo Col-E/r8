@@ -44,7 +44,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Position.SourcePosition;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -262,14 +261,8 @@ public class DexSourceCode implements SourceCode {
     // If this instruction has already been inlined then this.method must be the outermost caller.
     assert entry.callerPosition == null
         || entry.callerPosition.getOutermostCaller().getMethod() == originalMethod;
-
     return canonicalPositions.getCanonical(
-        SourcePosition.builder()
-            .setLine(entry.line)
-            .setFile(entry.sourceFile)
-            .setMethod(entry.method)
-            .setCallerPosition(canonicalPositions.canonicalizeCallerPosition(entry.callerPosition))
-            .build());
+        entry.toPosition(canonicalPositions::canonicalizeCallerPosition));
   }
 
   @Override

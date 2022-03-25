@@ -1120,7 +1120,7 @@ public class LineNumberOptimizer {
     } else if (state.isOutline()) {
       positionBuilder = OutlinePosition.builder();
     } else {
-      positionBuilder = SourcePosition.builder();
+      positionBuilder = SourcePosition.builder().setFile(state.getCurrentFile());
     }
     return positionBuilder
         .setLine(state.getCurrentLine())

@@ -4,11 +4,18 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Position.OutlineCallerPosition;
+import com.android.tools.r8.ir.code.Position.OutlineCallerPosition.OutlineCallerPositionBuilder;
+import com.android.tools.r8.ir.code.Position.OutlinePosition;
+import com.android.tools.r8.ir.code.Position.PositionBuilder;
+import com.android.tools.r8.ir.code.Position.SourcePosition;
+import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Function;
 
 public class DexDebugEntry {
 
@@ -21,6 +28,9 @@ public class DexDebugEntry {
   public final Map<Integer, DebugLocalInfo> locals;
   public final DexMethod method;
   public final Position callerPosition;
+  public final boolean isOutline;
+  public final DexMethod outlineCallee;
+  public final Int2StructuralItemArrayMap<Position> outlineCallerPositions;
 
   public DexDebugEntry(
       boolean lineEntry,
@@ -31,7 +41,10 @@ public class DexDebugEntry {
       boolean epilogueBegin,
       ImmutableMap<Integer, DebugLocalInfo> locals,
       DexMethod method,
-      Position callerPosition) {
+      Position callerPosition,
+      boolean isOutline,
+      DexMethod outlineCallee,
+      Int2StructuralItemArrayMap<Position> outlineCallerPositions) {
     this.lineEntry = lineEntry;
     this.address = address;
     this.line = line;
@@ -42,6 +55,9 @@ public class DexDebugEntry {
     this.method = method;
     assert method != null;
     this.callerPosition = callerPosition;
+    this.isOutline = isOutline;
+    this.outlineCallee = outlineCallee;
+    this.outlineCallerPositions = outlineCallerPositions;
   }
 
   @Override
@@ -67,6 +83,15 @@ public class DexDebugEntry {
         caller = caller.getCallerPosition();
       }
     }
+    if (isOutline) {
+      builder.append(", isOutline = true");
+    }
+    if (outlineCallee != null) {
+      builder.append(", outlineCallee = ").append(outlineCallee);
+    }
+    if (outlineCallerPositions != null) {
+      builder.append(", outlineCallerPositions = ").append(outlineCallerPositions);
+    }
     if (prologueEnd) {
       builder.append(", prologue_end = true");
     }
@@ -88,5 +113,24 @@ public class DexDebugEntry {
       builder.append("]");
     }
     return builder.toString();
+  }
+
+  public Position toPosition(Function<Position, Position> canonicalizeCallerPosition) {
+    PositionBuilder<?, ?> positionBuilder;
+    if (outlineCallee != null) {
+      OutlineCallerPositionBuilder outlineCallerPositionBuilder =
+          OutlineCallerPosition.builder().setOutlineCallee(outlineCallee).setIsOutline(isOutline);
+      outlineCallerPositions.forEach(outlineCallerPositionBuilder::addOutlinePosition);
+      positionBuilder = outlineCallerPositionBuilder;
+    } else if (isOutline) {
+      positionBuilder = OutlinePosition.builder();
+    } else {
+      positionBuilder = SourcePosition.builder().setFile(sourceFile);
+    }
+    return positionBuilder
+        .setLine(line)
+        .setMethod(method)
+        .setCallerPosition(canonicalizeCallerPosition.apply(callerPosition))
+        .build();
   }
 }
