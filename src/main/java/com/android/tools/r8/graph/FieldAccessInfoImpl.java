@@ -27,8 +27,9 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   public static int FLAG_IS_READ_FROM_ANNOTATION = 1 << 0;
   public static int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 1;
   public static int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 2;
-  public static int FLAG_HAS_REFLECTIVE_ACCESS = 1 << 3;
-  public static int FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC = 1 << 4;
+  public static int FLAG_HAS_REFLECTIVE_READ = 1 << 3;
+  public static int FLAG_HAS_REFLECTIVE_WRITE = 1 << 4;
+  public static int FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC = 1 << 5;
 
   // A direct reference to the definition of the field.
   private DexField field;
@@ -197,17 +198,39 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   @Override
   public boolean hasReflectiveAccess() {
-    return (flags & FLAG_HAS_REFLECTIVE_ACCESS) != 0;
+    return hasReflectiveRead() || hasReflectiveWrite();
   }
 
-  public void setHasReflectiveAccess() {
-    flags |= FLAG_HAS_REFLECTIVE_ACCESS;
+  @Override
+  public boolean hasReflectiveRead() {
+    return (flags & FLAG_HAS_REFLECTIVE_READ) != 0;
+  }
+
+  public void setHasReflectiveRead() {
+    flags |= FLAG_HAS_REFLECTIVE_READ;
+  }
+
+  @Override
+  public boolean hasReflectiveWrite() {
+    return (flags & FLAG_HAS_REFLECTIVE_WRITE) != 0;
+  }
+
+  public void setHasReflectiveWrite() {
+    flags |= FLAG_HAS_REFLECTIVE_WRITE;
   }
 
   /** Returns true if this field is read by the program. */
   @Override
   public boolean isRead() {
-    return !readsWithContexts.isEmpty()
+    return isReadDirectly() || isReadIndirectly();
+  }
+
+  private boolean isReadDirectly() {
+    return !readsWithContexts.isEmpty();
+  }
+
+  private boolean isReadIndirectly() {
+    return hasReflectiveRead()
         || isReadFromAnnotation()
         || isReadFromMethodHandle()
         || isReadFromRecordInvokeDynamic();
@@ -227,13 +250,13 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return (flags & FLAG_IS_READ_FROM_METHOD_HANDLE) != 0;
   }
 
+  public void setReadFromMethodHandle() {
+    flags |= FLAG_IS_READ_FROM_METHOD_HANDLE;
+  }
+
   @Override
   public boolean isReadFromRecordInvokeDynamic() {
     return (flags & FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC) != 0;
-  }
-
-  public void setReadFromMethodHandle() {
-    flags |= FLAG_IS_READ_FROM_METHOD_HANDLE;
   }
 
   public void setReadFromRecordInvokeDynamic() {
@@ -244,10 +267,26 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     flags &= ~FLAG_IS_READ_FROM_RECORD_INVOKE_DYNAMIC;
   }
 
+  /**
+   * Returns true if this field is only read by methods for which {@param predicate} returns true.
+   */
+  @Override
+  public boolean isReadOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate) {
+    return readsWithContexts.isAccessedOnlyInMethodSatisfying(predicate) && !isReadIndirectly();
+  }
+
   /** Returns true if this field is written by the program. */
   @Override
   public boolean isWritten() {
+    return isWrittenDirectly() || isWrittenIndirectly();
+  }
+
+  private boolean isWrittenDirectly() {
     return !writesWithContexts.isEmpty();
+  }
+
+  private boolean isWrittenIndirectly() {
+    return hasReflectiveWrite() || isWrittenFromMethodHandle();
   }
 
   @Override
@@ -273,15 +312,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
    */
   @Override
   public boolean isWrittenOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate) {
-    return writesWithContexts.isAccessedOnlyInMethodSatisfying(predicate);
-  }
-
-  /**
-   * Returns true if this field is only read by methods for which {@param predicate} returns true.
-   */
-  @Override
-  public boolean isReadOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate) {
-    return readsWithContexts.isAccessedOnlyInMethodSatisfying(predicate);
+    return writesWithContexts.isAccessedOnlyInMethodSatisfying(predicate) && !isWrittenIndirectly();
   }
 
   /**
@@ -289,7 +320,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
    */
   @Override
   public boolean isWrittenOutside(DexEncodedMethod method) {
-    return writesWithContexts.isAccessedOutside(method);
+    return writesWithContexts.isAccessedOutside(method) || isWrittenIndirectly();
   }
 
   public boolean recordRead(DexField access, ProgramMethod context) {

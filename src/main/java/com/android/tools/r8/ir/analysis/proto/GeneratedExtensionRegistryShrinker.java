@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
@@ -231,10 +232,18 @@ public class GeneratedExtensionRegistryShrinker {
 
   public boolean isDeadProtoExtensionField(DexField fieldReference) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    ProgramField field = appInfo.resolveField(fieldReference).getSingleProgramField();
-    return field != null
-        && isDeadProtoExtensionField(
-            field, appInfo.getFieldAccessInfoCollection(), appInfo.getKeepInfo());
+    return isDeadProtoExtensionField(
+        appInfo.resolveField(fieldReference),
+        appInfo.getFieldAccessInfoCollection(),
+        appInfo.getKeepInfo());
+  }
+
+  public boolean isDeadProtoExtensionField(
+      FieldResolutionResult resolutionResult,
+      FieldAccessInfoCollection<?> fieldAccessInfoCollection,
+      KeepInfoCollection keepInfo) {
+    ProgramField field = resolutionResult.getSingleProgramField();
+    return field != null && isDeadProtoExtensionField(field, fieldAccessInfoCollection, keepInfo);
   }
 
   public boolean isDeadProtoExtensionField(

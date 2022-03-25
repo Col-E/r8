@@ -86,9 +86,14 @@ public class EnumLiteProtoShrinker {
       if (enumLite != null) {
         DexEncodedField field =
             enumLite.lookupField(createInternalValueMapField(enumLite.getType()));
-        return field != null
-            && appView.appInfo().isStaticFieldWrittenOnlyInEnclosingStaticInitializer(field)
-            && !appView.appInfo().isFieldRead(field);
+        if (field == null) {
+          return false;
+        }
+        if (appView.appInfo().isFieldRead(field)) {
+          return false;
+        }
+        return !appView.appInfo().isFieldWritten(field)
+            || appView.appInfo().isStaticFieldWrittenOnlyInEnclosingStaticInitializer(field);
       }
     }
     return false;

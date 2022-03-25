@@ -42,6 +42,10 @@ public interface FieldAccessInfo {
 
   boolean hasReflectiveAccess();
 
+  boolean hasReflectiveRead();
+
+  boolean hasReflectiveWrite();
+
   default boolean isAccessedFromMethodHandle() {
     return isReadFromMethodHandle() || isWrittenFromMethodHandle();
   }
@@ -54,6 +58,8 @@ public interface FieldAccessInfo {
 
   boolean isReadFromMethodHandle();
 
+  boolean isReadOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate);
+
   boolean isWritten();
 
   boolean isWrittenFromMethodHandle();
@@ -61,8 +67,6 @@ public interface FieldAccessInfo {
   boolean isWrittenInMethodSatisfying(Predicate<ProgramMethod> predicate);
 
   boolean isWrittenOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate);
-
-  boolean isReadOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate);
 
   boolean isWrittenOutside(DexEncodedMethod method);
 }

@@ -11,9 +11,11 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.Enqueuer.FieldAccessKind;
 import com.android.tools.r8.shaking.Enqueuer.FieldAccessMetadata;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.utils.Action;
@@ -318,6 +320,36 @@ public abstract class EnqueuerWorklist {
     }
   }
 
+  static class TraceReflectiveFieldAccessAction extends EnqueuerAction {
+    private final ProgramField field;
+    private final ProgramMethod context;
+    private final FieldAccessKind kind;
+
+    TraceReflectiveFieldAccessAction(ProgramField field, ProgramMethod context) {
+      this(field, context, null);
+    }
+
+    TraceReflectiveFieldAccessAction(
+        ProgramField field, ProgramMethod context, FieldAccessKind kind) {
+      this.field = field;
+      this.context = context;
+      this.kind = kind;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      if (kind != null) {
+        if (kind.isRead()) {
+          enqueuer.traceReflectiveFieldRead(field, context);
+        } else {
+          enqueuer.traceReflectiveFieldWrite(field, context);
+        }
+      } else {
+        enqueuer.traceReflectiveFieldAccess(field, context);
+      }
+    }
+  }
+
   static class TraceTypeReferenceAction extends EnqueuerAction {
     private final DexProgramClass clazz;
     private final KeepReason reason;
@@ -559,6 +591,15 @@ public abstract class EnqueuerWorklist {
 
   public abstract void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context);
 
+  public abstract void enqueueTraceReflectiveFieldAccessAction(
+      ProgramField field, ProgramMethod context);
+
+  public abstract void enqueueTraceReflectiveFieldReadAction(
+      ProgramField field, ProgramMethod context);
+
+  public abstract void enqueueTraceReflectiveFieldWriteAction(
+      ProgramField field, ProgramMethod context);
+
   public abstract void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context);
 
   public abstract void enqueueTraceTypeReferenceAction(DexProgramClass clazz, KeepReason reason);
@@ -690,6 +731,42 @@ public abstract class EnqueuerWorklist {
     @Override
     public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
       queue.add(new TraceNewInstanceAction(type, context));
+    }
+
+    @Override
+    public void enqueueTraceReflectiveFieldAccessAction(ProgramField field, ProgramMethod context) {
+      FieldAccessInfo info = enqueuer.getFieldAccessInfoCollection().get(field.getReference());
+      if (info == null || !info.hasReflectiveAccess()) {
+        queue.add(new TraceReflectiveFieldAccessAction(field, context));
+      }
+    }
+
+    @Override
+    public void enqueueTraceReflectiveFieldReadAction(ProgramField field, ProgramMethod context) {
+      FieldAccessInfo info = enqueuer.getFieldAccessInfoCollection().get(field.getReference());
+      if (info == null || !info.hasReflectiveRead()) {
+        queue.add(
+            new TraceReflectiveFieldAccessAction(
+                field,
+                context,
+                field.getAccessFlags().isStatic()
+                    ? FieldAccessKind.STATIC_READ
+                    : FieldAccessKind.INSTANCE_READ));
+      }
+    }
+
+    @Override
+    public void enqueueTraceReflectiveFieldWriteAction(ProgramField field, ProgramMethod context) {
+      FieldAccessInfo info = enqueuer.getFieldAccessInfoCollection().get(field.getReference());
+      if (info == null || !info.hasReflectiveWrite()) {
+        queue.add(
+            new TraceReflectiveFieldAccessAction(
+                field,
+                context,
+                field.getAccessFlags().isStatic()
+                    ? FieldAccessKind.STATIC_WRITE
+                    : FieldAccessKind.INSTANCE_WRITE));
+      }
     }
 
     @Override
@@ -826,6 +903,21 @@ public abstract class EnqueuerWorklist {
 
     @Override
     public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceReflectiveFieldAccessAction(ProgramField field, ProgramMethod context) {
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceReflectiveFieldReadAction(ProgramField field, ProgramMethod context) {
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceReflectiveFieldWriteAction(ProgramField field, ProgramMethod context) {
       throw attemptToEnqueue();
     }
 

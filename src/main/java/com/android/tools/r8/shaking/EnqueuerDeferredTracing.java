@@ -143,6 +143,10 @@ public class EnqueuerDeferredTracing {
     return true;
   }
 
+  public void notifyReflectiveFieldAccess(ProgramField field, ProgramMethod context) {
+    enqueueDeferredEnqueuerActions(field);
+  }
+
   private boolean isEligibleForPruning(ProgramField field) {
     FieldAccessInfo info = enqueuer.getFieldAccessInfoCollection().get(field.getReference());
     if (info.hasReflectiveAccess()

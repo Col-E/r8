@@ -406,6 +406,11 @@ public class R8 {
           GenericSignatureCorrectnessHelper.createForInitialCheck(appView, genericContextBuilder)
               .run(appView.appInfo().classes());
 
+          // TODO(b/226539525): Implement enum lite proto shrinking as deferred tracing.
+          if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
+            appView.protoShrinker().enumLiteProtoShrinker.clearDeadEnumLiteMaps();
+          }
+
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           DirectMappedDexApplication prunedApp = pruner.run(executorService);
 
@@ -421,10 +426,6 @@ public class R8 {
           new AbstractMethodRemover(
                   appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
               .run();
-
-          if (appView.options().protoShrinking().isEnumLiteProtoShrinkingEnabled()) {
-            appView.protoShrinker().enumLiteProtoShrinker.clearDeadEnumLiteMaps();
-          }
 
           AnnotationRemover annotationRemover =
               annotationRemoverBuilder

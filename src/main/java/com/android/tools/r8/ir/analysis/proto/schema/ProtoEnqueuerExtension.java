@@ -384,7 +384,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         }
 
         boolean valueStorageIsLive;
-        if (enqueuer.isFieldLive(valueStorage)) {
+        if (enqueuer.isFieldReferenced(valueStorage)) {
           if (enqueuer.isFieldRead(valueStorage)
               || enqueuer.isFieldWrittenOutsideDefaultConstructor(valueStorage)
               || reachesMapOrRequiredField(protoFieldInfo)) {
@@ -392,15 +392,13 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             // (i) optimize field reads into loading the default value of the field or (ii) remove
             // field writes to proto fields that could be read using reflection by the proto
             // library.
-            enqueuer.registerReflectiveFieldAccess(valueStorage.getReference(), dynamicMethod);
+            worklist.enqueueTraceReflectiveFieldAccessAction(valueStorage, dynamicMethod);
           }
           valueStorageIsLive = true;
         } else if (reachesMapOrRequiredField(protoFieldInfo)) {
           // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
           // written such that we cannot optimize any field reads or writes.
-          enqueuer.registerReflectiveFieldAccess(valueStorage.getReference(), dynamicMethod);
-          worklist.enqueueMarkFieldAsReachableAction(
-              valueStorage, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
+          worklist.enqueueTraceReflectiveFieldAccessAction(valueStorage, dynamicMethod);
           valueStorageIsLive = true;
         } else {
           valueStorageIsLive = false;
@@ -414,7 +412,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             newlyLiveField = protoFieldInfo.getOneOfCaseField(appView, protoMessageInfo);
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
             newlyLiveField = protoFieldInfo.getHazzerBitField(appView, protoMessageInfo);
-            enqueuer.registerReflectiveFieldAccess(valueStorage.getReference(), dynamicMethod);
+            worklist.enqueueTraceReflectiveFieldAccessAction(valueStorage, dynamicMethod);
           }
         } else {
           // For one-of fields, mark the one-of field as live if the one-of-case field is live, and
@@ -423,13 +421,13 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           if (protoFieldInfo.getType().isOneOf()) {
             ProgramField oneOfCaseField =
                 protoFieldInfo.getOneOfCaseField(appView, protoMessageInfo);
-            if (oneOfCaseField != null && enqueuer.isFieldLive(oneOfCaseField)) {
+            if (oneOfCaseField != null && enqueuer.isFieldReferenced(oneOfCaseField)) {
               newlyLiveField = valueStorage;
             }
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
             ProgramField hazzerBitField =
                 protoFieldInfo.getHazzerBitField(appView, protoMessageInfo);
-            if (hazzerBitField == null || !enqueuer.isFieldLive(hazzerBitField)) {
+            if (hazzerBitField == null || !enqueuer.isFieldReferenced(hazzerBitField)) {
               continue;
             }
 
@@ -458,15 +456,12 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
                       && !writer.isStructurallyEqualTo(dynamicMethod);
           if (enqueuer.isFieldWrittenInMethodSatisfying(
               newlyLiveField, neitherDefaultConstructorNorDynamicMethod)) {
-            enqueuer.registerReflectiveFieldRead(newlyLiveField.getReference(), dynamicMethod);
+            worklist.enqueueTraceReflectiveFieldReadAction(newlyLiveField, dynamicMethod);
           }
 
           // Unconditionally register the hazzer and one-of proto fields as written from
           // dynamicMethod().
-          if (enqueuer.registerReflectiveFieldWrite(newlyLiveField.getReference(), dynamicMethod)) {
-            worklist.enqueueMarkFieldAsReachableAction(
-                newlyLiveField, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
-          }
+          worklist.enqueueTraceReflectiveFieldWriteAction(newlyLiveField, dynamicMethod);
         }
       }
 
@@ -497,7 +492,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         // schema, and therefore we do need to trace the const-class instructions that will be
         // emitted for it.
         ProgramField valueStorage = protoFieldInfo.getValueStorage(appView, protoMessageInfo);
-        if (valueStorage != null && enqueuer.isFieldLive(valueStorage)) {
+        if (valueStorage != null && enqueuer.isFieldReferenced(valueStorage)) {
           for (ProtoObject object : objects) {
             if (object.isProtoObjectFromStaticGet()) {
               worklist.enqueueTraceStaticFieldRead(
@@ -554,7 +549,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    if (!enqueuer.isFieldLive(oneOfCaseField)) {
+    if (!enqueuer.isFieldReferenced(oneOfCaseField)) {
       return;
     }
 
@@ -578,10 +573,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    if (enqueuer.registerReflectiveFieldWrite(oneOfField.getReference(), dynamicMethod)) {
-      worklist.enqueueMarkFieldAsReachableAction(
-          oneOfField, dynamicMethod, KeepReason.reflectiveUseIn(dynamicMethod));
-    }
+    worklist.enqueueTraceReflectiveFieldWriteAction(oneOfField, dynamicMethod);
   }
 
   /**

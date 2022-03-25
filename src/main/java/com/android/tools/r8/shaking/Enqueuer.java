@@ -974,22 +974,39 @@ public class Enqueuer {
     return registerFieldAccess(field, context, true, false);
   }
 
-  public boolean registerReflectiveFieldRead(DexField field, ProgramMethod context) {
-    return registerFieldAccess(field, context, true, true);
+  public boolean registerReflectiveFieldRead(ProgramField field, ProgramMethod context) {
+    return registerFieldAccess(field.getReference(), context, true, true);
   }
 
   public boolean registerFieldWrite(DexField field, ProgramMethod context) {
     return registerFieldAccess(field, context, false, false);
   }
 
-  public boolean registerReflectiveFieldWrite(DexField field, ProgramMethod context) {
-    return registerFieldAccess(field, context, false, true);
+  public boolean registerReflectiveFieldWrite(ProgramField field, ProgramMethod context) {
+    return registerFieldAccess(field.getReference(), context, false, true);
   }
 
-  public boolean registerReflectiveFieldAccess(DexField field, ProgramMethod context) {
-    boolean changed = registerFieldAccess(field, context, true, true);
-    changed |= registerFieldAccess(field, context, false, true);
-    return changed;
+  public void traceReflectiveFieldAccess(ProgramField field, ProgramMethod context) {
+    deferredTracing.notifyReflectiveFieldAccess(field, context);
+    boolean changed = registerReflectiveFieldRead(field, context);
+    changed |= registerReflectiveFieldWrite(field, context);
+    if (changed) {
+      markFieldAsReachable(field, context, KeepReason.reflectiveUseIn(context));
+    }
+  }
+
+  public void traceReflectiveFieldRead(ProgramField field, ProgramMethod context) {
+    deferredTracing.notifyReflectiveFieldAccess(field, context);
+    if (registerReflectiveFieldRead(field, context)) {
+      markFieldAsReachable(field, context, KeepReason.reflectiveUseIn(context));
+    }
+  }
+
+  public void traceReflectiveFieldWrite(ProgramField field, ProgramMethod context) {
+    deferredTracing.notifyReflectiveFieldAccess(field, context);
+    if (registerReflectiveFieldWrite(field, context)) {
+      markFieldAsReachable(field, context, KeepReason.reflectiveUseIn(context));
+    }
   }
 
   private boolean registerFieldAccess(
@@ -1023,7 +1040,18 @@ public class Enqueuer {
       return false;
     }
     if (isReflective) {
-      info.setHasReflectiveAccess();
+      if (isRead) {
+        if (!info.hasReflectiveRead()) {
+          info.setHasReflectiveRead();
+          return true;
+        }
+      } else {
+        if (!info.hasReflectiveWrite()) {
+          info.setHasReflectiveWrite();
+          return true;
+        }
+      }
+      return false;
     }
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
@@ -1718,6 +1746,21 @@ public class Enqueuer {
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
+
+    if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
+      // If it is a dead proto extension field, don't trace onwards.
+      boolean skipTracing =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker ->
+                  shrinker.isDeadProtoExtensionField(
+                      resolutionResult, fieldAccessInfoCollection, keepInfo),
+              false);
+      if (skipTracing) {
+        addDeadProtoTypeCandidate(resolutionResult.getSingleProgramField().getHolder());
+        return;
+      }
+    }
+
     if (deferredTracing.deferTracingOfFieldAccess(
         fieldReference, resolutionResult, currentMethod, FieldAccessKind.STATIC_READ, metadata)) {
       assert !metadata.isDeferred();
@@ -1749,18 +1792,6 @@ public class Enqueuer {
 
           if (Log.ENABLED) {
             Log.verbose(getClass(), "Register Sget `%s`.", fieldReference);
-          }
-
-          // If it is a dead proto extension field, don't trace onwards.
-          boolean skipTracing =
-              appView.withGeneratedExtensionRegistryShrinker(
-                  shrinker ->
-                      shrinker.isDeadProtoExtensionField(
-                          field, fieldAccessInfoCollection, keepInfo),
-                  false);
-          if (skipTracing) {
-            addDeadProtoTypeCandidate(field.getHolder());
-            return;
           }
 
           if (field.getReference() != fieldReference) {
@@ -1799,6 +1830,21 @@ public class Enqueuer {
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
+
+    if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
+      // If it is a dead proto extension field, don't trace onwards.
+      boolean skipTracing =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker ->
+                  shrinker.isDeadProtoExtensionField(
+                      resolutionResult, fieldAccessInfoCollection, keepInfo),
+              false);
+      if (skipTracing) {
+        addDeadProtoTypeCandidate(resolutionResult.getSingleProgramField().getHolder());
+        return;
+      }
+    }
+
     if (deferredTracing.deferTracingOfFieldAccess(
         fieldReference, resolutionResult, currentMethod, FieldAccessKind.STATIC_WRITE, metadata)) {
       assert !metadata.isDeferred();
@@ -1830,20 +1876,6 @@ public class Enqueuer {
 
           if (Log.ENABLED) {
             Log.verbose(getClass(), "Register Sput `%s`.", fieldReference);
-          }
-
-          if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
-            // If it is a dead proto extension field, don't trace onwards.
-            boolean skipTracing =
-                appView.withGeneratedExtensionRegistryShrinker(
-                    shrinker ->
-                        shrinker.isDeadProtoExtensionField(
-                            field, fieldAccessInfoCollection, keepInfo),
-                    false);
-            if (skipTracing) {
-              addDeadProtoTypeCandidate(field.getHolder());
-              return;
-            }
           }
 
           if (field.getReference() != fieldReference) {
