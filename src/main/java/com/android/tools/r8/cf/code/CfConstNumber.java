@@ -36,6 +36,7 @@ public class CfConstNumber extends CfInstruction {
   }
 
   public CfConstNumber(long value, ValueType type) {
+    assert !type.isObject() : "Should use CfConstNull";
     this.value = value;
     this.type = type;
   }

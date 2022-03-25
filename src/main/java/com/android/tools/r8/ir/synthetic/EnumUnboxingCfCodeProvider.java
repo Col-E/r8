@@ -54,9 +54,14 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       assert returnType == appView.dexItemFactory().stringType;
       instructions.add(new CfConstString(value.asSingleStringValue().getDexString()));
     } else if (value.isSingleNumberValue()) {
-      instructions.add(
-          new CfConstNumber(
-              value.asSingleNumberValue().getValue(), ValueType.fromDexType(returnType)));
+      if (returnType.isReferenceType()) {
+        assert value.isNull();
+        instructions.add(new CfConstNull());
+      } else {
+        instructions.add(
+            new CfConstNumber(
+                value.asSingleNumberValue().getValue(), ValueType.fromDexType(returnType)));
+      }
     } else {
       throw new Unreachable("Only Number and String fields in enums are supported.");
     }
