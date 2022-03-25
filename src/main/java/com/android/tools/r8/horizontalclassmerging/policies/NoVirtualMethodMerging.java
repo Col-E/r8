@@ -108,7 +108,7 @@ public class NoVirtualMethodMerging extends MultiClassPolicy {
     SingleResolutionResult resolutionResult =
         appView
             .appInfo()
-            .resolveMethodOnClass(method.getReference(), superType)
+            .resolveMethodOnClass(superType, method.getReference())
             .asSingleResolution();
     return resolutionResult != null && !resolutionResult.getResolvedMethod().isAbstract();
   }

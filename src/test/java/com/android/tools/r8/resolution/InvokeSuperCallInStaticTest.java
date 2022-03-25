@@ -59,7 +59,7 @@ public class InvokeSuperCallInStaticTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Base.class, "collect", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
     assertTrue(resolutionResult.isSingleResolution());
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));

@@ -247,7 +247,10 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     }
 
     SingleResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnClass(invoke.getInvokedMethod()).asSingleResolution();
+        appView
+            .appInfo()
+            .resolveMethodOnClassHolder(invoke.getInvokedMethod())
+            .asSingleResolution();
     if (resolutionResult == null) {
       return state.abandonClassInliningInCurrentContexts(receiverRoot);
     }
@@ -283,7 +286,10 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     }
 
     SingleResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnInterface(invoke.getInvokedMethod()).asSingleResolution();
+        appView
+            .appInfo()
+            .resolveMethodOnInterfaceHolder(invoke.getInvokedMethod())
+            .asSingleResolution();
     if (resolutionResult == null) {
       return state.abandonClassInliningInCurrentContexts(receiverRoot);
     }
@@ -322,7 +328,10 @@ class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
     }
 
     SingleResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnClass(invoke.getInvokedMethod()).asSingleResolution();
+        appView
+            .appInfo()
+            .resolveMethodOnClassHolder(invoke.getInvokedMethod())
+            .asSingleResolution();
     if (resolutionResult == null) {
       return state.abandonClassInliningInCurrentContexts(receiverRoot);
     }

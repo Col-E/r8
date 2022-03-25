@@ -349,8 +349,8 @@ public class Tracer {
         handleRewrittenMethodResolution(
             method,
             lookupResult.getType().isInterface()
-                ? appInfo().resolveMethodOnInterface(method)
-                : appInfo().resolveMethodOnClass(method));
+                ? appInfo().resolveMethodOnInterfaceHolder(method)
+                : appInfo().resolveMethodOnClassHolder(method));
       }
 
       private void handleRewrittenMethodResolution(

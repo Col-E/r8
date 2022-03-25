@@ -11,7 +11,6 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -92,7 +91,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   @Test
   public void resolveTarget() {
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOnClass(methodOnB, methodOnB.holder);
+        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
     DexClass context = appInfo.definitionFor(methodOnB.holder);
     assertTrue(resolutionResult.isIllegalAccessErrorResult(context, appInfo));
   }

@@ -487,7 +487,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
         MethodResolutionResult resolutionResult =
-            appView.appInfo().resolveMethodOnClass(rewrittenMethod);
+            appView.appInfo().resolveMethodOnClassHolder(rewrittenMethod);
         if (resolutionResult.isSingleResolution()
             && resolutionResult.getResolvedHolder().isProgramClass()) {
           enqueueMethod(resolutionResult.getResolvedProgramMethod());
@@ -499,7 +499,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeInterface(method, getContext()).getReference();
         DexClassAndMethod resolvedMethod =
-            appView.appInfo().resolveMethodOnInterface(rewrittenMethod).getResolutionPair();
+            appView.appInfo().resolveMethodOnInterfaceHolder(rewrittenMethod).getResolutionPair();
         if (resolvedMethod != null) {
           fail();
         }
@@ -537,7 +537,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeVirtual(method, getContext()).getReference();
         DexClassAndMethod resolvedMethod =
-            appView.appInfo().resolveMethodOnClass(rewrittenMethod).getResolutionPair();
+            appView.appInfo().resolveMethodOnClassHolder(rewrittenMethod).getResolutionPair();
         if (resolvedMethod != null) {
           if (!resolvedMethod.getHolder().isEffectivelyFinal(appView)) {
             fail();

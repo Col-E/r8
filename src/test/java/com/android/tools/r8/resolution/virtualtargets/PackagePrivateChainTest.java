@@ -62,7 +62,7 @@ public class PackagePrivateChainTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Top.class, "clear", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(TopRunner.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

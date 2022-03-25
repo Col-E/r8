@@ -53,7 +53,7 @@ public class DefaultTopAbstractLeftTest extends TestBase {
                 Main.class)
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(L.class.getTypeName(), resolutionTarget.getHolderType().toSourceString());
   }

@@ -116,7 +116,7 @@ public class MemberRebindingAnalysis {
         currentResolutionResult =
             appView
                 .appInfo()
-                .resolveMethodOnClass(original, currentResolvedHolder.getSuperType())
+                .resolveMethodOnClass(currentResolvedHolder.getSuperType(), original)
                 .asSingleResolution();
       } else {
         break;
@@ -244,7 +244,7 @@ public class MemberRebindingAnalysis {
   }
 
   private MethodResolutionResult resolveMethodOnClass(DexMethod method) {
-    return appView.appInfo().resolveMethodOnClass(method, method.holder);
+    return appView.appInfo().resolveMethodOnClass(method.holder, method);
   }
 
   private MethodResolutionResult resolveMethodOnInterface(DexMethod method) {

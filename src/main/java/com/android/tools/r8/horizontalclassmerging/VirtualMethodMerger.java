@@ -60,7 +60,7 @@ public class VirtualMethodMerger {
       SingleResolutionResult resolutionResult =
           appView
               .appInfo()
-              .resolveMethodOnClass(template, group.getSuperType())
+              .resolveMethodOnClass(group.getSuperType(), template)
               .asSingleResolution();
       if (resolutionResult == null || resolutionResult.getResolvedMethod().isAbstract()) {
         // If there is no super method or the method is abstract it should not be called.

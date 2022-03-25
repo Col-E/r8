@@ -59,7 +59,7 @@ public class InvalidResolutionToThisTarget extends TestBase {
                       Main.class);
               AppInfoWithLiveness appInfo = appView.appInfo();
               DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-              MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+              MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
               assertTrue(resolutionResult.isSingleResolution());
               DexType mainType = buildType(Main.class, appInfo.dexItemFactory());
               DexProgramClass main = appView.definitionForProgramType(mainType);

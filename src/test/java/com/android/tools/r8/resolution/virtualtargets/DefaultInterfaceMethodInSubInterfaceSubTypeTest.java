@@ -62,7 +62,7 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
             .buildWithLiveness();
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

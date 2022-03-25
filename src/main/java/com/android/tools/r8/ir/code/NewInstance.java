@@ -194,7 +194,7 @@ public class NewInstance extends Instruction {
     MethodResolutionResult finalizeResolutionResult =
         appViewWithClassHierarchy
             .appInfo()
-            .resolveMethodOnClass(dexItemFactory.objectMembers.finalize, clazz);
+            .resolveMethodOnClass(clazz, dexItemFactory.objectMembers.finalize);
     if (finalizeResolutionResult.isSingleResolution()) {
       DexMethod finalizeMethod = finalizeResolutionResult.getSingleTarget().getReference();
       if (finalizeMethod != dexItemFactory.enumMembers.finalize

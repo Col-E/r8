@@ -644,7 +644,7 @@ final class ClassProcessor {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     for (Wrapper<DexMethod> signature : emulatedInterfaceInfo.signatures.signatures) {
       MethodResolutionResult resolutionResult =
-          appInfo.resolveMethodOnClass(signature.get(), clazz);
+          appInfo.resolveMethodOnClass(clazz, signature.get());
       if (resolutionResult.isFailedResolution()) {
         return true;
       }

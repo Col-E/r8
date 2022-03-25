@@ -76,7 +76,7 @@ public class NestVirtualMethodAccessTest extends TestBase {
     DexProgramClass bClass =
         appInfo.definitionFor(buildType(B.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(bar);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(bar);
     assertEquals(OptionalBool.of(inSameNest), resolutionResult.isAccessibleFrom(bClass, appInfo));
   }
 

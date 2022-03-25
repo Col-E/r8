@@ -111,7 +111,7 @@ public class MethodOverridesCollector {
           SingleResolutionResult resolutionResult =
               appView
                   .appInfo()
-                  .resolveMethodOnClass(interfaceMethod, implementer)
+                  .resolveMethodOnClass(implementer, interfaceMethod)
                   .asSingleResolution();
           if (resolutionResult == null || !resolutionResult.getResolvedHolder().isProgramClass()) {
             continue;

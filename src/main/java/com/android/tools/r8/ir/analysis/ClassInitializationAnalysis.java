@@ -431,7 +431,7 @@ public class ClassInitializationAnalysis {
       }
       DexMethod method = instruction.getInvokedMethod();
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOnClass(method, method.holder);
+          appView.appInfo().resolveMethodOnClass(method.holder, method);
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }

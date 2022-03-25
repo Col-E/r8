@@ -112,7 +112,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                           appView
                               .appInfo()
                               .resolveMethodOnClass(
-                                  signature, resolutionResult.getResolvedHolder().getSuperType())
+                                  resolutionResult.getResolvedHolder().getSuperType(), signature)
                               .asSingleResolution();
                     }
 

@@ -53,7 +53,7 @@ public class DefaultTopAndBothTest extends TestBase {
             .buildWithLiveness()
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
     Set<String> holders = new HashSet<>();
     resolutionResult
         .asFailedResolution()

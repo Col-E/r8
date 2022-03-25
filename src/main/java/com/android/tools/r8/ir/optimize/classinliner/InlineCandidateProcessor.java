@@ -1028,7 +1028,7 @@ final class InlineCandidateProcessor {
     // signature of the invocation resolves to a private or static method.
     // TODO(b/147212189): Why not inline private methods? If access is permitted it is valid.
     MethodResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnClass(callee, eligibleClass);
+        appView.appInfo().resolveMethodOnClass(eligibleClass, callee);
     if (resolutionResult.isSingleResolution()
         && !resolutionResult.getSingleTarget().isNonPrivateVirtualMethod()) {
       return false;

@@ -50,7 +50,7 @@ public class DefaultTopAndRightTest extends TestBase {
             .buildWithLiveness()
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(R.class.getTypeName(), resolutionTarget.getHolderType().toSourceString());
   }

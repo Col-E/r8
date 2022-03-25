@@ -99,12 +99,18 @@ public class B169045091 extends TestBase {
     // Test that HelloGreeter.greet() is accessible to TestClass.
     DexMethod helloReference = buildNullaryVoidMethod(HelloGreeter.class, "hello", dexItemFactory);
     assertTrue(
-        appInfo.resolveMethodOnClass(helloReference).isAccessibleFrom(context, appView).isTrue());
+        appInfo
+            .resolveMethodOnClassHolder(helloReference)
+            .isAccessibleFrom(context, appView)
+            .isTrue());
 
     // Test that WorldGreeter.greet() is inaccessible to TestClass.
     DexMethod worldReference = buildNullaryVoidMethod(WorldGreeter.class, "world", dexItemFactory);
     assertTrue(
-        appInfo.resolveMethodOnClass(worldReference).isAccessibleFrom(context, appView).isFalse());
+        appInfo
+            .resolveMethodOnClassHolder(worldReference)
+            .isAccessibleFrom(context, appView)
+            .isFalse());
   }
 
   public static class TestClass {

@@ -96,7 +96,10 @@ public class TargetLookupTest extends SmaliTestBase {
     CodeInspector inspector = new CodeInspector(appInfo.app());
     ProgramMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x", ImmutableList.of());
     assertFalse(
-        appInfo.resolveMethodOnClass(method.getReference()).getSingleTarget().isVirtualMethod());
+        appInfo
+            .resolveMethodOnClassHolder(method.getReference())
+            .getSingleTarget()
+            .isVirtualMethod());
     assertNull(appInfo.lookupDirectTarget(method.getReference(), method));
     assertNotNull(appInfo.lookupStaticTarget(method.getReference(), method));
 
@@ -178,14 +181,14 @@ public class TargetLookupTest extends SmaliTestBase {
 
     assertFalse(
         appInfo
-            .resolveMethodOnClass(methodXOnTestSuper.getReference(), classTestSuper)
+            .resolveMethodOnClass(classTestSuper, methodXOnTestSuper.getReference())
             .getSingleTarget()
             .isVirtualMethod());
     assertNull(
         appInfo
-            .resolveMethodOnClass(methodXOnTestSuper.getReference(), classTest)
+            .resolveMethodOnClass(classTest, methodXOnTestSuper.getReference())
             .getSingleTarget());
-    assertNull(appInfo.resolveMethodOnClass(methodXOnTestReference, classTest).getSingleTarget());
+    assertNull(appInfo.resolveMethodOnClass(classTest, methodXOnTestReference).getSingleTarget());
 
     assertNull(appInfo.lookupDirectTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper));
     assertNull(appInfo.lookupDirectTarget(methodXOnTestReference, methodYOnTest));
