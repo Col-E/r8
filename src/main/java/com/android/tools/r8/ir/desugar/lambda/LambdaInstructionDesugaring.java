@@ -120,6 +120,11 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
 
     eventConsumer.acceptLambdaClass(lambdaClass, context);
 
+    if (lambdaClass.hasFactoryMethod()) {
+      return ImmutableList.of(
+          new CfInvoke(Opcodes.INVOKESTATIC, lambdaClass.getFactoryMethod(), false));
+    }
+
     if (lambdaClass.isStatelessSingleton()) {
       return ImmutableList.of(
           new CfStaticFieldRead(lambdaClass.lambdaField, lambdaClass.lambdaField));
@@ -143,7 +148,6 @@ public class LambdaInstructionDesugaring implements CfInstructionDesugaring {
     // elements on the stack, we load all the N arguments back onto the stack. At this point, we
     // have the original N arguments on the stack plus the 2 new stack elements.
     localStackAllocator.allocateLocalStack(2);
-
     return replacement;
   }
 

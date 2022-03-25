@@ -72,6 +72,7 @@ public final class LambdaClass {
   public LambdaDescriptor descriptor;
   public final DexMethod constructor;
   final DexMethod classConstructor;
+  private final DexMethod factoryMethod;
   public final DexField lambdaField;
   public final Target target;
 
@@ -107,6 +108,13 @@ public final class LambdaClass {
     this.lambdaField =
         statelessSingleton
             ? factory.createField(type, type, factory.lambdaInstanceFieldName)
+            : null;
+    this.factoryMethod =
+        appView.options().testing.alwaysGenerateLambdaFactoryMethods
+            ? factory.createMethod(
+                type,
+                factory.createProto(type, descriptor.captures.values),
+                factory.createString("create"))
             : null;
 
     // Synthesize the program class once all fields are set.
@@ -149,6 +157,15 @@ public final class LambdaClass {
 
   public final boolean isStatelessSingleton() {
     return appView.options().createSingletonsForStatelessLambdas && descriptor.isStateless();
+  }
+
+  public boolean hasFactoryMethod() {
+    return factoryMethod != null;
+  }
+
+  public DexMethod getFactoryMethod() {
+    assert hasFactoryMethod();
+    return factoryMethod;
   }
 
   // Synthesize virtual methods.
@@ -226,6 +243,17 @@ public final class LambdaClass {
               .disableAndroidApiLevelCheck()
               .build());
       feedback.classInitializerMayBePostponed(methods.get(1));
+    }
+    if (hasFactoryMethod()) {
+      methods.add(
+          DexEncodedMethod.syntheticBuilder()
+              .setMethod(factoryMethod)
+              .setAccessFlags(
+                  MethodAccessFlags.fromSharedAccessFlags(
+                      Constants.ACC_STATIC | Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC, false))
+              .setCode(LambdaClassFactorySourceCode.build(this))
+              .disableAndroidApiLevelCheck()
+              .build());
     }
     builder.setDirectMethods(methods);
   }

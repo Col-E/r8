@@ -1872,6 +1872,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public Predicate<DexMethod> cfByteCodePassThrough = null;
 
     public boolean enableExperimentalMapFileVersion = false;
+
+    public boolean alwaysGenerateLambdaFactoryMethods = false;
   }
 
   public MapVersion getMapFileVersion() {
