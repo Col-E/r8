@@ -101,13 +101,13 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     // TestClass.foo is kept by TestClass.<init>.
     QueryNode testFooFieldNode =
         inspector.field(testFooFieldRef).assertPresent().assertKeptBy(testInit);
-    // The type Foo is not kept by TestClass.<init>, but TestClass.foo.
+    // The type Foo is kept by TestClass.<init> and TestClass.foo.
     QueryNode fooClassNode =
         inspector
             .clazz(fooClassRef)
             .assertRenamed()
             .assertKeptBy(testFooFieldNode)
-            .assertNotKeptBy(testInit);
+            .assertKeptBy(testInit);
     // Foo.<clinit> is kept by Foo
     QueryNode fooClInit = inspector.method(fooClInitRef).assertPresent().assertKeptBy(fooClassNode);
     // The type Foo is also kept by Foo.<clinit>

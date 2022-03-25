@@ -50,10 +50,6 @@ public class StringSwitchRemover {
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final ClassTypeElement stringType;
 
-  public StringSwitchRemover(AppView<?> appView) {
-    this(appView, null);
-  }
-
   StringSwitchRemover(AppView<?> appView, IdentifierNameStringMarker identifierNameStringMarker) {
     this.appView = appView;
     this.identifierNameStringMarker = identifierNameStringMarker;

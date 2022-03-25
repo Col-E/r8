@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
@@ -326,8 +325,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       removeOrReplaceByDebugLocalRead();
       return true;
     }
-    DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
-    replaceCurrentInstruction(new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver)));
+    replaceCurrentInstructionWithNullCheck(appView, receiver);
     return true;
   }
 
@@ -405,6 +403,20 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     // Replace the instruction by const-string.
     ConstString constString = code.createStringConstant(appView, value, current.getLocalInfo());
     replaceCurrentInstruction(constString);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithNullCheck(AppView<?> appView, Value object) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+
+    assert current.hasUnusedOutValue();
+    assert !block.hasCatchHandlers() || current.instructionTypeCanThrow();
+
+    DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+    replaceCurrentInstruction(
+        InvokeVirtual.builder().setMethod(getClassMethod).setSingleArgument(object).build());
   }
 
   @Override
@@ -492,7 +504,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithThrowNull(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> blocksToRemove,
@@ -574,7 +586,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
                 // target.
                 return;
               }
-              if (!appView.appInfo().isSubtype(appView.dexItemFactory().npeType, guard)) {
+              if (appView.isSubtype(appView.dexItemFactory().npeType, guard).isFalse()) {
                 // TODO(christofferqa): Consider updating previous dominator tree instead of
                 //   rebuilding it from scratch.
                 DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);

@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexApplication;
@@ -112,6 +111,11 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
+    public void replaceCurrentInstructionWithNullCheck(AppView<?> appView, Value object) {
+      throw new Unimplemented();
+    }
+
+    @Override
     public void replaceCurrentInstructionWithStaticGet(
         AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
       throw new Unimplemented();
@@ -130,7 +134,7 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public void replaceCurrentInstructionWithThrowNull(
-        AppView<? extends AppInfoWithClassHierarchy> appView,
+        AppView<?> appView,
         IRCode code,
         ListIterator<BasicBlock> blockIterator,
         Set<BasicBlock> blocksToRemove,

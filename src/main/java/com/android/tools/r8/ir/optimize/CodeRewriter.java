@@ -14,7 +14,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessControl;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -3012,12 +3011,6 @@ public class CodeRewriter {
   // it with a block throwing a null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
   public void optimizeAlwaysThrowingInstructions(IRCode code) {
-    if (!appView.appInfo().hasClassHierarchy()) {
-      return;
-    }
-
-    AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
-        appView.withClassHierarchy();
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -3067,7 +3060,7 @@ public class CodeRewriter {
               }
             }
             instructionIterator.replaceCurrentInstructionWithThrowNull(
-                appViewWithClassHierarchy, code, blockIterator, blocksToRemove, affectedValues);
+                appView, code, blockIterator, blocksToRemove, affectedValues);
             continue;
           }
         }
@@ -3103,7 +3096,7 @@ public class CodeRewriter {
           instructionIterator.setInsertionPosition(invoke.getPosition());
           instructionIterator.next();
           instructionIterator.replaceCurrentInstructionWithThrowNull(
-              appViewWithClassHierarchy, code, blockIterator, blocksToRemove, affectedValues);
+              appView, code, blockIterator, blocksToRemove, affectedValues);
           instructionIterator.unsetInsertionPosition();
         }
       }

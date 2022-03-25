@@ -26,10 +26,9 @@ public class IRToDexFinalizer extends IRFinalizer<DexCode> {
   private final CodeRewriter codeRewriter;
   private final InternalOptions options;
 
-  public IRToDexFinalizer(
-      AppView<?> appView, CodeRewriter codeRewriter, DeadCodeRemover deadCodeRemover) {
+  public IRToDexFinalizer(AppView<?> appView, DeadCodeRemover deadCodeRemover) {
     super(appView, deadCodeRemover);
-    this.codeRewriter = codeRewriter;
+    this.codeRewriter = deadCodeRemover.getCodeRewriter();
     this.options = appView.options();
   }
 

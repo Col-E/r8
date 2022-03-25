@@ -14,9 +14,12 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramDefinition;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.shaking.Enqueuer.FieldAccessMetadata;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collection;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -241,6 +244,19 @@ public abstract class EnqueuerWorklist {
     }
   }
 
+  static class TraceDirectAndIndirectClassInitializers extends EnqueuerAction {
+    private final DexProgramClass clazz;
+
+    TraceDirectAndIndirectClassInitializers(DexProgramClass clazz) {
+      this.clazz = clazz;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markDirectAndIndirectClassInitializersAsLive(clazz);
+    }
+  }
+
   static class TraceInvokeDirectAction extends EnqueuerAction {
     private final DexMethod invokedMethod;
     // TODO(b/175854431): Avoid pushing context on worklist.
@@ -302,19 +318,169 @@ public abstract class EnqueuerWorklist {
     }
   }
 
-  static class TraceStaticFieldReadAction extends EnqueuerAction {
-    private final DexField field;
-    // TODO(b/175854431): Avoid pushing context on worklist.
-    private final ProgramMethod context;
+  static class TraceTypeReferenceAction extends EnqueuerAction {
+    private final DexProgramClass clazz;
+    private final KeepReason reason;
 
-    TraceStaticFieldReadAction(DexField field, ProgramMethod context) {
-      this.field = field;
-      this.context = context;
+    TraceTypeReferenceAction(DexProgramClass clazz, KeepReason reason) {
+      this.clazz = clazz;
+      this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceStaticFieldRead(field, context);
+      enqueuer.markTypeAsLive(clazz, reason);
+    }
+  }
+
+  abstract static class TraceFieldAccessAction extends EnqueuerAction {
+    protected final DexField field;
+    // TODO(b/175854431): Avoid pushing context on worklist.
+    protected final ProgramMethod context;
+    protected final FieldAccessMetadata metadata;
+
+    TraceFieldAccessAction(DexField field, ProgramMethod context, FieldAccessMetadata metadata) {
+      this.field = field;
+      this.context = context;
+      this.metadata = metadata;
+    }
+
+    protected boolean baseEquals(TraceFieldAccessAction action) {
+      return field == action.field
+          && context.isStructurallyEqualTo(action.context)
+          && metadata.equals(action.metadata);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      TraceFieldAccessAction action = (TraceFieldAccessAction) obj;
+      return baseEquals(action);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(field, context.getReference(), metadata);
+    }
+  }
+
+  static class TraceInstanceFieldReadAction extends TraceFieldAccessAction {
+
+    TraceInstanceFieldReadAction(
+        DexField field, ProgramMethod context, FieldAccessMetadata metadata) {
+      super(field, context, metadata);
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceInstanceFieldRead(field, context, metadata);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      TraceInstanceFieldReadAction action = (TraceInstanceFieldReadAction) obj;
+      return baseEquals(action);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(field, context.getReference(), metadata);
+    }
+  }
+
+  static class TraceInstanceFieldWriteAction extends TraceFieldAccessAction {
+
+    TraceInstanceFieldWriteAction(
+        DexField field, ProgramMethod context, FieldAccessMetadata metadata) {
+      super(field, context, metadata);
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceInstanceFieldWrite(field, context, metadata);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      TraceInstanceFieldWriteAction action = (TraceInstanceFieldWriteAction) obj;
+      return baseEquals(action);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(field, context.getReference(), metadata);
+    }
+  }
+
+  static class TraceStaticFieldReadAction extends TraceFieldAccessAction {
+
+    TraceStaticFieldReadAction(
+        DexField field, ProgramMethod context, FieldAccessMetadata metadata) {
+      super(field, context, metadata);
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceStaticFieldRead(field, context, metadata);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      TraceStaticFieldReadAction action = (TraceStaticFieldReadAction) obj;
+      return baseEquals(action);
+    }
+  }
+
+  static class TraceStaticFieldWriteAction extends TraceFieldAccessAction {
+
+    TraceStaticFieldWriteAction(
+        DexField field, ProgramMethod context, FieldAccessMetadata metadata) {
+      super(field, context, metadata);
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceStaticFieldWrite(field, context, metadata);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      TraceStaticFieldWriteAction action = (TraceStaticFieldWriteAction) obj;
+      return baseEquals(action);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(field, context.getReference(), metadata);
     }
   }
 
@@ -339,6 +505,12 @@ public abstract class EnqueuerWorklist {
   }
 
   abstract EnqueuerWorklist nonPushable();
+
+  final void enqueueAll(Collection<? extends EnqueuerAction> actions) {
+    actions.forEach(this::enqueue);
+  }
+
+  abstract void enqueue(EnqueuerAction action);
 
   abstract boolean enqueueAssertAction(Action assertion);
 
@@ -377,6 +549,8 @@ public abstract class EnqueuerWorklist {
   public abstract void enqueueTraceConstClassAction(
       DexType type, ProgramMethod context, boolean ignoreCompatRules);
 
+  public abstract void enqueueTraceDirectAndIndirectClassInitializers(DexProgramClass clazz);
+
   public abstract void enqueueTraceInvokeDirectAction(
       DexMethod invokedMethod, ProgramMethod context);
 
@@ -387,6 +561,8 @@ public abstract class EnqueuerWorklist {
 
   public abstract void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context);
 
+  public abstract void enqueueTraceTypeReferenceAction(DexProgramClass clazz, KeepReason reason);
+
   static class PushableEnqueuerWorkList extends EnqueuerWorklist {
 
     PushableEnqueuerWorkList(Enqueuer enqueuer) {
@@ -396,6 +572,11 @@ public abstract class EnqueuerWorklist {
     @Override
     EnqueuerWorklist nonPushable() {
       return new NonPushableEnqueuerWorklist(this);
+    }
+
+    @Override
+    void enqueue(EnqueuerAction action) {
+      queue.add(action);
     }
 
     @Override
@@ -492,6 +673,11 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    public void enqueueTraceDirectAndIndirectClassInitializers(DexProgramClass clazz) {
+      queue.add(new TraceDirectAndIndirectClassInitializers(clazz));
+    }
+
+    @Override
     public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
       queue.add(new TraceInvokeDirectAction(invokedMethod, context));
     }
@@ -508,7 +694,12 @@ public abstract class EnqueuerWorklist {
 
     @Override
     public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
-      queue.add(new TraceStaticFieldReadAction(field, context));
+      queue.add(new TraceStaticFieldReadAction(field, context, FieldAccessMetadata.DEFAULT));
+    }
+
+    @Override
+    public void enqueueTraceTypeReferenceAction(DexProgramClass clazz, KeepReason reason) {
+      queue.add(new TraceTypeReferenceAction(clazz, reason));
     }
   }
 
@@ -521,6 +712,11 @@ public abstract class EnqueuerWorklist {
     @Override
     EnqueuerWorklist nonPushable() {
       return this;
+    }
+
+    @Override
+    void enqueue(EnqueuerAction action) {
+      throw attemptToEnqueue();
     }
 
     private Unreachable attemptToEnqueue() {
@@ -614,6 +810,11 @@ public abstract class EnqueuerWorklist {
     }
 
     @Override
+    public void enqueueTraceDirectAndIndirectClassInitializers(DexProgramClass clazz) {
+      throw attemptToEnqueue();
+    }
+
+    @Override
     public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
       throw attemptToEnqueue();
     }
@@ -630,6 +831,11 @@ public abstract class EnqueuerWorklist {
 
     @Override
     public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
+      throw attemptToEnqueue();
+    }
+
+    @Override
+    public void enqueueTraceTypeReferenceAction(DexProgramClass clazz, KeepReason reason) {
       throw attemptToEnqueue();
     }
   }

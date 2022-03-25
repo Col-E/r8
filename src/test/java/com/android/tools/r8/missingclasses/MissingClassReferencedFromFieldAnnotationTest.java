@@ -31,13 +31,20 @@ public class MissingClassReferencedFromFieldAnnotationTest extends MissingClasse
   @Test(expected = CompilationFailedException.class)
   public void testNoRules() throws Exception {
     compileWithExpectedDiagnostics(
-        Main.class, diagnostics -> inspectDiagnosticsWithNoRules(diagnostics, referencedFrom));
+        Main.class,
+        diagnostics -> inspectDiagnosticsWithNoRules(diagnostics, referencedFrom),
+        builder -> builder.addKeepClassAndMembersRules(Main.class));
   }
 
   @Test
   public void testDontWarnMainClass() throws Exception {
     compileWithExpectedDiagnostics(
-        Main.class, TestDiagnosticMessages::assertNoMessages, addDontWarn(Main.class));
+        Main.class,
+        TestDiagnosticMessages::assertNoMessages,
+        builder ->
+            builder
+                .addDontWarn(MissingRuntimeAnnotation.class)
+                .addKeepClassAndMembersRules(Main.class));
   }
 
   @Test
@@ -45,7 +52,10 @@ public class MissingClassReferencedFromFieldAnnotationTest extends MissingClasse
     compileWithExpectedDiagnostics(
         Main.class,
         TestDiagnosticMessages::assertNoMessages,
-        addDontWarn(MissingRuntimeAnnotation.class));
+        builder ->
+            builder
+                .addDontWarn(MissingRuntimeAnnotation.class)
+                .addKeepClassAndMembersRules(Main.class));
   }
 
   @Test
@@ -53,7 +63,11 @@ public class MissingClassReferencedFromFieldAnnotationTest extends MissingClasse
     compileWithExpectedDiagnostics(
         Main.class,
         diagnostics -> inspectDiagnosticsWithIgnoreWarnings(diagnostics, referencedFrom),
-        addIgnoreWarnings());
+        builder ->
+            builder
+                .addIgnoreWarnings()
+                .addKeepClassAndMembersRules(Main.class)
+                .allowDiagnosticWarningMessages());
   }
 
   @Override

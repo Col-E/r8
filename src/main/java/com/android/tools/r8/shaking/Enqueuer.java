@@ -124,6 +124,10 @@ import com.android.tools.r8.shaking.EnqueuerEvent.InstantiatedClassEnqueuerEvent
 import com.android.tools.r8.shaking.EnqueuerEvent.LiveClassEnqueuerEvent;
 import com.android.tools.r8.shaking.EnqueuerEvent.UnconditionalKeepInfoEvent;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
+import com.android.tools.r8.shaking.EnqueuerWorklist.TraceInstanceFieldReadAction;
+import com.android.tools.r8.shaking.EnqueuerWorklist.TraceInstanceFieldWriteAction;
+import com.android.tools.r8.shaking.EnqueuerWorklist.TraceStaticFieldReadAction;
+import com.android.tools.r8.shaking.EnqueuerWorklist.TraceStaticFieldWriteAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.KeepInfoCollection.MutableKeepInfoCollection;
 import com.android.tools.r8.shaking.RootSetUtils.ConsequentRootSet;
@@ -461,7 +465,7 @@ public class Enqueuer {
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView.withClassHierarchy();
-    this.deferredTracing = new EnqueuerDeferredTracing();
+    this.deferredTracing = new EnqueuerDeferredTracing(appView, this, mode);
     this.executorService = executorService;
     this.subtypingInfo = subtypingInfo;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
@@ -684,12 +688,28 @@ public class Enqueuer {
     return clazz;
   }
 
+  public FieldAccessInfoCollectionImpl getFieldAccessInfoCollection() {
+    return fieldAccessInfoCollection;
+  }
+
   public MutableKeepInfoCollection getKeepInfo() {
     return keepInfo;
   }
 
   public KeepClassInfo getKeepInfo(DexProgramClass clazz) {
     return keepInfo.getClassInfo(clazz);
+  }
+
+  public KeepFieldInfo getKeepInfo(ProgramField field) {
+    return keepInfo.getFieldInfo(field);
+  }
+
+  public ObjectAllocationInfoCollectionImpl getObjectAllocationInfoCollection() {
+    return objectAllocationInfoCollection;
+  }
+
+  public EnqueuerWorklist getWorklist() {
+    return workList;
   }
 
   private void addLiveNonProgramType(
@@ -1188,7 +1208,7 @@ public class Enqueuer {
       initClassReferences.put(
           type, computeMinimumRequiredVisibilityForInitClassField(type, currentMethod.getHolder()));
 
-      markTypeAsLive(type, currentMethod);
+      markTypeAsLive(clazz, currentMethod);
       markDirectAndIndirectClassInitializersAsLive(clazz);
       return;
     }
@@ -1487,12 +1507,29 @@ public class Enqueuer {
     boolean isWrite() {
       return !isRead();
     }
+
+    EnqueuerAction toEnqueuerAction(
+        DexField fieldReference, ProgramMethod context, FieldAccessMetadata metadata) {
+      switch (this) {
+        case INSTANCE_READ:
+          return new TraceInstanceFieldReadAction(fieldReference, context, metadata);
+        case INSTANCE_WRITE:
+          return new TraceInstanceFieldWriteAction(fieldReference, context, metadata);
+        case STATIC_READ:
+          return new TraceStaticFieldReadAction(fieldReference, context, metadata);
+        case STATIC_WRITE:
+          return new TraceStaticFieldWriteAction(fieldReference, context, metadata);
+        default:
+          throw new Unreachable();
+      }
+    }
   }
 
   static class FieldAccessMetadata {
 
-    private static int FROM_METHOD_HANDLE_MASK = 1;
-    private static int FROM_RECORD_METHOD_HANDLE_MASK = 2;
+    private static int DEFERRED_MASK = 1;
+    private static int FROM_METHOD_HANDLE_MASK = 2;
+    private static int FROM_RECORD_METHOD_HANDLE_MASK = 4;
 
     static FieldAccessMetadata DEFAULT = new FieldAccessMetadata(0);
     static FieldAccessMetadata FROM_METHOD_HANDLE =
@@ -1500,10 +1537,16 @@ public class Enqueuer {
     static FieldAccessMetadata FROM_RECORD_METHOD_HANDLE =
         new FieldAccessMetadata(FROM_RECORD_METHOD_HANDLE_MASK);
 
+    private final FieldAccessMetadata deferred;
     private final int flags;
 
-    FieldAccessMetadata(int flags) {
+    private FieldAccessMetadata(int flags) {
       this.flags = flags;
+      this.deferred = isDeferred() ? this : new FieldAccessMetadata(flags | DEFERRED_MASK);
+    }
+
+    boolean isDeferred() {
+      return (flags & DEFERRED_MASK) != 0;
     }
 
     boolean isFromMethodHandle() {
@@ -1513,17 +1556,39 @@ public class Enqueuer {
     boolean isFromRecordMethodHandle() {
       return (flags & FROM_RECORD_METHOD_HANDLE_MASK) != 0;
     }
+
+    public FieldAccessMetadata toDeferred() {
+      return deferred;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      FieldAccessMetadata metadata = (FieldAccessMetadata) obj;
+      return flags == metadata.flags;
+    }
+
+    @Override
+    public int hashCode() {
+      return flags;
+    }
   }
 
-  private void traceInstanceFieldRead(
+  void traceInstanceFieldRead(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
-    if (!registerFieldRead(fieldReference, currentMethod)) {
+    if (!metadata.isDeferred() && !registerFieldRead(fieldReference, currentMethod)) {
       return;
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (deferredTracing.deferTracingOfFieldAccess(
         fieldReference, resolutionResult, currentMethod, FieldAccessKind.INSTANCE_READ, metadata)) {
+      assert !metadata.isDeferred();
       return;
     }
 
@@ -1579,9 +1644,9 @@ public class Enqueuer {
     traceInstanceFieldWrite(field, currentMethod, FieldAccessMetadata.FROM_METHOD_HANDLE);
   }
 
-  private void traceInstanceFieldWrite(
+  void traceInstanceFieldWrite(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
-    if (!registerFieldWrite(fieldReference, currentMethod)) {
+    if (!metadata.isDeferred() && !registerFieldWrite(fieldReference, currentMethod)) {
       return;
     }
 
@@ -1592,6 +1657,7 @@ public class Enqueuer {
         currentMethod,
         FieldAccessKind.INSTANCE_WRITE,
         metadata)) {
+      assert !metadata.isDeferred();
       return;
     }
 
@@ -1645,15 +1711,16 @@ public class Enqueuer {
     traceStaticFieldRead(field, currentMethod, FieldAccessMetadata.FROM_METHOD_HANDLE);
   }
 
-  private void traceStaticFieldRead(
+  void traceStaticFieldRead(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
-    if (!registerFieldRead(fieldReference, currentMethod)) {
+    if (!metadata.isDeferred() && !registerFieldRead(fieldReference, currentMethod)) {
       return;
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (deferredTracing.deferTracingOfFieldAccess(
         fieldReference, resolutionResult, currentMethod, FieldAccessKind.STATIC_READ, metadata)) {
+      assert !metadata.isDeferred();
       return;
     }
 
@@ -1725,15 +1792,16 @@ public class Enqueuer {
     traceStaticFieldWrite(field, currentMethod, FieldAccessMetadata.FROM_METHOD_HANDLE);
   }
 
-  private void traceStaticFieldWrite(
+  void traceStaticFieldWrite(
       DexField fieldReference, ProgramMethod currentMethod, FieldAccessMetadata metadata) {
-    if (!registerFieldWrite(fieldReference, currentMethod)) {
+    if (!metadata.isDeferred() && !registerFieldWrite(fieldReference, currentMethod)) {
       return;
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference, currentMethod);
     if (deferredTracing.deferTracingOfFieldAccess(
         fieldReference, resolutionResult, currentMethod, FieldAccessKind.STATIC_WRITE, metadata)) {
+      assert !metadata.isDeferred();
       return;
     }
 
@@ -1867,7 +1935,7 @@ public class Enqueuer {
     markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, context));
   }
 
-  private void markTypeAsLive(DexProgramClass clazz, KeepReason reason) {
+  void markTypeAsLive(DexProgramClass clazz, KeepReason reason) {
     assert clazz != null;
     markTypeAsLive(
         clazz,
@@ -2222,7 +2290,7 @@ public class Enqueuer {
     }
   }
 
-  private void markDirectAndIndirectClassInitializersAsLive(DexProgramClass clazz) {
+  void markDirectAndIndirectClassInitializersAsLive(DexProgramClass clazz) {
     if (clazz.isInterface()) {
       // Accessing a static field or method on an interface does not trigger the class initializer
       // of any parent interfaces.

@@ -63,6 +63,10 @@ public class FieldAccessInfoCollectionImpl
     infos.values().forEach(consumer);
   }
 
+  public void remove(DexField field) {
+    infos.remove(field);
+  }
+
   @Override
   public void removeIf(BiPredicate<DexField, FieldAccessInfoImpl> predicate) {
     infos.entrySet().removeIf(entry -> predicate.test(entry.getKey(), entry.getValue()));

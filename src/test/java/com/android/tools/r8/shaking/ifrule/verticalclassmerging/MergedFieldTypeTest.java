@@ -65,11 +65,15 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
 
       public static void main(String[] args) {
         TestClass obj = new TestClass();
-        if (false) {
+        if (alwaysFalse()) {
           obj.field = new B();
           System.out.println(obj.field);
         }
         System.out.print(obj.get().getClass().getName());
+      }
+
+      static boolean alwaysFalse() {
+        return false;
       }
     }
 

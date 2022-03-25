@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexField;
@@ -90,6 +89,11 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public void replaceCurrentInstructionWithNullCheck(AppView<?> appView, Value object) {
+    instructionIterator.replaceCurrentInstructionWithNullCheck(appView, object);
+  }
+
+  @Override
   public void replaceCurrentInstructionWithStaticGet(
       AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
     instructionIterator.replaceCurrentInstructionWithStaticGet(
@@ -114,7 +118,7 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public void replaceCurrentInstructionWithThrowNull(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> blocksToRemove,

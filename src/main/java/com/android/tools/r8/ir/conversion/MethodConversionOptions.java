@@ -17,18 +17,26 @@ public abstract class MethodConversionOptions {
 
   public abstract boolean isPeepholeOptimizationsEnabled();
 
+  public abstract boolean isStringSwitchConversionEnabled();
+
   public static class MutableMethodConversionOptions extends MethodConversionOptions {
 
     private boolean enablePeepholeOptimizations = true;
+    private boolean enableStringSwitchConversion;
     private boolean isGeneratingClassFiles;
 
     public MutableMethodConversionOptions(InternalOptions options) {
+      this.enableStringSwitchConversion = options.isStringSwitchConversionEnabled();
       this.isGeneratingClassFiles = options.isGeneratingClassFiles();
     }
 
     public void disablePeepholeOptimizations(MethodProcessor methodProcessor) {
       assert methodProcessor.isPrimaryMethodProcessor();
       enablePeepholeOptimizations = false;
+    }
+
+    public void disableStringSwitchConversion() {
+      enableStringSwitchConversion = false;
     }
 
     public MutableMethodConversionOptions setIsGeneratingClassFiles(
@@ -45,6 +53,11 @@ public abstract class MethodConversionOptions {
     @Override
     public boolean isPeepholeOptimizationsEnabled() {
       return enablePeepholeOptimizations;
+    }
+
+    @Override
+    public boolean isStringSwitchConversionEnabled() {
+      return enableStringSwitchConversion;
     }
   }
 

@@ -72,12 +72,18 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return field;
   }
 
+  @Override
   public AbstractAccessContexts getReadsWithContexts() {
     return readsWithContexts;
   }
 
   public void setReadsWithContexts(AbstractAccessContexts readsWithContexts) {
     this.readsWithContexts = readsWithContexts;
+  }
+
+  @Override
+  public AbstractAccessContexts getWritesWithContexts() {
+    return writesWithContexts;
   }
 
   public void setWritesWithContexts(AbstractAccessContexts writesWithContexts) {
@@ -99,6 +105,11 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return readsWithContexts.isConcrete()
         ? readsWithContexts.asConcrete().getUniqueAccessContext()
         : null;
+  }
+
+  @Override
+  public boolean hasKnownReadContexts() {
+    return !readsWithContexts.isTop();
   }
 
   @Override
@@ -166,6 +177,12 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
             out.computeIfAbsent(access, ignore -> ProgramMethodSet.create()).addAll(contexts);
           }
         });
+  }
+
+  @Override
+  public void forEachAccessContext(Consumer<ProgramMethod> consumer) {
+    forEachReadContext(consumer);
+    forEachWriteContext(consumer);
   }
 
   @Override

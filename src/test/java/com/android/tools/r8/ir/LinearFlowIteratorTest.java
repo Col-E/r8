@@ -111,10 +111,9 @@ public class LinearFlowIteratorTest extends TestBase {
   public void nextWillContinueThroughGotoBlocks() throws Exception {
     IRCode code = simpleCode();
     InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.entryBlock());
-    it.next(); // Argument
-    it.next(); // ConstNumber 0/NULL
-    it.next(); // ArrayGet
-    assert it.next().isReturn(); // Return
+    assertTrue(it.next().isArgument());
+    assertTrue(it.next().isConstNumber());
+    assertTrue(it.next().isThrow());
   }
 
   @Test
@@ -154,9 +153,8 @@ public class LinearFlowIteratorTest extends TestBase {
     InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(1));
     Instruction current = it.previous();
     assertTrue(current.isConstNumber() && current.getOutType().isReferenceType());
-    it.next();
-    current = it.next();
-    assertTrue(current.isArrayGet());
+    assertTrue(it.next().isConstNumber());
+    assertTrue(it.next().isThrow());
   }
 
   @Test

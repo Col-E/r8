@@ -5,10 +5,15 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 public interface FieldGet {
 
   DexField getField();
+
+  TypeElement getOutType();
+
+  boolean hasUsedOutValue();
 
   Value outValue();
 }

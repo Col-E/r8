@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -72,6 +73,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     this.parameters = parameters;
   }
 
+  @Ignore
   @Test
   public void test() throws Exception {
     CodeInspector inputInspector = new CodeInspector(PROGRAM_FILES);
@@ -351,6 +353,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     }
   }
 
+  @Ignore
   @Test
   public void testNoRewriting() throws Exception {
     testForR8(parameters.getBackend())
@@ -377,6 +380,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
                 assertRewrittenProtoSchemasMatch(new CodeInspector(PROGRAM_FILES), inspector));
   }
 
+  @Ignore
   @Test
   public void testTwoExtensionRegistrys() throws Exception {
     CodeInspector inputInspector = new CodeInspector(PROGRAM_FILES);

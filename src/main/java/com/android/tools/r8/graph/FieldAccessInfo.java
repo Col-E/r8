@@ -20,13 +20,21 @@ public interface FieldAccessInfo {
 
   int getNumberOfWriteContexts();
 
+  AbstractAccessContexts getReadsWithContexts();
+
+  AbstractAccessContexts getWritesWithContexts();
+
   ProgramMethod getUniqueReadContext();
+
+  boolean hasKnownReadContexts();
 
   boolean hasKnownWriteContexts();
 
   void forEachIndirectAccess(Consumer<DexField> consumer);
 
   void forEachIndirectAccessWithContexts(BiConsumer<DexField, ProgramMethodSet> consumer);
+
+  void forEachAccessContext(Consumer<ProgramMethod> consumer);
 
   void forEachReadContext(Consumer<ProgramMethod> consumer);
 

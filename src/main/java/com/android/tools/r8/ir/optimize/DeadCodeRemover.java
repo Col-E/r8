@@ -40,6 +40,10 @@ public class DeadCodeRemover {
     this.codeRewriter = codeRewriter;
   }
 
+  public CodeRewriter getCodeRewriter() {
+    return codeRewriter;
+  }
+
   public void run(IRCode code, Timing timing) {
     timing.begin("Remove dead code");
 

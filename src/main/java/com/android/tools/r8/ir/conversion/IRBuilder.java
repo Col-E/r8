@@ -735,7 +735,7 @@ public class IRBuilder {
       new TypeAnalysis(appView).narrowing(ir);
     }
 
-    if (appView.options().isStringSwitchConversionEnabled()) {
+    if (conversionOptions.isStringSwitchConversionEnabled()) {
       StringSwitchConverter.convertToStringSwitchInstructions(ir, appView.dexItemFactory());
     }
 

@@ -58,6 +58,10 @@ public abstract class AbstractAccessContexts {
 
   abstract int getNumberOfAccessContexts();
 
+  public final boolean hasAccesses() {
+    return !isEmpty();
+  }
+
   public boolean isBottom() {
     return false;
   }
@@ -66,7 +70,7 @@ public abstract class AbstractAccessContexts {
     return false;
   }
 
-  abstract boolean isEmpty();
+  public abstract boolean isEmpty();
 
   public ConcreteAccessContexts asConcrete() {
     return null;

@@ -874,7 +874,7 @@ public class IRConverter {
     Timing timing = Timing.empty();
     deadCodeRemover.run(code, timing);
     method.setCode(
-        new IRToDexFinalizer(appView, codeRewriter, deadCodeRemover)
+        new IRToDexFinalizer(appView, deadCodeRemover)
             .finalizeCode(code, BytecodeMetadataProvider.empty(), timing),
         appView);
     if (Log.ENABLED) {
@@ -1397,7 +1397,7 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after outline handler (SSA)", previous);
 
-    if (stringSwitchRemover != null) {
+    if (code.getConversionOptions().isStringSwitchConversionEnabled()) {
       // Remove string switches prior to canonicalization to ensure that the constants that are
       // being introduced will be canonicalized if possible.
       timing.begin("Remove string switch");
@@ -1611,7 +1611,7 @@ public class IRConverter {
     ProgramMethod method = code.context();
     DexEncodedMethod definition = method.getDefinition();
     method.setCode(
-        new IRToDexFinalizer(appView, codeRewriter, deadCodeRemover)
+        new IRToDexFinalizer(appView, deadCodeRemover)
             .finalizeCode(code, bytecodeMetadataProvider, timing),
         appView);
     markProcessed(code, feedback);

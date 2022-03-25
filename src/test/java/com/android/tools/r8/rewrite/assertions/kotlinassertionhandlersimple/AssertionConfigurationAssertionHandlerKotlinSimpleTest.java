@@ -58,10 +58,10 @@ public class AssertionConfigurationAssertionHandlerKotlinSimpleTest
 
   @Override
   protected void configureR8(R8FullTestBuilder builder) {
-    builder.applyIf(
-        !kotlinStdlibAsLibrary
-            && !useJvmAssertions
-            && !kotlinParameters.is(KotlinCompilerVersion.KOTLINC_1_3_72),
-        b -> b.addDontWarn("org.jetbrains.annotations.NotNull"));
+    boolean referencesNotNull =
+        kotlinc.is(KotlinCompilerVersion.KOTLINC_1_6_0)
+            && !kotlinStdlibAsLibrary
+            && !useJvmAssertions;
+    builder.applyIf(referencesNotNull, b -> b.addDontWarn("org.jetbrains.annotations.NotNull"));
   }
 }

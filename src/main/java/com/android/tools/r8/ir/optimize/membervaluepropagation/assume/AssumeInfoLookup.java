@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.membervaluepropagation.assume;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMember;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -31,10 +32,10 @@ public class AssumeInfoLookup {
   }
 
   public static AssumeInfo lookupAssumeInfo(
-      AppView<AppInfoWithLiveness> appView, DexClassAndMember<?, ?> member) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, DexClassAndMember<?, ?> member) {
     DexMember<?, ?> reference = member.getReference();
-    ProguardMemberRule assumeNoSideEffectsRule = appView.appInfo().noSideEffects.get(reference);
-    ProguardMemberRule assumeValuesRule = appView.appInfo().assumedValues.get(reference);
+    ProguardMemberRule assumeNoSideEffectsRule = appView.rootSet().noSideEffects.get(reference);
+    ProguardMemberRule assumeValuesRule = appView.rootSet().assumedValues.get(reference);
     if (assumeNoSideEffectsRule == null && assumeValuesRule == null) {
       return null;
     }

@@ -71,8 +71,10 @@ public abstract class ProgramMemberMap<K extends ProgramMember<?, ?>, V> {
     return backing.remove(wrap(member));
   }
 
-  public void removeIf(BiPredicate<K, V> predicate) {
-    backing.entrySet().removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue()));
+  public boolean removeIf(BiPredicate<K, V> predicate) {
+    return backing
+        .entrySet()
+        .removeIf(entry -> predicate.test(entry.getKey().get(), entry.getValue()));
   }
 
   abstract Wrapper<K> wrap(K member);
