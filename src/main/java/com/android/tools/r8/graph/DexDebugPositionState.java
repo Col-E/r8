@@ -11,9 +11,7 @@ import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
-import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
-import com.android.tools.r8.graph.DexDebugEvent.SetOutlineCallerFrame;
-import com.android.tools.r8.graph.DexDebugEvent.SetOutlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.ir.code.Position;
@@ -51,20 +49,14 @@ public class DexDebugPositionState implements DexDebugEventVisitor {
   }
 
   @Override
-  public void visit(SetInlineFrame setInlineFrame) {
-    currentMethod = setInlineFrame.callee;
-    currentCallerPosition = setInlineFrame.caller;
-  }
-
-  @Override
-  public void visit(SetOutlineFrame setOutlineFrame) {
-    isOutline = true;
-  }
-
-  @Override
-  public void visit(SetOutlineCallerFrame setOutlineCallerFrame) {
-    outlineCallee = setOutlineCallerFrame.getOutlineCallee();
-    outlineCallerPositions = setOutlineCallerFrame.getOutlinePositions();
+  public void visit(SetPositionFrame setPositionFrame) {
+    assert setPositionFrame.getPosition() != null;
+    Position position = setPositionFrame.getPosition();
+    currentMethod = position.getMethod();
+    currentCallerPosition = position.getCallerPosition();
+    outlineCallee = position.getOutlineCallee();
+    outlineCallerPositions = position.getOutlinePositions();
+    isOutline = position.isOutline();
   }
 
   @Override

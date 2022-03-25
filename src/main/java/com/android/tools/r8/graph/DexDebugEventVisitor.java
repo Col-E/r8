@@ -10,9 +10,7 @@ import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
-import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
-import com.android.tools.r8.graph.DexDebugEvent.SetOutlineCallerFrame;
-import com.android.tools.r8.graph.DexDebugEvent.SetOutlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 
@@ -21,11 +19,7 @@ public interface DexDebugEventVisitor {
 
   void visit(AdvanceLine advanceLine);
 
-  void visit(SetInlineFrame setInlineFrame);
-
-  void visit(SetOutlineFrame setOutlineFrame);
-
-  void visit(SetOutlineCallerFrame setOutlineCallerFrame);
+  void visit(SetPositionFrame setPositionFrame);
 
   void visit(Default defaultEvent);
 

@@ -249,18 +249,14 @@ public class DexDebugEventBuilder {
         || previousPosition.hasCallerPosition()
         || nextPosition.getMethod() == previousPosition.getMethod()
         || optimizingLineNumbers;
-    if (nextPosition.getCallerPosition() != previousPosition.getCallerPosition()
-        || nextPosition.getMethod() != previousPosition.getMethod()) {
-      events.add(
-          factory.createSetInlineFrame(nextPosition.getMethod(), nextPosition.getCallerPosition()));
-    }
-    if (nextPosition.isOutline()) {
-      events.add(factory.createSetOutlineFrame());
-    }
-    if (nextPosition.getOutlineCallee() != null && !nextPosition.getOutlinePositions().isEmpty()) {
-      events.add(
-          factory.createSetOutlineCallerFrame(
-              nextPosition.getOutlineCallee(), nextPosition.getOutlinePositions()));
+    boolean isNewPosition =
+        nextPosition.getCallerPosition() != previousPosition.getCallerPosition()
+            || nextPosition.getMethod() != previousPosition.getMethod();
+    boolean isOutline = nextPosition.isOutline();
+    boolean isOutlineCallee =
+        nextPosition.getOutlineCallee() != null && !nextPosition.getOutlinePositions().isEmpty();
+    if (isNewPosition || isOutline || isOutlineCallee) {
+      events.add(factory.createPositionFrame(nextPosition));
     }
     addDefaultEventWithAdvancePcIfNecessary(lineDelta, pcDelta, events, factory);
   }

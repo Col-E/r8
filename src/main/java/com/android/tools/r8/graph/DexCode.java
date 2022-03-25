@@ -13,7 +13,7 @@ import com.android.tools.r8.dex.JumboStringRewriter;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
-import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.StartLocal;
 import com.android.tools.r8.graph.DexDebugInfo.EventBasedDebugInfo;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
@@ -279,6 +279,12 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
       DexMethod caller, DexMethod callee, DexItemFactory factory) {
     Position callerPosition = SyntheticPosition.builder().setLine(0).setMethod(caller).build();
     EventBasedDebugInfo eventBasedInfo = DexDebugInfo.convertToEventBased(this, factory);
+    Position inlinePosition =
+        SyntheticPosition.builder()
+            .setMethod(caller)
+            .setCallerPosition(callerPosition)
+            .disableLineCheck()
+            .build();
     if (eventBasedInfo == null) {
       // If the method has no debug info we generate a preamble position to denote the inlining.
       // This is consistent with the building IR for inlining which will always ensure the method
@@ -287,22 +293,20 @@ public class DexCode extends Code implements DexWritableCode, StructuralItem<Dex
           0,
           new DexString[callee.getArity()],
           new DexDebugEvent[] {
-            new DexDebugEvent.SetInlineFrame(callee, callerPosition), factory.zeroChangeDefaultEvent
+            new SetPositionFrame(inlinePosition), factory.zeroChangeDefaultEvent
           });
     }
     DexDebugEvent[] oldEvents = eventBasedInfo.events;
     DexDebugEvent[] newEvents = new DexDebugEvent[oldEvents.length + 1];
     int i = 0;
-    newEvents[i++] = new DexDebugEvent.SetInlineFrame(callee, callerPosition);
+    newEvents[i++] = new SetPositionFrame(inlinePosition);
     for (DexDebugEvent event : oldEvents) {
-      if (event instanceof SetInlineFrame) {
-        SetInlineFrame oldFrame = (SetInlineFrame) event;
+      if (event instanceof SetPositionFrame) {
+        SetPositionFrame oldFrame = (SetPositionFrame) event;
+        assert oldFrame.getPosition() != null;
         newEvents[i++] =
-            new SetInlineFrame(
-                oldFrame.callee,
-                oldFrame.caller == null
-                    ? callerPosition
-                    : oldFrame.caller.withOutermostCallerPosition(callerPosition));
+            new SetPositionFrame(
+                oldFrame.getPosition().withOutermostCallerPosition(callerPosition));
       } else {
         newEvents[i++] = event;
       }

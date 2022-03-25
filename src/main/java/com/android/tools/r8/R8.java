@@ -975,7 +975,9 @@ public class R8 {
       return true;
     }
     for (DexDebugEvent event : code.getDebugInfo().asEventBasedInfo().events) {
-      assert !event.isSetInlineFrame() || event.asSetInlineFrame().hasOuterPosition(originalMethod);
+      assert !event.isPositionFrame()
+          || event.asSetPositionFrame().getPosition().getOutermostCaller().getMethod()
+              == originalMethod;
     }
     return true;
   }

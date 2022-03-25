@@ -9,7 +9,6 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.HashingVisitor;
 import com.android.tools.r8.utils.structural.StructuralItem;
@@ -20,9 +19,7 @@ import java.util.Objects;
 public abstract class DexDebugEvent extends DexItem implements StructuralItem<DexDebugEvent> {
 
   // Compare ID(s) for virtual debug events.
-  private static final int DBG_SET_INLINE_FRAME_COMPARE_ID = Constants.DBG_LAST_SPECIAL + 1;
-  private static final int DBG_SET_OUTLINE_FRAME_COMPARE_ID = Constants.DBG_LAST_SPECIAL + 2;
-  private static final int DBG_SET_OUTLINE_CALLER_COMPARE_ID = Constants.DBG_LAST_SPECIAL + 3;
+  private static final int DBG_SET_POSITION_FRAME_COMPARE_ID = Constants.DBG_LAST_SPECIAL + 1;
 
   public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
@@ -92,23 +89,11 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
   public abstract void accept(DexDebugEventVisitor visitor);
 
-  public boolean isSetInlineFrame() {
+  public boolean isPositionFrame() {
     return false;
   }
 
-  public boolean isSetOutlineFrame() {
-    return false;
-  }
-
-  public boolean isSetOutlineCallerFrame() {
-    return false;
-  }
-
-  public SetInlineFrame asSetInlineFrame() {
-    return null;
-  }
-
-  public SetOutlineCallerFrame asSetOutlineCallerFrame() {
+  public SetPositionFrame asSetPositionFrame() {
     return null;
   }
 
@@ -575,19 +560,20 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
     }
   }
 
-  public static class SetInlineFrame extends DexDebugEvent {
+  public static class SetPositionFrame extends DexDebugEvent {
 
-    final DexMethod callee;
-    final Position caller;
+    private final Position position;
 
-    private static void specify(StructuralSpecification<SetInlineFrame, ?> spec) {
-      spec.withItem(e -> e.callee).withNullableItem(e -> e.caller);
+    private static void specify(StructuralSpecification<SetPositionFrame, ?> spec) {
+      spec.withNullableItem(e -> e.position);
     }
 
-    SetInlineFrame(DexMethod callee, Position caller) {
-      assert callee != null;
-      this.callee = callee;
-      this.caller = caller;
+    SetPositionFrame(Position position) {
+      this.position = position;
+    }
+
+    public Position getPosition() {
+      return position;
     }
 
     @Override
@@ -597,140 +583,36 @@ public abstract class DexDebugEvent extends DexItem implements StructuralItem<De
 
     @Override
     public String toString() {
-      return String.format("SET_INLINE_FRAME %s %s", callee, caller);
+      return String.format("SET_POSITION_FRAME %s", position);
     }
 
     @Override
     public int hashCode() {
-      return 31 * callee.hashCode() + Objects.hashCode(caller);
+      return 31 * Objects.hashCode(position);
     }
 
     @Override
     int getCompareToId() {
-      return DBG_SET_INLINE_FRAME_COMPARE_ID;
+      return DBG_SET_POSITION_FRAME_COMPARE_ID;
     }
 
     @Override
     int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
-      return visitor.visit(this, (SetInlineFrame) other, SetInlineFrame::specify);
+      return visitor.visit(this, (SetPositionFrame) other, SetPositionFrame::specify);
     }
 
     @Override
     void internalAcceptHashing(HashingVisitor visitor) {
-      visitor.visit(this, SetInlineFrame::specify);
+      visitor.visit(this, SetPositionFrame::specify);
     }
 
     @Override
-    public boolean isSetInlineFrame() {
+    public boolean isPositionFrame() {
       return true;
     }
 
     @Override
-    public SetInlineFrame asSetInlineFrame() {
-      return this;
-    }
-
-    public boolean hasOuterPosition(DexMethod method) {
-      return (caller == null && callee == method)
-          || (caller != null && caller.getOutermostCaller().getMethod() == method);
-    }
-  }
-
-  public static class SetOutlineFrame extends DexDebugEvent {
-
-    @Override
-    public String toString() {
-      return "SET_OUTLINE_FRAME";
-    }
-
-    @Override
-    public int hashCode() {
-      return 7;
-    }
-
-    @Override
-    int getCompareToId() {
-      return DBG_SET_OUTLINE_FRAME_COMPARE_ID;
-    }
-
-    @Override
-    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
-      return 0;
-    }
-
-    @Override
-    void internalAcceptHashing(HashingVisitor visitor) {
-      // Intentionally empty: no content besides the compare-id
-    }
-
-    @Override
-    public void accept(DexDebugEventVisitor visitor) {
-      visitor.visit(this);
-    }
-  }
-
-  public static class SetOutlineCallerFrame extends DexDebugEvent {
-
-    private final DexMethod outlineCallee;
-    private final Int2StructuralItemArrayMap<Position> outlinePositions;
-
-    private static void specify(StructuralSpecification<SetOutlineCallerFrame, ?> spec) {
-      spec.withItem(e -> e.outlineCallee).withNullableItem(e -> e.outlinePositions);
-    }
-
-    SetOutlineCallerFrame(
-        DexMethod outlineCallee, Int2StructuralItemArrayMap<Position> outlinePositions) {
-      assert outlineCallee != null;
-      assert !outlinePositions.isEmpty();
-      this.outlineCallee = outlineCallee;
-      this.outlinePositions = outlinePositions;
-    }
-
-    public DexMethod getOutlineCallee() {
-      return outlineCallee;
-    }
-
-    public Int2StructuralItemArrayMap<Position> getOutlinePositions() {
-      return outlinePositions;
-    }
-
-    @Override
-    public void accept(DexDebugEventVisitor visitor) {
-      visitor.visit(this);
-    }
-
-    @Override
-    public String toString() {
-      return String.format("SET_OUTLINE_CALLER_FRAME %s %s", outlineCallee, outlinePositions);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(outlineCallee, outlinePositions);
-    }
-
-    @Override
-    int getCompareToId() {
-      return DBG_SET_OUTLINE_CALLER_COMPARE_ID;
-    }
-
-    @Override
-    int internalAcceptCompareTo(DexDebugEvent other, CompareToVisitor visitor) {
-      return visitor.visit(this, (SetOutlineCallerFrame) other, SetOutlineCallerFrame::specify);
-    }
-
-    @Override
-    void internalAcceptHashing(HashingVisitor visitor) {
-      visitor.visit(this, SetOutlineCallerFrame::specify);
-    }
-
-    @Override
-    public boolean isSetOutlineCallerFrame() {
-      return true;
-    }
-
-    @Override
-    public SetOutlineCallerFrame asSetOutlineCallerFrame() {
+    public SetPositionFrame asSetPositionFrame() {
       return this;
     }
   }

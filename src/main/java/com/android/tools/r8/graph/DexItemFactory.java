@@ -17,9 +17,7 @@ import com.android.tools.r8.graph.DexDebugEvent.EndLocal;
 import com.android.tools.r8.graph.DexDebugEvent.RestartLocal;
 import com.android.tools.r8.graph.DexDebugEvent.SetEpilogueBegin;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
-import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
-import com.android.tools.r8.graph.DexDebugEvent.SetOutlineCallerFrame;
-import com.android.tools.r8.graph.DexDebugEvent.SetOutlineFrame;
+import com.android.tools.r8.graph.DexDebugEvent.SetPositionFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -38,7 +36,6 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.Int2StructuralItemArrayMap;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.android.tools.r8.utils.ListUtils;
@@ -99,8 +96,7 @@ public class DexItemFactory {
   private final SetEpilogueBegin setEpilogueBegin = new SetEpilogueBegin();
   private final SetPrologueEnd setPrologueEnd = new SetPrologueEnd();
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
-  private final SetOutlineFrame setOutlineFrame = new SetOutlineFrame();
-  private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
+  private final Map<SetPositionFrame, SetPositionFrame> setInlineFrames = new HashMap<>();
   public final DexDebugEvent.Default zeroChangeDefaultEvent = createDefault(0, 0);
   public final DexDebugEvent.Default oneChangeDefaultEvent = createDefault(1, 1);
 
@@ -2898,19 +2894,10 @@ public class DexItemFactory {
   }
 
   // TODO(tamaskenez) b/69024229 Measure if canonicalization is worth it.
-  public SetInlineFrame createSetInlineFrame(DexMethod callee, Position caller) {
+  public SetPositionFrame createPositionFrame(Position position) {
     synchronized (setInlineFrames) {
-      return setInlineFrames.computeIfAbsent(new SetInlineFrame(callee, caller), p -> p);
+      return setInlineFrames.computeIfAbsent(new SetPositionFrame(position), p -> p);
     }
-  }
-
-  public SetOutlineFrame createSetOutlineFrame() {
-    return setOutlineFrame;
-  }
-
-  public SetOutlineCallerFrame createSetOutlineCallerFrame(
-      DexMethod outlineCallee, Int2StructuralItemArrayMap<Position> outlinePositions) {
-    return new SetOutlineCallerFrame(outlineCallee, outlinePositions);
   }
 
   public boolean isConstructor(DexMethod method) {
