@@ -27,7 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class RetraceStackTraceBenchmark extends BenchmarkBase {
 
   private static final BenchmarkDependency benchmarkDependency =
-      new BenchmarkDependency("retrace_benchmark", "retrace_benchmark", Paths.get("third_party"));
+      new BenchmarkDependency("retraceBenchmark", "retrace_benchmark", Paths.get("third_party"));
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {

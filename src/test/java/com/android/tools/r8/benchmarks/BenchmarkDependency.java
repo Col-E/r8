@@ -33,6 +33,10 @@ public class BenchmarkDependency {
     this.name = name;
     this.directoryName = directoryName;
     this.location = location;
+    String firstChar = name.substring(0, 1);
+    if (!firstChar.equals(firstChar.toLowerCase()) || name.contains("_")) {
+      throw new BenchmarkConfigError("Benchmark name should use lowerCamelCase, found: " + name);
+    }
   }
 
   public String getName() {
