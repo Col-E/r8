@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -117,6 +118,20 @@ public class CfSwitch extends CfInstruction {
         int max = min + targets.size() - 1;
         visitor.visitTableSwitchInsn(min, max, defaultTarget.getLabel(), labels);
       }
+    }
+  }
+
+  @Override
+  public int bytecodeSizeUpperBound() {
+    switch (kind) {
+      case LOOKUP:
+        return 8 + keys.length * 8;
+      case TABLE:
+        int min = keys[0];
+        int max = min + targets.size() - 1;
+        return 16 + (max - min + 1) * 4;
+      default:
+        throw new Unreachable();
     }
   }
 

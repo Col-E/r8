@@ -162,6 +162,11 @@ public class CfArithmeticBinop extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 1;
+  }
+
+  @Override
   public boolean canThrow() {
     return (type != NumericType.FLOAT && type != NumericType.DOUBLE)
         && (opcode == Opcode.Div || opcode == Opcode.Rem);

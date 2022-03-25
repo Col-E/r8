@@ -82,6 +82,11 @@ public class CfNew extends CfInstruction implements CfTypeInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 3;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

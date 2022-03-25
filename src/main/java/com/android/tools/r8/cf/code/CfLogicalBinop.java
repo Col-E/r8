@@ -137,6 +137,11 @@ public class CfLogicalBinop extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 1;
+  }
+
+  @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     int right = state.pop().register;
     int left = state.pop().register;

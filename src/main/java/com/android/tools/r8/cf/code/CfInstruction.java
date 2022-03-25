@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.code.CfOrDexInstruction;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
@@ -65,6 +66,10 @@ public abstract class CfInstruction implements CfOrDexInstruction {
    */
   public abstract int internalAcceptCompareTo(
       CfInstruction other, CompareToVisitor visitor, CfCompareHelper helper);
+
+  public int bytecodeSizeUpperBound() {
+    throw new Unreachable("Instruction must specify size");
+  }
 
   public final int acceptCompareTo(
       CfInstruction o, CompareToVisitor visitor, CfCompareHelper helper) {

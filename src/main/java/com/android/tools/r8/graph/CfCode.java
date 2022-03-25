@@ -311,6 +311,16 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     return estimatedSizeForInlining() * Base5Format.SIZE;
   }
 
+  public int bytecodeSizeUpperBound() {
+    int result = 0;
+    for (CfInstruction instruction : instructions) {
+      int delta = instruction.bytecodeSizeUpperBound();
+      assert delta > 0 || !instruction.emitsIR();
+      result += delta;
+    }
+    return result;
+  }
+
   private int countNonStackOperations(int threshold) {
     int result = 0;
     for (CfInstruction instruction : instructions) {

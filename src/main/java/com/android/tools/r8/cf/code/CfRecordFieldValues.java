@@ -54,6 +54,11 @@ public class CfRecordFieldValues extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    throw new Unreachable();
+  }
+
+  @Override
   public CfRecordFieldValues asRecordFieldValues() {
     return this;
   }

@@ -88,6 +88,12 @@ public class CfLoad extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    // xload_0 .. xload_3, xload or wide xload, where x is a, i, f, l or d
+    return var <= 3 ? 1 : ((var < 256) ? 2 : 4);
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

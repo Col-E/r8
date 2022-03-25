@@ -62,6 +62,11 @@ public class CfMonitor extends CfInstruction {
     visitor.visitInsn(getAsmOpcode());
   }
 
+  @Override
+  public int bytecodeSizeUpperBound() {
+    return 1;
+  }
+
   private int getAsmOpcode() {
     return type == Type.ENTER ? Opcodes.MONITORENTER : Opcodes.MONITOREXIT;
   }

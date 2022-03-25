@@ -112,6 +112,11 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return opcode == Opcodes.INVOKEINTERFACE ? 5 : 3;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

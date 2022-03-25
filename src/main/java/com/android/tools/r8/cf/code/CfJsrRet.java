@@ -62,6 +62,11 @@ public class CfJsrRet extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    throw error();
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

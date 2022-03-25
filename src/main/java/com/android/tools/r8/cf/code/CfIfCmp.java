@@ -105,6 +105,11 @@ public class CfIfCmp extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 3;
+  }
+
+  @Override
   public boolean isConditionalJump() {
     return true;
   }

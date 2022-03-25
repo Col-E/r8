@@ -63,6 +63,11 @@ public class CfPosition extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 0;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

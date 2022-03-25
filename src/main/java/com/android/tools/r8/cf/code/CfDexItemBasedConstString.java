@@ -82,6 +82,12 @@ public class CfDexItemBasedConstString extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    // ldc or ldc_w
+    return 3;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

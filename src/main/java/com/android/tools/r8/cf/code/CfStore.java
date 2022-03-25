@@ -91,6 +91,12 @@ public class CfStore extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    // xstore_0 .. xstore_3, xstore or wide xstore, where x is a, i, f, l or d
+    return var <= 3 ? 1 : ((var < 256) ? 2 : 4);
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

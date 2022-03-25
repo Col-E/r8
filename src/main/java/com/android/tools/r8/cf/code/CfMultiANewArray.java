@@ -93,6 +93,11 @@ public class CfMultiANewArray extends CfInstruction implements CfTypeInstruction
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 4;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

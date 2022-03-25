@@ -64,6 +64,12 @@ public class CfIinc extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    // iinc or wide iinc
+    return var < 256 && increment < 256 ? 3 : 6;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

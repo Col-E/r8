@@ -67,6 +67,11 @@ public class CfReturn extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 1;
+  }
+
+  @Override
   public boolean isJump() {
     return true;
   }

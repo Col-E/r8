@@ -85,6 +85,11 @@ public class CfNewUnboxedEnum extends CfInstruction implements CfTypeInstruction
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    throw new Unreachable();
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

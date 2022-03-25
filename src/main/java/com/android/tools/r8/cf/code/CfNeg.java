@@ -64,6 +64,11 @@ public class CfNeg extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 1;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

@@ -92,6 +92,11 @@ public class CfInvokeDynamic extends CfInstruction {
         bsmArgs);
   }
 
+  @Override
+  public int bytecodeSizeUpperBound() {
+    return 5;
+  }
+
   private Object decodeBootstrapArgument(DexValue value, NamingLens lens) {
     switch (value.getValueKind()) {
       case DOUBLE:

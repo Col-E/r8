@@ -146,6 +146,64 @@ public class CfConstNumber extends CfInstruction {
     }
   }
 
+  @Override
+  public int bytecodeSizeUpperBound() {
+    switch (type) {
+      case INT:
+        {
+          int value = getIntValue();
+          if (-1 <= value && value <= 5) {
+            // iconst_0 .. iconst_5
+            return 1;
+          } else if (Byte.MIN_VALUE <= value && value <= Byte.MAX_VALUE) {
+            // bipush byte
+            return 2;
+          } else if (Short.MIN_VALUE <= value && value <= Short.MAX_VALUE) {
+            // sipush byte1 byte2
+            return 3;
+          } else {
+            // ldc or ldc_w
+            return 3;
+          }
+        }
+      case LONG:
+        {
+          long value = getLongValue();
+          if (value == 0 || value == 1) {
+            // lconst_0 .. lconst_1
+            return 1;
+          } else {
+            // ldc or ldc_w
+            return 3;
+          }
+        }
+      case FLOAT:
+        {
+          float value = getFloatValue();
+          if (value == 0 || value == 1 || value == 2) {
+            // fconst_0 .. fconst_2 followed by fneg if negative
+            return isNegativeZeroFloat(value) ? 2 : 1;
+          } else {
+            // ldc or ldc_w
+            return 3;
+          }
+        }
+      case DOUBLE:
+        {
+          double value = getDoubleValue();
+          if (value == 0 || value == 1) {
+            // dconst_0 .. dconst_2 followed by dneg if negative
+            return isNegativeZeroDouble(value) ? 2 : 1;
+          } else {
+            // ldc2_w
+            return 3;
+          }
+        }
+      default:
+        throw new Unreachable("Non supported type in cf backend: " + type);
+    }
+  }
+
   public static boolean isNegativeZeroDouble(double value) {
     return Double.doubleToLongBits(value) == Double.doubleToLongBits(-0.0);
   }

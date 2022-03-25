@@ -404,6 +404,11 @@ public class CfFrame extends CfInstruction {
     visitor.visitFrame(F_NEW, localsCount, localsTypes, stackCount, stackTypes);
   }
 
+  @Override
+  public int bytecodeSizeUpperBound() {
+    return 0;
+  }
+
   private int computeStackCount() {
     return stack.size();
   }

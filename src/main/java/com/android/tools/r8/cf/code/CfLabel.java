@@ -74,6 +74,11 @@ public class CfLabel extends CfInstruction {
   }
 
   @Override
+  public int bytecodeSizeUpperBound() {
+    return 0;
+  }
+
+  @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     // Intentionally left empty.
   }

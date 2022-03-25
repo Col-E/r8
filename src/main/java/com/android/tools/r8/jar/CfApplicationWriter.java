@@ -594,6 +594,7 @@ public class CfApplicationWriter {
       MethodVisitor visitor) {
     Code code = method.getDefinition().getCode();
     assert code.isCfWritableCode();
+    assert code.estimatedDexCodeSizeUpperBoundInBytes() > 0;
     code.asCfWritableCode()
         .writeCf(method, classFileVersion, appView, namingLens, rewriter, visitor);
   }
