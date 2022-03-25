@@ -1092,7 +1092,12 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
         new StackTraceForTest() {
           @Override
           public List<String> obfuscatedStackTrace() {
-            return ImmutableList.of("FOO bar(PG: 1)");
+            return ImmutableList.of(
+                "FOO bar(PG: 1)",
+                "FOO bar(PG : 1)",
+                "FOO bar(PG:1)",
+                "FOO bar(PG:1 )",
+                "FOO bar(PG: 1 )");
           }
 
           @Override
@@ -1100,18 +1105,27 @@ public class StackTraceRegularExpressionParserTests extends TestBase {
             return StringUtils.lines(
                 "this.was.Deobfuscated -> FOO:",
                 "    int[] mFontFamily -> a",
-                "    1:3:void someMethod(int,android.os.Bundle):65:67 -> bar");
+                "    1:3:void someMethod(int):65:67 -> bar");
           }
 
           @Override
           public List<String> retracedStackTrace() {
-            return ImmutableList.of("this.was.Deobfuscated someMethod(Deobfuscated.java)");
+            return ImmutableList.of(
+                "this.was.Deobfuscated someMethod(Deobfuscated.java: 65)",
+                "this.was.Deobfuscated someMethod(Deobfuscated.java: 65)",
+                "FOO bar(PG:1)",
+                "FOO bar(PG:1 )",
+                "FOO bar(PG: 1 )");
           }
 
           @Override
           public List<String> retraceVerboseStackTrace() {
             return ImmutableList.of(
-                "this.was.Deobfuscated void someMethod(int,android.os.Bundle)(Deobfuscated.java)");
+                "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java: 65)",
+                "this.was.Deobfuscated void someMethod(int)(Deobfuscated.java: 65)",
+                "FOO bar(PG:1)",
+                "FOO bar(PG:1 )",
+                "FOO bar(PG: 1 )");
           }
 
           @Override

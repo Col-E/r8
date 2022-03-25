@@ -275,9 +275,9 @@ public class StackTraceRegularExpressionParser
   private static class SourceFileGroup extends RegularExpressionGroup {
 
     static String subExpressionInternal() {
-      String anyNonDigitNonColonChar = "^\\d:";
+      String anyNonDigitNonColonNonWhitespaceChar = "^\\d:\\s";
       String anyNonColonChar = "^:";
-      String colonWithNonDigitSuffix = ":+[" + anyNonDigitNonColonChar + "]";
+      String colonWithNonDigitSuffix = ":+[" + anyNonDigitNonColonNonWhitespaceChar + "]";
       return "((?:(?:(?:" + colonWithNonDigitSuffix + "))|(?:[" + anyNonColonChar + "]))+)?";
     }
 
