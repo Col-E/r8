@@ -122,11 +122,42 @@ public class ProtoNormalizer {
     // Tracks the set of unoptimizable method signatures. These must remain as-is.
     DexMethodSignatureSet unoptimizableSignatures = DexMethodSignatureSet.createConcurrent();
 
-    ThreadUtils.processMethods(
-        appView,
-        method ->
-            computeReservationsFromMethod(
-                method, optimizableParameterLists, reservedParameterLists, unoptimizableSignatures),
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        clazz -> {
+          Map<DexMethodSignature, DexMethodSignatureSet> collisions = new HashMap<>();
+          clazz.forEachProgramMethod(
+              method -> {
+                DexTypeList methodParametersSorted = method.getParameters().getSorted();
+                computeReservationsFromMethod(
+                    method,
+                    methodParametersSorted,
+                    optimizableParameterLists,
+                    reservedParameterLists,
+                    unoptimizableSignatures);
+
+                DexMethodSignature methodSignature = method.getMethodSignature();
+                DexMethodSignature methodSignatureWithSortedParameters =
+                    methodSignature.withParameters(methodParametersSorted, dexItemFactory);
+                collisions
+                    .computeIfAbsent(
+                        methodSignatureWithSortedParameters,
+                        ignoreKey(DexMethodSignatureSet::createLinked))
+                    .add(methodSignature);
+              });
+          collisions.forEach(
+              (methodSignatureWithSortedParameters, methodSignatures) -> {
+                if (methodSignatures.size() > 1) {
+                  methodSignatures.forEach(
+                      methodSignature ->
+                          addUnoptimizableMethod(
+                              methodSignature,
+                              methodSignatureWithSortedParameters.getParameters(),
+                              reservedParameterLists,
+                              unoptimizableSignatures));
+                }
+              });
+        },
         executorService);
 
     // Reserve parameter lists that won't lead to any sharing after normalization. Any method with
@@ -164,26 +195,37 @@ public class ProtoNormalizer {
 
   private void computeReservationsFromMethod(
       ProgramMethod method,
+      DexTypeList methodParametersSorted,
       Map<DexTypeList, Set<DexTypeList>> optimizableParameterLists,
       Map<DexTypeList, Set<DexTypeList>> reservedParameterLists,
       DexMethodSignatureSet unoptimizableSignatures) {
     if (isUnoptimizable(method)) {
-      // Record that other optimizable methods with the same set of parameter types should be
-      // rewritten to have the same parameter list as this method.
-      reservedParameterLists
-          .computeIfAbsent(
-              method.getParameters().getSorted(), ignoreKey(Sets::newConcurrentHashSet))
-          .add(method.getParameters());
-
-      // Mark signature as unoptimizable.
-      unoptimizableSignatures.add(method);
+      addUnoptimizableMethod(
+          method.getMethodSignature(),
+          methodParametersSorted,
+          reservedParameterLists,
+          unoptimizableSignatures);
     } else {
       // Record that the method's parameter list can be rewritten into any permutation.
       optimizableParameterLists
-          .computeIfAbsent(
-              method.getParameters().getSorted(), ignoreKey(Sets::newConcurrentHashSet))
+          .computeIfAbsent(methodParametersSorted, ignoreKey(Sets::newConcurrentHashSet))
           .add(method.getParameters());
     }
+  }
+
+  private void addUnoptimizableMethod(
+      DexMethodSignature method,
+      DexTypeList methodParametersSorted,
+      Map<DexTypeList, Set<DexTypeList>> reservedParameterLists,
+      DexMethodSignatureSet unoptimizableSignatures) {
+    // Record that other optimizable methods with the same set of parameter types should be
+    // rewritten to have the same parameter list as this method.
+    reservedParameterLists
+        .computeIfAbsent(methodParametersSorted, ignoreKey(Sets::newConcurrentHashSet))
+        .add(method.getParameters());
+
+    // Mark signature as unoptimizable.
+    unoptimizableSignatures.add(method);
   }
 
   private void computeExtraReservationsFromMethod(
