@@ -1,4 +1,4 @@
-# Description of the desugared library configuration file
+# Description of the legacy desugared library configuration file
 
 ## Version
 
