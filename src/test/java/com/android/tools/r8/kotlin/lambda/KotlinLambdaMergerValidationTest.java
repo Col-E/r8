@@ -10,8 +10,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -43,9 +41,8 @@ public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
 
     String pkg = getClass().getPackage().getName();
     String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg);
-    CfRuntime cfRuntime = parameters.getRuntime().asCf();
     Path ktClasses =
-        kotlinc(cfRuntime, kotlinc, targetVersion)
+        kotlinc(getKotlincHostRuntime(parameters.getRuntime()), kotlinc, targetVersion)
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())
@@ -68,10 +65,8 @@ public class KotlinLambdaMergerValidationTest extends KotlinTestBase {
 
     String pkg = getClass().getPackage().getName();
     String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg);
-    CfRuntime cfRuntime =
-        parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
     Path ktClasses =
-        kotlinc(cfRuntime, kotlinc, targetVersion)
+        kotlinc(getKotlincHostRuntime(parameters.getRuntime()), kotlinc, targetVersion)
             .addSourceFiles(getKotlinFileInTest(folder, "b143165163"))
             .compile();
     testForR8(parameters.getBackend())

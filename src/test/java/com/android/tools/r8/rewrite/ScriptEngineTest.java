@@ -14,6 +14,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StreamUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -103,7 +104,10 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
         //  comes with "Oracle Nashorn" included.
         .assertSuccessWithOutput(
             parameters.isCfRuntime()
-                ? StringUtils.lines("MyEngine1", "MyEngine2", "Oracle Nashorn")
+                // TODO(b/227162584): It looks like the JS engine is not in the jdk anymore.
+                ? (parameters.isCfRuntime(CfVm.JDK17)
+                    ? StringUtils.lines("MyEngine1", "MyEngine2")
+                    : StringUtils.lines("MyEngine1", "MyEngine2", "Oracle Nashorn"))
                 : StringUtils.lines("Mozilla Rhino", "MyEngine1", "MyEngine2"));
 
     // TODO(b/136633154): On the JVM this should always be there as the service loading is in

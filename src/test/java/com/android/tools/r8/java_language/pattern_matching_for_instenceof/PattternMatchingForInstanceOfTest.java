@@ -7,7 +7,7 @@ package com.android.tools.r8.java_language.pattern_matching_for_instenceof;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.jdk17.PatternMatchingForInstanceof;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.google.common.collect.ImmutableList;
@@ -31,10 +31,9 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
+            .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());

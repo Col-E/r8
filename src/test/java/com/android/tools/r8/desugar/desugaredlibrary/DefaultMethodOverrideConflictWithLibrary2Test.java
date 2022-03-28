@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -90,12 +89,11 @@ public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibr
   }
 
   private void checkResult(TestRunResult<?> result) {
-    if (parameters.isCfRuntime() && parameters.getRuntime().asCf().getVm().equals(CfVm.JDK11)) {
-      // TODO(b/145566657): For some reason JDK11 throws AbstractMethodError.
-      result.assertFailureWithErrorThatMatches(containsString(AbstractMethodError.class.getName()));
+    if (parameters.isCfRuntime() && parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11)) {
+      // TODO(b/145566657): For some reason JDK11+ throws AbstractMethodError.
+      result.assertFailureWithErrorThatThrows(AbstractMethodError.class);
     } else {
-      result.assertFailureWithErrorThatMatches(
-          containsString(IncompatibleClassChangeError.class.getName()));
+      result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
     }
   }
 

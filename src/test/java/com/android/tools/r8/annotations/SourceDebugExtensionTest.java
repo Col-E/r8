@@ -12,11 +12,10 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.retrace.KotlinInlineFunctionRetraceTest;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
@@ -52,11 +51,13 @@ public class SourceDebugExtensionTest extends TestBase {
 
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
-    CfRuntime cfRuntime =
-        parameters.isCfRuntime() ? parameters.getRuntime().asCf() : TestRuntime.getCheckedInJdk9();
     KotlinCompiler kotlinc = kotlinTestParameters.getCompiler();
     Path kotlinSources =
-        kotlinc(cfRuntime, getStaticTemp(), kotlinc, KotlinTargetVersion.JAVA_8)
+        kotlinc(
+                KotlinTestBase.getKotlincHostRuntime(parameters.getRuntime()),
+                getStaticTemp(),
+                kotlinc,
+                KotlinTargetVersion.JAVA_8)
             .addSourceFiles(
                 getFilesInTestFolderRelativeToClass(
                     KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))

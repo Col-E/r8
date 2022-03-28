@@ -5,11 +5,13 @@
 package com.android.tools.r8.desugar.records;
 
 import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import org.junit.Test;
@@ -36,18 +38,21 @@ public class EmptyRecordAnnotationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk16).
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
+            .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
             .withDexRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());
   }
 
+  private boolean isDefaultCfParameters() {
+    return parameters.isCfRuntime() && parameters.getApiLevel().equals(AndroidApiLevel.B);
+  }
+
   @Test
   public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
+    if (isDefaultCfParameters()) {
       testForJvm()
           .addProgramClassFileData(PROGRAM_DATA)
           .run(parameters.getRuntime(), MAIN_TYPE)
@@ -64,6 +69,7 @@ public class EmptyRecordAnnotationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isDefaultCfParameters());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

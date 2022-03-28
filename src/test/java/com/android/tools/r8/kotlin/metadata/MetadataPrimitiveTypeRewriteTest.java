@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KotlinCompilerVersion.MIN_SUPPORTED_VERSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndRenamed;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,9 +120,10 @@ public class MetadataPrimitiveTypeRewriteTest extends KotlinMetadataTestBase {
       runResult.assertSuccessWithOutputLines(EXPECTED);
     } else {
       runResult.assertFailureWithErrorThatMatches(
-          containsString(
-              "java.lang.NoSuchMethodError:"
-                  + " com.android.tools.r8.kotlin.metadata.primitive_type_rewrite_lib.LibKt.foo()"));
+          allOf(
+              containsString("java.lang.NoSuchMethodError:"),
+              containsString(
+                  "com.android.tools.r8.kotlin.metadata.primitive_type_rewrite_lib.LibKt.foo()")));
     }
   }
 }

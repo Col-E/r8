@@ -58,7 +58,7 @@ public abstract class TestRuntime {
     }
 
     public static CfVm last() {
-      return JDK11;
+      return JDK17;
     }
 
     public boolean lessThan(CfVm other) {
@@ -130,14 +130,15 @@ public abstract class TestRuntime {
     return new CfRuntime(CfVm.JDK11, getCheckedInJdkHome(CfVm.JDK11));
   }
 
-  // TODO(b/169692487): Add this to 'getCheckedInCfRuntimes' when we start having support for JDK17.
   public static CfRuntime getCheckedInJdk17() {
     return new CfRuntime(CfVm.JDK17, getCheckedInJdkHome(CfVm.JDK17));
   }
 
   public static List<CfRuntime> getCheckedInCfRuntimes() {
     CfRuntime[] jdks =
-        new CfRuntime[] {getCheckedInJdk8(), getCheckedInJdk9(), getCheckedInJdk11()};
+        new CfRuntime[] {
+          getCheckedInJdk8(), getCheckedInJdk9(), getCheckedInJdk11(), getCheckedInJdk17(),
+        };
     Builder<CfRuntime> builder = ImmutableList.builder();
     for (CfRuntime jdk : jdks) {
       if (jdk != null) {

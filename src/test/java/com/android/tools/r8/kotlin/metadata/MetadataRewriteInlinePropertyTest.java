@@ -52,7 +52,7 @@ public class MetadataRewriteInlinePropertyTest extends KotlinMetadataTestBase {
   public void smokeTest() throws Exception {
     Path libJar = libJars.getForConfiguration(kotlinc, targetVersion);
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), kotlinc, targetVersion)
+        kotlinc(getKotlincHostRuntime(parameters.getRuntime()), kotlinc, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/inline_property_app", "main"))
             .setOutputPath(temp.newFolder().toPath())

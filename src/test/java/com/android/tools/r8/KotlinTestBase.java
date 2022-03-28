@@ -51,6 +51,10 @@ public abstract class KotlinTestBase extends TestBase {
     this.kotlinParameters = kotlinParameters;
   }
 
+  public static CfRuntime getKotlincHostRuntime(TestRuntime runtime) {
+    return runtime.isCf() ? runtime.asCf() : TestRuntime.getCheckedInJdk9();
+  }
+
   protected static List<Path> getKotlinFilesInTestPackage(Package pkg) throws IOException {
     String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg.getName());
     return Files.walk(Paths.get(ToolHelper.TESTS_DIR, "java", folder))

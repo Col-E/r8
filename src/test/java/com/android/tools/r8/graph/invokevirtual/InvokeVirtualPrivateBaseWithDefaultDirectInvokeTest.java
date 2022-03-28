@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,9 +32,13 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
     this.parameters = parameters;
   }
 
+  private boolean isDefaultCfParameters() {
+    return parameters.isCfRuntime() && parameters.getApiLevel().equals(AndroidApiLevel.B);
+  }
+
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(isDefaultCfParameters());
     testForJvm()
         .addInnerClasses(getClass())
         .run(parameters.getRuntime(), Main.class)
@@ -51,6 +56,7 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isDefaultCfParameters());
     testForR8(parameters.getBackend())
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
@@ -70,7 +76,9 @@ public class InvokeVirtualPrivateBaseWithDefaultDirectInvokeTest extends TestBas
         (nonDesugaredCf && parameters.isCfRuntime())
             || parameters.canUseDefaultAndStaticInterfaceMethodsWhenDesugaring();
     // JDK 11 allows this incorrect dispatch for some reason.
-    if (parameters.isCfRuntime(CfVm.JDK11) && isNotDesugared) {
+    if (parameters.isCfRuntime()
+        && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11)
+        && isNotDesugared) {
       result.assertSuccessWithOutputLines("I::foo");
       return;
     }

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
+import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -58,7 +59,7 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
     // Compile Hello.kt and make sure it works as expected.
     Path classPathBefore =
         kotlinc(
-                parameters.getRuntime().asCf(),
+                KotlinTestBase.getKotlincHostRuntime(parameters.getRuntime()),
                 kotlinTestParameters.getCompiler(),
                 kotlinTestParameters.getTargetVersion())
             .addSourceFiles(HELLO_KT)

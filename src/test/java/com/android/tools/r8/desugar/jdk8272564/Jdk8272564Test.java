@@ -11,7 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.jdk18.jdk8272564.Jdk8272564;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
@@ -30,9 +30,8 @@ public class Jdk8272564Test extends TestBase {
   public static TestParametersCollection data() {
     // TODO(b/218293990): Right now the JDK 18 tests are built with -target 17, as our Gradle
     //  version does not know of -target 18.
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
     return getTestParameters()
-        .withCustomRuntime(TestRuntime.getCheckedInJdk17())
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK17)
         .withDexRuntimes()
         .withAllApiLevelsAlsoForCf()
         .build();
@@ -119,20 +118,24 @@ public class Jdk8272564Test extends TestBase {
     assertJdk8272564NotFixedCode(inspector, 19, 0);
   }
 
+  private boolean isDefaultCfParameters() {
+    return parameters.isCfRuntime() && parameters.getApiLevel().equals(AndroidApiLevel.B);
+  }
+
   @Test
   // See https://bugs.openjdk.java.net/browse/JDK-8272564.
   public void testJdk8272564Compiler() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(isDefaultCfParameters());
     // Ensure that the test is running with CF input from fixing JDK-8272564.
     assertJdk8272564FixedCode(new CodeInspector(Jdk8272564.jar()));
   }
 
   @Test
   public void testJvm() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
+    assumeTrue(isDefaultCfParameters());
     testForJvm()
         .addRunClasspathFiles(Jdk8272564.jar())
-        .run(TestRuntime.getCheckedInJdk17(), Jdk8272564.Main.typeName())
+        .run(parameters.getRuntime(), Jdk8272564.Main.typeName())
         .assertSuccess();
   }
 
@@ -150,6 +153,7 @@ public class Jdk8272564Test extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isDefaultCfParameters());
     // The R8 lens code rewriter rewrites to the code prior to fixing JDK-8272564.
     testForR8(parameters.getBackend())
         .addProgramFiles(Jdk8272564.jar())

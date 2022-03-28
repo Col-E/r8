@@ -14,6 +14,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -47,7 +48,7 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(getExpectedStdout());
+        .assertSuccessWithOutput(getExpectedStdout(false));
   }
 
   @Test
@@ -60,7 +61,7 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(getExpectedStdout());
+        .assertSuccessWithOutput(getExpectedStdout(false));
   }
 
   @Test
@@ -72,7 +73,7 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(getExpectedStdout());
+        .assertSuccessWithOutput(getExpectedStdout(true));
   }
 
   private void inspect(CodeInspector inspector) {
@@ -114,7 +115,21 @@ public class IfThrowNullPointerExceptionTest extends TestBase {
     }
   }
 
-  private String getExpectedStdout() {
+  private String getExpectedStdout(boolean isR8) {
+    if (parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)) {
+      // Newer JVMs have added support for printing the expression and local causing the NPE.
+      if (isR8) {
+        return StringUtils.lines(
+            "Caught NPE: Cannot invoke \"Object.getClass()\" because \"<parameter1>\" is null",
+            "Caught NPE: x was null",
+            "Caught NPE: Cannot invoke \"Object.getClass()\" because \"<parameter1>\" is null");
+      } else {
+        return StringUtils.lines(
+            "Caught NPE: null",
+            "Caught NPE: x was null",
+            "Caught NPE: Cannot throw exception because \"null\" is null");
+      }
+    }
     if (parameters.isCfRuntime() || isDalvik()) {
       return StringUtils.lines("Caught NPE: null", "Caught NPE: x was null", "Caught NPE: null");
     }

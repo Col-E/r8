@@ -18,6 +18,7 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.KotlinCompilerTool.KotlinTargetVersion;
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -349,6 +350,10 @@ public class TestBase {
       TemporaryFolder temp,
       KotlinCompiler kotlinCompiler,
       KotlinTargetVersion kotlinTargetVersion) {
+    // TODO(b/227161720): Kotlinc fails to run on JDK17.
+    if (jdk.isNewerThanOrEqual(CfVm.JDK17)) {
+      jdk = TestRuntime.getCheckedInJdk9();
+    }
     return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);
   }
 
@@ -359,6 +364,10 @@ public class TestBase {
 
   public KotlinCompilerTool kotlinc(
       CfRuntime jdk, KotlinCompiler kotlinCompiler, KotlinTargetVersion kotlinTargetVersion) {
+    // TODO(b/227161720): Kotlinc fails to run on JDK17.
+    if (jdk.isNewerThanOrEqual(CfVm.JDK17)) {
+      jdk = TestRuntime.getCheckedInJdk9();
+    }
     return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);
   }
 

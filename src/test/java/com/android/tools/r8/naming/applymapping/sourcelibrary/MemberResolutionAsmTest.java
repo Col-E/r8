@@ -14,6 +14,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.naming.applymapping.shared.NoMappingDumps.HasMappingDump;
 import com.android.tools.r8.naming.applymapping.shared.NoMappingDumps.NoMappingDump;
@@ -158,7 +159,9 @@ public class MemberResolutionAsmTest extends TestBase {
 
   private String getMethodSignature(String type, String method) {
     if (parameters.isCfRuntime()) {
-      return type + "." + method + "()V";
+      return parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK17)
+          ? ("void " + type + "." + method + "()")
+          : (type + "." + method + "()V");
     }
     assert parameters.isDexRuntime();
     Version version = parameters.getRuntime().asDex().getVm().getVersion();

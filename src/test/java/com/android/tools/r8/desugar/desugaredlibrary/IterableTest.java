@@ -8,6 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.LibraryDesugaringTestConfiguration;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -91,7 +93,12 @@ public class IterableTest extends DesugaredLibraryTestBase {
           .addProgramFiles(jar)
           .addRunClasspathFiles(buildDesugaredLibraryClassFile(parameters.getApiLevel()))
           .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutput(EXPECTED_OUTPUT);
+          .applyIf(
+              // TODO(b/227161271): Figure out the cause and resolution for this issue.
+              parameters.isCfRuntime(CfVm.JDK17)
+                  && parameters.getApiLevel().equals(AndroidApiLevel.B),
+              r -> r.assertFailureWithErrorThatThrows(ExceptionInInitializerError.class),
+              r -> r.assertSuccessWithOutput(EXPECTED_OUTPUT));
     }
   }
 

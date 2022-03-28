@@ -49,7 +49,7 @@ public class SingleResolutionWithFailingDispatchTest extends TestBase {
   }
 
   private void inspectRunResult(TestRunResult<?> runResult) {
-    if (parameters.isCfRuntime(CfVm.JDK11)) {
+    if (parameters.isCfRuntime() && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK11)) {
       runResult.assertFailureWithErrorThatThrows(AbstractMethodError.class);
     } else {
       runResult.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);

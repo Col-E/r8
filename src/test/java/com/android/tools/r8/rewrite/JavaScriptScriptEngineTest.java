@@ -12,6 +12,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -56,22 +57,18 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaScriptScriptEngineTest.class)
         .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
         .applyIf(
             parameters.isDexRuntime(),
-            testBuilder ->
-                testBuilder.addOptionsModification(
-                    options ->
-                        options
-                            .getOpenClosedInterfacesOptions()
-                            .suppressAllOpenInterfacesDueToMissingClasses()))
-        .setMinApi(parameters.getApiLevel())
-        .apply(
-            b -> {
-              if (parameters.isDexRuntime()) {
-                addRhinoForAndroid(b);
-                addKeepRulesForAndroidRhino(b);
-                b.allowDiagnosticWarningMessages();
-              }
+            testBuilder -> {
+              testBuilder.addOptionsModification(
+                  options ->
+                      options
+                          .getOpenClosedInterfacesOptions()
+                          .suppressAllOpenInterfacesDueToMissingClasses());
+              addRhinoForAndroid(testBuilder);
+              addKeepRulesForAndroidRhino(testBuilder);
+              testBuilder.allowDiagnosticWarningMessages();
             })
         .compile()
         .applyIf(
@@ -84,8 +81,13 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
                             "required for default or static interface methods desugaring"),
                         equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))))
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(
-            parameters.isCfRuntime() ? EXPECTED_NASHORN_OUTPUT : EXPECTED_RHINO_OUTPUT);
+        .applyIf(
+            // TODO(b/227162584): Fails to find any engine on JDK17.
+            parameters.isCfRuntime(CfVm.JDK17),
+            r -> r.assertFailureWithErrorThatThrows(NullPointerException.class),
+            r ->
+                r.assertSuccessWithOutput(
+                    parameters.isCfRuntime() ? EXPECTED_NASHORN_OUTPUT : EXPECTED_RHINO_OUTPUT));
   }
 
   static class TestClass {

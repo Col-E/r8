@@ -39,10 +39,8 @@ public class SimpleRecordTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): Remove once jdk14 or above is added to default parameters.
     return buildParameters(
         getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
             .withAllRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());

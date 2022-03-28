@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph.invokestatic;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -48,11 +49,11 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
             .run(parameters.getRuntime(), Main.class);
     if (parameters.getRuntime().asCf().isNewerThan(CfVm.JDK8)) {
       runResult.assertFailureWithErrorThatMatches(
-          containsString(
-              "java.lang.IncompatibleClassChangeError: Method "
-                  + I.class.getTypeName()
-                  + ".foo()V"
-                  + " must be InterfaceMethodref constant"));
+          allOf(
+              containsString("java.lang.IncompatibleClassChangeError: Method"),
+              // JVM method formatting changed between jdk11 and jdk17
+              containsString(I.class.getTypeName() + ".foo()"),
+              containsString("must be InterfaceMethodref constant")));
     } else {
       runResult.assertSuccessWithOutputLines("Hello World!");
     }
@@ -85,10 +86,11 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
             .run(parameters.getRuntime(), Main.class);
     if (parameters.getRuntime().asCf().isNewerThan(CfVm.JDK8)) {
       runResult.assertFailureWithErrorThatMatches(
-          containsString(
-              "java.lang.IncompatibleClassChangeError: Method"
-                  + " com.android.tools.r8.graph.invokestatic.InvokeStaticOnInterfaceTest$I.foo()V"
-                  + " must be InterfaceMethodref constant"));
+          allOf(
+              containsString("java.lang.IncompatibleClassChangeError: Method"),
+              containsString(
+                  "com.android.tools.r8.graph.invokestatic.InvokeStaticOnInterfaceTest$I.foo()"),
+              containsString("must be InterfaceMethodref constant")));
     } else {
       runResult.assertSuccessWithOutputLines("Hello World!");
     }
