@@ -39,8 +39,7 @@ public class EmptyEnumUnboxingTest extends EnumUnboxingTestBase {
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRules())
         // TODO(b/166532373): Unbox enum with no cases.
-        .addEnumUnboxingInspector(
-            inspector -> inspector.assertUnboxedIf(enumKeepRules.isNone(), MyEnum.class))
+        .addEnumUnboxingInspector(inspector -> inspector.assertNotUnboxed(MyEnum.class))
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))

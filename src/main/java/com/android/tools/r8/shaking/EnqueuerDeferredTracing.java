@@ -86,7 +86,7 @@ public class EnqueuerDeferredTracing {
       ProgramMethod context,
       FieldAccessKind accessKind,
       FieldAccessMetadata metadata) {
-    if (!enqueuer.getMode().isTreeShaking()) {
+    if (!enqueuer.getMode().isFinalTreeShaking()) {
       return false;
     }
 

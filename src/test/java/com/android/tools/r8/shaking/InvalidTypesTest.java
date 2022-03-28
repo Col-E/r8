@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.DXTestRunResult;
@@ -59,7 +60,7 @@ public class InvalidTypesTest extends JasminTestBase {
       @Override
       public String getExpectedOutput(
           Compiler compiler, TestParameters parameters, boolean useInterface) {
-        if (!useInterface && compiler != Compiler.R8) {
+        if (!useInterface) {
           return StringUtils.joinLines("Hello!", "");
         }
 
@@ -289,6 +290,8 @@ public class InvalidTypesTest extends JasminTestBase {
       checkTestRunResult(d8Result, Compiler.D8);
     }
 
+    boolean allowDiagnosticWarningMessages =
+        mode == Mode.INVOKE_UNVERIFIABLE_METHOD && !useInterface;
     R8TestRunResult r8Result =
         testForR8(parameters.getBackend())
             .addProgramFiles(inputJar)
@@ -306,8 +309,16 @@ public class InvalidTypesTest extends JasminTestBase {
                     options.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces();
                   }
                 })
+            .allowDiagnosticWarningMessages(allowDiagnosticWarningMessages)
             .setMinApi(parameters.getApiLevel())
             .compile()
+            .applyIf(
+                allowDiagnosticWarningMessages,
+                result ->
+                    result.assertAllWarningMessagesMatch(
+                        equalTo(
+                            "The method `void UnverifiableClass.unverifiableMethod()` does not"
+                                + " type check and will be assumed to be unreachable.")))
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);
   }
@@ -324,17 +335,17 @@ public class InvalidTypesTest extends JasminTestBase {
         } else {
           result
               .assertFailureWithOutput(getExpectedOutput(compiler))
-              .assertFailureWithErrorThatMatches(getMatcherForExpectedError());
+              .assertFailureWithErrorThatMatches(getMatcherForExpectedError(compiler));
         }
         break;
 
       case INVOKE_UNVERIFIABLE_METHOD:
-        if (useInterface || compiler == Compiler.R8) {
+        if (useInterface) {
           result.assertSuccessWithOutput(getExpectedOutput(compiler));
         } else {
           result
               .assertFailureWithOutput(getExpectedOutput(compiler))
-              .assertFailureWithErrorThatMatches(getMatcherForExpectedError());
+              .assertFailureWithErrorThatMatches(getMatcherForExpectedError(compiler));
         }
         break;
 
@@ -347,7 +358,10 @@ public class InvalidTypesTest extends JasminTestBase {
     return mode.getExpectedOutput(compiler, parameters, useInterface);
   }
 
-  private Matcher<String> getMatcherForExpectedError() {
+  private Matcher<String> getMatcherForExpectedError(Compiler compiler) {
+    if (compiler == Compiler.R8 && mode == Mode.INVOKE_UNVERIFIABLE_METHOD) {
+      return containsString("java.lang.NullPointerException");
+    }
     if (parameters.isCfRuntime()) {
       return allOf(
           containsString("java.lang.VerifyError"),

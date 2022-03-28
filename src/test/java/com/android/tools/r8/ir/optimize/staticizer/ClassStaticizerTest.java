@@ -331,6 +331,7 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
+            "DIRECT: void movetohost.HostConflictField.<init>()",
             "STATIC: String movetohost.CandidateConflictField.bar(String)",
             "STATIC: String movetohost.CandidateConflictField.foo()",
             "STATIC: String movetohost.MoveToHostTestClass.next()"),
