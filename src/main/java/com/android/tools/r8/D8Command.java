@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DumpInputFlags;
+import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramProvider;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
@@ -82,6 +83,9 @@ public final class D8Command extends BaseCompilerCommand {
   public static class Builder extends BaseCompilerCommand.Builder<D8Command, Builder> {
 
     private boolean intermediate = false;
+    private GlobalSyntheticsConsumer globalSyntheticsConsumer = null;
+    private List<GlobalSyntheticsResourceProvider> globalSyntheticsResourceProviders =
+        new ArrayList<>();
     private DesugarGraphConsumer desugarGraphConsumer = null;
     private StringConsumer desugaredLibraryKeepRuleConsumer = null;
     private String synthesizedClassPrefix = "";
@@ -144,10 +148,57 @@ public final class D8Command extends BaseCompilerCommand {
     /**
      * Indicate if compilation is to intermediate results, i.e., intended for later merging.
      *
+     * <p>When compiling to intermediate mode, the compiler will avoid sharing of synthetic items,
+     * and instead annotate them as synthetics for possible later merging. For global synthetics,
+     * the compiler will emit these to a separate consumer (see {@code GlobalSyntheticsConsumer}
+     * with the expectation that a later build step will consume them again as part of a
+     * non-intermediate build (see {@code GlobalSyntheticsResourceProvider}. Synthetic items
+     * typically come from the desugaring of various language features, such as lambdas and default
+     * interface methods. Global synthetics are non-local in that many compilation units may
+     * reference the same synthetic. For example, desugaring records requires a global tag to
+     * distinguish the class of all records.
+     *
      * <p>Intermediate mode is implied if compiling results to a "file-per-class-file".
      */
     public Builder setIntermediate(boolean value) {
       this.intermediate = value;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving the global synthetic content for the given compilation.
+     *
+     * <p>Note: this consumer is ignored if the compilation is not an "intermediate mode"
+     * compilation.
+     */
+    public Builder setGlobalSyntheticsConsumer(GlobalSyntheticsConsumer globalSyntheticsConsumer) {
+      this.globalSyntheticsConsumer = globalSyntheticsConsumer;
+      return self();
+    }
+
+    /** Add global synthetics resource providers. */
+    public Builder addGlobalSyntheticsResourceProviders(
+        GlobalSyntheticsResourceProvider... providers) {
+      return addGlobalSyntheticsResourceProviders(Arrays.asList(providers));
+    }
+
+    /** Add global synthetics resource providers. */
+    public Builder addGlobalSyntheticsResourceProviders(
+        Collection<GlobalSyntheticsResourceProvider> providers) {
+      providers.forEach(globalSyntheticsResourceProviders::add);
+      return self();
+    }
+
+    /** Add global synthetics resource files. */
+    public Builder addGlobalSyntheticsFiles(Path... files) {
+      return addGlobalSyntheticsFiles(Arrays.asList(files));
+    }
+
+    /** Add global synthetics resource files. */
+    public Builder addGlobalSyntheticsFiles(Collection<Path> files) {
+      for (Path file : files) {
+        addGlobalSyntheticsResourceProviders(new GlobalSyntheticsResourceFile(file));
+      }
       return self();
     }
 
@@ -294,6 +345,11 @@ public final class D8Command extends BaseCompilerCommand {
       ImmutableList<ProguardConfigurationRule> mainDexKeepRules =
           ProguardConfigurationParser.parse(mainDexRules, factory, getReporter());
 
+      if (!globalSyntheticsResourceProviders.isEmpty()) {
+        addProgramResourceProvider(
+            new InternalGlobalSyntheticsProgramProvider(globalSyntheticsResourceProviders));
+      }
+
       return new D8Command(
           getAppBuilder().build(),
           getMode(),
@@ -303,6 +359,7 @@ public final class D8Command extends BaseCompilerCommand {
           getReporter(),
           getDesugaringState(),
           intermediate,
+          intermediate ? globalSyntheticsConsumer : null,
           isOptimizeMultidexForLinearAlloc(),
           getIncludeClassesChecksum(),
           getDexClassChecksumFilter(),
@@ -326,6 +383,7 @@ public final class D8Command extends BaseCompilerCommand {
   static final String USAGE_MESSAGE = D8CommandParser.USAGE_MESSAGE;
 
   private final boolean intermediate;
+  private final GlobalSyntheticsConsumer globalSyntheticsConsumer;
   private final DesugarGraphConsumer desugarGraphConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibrarySpecification desugaredLibrarySpecification;
@@ -385,6 +443,7 @@ public final class D8Command extends BaseCompilerCommand {
       Reporter diagnosticsHandler,
       DesugarState enableDesugaring,
       boolean intermediate,
+      GlobalSyntheticsConsumer globalSyntheticsConsumer,
       boolean optimizeMultidexForLinearAlloc,
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
@@ -420,6 +479,7 @@ public final class D8Command extends BaseCompilerCommand {
         mapIdProvider,
         null);
     this.intermediate = intermediate;
+    this.globalSyntheticsConsumer = globalSyntheticsConsumer;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.desugaredLibrarySpecification = desugaredLibrarySpecification;
@@ -434,6 +494,7 @@ public final class D8Command extends BaseCompilerCommand {
   private D8Command(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     intermediate = false;
+    globalSyntheticsConsumer = null;
     desugarGraphConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
     desugaredLibrarySpecification = null;
@@ -468,6 +529,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.setMinApiLevel(AndroidApiLevel.getAndroidApiLevel(getMinApiLevel()));
     internal.intermediate = intermediate;
     internal.retainCompileTimeAnnotations = intermediate;
+    internal.setGlobalSyntheticsConsumer(globalSyntheticsConsumer);
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.lineNumberOptimization = LineNumberOptimization.OFF;

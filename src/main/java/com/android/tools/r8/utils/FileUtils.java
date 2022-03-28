@@ -31,6 +31,7 @@ public class FileUtils {
   public static final String KT_EXTENSION = ".kt";
   public static final String MODULE_INFO_CLASS = "module-info.class";
   public static final String MODULES_PREFIX = "/modules";
+  public static final String GLOBAL_SYNTHETIC_EXTENSION = ".global";
 
   public static final boolean isAndroid =
       System.getProperty("java.vm.name").equalsIgnoreCase("Dalvik");

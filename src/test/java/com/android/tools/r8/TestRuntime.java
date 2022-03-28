@@ -29,6 +29,11 @@ public abstract class TestRuntime {
     JDK9("jdk9", 53),
     JDK10("jdk10", 54),
     JDK11("jdk11", 55),
+    JDK12("jdk12", 56),
+    JDK13("jdk13", 57),
+    JDK14("jdk14", 58),
+    JDK15("jdk15", 59),
+    JDK16("jdk16", 60),
     JDK17("jdk17", 61),
     JDK18("jdk18", 62),
     ;

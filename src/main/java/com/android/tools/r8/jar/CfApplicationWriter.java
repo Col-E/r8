@@ -48,6 +48,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AsmUtils;
 import com.android.tools.r8.utils.ComparatorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsCfConsumer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
@@ -57,6 +58,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -149,34 +151,65 @@ public class CfApplicationWriter {
       sourceFileEnvironment = ApplicationWriter.createSourceFileEnvironment(proguardMapId);
     }
     LensCodeRewriterUtils rewriter = new LensCodeRewriterUtils(appView);
-    for (DexProgramClass clazz : application.classes()) {
-      assert SyntheticNaming.verifyNotInternalSynthetic(clazz.getType());
-      try {
-        writeClass(clazz, consumer, rewriter, markerString, sourceFileEnvironment);
-      } catch (ClassTooLargeException e) {
-        throw appView
-            .options()
-            .reporter
-            .fatalError(
-                new ConstantPoolOverflowDiagnostic(
-                    clazz.getOrigin(),
-                    Reference.classFromBinaryName(e.getClassName()),
-                    e.getConstantPoolCount()));
-      } catch (MethodTooLargeException e) {
-        throw appView
-            .options()
-            .reporter
-            .fatalError(
-                new CodeSizeOverflowDiagnostic(
-                    clazz.getOrigin(),
-                    Reference.methodFromDescriptor(
-                        Reference.classFromBinaryName(e.getClassName()).getDescriptor(),
-                        e.getMethodName(),
-                        e.getDescriptor()),
-                    e.getCodeSize()));
+    Collection<DexProgramClass> classes = application.classes();
+    Collection<DexProgramClass> globalSyntheticClasses = new ArrayList<>();
+    if (options.intermediate && options.hasGlobalSyntheticsConsumer()) {
+      Collection<DexProgramClass> allClasses = classes;
+      classes = new ArrayList<>(allClasses.size());
+      for (DexProgramClass clazz : allClasses) {
+        if (appView.getSyntheticItems().isGlobalSyntheticClass(clazz)) {
+          globalSyntheticClasses.add(clazz);
+        } else {
+          classes.add(clazz);
+        }
       }
     }
+    for (DexProgramClass clazz : classes) {
+      writeClassCatchingErrors(clazz, consumer, rewriter, markerString, sourceFileEnvironment);
+    }
+    if (!globalSyntheticClasses.isEmpty()) {
+      InternalGlobalSyntheticsCfConsumer globalsConsumer =
+          new InternalGlobalSyntheticsCfConsumer(options.getGlobalSyntheticsConsumer());
+      for (DexProgramClass clazz : globalSyntheticClasses) {
+        writeClassCatchingErrors(
+            clazz, globalsConsumer, rewriter, markerString, sourceFileEnvironment);
+      }
+      globalsConsumer.finished(options.reporter);
+    }
     ApplicationWriter.supplyAdditionalConsumers(application, appView, namingLens, options);
+  }
+
+  private void writeClassCatchingErrors(
+      DexProgramClass clazz,
+      ClassFileConsumer consumer,
+      LensCodeRewriterUtils rewriter,
+      Optional<String> markerString,
+      SourceFileEnvironment sourceFileEnvironment) {
+    assert SyntheticNaming.verifyNotInternalSynthetic(clazz.getType());
+    try {
+      writeClass(clazz, consumer, rewriter, markerString, sourceFileEnvironment);
+    } catch (ClassTooLargeException e) {
+      throw appView
+          .options()
+          .reporter
+          .fatalError(
+              new ConstantPoolOverflowDiagnostic(
+                  clazz.getOrigin(),
+                  Reference.classFromBinaryName(e.getClassName()),
+                  e.getConstantPoolCount()));
+    } catch (MethodTooLargeException e) {
+      throw appView
+          .options()
+          .reporter
+          .fatalError(
+              new CodeSizeOverflowDiagnostic(
+                  clazz.getOrigin(),
+                  Reference.methodFromDescriptor(
+                      Reference.classFromBinaryName(e.getClassName()).getDescriptor(),
+                      e.getMethodName(),
+                      e.getDescriptor()),
+                  e.getCodeSize()));
+    }
   }
 
   private void writeClass(

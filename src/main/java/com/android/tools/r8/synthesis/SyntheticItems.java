@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.ConsumerUtils.emptyConsumer;
 
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.contexts.CompilationContext.UniqueContext;
+import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.features.ClassToFeatureSplitMap;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -276,6 +277,32 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
 
   public boolean isSyntheticClass(DexProgramClass clazz) {
     return isSyntheticClass(clazz.type);
+  }
+
+  public boolean isGlobalSyntheticClass(DexProgramClass clazz) {
+    SyntheticDefinition<?, ?, ?> definition = pending.nonLegacyDefinitions.get(clazz.type);
+    if (definition != null) {
+      return definition.getKind().isGlobal();
+    }
+    return isGlobalReferences(committed.getNonLegacyClasses().get(clazz.type));
+  }
+
+  private static boolean isGlobalReferences(List<SyntheticProgramClassReference> references) {
+    if (references == null) {
+      return false;
+    }
+    if (references.size() == 1 && references.get(0).getKind().isGlobal()) {
+      return true;
+    }
+    assert verifyNoGlobals(references);
+    return false;
+  }
+
+  private static boolean verifyNoGlobals(List<SyntheticProgramClassReference> references) {
+    for (SyntheticProgramClassReference reference : references) {
+      assert !reference.getKind().isGlobal();
+    }
+    return true;
   }
 
   public boolean isSyntheticOfKind(DexType type, SyntheticKindSelector kindSelector) {
@@ -769,14 +796,20 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     }
   }
 
-  public DexProgramClass ensureFixedClassFromType(
+  public DexProgramClass ensureGlobalClass(
+      Supplier<MissingGlobalSyntheticsConsumerDiagnostic> diagnosticSupplier,
       SyntheticKindSelector kindSelector,
-      DexType contextType,
+      DexType globalType,
       AppView<?> appView,
       Consumer<SyntheticProgramClassBuilder> fn,
       Consumer<DexProgramClass> onCreationConsumer) {
     SyntheticKind kind = kindSelector.select(naming);
-    SynthesizingContext outerContext = SynthesizingContext.fromType(contextType);
+    assert kind.isGlobal();
+    if (appView.options().intermediate && !appView.options().hasGlobalSyntheticsConsumer()) {
+      appView.reporter().fatalError(diagnosticSupplier.get());
+    }
+    // A global type is its own context.
+    SynthesizingContext outerContext = SynthesizingContext.fromType(globalType);
     return internalEnsureFixedProgramClass(kind, fn, onCreationConsumer, outerContext, appView);
   }
 

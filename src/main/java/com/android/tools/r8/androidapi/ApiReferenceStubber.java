@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.androidapi;
 
+import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DefaultInstanceInitializerCode;
@@ -233,7 +234,8 @@ public class ApiReferenceStubber {
     appView
         .appInfo()
         .getSyntheticItems()
-        .ensureFixedClassFromType(
+        .ensureGlobalClass(
+            () -> new MissingGlobalSyntheticsConsumerDiagnostic("API stubbing"),
             kinds -> kinds.API_MODEL_STUB,
             libraryClass.getType(),
             appView,

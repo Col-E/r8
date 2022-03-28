@@ -79,8 +79,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   private static DexProgramClass mergeClasses(
       Reporter reporter, DexProgramClass a, DexProgramClass b) {
-    if (a.type.isLegacySynthesizedTypeAllowedDuplication()
-        || a.type.isSynthesizedTypeAllowedDuplication()) {
+    if (a.type.isLegacySynthesizedTypeAllowedDuplication()) {
       assert assertEqualClasses(a, b);
       return a;
     }

@@ -337,14 +337,6 @@ public class DexType extends DexReference implements NamingLensComparable<DexTyp
     return isDoubleType() || isLongType();
   }
 
-  public boolean isSynthesizedTypeAllowedDuplication() {
-    // If we are desugaring Records, then the r8Record type is mapped back to java.lang.Record, and
-    // java.lang.Record can be duplicated.
-    // If we are not desugaring Records, then the r8Record type can be duplicated instead.
-    return descriptor.toString().equals(DexItemFactory.recordDescriptorString)
-        || descriptor.toString().equals(DexItemFactory.recordTagDescriptorString);
-  }
-
   public boolean isLegacySynthesizedTypeAllowedDuplication() {
     return oldSynthesizedName(toSourceString());
   }

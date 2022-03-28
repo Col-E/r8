@@ -22,6 +22,7 @@ import com.android.tools.r8.contexts.CompilationContext.ClassSynthesisDesugaring
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -373,7 +374,8 @@ public class RecordDesugaring
     checkRecordTagNotPresent(factory);
     appView
         .getSyntheticItems()
-        .ensureFixedClassFromType(
+        .ensureGlobalClass(
+            () -> new MissingGlobalSyntheticsConsumerDiagnostic("Record desugaring"),
             kinds -> kinds.RECORD_TAG,
             factory.recordType,
             appView,

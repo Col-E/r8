@@ -20,6 +20,7 @@ import com.android.tools.r8.SourceFileEnvironment;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
 import com.android.tools.r8.debuginfo.DebugRepresentation.DebugRepresentationPredicate;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
+import com.android.tools.r8.dex.VirtualFile.FilePerInputClassDistributor;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
 import com.android.tools.r8.graph.AppServices;
@@ -51,6 +52,7 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
+import com.android.tools.r8.utils.InternalGlobalSyntheticsProgramConsumer.InternalGlobalSyntheticsDexConsumer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OriginalSourceFiles;
 import com.android.tools.r8.utils.PredicateUtils;
@@ -85,8 +87,10 @@ public class ApplicationWriter {
   private final Predicate<DexType> isTypeMissing;
   public List<Marker> markers;
   public List<DexString> markerStrings;
+  public Set<VirtualFile> globalSyntheticFiles;
 
   public DexIndexedConsumer programConsumer;
+  public InternalGlobalSyntheticsDexConsumer globalsSyntheticsConsumer;
 
   private static class SortAnnotations extends MixedSectionCollection {
 
@@ -179,20 +183,47 @@ public class ApplicationWriter {
 
   private List<VirtualFile> distribute(ExecutorService executorService)
       throws ExecutionException, IOException {
+    Collection<DexProgramClass> classes = appView.appInfo().classes();
+    Collection<DexProgramClass> globalSynthetics = new ArrayList<>();
+    if (appView.options().intermediate && appView.options().hasGlobalSyntheticsConsumer()) {
+      Collection<DexProgramClass> allClasses = classes;
+      classes = new ArrayList<>(allClasses.size());
+      for (DexProgramClass clazz : allClasses) {
+        if (appView.getSyntheticItems().isGlobalSyntheticClass(clazz)) {
+          globalSynthetics.add(clazz);
+        } else {
+          classes.add(clazz);
+        }
+      }
+    }
+
     // Distribute classes into dex files.
     VirtualFile.Distributor distributor;
     if (options.isGeneratingDexFilePerClassFile()) {
-      distributor = new VirtualFile.FilePerInputClassDistributor(this,
-          options.getDexFilePerClassFileConsumer().combineSyntheticClassesWithPrimaryClass());
+      distributor =
+          new VirtualFile.FilePerInputClassDistributor(
+              this,
+              classes,
+              options.getDexFilePerClassFileConsumer().combineSyntheticClassesWithPrimaryClass());
     } else if (!options.canUseMultidex()
         && options.mainDexKeepRules.isEmpty()
         && appView.appInfo().getMainDexInfo().isEmpty()
         && options.enableMainDexListCheck) {
-      distributor = new VirtualFile.MonoDexDistributor(this, options);
+      distributor = new VirtualFile.MonoDexDistributor(this, classes, options);
     } else {
-      distributor = new VirtualFile.FillFilesDistributor(this, options, executorService);
+      distributor = new VirtualFile.FillFilesDistributor(this, classes, options, executorService);
     }
-    return distributor.run();
+
+    List<VirtualFile> virtualFiles = distributor.run();
+    if (!globalSynthetics.isEmpty()) {
+      List<VirtualFile> files =
+          new FilePerInputClassDistributor(this, globalSynthetics, false).run();
+      globalSyntheticFiles = new HashSet<>(files);
+      virtualFiles.addAll(globalSyntheticFiles);
+      globalsSyntheticsConsumer =
+          new InternalGlobalSyntheticsDexConsumer(options.getGlobalSyntheticsConsumer());
+    }
+    return virtualFiles;
   }
 
   /**
@@ -330,6 +361,9 @@ public class ApplicationWriter {
                 executorService);
         merger.add(timings);
         merger.end();
+        if (globalsSyntheticsConsumer != null) {
+          globalsSyntheticsConsumer.finished(options.reporter);
+        }
       }
 
       // A consumer can manage the generated keep rules.
@@ -460,7 +494,11 @@ public class ApplicationWriter {
 
     ProgramConsumer consumer;
     ByteBufferProvider byteBufferProvider;
-    if (programConsumer != null) {
+
+    if (globalSyntheticFiles != null && globalSyntheticFiles.contains(virtualFile)) {
+      consumer = globalsSyntheticsConsumer;
+      byteBufferProvider = globalsSyntheticsConsumer;
+    } else if (programConsumer != null) {
       consumer = programConsumer;
       byteBufferProvider = programConsumer;
     } else if (virtualFile.getPrimaryClassDescriptor() != null) {

@@ -4,16 +4,20 @@
 
 package com.android.tools.r8.desugar.records;
 
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.synthesis.globals.GlobalSyntheticsConsumerAndProvider;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,23 +39,32 @@ public class SimpleRecordTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
+    // TODO(b/174431251): Remove once jdk14 or above is added to default parameters.
     return buildParameters(
         getTestParameters()
             .withCustomRuntime(CfRuntime.getCheckedInJdk17())
-            .withDexRuntimes()
+            .withAllRuntimes()
             .withAllApiLevelsAlsoForCf()
             .build());
   }
 
+  private boolean isCfWithNativeRecordSupport() {
+    return parameters.isCfRuntime()
+        && parameters.asCfRuntime().isNewerThanOrEqual(CfVm.JDK14)
+        && parameters.getApiLevel().equals(AndroidApiLevel.B);
+  }
+
   @Test
-  public void testD8AndJvm() throws Exception {
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClassFileData(PROGRAM_DATA)
-          .run(parameters.getRuntime(), MAIN_TYPE)
-          .assertSuccessWithOutput(EXPECTED_RESULT);
-    }
+  public void testReference() throws Exception {
+    assumeTrue(isCfWithNativeRecordSupport());
+    testForJvm()
+        .addProgramClassFileData(PROGRAM_DATA)
+        .run(parameters.getRuntime(), MAIN_TYPE)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
@@ -66,10 +79,12 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testD8Intermediate() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    Path path = compileIntermediate();
+    assumeTrue(parameters.isDexRuntime());
+    GlobalSyntheticsConsumerAndProvider globals = new GlobalSyntheticsConsumerAndProvider();
+    Path path = compileIntermediate(globals);
     testForD8()
         .addProgramFiles(path)
+        .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals))
         .setMinApi(parameters.getApiLevel())
         .setIncludeClassesChecksum(true)
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -78,11 +93,13 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testD8IntermediateNoDesugaringInStep2() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    Path path = compileIntermediate();
+    assumeTrue(parameters.isDexRuntime());
+    GlobalSyntheticsConsumerAndProvider globals = new GlobalSyntheticsConsumerAndProvider();
+    Path path = compileIntermediate(globals);
     // In Android Studio they disable desugaring at this point to improve build speed.
     testForD8()
         .addProgramFiles(path)
+        .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals))
         .setMinApi(parameters.getApiLevel())
         .setIncludeClassesChecksum(true)
         .disableDesugaring()
@@ -90,19 +107,22 @@ public class SimpleRecordTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  private Path compileIntermediate() throws Exception {
+  private Path compileIntermediate(GlobalSyntheticsConsumer globalSyntheticsConsumer)
+      throws Exception {
     return testForD8(Backend.DEX)
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .setIntermediate(true)
         .setIncludeClassesChecksum(true)
+        .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globalSyntheticsConsumer))
         .compile()
         .writeToZip();
   }
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isCfWithNativeRecordSupport());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
@@ -129,6 +149,7 @@ public class SimpleRecordTest extends TestBase {
 
   @Test
   public void testR8NoMinification() throws Exception {
+    assumeTrue(parameters.isDexRuntime() || isCfWithNativeRecordSupport());
     R8FullTestBuilder builder =
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)

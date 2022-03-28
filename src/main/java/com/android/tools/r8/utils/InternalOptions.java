@@ -12,6 +12,7 @@ import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.MapIdProvider;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.SourceFileProvider;
@@ -163,6 +164,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // TODO(zerny): Make this private-final once we have full program-consumer support.
   public ProgramConsumer programConsumer = null;
+
+  private GlobalSyntheticsConsumer globalSyntheticsConsumer = null;
 
   public DataResourceConsumer dataResourceConsumer;
   public FeatureSplitConfiguration featureSplitConfiguration;
@@ -442,6 +445,18 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       return InternalOutputMode.ClassFile;
     }
     throw new UnsupportedOperationException("Cannot find internal output mode.");
+  }
+
+  public boolean hasGlobalSyntheticsConsumer() {
+    return globalSyntheticsConsumer != null;
+  }
+
+  public GlobalSyntheticsConsumer getGlobalSyntheticsConsumer() {
+    return globalSyntheticsConsumer;
+  }
+
+  public void setGlobalSyntheticsConsumer(GlobalSyntheticsConsumer globalSyntheticsConsumer) {
+    this.globalSyntheticsConsumer = globalSyntheticsConsumer;
   }
 
   public boolean isAndroidPlatform() {

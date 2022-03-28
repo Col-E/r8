@@ -4,15 +4,25 @@
 
 package com.android.tools.r8.desugar.records;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
+import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
+import com.android.tools.r8.synthesis.globals.GlobalSyntheticsConsumerAndProvider;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,71 +44,142 @@ public class RecordMergeTest extends TestBase {
       StringUtils.lines("Jane Doe", "42", "Jane Doe", "42");
 
   private final TestParameters parameters;
-  private final boolean intermediate;
 
-  public RecordMergeTest(TestParameters parameters, boolean intermediate) {
+  public RecordMergeTest(TestParameters parameters) {
     this.parameters = parameters;
-    this.intermediate = intermediate;
   }
 
-  @Parameterized.Parameters(name = "{0}, intermediate: {1}")
-  public static List<Object[]> data() {
-    // TODO(b/174431251): This should be replaced with .withCfRuntimes(start = jdk17).
-    return buildParameters(
-        getTestParameters()
-            .withCustomRuntime(CfRuntime.getCheckedInJdk17())
-            .withDexRuntimes()
-            .withAllApiLevelsAlsoForCf()
-            .build(),
-        BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+  }
+
+  @Test
+  public void testFailureWithoutGlobalSyntheticsConsumer() throws Exception {
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForD8(parameters.getBackend())
+                .addProgramClassFileData(PROGRAM_DATA_1)
+                .setMinApi(parameters.getApiLevel())
+                .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+                .setIntermediate(true)
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics
+                            .assertOnlyErrors()
+                            .assertErrorsMatch(
+                                diagnosticType(MissingGlobalSyntheticsConsumerDiagnostic.class))));
   }
 
   @Test
   public void testMergeDesugaredInputs() throws Exception {
+    GlobalSyntheticsConsumerAndProvider globals1 = new GlobalSyntheticsConsumerAndProvider();
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .setIntermediate(intermediate)
+            .setIntermediate(true)
+            .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals1))
             .compile()
+            .inspect(this::assertDoesNotHaveRecordTag)
             .writeToZip();
+
+    GlobalSyntheticsConsumerAndProvider globals2 = new GlobalSyntheticsConsumerAndProvider();
     Path output2 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .setIntermediate(intermediate)
+            .setIntermediate(true)
+            .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals2))
             .compile()
+            .inspect(this::assertDoesNotHaveRecordTag)
             .writeToZip();
+
+    assertTrue(globals1.hasBytes());
+    assertTrue(globals2.hasBytes());
+
     D8TestCompileResult result =
         testForD8(parameters.getBackend())
             .addProgramFiles(output1, output2)
+            .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1, globals2))
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .compile();
+            .compile()
+            .inspect(this::assertHasRecordTag);
+
     result.run(parameters.getRuntime(), MAIN_TYPE_1).assertSuccessWithOutput(EXPECTED_RESULT_1);
     result.run(parameters.getRuntime(), MAIN_TYPE_2).assertSuccessWithOutput(EXPECTED_RESULT_2);
   }
 
   @Test
   public void testMergeDesugaredAndNonDesugaredInputs() throws Exception {
+    GlobalSyntheticsConsumerAndProvider globals1 = new GlobalSyntheticsConsumerAndProvider();
     Path output1 =
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
-            .setIntermediate(intermediate)
+            .setIntermediate(true)
+            .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals1))
             .compile()
             .writeToZip();
+
     D8TestCompileResult result =
         testForD8(parameters.getBackend())
             .addProgramFiles(output1)
+            .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1))
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile();
     result.run(parameters.getRuntime(), MAIN_TYPE_1).assertSuccessWithOutput(EXPECTED_RESULT_1);
     result.run(parameters.getRuntime(), MAIN_TYPE_2).assertSuccessWithOutput(EXPECTED_RESULT_2);
+  }
+
+  @Test
+  public void testMergeNonIntermediates() throws Exception {
+    Path output1 =
+        testForD8(parameters.getBackend())
+            .addProgramClassFileData(PROGRAM_DATA_1)
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .compile()
+            .inspect(this::assertHasRecordTag)
+            .writeToZip();
+
+    Path output2 =
+        testForD8(parameters.getBackend())
+            .addProgramClassFileData(PROGRAM_DATA_2)
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+            .compile()
+            .inspect(this::assertHasRecordTag)
+            .writeToZip();
+
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForD8(parameters.getBackend())
+                .addProgramFiles(output1, output2)
+                .setMinApi(parameters.getApiLevel())
+                .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics
+                            .assertOnlyErrors()
+                            .assertErrorsMatch(diagnosticType(DuplicateTypesDiagnostic.class))));
+  }
+
+  private void assertHasRecordTag(CodeInspector inspector) {
+    // Note: this should be asserting on record tag.
+    assertThat(inspector.clazz("java.lang.Record"), isPresent());
+  }
+
+  private void assertDoesNotHaveRecordTag(CodeInspector inspector) {
+    // Note: this should be asserting on record tag.
+    assertThat(inspector.clazz("java.lang.Record"), isAbsent());
   }
 }

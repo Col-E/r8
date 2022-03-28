@@ -307,6 +307,7 @@ public class VirtualFile {
     }
 
     public abstract List<VirtualFile> run() throws ExecutionException, IOException;
+
   }
 
   /**
@@ -316,11 +317,15 @@ public class VirtualFile {
    * may then be distributed in several individual virtual files.
    */
   public static class FilePerInputClassDistributor extends Distributor {
+    private final Collection<DexProgramClass> classes;
     private final boolean combineSyntheticClassesWithPrimaryClass;
 
-    FilePerInputClassDistributor(ApplicationWriter writer,
+    FilePerInputClassDistributor(
+        ApplicationWriter writer,
+        Collection<DexProgramClass> classes,
         boolean combineSyntheticClassesWithPrimaryClass) {
       super(writer);
+      this.classes = classes;
       this.combineSyntheticClassesWithPrimaryClass = combineSyntheticClassesWithPrimaryClass;
     }
 
@@ -329,7 +334,7 @@ public class VirtualFile {
       HashMap<DexProgramClass, VirtualFile> files = new HashMap<>();
       Collection<DexProgramClass> synthetics = new ArrayList<>();
       // Assign dedicated virtual files for all program classes.
-      for (DexProgramClass clazz : appView.appInfo().classes()) {
+      for (DexProgramClass clazz : classes) {
         // TODO(b/181636450): Simplify this making use of the assumption that synthetics are never
         //  duplicated.
         if (!combineSyntheticClassesWithPrimaryClass
@@ -370,9 +375,11 @@ public class VirtualFile {
     protected final VirtualFile mainDexFile;
     protected final InternalOptions options;
 
-    DistributorBase(ApplicationWriter writer, InternalOptions options) {
+    DistributorBase(
+        ApplicationWriter writer, Collection<DexProgramClass> classes, InternalOptions options) {
       super(writer);
       this.options = options;
+      this.classes = SetUtils.newIdentityHashSet(classes);
 
       // Create the primary dex file. The distribution will add more if needed.
       mainDexFile = new VirtualFile(0, writer.appView, writer.namingLens);
@@ -380,7 +387,6 @@ public class VirtualFile {
       virtualFiles.add(mainDexFile);
       addMarkers(mainDexFile);
 
-      classes = SetUtils.newIdentityHashSet(appView.appInfo().classes());
       originalNames =
           computeOriginalNameMapping(
               classes, appView.graphLens(), appView.appInfo().app().getProguardMap());
@@ -513,9 +519,12 @@ public class VirtualFile {
   public static class FillFilesDistributor extends DistributorBase {
     private final ExecutorService executorService;
 
-    FillFilesDistributor(ApplicationWriter writer, InternalOptions options,
+    FillFilesDistributor(
+        ApplicationWriter writer,
+        Collection<DexProgramClass> classes,
+        InternalOptions options,
         ExecutorService executorService) {
-      super(writer, options);
+      super(writer, classes, options);
       this.executorService = executorService;
     }
 
@@ -576,8 +585,9 @@ public class VirtualFile {
   }
 
   public static class MonoDexDistributor extends DistributorBase {
-    MonoDexDistributor(ApplicationWriter writer, InternalOptions options) {
-      super(writer, options);
+    MonoDexDistributor(
+        ApplicationWriter writer, Collection<DexProgramClass> classes, InternalOptions options) {
+      super(writer, classes, options);
     }
 
     @Override

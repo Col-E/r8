@@ -10,6 +10,7 @@ import static com.android.tools.r8.ToolHelper.isTestingR8Lib;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.compilerapi.assertionconfiguration.AssertionConfigurationTest;
 import com.android.tools.r8.compilerapi.desugardependencies.DesugarDependenciesTest;
+import com.android.tools.r8.compilerapi.globalsynthetics.GlobalSyntheticsTest;
 import com.android.tools.r8.compilerapi.inputdependencies.InputDependenciesTest;
 import com.android.tools.r8.compilerapi.mapid.CustomMapIdTest;
 import com.android.tools.r8.compilerapi.mockdata.MockClass;
@@ -39,7 +40,7 @@ public class CompilerApiTestCollection extends BinaryCompatibilityTestCollection
           DesugarDependenciesTest.ApiTest.class);
 
   private static final List<Class<? extends CompilerApiTest>> CLASSES_PENDING_BINARY_COMPATIBILITY =
-      ImmutableList.of();
+      ImmutableList.of(GlobalSyntheticsTest.ApiTest.class);
 
   private final TemporaryFolder temp;
 
