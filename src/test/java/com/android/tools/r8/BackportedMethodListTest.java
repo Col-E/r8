@@ -91,8 +91,7 @@ public class BackportedMethodListTest {
     // Java 9, 10 and 11 method added at API level S.
     // The method is not backported in desugared library JDK 11 (already present).
     assertEquals(
-        (mode == Mode.LIBRARY_DESUGAR && !isJDK11DesugaredLibrary())
-            || apiLevel < AndroidApiLevel.S.getLevel(),
+        apiLevel < AndroidApiLevel.S.getLevel(),
         backports.contains("java/util/List#copyOf(Ljava/util/Collection;)Ljava/util/List;"));
 
     // Java 9, 10 and 11 methods not yet added.
@@ -105,7 +104,7 @@ public class BackportedMethodListTest {
     builder
         .addDesugaredLibraryConfiguration(
             StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()))
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P.getLevel()));
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.R.getLevel()));
   }
 
   @Test
