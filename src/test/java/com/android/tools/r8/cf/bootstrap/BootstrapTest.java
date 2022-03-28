@@ -3,24 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.bootstrap;
 
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,18 +27,10 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BootstrapTest extends TestBase {
 
-  private static final Path R8_STABLE_JAR = Paths.get("third_party/r8/r8.jar");
+  private static final Path R8_STABLE_JAR =
+      Paths.get("third_party", "r8-releases", "3.2.54", "r8.jar");
 
-  private static final String R8_NAME = "com.android.tools.r8.R8";
-  private static final String[] KEEP_R8 = {
-    "-keep public class " + R8_NAME + " {", "  public static void main(...);", "}",
-  };
-  private static final Path DONTWARN_R8 = Paths.get("src/main/dontwarn.txt");
-
-  private static final String HELLO_NAME = "hello.Hello";
-  private static final String[] KEEP_HELLO = {
-    "-keep class " + HELLO_NAME + " {", "  public static void main(...);", "}",
-  };
+  private static final String HELLO_EXPECTED = StringUtils.lines("Hello World!");
 
   private static class R8Result {
 
@@ -65,98 +55,112 @@ public class BootstrapTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
+  private static CfRuntime getHostRuntime() {
+    return CfRuntime.getSystemRuntime();
+  }
+
   public BootstrapTest(TestParameters parameters) {
-    // TODO: use parameters to fork the right Java.
     parameters.assertNoneRuntime();
   }
 
+  private Path getHelloInputs() {
+    return ToolHelper.getClassFileForTestClass(Hello.class);
+  }
+
+  private String getHelloKeepRules() {
+    return TestBase.keepMainProguardConfiguration(Hello.class);
+  }
+
   @Test
-  public void test() throws Exception {
-    // Run hello.jar to ensure it exists and is valid.
-    Path hello = Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION);
-    ProcessResult runHello = ToolHelper.runJava(hello, "hello.Hello");
-    assertEquals(0, runHello.exitCode);
+  public void reference() throws Exception {
+    testForJvm()
+        .addProgramFiles(getHelloInputs())
+        .run(getHostRuntime(), Hello.class)
+        .assertSuccessWithOutput(HELLO_EXPECTED);
+  }
 
+  @Test
+  public void testDebug() throws Exception {
+    compareForMode(CompilationMode.DEBUG);
+  }
+
+  @Test
+  public void testRelease() throws Exception {
+    compareForMode(CompilationMode.RELEASE);
+  }
+
+  private R8Result compareForMode(CompilationMode mode) throws Exception {
     // Run r8.jar on hello.jar to ensure that r8.jar is a working compiler.
-    R8Result runInputR8 = runExternalR8(R8_STABLE_JAR, hello, "input", KEEP_HELLO, "--debug");
-    ProcessResult runHelloR8 = ToolHelper.runJava(runInputR8.outputJar, "hello.Hello");
-    assertEquals(runHello.toString(), runHelloR8.toString());
+    R8Result helloCompiledWithR8 =
+        runExternalR8(R8_STABLE_JAR, getHelloInputs(), getHelloKeepRules(), mode);
+    testForJvm()
+        .addProgramFiles(helloCompiledWithR8.outputJar)
+        .run(getHostRuntime(), Hello.class)
+        .assertSuccessWithOutput(HELLO_EXPECTED);
 
-    compareR8(hello, runInputR8, CompilationMode.RELEASE, "r8-r8-rel", "--release", "output-rel");
-    compareR8(hello, runInputR8, CompilationMode.DEBUG, "r8-r8", "--debug", "output");
+    compareR8(helloCompiledWithR8, mode);
+    return helloCompiledWithR8;
   }
 
-  private void compareR8(
-      Path hello,
-      R8Result runInputR8,
-      CompilationMode internalMode,
-      String internalOutput,
-      String externalMode,
-      String externalOutput)
-      throws Exception {
+  private void compareR8(R8Result referenceCompilation, CompilationMode mode) throws Exception {
     // Run R8 on r8.jar.
-    Path output = runR8(internalOutput, internalMode);
+    Path r8CompiledByR8 = compileR8WithR8(mode);
     // Run the resulting compiler on hello.jar.
-    R8Result runR8R8 = runExternalR8(output, hello, externalOutput, KEEP_HELLO, externalMode);
+    R8Result runR8R8 = runExternalR8(r8CompiledByR8, getHelloInputs(), getHelloKeepRules(), mode);
     // Check that the process outputs (exit code, stdout, stderr) are the same.
-    assertEquals(runInputR8.toString(), runR8R8.toString());
+    assertEquals(referenceCompilation.toString(), runR8R8.toString());
     // Check that the output jars are the same.
-    if (true) {
-      // TODO(b/223770583): These should be equal but an error in assertProgramEquals was hiding it.
-      assertFalse(filesAreEqual(runInputR8.outputJar, runR8R8.outputJar));
-    } else {
-      assertProgramsEqual(runInputR8.outputJar, runR8R8.outputJar);
-    }
+    assertProgramsEqual(referenceCompilation.outputJar, runR8R8.outputJar);
   }
 
-  private Path runR8(String outputFolder, CompilationMode mode) throws Exception {
-    Path outputPath = temp.newFolder(outputFolder).toPath();
-    Path outputJar = outputPath.resolve("output.jar");
-    Path pgConfigFile = outputPath.resolve("keep.rules");
-    FileUtils.writeTextFile(pgConfigFile, BootstrapTest.KEEP_R8);
-    ToolHelper.runR8(
-        R8Command.builder()
-            .setMode(mode)
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(outputJar, true))
-            .addProgramFiles(R8_STABLE_JAR)
-            .addProguardConfigurationFiles(pgConfigFile, DONTWARN_R8)
-            // The R8_STABLE_JAR is from when Guava 23.0 was used, and that included
-            // javax.annotation.Nullable annotations in the retained code.
-            .addProguardConfiguration(
-                ImmutableList.of("-dontwarn javax.annotation.Nullable"), Origin.unknown())
-            .build());
-    return outputJar;
+  private Path compileR8WithR8(CompilationMode mode) throws Exception {
+    return testForR8(Backend.CF)
+        .setMode(mode)
+        .addProgramFiles(R8_STABLE_JAR)
+        .addKeepRules(TestBase.keepMainProguardConfiguration(R8.class))
+        // The r8 stable/release hits open interface issues.
+        .addOptionsModification(o -> o.getOpenClosedInterfacesOptions().suppressAllOpenInterfaces())
+        // The r8 stable/release contains missing com.google.errorprone annotation references.
+        .addDontWarnGoogle()
+        .compile()
+        .writeToZip();
   }
 
-  private R8Result runExternalR8(
-      Path r8Jar, Path inputJar, String outputFolder, String[] keepRules, String mode)
+  private R8Result runExternalR8(Path r8Jar, Path inputJar, String keepRules, CompilationMode mode)
       throws Exception {
-    Path outputPath = temp.newFolder(outputFolder).toPath();
+    Path outputPath = temp.newFolder().toPath();
     Path pgConfigFile = outputPath.resolve("keep.rules");
     Path outputJar = outputPath.resolve("output.jar");
     Path pgMapFile = outputPath.resolve("map.txt");
     FileUtils.writeTextFile(pgConfigFile, keepRules);
     ProcessResult processResult =
         ToolHelper.runJava(
-            r8Jar,
-            R8_NAME,
+            getHostRuntime(),
+            Collections.singletonList(r8Jar),
+            R8.class.getTypeName(),
             "--lib",
-            ToolHelper.JAVA_8_RUNTIME,
+            ToolHelper.getJava8RuntimeJar().toString(),
             "--classfile",
             inputJar.toString(),
             "--output",
             outputJar.toString(),
             "--pg-conf",
             pgConfigFile.toString(),
-            mode,
+            mode == CompilationMode.DEBUG ? "--debug" : "--release",
             "--pg-map-output",
             pgMapFile.toString());
     if (processResult.exitCode != 0) {
       System.out.println(processResult);
     }
-    assertEquals(processResult.stderr, 0, processResult.exitCode);
+    assertEquals(processResult.toString(), 0, processResult.exitCode);
     String pgMap = FileUtils.readTextFile(pgMapFile, Charsets.UTF_8);
     return new R8Result(processResult, outputJar, pgMap);
+  }
+
+  public static class Hello {
+
+    public static void main(String[] args) {
+      System.out.println("Hello World!");
+    }
   }
 }

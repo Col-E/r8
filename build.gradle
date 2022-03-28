@@ -352,8 +352,8 @@ def cloudDependencies = [
                 "proguard/proguard-7.0.0",
                 "retrace_benchmark",
                 "retrace/binary_compatibility",
-                "r8",
                 "r8-releases/2.0.74",
+                "r8-releases/3.2.54",
                 "r8mappings",
                 "tachiyomi"
         ],
