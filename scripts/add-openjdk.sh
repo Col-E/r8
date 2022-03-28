@@ -23,6 +23,9 @@ JDK_VERSION_FULL=${JDK_VERSION}
 # For ea versions the full version name has a postfix.
 # JDK_VERSION_FULL="${JDK_VERSION}-ea+33"
 
+rm -rf linux
+rm -f linux.tar.gz
+rm -f linux.tar.gz.sha1
 tar xf ~/Downloads/openjdk-${JDK_VERSION_FULL}_linux-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION} linux
 cp README.google linux
@@ -31,20 +34,26 @@ rm -rf jdk-${JDK_VERSION}
 rm -rf linux
 rm linux.tar.gz
 
+rm -rf osx
+rm -f osx.tar.gz
+rm -f osx.tar.gz.sha1
 tar xf ~/Downloads/openjdk-${JDK_VERSION_FULL}_macos-x64_bin.tar.gz
 cp -rL jdk-${JDK_VERSION}.jdk osx
 cp README.google osx
 upload_to_google_storage.py -a --bucket r8-deps osx
-rm -rf osx
 rm -rf jdk-${JDK_VERSION}.jdk
+rm -rf osx
 rm osx.tar.gz
 
+rm -rf windows
+rm -f windows.tar.gz
+rm -f windows.tar.gz.sha1
 unzip ~/Downloads/openjdk-${JDK_VERSION_FULL}_windows-x64_bin.zip
 cp -rL jdk-${JDK_VERSION} windows
 cp README.google windows
 upload_to_google_storage.py -a --bucket r8-deps windows
-rm -rf windows
 rm -rf jdk-${JDK_VERSION}
+rm -rf windows
 rm windows.tar.gz
 
 git add *.sha1
