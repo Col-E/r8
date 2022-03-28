@@ -260,8 +260,8 @@
         "wrapper." : "j$.wrapper."
       },
       "rewrite_derived_prefix": {
-        "java.nio.file.attribute.": {
-          "j$.nio.file.attribute.": "java.nio.file.attribute."
+        "java.nio.file.attribute.FileTime": {
+          "j$.nio.file.attribute.FileTime": "java.nio.file.attribute.FileTime"
         },
         "java.io.": {
           "__wrapper__.j$.io.": "j$.io.",
