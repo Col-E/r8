@@ -19,7 +19,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.errors.MissingGlobalSyntheticsConsumerDiagnostic;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsConsumerAndProvider;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -62,7 +61,6 @@ public class RecordMergeTest extends TestBase {
             testForD8(parameters.getBackend())
                 .addProgramClassFileData(PROGRAM_DATA_1)
                 .setMinApi(parameters.getApiLevel())
-                .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
                 .setIntermediate(true)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
@@ -79,7 +77,6 @@ public class RecordMergeTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .setIntermediate(true)
             .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals1))
             .compile()
@@ -91,7 +88,6 @@ public class RecordMergeTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .setIntermediate(true)
             .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals2))
             .compile()
@@ -106,7 +102,6 @@ public class RecordMergeTest extends TestBase {
             .addProgramFiles(output1, output2)
             .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1, globals2))
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .inspect(this::assertHasRecordTag);
 
@@ -121,7 +116,6 @@ public class RecordMergeTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .setIntermediate(true)
             .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globals1))
             .compile()
@@ -133,7 +127,6 @@ public class RecordMergeTest extends TestBase {
             .apply(b -> b.getBuilder().addGlobalSyntheticsResourceProviders(globals1))
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile();
     result.run(parameters.getRuntime(), MAIN_TYPE_1).assertSuccessWithOutput(EXPECTED_RESULT_1);
     result.run(parameters.getRuntime(), MAIN_TYPE_2).assertSuccessWithOutput(EXPECTED_RESULT_2);
@@ -145,7 +138,6 @@ public class RecordMergeTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_1)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .inspect(this::assertHasRecordTag)
             .writeToZip();
@@ -154,7 +146,6 @@ public class RecordMergeTest extends TestBase {
         testForD8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA_2)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .inspect(this::assertHasRecordTag)
             .writeToZip();
@@ -165,7 +156,6 @@ public class RecordMergeTest extends TestBase {
             testForD8(parameters.getBackend())
                 .addProgramFiles(output1, output2)
                 .setMinApi(parameters.getApiLevel())
-                .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
                 .compileWithExpectedDiagnostics(
                     diagnostics ->
                         diagnostics

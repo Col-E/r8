@@ -8,7 +8,6 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import org.junit.Test;
@@ -50,7 +49,6 @@ public class RecordInstanceOfTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -62,8 +60,7 @@ public class RecordInstanceOfTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))

@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
-
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -51,7 +49,6 @@ public class UnusedRecordFieldTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT);
@@ -64,8 +61,7 @@ public class UnusedRecordFieldTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
             .addKeepRules("-keep class records.UnusedRecordField { *; }")
-            .addKeepMainRule(MAIN_TYPE)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))

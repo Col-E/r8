@@ -8,7 +8,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -47,7 +46,6 @@ public class RecordShrinkFieldTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -59,7 +57,6 @@ public class RecordShrinkFieldTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)
@@ -74,14 +71,12 @@ public class RecordShrinkFieldTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(MAIN_TYPE)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .inspect(this::assertSingleField)
         .run(parameters.getRuntime(), MAIN_TYPE)

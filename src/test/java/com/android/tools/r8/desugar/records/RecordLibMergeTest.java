@@ -8,7 +8,6 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
@@ -52,7 +51,6 @@ public class RecordLibMergeTest extends TestBase {
                 "-keep class records.RecordLib { public static java.lang.Object getRecord(); }")
             .addKeepRules("-keep class records.RecordLib$LibRecord")
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();
     R8FullTestBuilder builder =
@@ -62,8 +60,7 @@ public class RecordLibMergeTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(MAIN_TYPE)
             .addKeepRules("-keep class records.RecordLib$LibRecord")
-            .addKeepRules("-keep class records.RecordMain$MainRecord")
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepRules("-keep class records.RecordMain$MainRecord");
     if (parameters.isCfRuntime()) {
       builder
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))

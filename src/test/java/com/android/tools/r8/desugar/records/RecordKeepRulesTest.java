@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.records;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
@@ -87,7 +86,6 @@ public class RecordKeepRulesTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules(keepRules)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -100,13 +98,11 @@ public class RecordKeepRulesTest extends TestBase {
             .addKeepMainRule(MAIN_TYPE)
             .addKeepRules(keepRules)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(expectedOutput);
   }

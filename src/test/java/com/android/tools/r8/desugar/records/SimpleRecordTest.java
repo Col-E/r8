@@ -10,11 +10,9 @@ import com.android.tools.r8.GlobalSyntheticsConsumer;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.synthesis.globals.GlobalSyntheticsConsumerAndProvider;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
@@ -66,7 +64,6 @@ public class SimpleRecordTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .inspectWithOptions(
             RecordTestUtils::assertNoJavaLangRecord,
@@ -110,7 +107,6 @@ public class SimpleRecordTest extends TestBase {
     return testForD8(Backend.DEX)
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .setIntermediate(true)
         .setIncludeClassesChecksum(true)
         .apply(b -> b.getBuilder().setGlobalSyntheticsConsumer(globalSyntheticsConsumer))
@@ -125,8 +121,7 @@ public class SimpleRecordTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
@@ -153,8 +148,7 @@ public class SimpleRecordTest extends TestBase {
             .addProgramClassFileData(PROGRAM_DATA)
             .noMinification()
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN_TYPE)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))

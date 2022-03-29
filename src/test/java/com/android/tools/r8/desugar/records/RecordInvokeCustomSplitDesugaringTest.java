@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.records;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
@@ -56,13 +55,11 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         testForD8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();
     testForD8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -74,14 +71,12 @@ public class RecordInvokeCustomSplitDesugaringTest extends TestBase {
         testForD8(Backend.CF)
             .addProgramClassFileData(PROGRAM_DATA)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())
         .addProgramFiles(desugared)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);

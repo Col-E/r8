@@ -25,7 +25,6 @@ import com.android.tools.r8.dex.Marker.Backend;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.ExperimentalClassFileVersionDiagnostic;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
@@ -138,7 +137,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   }
 
   public static final CfVersion SUPPORTED_CF_VERSION = CfVersion.V17;
-  public static final CfVersion EXPERIMENTAL_CF_VERSION = CfVersion.V14;
 
   public static final int SUPPORTED_DEX_VERSION =
       AndroidApiLevel.LATEST.getDexVersion().getIntValue();
@@ -1140,23 +1138,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
   }
 
-  private final Box<Boolean> reportedExperimentClassFileVersion = new Box<>(false);
-
-  public void warningExperimentalClassFileVersion(Origin origin) {
-    synchronized (reportedExperimentClassFileVersion) {
-      if (reportedExperimentClassFileVersion.get()) {
-        return;
-      }
-      reportedExperimentClassFileVersion.set(true);
-      reporter.warning(
-          new ExperimentalClassFileVersionDiagnostic(
-              origin,
-              "One or more classes has class file version >= "
-                  + EXPERIMENTAL_CF_VERSION.major()
-                  + " which is not officially supported."));
-    }
-  }
-
   public boolean printWarnings() {
     boolean printed = false;
     boolean printOutdatedToolchain = false;
@@ -1725,10 +1706,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       if (determinismChecker != null) {
         consumer.acceptWithRuntimeException(determinismChecker);
       }
-    }
-
-    public static void allowExperimentClassFileVersion(InternalOptions options) {
-      options.reportedExperimentClassFileVersion.set(true);
     }
 
     public static int NO_LIMIT = -1;

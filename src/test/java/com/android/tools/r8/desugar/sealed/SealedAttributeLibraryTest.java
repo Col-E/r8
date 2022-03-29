@@ -10,7 +10,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.examples.jdk17.Sealed;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,7 +35,6 @@ public class SealedAttributeLibraryTest extends TestBase {
         .addLibraryFiles(Sealed.jar())
         .addInnerClasses(getClass())
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .run(parameters.getRuntime(), TestRunner.class)
         .assertSuccessWithOutputLines("Hello, world!");
   }

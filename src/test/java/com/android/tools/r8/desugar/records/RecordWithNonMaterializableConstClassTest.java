@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.records;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.List;
@@ -56,7 +55,6 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
         .addProgramClassFileData(PROGRAM_DATA)
         .addProgramClassFileData(EXTRA_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_D8);
@@ -70,7 +68,6 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);
@@ -86,7 +83,6 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
             .addKeepMainRule(MAIN_TYPE)
             .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
             .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
             .compile()
             .writeToZip();
     testForR8(parameters.getBackend())
@@ -94,7 +90,6 @@ public class RecordWithNonMaterializableConstClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_TYPE)
         .addKeepRules("-keep class " + PRIVATE_CLASS_NAME)
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_R8);

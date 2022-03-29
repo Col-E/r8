@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.records;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import org.junit.Test;
@@ -61,7 +60,6 @@ public class RecordReflectionTest extends TestBase {
         .addKeepRules("-keepattributes *")
         .addKeepRules("-keep class * extends java.lang.Record { private final <fields>; }")
         .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .inspect(RecordTestUtils::assertRecordsAreRecords)
         .enableJVMPreview()

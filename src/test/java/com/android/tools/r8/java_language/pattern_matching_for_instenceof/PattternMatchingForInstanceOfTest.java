@@ -9,7 +9,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.jdk17.PatternMatchingForInstanceof;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
@@ -50,7 +49,6 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramFiles(JAR)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines(EXPECTED);
@@ -62,8 +60,7 @@ public class PattternMatchingForInstanceOfTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(JAR)
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(MAIN)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepMainRule(MAIN);
     if (parameters.getBackend().isDex()) {
       builder.run(parameters.getRuntime(), MAIN).assertSuccessWithOutputLines(EXPECTED);
     } else {

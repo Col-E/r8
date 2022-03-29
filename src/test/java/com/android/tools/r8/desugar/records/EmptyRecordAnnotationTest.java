@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.records;
 
-import static com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
@@ -61,7 +60,6 @@ public class EmptyRecordAnnotationTest extends TestBase {
     testForD8(parameters.getBackend())
         .addProgramClassFileData(PROGRAM_DATA)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .compile()
         .run(parameters.getRuntime(), MAIN_TYPE)
         .assertSuccessWithOutput(EXPECTED_RESULT_DEX);
@@ -77,8 +75,7 @@ public class EmptyRecordAnnotationTest extends TestBase {
             .addKeepRules("-keep class records.EmptyRecordAnnotation { *; }")
             .addKeepRules("-keepattributes *Annotation*")
             .addKeepRules("-keep class records.EmptyRecordAnnotation$Empty")
-            .addKeepMainRule(MAIN_TYPE)
-            .addOptionsModification(TestingOptions::allowExperimentClassFileVersion);
+            .addKeepMainRule(MAIN_TYPE);
     if (parameters.isCfRuntime()) {
       builder
           .addLibraryFiles(RecordTestUtils.getJdk15LibraryFiles(temp))

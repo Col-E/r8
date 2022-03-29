@@ -14,7 +14,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.examples.jdk18.jdk8272564.Jdk8272564;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions.TestingOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import org.junit.Test;
@@ -160,7 +159,6 @@ public class Jdk8272564Test extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .noTreeShaking()
         .addKeepClassAndMembersRules(Jdk8272564.Main.typeName())
-        .addOptionsModification(TestingOptions::allowExperimentClassFileVersion)
         .run(parameters.getRuntime(), Jdk8272564.Main.typeName())
         .inspect(this::assertJdk8272564NotFixedCodeR8)
         .assertSuccess();
