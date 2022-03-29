@@ -55,7 +55,6 @@
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
-        "java.io.UncheckedIOException": "j$.io.UncheckedIOException",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
@@ -70,6 +69,9 @@
         "java.util.function.": "j$.util.function.",
         "java.util.stream.": "j$.util.stream."
       },
+      "maintain_prefix": [
+        "java.io.UncheckedIOException"
+      ],
       "emulate_interface": {
         "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Collection": "j$.util.Collection",

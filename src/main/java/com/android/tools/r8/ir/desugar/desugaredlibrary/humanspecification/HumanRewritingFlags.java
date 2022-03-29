@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class HumanRewritingFlags {
 
   private final Map<String, String> rewritePrefix;
+  private final Set<String> maintainPrefix;
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
   private final Map<DexType, DexType> emulatedInterfaces;
   private final Map<DexMethod, DexType> retargetMethod;
@@ -37,6 +38,7 @@ public class HumanRewritingFlags {
 
   HumanRewritingFlags(
       Map<String, String> rewritePrefix,
+      Set<String> maintainPrefix,
       Map<String, Map<String, String>> rewriteDerivedPrefix,
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexMethod, DexType> retargetMethod,
@@ -48,6 +50,7 @@ public class HumanRewritingFlags {
       Map<DexType, Set<DexMethod>> wrapperConversion,
       Map<DexMethod, MethodAccessFlags> amendLibraryMethod) {
     this.rewritePrefix = rewritePrefix;
+    this.maintainPrefix = maintainPrefix;
     this.rewriteDerivedPrefix = rewriteDerivedPrefix;
     this.emulatedInterfaces = emulateLibraryInterface;
     this.retargetMethod = retargetMethod;
@@ -63,6 +66,7 @@ public class HumanRewritingFlags {
   public static HumanRewritingFlags empty() {
     return new HumanRewritingFlags(
         ImmutableMap.of(),
+        ImmutableSet.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -84,6 +88,7 @@ public class HumanRewritingFlags {
         reporter,
         origin,
         rewritePrefix,
+        maintainPrefix,
         rewriteDerivedPrefix,
         emulatedInterfaces,
         retargetMethod,
@@ -98,6 +103,10 @@ public class HumanRewritingFlags {
 
   public Map<String, String> getRewritePrefix() {
     return rewritePrefix;
+  }
+
+  public Set<String> getMaintainPrefix() {
+    return maintainPrefix;
   }
 
   public Map<String, Map<String, String>> getRewriteDerivedPrefix() {
@@ -153,6 +162,7 @@ public class HumanRewritingFlags {
     private final Origin origin;
 
     private final Map<String, String> rewritePrefix;
+    private final Set<String> maintainPrefix;
     private final Map<String, Map<String, String>> rewriteDerivedPrefix;
     private final Map<DexType, DexType> emulatedInterfaces;
     private final Map<DexMethod, DexType> retargetMethod;
@@ -169,6 +179,7 @@ public class HumanRewritingFlags {
           reporter,
           origin,
           new HashMap<>(),
+          Sets.newIdentityHashSet(),
           new HashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
@@ -185,6 +196,7 @@ public class HumanRewritingFlags {
         Reporter reporter,
         Origin origin,
         Map<String, String> rewritePrefix,
+        Set<String> maintainPrefix,
         Map<String, Map<String, String>> rewriteDerivedPrefix,
         Map<DexType, DexType> emulateLibraryInterface,
         Map<DexMethod, DexType> retargetMethod,
@@ -198,6 +210,7 @@ public class HumanRewritingFlags {
       this.reporter = reporter;
       this.origin = origin;
       this.rewritePrefix = new HashMap<>(rewritePrefix);
+      this.maintainPrefix = Sets.newHashSet(maintainPrefix);
       this.rewriteDerivedPrefix = new HashMap<>(rewriteDerivedPrefix);
       this.emulatedInterfaces = new IdentityHashMap<>(emulateLibraryInterface);
       this.retargetMethod = new IdentityHashMap<>(retargetMethod);
@@ -234,6 +247,11 @@ public class HumanRewritingFlags {
           prefix,
           rewrittenPrefix,
           HumanDesugaredLibrarySpecificationParser.REWRITE_PREFIX_KEY);
+      return this;
+    }
+
+    public Builder putMaintainPrefix(String prefix) {
+      maintainPrefix.add(prefix);
       return this;
     }
 
@@ -322,6 +340,7 @@ public class HumanRewritingFlags {
       validate();
       return new HumanRewritingFlags(
           ImmutableMap.copyOf(rewritePrefix),
+          ImmutableSet.copyOf(maintainPrefix),
           ImmutableMap.copyOf(rewriteDerivedPrefix),
           ImmutableMap.copyOf(emulatedInterfaces),
           ImmutableMap.copyOf(retargetMethod),
