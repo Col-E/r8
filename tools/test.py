@@ -476,7 +476,7 @@ def archive_and_return(return_code, options):
   return return_code
 
 def print_jstacks():
-  processes = subprocess.check_output(['ps', 'aux'])
+  processes = subprocess.check_output(['ps', 'aux']).decode('utf-8')
   for l in processes.splitlines():
     if 'art' in l or 'dalvik' in l:
       print('Running art of dalvik process: \n%s' % l)
