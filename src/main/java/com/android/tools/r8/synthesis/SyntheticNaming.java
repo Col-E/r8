@@ -321,7 +321,7 @@ public class SyntheticNaming {
         binaryName.lastIndexOf(
             kind.isFixedSuffixSynthetic() ? kind.descriptor : SYNTHETIC_CLASS_SEPARATOR);
     if (index < 0) {
-      throw new Unreachable("Unexpected failure to compute an synthetic prefix");
+      throw new Unreachable("Unexpected failure to compute a synthetic prefix for " + binaryName);
     }
     return binaryName.substring(0, index);
   }
