@@ -270,6 +270,9 @@ r8_tester_with_default("linux-none", ["--runtimes=none"])
 r8_tester_with_default("linux-jdk8", ["--runtimes=jdk8"])
 r8_tester_with_default("linux-jdk9", ["--runtimes=jdk9"])
 r8_tester_with_default("linux-jdk11", ["--runtimes=jdk11"])
+r8_tester_with_default("linux-jdk17", ["--runtimes=jdk17"],
+    release_trigger=["branch-gitiles-3.3-forward"])
+
 
 r8_tester_with_default("linux-android-4.0.4",
     ["--dex_vm=4.0.4", "--all_tests"])
