@@ -305,7 +305,8 @@ def internal():
         dimensions = get_dimensions(internal=True),
         triggering_policy = scheduler.policy(
             kind = scheduler.GREEDY_BATCHING_KIND,
-            max_concurrent_invocations = 1
+            max_concurrent_invocations = 1,
+            max_batch_size = 1
         ),
         priority = 25,
         properties = {
