@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.TypeRewriter;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -21,24 +22,25 @@ import java.util.Set;
 public class L8TreePruner {
 
   private final InternalOptions options;
+  private final Set<DexType> emulatedInterfaces = Sets.newIdentityHashSet();
+  private final Set<DexType> backports = Sets.newIdentityHashSet();
   private final List<DexType> pruned = new ArrayList<>();
 
   public L8TreePruner(InternalOptions options) {
     this.options = options;
+    backports.addAll(options.machineDesugaredLibrarySpecification.getLegacyBackport().keySet());
+    emulatedInterfaces.addAll(
+        options.machineDesugaredLibrarySpecification.getEmulatedInterfaces().keySet());
   }
 
   public DexApplication prune(DexApplication app, TypeRewriter typeRewriter) {
-    Set<DexType> maintainType = options.machineDesugaredLibrarySpecification.getMaintainType();
-    Set<DexType> emulatedInterfaces =
-        options.machineDesugaredLibrarySpecification.getEmulatedInterfaces().keySet();
     Map<DexType, DexProgramClass> typeMap = new IdentityHashMap<>();
     List<DexProgramClass> toKeep = new ArrayList<>();
     boolean pruneNestMember = false;
     for (DexProgramClass aClass : app.classes()) {
       typeMap.put(aClass.type, aClass);
       if (typeRewriter.hasRewrittenType(aClass.type, null)
-          || emulatedInterfaces.contains(aClass.type)
-          || maintainType.contains(aClass.type)) {
+          || emulatedInterfaces.contains(aClass.type)) {
         toKeep.add(aClass);
       } else {
         pruneNestMember |= aClass.isInANest();

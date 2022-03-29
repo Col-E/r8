@@ -713,9 +713,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       DexClass clazz, DexMethod invokedMethod, ProgramMethod context) {
     DexClassAndMethod superTarget =
         appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context);
-    if (clazz.isInterface()
-        && helper.isInDesugaredLibrary(clazz)
-        && !helper.isEmulatedInterface(clazz.type)) {
+    if (clazz.isInterface() && appView.typeRewriter.hasRewrittenType(clazz.type, appView)) {
       if (superTarget != null && superTarget.getDefinition().isDefaultMethod()) {
         DexClass holder = superTarget.getHolder();
         if (holder.isLibraryClass() && holder.isInterface()) {

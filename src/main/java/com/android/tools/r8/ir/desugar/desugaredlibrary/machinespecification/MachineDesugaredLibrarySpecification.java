@@ -82,10 +82,6 @@ public class MachineDesugaredLibrarySpecification {
     return rewritingFlags.getRewriteType();
   }
 
-  public Set<DexType> getMaintainType() {
-    return rewritingFlags.getMaintainType();
-  }
-
   public Map<DexType, DexType> getRewriteDerivedTypeOnly() {
     return rewritingFlags.getRewriteDerivedTypeOnly();
   }

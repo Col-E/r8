@@ -48,7 +48,6 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String WRAPPER_CONVERSION_EXCLUDING_KEY = "wrapper_conversion_excluding";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
   static final String REWRITE_PREFIX_KEY = "rewrite_prefix";
-  static final String MAINTAIN_PREFIX_KEY = "maintain_prefix";
   static final String RETARGET_METHOD_KEY = "retarget_method";
   static final String RETARGET_METHOD_EMULATED_DISPATCH_KEY =
       "retarget_method_with_emulated_dispatch";
@@ -234,11 +233,6 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (Map.Entry<String, JsonElement> rewritePrefix :
           jsonFlagSet.get(REWRITE_PREFIX_KEY).getAsJsonObject().entrySet()) {
         builder.putRewritePrefix(rewritePrefix.getKey(), rewritePrefix.getValue().getAsString());
-      }
-    }
-    if (jsonFlagSet.has(MAINTAIN_PREFIX_KEY)) {
-      for (JsonElement maintainPrefix : jsonFlagSet.get(MAINTAIN_PREFIX_KEY).getAsJsonArray()) {
-        builder.putMaintainPrefix(maintainPrefix.getAsString());
       }
     }
     if (jsonFlagSet.has(REWRITE_DERIVED_PREFIX_KEY)) {

@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.Human
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +25,6 @@ public class HumanToMachinePrefixConverter {
   private final String synthesizedPrefix;
   private final boolean libraryCompilation;
   private final Map<DexString, DexString> descriptorPrefix;
-  private final Set<DexString> descriptorMaintainPrefix;
   private final Map<DexString, Map<DexString, DexString>> descriptorDifferentPrefix;
   private final Set<DexString> usedPrefix = Sets.newIdentityHashSet();
 
@@ -40,7 +38,6 @@ public class HumanToMachinePrefixConverter {
     this.synthesizedPrefix = humanSpec.getSynthesizedLibraryClassesPackagePrefix();
     this.libraryCompilation = humanSpec.isLibraryCompilation();
     this.descriptorPrefix = convertRewritePrefix(rewritingFlags.getRewritePrefix());
-    this.descriptorMaintainPrefix = convertMaintainPrefix(rewritingFlags.getMaintainPrefix());
     this.descriptorDifferentPrefix =
         convertRewriteDifferentPrefix(rewritingFlags.getRewriteDerivedPrefix());
   }
@@ -59,7 +56,6 @@ public class HumanToMachinePrefixConverter {
   private void warnIfUnusedPrefix(BiConsumer<String, Set<DexString>> warnConsumer) {
     Set<DexString> prefixes = Sets.newIdentityHashSet();
     prefixes.addAll(descriptorPrefix.keySet());
-    prefixes.addAll(descriptorMaintainPrefix);
     prefixes.addAll(descriptorDifferentPrefix.keySet());
     prefixes.removeAll(usedPrefix);
     warnConsumer.accept("The following prefixes do not match any type: ", prefixes);
@@ -103,7 +99,6 @@ public class HumanToMachinePrefixConverter {
 
   private void registerClassType(DexType type) {
     registerType(type);
-    registerMaintainType(type);
     registerDifferentType(type);
   }
 
@@ -112,15 +107,6 @@ public class HumanToMachinePrefixConverter {
     if (rewrittenType != null) {
       builder.rewriteType(type, rewrittenType);
     }
-  }
-
-  private void registerMaintainType(DexType type) {
-    DexString prefix = prefixMatching(type, descriptorMaintainPrefix);
-    if (prefix == null) {
-      return;
-    }
-    builder.maintainType(type);
-    usedPrefix.add(prefix);
   }
 
   private void registerDifferentType(DexType type) {
@@ -172,14 +158,6 @@ public class HumanToMachinePrefixConverter {
       mapBuilder.put(toDescriptorPrefix(key), convertRewritePrefix(rewriteDerivedPrefix.get(key)));
     }
     return mapBuilder.build();
-  }
-
-  private ImmutableSet<DexString> convertMaintainPrefix(Set<String> maintainPrefix) {
-    ImmutableSet.Builder<DexString> builder = ImmutableSet.builder();
-    for (String prefix : maintainPrefix) {
-      builder.add(toDescriptorPrefix(prefix));
-    }
-    return builder.build();
   }
 
   private ImmutableMap<DexString, DexString> convertRewritePrefix(

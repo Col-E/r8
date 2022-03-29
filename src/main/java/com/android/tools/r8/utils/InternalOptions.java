@@ -274,7 +274,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
 
   // Flag to toggle if the prefix based merge restriction should be enforced.
   public boolean enableNeverMergePrefixes = true;
-  // TODO(b/227277105): Control merging with desugared library and maintain prefix.
   public Set<String> neverMergePrefixes = ImmutableSet.of("j$.");
 
   public boolean classpathInterfacesMayHaveStaticInitialization = false;
@@ -938,10 +937,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
     timing.begin("Load machine specification");
     loadMachineDesugaredLibrarySpecification.accept(timing, app);
-    if (!machineDesugaredLibrarySpecification.getMaintainType().isEmpty()) {
-      // TODO(b/227277105): Control merging with desugared library and maintain prefix.
-      neverMergePrefixes = ImmutableSet.of();
-    }
     timing.end();
   }
 

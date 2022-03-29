@@ -51,7 +51,13 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
   }
 
   private String expectedOutput() {
-    return StringUtils.lines("Hello", "Larry", "Page", "Caught java.io.UncheckedIOException");
+    return StringUtils.lines(
+        "Hello",
+        "Larry",
+        "Page",
+        parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
+            ? "Caught java.io.UncheckedIOException"
+            : "Caught j$.io.UncheckedIOException");
   }
 
   DesugaredLibrarySpecification configurationAlternative3(

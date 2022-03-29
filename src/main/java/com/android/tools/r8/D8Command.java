@@ -539,6 +539,7 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.isMinifying();
     assert !internal.passthroughDexCode;
     internal.passthroughDexCode = true;
+    assert internal.neverMergePrefixes.contains("j$.");
 
     // Assert some of R8 optimizations are disabled.
     assert !internal.inlinerOptions().enableInlining;

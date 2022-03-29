@@ -25,7 +25,6 @@ public abstract class CodeToKeep {
 
   static CodeToKeep createCodeToKeep(InternalOptions options, NamingLens namingLens) {
     if ((!namingLens.hasPrefixRewritingLogic()
-            && options.machineDesugaredLibrarySpecification.getMaintainType().isEmpty()
             && !options.machineDesugaredLibrarySpecification.hasEmulatedInterfaces())
         || options.isDesugaredLibraryCompilation()
         || options.testing.enableExperimentalDesugaredLibraryKeepRuleGenerator) {
@@ -68,7 +67,6 @@ public abstract class CodeToKeep {
 
     private boolean shouldKeep(DexType type) {
       return namingLens.prefixRewrittenType(type) != null
-          || options.machineDesugaredLibrarySpecification.getMaintainType().contains(type)
           || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(type)
           || options.machineDesugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(type)
           // TODO(b/158632510): This should prefix match on DexString.

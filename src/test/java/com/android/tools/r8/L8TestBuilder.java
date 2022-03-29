@@ -184,10 +184,7 @@ public class L8TestBuilder {
         .inspect(
             inspector ->
                 inspector.forAllClasses(
-                    clazz ->
-                        assertTrue(
-                            clazz.getFinalName().startsWith("j$.")
-                                || clazz.getFinalName().startsWith("java."))));
+                    clazz -> assertTrue(clazz.getFinalName().startsWith("j$."))));
   }
 
   private Collection<Path> getProgramFiles() {
