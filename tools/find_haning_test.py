@@ -5,7 +5,7 @@
 
 import argparse
 import sys
-import urllib
+
 
 def ParseOptions():
   parser = argparse.ArgumentParser(
@@ -14,7 +14,7 @@ def ParseOptions():
 
 def get_started(stdout):
   # Lines look like:
-  # Start executing test runBigInteger_ZERO_A01 [com.android.tools.r8.jctf.r8cf.math.BigInteger.ZERO.BigInteger_ZERO_A01]
+  # Start executing test runBigInteger_ZERO_A01 [com.android.tools.r8.x.r8cf.math.BigInteger.ZERO.BigInteger_ZERO_A01]
   start_lines = []
   for line in stdout:
     if line.startswith('Start executing test'):
@@ -24,7 +24,7 @@ def get_started(stdout):
 
 def get_ended(stdout):
   # Lines look like:
-  # Done executing test runBigInteger_subtract_A01 [com.android.tools.r8.jctf.r8cf.math.BigInteger.subtractLjava_math_BigInteger.BigInteger_subtract_A01] with result: SUCCESS
+  # Done executing test runBigInteger_subtract_A01 [com.android.tools.r8.x.r8cf.math.BigInteger.subtractLjava_math_BigInteger.BigInteger_subtract_A01] with result: SUCCESS
   done_lines = []
   for line in stdout:
     if line.startswith('Done executing test'):

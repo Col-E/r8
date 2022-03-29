@@ -100,8 +100,6 @@ third_party/jacoco/0.8.6/*
 third_party/jacoco/0.8.6.tar.gz
 third_party/jasmin
 third_party/jasmin.tar.gz
-third_party/jctf
-third_party/jctf.tar.gz
 third_party/jdwp-tests
 third_party/jdwp-tests.tar.gz
 third_party/jsr223-api-1.0

@@ -6,11 +6,8 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.JctfTestSpecifications.Outcome;
 import com.android.tools.r8.TestCondition.Runtime;
 import com.android.tools.r8.TestCondition.RuntimeSet;
-import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
@@ -36,14 +33,12 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.collect.Sets;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +48,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
@@ -110,13 +104,6 @@ public abstract class R8RunArtTestsTest {
           DexVm.Version.V12_0_0,
           DexVm.Version.V13_MASTER);
 
-  // Input jar for jctf tests.
-  private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
-
-  // Parent dir for on-the-fly compiled jctf dex output.
-  private static final String JCTF_TESTS_PREFIX = "build/classes/java/jctfTests";
-  private static final String JCTF_TESTS_LIB_PREFIX =
-      JCTF_TESTS_PREFIX + "/com/google/jctf/test/lib";
   private static final String JUNIT_TEST_RUNNER = "org.junit.runner.JUnitCore";
   private static final String JUNIT_JAR = "third_party/junit/junit-4.13-beta-2.jar";
   private static final String HAMCREST_JAR =
@@ -1097,27 +1084,6 @@ public abstract class R8RunArtTestsTest {
       "663-odd-dex-size4" // No input class files
   );
 
-  // Some JCTF test cases require test classes from other tests. These are listed here.
-  private static final Map<String, List<String>> jctfTestsExternalClassFiles =
-      new ImmutableMap.Builder<String, List<String>>()
-          .put("lang.RuntimePermission.Class.RuntimePermission_class_A13",
-              new ImmutableList.Builder<String>()
-                  .add("lang/Thread/stop/Thread_stop_A02.class")
-                  .add("lang/Thread/stopLjava_lang_Throwable/Thread_stop_A02.class")
-                  .build())
-          .put("lang.RuntimePermission.Class.RuntimePermission_class_A02",
-              new ImmutableList.Builder<String>()
-                  .add("lang/Class/getClassLoader/Class_getClassLoader_A03.class")
-                  .add("lang/ClassLoader/getParent/ClassLoader_getParent_A02.class")
-                  .add("lang/Thread/getContextClassLoader/Thread_getContextClassLoader_A02.class")
-                  .add("lang/Runtime/exitI/Runtime_exit_A02.class")
-                  .build())
-          .put("lang.Runtime.exitI.Runtime_exit_A03",
-              new ImmutableList.Builder<String>()
-                  .add("lang/Runtime/exitI/Runtime_exit_A02.class")
-                  .build())
-          .build();
-
   // Tests to skip on some conditions
   private static final Multimap<String, TestCondition> testToSkip =
       new ImmutableListMultimap.Builder<String, TestCondition>()
@@ -1344,65 +1310,6 @@ public abstract class R8RunArtTestsTest {
       this.disableDesugaring = disableDesugaring;
       this.keepRules = keepRules;
       this.configuration = configuration;
-    }
-
-    TestSpecification(
-        String name,
-        DexTool dexTool,
-        File directory,
-        boolean skipRun,
-        boolean failsOnRun,
-        boolean disableInlining,
-        boolean hasMissingClasses,
-        DexVm dexVm) {
-      this(
-          name,
-          dexTool,
-          directory,
-          skipRun,
-          ToolHelper.isWindows() && dexVm.getKind() == Kind.HOST,
-          false,
-          failsOnRun,
-          false,
-          false,
-          null,
-          false,
-          false,
-          disableInlining,
-          true, // Disable class inlining for JCTF tests.
-          hasMissingClasses,
-          true, // Disable desugaring for JCTF tests.
-          ImmutableList.of(),
-          null);
-    }
-
-    TestSpecification(
-        String name,
-        DexTool dexTool,
-        File directory,
-        boolean skipRun,
-        boolean failsOnRun,
-        boolean disableInlining,
-        boolean hasMissingClasses) {
-      this(
-          name,
-          dexTool,
-          directory,
-          skipRun,
-          false,
-          false,
-          failsOnRun,
-          false,
-          false,
-          null,
-          false,
-          false,
-          disableInlining,
-          true, // Disable class inlining for JCTF tests.
-          hasMissingClasses,
-          true, // Disable desugaring for JCTF tests.
-          ImmutableList.of(),
-          null);
     }
 
     public File resolveFile(String name) {
@@ -1874,75 +1781,6 @@ public abstract class R8RunArtTestsTest {
   }
 
 
-  private ArrayList<File> getJctfTestAuxClassFiles(File classFile) {
-    // Collect additional files from the same directory with file names like
-    // <dir>/<filename_wo_ext>$*.class and <dir>/<filename_wo_ext>_*.class
-    String classFileString = classFile.toString();
-    assert classFileString.endsWith(".class");
-
-    String auxClassFileBase =
-        new File(
-            classFileString.substring(0, classFileString.length() - ".class".length()))
-            .getName();
-
-    ArrayList<File> auxClassFiles = new ArrayList<>();
-
-    File[] files = classFile.getParentFile()
-        .listFiles(
-            (File file) -> isAuxClassFile(file.getName(), auxClassFileBase));
-    if (files != null) {
-      auxClassFiles.addAll(Arrays.asList(files));
-    }
-
-    if (auxClassFileBase.matches(".*[A-Z]\\d\\d")) {
-      // Also collect all the files in this directory that doesn't match this pattern
-      // They will be helper classes defined in one of the test class files but we don't know in
-      // which one, so we just add them to all tests.
-      final int SUFFIX_LENGTH_TO_STRIP = 3; // one letter (usually 'A' and two digits)
-      String testClassFilePattern =
-          auxClassFileBase.substring(0, auxClassFileBase.length() - SUFFIX_LENGTH_TO_STRIP)
-              + "[A-Z]\\d\\d.*\\.class";
-      files = classFile.getParentFile()
-          .listFiles(
-              (File file) -> file.getName().matches(".*\\.class") && !file.getName()
-                  .matches(testClassFilePattern));
-      if (files != null) {
-        auxClassFiles.addAll(Arrays.asList(files));
-      }
-    }
-
-    return auxClassFiles;
-  }
-
-  private static BiFunction<Outcome, Boolean, TestSpecification> jctfOutcomeToSpecification(
-      String name, DexTool dexTool, File resultDir, DexVm dexVm) {
-    return (outcome, noInlining) ->
-        new TestSpecification(
-            name,
-            dexTool,
-            resultDir,
-            outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WHEN_RUN
-                || outcome == JctfTestSpecifications.Outcome.FLAKY_WHEN_RUN,
-            outcome == JctfTestSpecifications.Outcome.FAILS_WHEN_RUN,
-            noInlining,
-            JctfTestSpecifications.hasMissingClasses.contains(name),
-            dexVm);
-  }
-
-  private static BiFunction<Outcome, Boolean, TestSpecification> jctfOutcomeToSpecificationJava(
-      String name, File resultDir) {
-    return (outcome, noInlining) ->
-        new TestSpecification(
-            name,
-            DexTool.NONE,
-            resultDir,
-            outcome == JctfTestSpecifications.Outcome.TIMEOUTS_WHEN_RUN
-                || outcome == JctfTestSpecifications.Outcome.FLAKY_WHEN_RUN,
-            outcome == JctfTestSpecifications.Outcome.FAILS_WHEN_RUN,
-            noInlining,
-            JctfTestSpecifications.hasMissingClasses.contains(name));
-  }
-
   private static Runtime getRuntime(TestRuntime vm) {
     if (vm.isCf()) {
       return Runtime.JAVA;
@@ -1995,321 +1833,6 @@ public abstract class R8RunArtTestsTest {
         message = new StringBuilder();
       }
       failedVms.add(vm);
-    }
-  }
-
-  protected void runJctfTest(
-      CompilerUnderTest compilerUnderTest, String classFilePath, String fullClassName)
-      throws IOException, CompilationFailedException {
-    VmErrors vmErrors = runJctfTestCore(compilerUnderTest, classFilePath, fullClassName);
-    if (vmErrors.message != null) {
-      throw new RuntimeException(vmErrors.message.toString());
-    }
-  }
-
-  private VmErrors runJctfTestCore(
-      CompilerUnderTest compilerUnderTest, String classFilePath, String fullClassName)
-      throws IOException, CompilationFailedException {
-    VmErrors vmErrors = new VmErrors();
-    List<TestRuntime> vms = new ArrayList<>();
-    if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      // TODO(b/135411839): Run on all java runtimes.
-      vms.add(TestRuntime.getDefaultJavaRuntime());
-    } else {
-      for (DexVm vm : TestParametersBuilder.getAvailableDexVms()) {
-        // TODO(144966342): Disabled for triaging failures
-        if (vm.getVersion() == DexVm.Version.V10_0_0) {
-          System.out.println("Running on 10.0.0 is disabled, see b/144966342");
-          continue;
-        }
-        if (vm.getVersion() == DexVm.Version.V12_0_0
-            || vm.getVersion() == DexVm.Version.V13_MASTER) {
-          System.out.println("Running on 12.0.0 or V13_MASTER is disabled, see b/197078995");
-          continue;
-        }
-        vms.add(new DexRuntime(vm));
-      }
-    }
-
-    CompilerUnderTest firstCompilerUnderTest =
-        compilerUnderTest == CompilerUnderTest.R8_AFTER_D8
-            ? CompilerUnderTest.D8
-            : compilerUnderTest;
-    CompilationMode compilationMode = defaultCompilationMode(compilerUnderTest);
-
-    List<VmSpec> vmSpecs = new ArrayList<>();
-    for (TestRuntime vm : vms) {
-      File resultDir =
-          temp.newFolder(
-              firstCompilerUnderTest.toString().toLowerCase() + "-output-" + vm.toString());
-
-      TestSpecification specification =
-          JctfTestSpecifications.getExpectedOutcome(
-              name,
-              firstCompilerUnderTest,
-              getRuntime(vm),
-              compilationMode,
-              compilerUnderTest == CompilerUnderTest.R8CF
-                  ? jctfOutcomeToSpecificationJava(name, resultDir)
-                  : jctfOutcomeToSpecification(name, DexTool.NONE, resultDir, vm.asDex().getVm()));
-
-      if (!specification.skipTest) {
-        vmSpecs.add(new VmSpec(vm, specification));
-      }
-    }
-
-    if (vmSpecs.isEmpty()) {
-      return vmErrors;
-    }
-
-    File classFile = new File(JCTF_TESTS_PREFIX + "/" + classFilePath);
-    if (!classFile.exists()) {
-      throw new FileNotFoundException(
-          "Class file for Jctf test not found: \"" + classFile.toString() + "\".");
-    }
-
-    ArrayList<File> classFiles = new ArrayList<>();
-    classFiles.add(classFile);
-
-    // some tests need files from other tests
-    int langIndex = fullClassName.indexOf(".java.");
-    assert langIndex >= 0;
-    List<String> externalClassFiles = jctfTestsExternalClassFiles
-        .get(fullClassName.substring(langIndex + ".java.".length()));
-
-    if (externalClassFiles != null) {
-      for (String s : externalClassFiles) {
-        classFiles.add(new File(JCTF_TESTS_LIB_PREFIX + "/java/" + s));
-      }
-    }
-
-    ArrayList<File> allClassFiles = new ArrayList<>();
-
-    for (File f : classFiles) {
-      allClassFiles.add(f);
-      allClassFiles.addAll(getJctfTestAuxClassFiles(f));
-    }
-
-    File jctfCommonFile = new File(JCTF_COMMON_JAR);
-    if (!jctfCommonFile.exists()) {
-      throw new FileNotFoundException(
-          "Jar file of Jctf tests common code not found: \"" + jctfCommonFile.toString() + "\".");
-    }
-
-    File junitFile = new File(JUNIT_JAR);
-    if (!junitFile.exists()) {
-      throw new FileNotFoundException(
-          "Junit Jar not found: \"" + junitFile.toString() + "\".");
-    }
-
-    File hamcrestFile = new File(HAMCREST_JAR);
-    if (!hamcrestFile.exists()) {
-      throw new FileNotFoundException(
-          "Hamcrest Jar not found: \"" + hamcrestFile.toString() + "\".");
-    }
-
-    // allClassFiles may contain duplicated files, that's why the HashSet
-    Set<String> fileNames = new HashSet<>();
-
-    fileNames.addAll(Arrays.asList(
-        jctfCommonFile.getCanonicalPath(),
-        junitFile.getCanonicalPath(),
-        hamcrestFile.getCanonicalPath()
-    ));
-
-    for (File f : allClassFiles) {
-      fileNames.add(f.getCanonicalPath());
-    }
-
-    if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      assert vmSpecs.size() == 1
-          : "Running the same test on multiple JVMs should share the same build.";
-      for (VmSpec vmSpec : vmSpecs) {
-        runJctfTestDoRunOnJava(
-            fileNames, vmSpec.spec, fullClassName, compilationMode, vmSpec.vm.asCf().getVm());
-      }
-      return vmErrors;
-    }
-
-    CompilationOptions compilationOptions = null;
-    File compiledDir = temp.newFolder();
-    for (VmSpec vmSpec : vmSpecs) {
-      CompilationOptions thisOptions = new CompilationOptions(vmSpec.spec);
-      if (compilationOptions == null) {
-        compilationOptions = thisOptions;
-        executeCompilerUnderTest(
-            firstCompilerUnderTest,
-            fileNames,
-            compiledDir.getAbsolutePath(),
-            compilationMode,
-            compilationOptions);
-      } else {
-        // For now compile options don't change across vms.
-        assert compilationOptions.equals(thisOptions);
-      }
-      Files.copy(
-          compiledDir.toPath().resolve("classes.dex"),
-          vmSpec.spec.directory.toPath().resolve("classes.dex"));
-
-      AssertionError vmError = null;
-      try {
-        runJctfTestDoRunOnArt(fileNames, vmSpec.spec, fullClassName, vmSpec.vm.asDex().getVm());
-      } catch (AssertionError e) {
-        vmError = e;
-      }
-      if (vmSpec.spec.failsOnRun && vmError == null) {
-        vmErrors.addShouldHaveFailedError(firstCompilerUnderTest, vmSpec.vm);
-      } else if (!vmSpec.spec.failsOnRun && vmError != null) {
-        vmErrors.addFailedOnRunError(firstCompilerUnderTest, vmSpec.vm, vmError);
-      }
-    }
-
-    if (compilerUnderTest != CompilerUnderTest.R8_AFTER_D8) {
-      return vmErrors;
-    }
-
-    // Second pass (R8), if R8_AFTER_D8.
-    CompilationOptions r8CompilationOptions = null;
-    File r8CompiledDir = temp.newFolder();
-    for (VmSpec vmSpec : vmSpecs) {
-      if (vmSpec.spec.failsOnRun || vmErrors.failedVms.contains(vmSpec.vm)) {
-        continue;
-      }
-      File r8ResultDir = temp.newFolder("r8-output-" + vmSpec.vm.toString());
-      TestSpecification specification =
-          JctfTestSpecifications.getExpectedOutcome(
-              name,
-              CompilerUnderTest.R8_AFTER_D8,
-              getRuntime(vmSpec.vm),
-              CompilationMode.RELEASE,
-              jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir, vmSpec.vm.asDex().getVm()));
-      if (specification.skipTest) {
-        continue;
-      }
-      CompilationOptions thisOptions = new CompilationOptions(specification);
-      if (r8CompilationOptions == null) {
-        r8CompilationOptions = thisOptions;
-        executeCompilerUnderTest(
-            CompilerUnderTest.R8,
-            Collections.singletonList(compiledDir.toPath().resolve("classes.dex").toString()),
-            r8CompiledDir.getAbsolutePath(),
-            CompilationMode.RELEASE,
-            r8CompilationOptions);
-      } else {
-        // For now compile options don't change across vms.
-        assert r8CompilationOptions.equals(thisOptions);
-      }
-      Files.copy(
-          r8CompiledDir.toPath().resolve("classes.dex"),
-          specification.directory.toPath().resolve("classes.dex"));
-      try {
-        runJctfTestDoRunOnArt(fileNames, specification, fullClassName, vmSpec.vm.asDex().getVm());
-      } catch (AssertionError e) {
-        if (!specification.failsOnRun) {
-          vmErrors.addFailedOnRunError(CompilerUnderTest.R8, vmSpec.vm, e);
-        }
-      }
-    }
-    return vmErrors;
-  }
-
-  private void runJctfTestDoRunOnArt(
-      Collection<String> fileNames,
-      TestSpecification specification,
-      String fullClassName,
-      DexVm dexVm)
-      throws IOException {
-    if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
-      return;
-    }
-
-    File processedFile;
-
-    // Collect the generated dex files.
-    File[] outputFiles =
-        specification.directory.listFiles((File file) -> file.getName().endsWith(".dex"));
-    assert outputFiles.length == 1;
-    processedFile = outputFiles[0];
-
-    boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
-    if (compileOnly || specification.skipRun) {
-      if (ToolHelper.isDex2OatSupported()) {
-        // verify dex code instead of running it
-        Path oatFile = temp.getRoot().toPath().resolve("all.oat");
-        ToolHelper.runDex2Oat(processedFile.toPath(), oatFile);
-      }
-      return;
-    }
-
-    ArtCommandBuilder builder = buildArtCommand(processedFile, specification, dexVm);
-    if (dexVm.isNewerThan(DexVm.ART_4_4_4_HOST)) {
-      builder.appendArtOption("-Ximage:/system/non/existent/image.art");
-      builder.appendArtOption("-Xnoimage-dex2oat");
-    }
-    for (String s : ToolHelper.getBootLibs(dexVm)) {
-      builder.appendBootClasspath(new File(s).getCanonicalPath());
-    }
-    builder.setMainClass(JUNIT_TEST_RUNNER);
-    builder.appendProgramArgument(fullClassName);
-
-    try {
-      ToolHelper.runArt(builder);
-    } catch (AssertionError e) {
-      addDexInformationToVerificationError(fileNames, processedFile,
-          specification.resolveFile("classes.dex"), e);
-      throw e;
-    }
-  }
-
-  private void runJctfTestDoRunOnJava(
-      Collection<String> fileNames,
-      TestSpecification specification,
-      String fullClassName,
-      CompilationMode mode,
-      CfVm vm)
-      throws IOException, CompilationFailedException {
-    assert TestParametersBuilder.isSystemJdk(vm);
-    if (JctfTestSpecifications.compilationFailsWithAsmMethodTooLarge.contains(specification.name)) {
-      expectException(org.objectweb.asm.MethodTooLargeException.class);
-    }
-    executeCompilerUnderTest(
-        CompilerUnderTest.R8CF,
-        fileNames,
-        specification.directory.getAbsolutePath(),
-        mode,
-        new CompilationOptions(specification));
-
-    boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
-
-    if (compileOnly || specification.skipRun) {
-      return;
-    }
-
-    if (specification.failsOnRun) {
-      expectException(AssertionError.class);
-    }
-
-    // Some tests rely on an OutOfMemoryError being thrown (fx MemoryHog.getBigArray()). To ensure
-    // compatible test results locally and externally, we need to synchronize the max heap size when
-    // running the test.
-    ProcessResult result =
-        ToolHelper.runJava(
-            specification.directory.toPath(),
-            "-Xmx" + ToolHelper.BOT_MAX_HEAP_SIZE,
-            JUNIT_TEST_RUNNER,
-            fullClassName);
-
-    if (result.exitCode != 0) {
-      throw new AssertionError(
-          "Test failed on java.\nSTDOUT >>>\n"
-              + result.stdout
-              + "\n<<< STDOUT\nSTDERR >>>\n"
-              + result.stderr
-              + "\n<<< STDERR\n");
-    }
-
-    if (specification.failsOnRun) {
-      System.err.println("Should have failed run with java.");
     }
   }
 

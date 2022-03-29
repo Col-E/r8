@@ -7,9 +7,6 @@
 # if an argument is given, run only tests with that pattern. This script will
 # force the tests to run, even if no input changed.
 
-import archive_desugar_jdk_libs
-import download_kotlin_dev
-import notify
 import optparse
 import os
 import shutil
@@ -18,7 +15,10 @@ import sys
 import time
 import uuid
 
+import archive_desugar_jdk_libs
+import download_kotlin_dev
 import gradle
+import notify
 import utils
 
 if utils.is_python3():
@@ -101,15 +101,6 @@ def ParseOptions():
       help='Tool to run ART tests with: "r8" (default) or "d8" or "r8cf"'
           ' (r8 w/CF-backend). Ignored if "--all_tests" enabled.',
       default=None, choices=["r8", "d8", "r8cf"])
-  result.add_option('--jctf',
-      help='Run JCTF tests with: "r8" (default) or "d8" or "r8cf".',
-      default=False, action='store_true')
-  result.add_option('--only-jctf', '--only_jctf',
-      help='Run only JCTF tests with: "r8" (default) or "d8" or "r8cf".',
-      default=False, action='store_true')
-  result.add_option('--jctf-compile-only', '--jctf_compile_only',
-      help="Don't run, only compile JCTF tests.",
-      default=False, action='store_true')
   result.add_option('--disable-assertions', '--disable_assertions',
       help='Disable assertions when running tests.',
       default=False, action='store_true')
@@ -277,14 +268,8 @@ def Main():
     gradle_args.append('-Ptool=%s' % options.tool)
   if options.one_line_per_test:
     gradle_args.append('-Pone_line_per_test')
-  if options.jctf:
-    gradle_args.append('-Pjctf')
-  if options.only_jctf:
-    gradle_args.append('-Ponly_jctf')
   if options.test_namespace:
     gradle_args.append('-Ptest_namespace=%s' % options.test_namespace)
-  if options.jctf_compile_only:
-    gradle_args.append('-Pjctf_compile_only')
   if options.disable_assertions:
     gradle_args.append('-Pdisable_assertions')
   if options.with_code_coverage:
@@ -299,14 +284,7 @@ def Main():
     gradle_args.append('-Pkotlin_compiler_dev')
     download_kotlin_dev.download_newest()
   if os.name == 'nt':
-    # temporary hack
     gradle_args.append('-Pno_internal')
-    gradle_args.append('-x')
-    gradle_args.append('createJctfTests')
-    gradle_args.append('-x')
-    gradle_args.append('jctfCommonJar')
-    gradle_args.append('-x')
-    gradle_args.append('jctfTestsClasses')
   if options.test_dir:
     gradle_args.append('-Ptest_dir=' + options.test_dir)
     if not os.path.exists(options.test_dir):
@@ -407,11 +385,6 @@ def Main():
       thread.start_new_thread(
           timeout_handler, (timestamp_file, print_stacks_timeout,))
   rotate_test_reports()
-
-  if options.only_jctf:
-    # Note: not setting -Pruntimes will run with all available runtimes.
-    return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
-    return archive_and_return(return_code, options)
 
   # Now run tests on selected runtime(s).
   if options.runtimes:

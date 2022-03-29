@@ -1305,7 +1305,7 @@ public class ToolHelper {
     AndroidApp app = command.getInputApp();
     if (app.getLibraryResourceProviders().isEmpty()) {
       // Add the android library matching the minsdk. We filter out junit and testing classes
-      // from the android jar to avoid duplicate classes in art and jctf tests.
+      // from the android jar to avoid duplicate classes in art tests.
       AndroidApp.Builder builder = AndroidApp.builder(app);
       addFilteredAndroidJar(builder, AndroidApiLevel.getAndroidApiLevel(command.getMinApiLevel()));
       app = builder.build();

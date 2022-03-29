@@ -48,8 +48,6 @@ ext {
     testngVersion = '6.10'
 }
 
-apply from: 'copyAdditionalJctfCommonFiles.gradle'
-
 repositories {
     maven {
        url 'https://storage.googleapis.com/r8-deps/maven_mirror/'
@@ -176,29 +174,6 @@ sourceSets {
         compileClasspath += fileTree(dir: "build/generated/test/proto", include: "*.jar")
         output.resourcesDir = 'build/classes/examplesProto'
     }
-    jctfCommon {
-        java {
-            srcDirs = [
-                'third_party/jctf/Harness/src',
-                'third_party/jctf/LibTests/src/com/google/jctf/test/categories',
-                'third_party/jctf/LibTests/src/com/google/jctf/test/helper',
-                'third_party/jctf/LibTests/src/com/google/jctf/testHelpers',
-                'third_party/jctf/LibTests/src/org',
-                'build/additionalJctfCommonFiles'
-            ]
-        }
-        resources {
-            srcDirs = ['third_party/jctf/LibTests/resources']
-        }
-    }
-    jctfTests {
-        java {
-            srcDirs = [
-                'third_party/jctf/LibTests/src/com/google/jctf/test/lib',
-                // 'third_party/jctf/VMTests/src',
-            ]
-        }
-    }
     kotlinR8TestResources {
         java {
             srcDirs = ['src/test/kotlinR8TestResources']
@@ -286,9 +261,6 @@ dependencies {
     testCompile group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     testCompile group: 'it.unimi.dsi', name: 'fastutil', version: fastutilVersion
 
-    jctfCommonCompile "junit:junit:$junitVersion"
-    jctfTestsCompile "junit:junit:$junitVersion"
-    jctfTestsCompile sourceSets.jctfCommon.output
     examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     // Import Guava for @Nullable annotation
@@ -352,7 +324,6 @@ def cloudDependencies = [
                 "jacoco/0.8.2",
                 "jacoco/0.8.6",
                 "jasmin",
-                "jctf",
                 "junit",
                 "jdwp-tests",
                 "jsr223-api-1.0",
@@ -710,16 +681,6 @@ if (!project.hasProperty('without_error_prone') &&
     }
 }
 
-compileJctfCommonJava {
-    dependsOn 'copyAdditionalJctfCommonFiles'
-    options.compilerArgs = ['-Xlint:none']
-}
-
-compileJctfTestsJava {
-    dependsOn 'jctfCommonClasses'
-    options.compilerArgs = ['-Xlint:none']
-}
-
 task consolidatedLicense {
     def license = new File(new File(buildDir, 'generatedLicense'), 'LICENSE')
 
@@ -1065,16 +1026,6 @@ task testJar(type: Exec) {
     ])
 }
 
-task buildDesugaredLibrary(type: Exec) {
-    def outputDir = "build/libs"
-    def script = "tools/create_jctf_tests.py"
-    inputs.file script
-    outputs.dir outputDir
-    dependsOn downloadDeps
-    commandLine "python3", script
-    workingDir = projectDir
-}
-
 task generateR8LibKeepRules(type: Exec) {
     // Depend on r8WithRelocatedDeps to ensure that we do not have external
     // dependencies crossing the boundary.
@@ -1174,11 +1125,6 @@ task sourceJar(type: Jar, dependsOn: classes) {
     from sourceSets.main.allSource
 }
 
-task jctfCommonJar(type: Jar) {
-    from sourceSets.jctfCommon.output
-    archiveFileName = 'jctfCommon.jar'
-}
-
 artifacts {
     archives sourceJar
 }
@@ -1193,19 +1139,8 @@ task createArtTests(type: Exec) {
     workingDir = projectDir
 }
 
-task createJctfTests(type: Exec) {
-    def outputDir = "build/generated/test/java/com/android/tools/r8/jctf"
-    def script = "tools/create_jctf_tests.py"
-    inputs.file script
-    outputs.dir outputDir
-    dependsOn downloadDeps
-    commandLine "python3", script
-    workingDir = projectDir
-}
-
 compileTestJava {
     dependsOn createArtTests
-    dependsOn createJctfTests
 }
 
 task buildCfSegments(type: Jar, dependsOn: downloadDeps) {
@@ -2316,28 +2251,13 @@ test { task ->
         include "com/android/tools/r8/" + project.getProperty('test_namespace') + "/**"
     }
 
-    if (project.hasProperty('tool')) {
-        if (project.property('tool') == 'r8') {
-            exclude "com/android/tools/r8/jctf/**"
-        } else if (project.property('tool') == 'd8') {
-            if (project.hasProperty('only_jctf')) {
-                include "com/android/tools/r8/jctf/d8/**"
-            } else {
-                // Don't run anything, deprecated
-                println "Running with deprecated tool d8, not running any tests"
-                include ""
-            }
-        } else {
-            assert(project.property('tool') == 'r8cf')
-            assert(project.hasProperty('only_jctf'))
-            include "com/android/tools/r8/jctf/r8cf/**"
-        }
+    if (project.hasProperty('tool') && project.property('tool') == 'd8') {
+        // Don't run anything, deprecated
+        println "Running with deprecated tool d8, not running any tests"
+        include ""
     }
     if (!project.hasProperty('all_tests')) {
         exclude "com/android/tools/r8/art/dx/**"
-    }
-    if (!project.hasProperty('jctf') && !project.hasProperty('only_jctf')) {
-        exclude "com/android/tools/r8/jctf/**"
     }
     if (project.hasProperty('shard_count') ) {
       assert project.hasProperty('shard_number')
@@ -2355,10 +2275,6 @@ test { task ->
           int hash = Integer.parseInt(first4, 16)
           return hash % shard_count != shard_number
       }
-    }
-    if (project.hasProperty('jctf_compile_only')) {
-        println "JCTF: compiling only"
-        systemProperty 'jctf_compile_only', '1'
     }
     if (project.hasProperty('test_dir')) {
         systemProperty 'test_dir', project.property('test_dir')
@@ -2389,8 +2305,6 @@ test { task ->
         dependsOn buildExamples
         dependsOn buildKotlinR8TestResources
         dependsOn buildSmali
-        dependsOn jctfCommonJar
-        dependsOn jctfTestsClasses
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
         dependsOn compileTestNGRunner
