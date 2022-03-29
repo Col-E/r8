@@ -161,7 +161,7 @@ common_test_options = [
     "--archive_failures"
 ]
 
-def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
+def get_dimensions(windows=False, internal=False, normal=False):
   dimensions = {
     "cores" : "2" if internal else "8",
     "cpu" : "x86-64",
@@ -171,8 +171,6 @@ def get_dimensions(windows=False, jctf=False, internal=False, normal=False):
     dimensions["os"] = "Windows-10"
   else:
     dimensions["os"] = "Ubuntu-16.04"
-  if jctf:
-    dimensions["jctf"] = "true"
   if internal:
     dimensions["internal"] = "true"
   if normal:
@@ -385,38 +383,12 @@ r8_builder(
     }
 )
 
-def jctf():
-  for release in ["", "_release"]:
-    for tool in ["d8", "r8cf"]:
-      properties = {
-          "test_options" : [
-              "--no_internal",
-              "--one_line_per_test",
-              "--archive_failures",
-              "--dex_vm=all",
-              "--tool=" + tool,
-              "--only_jctf"],
-          "builder_group" : "internal.client.r8",
-      }
-      name = "linux-" + tool + "_jctf" + release
-      r8_builder(
-          name,
-          category = "jctf",
-          dimensions = get_dimensions(jctf=True),
-          execution_timeout = time.hour * 12,
-          expiration_timeout = time.hour * 35,
-          properties = properties,
-      )
-jctf()
-
 order_of_categories = [
   "archive",
   "R8",
-  "jctf",
   "library_desugar",
   "Release|archive",
   "Release|R8",
-  "Release|jctf"
 ]
 
 def add_view_entries():
