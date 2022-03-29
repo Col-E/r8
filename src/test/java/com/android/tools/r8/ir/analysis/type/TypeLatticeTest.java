@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.fromDexType;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getBottom;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.getTop;
@@ -88,8 +90,23 @@ public class TypeLatticeTest extends TestBase {
     return TypeElement.fromDexType(type, nullability, appView);
   }
 
+  private ClassTypeElement element(DexType type, Nullability nullability, DexType... interfaces) {
+    assert type.isClassType();
+    InterfaceCollection.Builder interfaceCollectionBuilder = InterfaceCollection.builder();
+    Arrays.asList(interfaces).forEach(interfaceCollectionBuilder::addKnownInterface);
+    return ClassTypeElement.create(type, nullability, appView, interfaceCollectionBuilder.build());
+  }
+
   private ArrayTypeElement array(int nesting, DexType base) {
     return (ArrayTypeElement) element(factory.createArrayType(nesting, base));
+  }
+
+  private ArrayTypeElement array(TypeElement baseType) {
+    return array(baseType, maybeNull());
+  }
+
+  private ArrayTypeElement array(TypeElement baseType, Nullability nullability) {
+    return ArrayTypeElement.create(baseType, nullability);
   }
 
   private TypeElement join(TypeElement... elements) {
@@ -374,63 +391,59 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void joinDistinctTypesPrimitiveArrays() {
     assertEquals(
-        array(2, factory.objectType),
-        join(
-            array(3, factory.intType),
-            array(3, factory.floatType)));
+        array(
+            array(
+                element(
+                    factory.objectType,
+                    definitelyNotNull(),
+                    factory.cloneableType,
+                    factory.serializableType))),
+        join(array(3, factory.intType), array(3, factory.floatType)));
   }
 
   @Test
   public void joinDistinctTypesNestingOnePrimitiveArrays() {
     assertEquals(
-        element(factory.objectType),
-        join(
-            array(1, factory.intType),
-            array(1, factory.floatType)));
+        element(factory.objectType, maybeNull(), factory.cloneableType, factory.serializableType),
+        join(array(1, factory.intType), array(1, factory.floatType)));
     assertEquals(
-        element(factory.objectType),
-        join(
-            array(1, factory.longType),
-            array(1, factory.intType)));
+        element(factory.objectType, maybeNull(), factory.cloneableType, factory.serializableType),
+        join(array(1, factory.longType), array(1, factory.intType)));
 
     // Test primitive types smaller than int.
     assertEquals(
-        element(factory.objectType),
-        join(
-            array(1, factory.intType),
-            array(1, factory.byteType)));
+        element(factory.objectType, maybeNull(), factory.cloneableType, factory.serializableType),
+        join(array(1, factory.intType), array(1, factory.byteType)));
     assertEquals(
-        element(factory.objectType),
-        join(
-            array(1, factory.charType),
-            array(1, factory.shortType)));
+        element(factory.objectType, maybeNull(), factory.cloneableType, factory.serializableType),
+        join(array(1, factory.charType), array(1, factory.shortType)));
   }
 
   @Test
   public void joinDistinctTypesNestingOneRightPrimitiveArrays() {
     assertEquals(
-        element(factory.objectType),
-        join(
-            array(5, factory.intType),
-            array(1, factory.floatType)));
+        element(factory.objectType, maybeNull(), factory.cloneableType, factory.serializableType),
+        join(array(5, factory.intType), array(1, factory.floatType)));
   }
 
   @Test
   public void joinDistinctTypesNestingOneLeftPrimitiveArrays() {
     assertEquals(
-        element(factory.objectType),
-        join(
-            array(1, factory.intType),
-            array(5, factory.floatType)));
+        element(factory.objectType, maybeNull(), factory.cloneableType, factory.serializableType),
+        join(array(1, factory.intType), array(5, factory.floatType)));
   }
 
   @Test
   public void joinDistinctNestingPrimitiveArrays() {
     assertEquals(
-        array(2, factory.objectType),
-        join(
-            array(3, factory.intType),
-            array(4, factory.intType)));
+        array(
+            array(
+                element(
+                    factory.objectType,
+                    maybeNull(),
+                    factory.cloneableType,
+                    factory.serializableType))),
+        join(array(3, factory.intType), array(4, factory.intType)));
   }
 
   @Test
@@ -519,10 +532,10 @@ public class TypeLatticeTest extends TestBase {
     assertTrue(
         lessThanOrEqualUpToNullability(
             element(factory.objectType, Nullability.maybeNull()),
-            element(factory.objectType, Nullability.definitelyNotNull())));
+            element(factory.objectType, definitelyNotNull())));
     assertTrue(
         lessThanOrEqualUpToNullability(
-            element(factory.objectType, Nullability.definitelyNotNull()),
+            element(factory.objectType, definitelyNotNull()),
             element(factory.objectType, Nullability.maybeNull())));
     assertFalse(
         lessThanOrEqualUpToNullability(array(3, factory.stringType), array(4, factory.stringType)));
@@ -535,7 +548,7 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void testSelfOrderWithoutSubtypingInfo() {
     DexType type = factory.createType("Lmy/Type;");
-    TypeElement nonNullType = fromDexType(type, Nullability.definitelyNotNull(), appView);
+    TypeElement nonNullType = fromDexType(type, definitelyNotNull(), appView);
     ReferenceTypeElement nullableType =
         nonNullType.asReferenceType().getOrCreateVariant(Nullability.maybeNull());
     assertTrue(strictlyLessThan(nonNullType, nullableType));

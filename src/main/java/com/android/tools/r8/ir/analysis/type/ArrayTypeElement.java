@@ -28,7 +28,6 @@ public class ArrayTypeElement extends ReferenceTypeElement {
       Nullability nullability,
       NullabilityVariants<ArrayTypeElement> variants) {
     super(nullability);
-    assert memberTypeLattice.isPrimitiveType() || memberTypeLattice.nullability().isMaybeNull();
     this.memberTypeLattice = memberTypeLattice;
     this.variants = variants;
   }
