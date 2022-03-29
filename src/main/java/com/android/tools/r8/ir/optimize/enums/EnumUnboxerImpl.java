@@ -706,6 +706,9 @@ public class EnumUnboxerImpl extends EnumUnboxer {
             enumUnboxingLens,
             enumDataMap,
             utilityClasses);
+
+    // Ensure determinism of method-to-reprocess set.
+    appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
   }
 
   private void updateOptimizationInfos(

@@ -195,6 +195,9 @@ public class ArgumentPropagator {
         .fixupApplication(affectedClasses, executorService, timing);
 
     timing.end();
+
+    // Ensure determinism of method-to-reprocess set.
+    appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
   }
 
   /**

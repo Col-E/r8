@@ -821,6 +821,9 @@ public class IRConverter {
       inliner.onLastWaveDone(postMethodProcessorBuilder, executorService, timing);
     }
     openClosedInterfacesAnalysis.onPrimaryOptimizationPassComplete();
+
+    // Ensure determinism of method-to-reprocess set.
+    appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
   }
 
   public void addWaveDoneAction(com.android.tools.r8.utils.Action action) {

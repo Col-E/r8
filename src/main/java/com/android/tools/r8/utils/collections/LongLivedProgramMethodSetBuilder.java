@@ -13,7 +13,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.DeterminismChecker.LineCallback;
 import com.android.tools.r8.utils.SetUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
@@ -183,5 +187,13 @@ public class LongLivedProgramMethodSetBuilder<T extends ProgramMethodSet> {
         || appliedGraphLens.asNonIdentityLens().findPrevious(previous -> previous == graphLens)
             != null;
     return true;
+  }
+
+  public void dump(LineCallback lineCallback) throws IOException {
+    List<DexMethod> sortedMethods = new ArrayList<>(methods);
+    sortedMethods.sort(DexMethod::compareTo);
+    for (DexMethod method : sortedMethods) {
+      lineCallback.onLine(method.toSourceString());
+    }
   }
 }

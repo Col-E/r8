@@ -10,12 +10,13 @@ import com.android.tools.r8.graph.ProgramClass;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -44,12 +45,14 @@ public class DeterminismChecker {
               return new LineCallbackChecker(Files.newBufferedReader(log, StandardCharsets.UTF_8));
             } else {
               System.out.println("Writing determinism log: " + log);
+              // Note that Files.newBufferedWriter will cause issues in presence of malformed input
+              // and unmappable character errors, since Files.newBufferedWriter uses the
+              // java.nio.charset.CharsetDecoder default action, which is to report such errors,
+              // instead of dealing with them in java.nio.charset.CharsetDecoder#onMalformedInput.
               BufferedWriter bufferedWriter =
-                  Files.newBufferedWriter(
-                      log,
-                      StandardCharsets.UTF_8,
-                      StandardOpenOption.CREATE,
-                      StandardOpenOption.TRUNCATE_EXISTING);
+                  new BufferedWriter(
+                      new OutputStreamWriter(
+                          new FileOutputStream(log.toFile()), StandardCharsets.UTF_8));
               return new LineCallbackWriter(bufferedWriter);
             }
           }
@@ -80,6 +83,13 @@ public class DeterminismChecker {
 
   private static String fmtMethod(DexEncodedMethod method) {
     return method.getReference().toSourceString();
+  }
+
+  public <E extends Exception> void accept(ThrowingConsumer<LineCallback, E> consumer)
+      throws E, IOException {
+    try (LineCallback callback = callbackFactory.createCallback()) {
+      consumer.accept(callback);
+    }
   }
 
   public void check(AppView<?> appView) {

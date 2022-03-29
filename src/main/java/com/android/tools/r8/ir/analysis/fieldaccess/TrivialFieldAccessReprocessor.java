@@ -106,6 +106,9 @@ public class TrivialFieldAccessReprocessor {
     constantFields.forEach(this::markFieldAsDead);
     readFields.keySet().forEach(this::markFieldAsDead);
     writtenFields.keySet().forEach(this::markWriteOnlyFieldAsDead);
+
+    // Ensure determinism of method-to-reprocess set.
+    appView.testing().checkDeterminism(postMethodProcessorBuilder::dump);
   }
 
   private void markWriteOnlyFieldAsDead(DexEncodedField field) {

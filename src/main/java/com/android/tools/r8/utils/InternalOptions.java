@@ -1696,21 +1696,34 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     private boolean hasReadCheckDeterminism = false;
     private DeterminismChecker determinismChecker = null;
 
-    public void setDeterminismChecker(DeterminismChecker checker) {
-      determinismChecker = checker;
-    }
-
-    public void checkDeterminism(AppView<?> appView) {
+    private DeterminismChecker getDeterminismChecker() {
       // Lazily read the env-var so that it can be set after options init.
       if (determinismChecker == null && !hasReadCheckDeterminism) {
         hasReadCheckDeterminism = true;
         String dir = System.getProperty("com.android.tools.r8.checkdeterminism");
         if (dir != null) {
-          determinismChecker = DeterminismChecker.createWithFileBacking(Paths.get(dir));
+          setDeterminismChecker(DeterminismChecker.createWithFileBacking(Paths.get(dir)));
         }
       }
+      return determinismChecker;
+    }
+
+    public void setDeterminismChecker(DeterminismChecker checker) {
+      determinismChecker = checker;
+    }
+
+    public void checkDeterminism(AppView<?> appView) {
+      DeterminismChecker determinismChecker = getDeterminismChecker();
       if (determinismChecker != null) {
         determinismChecker.check(appView);
+      }
+    }
+
+    public <E extends Exception> void checkDeterminism(
+        ThrowingConsumer<DeterminismChecker, E> consumer) {
+      DeterminismChecker determinismChecker = getDeterminismChecker();
+      if (determinismChecker != null) {
+        consumer.acceptWithRuntimeException(determinismChecker);
       }
     }
 
