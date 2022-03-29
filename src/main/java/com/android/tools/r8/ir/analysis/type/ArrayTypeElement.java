@@ -28,6 +28,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
       Nullability nullability,
       NullabilityVariants<ArrayTypeElement> variants) {
     super(nullability);
+    assert memberTypeLattice.isPrimitiveType() || memberTypeLattice.nullability().isMaybeNull();
     this.memberTypeLattice = memberTypeLattice;
     this.variants = variants;
   }
@@ -190,7 +191,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
               aMemberMember,
               bMemberMember,
               appView,
-              aMemberMember.nullability().join(bMemberMember.nullability()));
+              aMember.nullability().join(bMember.nullability()));
       return join == null ? null : ArrayTypeElement.create(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {

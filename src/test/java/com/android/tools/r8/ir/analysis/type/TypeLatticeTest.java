@@ -395,7 +395,7 @@ public class TypeLatticeTest extends TestBase {
             array(
                 element(
                     factory.objectType,
-                    definitelyNotNull(),
+                    maybeNull(),
                     factory.cloneableType,
                     factory.serializableType))),
         join(array(3, factory.intType), array(3, factory.floatType)));
