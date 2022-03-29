@@ -12,6 +12,8 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.Ordered;
+import it.unimi.dsi.fastutil.ints.IntArraySet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,64 +25,67 @@ public class SyntheticNaming {
   private KindGenerator generator = new KindGenerator();
 
   // Global synthetics.
-  public final SyntheticKind RECORD_TAG = generator.forGlobalClass();
-  public final SyntheticKind API_MODEL_STUB = generator.forGlobalClass();
+  public final SyntheticKind RECORD_TAG = generator.forGlobalClass(1);
+  public final SyntheticKind API_MODEL_STUB = generator.forGlobalClass(33);
 
   // Classpath only synthetics in the global type namespace.
-  public final SyntheticKind RETARGET_STUB = generator.forGlobalClasspathClass();
-  public final SyntheticKind EMULATED_INTERFACE_MARKER_CLASS = generator.forGlobalClasspathClass();
+  public final SyntheticKind RETARGET_STUB = generator.forGlobalClasspathClass(36);
+  public final SyntheticKind EMULATED_INTERFACE_MARKER_CLASS =
+      generator.forGlobalClasspathClass(29);
 
   // Fixed suffix synthetics. Each has a hygienic prefix type.
   public final SyntheticKind ENUM_UNBOXING_LOCAL_UTILITY_CLASS =
-      generator.forFixedClass("$EnumUnboxingLocalUtility");
+      generator.forFixedClass(24, "$EnumUnboxingLocalUtility");
   public final SyntheticKind ENUM_UNBOXING_SHARED_UTILITY_CLASS =
-      generator.forFixedClass("$EnumUnboxingSharedUtility");
-  public final SyntheticKind COMPANION_CLASS = generator.forFixedClass("$-CC");
+      generator.forFixedClass(25, "$EnumUnboxingSharedUtility");
+  public final SyntheticKind COMPANION_CLASS = generator.forFixedClass(2, "$-CC");
   public final SyntheticKind EMULATED_INTERFACE_CLASS =
-      generator.forFixedClass(InterfaceDesugaringForTesting.EMULATED_INTERFACE_CLASS_SUFFIX);
-  public final SyntheticKind RETARGET_CLASS = generator.forFixedClass("RetargetClass");
-  public final SyntheticKind RETARGET_INTERFACE = generator.forFixedClass("RetargetInterface");
-  public final SyntheticKind WRAPPER = generator.forFixedClass("$Wrapper");
-  public final SyntheticKind VIVIFIED_WRAPPER = generator.forFixedClass("$VivifiedWrapper");
-  public final SyntheticKind INIT_TYPE_ARGUMENT = generator.forFixedClass("-IA");
+      generator.forFixedClass(3, InterfaceDesugaringForTesting.EMULATED_INTERFACE_CLASS_SUFFIX);
+  public final SyntheticKind RETARGET_CLASS = generator.forFixedClass(20, "RetargetClass");
+  public final SyntheticKind RETARGET_INTERFACE = generator.forFixedClass(21, "RetargetInterface");
+  public final SyntheticKind WRAPPER = generator.forFixedClass(22, "$Wrapper");
+  public final SyntheticKind VIVIFIED_WRAPPER = generator.forFixedClass(23, "$VivifiedWrapper");
+  public final SyntheticKind INIT_TYPE_ARGUMENT = generator.forFixedClass(5, "-IA");
   public final SyntheticKind HORIZONTAL_INIT_TYPE_ARGUMENT_1 =
-      generator.forFixedClass(SYNTHETIC_CLASS_SEPARATOR + "IA$1");
+      generator.forFixedClass(6, SYNTHETIC_CLASS_SEPARATOR + "IA$1");
   public final SyntheticKind HORIZONTAL_INIT_TYPE_ARGUMENT_2 =
-      generator.forFixedClass(SYNTHETIC_CLASS_SEPARATOR + "IA$2");
+      generator.forFixedClass(7, SYNTHETIC_CLASS_SEPARATOR + "IA$2");
   public final SyntheticKind HORIZONTAL_INIT_TYPE_ARGUMENT_3 =
-      generator.forFixedClass(SYNTHETIC_CLASS_SEPARATOR + "IA$3");
-  public final SyntheticKind ENUM_CONVERSION = generator.forFixedClass("$EnumConversion");
+      generator.forFixedClass(8, SYNTHETIC_CLASS_SEPARATOR + "IA$3");
+  public final SyntheticKind ENUM_CONVERSION = generator.forFixedClass(31, "$EnumConversion");
 
   // Locally generated synthetic classes.
-  public final SyntheticKind LAMBDA = generator.forInstanceClass("Lambda");
+  public final SyntheticKind LAMBDA = generator.forInstanceClass(4, "Lambda");
 
   // TODO(b/214901256): Sharing of synthetic classes may lead to duplicate method errors.
   public final SyntheticKind NON_FIXED_INIT_TYPE_ARGUMENT =
-      generator.forNonSharableInstanceClass("$IA");
-  public final SyntheticKind CONST_DYNAMIC = generator.forInstanceClass("$Condy");
+      generator.forNonSharableInstanceClass(35, "$IA");
+  public final SyntheticKind CONST_DYNAMIC = generator.forInstanceClass(30, "$Condy");
 
   // Method synthetics.
   public final SyntheticKind ENUM_UNBOXING_CHECK_NOT_ZERO_METHOD =
-      generator.forSingleMethod("CheckNotZero");
-  public final SyntheticKind RECORD_HELPER = generator.forSingleMethod("Record");
-  public final SyntheticKind BACKPORT = generator.forSingleMethod("Backport");
+      generator.forSingleMethod(27, "CheckNotZero");
+  public final SyntheticKind RECORD_HELPER = generator.forSingleMethod(9, "Record");
+  public final SyntheticKind BACKPORT = generator.forSingleMethod(10, "Backport");
   public final SyntheticKind BACKPORT_WITH_FORWARDING =
-      generator.forSingleMethod("BackportWithForwarding");
+      generator.forSingleMethod(34, "BackportWithForwarding");
   public final SyntheticKind STATIC_INTERFACE_CALL =
-      generator.forSingleMethod("StaticInterfaceCall");
-  public final SyntheticKind TO_STRING_IF_NOT_NULL = generator.forSingleMethod("ToStringIfNotNull");
-  public final SyntheticKind THROW_CCE_IF_NOT_NULL = generator.forSingleMethod("ThrowCCEIfNotNull");
-  public final SyntheticKind THROW_IAE = generator.forSingleMethod("ThrowIAE");
-  public final SyntheticKind THROW_ICCE = generator.forSingleMethod("ThrowICCE");
-  public final SyntheticKind THROW_NSME = generator.forSingleMethod("ThrowNSME");
-  public final SyntheticKind TWR_CLOSE_RESOURCE = generator.forSingleMethod("TwrCloseResource");
-  public final SyntheticKind SERVICE_LOADER = generator.forSingleMethod("ServiceLoad");
-  public final SyntheticKind OUTLINE = generator.forSingleMethod("Outline");
-  public final SyntheticKind API_CONVERSION = generator.forSingleMethod("APIConversion");
+      generator.forSingleMethod(11, "StaticInterfaceCall");
+  public final SyntheticKind TO_STRING_IF_NOT_NULL =
+      generator.forSingleMethod(12, "ToStringIfNotNull");
+  public final SyntheticKind THROW_CCE_IF_NOT_NULL =
+      generator.forSingleMethod(13, "ThrowCCEIfNotNull");
+  public final SyntheticKind THROW_IAE = generator.forSingleMethod(14, "ThrowIAE");
+  public final SyntheticKind THROW_ICCE = generator.forSingleMethod(15, "ThrowICCE");
+  public final SyntheticKind THROW_NSME = generator.forSingleMethod(16, "ThrowNSME");
+  public final SyntheticKind TWR_CLOSE_RESOURCE = generator.forSingleMethod(17, "TwrCloseResource");
+  public final SyntheticKind SERVICE_LOADER = generator.forSingleMethod(18, "ServiceLoad");
+  public final SyntheticKind OUTLINE = generator.forSingleMethod(19, "Outline");
+  public final SyntheticKind API_CONVERSION = generator.forSingleMethod(26, "APIConversion");
   public final SyntheticKind API_CONVERSION_PARAMETERS =
-      generator.forSingleMethod("APIConversionParameters");
-  public final SyntheticKind ARRAY_CONVERSION = generator.forSingleMethod("$ArrayConversion");
-  public final SyntheticKind API_MODEL_OUTLINE = generator.forSingleMethod("ApiModelOutline");
+      generator.forSingleMethod(28, "APIConversionParameters");
+  public final SyntheticKind ARRAY_CONVERSION = generator.forSingleMethod(37, "$ArrayConversion");
+  public final SyntheticKind API_MODEL_OUTLINE = generator.forSingleMethod(32, "ApiModelOutline");
 
   private final List<SyntheticKind> ALL_KINDS = generator.getAllKinds();
 
@@ -89,48 +94,49 @@ public class SyntheticNaming {
   }
 
   public SyntheticKind fromId(int id) {
-    if (0 < id && id <= ALL_KINDS.size()) {
-      return ALL_KINDS.get(id - 1);
+    for (SyntheticKind kind : ALL_KINDS) {
+      if (kind.getId() == id) {
+        return kind;
+      }
     }
     return null;
   }
 
   private static class KindGenerator {
-    private int nextId = 1;
     private List<SyntheticKind> kinds = new ArrayList<>();
-
-    private int getNextId() {
-      return nextId++;
-    }
+    private IntSet usedIds = new IntArraySet();
 
     private SyntheticKind register(SyntheticKind kind) {
+      if (!usedIds.add(kind.getId())) {
+        throw new Unreachable("Invalid reuse of synthetic kind id: " + kind.getId());
+      }
       kinds.add(kind);
       return kind;
     }
 
-    SyntheticKind forSingleMethod(String descriptor) {
-      return register(new SyntheticMethodKind(getNextId(), descriptor));
+    SyntheticKind forSingleMethod(int id, String descriptor) {
+      return register(new SyntheticMethodKind(id, descriptor));
     }
 
     // TODO(b/214901256): Remove once fixed.
-    SyntheticKind forNonSharableInstanceClass(String descriptor) {
-      return register(new SyntheticClassKind(getNextId(), descriptor, false));
+    SyntheticKind forNonSharableInstanceClass(int id, String descriptor) {
+      return register(new SyntheticClassKind(id, descriptor, false));
     }
 
-    SyntheticKind forInstanceClass(String descriptor) {
-      return register(new SyntheticClassKind(getNextId(), descriptor, true));
+    SyntheticKind forInstanceClass(int id, String descriptor) {
+      return register(new SyntheticClassKind(id, descriptor, true));
     }
 
-    SyntheticKind forFixedClass(String descriptor) {
-      return register(new SyntheticFixedClassKind(getNextId(), descriptor, false));
+    SyntheticKind forFixedClass(int id, String descriptor) {
+      return register(new SyntheticFixedClassKind(id, descriptor, false));
     }
 
-    SyntheticKind forGlobalClass() {
-      return register(new SyntheticFixedClassKind(getNextId(), "", true));
+    SyntheticKind forGlobalClass(int id) {
+      return register(new SyntheticFixedClassKind(id, "", true));
     }
 
-    SyntheticKind forGlobalClasspathClass() {
-      return register(new SyntheticFixedClassKind(getNextId(), "", false));
+    SyntheticKind forGlobalClasspathClass(int id) {
+      return register(new SyntheticFixedClassKind(id, "", false));
     }
 
     List<SyntheticKind> getAllKinds() {
