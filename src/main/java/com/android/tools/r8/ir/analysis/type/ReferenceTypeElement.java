@@ -16,7 +16,7 @@ public abstract class ReferenceTypeElement extends TypeElement {
     }
 
     @Override
-    public ReferenceTypeElement getOrCreateVariant(Nullability nullability) {
+    public NullElement getOrCreateVariant(Nullability nullability) {
       return nullability.isNullable() ? NULL_INSTANCE : NULL_BOTTOM_INSTANCE;
     }
 
@@ -60,8 +60,8 @@ public abstract class ReferenceTypeElement extends TypeElement {
     }
   }
 
-  private static final ReferenceTypeElement NULL_INSTANCE = NullElement.create();
-  private static final ReferenceTypeElement NULL_BOTTOM_INSTANCE = NullElement.createBottom();
+  private static final NullElement NULL_INSTANCE = NullElement.create();
+  private static final NullElement NULL_BOTTOM_INSTANCE = NullElement.createBottom();
 
   final Nullability nullability;
 

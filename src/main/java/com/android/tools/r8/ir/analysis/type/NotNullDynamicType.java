@@ -70,4 +70,9 @@ public class NotNullDynamicType extends DynamicType {
   public int hashCode() {
     return System.identityHashCode(this);
   }
+
+  @Override
+  public String toString() {
+    return "NotNullDynamicType";
+  }
 }

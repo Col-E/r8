@@ -266,6 +266,11 @@ public class DynamicTypeWithUpperBound extends DynamicType {
     return dynamicUpperBoundType.hashCode();
   }
 
+  @Override
+  public String toString() {
+    return "DynamicTypeWithUpperBound(upperBound=" + getDynamicUpperBoundType() + ")";
+  }
+
   private static boolean verifyNotEffectivelyFinalClassType(
       AppView<AppInfoWithLiveness> appView, TypeElement type) {
     if (type.isClassType()) {

@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -85,12 +83,10 @@ public class ArrayTypeElement extends ReferenceTypeElement {
   }
 
   @Override
-  public ReferenceTypeElement getOrCreateVariant(Nullability nullability) {
-    ArrayTypeElement variant = variants.get(nullability);
-    if (variant != null) {
-      return variant;
-    }
-    return variants.getOrCreateElement(nullability, this::createVariant);
+  public ArrayTypeElement getOrCreateVariant(Nullability nullability) {
+    return nullability.equals(nullability())
+        ? this
+        : variants.getOrCreateElement(nullability, this::createVariant);
   }
 
   @Override
@@ -151,16 +147,16 @@ public class ArrayTypeElement extends ReferenceTypeElement {
   ReferenceTypeElement join(ArrayTypeElement other, AppView<?> appView) {
     Nullability nullability = nullability().join(other.nullability());
     ReferenceTypeElement join =
-        joinMember(this.memberTypeLattice, other.memberTypeLattice, appView, nullability);
+        joinMember(getMemberType(), other.getMemberType(), appView, nullability);
     if (join == null) {
       // Check if other has the right nullability before creating it.
-      if (other.nullability == nullability) {
+      if (other.nullability() == nullability) {
         return other;
       } else {
         return getOrCreateVariant(nullability);
       }
     } else {
-      assert join.nullability == nullability;
+      assert join.nullability() == nullability;
       return join;
     }
   }
@@ -188,12 +184,14 @@ public class ArrayTypeElement extends ReferenceTypeElement {
       return null;
     }
     if (aMember.isArrayType() && bMember.isArrayType()) {
+      TypeElement aMemberMember = aMember.asArrayType().getMemberType();
+      TypeElement bMemberMember = bMember.asArrayType().getMemberType();
       TypeElement join =
           joinMember(
-              aMember.asArrayType().memberTypeLattice,
-              bMember.asArrayType().memberTypeLattice,
+              aMemberMember,
+              bMemberMember,
               appView,
-              maybeNull());
+              aMemberMember.nullability().join(bMemberMember.nullability()));
       return join == null ? null : ArrayTypeElement.create(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {
@@ -201,6 +199,20 @@ public class ArrayTypeElement extends ReferenceTypeElement {
       return ArrayTypeElement.create(join, nullability);
     }
     if (aMember.isPrimitiveType() || bMember.isPrimitiveType()) {
+      if (appView.enableWholeProgramOptimizations()) {
+        assert appView.hasClassHierarchy();
+        DexItemFactory dexItemFactory = appView.dexItemFactory();
+        InterfaceCollection interfaceCollection =
+            InterfaceCollection.builder()
+                .addKnownInterface(dexItemFactory.cloneableType)
+                .addKnownInterface(dexItemFactory.serializableType)
+                .build();
+        return ClassTypeElement.create(
+            dexItemFactory.objectType,
+            nullability,
+            appView.withClassHierarchy(),
+            interfaceCollection);
+      }
       return objectClassType(appView, nullability);
     }
     return objectArrayType(appView, nullability);

@@ -111,11 +111,9 @@ public class ClassTypeElement extends ReferenceTypeElement {
 
   @Override
   public ClassTypeElement getOrCreateVariant(Nullability nullability) {
-    ClassTypeElement variant = variants.get(nullability);
-    if (variant != null) {
-      return variant;
-    }
-    return variants.getOrCreateElement(nullability, this::createVariant);
+    return nullability.equals(nullability())
+        ? this
+        : variants.getOrCreateElement(nullability, this::createVariant);
   }
 
   @Override

@@ -203,12 +203,10 @@ public class FieldAssignmentTracker {
             }
             assert fieldType.isClassType();
             DynamicType dynamicType =
-                fieldType.isArrayType()
-                    ? DynamicType.unknown()
-                    : WideningUtils.widenDynamicNonReceiverType(
-                        appView,
-                        value.getDynamicType(appView).withNullability(Nullability.maybeNull()),
-                        field.getType());
+                WideningUtils.widenDynamicNonReceiverType(
+                    appView,
+                    value.getDynamicType(appView).withNullability(Nullability.maybeNull()),
+                    field.getType());
             return ConcreteClassTypeFieldState.create(abstractValue, dynamicType);
           }
 

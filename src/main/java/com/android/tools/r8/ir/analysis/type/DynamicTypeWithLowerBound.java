@@ -65,6 +65,15 @@ public class DynamicTypeWithLowerBound extends DynamicTypeWithUpperBound {
   }
 
   @Override
+  public String toString() {
+    return "DynamicTypeWithLowerBound(upperBound="
+        + getDynamicUpperBoundType()
+        + ", lowerBound="
+        + getDynamicLowerBoundType()
+        + ")";
+  }
+
+  @Override
   public DynamicTypeWithLowerBound withNullability(Nullability nullability) {
     if (getDynamicUpperBoundType().nullability() == nullability) {
       return this;
