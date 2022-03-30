@@ -436,7 +436,8 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     String currentVersionHash = synthetics.getNaming().getVersionHash();
-    if (!currentVersionHash.equals(versionHashElement.value.asDexValueString().toString())) {
+    String syntheticVersionHash = versionHashElement.value.asDexValueString().getValue().toString();
+    if (!currentVersionHash.equals(syntheticVersionHash)) {
       return null;
     }
     SyntheticKind kind =
