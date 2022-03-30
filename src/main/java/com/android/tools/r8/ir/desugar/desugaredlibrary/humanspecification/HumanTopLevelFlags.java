@@ -47,7 +47,7 @@ public class HumanTopLevelFlags {
 
   public static HumanTopLevelFlags testing() {
     return new HumanTopLevelFlags(
-        AndroidApiLevel.R, "unused", "testing", null, true, ImmutableList.of());
+        AndroidApiLevel.O, "unused", "testing", null, true, ImmutableList.of());
   }
 
   public static Builder builder() {

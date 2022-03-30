@@ -21,6 +21,11 @@ public class CfStaticFieldWrite extends CfFieldInstruction {
   }
 
   @Override
+  public CfFieldInstruction createWithField(DexField otherField) {
+    return new CfStaticFieldWrite(otherField);
+  }
+
+  @Override
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerStaticFieldWrite(getField());

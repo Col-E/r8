@@ -22,6 +22,11 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
   }
 
   @Override
+  public CfFieldInstruction createWithField(DexField otherField) {
+    return new CfInstanceFieldRead(otherField);
+  }
+
+  @Override
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerInstanceFieldReadInstruction(this);

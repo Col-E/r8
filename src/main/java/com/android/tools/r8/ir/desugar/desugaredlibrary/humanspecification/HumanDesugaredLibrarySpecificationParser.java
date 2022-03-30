@@ -8,10 +8,13 @@ import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibraryS
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.isHumanSpecification;
 
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.TopLevelFlagsBuilder;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.memberparser.HumanFieldParser;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.memberparser.HumanMethodParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -48,6 +51,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String WRAPPER_CONVERSION_EXCLUDING_KEY = "wrapper_conversion_excluding";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
   static final String REWRITE_PREFIX_KEY = "rewrite_prefix";
+  static final String RETARGET_STATIC_FIELD_KEY = "retarget_static_field";
   static final String RETARGET_METHOD_KEY = "retarget_method";
   static final String RETARGET_METHOD_EMULATED_DISPATCH_KEY =
       "retarget_method_with_emulated_dispatch";
@@ -57,11 +61,13 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String DONT_RETARGET_KEY = "dont_retarget";
   static final String BACKPORT_KEY = "backport";
   static final String AMEND_LIBRARY_METHOD_KEY = "amend_library_method";
+  static final String AMEND_LIBRARY_FIELD_KEY = "amend_library_field";
   static final String SHRINKER_CONFIG_KEY = "shrinker_config";
   static final String SUPPORT_ALL_CALLBACKS_FROM_LIBRARY_KEY = "support_all_callbacks_from_library";
 
   private final DexItemFactory dexItemFactory;
   private final HumanMethodParser methodParser;
+  private final HumanFieldParser fieldParser;
   private final Reporter reporter;
   private final boolean libraryCompilation;
   private final int minAPILevel;
@@ -76,6 +82,7 @@ public class HumanDesugaredLibrarySpecificationParser {
       int minAPILevel) {
     this.dexItemFactory = dexItemFactory;
     this.methodParser = new HumanMethodParser(dexItemFactory);
+    this.fieldParser = new HumanFieldParser(dexItemFactory);
     this.reporter = reporter;
     this.minAPILevel = minAPILevel;
     this.libraryCompilation = libraryCompilation;
@@ -245,6 +252,14 @@ public class HumanDesugaredLibrarySpecificationParser {
         }
       }
     }
+    if (jsonFlagSet.has(RETARGET_STATIC_FIELD_KEY)) {
+      for (Map.Entry<String, JsonElement> retarget :
+          jsonFlagSet.get(RETARGET_STATIC_FIELD_KEY).getAsJsonObject().entrySet()) {
+        builder.retargetStaticField(
+            parseField(retarget.getKey()),
+            stringDescriptorToDexType(retarget.getValue().getAsString()));
+      }
+    }
     if (jsonFlagSet.has(RETARGET_METHOD_KEY)) {
       for (Map.Entry<String, JsonElement> retarget :
           jsonFlagSet.get(RETARGET_METHOD_KEY).getAsJsonObject().entrySet()) {
@@ -317,6 +332,13 @@ public class HumanDesugaredLibrarySpecificationParser {
         builder.amendLibraryMethod(methodParser.getMethod(), methodParser.getFlags());
       }
     }
+    if (jsonFlagSet.has(AMEND_LIBRARY_FIELD_KEY)) {
+      JsonArray amendLibraryMember = jsonFlagSet.get(AMEND_LIBRARY_FIELD_KEY).getAsJsonArray();
+      for (JsonElement amend : amendLibraryMember) {
+        fieldParser.parseField(amend.getAsString());
+        builder.amendLibraryField(fieldParser.getField(), fieldParser.getFlags());
+      }
+    }
   }
 
   private Set<DexMethod> parseMethods(JsonArray array) {
@@ -330,6 +352,11 @@ public class HumanDesugaredLibrarySpecificationParser {
   private DexMethod parseMethod(String signature) {
     methodParser.parseMethod(signature);
     return methodParser.getMethod();
+  }
+
+  private DexField parseField(String signature) {
+    fieldParser.parseField(signature);
+    return fieldParser.getField();
   }
 
   private DexType stringDescriptorToDexType(String stringClass) {

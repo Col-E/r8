@@ -6,12 +6,15 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter;
 
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeter.InvokeRetargetingResult.NO_REWRITING;
 
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.MethodResolutionResult;
@@ -26,6 +29,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Mac
 import com.android.tools.r8.ir.desugar.desugaredlibrary.retargeter.DesugaredLibraryRetargeterSynthesizerEventConsumer.DesugaredLibraryRetargeterInstructionEventConsumer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -36,6 +40,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   private final AppView<?> appView;
   private final DesugaredLibraryRetargeterSyntheticHelper syntheticHelper;
 
+  private final Map<DexField, DexField> staticFieldRetarget;
   private final Map<DexMethod, DexMethod> staticRetarget;
   private final Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget;
   private final Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget;
@@ -45,6 +50,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     this.syntheticHelper = new DesugaredLibraryRetargeterSyntheticHelper(appView);
     MachineDesugaredLibrarySpecification specification =
         appView.options().machineDesugaredLibrarySpecification;
+    staticFieldRetarget = specification.getStaticFieldRetarget();
     staticRetarget = specification.getStaticRetarget();
     nonEmulatedVirtualRetarget = specification.getNonEmulatedVirtualRetarget();
     emulatedVirtualRetarget = specification.getEmulatedVirtualRetarget();
@@ -67,20 +73,53 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
       MethodProcessingContext methodProcessingContext,
       CfInstructionDesugaringCollection desugaringCollection,
       DexItemFactory dexItemFactory) {
-    InvokeRetargetingResult invokeRetargetingResult = computeNewInvokeTarget(instruction, context);
-
-    if (!invokeRetargetingResult.hasNewInvokeTarget()) {
-      return null;
+    if (instruction.isFieldInstruction() && needsDesugaring(instruction, context)) {
+      return desugarFieldInstruction(instruction.asFieldInstruction(), context);
+    } else if (instruction.isInvoke() && needsDesugaring(instruction, context)) {
+      return desugarInvoke(instruction.asInvoke(), eventConsumer, context);
     }
+    return null;
+  }
 
+  private Collection<CfInstruction> desugarFieldInstruction(
+      CfFieldInstruction fieldInstruction, ProgramMethod context) {
+    DexField fieldRetarget = fieldRetarget(fieldInstruction, context);
+    assert fieldRetarget != null;
+    assert fieldInstruction.isStaticFieldGet() || fieldInstruction.isStaticFieldPut();
+    return Collections.singletonList(fieldInstruction.createWithField(fieldRetarget));
+  }
+
+  private List<CfInstruction> desugarInvoke(
+      CfInvoke invoke, CfInstructionDesugaringEventConsumer eventConsumer, ProgramMethod context) {
+    InvokeRetargetingResult invokeRetargetingResult = computeNewInvokeTarget(invoke, context);
+    assert invokeRetargetingResult.hasNewInvokeTarget();
     DexMethod newInvokeTarget = invokeRetargetingResult.getNewInvokeTarget(eventConsumer);
     return Collections.singletonList(
-        new CfInvoke(Opcodes.INVOKESTATIC, newInvokeTarget, instruction.asInvoke().isInterface()));
+        new CfInvoke(Opcodes.INVOKESTATIC, newInvokeTarget, invoke.isInterface()));
   }
 
   @Override
   public boolean needsDesugaring(CfInstruction instruction, ProgramMethod context) {
-    return computeNewInvokeTarget(instruction, context).hasNewInvokeTarget();
+    if (instruction.isFieldInstruction()) {
+      return fieldRetarget(instruction.asFieldInstruction(), context) != null;
+    } else if (instruction.isInvoke()) {
+      return computeNewInvokeTarget(instruction.asInvoke(), context).hasNewInvokeTarget();
+    }
+    return false;
+  }
+
+  private DexField fieldRetarget(CfFieldInstruction fieldInstruction, ProgramMethod context) {
+    DexEncodedField resolvedField =
+        appView
+            .appInfoForDesugaring()
+            .resolveField(fieldInstruction.getField(), context)
+            .getResolvedField();
+    if (resolvedField != null) {
+      assert resolvedField.isStatic()
+          || !staticFieldRetarget.containsKey(resolvedField.getReference());
+      return staticFieldRetarget.get(resolvedField.getReference());
+    }
+    return null;
   }
 
   InvokeRetargetingResult ensureInvokeRetargetingResult(DexMethod retarget) {
@@ -124,10 +163,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
   }
 
   private InvokeRetargetingResult computeNewInvokeTarget(
-      CfInstruction instruction, ProgramMethod context) {
-    if (!instruction.isInvoke()) {
-      return NO_REWRITING;
-    }
+      CfInvoke instruction, ProgramMethod context) {
     if (appView
         .options()
         .machineDesugaredLibrarySpecification

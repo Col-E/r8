@@ -8,8 +8,13 @@ import com.android.tools.r8.androidapi.ComputedApiLevel;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.utils.Reporter;
 import java.util.Map;
@@ -28,20 +33,23 @@ public class DesugaredLibraryAmender {
   public static void run(AppView<?> appView) {
     run(
         appView.options().machineDesugaredLibrarySpecification.getAmendLibraryMethods(),
+        appView.options().machineDesugaredLibrarySpecification.getAmendLibraryFields(),
         appView,
         appView.options().reporter,
         appView.computedMinApiLevel());
   }
 
   public static void run(
-      Map<DexMethod, MethodAccessFlags> amendLibrary,
+      Map<DexMethod, MethodAccessFlags> amendLibraryMethod,
+      Map<DexField, FieldAccessFlags> amendLibraryField,
       DexDefinitionSupplier definitions,
       Reporter reporter,
       ComputedApiLevel minAPILevel) {
-    if (amendLibrary.isEmpty()) {
+    if (amendLibraryMethod.isEmpty() && amendLibraryField.isEmpty()) {
       return;
     }
-    new DesugaredLibraryAmender(definitions, reporter, minAPILevel).run(amendLibrary);
+    new DesugaredLibraryAmender(definitions, reporter, minAPILevel)
+        .run(amendLibraryMethod, amendLibraryField);
   }
 
   private DesugaredLibraryAmender(
@@ -51,22 +59,40 @@ public class DesugaredLibraryAmender {
     this.minAPILevel = minAPILevel;
   }
 
-  private void run(Map<DexMethod, MethodAccessFlags> amendLibrary) {
-    amendLibrary.forEach(this::amendLibraryMethod);
+  private void run(
+      Map<DexMethod, MethodAccessFlags> amendLibraryMethod,
+      Map<DexField, FieldAccessFlags> amendLibraryField) {
+    amendLibraryMethod.forEach(this::amendLibraryMethod);
+    amendLibraryField.forEach(this::amendLibraryField);
+  }
+
+  private void amendLibraryField(DexField field, FieldAccessFlags fieldAccessFlags) {
+    DexLibraryClass libClass = getLibraryClass(field);
+    if (libClass == null) {
+      return;
+    }
+    if (libClass.lookupField(field) != null) {
+      return;
+    }
+    DexEncodedField encodedField =
+        DexEncodedField.syntheticBuilder()
+            .setField(field)
+            .setAccessFlags(fieldAccessFlags)
+            .setApiLevel(minAPILevel)
+            .build();
+    if (fieldAccessFlags.isStatic()) {
+      libClass.appendStaticField(encodedField);
+    } else {
+      libClass.appendInstanceField(encodedField);
+    }
   }
 
   private void amendLibraryMethod(DexMethod method, MethodAccessFlags methodAccessFlags) {
-    DexClass dexClass = definitions.contextIndependentDefinitionFor(method.getHolderType());
-    if (dexClass == null || !dexClass.isLibraryClass()) {
-      // Consider just throwing an error.
-      reporter.warning(
-          "Desugared library: Cannot amend library method "
-              + method
-              + " because the holder is not a library class"
-              + (dexClass == null ? "(null)." : "."));
+    DexLibraryClass libClass = getLibraryClass(method);
+    if (libClass == null) {
       return;
     }
-    if (dexClass.lookupMethod(method) != null) {
+    if (libClass.lookupMethod(method) != null) {
       return;
     }
     DexEncodedMethod encodedMethod =
@@ -76,6 +102,20 @@ public class DesugaredLibraryAmender {
             .setCode(null)
             .setApiLevelForDefinition(minAPILevel)
             .build();
-    dexClass.getMethodCollection().addMethod(encodedMethod);
+    libClass.getMethodCollection().addMethod(encodedMethod);
+  }
+
+  private DexLibraryClass getLibraryClass(DexReference reference) {
+    DexClass dexClass = definitions.contextIndependentDefinitionFor(reference.getContextType());
+    if (dexClass == null || !dexClass.isLibraryClass()) {
+      // Consider just throwing an error.
+      reporter.warning(
+          "Desugared library: Cannot amend library reference "
+              + reference
+              + " because the holder is not a library class"
+              + (dexClass == null ? "(null)." : "."));
+      return null;
+    }
+    return dexClass.asLibraryClass();
   }
 }

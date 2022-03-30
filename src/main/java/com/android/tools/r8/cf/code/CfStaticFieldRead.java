@@ -22,6 +22,11 @@ public class CfStaticFieldRead extends CfFieldInstruction implements CfOrDexStat
   }
 
   @Override
+  public CfFieldInstruction createWithField(DexField otherField) {
+    return new CfStaticFieldRead(otherField);
+  }
+
+  @Override
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerStaticFieldReadInstruction(this);

@@ -86,8 +86,13 @@ public class HumanToMachineSpecificationConverter {
     HumanRewritingFlags rewritingFlags = humanSpec.getRewritingFlags();
     MachineRewritingFlags.Builder builder = MachineRewritingFlags.builder();
     DesugaredLibraryAmender.run(
-        rewritingFlags.getAmendLibraryMethod(), appInfo, reporter, ComputedApiLevel.unknown());
+        rewritingFlags.getAmendLibraryMethod(),
+        rewritingFlags.getAmendLibraryField(),
+        appInfo,
+        reporter,
+        ComputedApiLevel.unknown());
     rewritingFlags.getAmendLibraryMethod().forEach(builder::amendLibraryMethod);
+    rewritingFlags.getAmendLibraryField().forEach(builder::amendLibraryField);
     new HumanToMachineRetargetConverter(appInfo)
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)

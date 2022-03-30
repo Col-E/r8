@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Reporter;
@@ -26,6 +28,7 @@ public class HumanRewritingFlags {
   private final Map<String, String> rewritePrefix;
   private final Map<String, Map<String, String>> rewriteDerivedPrefix;
   private final Map<DexType, DexType> emulatedInterfaces;
+  private final Map<DexField, DexType> retargetStaticField;
   private final Map<DexMethod, DexType> retargetMethod;
   private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
   private final Map<DexType, DexType> legacyBackport;
@@ -34,11 +37,13 @@ public class HumanRewritingFlags {
   private final Set<DexType> dontRetarget;
   private final Map<DexType, Set<DexMethod>> wrapperConversions;
   private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
+  private final Map<DexField, FieldAccessFlags> amendLibraryField;
 
   HumanRewritingFlags(
       Map<String, String> rewritePrefix,
       Map<String, Map<String, String>> rewriteDerivedPrefix,
       Map<DexType, DexType> emulateLibraryInterface,
+      Map<DexField, DexType> retargetStaticField,
       Map<DexMethod, DexType> retargetMethod,
       Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
       Map<DexType, DexType> legacyBackport,
@@ -46,10 +51,12 @@ public class HumanRewritingFlags {
       Set<DexMethod> dontRewriteInvocation,
       Set<DexType> dontRetarget,
       Map<DexType, Set<DexMethod>> wrapperConversion,
-      Map<DexMethod, MethodAccessFlags> amendLibraryMethod) {
+      Map<DexMethod, MethodAccessFlags> amendLibraryMethod,
+      Map<DexField, FieldAccessFlags> amendLibraryField) {
     this.rewritePrefix = rewritePrefix;
     this.rewriteDerivedPrefix = rewriteDerivedPrefix;
     this.emulatedInterfaces = emulateLibraryInterface;
+    this.retargetStaticField = retargetStaticField;
     this.retargetMethod = retargetMethod;
     this.retargetMethodEmulatedDispatch = retargetMethodEmulatedDispatch;
     this.legacyBackport = legacyBackport;
@@ -58,6 +65,7 @@ public class HumanRewritingFlags {
     this.dontRetarget = dontRetarget;
     this.wrapperConversions = wrapperConversion;
     this.amendLibraryMethod = amendLibraryMethod;
+    this.amendLibraryField = amendLibraryField;
   }
 
   public static HumanRewritingFlags empty() {
@@ -69,8 +77,10 @@ public class HumanRewritingFlags {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of());
   }
@@ -86,6 +96,7 @@ public class HumanRewritingFlags {
         rewritePrefix,
         rewriteDerivedPrefix,
         emulatedInterfaces,
+        retargetStaticField,
         retargetMethod,
         retargetMethodEmulatedDispatch,
         legacyBackport,
@@ -93,7 +104,8 @@ public class HumanRewritingFlags {
         dontRewriteInvocation,
         dontRetarget,
         wrapperConversions,
-        amendLibraryMethod);
+        amendLibraryMethod,
+        amendLibraryField);
   }
 
   public Map<String, String> getRewritePrefix() {
@@ -106,6 +118,10 @@ public class HumanRewritingFlags {
 
   public Map<DexType, DexType> getEmulatedInterfaces() {
     return emulatedInterfaces;
+  }
+
+  public Map<DexField, DexType> getRetargetStaticField() {
+    return retargetStaticField;
   }
 
   public Map<DexMethod, DexType> getRetargetMethod() {
@@ -140,11 +156,17 @@ public class HumanRewritingFlags {
     return amendLibraryMethod;
   }
 
+  public Map<DexField, FieldAccessFlags> getAmendLibraryField() {
+    return amendLibraryField;
+  }
+
   public boolean isEmpty() {
     return rewritePrefix.isEmpty()
         && rewriteDerivedPrefix.isEmpty()
         && emulatedInterfaces.isEmpty()
-        && retargetMethod.isEmpty();
+        && retargetMethod.isEmpty()
+        && retargetMethodEmulatedDispatch.isEmpty()
+        && retargetStaticField.isEmpty();
   }
 
   public static class Builder {
@@ -155,6 +177,7 @@ public class HumanRewritingFlags {
     private final Map<String, String> rewritePrefix;
     private final Map<String, Map<String, String>> rewriteDerivedPrefix;
     private final Map<DexType, DexType> emulatedInterfaces;
+    private final Map<DexField, DexType> retargetStaticField;
     private final Map<DexMethod, DexType> retargetMethod;
     private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
     private final Map<DexType, DexType> legacyBackport;
@@ -163,6 +186,7 @@ public class HumanRewritingFlags {
     private final Set<DexType> dontRetarget;
     private final Map<DexType, Set<DexMethod>> wrapperConversions;
     private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
+    private final Map<DexField, FieldAccessFlags> amendLibraryField;
 
     Builder(Reporter reporter, Origin origin) {
       this(
@@ -175,8 +199,10 @@ public class HumanRewritingFlags {
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
+          new IdentityHashMap<>(),
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
+          new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>());
     }
@@ -187,6 +213,7 @@ public class HumanRewritingFlags {
         Map<String, String> rewritePrefix,
         Map<String, Map<String, String>> rewriteDerivedPrefix,
         Map<DexType, DexType> emulateLibraryInterface,
+        Map<DexField, DexType> retargetStaticField,
         Map<DexMethod, DexType> retargetMethod,
         Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
         Map<DexType, DexType> backportCoreLibraryMember,
@@ -194,12 +221,14 @@ public class HumanRewritingFlags {
         Set<DexMethod> dontRewriteInvocation,
         Set<DexType> dontRetargetLibMember,
         Map<DexType, Set<DexMethod>> wrapperConversions,
-        Map<DexMethod, MethodAccessFlags> amendLibrary) {
+        Map<DexMethod, MethodAccessFlags> amendLibraryMethod,
+        Map<DexField, FieldAccessFlags> amendLibraryField) {
       this.reporter = reporter;
       this.origin = origin;
       this.rewritePrefix = new HashMap<>(rewritePrefix);
       this.rewriteDerivedPrefix = new HashMap<>(rewriteDerivedPrefix);
       this.emulatedInterfaces = new IdentityHashMap<>(emulateLibraryInterface);
+      this.retargetStaticField = new IdentityHashMap<>(retargetStaticField);
       this.retargetMethod = new IdentityHashMap<>(retargetMethod);
       this.retargetMethodEmulatedDispatch = new IdentityHashMap<>(retargetMethodEmulatedDispatch);
       this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
@@ -209,7 +238,8 @@ public class HumanRewritingFlags {
       this.dontRetarget = Sets.newIdentityHashSet();
       this.dontRetarget.addAll(dontRetargetLibMember);
       this.wrapperConversions = new IdentityHashMap<>(wrapperConversions);
-      this.amendLibraryMethod = new IdentityHashMap<>(amendLibrary);
+      this.amendLibraryMethod = new IdentityHashMap<>(amendLibraryMethod);
+      this.amendLibraryField = new IdentityHashMap<>(amendLibraryField);
     }
 
     // Utility to set values.
@@ -285,6 +315,15 @@ public class HumanRewritingFlags {
       return this;
     }
 
+    public Builder retargetStaticField(DexField key, DexType rewrittenType) {
+      put(
+          retargetStaticField,
+          key,
+          rewrittenType,
+          HumanDesugaredLibrarySpecificationParser.RETARGET_STATIC_FIELD_KEY);
+      return this;
+    }
+
     public Builder retargetMethodEmulatedDispatch(DexMethod key, DexType rewrittenType) {
       put(
           retargetMethodEmulatedDispatch,
@@ -318,12 +357,18 @@ public class HumanRewritingFlags {
       return this;
     }
 
+    public Builder amendLibraryField(DexField member, FieldAccessFlags flags) {
+      amendLibraryField.put(member, flags);
+      return this;
+    }
+
     public HumanRewritingFlags build() {
       validate();
       return new HumanRewritingFlags(
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableMap.copyOf(rewriteDerivedPrefix),
           ImmutableMap.copyOf(emulatedInterfaces),
+          ImmutableMap.copyOf(retargetStaticField),
           ImmutableMap.copyOf(retargetMethod),
           ImmutableMap.copyOf(retargetMethodEmulatedDispatch),
           ImmutableMap.copyOf(legacyBackport),
@@ -331,7 +376,8 @@ public class HumanRewritingFlags {
           ImmutableSet.copyOf(dontRewriteInvocation),
           ImmutableSet.copyOf(dontRetarget),
           ImmutableMap.copyOf(wrapperConversions),
-          ImmutableMap.copyOf(amendLibraryMethod));
+          ImmutableMap.copyOf(amendLibraryMethod),
+          ImmutableMap.copyOf(amendLibraryField));
     }
 
     private void validate() {

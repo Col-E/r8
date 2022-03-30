@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification;
 
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -26,6 +28,7 @@ public class MachineRewritingFlags {
   MachineRewritingFlags(
       Map<DexType, DexType> rewriteType,
       Map<DexType, DexType> rewriteDerivedTypeOnly,
+      Map<DexField, DexField> staticFieldRetarget,
       Map<DexMethod, DexMethod> staticRetarget,
       Map<DexMethod, DexMethod> nonEmulatedVirtualRetarget,
       Map<DexMethod, EmulatedDispatchMethodDescriptor> emulatedVirtualRetarget,
@@ -35,9 +38,11 @@ public class MachineRewritingFlags {
       Map<DexType, DexType> legacyBackport,
       Set<DexType> dontRetarget,
       Map<DexType, CustomConversionDescriptor> customConversions,
-      Map<DexMethod, MethodAccessFlags> amendLibraryMethods) {
+      Map<DexMethod, MethodAccessFlags> amendLibraryMethods,
+      Map<DexField, FieldAccessFlags> amendLibraryFields) {
     this.rewriteType = rewriteType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
+    this.staticFieldRetarget = staticFieldRetarget;
     this.staticRetarget = staticRetarget;
     this.nonEmulatedVirtualRetarget = nonEmulatedVirtualRetarget;
     this.emulatedVirtualRetarget = emulatedVirtualRetarget;
@@ -49,6 +54,7 @@ public class MachineRewritingFlags {
     this.dontRetarget = dontRetarget;
     this.customConversions = customConversions;
     this.amendLibraryMethod = amendLibraryMethods;
+    this.amendLibraryField = amendLibraryFields;
   }
 
   // Rewrites all the references to the keys as well as synthetic types derived from any key.
@@ -56,7 +62,10 @@ public class MachineRewritingFlags {
   // Rewrites only synthetic types derived from any key.
   private final Map<DexType, DexType> rewriteDerivedTypeOnly;
 
-  // Static methods to retarget, duplicated to library boundaries.
+  // Fields to retarget.
+  private final Map<DexField, DexField> staticFieldRetarget;
+
+  // Static methods to retarget.
   private final Map<DexMethod, DexMethod> staticRetarget;
 
   // Virtual methods to retarget, which are guaranteed not to require emulated dispatch.
@@ -83,6 +92,7 @@ public class MachineRewritingFlags {
   private final Set<DexType> dontRetarget;
   private final Map<DexType, CustomConversionDescriptor> customConversions;
   private final Map<DexMethod, MethodAccessFlags> amendLibraryMethod;
+  private final Map<DexField, FieldAccessFlags> amendLibraryField;
 
   public Map<DexType, DexType> getRewriteType() {
     return rewriteType;
@@ -90,6 +100,10 @@ public class MachineRewritingFlags {
 
   public Map<DexType, DexType> getRewriteDerivedTypeOnly() {
     return rewriteDerivedTypeOnly;
+  }
+
+  public Map<DexField, DexField> getStaticFieldRetarget() {
+    return staticFieldRetarget;
   }
 
   public Map<DexMethod, DexMethod> getStaticRetarget() {
@@ -146,10 +160,15 @@ public class MachineRewritingFlags {
     return amendLibraryMethod;
   }
 
+  public Map<DexField, FieldAccessFlags> getAmendLibraryField() {
+    return amendLibraryField;
+  }
+
   public boolean hasRetargeting() {
     return !staticRetarget.isEmpty()
         || !nonEmulatedVirtualRetarget.isEmpty()
-        || !emulatedVirtualRetarget.isEmpty();
+        || !emulatedVirtualRetarget.isEmpty()
+        || !staticFieldRetarget.isEmpty();
   }
 
   public boolean isEmulatedInterfaceRewrittenType(DexType type) {
@@ -175,6 +194,8 @@ public class MachineRewritingFlags {
 
     private final Map<DexType, DexType> rewriteType = new IdentityHashMap<>();
     private final Map<DexType, DexType> rewriteDerivedTypeOnly = new IdentityHashMap<>();
+    private final ImmutableMap.Builder<DexField, DexField> staticFieldRetarget =
+        ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> staticRetarget =
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, DexMethod> nonEmulatedVirtualRetarget =
@@ -192,6 +213,8 @@ public class MachineRewritingFlags {
         ImmutableMap.builder();
     private final ImmutableMap.Builder<DexMethod, MethodAccessFlags> amendLibraryMethod =
         ImmutableMap.builder();
+    private final ImmutableMap.Builder<DexField, FieldAccessFlags> amendLibraryField =
+        ImmutableMap.builder();
 
     public void rewriteType(DexType src, DexType target) {
       assert src != null;
@@ -203,6 +226,10 @@ public class MachineRewritingFlags {
 
     public void rewriteDerivedTypeOnly(DexType src, DexType target) {
       rewriteDerivedTypeOnly.put(src, target);
+    }
+
+    public void putStaticFieldRetarget(DexField src, DexField dest) {
+      staticFieldRetarget.put(src, dest);
     }
 
     public void putStaticRetarget(DexMethod src, DexMethod dest) {
@@ -245,6 +272,10 @@ public class MachineRewritingFlags {
       amendLibraryMethod.put(missingReference, flags);
     }
 
+    public void amendLibraryField(DexField missingReference, FieldAccessFlags flags) {
+      amendLibraryField.put(missingReference, flags);
+    }
+
     public DexType getRewrittenType(DexType type) {
       return rewriteType.get(type);
     }
@@ -253,6 +284,7 @@ public class MachineRewritingFlags {
       return new MachineRewritingFlags(
           rewriteType,
           rewriteDerivedTypeOnly,
+          staticFieldRetarget.build(),
           staticRetarget.build(),
           nonEmulatedVirtualRetarget.build(),
           emulatedVirtualRetarget.build(),
@@ -262,7 +294,8 @@ public class MachineRewritingFlags {
           legacyBackport.build(),
           dontRetarget.build(),
           customConversions.build(),
-          amendLibraryMethod.build());
+          amendLibraryMethod.build(),
+          amendLibraryField.build());
     }
   }
 }

@@ -6,7 +6,9 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.specificationconversion
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
@@ -26,7 +28,7 @@ import java.util.function.BiConsumer;
 public class HumanToMachineRetargetConverter {
 
   private final AppInfoWithClassHierarchy appInfo;
-  private final Set<DexMethod> missingMethods = Sets.newIdentityHashSet();
+  private final Set<DexReference> missingReferences = Sets.newIdentityHashSet();
 
   public HumanToMachineRetargetConverter(AppInfoWithClassHierarchy appInfo) {
     this.appInfo = appInfo;
@@ -37,6 +39,9 @@ public class HumanToMachineRetargetConverter {
       MachineRewritingFlags.Builder builder,
       BiConsumer<String, Set<? extends DexReference>> warnConsumer) {
     rewritingFlags
+        .getRetargetStaticField()
+        .forEach((field, type) -> convertRetargetField(builder, field, type));
+    rewritingFlags
         .getRetargetMethod()
         .forEach((method, type) -> convertRetargetMethod(builder, method, type));
     rewritingFlags
@@ -44,7 +49,19 @@ public class HumanToMachineRetargetConverter {
         .forEach(
             (method, type) ->
                 convertRetargetMethodEmulatedDispatch(builder, rewritingFlags, method, type));
-    warnConsumer.accept("Cannot retarget missing methods: ", missingMethods);
+    warnConsumer.accept("Cannot retarget missing references: ", missingReferences);
+  }
+
+  private void convertRetargetField(
+      MachineRewritingFlags.Builder builder, DexField field, DexType type) {
+    DexClass holder = appInfo.definitionFor(field.holder);
+    DexEncodedField foundField = holder.lookupField(field);
+    if (foundField == null) {
+      missingReferences.add(field);
+      return;
+    }
+    builder.putStaticFieldRetarget(
+        field, appInfo.dexItemFactory().createField(type, field.type, field.name));
   }
 
   private void convertRetargetMethodEmulatedDispatch(
@@ -55,7 +72,7 @@ public class HumanToMachineRetargetConverter {
     DexClass holder = appInfo.definitionFor(method.holder);
     DexEncodedMethod foundMethod = holder.lookupMethod(method);
     if (foundMethod == null) {
-      missingMethods.add(method);
+      missingReferences.add(method);
       return;
     }
     if (foundMethod.isStatic()) {
@@ -83,7 +100,7 @@ public class HumanToMachineRetargetConverter {
     DexClass holder = appInfo.definitionFor(method.holder);
     DexEncodedMethod foundMethod = holder.lookupMethod(method);
     if (foundMethod == null) {
-      missingMethods.add(method);
+      missingReferences.add(method);
       return;
     }
     if (foundMethod.isStatic()) {

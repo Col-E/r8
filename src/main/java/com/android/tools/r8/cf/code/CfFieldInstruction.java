@@ -93,6 +93,12 @@ public abstract class CfFieldInstruction extends CfInstruction {
     return opcode == Opcodes.GETSTATIC;
   }
 
+  public boolean isStaticFieldPut() {
+    return opcode == Opcodes.PUTSTATIC;
+  }
+
+  public abstract CfFieldInstruction createWithField(DexField field);
+
   @Override
   public CfFieldInstruction asFieldInstruction() {
     return this;

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
+package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.memberparser;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -25,7 +25,7 @@ public class HumanMethodParser extends AbstractMethodParser {
   private DexMethod method;
   private MethodAccessFlags flags;
 
-  protected HumanMethodParser(DexItemFactory factory) {
+  public HumanMethodParser(DexItemFactory factory) {
     super(factory);
   }
 
