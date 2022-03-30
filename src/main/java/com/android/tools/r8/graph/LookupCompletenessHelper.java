@@ -38,9 +38,9 @@ public class LookupCompletenessHelper {
     }
   }
 
-  void checkDexClassAndMethod(DexClassAndMethod classAndMethod) {
-    checkClass(classAndMethod.getHolder());
-    checkMethod(classAndMethod.getDefinition());
+  void checkDexClassAndMethod(LookupMethodTarget methodTarget) {
+    checkClass(methodTarget.getHolder());
+    checkMethod(methodTarget.getDefinition());
   }
 
   LookupResultCollectionState computeCollectionState(

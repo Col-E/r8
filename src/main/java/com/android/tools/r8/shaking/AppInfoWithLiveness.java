@@ -36,6 +36,7 @@ import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.GraphLens.NonIdentityGraphLens;
 import com.android.tools.r8.graph.InstantiatedSubTypeInfo;
+import com.android.tools.r8.graph.LookupMethodTarget;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
@@ -1467,17 +1468,17 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (receiverLowerBoundType != null
         && receiverLowerBoundType.getClassType() == refinedReceiverType) {
       if (refinedReceiverClass.isProgramClass()) {
-        DexClassAndMethod clazzAndMethod =
+        LookupMethodTarget methodTarget =
             resolution.lookupVirtualDispatchTarget(refinedReceiverClass.asProgramClass(), this);
-        if (clazzAndMethod == null
-            || (clazzAndMethod.isProgramMethod()
+        if (methodTarget == null
+            || (methodTarget.getTarget().isProgramMethod()
                 && !getKeepInfo()
-                    .getMethodInfo(clazzAndMethod.asProgramMethod())
+                    .getMethodInfo(methodTarget.getTarget().asProgramMethod())
                     .isOptimizationAllowed(options()))) {
           // TODO(b/150640456): We should maybe only consider program methods.
           return DexEncodedMethod.SENTINEL;
         }
-        return clazzAndMethod.getDefinition();
+        return methodTarget.getDefinition();
       } else {
         // TODO(b/150640456): We should maybe only consider program methods.
         // If we resolved to a method on the refined receiver in the library, then we report the

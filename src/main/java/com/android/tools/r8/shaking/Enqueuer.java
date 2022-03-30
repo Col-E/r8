@@ -66,6 +66,7 @@ import com.android.tools.r8.graph.GenericSignatureEnqueuerAnalysis;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.InvalidCode;
 import com.android.tools.r8.graph.LookupLambdaTarget;
+import com.android.tools.r8.graph.LookupMethodTarget;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.MethodAccessInfoCollection;
@@ -3277,20 +3278,25 @@ public class Enqueuer {
   private void markVirtualDispatchTargetAsLive(
       LookupTarget target, Function<ProgramMethod, KeepReasonWitness> reason) {
     target.accept(
-        method -> markVirtualDispatchTargetAsLive(method, reason),
-        lambda -> markVirtualDispatchTargetAsLive(lambda, reason));
+        method -> markVirtualDispatchMethodTargetAsLive(method, reason),
+        lambda -> markVirtualDispatchLambdaTargetAsLive(lambda, reason));
     analyses.forEach(analysis -> analysis.notifyMarkVirtualDispatchTargetAsLive(target, workList));
   }
 
-  private void markVirtualDispatchTargetAsLive(
-      DexClassAndMethod target, Function<ProgramMethod, KeepReasonWitness> reason) {
-    ProgramMethod programMethod = target.asProgramMethod();
+  private void markVirtualDispatchMethodTargetAsLive(
+      LookupMethodTarget target, Function<ProgramMethod, KeepReasonWitness> reason) {
+    ProgramMethod programMethod = target.getTarget().asProgramMethod();
     if (programMethod != null && !programMethod.getDefinition().isAbstract()) {
-      markVirtualMethodAsLive(programMethod, reason.apply(programMethod));
+      KeepReasonWitness appliedReason = reason.apply(programMethod);
+      markVirtualMethodAsLive(programMethod, appliedReason);
+      DexClassAndMethod accessOverride = target.getAccessOverride();
+      if (accessOverride != null && accessOverride.isProgramMethod()) {
+        markMethodAsTargeted(accessOverride.asProgramMethod(), appliedReason);
+      }
     }
   }
 
-  private void markVirtualDispatchTargetAsLive(
+  private void markVirtualDispatchLambdaTargetAsLive(
       LookupLambdaTarget target, Function<ProgramMethod, KeepReasonWitness> reason) {
     ProgramMethod implementationMethod = target.getImplementationMethod().asProgramMethod();
     if (implementationMethod != null) {
@@ -4434,7 +4440,7 @@ public class Enqueuer {
     if (override.isLambdaTarget()) {
       return true;
     }
-    ProgramMethod programMethod = override.asMethodTarget().asProgramMethod();
+    ProgramMethod programMethod = override.asMethodTarget().getTarget().asProgramMethod();
     if (programMethod == null) {
       return false;
     }

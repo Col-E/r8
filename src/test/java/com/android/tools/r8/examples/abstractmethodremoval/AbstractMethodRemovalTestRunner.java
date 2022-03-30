@@ -6,7 +6,6 @@ package com.android.tools.r8.examples.abstractmethodremoval;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.examples.abstractmethodremoval.a.PackageBase;
 import com.android.tools.r8.examples.abstractmethodremoval.a.Public;
 import com.android.tools.r8.examples.abstractmethodremoval.b.Impl1;
@@ -66,11 +65,6 @@ public class AbstractMethodRemovalTestRunner extends TestBase {
         .addKeepMainRule(getMainClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), getMainClass())
-        .applyIf(
-            // TODO(b/227302144): The program should not fail after R8.
-            parameters.isDexRuntime()
-                && parameters.asDexRuntime().getVersion().isNewerThanOrEqual(Version.V5_1_1),
-            r -> r.assertFailure(),
-            r -> r.assertSuccessWithOutput(getExpected()));
+        .assertSuccessWithOutput(getExpected());
   }
 }

@@ -124,7 +124,8 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
                   lookupResult
                       .asLookupResultSuccess()
                       .forEach(
-                          methodTarget -> {
+                          lookupMethodTarget -> {
+                            DexClassAndMethod methodTarget = lookupMethodTarget.getTarget();
                             if (methodTarget.isProgramMethod()) {
                               targets.add(methodTarget.asProgramMethod());
                             }

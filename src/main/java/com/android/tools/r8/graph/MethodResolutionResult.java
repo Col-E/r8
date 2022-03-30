@@ -13,7 +13,6 @@ import com.android.tools.r8.shaking.InstantiatedObject;
 import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.OptionalBool;
-import com.android.tools.r8.utils.collections.DexClassAndMethodSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.function.BiPredicate;
@@ -152,7 +151,7 @@ public abstract class MethodResolutionResult
   public abstract LookupTarget lookupVirtualDispatchTarget(
       InstantiatedObject instance, AppInfoWithClassHierarchy appInfo);
 
-  public abstract DexClassAndMethod lookupVirtualDispatchTarget(
+  public abstract LookupMethodTarget lookupVirtualDispatchTarget(
       DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo);
 
   public abstract LookupTarget lookupVirtualDispatchTarget(
@@ -451,8 +450,9 @@ public abstract class MethodResolutionResult
         // Only include if the target has code or is native.
         boolean isIncomplete =
             pinnedPredicate.isPinned(resolvedHolder) && pinnedPredicate.isPinned(resolvedMethod);
+        DexClassAndMethod resolutionPair = getResolutionPair();
         return LookupResult.createResult(
-            DexClassAndMethodSet.create(getResolutionPair()),
+            Collections.singletonMap(resolutionPair.getReference(), resolutionPair),
             Collections.emptyList(),
             Collections.emptyList(),
             isIncomplete
@@ -466,13 +466,12 @@ public abstract class MethodResolutionResult
           initialResolutionHolder.type,
           subClass -> {
             incompleteness.checkClass(subClass);
-            DexClassAndMethod dexClassAndMethod =
+            LookupMethodTarget lookupTarget =
                 lookupVirtualDispatchTarget(
                     subClass, appInfo, resolvedHolder.type, resultBuilder::addMethodCausingFailure);
-            if (dexClassAndMethod != null) {
-              incompleteness.checkDexClassAndMethod(dexClassAndMethod);
-              addVirtualDispatchTarget(
-                  dexClassAndMethod, resolvedHolder.isInterface(), resultBuilder);
+            if (lookupTarget != null) {
+              incompleteness.checkDexClassAndMethod(lookupTarget);
+              addVirtualDispatchTarget(lookupTarget, resolvedHolder.isInterface(), resultBuilder);
             }
           },
           lambda -> {
@@ -552,10 +551,11 @@ public abstract class MethodResolutionResult
     }
 
     private static void addVirtualDispatchTarget(
-        DexClassAndMethod target,
+        LookupMethodTarget target,
         boolean holderIsInterface,
         LookupResultSuccess.Builder resultBuilder) {
-      DexEncodedMethod targetMethod = target.getDefinition();
+      assert target.isMethodTarget();
+      DexEncodedMethod targetMethod = target.asMethodTarget().getDefinition();
       assert !targetMethod.isPrivateMethod();
       if (holderIsInterface) {
         // Add default interface methods to the list of targets.
@@ -609,7 +609,7 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public DexClassAndMethod lookupVirtualDispatchTarget(
+    public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return lookupVirtualDispatchTarget(
           dynamicInstance, appInfo, initialResolutionHolder.type, emptyConsumer());
@@ -634,7 +634,7 @@ public abstract class MethodResolutionResult
           lambdaInstance, appInfo, methodCausingFailureConsumer);
     }
 
-    private DexClassAndMethod lookupVirtualDispatchTarget(
+    private LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance,
         AppInfoWithClassHierarchy appInfo,
         DexType resolutionHolder,
@@ -644,18 +644,20 @@ public abstract class MethodResolutionResult
       // TODO(b/148591377): Enable this assertion.
       // The dynamic type cannot be an interface.
       // assert !dynamicInstance.isInterface();
+      DexClassAndMethod initialResolutionPair = getResolutionPair();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
-        return getResolutionPair();
+        return initialResolutionPair;
       }
       boolean allowPackageBlocked = resolvedMethod.accessFlags.isPackagePrivate();
       DexClass current = dynamicInstance;
-      DexEncodedMethod overrideTarget = resolvedMethod;
+      DexClassAndMethod overrideTarget = initialResolutionPair;
       while (current != null) {
-        DexEncodedMethod candidate = lookupOverrideCandidate(overrideTarget, current);
+        DexEncodedMethod candidate =
+            lookupOverrideCandidate(overrideTarget.getDefinition(), current);
         if (candidate == DexEncodedMethod.SENTINEL && allowPackageBlocked) {
-          overrideTarget = findWideningOverride(resolvedMethod, current, appInfo);
+          overrideTarget = findWideningOverride(initialResolutionPair, current, appInfo);
           allowPackageBlocked = false;
           continue;
         }
@@ -667,7 +669,10 @@ public abstract class MethodResolutionResult
           current = current.superType == null ? null : appInfo.definitionFor(current.superType);
           continue;
         }
-        return DexClassAndMethod.create(current, candidate);
+        DexClassAndMethod target = DexClassAndMethod.create(current, candidate);
+        return overrideTarget != initialResolutionPair
+            ? new LookupMethodTargetWithAccessOverride(target, overrideTarget)
+            : target;
       }
       // If we have not found a candidate and the holder is not an interface it must be because the
       // class is missing.
@@ -732,10 +737,10 @@ public abstract class MethodResolutionResult
       return null;
     }
 
-    private static DexEncodedMethod findWideningOverride(
-        DexEncodedMethod resolvedMethod, DexClass clazz, AppInfoWithClassHierarchy appView) {
+    private static DexClassAndMethod findWideningOverride(
+        DexClassAndMethod resolvedMethod, DexClass clazz, AppInfoWithClassHierarchy appView) {
       // Otherwise, lookup to first override that is distinct from resolvedMethod.
-      assert resolvedMethod.accessFlags.isPackagePrivate();
+      assert resolvedMethod.getDefinition().accessFlags.isPackagePrivate();
       while (clazz.superType != null) {
         clazz = appView.definitionFor(clazz.superType);
         if (clazz == null) {
@@ -743,10 +748,10 @@ public abstract class MethodResolutionResult
         }
         DexEncodedMethod otherOverride = clazz.lookupVirtualMethod(resolvedMethod.getReference());
         if (otherOverride != null
-            && isOverriding(resolvedMethod, otherOverride)
+            && isOverriding(resolvedMethod.getDefinition(), otherOverride)
             && (otherOverride.accessFlags.isPublic() || otherOverride.accessFlags.isProtected())) {
-          assert resolvedMethod != otherOverride;
-          return otherOverride;
+          assert resolvedMethod.getDefinition() != otherOverride;
+          return DexClassAndMethod.create(clazz, otherOverride);
         }
       }
       return resolvedMethod;
@@ -818,19 +823,19 @@ public abstract class MethodResolutionResult
     }
 
     @Override
-    public DexClassAndMethod lookupVirtualDispatchTarget(
+    public LookupTarget lookupVirtualDispatchTarget(
         InstantiatedObject instance, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
-    public DexClassAndMethod lookupVirtualDispatchTarget(
+    public LookupMethodTarget lookupVirtualDispatchTarget(
         DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
     @Override
-    public DexClassAndMethod lookupVirtualDispatchTarget(
+    public LookupTarget lookupVirtualDispatchTarget(
         LambdaDescriptor lambdaInstance,
         AppInfoWithClassHierarchy appInfo,
         Consumer<? super DexEncodedMethod> methodCausingFailureConsumer) {
@@ -1032,4 +1037,5 @@ public abstract class MethodResolutionResult
       return invalidSymbolicReference.get();
     }
   }
+
 }

@@ -170,7 +170,8 @@ public abstract class InvokeMethod extends Invoke {
     }
     ProgramMethodSet result = ProgramMethodSet.create();
     lookupResult.forEach(
-        methodTarget -> {
+        target -> {
+          DexClassAndMethod methodTarget = target.getTarget();
           if (methodTarget.isProgramMethod()) {
             result.add(methodTarget.asProgramMethod());
           }

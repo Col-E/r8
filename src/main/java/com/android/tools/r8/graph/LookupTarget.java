@@ -14,7 +14,7 @@ public interface LookupTarget {
     return false;
   }
 
-  default DexClassAndMethod asMethodTarget() {
+  default LookupMethodTarget asMethodTarget() {
     return null;
   }
 
@@ -22,6 +22,10 @@ public interface LookupTarget {
     return null;
   }
 
+  default DexClassAndMethod getAccessOverride() {
+    return null;
+  }
+
   void accept(
-      Consumer<DexClassAndMethod> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer);
+      Consumer<LookupMethodTarget> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer);
 }

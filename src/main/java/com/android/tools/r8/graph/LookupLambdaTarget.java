@@ -30,7 +30,7 @@ public class LookupLambdaTarget implements LookupTarget {
 
   @Override
   public void accept(
-      Consumer<DexClassAndMethod> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer) {
+      Consumer<LookupMethodTarget> methodConsumer, Consumer<LookupLambdaTarget> lambdaConsumer) {
     lambdaConsumer.accept(this);
   }
 
