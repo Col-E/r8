@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
-import static com.android.tools.r8.utils.InternalOptions.EXPERIMENTAL_CF_VERSION;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
@@ -106,8 +105,6 @@ public class InterfaceInvokePrivateTest extends TestBase implements Opcodes {
         // TODO(b/185463156): Not keeping I and its members will "fix" the ICCE for all runtimes.
         .addKeepClassAndMembersRules(I.class)
         .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages(
-            inputCfVersion.isGreaterThanOrEqualTo(EXPERIMENTAL_CF_VERSION))
         .compile()
         .run(parameters.getRuntime(), TestRunner.class)
         .applyIf(
