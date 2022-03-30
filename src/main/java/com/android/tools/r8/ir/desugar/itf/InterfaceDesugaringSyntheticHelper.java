@@ -98,6 +98,13 @@ public class InterfaceDesugaringSyntheticHelper {
     if (isEmulatedInterface(clazz.type)) {
       return true;
     }
+    if (appView
+        .options()
+        .machineDesugaredLibrarySpecification
+        .getMaintainType()
+        .contains(clazz.type)) {
+      return true;
+    }
     return appView.typeRewriter.hasRewrittenType(clazz.type, appView);
   }
 

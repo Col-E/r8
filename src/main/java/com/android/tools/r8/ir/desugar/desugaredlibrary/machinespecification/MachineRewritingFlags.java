@@ -27,6 +27,7 @@ public class MachineRewritingFlags {
 
   MachineRewritingFlags(
       Map<DexType, DexType> rewriteType,
+      Set<DexType> maintainType,
       Map<DexType, DexType> rewriteDerivedTypeOnly,
       Map<DexField, DexField> staticFieldRetarget,
       Map<DexMethod, DexMethod> staticRetarget,
@@ -41,6 +42,7 @@ public class MachineRewritingFlags {
       Map<DexMethod, MethodAccessFlags> amendLibraryMethods,
       Map<DexField, FieldAccessFlags> amendLibraryFields) {
     this.rewriteType = rewriteType;
+    this.maintainType = maintainType;
     this.rewriteDerivedTypeOnly = rewriteDerivedTypeOnly;
     this.staticFieldRetarget = staticFieldRetarget;
     this.staticRetarget = staticRetarget;
@@ -59,6 +61,8 @@ public class MachineRewritingFlags {
 
   // Rewrites all the references to the keys as well as synthetic types derived from any key.
   private final Map<DexType, DexType> rewriteType;
+  // Maintains the references in the desugared library dex file.
+  private final Set<DexType> maintainType;
   // Rewrites only synthetic types derived from any key.
   private final Map<DexType, DexType> rewriteDerivedTypeOnly;
 
@@ -96,6 +100,10 @@ public class MachineRewritingFlags {
 
   public Map<DexType, DexType> getRewriteType() {
     return rewriteType;
+  }
+
+  public Set<DexType> getMaintainType() {
+    return maintainType;
   }
 
   public Map<DexType, DexType> getRewriteDerivedTypeOnly() {
@@ -193,6 +201,7 @@ public class MachineRewritingFlags {
     Builder() {}
 
     private final Map<DexType, DexType> rewriteType = new IdentityHashMap<>();
+    private final ImmutableSet.Builder<DexType> maintainType = ImmutableSet.builder();
     private final Map<DexType, DexType> rewriteDerivedTypeOnly = new IdentityHashMap<>();
     private final ImmutableMap.Builder<DexField, DexField> staticFieldRetarget =
         ImmutableMap.builder();
@@ -222,6 +231,11 @@ public class MachineRewritingFlags {
       assert src != target;
       assert !rewriteType.containsKey(src) || rewriteType.get(src) == target;
       rewriteType.put(src, target);
+    }
+
+    public void maintainType(DexType type) {
+      assert type != null;
+      maintainType.add(type);
     }
 
     public void rewriteDerivedTypeOnly(DexType src, DexType target) {
@@ -283,6 +297,7 @@ public class MachineRewritingFlags {
     public MachineRewritingFlags build() {
       return new MachineRewritingFlags(
           rewriteType,
+          maintainType.build(),
           rewriteDerivedTypeOnly,
           staticFieldRetarget.build(),
           staticRetarget.build(),
