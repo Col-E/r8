@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.synthesis.SyntheticNaming.SyntheticKind;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import java.nio.charset.StandardCharsets;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ByteVector;
 import org.objectweb.asm.ClassReader;
@@ -23,33 +24,51 @@ import org.objectweb.asm.Label;
 public class SyntheticMarker {
 
   private static final String SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME =
-      "com.android.tools.r8.SynthesizedClass";
+      "com.android.tools.r8.SynthesizedClassV2";
 
   public static Attribute getMarkerAttributePrototype(SyntheticNaming syntheticNaming) {
-    return new MarkerAttribute(null, syntheticNaming);
+    return new MarkerAttribute(null, null, syntheticNaming);
   }
 
   public static void writeMarkerAttribute(
       ClassWriter writer, SyntheticKind kind, SyntheticItems syntheticItems) {
-    writer.visitAttribute(new MarkerAttribute(kind, syntheticItems.getNaming()));
+    SyntheticNaming naming = syntheticItems.getNaming();
+    writer.visitAttribute(new MarkerAttribute(kind, naming.getVersionHash(), naming));
   }
 
   public static SyntheticMarker readMarkerAttribute(Attribute attribute) {
     if (attribute instanceof MarkerAttribute) {
       MarkerAttribute marker = (MarkerAttribute) attribute;
-      return new SyntheticMarker(marker.kind, null);
+      if (marker.versionHash.equals(marker.syntheticNaming.getVersionHash())) {
+        return new SyntheticMarker(marker.kind, null);
+      }
     }
     return null;
   }
 
+  /**
+   * CF attribute for marking synthetic classes.
+   *
+   * <p>The attribute name is defined by {@code SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME}. The format of
+   * the attribute payload is
+   *
+   * <pre>
+   *   u2 syntheticKindId
+   *   u2 versionHashLength
+   *   u1[versionHashLength] versionHashBytes
+   * </pre>
+   */
   private static class MarkerAttribute extends Attribute {
 
-    private SyntheticKind kind;
+    private final SyntheticKind kind;
+    private final String versionHash;
     private final SyntheticNaming syntheticNaming;
 
-    public MarkerAttribute(SyntheticKind kind, SyntheticNaming syntheticNaming) {
+    public MarkerAttribute(
+        SyntheticKind kind, String versionHash, SyntheticNaming syntheticNaming) {
       super(SYNTHETIC_MARKER_ATTRIBUTE_TYPE_NAME);
       this.kind = kind;
+      this.versionHash = versionHash;
       this.syntheticNaming = syntheticNaming;
     }
 
@@ -61,18 +80,29 @@ public class SyntheticMarker {
         char[] charBuffer,
         int codeAttributeOffset,
         Label[] labels) {
-      short id = classReader.readShort(offset);
-      assert id >= 0;
-      SyntheticKind kind = syntheticNaming.fromId(id);
-      return new MarkerAttribute(kind, syntheticNaming);
+      short syntheticKindId = classReader.readShort(offset);
+      offset += 2;
+      short versionHashLength = classReader.readShort(offset);
+      offset += 2;
+      byte[] versionHashBytes = new byte[versionHashLength];
+      for (int i = 0; i < versionHashLength; i++) {
+        versionHashBytes[i] = (byte) classReader.readByte(offset++);
+      }
+      assert syntheticKindId >= 0;
+      SyntheticKind kind = syntheticNaming.fromId(syntheticKindId);
+      String versionHash = new String(versionHashBytes, StandardCharsets.UTF_8);
+      return new MarkerAttribute(kind, versionHash, syntheticNaming);
     }
 
     @Override
     protected ByteVector write(
         ClassWriter classWriter, byte[] code, int codeLength, int maxStack, int maxLocals) {
-      ByteVector byteVector = new ByteVector();
       assert 0 <= kind.getId() && kind.getId() <= Short.MAX_VALUE;
+      ByteVector byteVector = new ByteVector();
       byteVector.putShort(kind.getId());
+      byte[] versionHashBytes = versionHash.getBytes(StandardCharsets.UTF_8);
+      byteVector.putShort(versionHashBytes.length);
+      byteVector.putByteArray(versionHashBytes, 0, versionHashBytes.length);
       return byteVector;
     }
   }

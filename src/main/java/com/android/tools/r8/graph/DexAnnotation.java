@@ -390,9 +390,13 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
 
   public static DexAnnotation createAnnotationSynthesizedClass(
       SyntheticKind kind, DexItemFactory dexItemFactory) {
+    DexString versionHash =
+        dexItemFactory.createString(dexItemFactory.getSyntheticNaming().getVersionHash());
     DexAnnotationElement kindElement =
         new DexAnnotationElement(dexItemFactory.kindString, DexValueInt.create(kind.getId()));
-    DexAnnotationElement[] elements = new DexAnnotationElement[] {kindElement};
+    DexAnnotationElement versionHashElement =
+        new DexAnnotationElement(dexItemFactory.versionHashString, new DexValueString(versionHash));
+    DexAnnotationElement[] elements = new DexAnnotationElement[] {kindElement, versionHashElement};
     return new DexAnnotation(
         VISIBILITY_BUILD,
         new DexEncodedAnnotation(dexItemFactory.annotationSynthesizedClass, elements));
@@ -413,15 +417,26 @@ public class DexAnnotation extends DexItem implements StructuralItem<DexAnnotati
       return null;
     }
     int length = annotation.annotation.elements.length;
-    if (length != 1) {
+    if (length != 2) {
       return null;
     }
-    assert factory.kindString.isLessThan(factory.valueString);
+    assert factory.kindString.isLessThan(factory.versionHashString);
     DexAnnotationElement kindElement = annotation.annotation.elements[0];
+    DexAnnotationElement versionHashElement = annotation.annotation.elements[1];
     if (kindElement.name != factory.kindString) {
       return null;
     }
     if (!kindElement.value.isDexValueInt()) {
+      return null;
+    }
+    if (versionHashElement.name != factory.versionHashString) {
+      return null;
+    }
+    if (!versionHashElement.value.isDexValueString()) {
+      return null;
+    }
+    String currentVersionHash = synthetics.getNaming().getVersionHash();
+    if (!currentVersionHash.equals(versionHashElement.value.asDexValueString().toString())) {
       return null;
     }
     SyntheticKind kind =

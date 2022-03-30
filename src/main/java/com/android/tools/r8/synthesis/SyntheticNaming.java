@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.synthesis;
 
+import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -12,15 +13,16 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.structural.Equatable;
 import com.android.tools.r8.utils.structural.Ordered;
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
 import it.unimi.dsi.fastutil.ints.IntArraySet;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 public class SyntheticNaming {
-
-  public SyntheticNaming() {}
 
   private KindGenerator generator = new KindGenerator();
 
@@ -87,7 +89,19 @@ public class SyntheticNaming {
   public final SyntheticKind ARRAY_CONVERSION = generator.forSingleMethod(37, "$ArrayConversion");
   public final SyntheticKind API_MODEL_OUTLINE = generator.forSingleMethod(32, "ApiModelOutline");
 
-  private final List<SyntheticKind> ALL_KINDS = generator.getAllKinds();
+  private final String versionHash;
+  private final List<SyntheticKind> ALL_KINDS;
+
+  public SyntheticNaming() {
+    generator.hasher.putString(Version.getVersionString(), StandardCharsets.UTF_8);
+    versionHash = generator.hasher.hash().toString();
+    ALL_KINDS = generator.getAllKinds();
+    generator = null;
+  }
+
+  public String getVersionHash() {
+    return versionHash;
+  }
 
   public Collection<SyntheticKind> kinds() {
     return ALL_KINDS;
@@ -105,11 +119,13 @@ public class SyntheticNaming {
   private static class KindGenerator {
     private List<SyntheticKind> kinds = new ArrayList<>();
     private IntSet usedIds = new IntArraySet();
+    private Hasher hasher = Hashing.sha256().newHasher();
 
     private SyntheticKind register(SyntheticKind kind) {
       if (!usedIds.add(kind.getId())) {
         throw new Unreachable("Invalid reuse of synthetic kind id: " + kind.getId());
       }
+      kind.hash(hasher);
       kinds.add(kind);
       return kind;
     }
@@ -198,6 +214,13 @@ public class SyntheticNaming {
 
     public abstract boolean isMayOverridesNonProgramType();
 
+    public final void hash(Hasher hasher) {
+      hasher.putInt(getId());
+      hasher.putString(getDescriptor(), StandardCharsets.UTF_8);
+      internalHash(hasher);
+    }
+
+    public abstract void internalHash(Hasher hasher);
   }
 
   private static class SyntheticMethodKind extends SyntheticKind {
@@ -232,6 +255,10 @@ public class SyntheticNaming {
       return false;
     }
 
+    @Override
+    public void internalHash(Hasher hasher) {
+      hasher.putString("method", StandardCharsets.UTF_8);
+    }
   }
 
   private static class SyntheticClassKind extends SyntheticKind {
@@ -269,6 +296,11 @@ public class SyntheticNaming {
       return false;
     }
 
+    @Override
+    public void internalHash(Hasher hasher) {
+      hasher.putString("class", StandardCharsets.UTF_8);
+      hasher.putBoolean(sharable);
+    }
   }
 
   private static class SyntheticFixedClassKind extends SyntheticClassKind {
@@ -299,6 +331,11 @@ public class SyntheticNaming {
       return mayOverridesNonProgramType;
     }
 
+    @Override
+    public void internalHash(Hasher hasher) {
+      hasher.putString(isGlobal() ? "global" : "fixed", StandardCharsets.UTF_8);
+      hasher.putBoolean(mayOverridesNonProgramType);
+    }
   }
 
   private static final String SYNTHETIC_CLASS_SEPARATOR = "$$";

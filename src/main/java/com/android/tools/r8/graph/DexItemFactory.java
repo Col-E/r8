@@ -338,6 +338,7 @@ public class DexItemFactory {
 
   public final DexString valueString = createString("value");
   public final DexString kindString = createString("kind");
+  public final DexString versionHashString = createString("versionHash");
 
   // Prefix for runtime affecting yet potential class-retained annotations.
   public final DexString dalvikAnnotationOptimizationPrefix =
@@ -643,7 +644,7 @@ public class DexItemFactory {
       createStaticallyKnownType("Ldalvik/annotation/SourceDebugExtension;");
   public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");
   public final DexType annotationSynthesizedClass =
-      createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClass;");
+      createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClassV2;");
   public final DexType annotationCovariantReturnType =
       createStaticallyKnownType("Ldalvik/annotation/codegen/CovariantReturnType;");
   public final DexType annotationCovariantReturnTypes =
