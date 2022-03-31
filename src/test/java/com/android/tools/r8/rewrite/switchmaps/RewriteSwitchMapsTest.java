@@ -8,7 +8,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -26,7 +25,7 @@ public class RewriteSwitchMapsTest extends TestBase {
   @Parameterized.Parameters(name = "{0}, backend: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        TestParametersBuilder.builder().withNoneRuntime().build(), ToolHelper.getBackends());
+        TestParameters.builder().withNoneRuntime().build(), ToolHelper.getBackends());
   }
 
   public RewriteSwitchMapsTest(TestParameters parameters, Backend backend) {

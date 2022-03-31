@@ -8,7 +8,6 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.smali.SmaliBuilder;
@@ -30,10 +29,7 @@ public class DebugSetFileSmaliTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection parameters() {
-    return TestParametersBuilder.builder()
-        .withDexRuntimes()
-        .withApiLevel(AndroidApiLevel.B)
-        .build();
+    return TestParameters.builder().withDexRuntimes().withApiLevel(AndroidApiLevel.B).build();
   }
 
   private static final String CLASS_NAME = "Test";

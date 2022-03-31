@@ -416,7 +416,7 @@ public class TestBase {
   }
 
   public static TestParametersBuilder getTestParameters() {
-    return TestParametersBuilder.builder();
+    return TestParameters.builder();
   }
 
   public static KotlinTestParameters.Builder getKotlinTestParameters() {

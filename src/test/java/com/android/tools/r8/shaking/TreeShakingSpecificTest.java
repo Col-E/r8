@@ -14,7 +14,6 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.diagnostic.MissingDefinitionsDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -43,8 +42,7 @@ public class TreeShakingSpecificTest extends TestBase {
 
   @Parameters(name = "Backend: {1}")
   public static List<Object[]> data() {
-    return buildParameters(
-        TestParametersBuilder.builder().withNoneRuntime().build(), Backend.values());
+    return buildParameters(TestParameters.builder().withNoneRuntime().build(), Backend.values());
   }
 
   public TreeShakingSpecificTest(TestParameters parameters, Backend backend) {

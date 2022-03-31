@@ -9,7 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -30,7 +29,7 @@ public class LambdaInstantiatedTypeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
+    return TestParameters.builder().withAllRuntimesAndApiLevels().build();
   }
 
   public LambdaInstantiatedTypeTest(TestParameters parameters) {

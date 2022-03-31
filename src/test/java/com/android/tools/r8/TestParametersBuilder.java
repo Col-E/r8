@@ -26,11 +26,7 @@ public class TestParametersBuilder {
   private Predicate<TestParameters> filter = param -> false;
   private boolean hasDexRuntimeFilter = false;
 
-  private TestParametersBuilder() {}
-
-  public static TestParametersBuilder builder() {
-    return new TestParametersBuilder();
-  }
+  TestParametersBuilder() {}
 
   private TestParametersBuilder withFilter(Predicate<TestParameters> predicate) {
     filter = filter.or(predicate);

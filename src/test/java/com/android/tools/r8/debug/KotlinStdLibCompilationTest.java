@@ -13,7 +13,6 @@ import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
@@ -31,7 +30,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   @Parameters(name = "{0}, kotlinc: {1}")
   public static List<Object[]> setup() {
     return buildParameters(
-        TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build(),
+        TestParameters.builder().withAllRuntimesAndApiLevels().build(),
         getKotlinTestParameters().withAllCompilers().withNoTargetVersion().build());
   }
 

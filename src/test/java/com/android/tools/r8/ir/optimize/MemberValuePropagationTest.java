@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -38,7 +37,7 @@ public class MemberValuePropagationTest extends TestBase {
   @Parameterized.Parameters(name = "Backend: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        TestParametersBuilder.builder().withNoneRuntime().build(), ToolHelper.getBackends());
+        TestParameters.builder().withNoneRuntime().build(), ToolHelper.getBackends());
   }
 
   public MemberValuePropagationTest(TestParameters parameters, TestBase.Backend backend) {

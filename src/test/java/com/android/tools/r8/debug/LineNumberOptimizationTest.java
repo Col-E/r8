@@ -9,7 +9,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import org.junit.Test;
@@ -34,7 +33,7 @@ public class LineNumberOptimizationTest extends DebugTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection setup() {
-    return TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
+    return TestParameters.builder().withAllRuntimesAndApiLevels().build();
   }
 
   public LineNumberOptimizationTest(TestParameters parameters) {

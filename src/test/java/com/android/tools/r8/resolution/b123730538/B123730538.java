@@ -11,7 +11,6 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.resolution.b123730538.runner.PublicClassExtender;
@@ -40,7 +39,7 @@ public class B123730538 extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static TestParametersCollection data() {
-    return TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
+    return TestParameters.builder().withAllRuntimesAndApiLevels().build();
   }
 
   public B123730538(TestParameters parameters) {

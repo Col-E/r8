@@ -11,7 +11,6 @@ import com.android.tools.r8.NoReturnTypeStrengthening;
 import com.android.tools.r8.NoVerticalClassMerging;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
@@ -33,7 +32,7 @@ public class KeptByReachableSubclassTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return TestParametersBuilder.builder().withCfRuntimes().build();
+    return TestParameters.builder().withCfRuntimes().build();
   }
 
   public KeptByReachableSubclassTest(TestParameters parameters) {

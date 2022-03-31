@@ -6,7 +6,6 @@ package com.android.tools.r8.resolution;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
@@ -75,7 +74,7 @@ public class PublicFieldInnerClassTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static TestParametersCollection data() {
-    return TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
+    return TestParameters.builder().withAllRuntimesAndApiLevels().build();
   }
 
   public PublicFieldInnerClassTest(TestParameters parameters) {

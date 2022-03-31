@@ -8,7 +8,6 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -29,7 +28,7 @@ public class DesugarToClassFileB156591935 extends TestBase implements Opcodes {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return TestParametersBuilder.builder().withCfRuntimes().withAllApiLevelsAlsoForCf().build();
+    return TestParameters.builder().withCfRuntimes().withAllApiLevelsAlsoForCf().build();
   }
 
   private final AndroidApiLevel apiLevel;

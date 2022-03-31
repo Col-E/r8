@@ -31,7 +31,7 @@ public class TestParametersTest {
     assumeFalse(
         "Test is only valid when no runtimes property is set",
         TestParametersBuilder.isRuntimesPropertySet());
-    TestParametersCollection params = TestParametersBuilder.builder().withNoneRuntime().build();
+    TestParametersCollection params = TestParameters.builder().withNoneRuntime().build();
     assertTrue(params.stream().anyMatch(TestParameters::isNoneRuntime));
   }
 
@@ -40,7 +40,7 @@ public class TestParametersTest {
     assumeFalse(
         "Test is only valid when no runtimes property is set",
         TestParametersBuilder.isRuntimesPropertySet());
-    TestParametersCollection params = TestParametersBuilder.builder().withAllRuntimes().build();
+    TestParametersCollection params = TestParameters.builder().withAllRuntimes().build();
     assertTrue(params.stream().noneMatch(TestParameters::isNoneRuntime));
     assertTrue(params.stream().anyMatch(TestParameters::isDexRuntime));
     assertTrue(params.stream().anyMatch(TestParameters::isCfRuntime));
@@ -53,7 +53,7 @@ public class TestParametersTest {
         TestParametersBuilder.isRuntimesPropertySet());
     // This test may also fail once the tests can be configured for with API levels to run.
     TestParametersCollection params =
-        TestParametersBuilder.builder().withAllRuntimesAndApiLevels().build();
+        TestParameters.builder().withAllRuntimesAndApiLevels().build();
     assertTrue(params.stream().noneMatch(TestParameters::isNoneRuntime));
     assertTrue(params.stream().anyMatch(p -> p.isCfRuntime() && p.getApiLevel() == null));
     // Default API levels are min and max for each DEX VM.
@@ -79,12 +79,9 @@ public class TestParametersTest {
   public void testJdk9Presence() {
     assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
         || TestParametersBuilder.getRuntimesProperty().contains("jdk9"));
-    assertTrue(TestParametersBuilder
-        .builder()
-        .withAllRuntimesAndApiLevels()
-        .build()
-        .stream()
-        .anyMatch(parameter -> parameter.getRuntime().equals(TestRuntime.getCheckedInJdk9())));
+    assertTrue(
+        TestParameters.builder().withAllRuntimesAndApiLevels().build().stream()
+            .anyMatch(parameter -> parameter.getRuntime().equals(TestRuntime.getCheckedInJdk9())));
   }
 
   @Test
@@ -92,12 +89,9 @@ public class TestParametersTest {
     assumeTrue(ToolHelper.isLinux());
     assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
         || TestParametersBuilder.getRuntimesProperty().contains("dex-default"));
-    assertTrue(TestParametersBuilder
-        .builder()
-        .withAllRuntimesAndApiLevels()
-        .build()
-        .stream()
-        .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-default")));
+    assertTrue(
+        TestParameters.builder().withAllRuntimesAndApiLevels().build().stream()
+            .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-default")));
   }
 
   @Test
@@ -105,11 +99,8 @@ public class TestParametersTest {
     assumeTrue(ToolHelper.isLinux());
     assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
         || TestParametersBuilder.getRuntimesProperty().contains("dex-4.4.4"));
-    assertTrue(TestParametersBuilder
-        .builder()
-        .withAllRuntimesAndApiLevels()
-        .build()
-        .stream()
-        .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-4.4.4")));
+    assertTrue(
+        TestParameters.builder().withAllRuntimesAndApiLevels().build().stream()
+            .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-4.4.4")));
   }
 }

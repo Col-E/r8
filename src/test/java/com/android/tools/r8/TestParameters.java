@@ -31,8 +31,12 @@ public class TestParameters {
     this.apiLevel = apiLevel;
   }
 
+  public static TestParametersBuilder builder() {
+    return new TestParametersBuilder();
+  }
+
   public static TestParametersCollection justNoneRuntime() {
-    return TestParametersBuilder.builder().withNoneRuntime().build();
+    return builder().withNoneRuntime().build();
   }
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {

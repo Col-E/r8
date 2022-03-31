@@ -16,7 +16,6 @@ import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -55,7 +54,7 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
     return buildParameters(
         ToolHelper.getBackends(),
         BooleanUtils.values(),
-        TestParametersBuilder.builder().withNoneRuntime().build());
+        TestParameters.builder().withNoneRuntime().build());
   }
 
   public KeepDirectoriesTest(Backend backend, boolean minify, TestParameters parameters) {

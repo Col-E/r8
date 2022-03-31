@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.debuginfo.InliningWithoutPositionsTestSourceDump.Location;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
@@ -44,7 +43,7 @@ public class InliningWithoutPositionsTestRunner extends TestBase {
   public static Collection<Object[]> data() {
     List<Object[]> testCases = new ArrayList<>();
     for (TestParameters parameters :
-        TestParametersBuilder.builder().withAllRuntimes().withApiLevel(AndroidApiLevel.B).build()) {
+        TestParameters.builder().withAllRuntimes().withApiLevel(AndroidApiLevel.B).build()) {
       for (int i = 0; i < 16; ++i) {
         for (Location throwLocation : Location.values()) {
           if (throwLocation != Location.MAIN) {
