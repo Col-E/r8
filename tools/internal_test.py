@@ -111,6 +111,8 @@ def compile_with_memory_min_command(app_data):
 
 # TODO(b/210982978): Enable testing of min xmx again
 TEST_COMMANDS = [
+    # Make sure we have a clean build to not be polluted by old test files
+    ['tools/gradle.py', 'clean'],
     # Run test.py internal testing.
     ['tools/test.py', '--only_internal', '--slow_tests',
      '--java_max_memory_size=8G'],
