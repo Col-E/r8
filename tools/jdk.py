@@ -3,14 +3,18 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import defines
 import os
 import sys
+
+import defines
 
 JDK_DIR = os.path.join(defines.THIRD_PARTY, 'openjdk')
 
 def GetJdkHome():
-  root = os.path.join(JDK_DIR, 'openjdk-9.0.4')
+  return GetJdk9Home()
+
+def GetJdk11Home():
+  root = os.path.join(JDK_DIR, 'jdk-11')
   if defines.IsLinux():
     return os.path.join(root, 'linux')
   elif defines.IsOsX():
@@ -20,8 +24,8 @@ def GetJdkHome():
   else:
     return os.environ['JAVA_HOME']
 
-def GetJdk11Home():
-  root = os.path.join(JDK_DIR, 'jdk-11')
+def GetJdk9Home():
+  root = os.path.join(JDK_DIR, 'openjdk-9.0.4')
   if defines.IsLinux():
     return os.path.join(root, 'linux')
   elif defines.IsOsX():

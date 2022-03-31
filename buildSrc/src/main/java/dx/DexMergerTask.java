@@ -10,17 +10,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import javax.inject.Inject;
-import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
-import org.gradle.api.UncheckedIOException;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.process.ExecSpec;
 import org.gradle.workers.IsolationMode;
-import org.gradle.workers.WorkerConfiguration;
 import org.gradle.workers.WorkerExecutor;
 import utils.Utils;
 
@@ -67,19 +63,30 @@ public class DexMergerTask extends DefaultTask {
 
   @TaskAction
   void exec() {
-    workerExecutor.submit(RunDexMerger.class, config -> {
-      config.setIsolationMode(IsolationMode.NONE);
-      config.params(source.getFiles(), destination, dexMergerExecutable);
-    });
+    workerExecutor.submit(
+        RunDexMerger.class,
+        config -> {
+          File executable =
+              dexMergerExecutable.isPresent()
+                  ? dexMergerExecutable.get()
+                  : config
+                      .getForkOptions()
+                      .getWorkingDir()
+                      .toPath()
+                      .resolve(Utils.dexMergerExecutable())
+                      .toFile();
+          config.setIsolationMode(IsolationMode.NONE);
+          config.params(source.getFiles(), destination, executable);
+        });
   }
 
   public static class RunDexMerger implements Runnable {
     private final Set<File> sources;
     private final File destination;
-    private final Optional<File> dexMergerExecutable;
+    private final File dexMergerExecutable;
 
     @Inject
-    public RunDexMerger(Set<File> sources, File destination, Optional<File> dexMergerExecutable) {
+    public RunDexMerger(Set<File> sources, File destination, File dexMergerExecutable) {
       this.sources = sources;
       this.destination = destination;
       this.dexMergerExecutable = dexMergerExecutable;
@@ -89,7 +96,7 @@ public class DexMergerTask extends DefaultTask {
     public void run() {
       try {
         List<String> command = new ArrayList<>();
-        command.add(dexMergerExecutable.or(Utils::dexMergerExecutable).getCanonicalPath());
+        command.add(dexMergerExecutable.getCanonicalPath());
         command.add(destination.getCanonicalPath());
         for (File source : sources) {
           command.add(source.getCanonicalPath());

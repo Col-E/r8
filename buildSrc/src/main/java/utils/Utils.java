@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package utils;
 
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Utils {
   public static String toolsDir() {
@@ -17,13 +18,17 @@ public class Utils {
     }
   }
 
-  public static File dxExecutable() {
-    String dxExecutableName = Utils.toolsDir().equals("windows") ? "dx.bat" : "dx";
-    return new File("tools/" + Utils.toolsDir() + "/dx/bin/" + dxExecutableName);
+  public static boolean isWindows() {
+    return toolsDir().equals("windows");
   }
 
-  public static File dexMergerExecutable() {
-    String executableName = Utils.toolsDir().equals("windows") ? "dexmerger.bat" : "dexmerger";
-    return new File("tools/" + Utils.toolsDir() + "/dx/bin/" + executableName);
+  public static Path dxExecutable() {
+    String dxExecutableName = isWindows() ? "dx.bat" : "dx";
+    return Paths.get("tools", toolsDir(), "dx", "bin", dxExecutableName);
+  }
+
+  public static Path dexMergerExecutable() {
+    String executableName = isWindows() ? "dexmerger.bat" : "dexmerger";
+    return Paths.get("tools", toolsDir(), "dx", "bin", executableName);
   }
 }

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jasmin;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,17 +21,20 @@ public class InvalidFieldNames extends NameTestBase {
   @Parameters(name = "\"{0}\", jvm: {1}, art: {2}")
   public static Collection<Object[]> data() {
     Collection<Object[]> data = new ArrayList<>();
-    data.addAll(NameTestBase.getCommonNameTestData(false));
-    data.addAll(
-        Arrays.asList(
-            new Object[][] {
-              {new TestString("a/b"), false, false},
-              {new TestString("<a"), !ToolHelper.isJava9Runtime(), false},
-              {new TestString("a>"), !ToolHelper.isJava9Runtime(), false},
-              {new TestString("a<b>"), !ToolHelper.isJava9Runtime(), false},
-              {new TestString("<a>b"), !ToolHelper.isJava9Runtime(), false},
-              {new TestString("<a>"), false, true}
-            }));
+    for (TestParameters parameter : TestParameters.justNoneRuntime()) {
+      parameter.assertNoneRuntime();
+      data.addAll(NameTestBase.getCommonNameTestData());
+      data.addAll(
+          Arrays.asList(
+              new Object[][] {
+                {new TestString("a/b"), false, false},
+                {new TestString("<a"), false, false},
+                {new TestString("a>"), false, false},
+                {new TestString("a<b>"), false, false},
+                {new TestString("<a>b"), false, false},
+                {new TestString("<a>"), false, true}
+              }));
+    }
     return data;
   }
 

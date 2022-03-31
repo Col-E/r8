@@ -75,20 +75,31 @@ public class DxTask extends DefaultTask {
 
   @TaskAction
   void exec() {
-    workerExecutor.submit(RunDx.class, config -> {
-      config.setIsolationMode(IsolationMode.NONE);
-      config.params(source.getFiles(), destination, dxExecutable, debug);
-    });
+    workerExecutor.submit(
+        RunDx.class,
+        config -> {
+          File executable =
+              dxExecutable.isPresent()
+                  ? dxExecutable.get()
+                  : config
+                      .getForkOptions()
+                      .getWorkingDir()
+                      .toPath()
+                      .resolve(Utils.dxExecutable())
+                      .toFile();
+          config.setIsolationMode(IsolationMode.NONE);
+          config.params(source.getFiles(), destination, executable, debug);
+        });
   }
 
   public static class RunDx implements Runnable {
     private final Set<File> sources;
     private final File destination;
-    private final Optional<File> dxExecutable;
+    private final File dxExecutable;
     private final boolean debug;
 
     @Inject
-    public RunDx(Set<File> sources, File destination, Optional<File> dxExecutable, boolean debug) {
+    public RunDx(Set<File> sources, File destination, File dxExecutable, boolean debug) {
       this.sources = sources;
       this.destination = destination;
       this.dxExecutable = dxExecutable;
@@ -99,7 +110,7 @@ public class DxTask extends DefaultTask {
     public void run() {
       try {
         List<String> command = new ArrayList<>();
-        command.add(dxExecutable.or(Utils::dxExecutable).getCanonicalPath());
+        command.add(dxExecutable.getCanonicalPath());
         command.add("--dex");
         command.add("--output");
         command.add(destination.getCanonicalPath());

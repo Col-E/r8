@@ -39,51 +39,43 @@ class NameTestBase extends JasminTestBase {
   // - Name (String) to test (can be class name, field name, method name).
   // - boolean, whether it runs on the JVM.
   // - boolean, whether it runs on the ART.
-  static Collection<Object[]> getCommonNameTestData(boolean classNames) {
-
-    boolean windowsSensitive = classNames && ToolHelper.isWindows();
+  static Collection<Object[]> getCommonNameTestData() {
     boolean supportSpaces = ToolHelper.getMinApiLevelForDexVm().getLevel()
         >= AndroidApiLevel.R.getLevel();
-    boolean java9 = ToolHelper.isJava9Runtime();
-
     return Arrays.asList(
         new Object[][] {
           {new TestString("azAZ09$_"), true, true},
-          {new TestString("_"), !java9, true},
-          {new TestString("a-b"), !java9, true},
-          {new TestString("\u00a0"), !java9, supportSpaces},
-          {new TestString("\u00a1"), !java9, true},
-          {new TestString("\u1fff"), !java9, true},
-          {new TestString("\u2000"), !windowsSensitive && !java9, supportSpaces},
-          {new TestString("\u200f"), !windowsSensitive && !java9, false},
-          {new TestString("\u2010"), !windowsSensitive && !java9, true},
-          {new TestString("\u2027"), !windowsSensitive && !java9, true},
-          {new TestString("\u2028"), !windowsSensitive && !java9, false},
-          {new TestString("\u202f"), !windowsSensitive && !java9, supportSpaces},
-          {new TestString("\u2030"), !windowsSensitive && !java9, true},
-          {new TestString("\ud7ff"), !windowsSensitive && !java9, true},
-          {new TestString("\ue000"), !windowsSensitive && !java9, true},
-          {new TestString("\uffef"), !windowsSensitive && !java9, true},
-          {new TestString("\ufff0"), !windowsSensitive && !java9, false},
-          {new TestString("\uffff"), !windowsSensitive && !java9, false},
+          {new TestString("_"), false, true},
+          {new TestString("a-b"), false, true},
+          {new TestString("\u00a0"), false, supportSpaces},
+          {new TestString("\u00a1"), false, true},
+          {new TestString("\u1fff"), false, true},
+          {new TestString("\u2000"), false, supportSpaces},
+          {new TestString("\u200f"), false, false},
+          {new TestString("\u2010"), false, true},
+          {new TestString("\u2027"), false, true},
+          {new TestString("\u2028"), false, false},
+          {new TestString("\u202f"), false, supportSpaces},
+          {new TestString("\u2030"), false, true},
+          {new TestString("\ud7ff"), false, true},
+          {new TestString("\ue000"), false, true},
+          {new TestString("\uffef"), false, true},
+          {new TestString("\ufff0"), false, false},
+          {new TestString("\uffff"), false, false},
 
           // Standalone high and low surrogates.
-          {new TestString("\ud800"), !classNames && !java9, false},
-          {new TestString("\udbff"), !classNames && !java9, false},
-          {new TestString("\udc00"), !classNames && !java9, false},
-          {new TestString("\udfff"), !classNames && !java9, false},
+          {new TestString("\ud800"), false, false},
+          {new TestString("\udbff"), false, false},
+          {new TestString("\udc00"), false, false},
+          {new TestString("\udfff"), false, false},
 
           // Single and double code points above 0x10000.
           {new TestString("\ud800\udc00"), true, true},
           {new TestString("\ud800\udcfa"), true, true},
-          {new TestString("\ud800\udcfb"), !windowsSensitive && !java9, true},
-          {new TestString("\udbff\udfff"), !windowsSensitive && !java9, true},
+          {new TestString("\ud800\udcfb"), false, true},
+          {new TestString("\udbff\udfff"), false, true},
           {new TestString("\ud800\udc00\ud800\udcfa"), true, true},
-          {
-            new TestString("\ud800\udc00\udbff\udfff"),
-            !windowsSensitive && !java9,
-            true
-          }
+          {new TestString("\ud800\udc00\udbff\udfff"), false, true}
         });
   }
 
