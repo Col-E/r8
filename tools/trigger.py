@@ -13,7 +13,7 @@ import re
 import subprocess
 import sys
 import urllib
-
+from urllib.request import urlopen
 import utils
 
 LUCI_SCHEDULE = os.path.join(utils.REPO_ROOT, 'infra', 'config', 'global',
@@ -47,7 +47,7 @@ def get_builders():
   with open(LUCI_SCHEDULE, 'r') as fp:
     lines = fp.readlines()
     for line in lines:
-      if 'branch-gitiles-trigger' in line:
+      if 'branch-gitiles' in line:
         is_release = True
       if 'main-gitiles-trigger' in line:
         is_release = False
@@ -66,7 +66,7 @@ def get_builders():
   return (main_builders, release_builders)
 
 def sanity_check_url(url):
-  a = urllib.urlopen(url)
+  a = urlopen(url)
   if a.getcode() != 200:
     raise Exception('Url: %s \n returned %s' % (url, a.getcode()))
 
@@ -85,15 +85,15 @@ def trigger_cl(builders, cl_url):
 def Main():
   (options, args) = ParseOptions()
   if len(args) != 1 and not options.cl and not options.desugar:
-    print 'Takes exactly one argument, the commit to run'
+    print('Takes exactly one argument, the commit to run')
     return 1
 
   if options.cl and options.release:
-    print 'You can\'t run cls on the release bots'
+    print('You can\'t run cls on the release bots')
     return 1
 
   if options.cl and options.desugar:
-    print 'You can\'t run cls on the desugar bot'
+    print('You can\'t run cls on the desugar bot')
     return 1
 
   commit = None if (options.cl or options.desugar)  else args[0]
