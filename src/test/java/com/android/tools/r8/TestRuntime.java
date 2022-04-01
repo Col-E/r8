@@ -189,7 +189,7 @@ public abstract class TestRuntime {
     if (version.startsWith("9.")) {
       return new CfRuntime(CfVm.JDK9, Paths.get(home));
     }
-    if (version.equals("11")) {
+    if (version.equals("11") || version.startsWith("11.")) {
       return new CfRuntime(CfVm.JDK11, Paths.get(home));
     }
     throw new Unimplemented("No support for JDK version: " + version);
