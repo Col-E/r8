@@ -138,10 +138,6 @@ public final class R8Command extends BaseCompilerCommand {
 
     // Internal
 
-    void internalForceProguardCompatibility() {
-      this.forceProguardCompatibility = true;
-    }
-
     void setDisableVerticalClassMerging(boolean disableVerticalClassMerging) {
       this.disableVerticalClassMerging = disableVerticalClassMerging;
     }
@@ -201,6 +197,23 @@ public final class R8Command extends BaseCompilerCommand {
               mainDexRules.add(
                   new ProguardConfigurationSourceStrings(lines, Paths.get("."), origin)));
       return self();
+    }
+
+    /**
+     * Set Proguard compatibility mode.
+     *
+     * <p>If true, R8 will attempt to retain more compatibility with Proguard. Most notably, R8 will
+     * introduce rules for keeping more default constructors as well as various attributes. Note
+     * that setting R8 in compatibility mode will result in larger residual programs.
+     */
+    public Builder setProguardCompatibility(boolean value) {
+      this.forceProguardCompatibility = value;
+      return self();
+    }
+
+    /** Get the current value of Proguard compatibility mode. */
+    public boolean getProguardCompatibility() {
+      return forceProguardCompatibility;
     }
 
     /** Add proguard configuration-file resources. */
@@ -849,6 +862,11 @@ public final class R8Command extends BaseCompilerCommand {
   /** Get the enable-minification state. */
   public boolean getEnableMinification() {
     return enableMinification;
+  }
+
+  /** Get the Proguard compatibility state. */
+  public boolean getProguardCompatibility() {
+    return forceProguardCompatibility;
   }
 
   @Override

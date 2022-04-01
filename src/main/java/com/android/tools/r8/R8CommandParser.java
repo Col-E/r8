@@ -83,6 +83,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                       + "# Minimum Android API level compatibility, default: "
                       + AndroidApiLevel.getDefault().getLevel()
                       + ".",
+                  "  --pg-compat             # Compile with R8 in Proguard compatibility mode.",
                   "  --pg-conf <file>        # Proguard configuration <file>.",
                   "  --pg-map-output <file>  # Output the resulting name and line mapping to"
                       + " <file>.",
@@ -195,6 +196,8 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                   "Cannot compile in both --debug and --release mode.", argsOrigin));
         }
         state.mode = CompilationMode.RELEASE;
+      } else if (arg.equals("--pg-compat")) {
+        builder.setProguardCompatibility(true);
       } else if (arg.equals("--dex")) {
         if (state.outputMode == OutputMode.ClassFile) {
           builder.error(

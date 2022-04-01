@@ -86,6 +86,7 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     assertTrue(command.getEnableTreeShaking());
     assertEquals(CompilationMode.RELEASE, command.getMode());
     assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
+    assertFalse(command.getProguardCompatibility());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -265,6 +266,12 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
       return ((InternalProgramOutputPathConsumer) consumer).internalGetOutputPath();
     }
     return null;
+  }
+
+  @Test
+  public void proguardCompatMode() throws Throwable {
+    assertFalse(parse("").getProguardCompatibility());
+    assertTrue(parse("--pg-compat").getProguardCompatibility());
   }
 
   @Test
