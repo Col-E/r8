@@ -71,15 +71,15 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   }
 
   @Override
-  TraversalContinuation<?> traverse(Function<DexEncodedMethod, TraversalContinuation<?>> fn) {
+  TraversalContinuation<?, ?> traverse(Function<DexEncodedMethod, TraversalContinuation<?, ?>> fn) {
     for (DexEncodedMethod method : directMethods) {
-      TraversalContinuation<?> stepResult = fn.apply(method);
+      TraversalContinuation<?, ?> stepResult = fn.apply(method);
       if (stepResult.shouldBreak()) {
         return stepResult;
       }
     }
     for (DexEncodedMethod method : virtualMethods) {
-      TraversalContinuation<?> stepResult = fn.apply(method);
+      TraversalContinuation<?, ?> stepResult = fn.apply(method);
       if (stepResult.shouldBreak()) {
         return stepResult;
       }

@@ -84,10 +84,10 @@ public class MethodCollectionConcurrencyChecked extends MethodCollection {
   }
 
   @Override
-  public TraversalContinuation<?> traverse(
-      Function<DexEncodedMethod, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverse(
+      Function<DexEncodedMethod, TraversalContinuation<?, ?>> fn) {
     assert assertReadEntry();
-    TraversalContinuation<?> result = super.traverse(fn);
+    TraversalContinuation<?, ?> result = super.traverse(fn);
     assert assertReadExit();
     return result;
   }

@@ -114,11 +114,11 @@ public abstract class ProguardClassNameList {
         });
   }
 
-  public abstract TraversalContinuation<?> traverseTypeMatchers(
-      Function<ProguardTypeMatcher, TraversalContinuation<?>> fn);
+  public abstract TraversalContinuation<?, ?> traverseTypeMatchers(
+      Function<ProguardTypeMatcher, TraversalContinuation<?, ?>> fn);
 
-  public final TraversalContinuation<?> traverseTypeMatchers(
-      Function<ProguardTypeMatcher, TraversalContinuation<?>> fn,
+  public final TraversalContinuation<?, ?> traverseTypeMatchers(
+      Function<ProguardTypeMatcher, TraversalContinuation<?, ?>> fn,
       Predicate<ProguardTypeMatcher> predicate) {
     return traverseTypeMatchers(
         matcher -> {
@@ -168,8 +168,8 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    public TraversalContinuation<?> traverseTypeMatchers(
-        Function<ProguardTypeMatcher, TraversalContinuation<?>> fn) {
+    public TraversalContinuation<?, ?> traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation<?, ?>> fn) {
       return TraversalContinuation.doContinue();
     }
   }
@@ -236,8 +236,8 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    public TraversalContinuation<?> traverseTypeMatchers(
-        Function<ProguardTypeMatcher, TraversalContinuation<?>> fn) {
+    public TraversalContinuation<?, ?> traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation<?, ?>> fn) {
       return fn.apply(className);
     }
   }
@@ -320,8 +320,8 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    public TraversalContinuation<?> traverseTypeMatchers(
-        Function<ProguardTypeMatcher, TraversalContinuation<?>> fn) {
+    public TraversalContinuation<?, ?> traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation<?, ?>> fn) {
       for (ProguardTypeMatcher matcher : classNames) {
         if (fn.apply(matcher).shouldBreak()) {
           return TraversalContinuation.doBreak();
@@ -416,8 +416,8 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    public TraversalContinuation<?> traverseTypeMatchers(
-        Function<ProguardTypeMatcher, TraversalContinuation<?>> fn) {
+    public TraversalContinuation<?, ?> traverseTypeMatchers(
+        Function<ProguardTypeMatcher, TraversalContinuation<?, ?>> fn) {
       for (ProguardTypeMatcher matcher : classNames.keySet()) {
         if (fn.apply(matcher).shouldBreak()) {
           return TraversalContinuation.doBreak();

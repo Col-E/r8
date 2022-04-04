@@ -353,32 +353,33 @@ public class DexProgramClass extends DexClass
     return null;
   }
 
-  public TraversalContinuation<?> traverseProgramMembers(
-      Function<ProgramMember<?, ?>, TraversalContinuation<?>> fn) {
-    TraversalContinuation<?> continuation = traverseProgramFields(fn);
+  public TraversalContinuation<?, ?> traverseProgramMembers(
+      Function<ProgramMember<?, ?>, TraversalContinuation<?, ?>> fn) {
+    TraversalContinuation<?, ?> continuation = traverseProgramFields(fn);
     if (continuation.shouldContinue()) {
       return traverseProgramMethods(fn);
     }
     return TraversalContinuation.doBreak();
   }
 
-  public TraversalContinuation<?> traverseProgramFields(
-      Function<? super ProgramField, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverseProgramFields(
+      Function<? super ProgramField, TraversalContinuation<?, ?>> fn) {
     return traverseFields(field -> fn.apply(new ProgramField(this, field)));
   }
 
-  public TraversalContinuation<?> traverseProgramMethods(
-      Function<? super ProgramMethod, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverseProgramMethods(
+      Function<? super ProgramMethod, TraversalContinuation<?, ?>> fn) {
     return getMethodCollection().traverse(method -> fn.apply(new ProgramMethod(this, method)));
   }
 
-  public TraversalContinuation<?> traverseProgramInstanceInitializers(
-      Function<ProgramMethod, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverseProgramInstanceInitializers(
+      Function<ProgramMethod, TraversalContinuation<?, ?>> fn) {
     return traverseProgramMethods(fn, DexEncodedMethod::isInstanceInitializer);
   }
 
-  public TraversalContinuation<?> traverseProgramMethods(
-      Function<ProgramMethod, TraversalContinuation<?>> fn, Predicate<DexEncodedMethod> predicate) {
+  public TraversalContinuation<?, ?> traverseProgramMethods(
+      Function<ProgramMethod, TraversalContinuation<?, ?>> fn,
+      Predicate<DexEncodedMethod> predicate) {
     return getMethodCollection()
         .traverse(
             method ->

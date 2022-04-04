@@ -417,7 +417,7 @@ public class VerticalClassMerger {
     // If there is a constructor in the target, make sure that all source constructors can be
     // inlined.
     if (!Iterables.isEmpty(targetClass.programInstanceInitializers())) {
-      TraversalContinuation<?> result =
+      TraversalContinuation<?, ?> result =
           sourceClass.traverseProgramInstanceInitializers(
               method -> {
                 AbortReason reason = disallowInlining(method, targetClass);
@@ -454,7 +454,7 @@ public class VerticalClassMerger {
     // If there is an invoke-special to a default interface method and we are not merging into an
     // interface, then abort, since invoke-special to a virtual class method requires desugaring.
     if (sourceClass.isInterface() && !targetClass.isInterface()) {
-      TraversalContinuation<?> result =
+      TraversalContinuation<?, ?> result =
           sourceClass.traverseProgramMethods(
               method -> {
                 boolean foundInvokeSpecialToDefaultLibraryMethod =
@@ -586,7 +586,7 @@ public class VerticalClassMerger {
     // Check that all accesses from [source] to classes or members from the current package of
     // [source] will continue to work. This is guaranteed if the methods of [source] do not access
     // any private or protected classes or members from the current package of [source].
-    TraversalContinuation<?> result =
+    TraversalContinuation<?, ?> result =
         source.traverseProgramMethods(
             method -> {
               boolean foundIllegalAccess =

@@ -127,7 +127,7 @@ public class ApiInvokeOutlinerDesugaring implements CfInstructionDesugaring {
     if (result != null) {
       return result;
     }
-    TraversalContinuation<DexEncodedMethod> traversalResult =
+    TraversalContinuation<DexEncodedMethod, ?> traversalResult =
         appView
             .appInfoForDesugaring()
             .traverseSuperClasses(

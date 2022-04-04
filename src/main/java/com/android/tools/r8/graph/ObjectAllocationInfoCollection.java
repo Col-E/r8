@@ -34,10 +34,10 @@ public interface ObjectAllocationInfoCollection {
 
   void forEachInstantiatedLambdaInterfaces(Consumer<DexType> consumer);
 
-  TraversalContinuation<?> traverseInstantiatedSubtypes(
+  TraversalContinuation<?, ?> traverseInstantiatedSubtypes(
       DexType type,
-      Function<DexProgramClass, TraversalContinuation<?>> onClass,
-      Function<LambdaDescriptor, TraversalContinuation<?>> onLambda,
+      Function<DexProgramClass, TraversalContinuation<?, ?>> onClass,
+      Function<LambdaDescriptor, TraversalContinuation<?, ?>> onLambda,
       AppInfo appInfo);
 
   ObjectAllocationInfoCollection rewrittenWithLens(

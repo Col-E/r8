@@ -249,7 +249,7 @@ public class SimpleDominatingEffectAnalysis {
     new StatefulDepthFirstSearchWorkList<BasicBlock, ResultStateWithPartialBlocks>() {
 
       @Override
-      protected TraversalContinuation<?> process(
+      protected TraversalContinuation<?, ?> process(
           DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
           Function<BasicBlock, DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>>
               childNodeConsumer) {
@@ -285,7 +285,7 @@ public class SimpleDominatingEffectAnalysis {
       }
 
       @Override
-      protected TraversalContinuation<?> joiner(
+      protected TraversalContinuation<?, ?> joiner(
           DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
           List<DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>> childNodes) {
         ResultStateWithPartialBlocks resultState = node.getState();

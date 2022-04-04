@@ -38,8 +38,8 @@ public abstract class MethodCollectionBacking {
 
   // Traversal methods.
 
-  abstract TraversalContinuation<?> traverse(
-      Function<DexEncodedMethod, TraversalContinuation<?>> fn);
+  abstract TraversalContinuation<?, ?> traverse(
+      Function<DexEncodedMethod, TraversalContinuation<?, ?>> fn);
 
   /**
    * Return a new backing mapped by the given function.

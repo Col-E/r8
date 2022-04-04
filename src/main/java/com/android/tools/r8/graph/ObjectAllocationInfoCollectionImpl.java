@@ -184,10 +184,10 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
   }
 
   @Override
-  public TraversalContinuation<?> traverseInstantiatedSubtypes(
+  public TraversalContinuation<?, ?> traverseInstantiatedSubtypes(
       DexType type,
-      Function<DexProgramClass, TraversalContinuation<?>> onClass,
-      Function<LambdaDescriptor, TraversalContinuation<?>> onLambda,
+      Function<DexProgramClass, TraversalContinuation<?, ?>> onClass,
+      Function<LambdaDescriptor, TraversalContinuation<?, ?>> onLambda,
       AppInfo appInfo) {
     WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
     if (type == appInfo.dexItemFactory().objectType) {

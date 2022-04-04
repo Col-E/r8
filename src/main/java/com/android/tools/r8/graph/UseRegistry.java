@@ -15,7 +15,7 @@ public abstract class UseRegistry<T extends Definition> {
   private final AppView<?> appView;
   private final T context;
 
-  private TraversalContinuation<?> continuation = TraversalContinuation.doContinue();
+  private TraversalContinuation<?, ?> continuation = TraversalContinuation.doContinue();
 
   public enum MethodHandleUse {
     ARGUMENT_TO_LAMBDA_METAFACTORY,
@@ -54,7 +54,7 @@ public abstract class UseRegistry<T extends Definition> {
     return context.asMethod();
   }
 
-  public TraversalContinuation<?> getTraversalContinuation() {
+  public TraversalContinuation<?, ?> getTraversalContinuation() {
     return continuation;
   }
 

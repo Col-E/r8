@@ -117,8 +117,8 @@ public class MethodCollection {
     return backing.size();
   }
 
-  public TraversalContinuation<?> traverse(
-      Function<DexEncodedMethod, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverse(
+      Function<DexEncodedMethod, TraversalContinuation<?, ?>> fn) {
     return backing.traverse(fn);
   }
 

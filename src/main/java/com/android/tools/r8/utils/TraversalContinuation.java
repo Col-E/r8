@@ -7,34 +7,58 @@ import com.android.tools.r8.errors.Unreachable;
 
 /** Two value continuation value to indicate the continuation of a loop/traversal. */
 /* This class is used for building up api class member traversals. */
-public abstract class TraversalContinuation<T> {
+public abstract class TraversalContinuation<TB, TC> {
 
   public boolean isBreak() {
-    return !isContinue();
+    return false;
+  }
+
+  public Break<TB, TC> asBreak() {
+    return null;
   }
 
   public boolean isContinue() {
     return false;
   }
 
-  public Break<T> asBreak() {
+  public Continue<TB, TC> asContinue() {
     return null;
   }
 
-  public static final class Continue<T> extends TraversalContinuation<T> {
-    private static final TraversalContinuation<?> CONTINUE = new Continue<Object>();
+  public static class Continue<TB, TC> extends TraversalContinuation<TB, TC> {
+    private static final TraversalContinuation<?, ?> CONTINUE_NO_VALUE =
+        new Continue<Object, Object>(null) {
+          @Override
+          public Object getValue() {
+            return new Unreachable(
+                "Invalid attempt at getting a value from a no-value continue state.");
+          }
+        };
 
-    private Continue() {}
+    private final TC value;
+
+    private Continue(TC value) {
+      this.value = value;
+    }
+
+    public TC getValue() {
+      return value;
+    }
 
     @Override
     public boolean isContinue() {
       return true;
     }
+
+    @Override
+    public Continue<TB, TC> asContinue() {
+      return this;
+    }
   }
 
-  public static class Break<T> extends TraversalContinuation<T> {
-    private static final TraversalContinuation<?> BREAK_NO_VALUE =
-        new Break<Object>(null) {
+  public static class Break<TB, TC> extends TraversalContinuation<TB, TC> {
+    private static final TraversalContinuation<?, ?> BREAK_NO_VALUE =
+        new Break<Object, Object>(null) {
           @Override
           public Object getValue() {
             return new Unreachable(
@@ -42,40 +66,50 @@ public abstract class TraversalContinuation<T> {
           }
         };
 
-    private final T value;
+    private final TB value;
 
-    private Break(T value) {
+    private Break(TB value) {
       this.value = value;
     }
 
-    public T getValue() {
+    public TB getValue() {
       return value;
     }
 
     @Override
-    public Break<T> asBreak() {
+    public boolean isBreak() {
+      return true;
+    }
+
+    @Override
+    public Break<TB, TC> asBreak() {
       return this;
     }
   }
 
-  public static TraversalContinuation<?> breakIf(boolean condition) {
+  public static TraversalContinuation<?, ?> breakIf(boolean condition) {
     return continueIf(!condition);
   }
 
-  public static TraversalContinuation<?> continueIf(boolean condition) {
+  public static TraversalContinuation<?, ?> continueIf(boolean condition) {
     return condition ? doContinue() : doBreak();
   }
 
   @SuppressWarnings("unchecked")
-  public static <T> TraversalContinuation<T> doContinue() {
-    return (TraversalContinuation<T>) Continue.CONTINUE;
+  public static <TB, TC> TraversalContinuation<TB, TC> doContinue() {
+    return (TraversalContinuation<TB, TC>) Continue.CONTINUE_NO_VALUE;
   }
 
-  public static TraversalContinuation<?> doBreak() {
-    return Break.BREAK_NO_VALUE;
+  public static <TB, TC> TraversalContinuation<TB, TC> doContinue(TC value) {
+    return new Continue<>(value);
   }
 
-  public static <T> TraversalContinuation<T> doBreak(T value) {
+  @SuppressWarnings("unchecked")
+  public static <TB, TC> TraversalContinuation<TB, TC> doBreak() {
+    return (TraversalContinuation<TB, TC>) Break.BREAK_NO_VALUE;
+  }
+
+  public static <TB, TC> TraversalContinuation<TB, TC> doBreak(TB value) {
     return new Break<>(value);
   }
 

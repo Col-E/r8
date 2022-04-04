@@ -1403,7 +1403,7 @@ public class RootSetUtils {
           dependentMinimumKeepInfo.getUnconditionalMinimumKeepInfoOrDefault(
               MinimumKeepInfoCollection.empty());
       for (DexProgramClass clazz : classesWithCheckDiscardedMembers) {
-        TraversalContinuation<?> continueIfAllMembersMarkedAsCheckDiscarded =
+        TraversalContinuation<?, ?> continueIfAllMembersMarkedAsCheckDiscarded =
             clazz.traverseProgramMembers(
                 member ->
                     TraversalContinuation.continueIf(

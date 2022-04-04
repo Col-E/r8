@@ -356,8 +356,8 @@ public abstract class DexClass extends DexDefinition
     staticFields(predicate).forEach(consumer);
   }
 
-  public TraversalContinuation<?> traverseFields(
-      Function<DexEncodedField, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverseFields(
+      Function<DexEncodedField, TraversalContinuation<?, ?>> fn) {
     for (DexEncodedField field : fields()) {
       if (fn.apply(field).shouldBreak()) {
         return TraversalContinuation.doBreak();

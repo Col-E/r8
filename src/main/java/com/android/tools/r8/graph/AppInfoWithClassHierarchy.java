@@ -148,12 +148,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /** Primitive traversal over all (non-interface) superclasses of a given type. */
-  public <T> TraversalContinuation<T> traverseSuperClasses(
-      DexClass clazz, TriFunction<DexType, DexClass, DexClass, TraversalContinuation<T>> fn) {
+  public <B> TraversalContinuation<B, ?> traverseSuperClasses(
+      DexClass clazz, TriFunction<DexType, DexClass, DexClass, TraversalContinuation<B, ?>> fn) {
     DexClass currentClass = clazz;
     while (currentClass != null && currentClass.getSuperType() != null) {
       DexClass superclass = definitionFor(currentClass.getSuperType());
-      TraversalContinuation<T> stepResult =
+      TraversalContinuation<B, ?> stepResult =
           fn.apply(currentClass.getSuperType(), superclass, currentClass);
       if (stepResult.shouldBreak()) {
         return stepResult;
@@ -170,8 +170,9 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * given type is *not* visited. The function indicates if traversal should continue or break. The
    * result of the traversal is BREAK iff the function returned BREAK.
    */
-  public TraversalContinuation<?> traverseSuperTypes(
-      final DexClass clazz, TriFunction<DexType, DexClass, Boolean, TraversalContinuation<?>> fn) {
+  public TraversalContinuation<?, ?> traverseSuperTypes(
+      final DexClass clazz,
+      TriFunction<DexType, DexClass, Boolean, TraversalContinuation<?, ?>> fn) {
     // We do an initial zero-allocation pass over the class super chain as it does not require a
     // worklist/seen-set. Only if the traversal is not aborted and there actually are interfaces,
     // do we continue traversal over the interface types. This is assuming that the second pass
@@ -184,7 +185,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         if (currentClass.superType == null) {
           break;
         }
-        TraversalContinuation<?> stepResult = fn.apply(currentClass.superType, currentClass, false);
+        TraversalContinuation<?, ?> stepResult =
+            fn.apply(currentClass.superType, currentClass, false);
         if (stepResult.shouldBreak()) {
           return stepResult;
         }
@@ -203,7 +205,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       while (currentClass != null) {
         for (DexType iface : currentClass.interfaces.values) {
           if (seen.add(iface)) {
-            TraversalContinuation<?> stepResult = fn.apply(iface, currentClass, true);
+            TraversalContinuation<?, ?> stepResult = fn.apply(iface, currentClass, true);
             if (stepResult.shouldBreak()) {
               return stepResult;
             }
@@ -223,7 +225,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       if (definition != null) {
         for (DexType iface : definition.interfaces.values) {
           if (seen.add(iface)) {
-            TraversalContinuation<?> stepResult = fn.apply(iface, definition, true);
+            TraversalContinuation<?, ?> stepResult = fn.apply(iface, definition, true);
             if (stepResult.shouldBreak()) {
               return stepResult;
             }
@@ -317,7 +319,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (superclass.getType() == dexItemFactory().objectType) {
       return true;
     }
-    TraversalContinuation<Boolean> result =
+    TraversalContinuation<Boolean, ?> result =
         traverseSuperClasses(
             subclass,
             (currentType, currentClass, immediateSubclass) -> {
