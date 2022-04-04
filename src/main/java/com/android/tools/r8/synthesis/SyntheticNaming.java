@@ -84,18 +84,28 @@ public class SyntheticNaming {
   public final SyntheticKind ARRAY_CONVERSION = generator.forSingleMethod("$ArrayConversion");
   public final SyntheticKind API_MODEL_OUTLINE = generator.forSingleMethod("ApiModelOutline");
 
-  private final String versionHash;
   private final List<SyntheticKind> ALL_KINDS;
+  private String lazyVersionHash = null;
 
   public SyntheticNaming() {
-    generator.hasher.putString(Version.getVersionString(), StandardCharsets.UTF_8);
-    versionHash = generator.hasher.hash().toString();
     ALL_KINDS = generator.getAllKinds();
     generator = null;
   }
 
   public String getVersionHash() {
-    return versionHash;
+    if (lazyVersionHash == null) {
+      computeVersionHash();
+    }
+    return lazyVersionHash;
+  }
+
+  private void computeVersionHash() {
+    Hasher hasher = Hashing.sha256().newHasher();
+    hasher.putString(Version.getVersionString(), StandardCharsets.UTF_8);
+    for (SyntheticKind kind : ALL_KINDS) {
+      kind.hash(hasher);
+    }
+    lazyVersionHash = hasher.hash().toString();
   }
 
   public Collection<SyntheticKind> kinds() {
@@ -112,10 +122,8 @@ public class SyntheticNaming {
   private static class KindGenerator {
     private int nextId = 1;
     private List<SyntheticKind> kinds = new ArrayList<>();
-    private Hasher hasher = Hashing.sha256().newHasher();
 
     private SyntheticKind register(SyntheticKind kind) {
-      kind.hash(hasher);
       kinds.add(kind);
       if (kinds.size() != kind.getId()) {
         throw new Unreachable("Invalid synthetic kind id: " + kind.getId());

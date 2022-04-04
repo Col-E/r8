@@ -130,9 +130,7 @@ public class JarClassFileReader<T extends DexClass> {
     }
     reader.accept(
         new CreateDexClassVisitor<>(origin, classKind, reader.b, application, classConsumer),
-        new Attribute[] {
-          SyntheticMarker.getMarkerAttributePrototype(application.getFactory().getSyntheticNaming())
-        },
+        getAttributePrototypes(),
         parsingOptions);
 
     // Read marker.
@@ -150,6 +148,15 @@ public class JarClassFileReader<T extends DexClass> {
         // Ignore if the type of the constant is not something readConst() allows.
       }
     }
+  }
+
+  private Attribute[] getAttributePrototypes() {
+    if (classKind == ClassKind.PROGRAM) {
+      return new Attribute[] {
+        SyntheticMarker.getMarkerAttributePrototype(application.getFactory().getSyntheticNaming())
+      };
+    }
+    return new Attribute[0];
   }
 
   private static int cleanAccessFlags(int access) {

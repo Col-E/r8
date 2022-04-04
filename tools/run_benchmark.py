@@ -11,6 +11,7 @@ import sys
 import gradle
 import jdk
 import utils
+import compiledump
 
 NONLIB_BUILD_TARGET = 'R8WithRelocatedDeps'
 NONLIB_TEST_BUILD_TARGETS = [utils.R8_TESTS_TARGET, utils.R8_TESTS_DEPS_TARGET]
@@ -59,13 +60,19 @@ def parse_options(argv):
                       help='Print timing information from r8',
                       default=False,
                       action='store_true')
+  result.add_argument('--version', '-v',
+                      help='Use R8 version/hash for the run (default local build)',
+                      default=None)
   result.add_argument('--temp',
                       help='A directory to use for temporaries and outputs.',
                       default=None)
   return result.parse_known_args(argv)
 
-def main(argv):
+def main(argv, temp):
   (options, args) = parse_options(argv)
+
+  if options.temp:
+    temp = options.temp
 
   if options.golem:
     options.no_build = True
@@ -74,13 +81,20 @@ def main(argv):
       return 1
 
   if options.nolib:
+    testBuildTargets = NONLIB_TEST_BUILD_TARGETS
     buildTargets = [NONLIB_BUILD_TARGET] + NONLIB_TEST_BUILD_TARGETS
     r8jar = utils.R8_WITH_RELOCATED_DEPS_JAR
     testjars = [utils.R8_TESTS_DEPS_JAR, utils.R8_TESTS_JAR]
   else:
+    testBuildTargets = R8LIB_TEST_BUILD_TARGETS
     buildTargets = GOLEM_BUILD_TARGETS
     r8jar = utils.R8LIB_JAR
     testjars = [utils.R8LIB_TESTS_DEPS_JAR, utils.R8LIB_TESTS_JAR]
+
+  if options.version:
+    # r8 is downloaded so only test jar needs to be built.
+    buildTargets = testBuildTargets
+    r8jar = compiledump.download_distribution(options.version, options.nolib, temp)
 
   if not options.no_build:
     gradle.RunGradle(buildTargets + ['-Pno_internal'])
@@ -104,4 +118,5 @@ def run(options, r8jar, testjars):
   return subprocess.check_call(cmd)
 
 if __name__ == '__main__':
-  sys.exit(main(sys.argv[1:]))
+  with utils.TempDir() as temp:
+    sys.exit(main(sys.argv[1:], temp))

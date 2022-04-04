@@ -287,12 +287,12 @@ def determine_properties(build_properties):
         args.append('-D' + name + '=' + value)
   return args
 
-def download_distribution(args, version, temp):
+def download_distribution(version, nolib, temp):
   if version == 'main':
-    return utils.R8_JAR if args.nolib else utils.R8LIB_JAR
+    return utils.R8_JAR if nolib else utils.R8LIB_JAR
   if version == 'source':
     return '%s:%s' % (utils.BUILD_JAVA_MAIN_DIR, utils.ALL_DEPS_JAR)
-  name = 'r8.jar' if args.nolib else 'r8lib.jar'
+  name = 'r8.jar' if nolib else 'r8lib.jar'
   source = archive.GetUploadDestination(version, name, is_hash(version))
   dest = os.path.join(temp, 'r8.jar')
   utils.download_file_from_cloud_storage(source, dest)
@@ -367,7 +367,7 @@ def run1(out, args, otherargs, jdkhome=None):
     out = determine_output(args, temp)
     min_api = determine_min_api(args, build_properties)
     classfile = determine_class_file(args, build_properties)
-    jar = args.r8_jar if args.r8_jar else download_distribution(args, version, temp)
+    jar = args.r8_jar if args.r8_jar else download_distribution(version, args.nolib, temp)
     if ':' not in jar and not os.path.exists(jar):
       error("Distribution does not exist: " + jar)
     wrapper_dir = prepare_wrapper(jar, temp, jdkhome)
