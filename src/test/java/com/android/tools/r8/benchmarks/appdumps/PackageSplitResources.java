@@ -5,6 +5,7 @@ package com.android.tools.r8.benchmarks.appdumps;
 
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +47,9 @@ public class PackageSplitResources {
 
   private static boolean isInPackagePrefixes(Path file, List<String> programPackages) {
     String str = file.toString();
+    if (File.separatorChar != '/') {
+      str = str.replace(File.separatorChar, '/');
+    }
     for (String packagePrefix : programPackages) {
       if (str.startsWith(packagePrefix)) {
         return true;

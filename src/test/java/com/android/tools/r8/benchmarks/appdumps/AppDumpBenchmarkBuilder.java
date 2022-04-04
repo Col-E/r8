@@ -200,6 +200,9 @@ public class AppDumpBenchmarkBuilder {
                   PackageSplitResources resources =
                       PackageSplitResources.create(
                           environment.getTemp(), dump.getProgramArchive(), builder.programPackages);
+                  if (resources.getPackageFiles().isEmpty()) {
+                    throw new RuntimeException("Unexpected empty set of program package files");
+                  }
 
                   TestBase.testForD8(environment.getTemp(), Backend.DEX)
                       .addProgramFiles(resources.getOtherFiles())
