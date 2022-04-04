@@ -52,8 +52,9 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
                 assertThat(
                     message,
                     containsString(
-                        "Merging dex file containing classes with prefix 'j$.' "
-                            + "with classes with any other prefixes is not allowed"));
+                        "Merging DEX file containing classes with prefix 'j$.' "
+                            + "with other classes, except classes with prefix 'java.', "
+                            + "is not allowed:"));
               });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.
@@ -78,8 +79,9 @@ public class NeverMergeCoreLibDesugarClasses extends DesugaredLibraryTestBase {
                 assertThat(
                     message,
                     containsString(
-                        "Merging dex file containing classes with prefix 'j$.' "
-                            + "with classes with any other prefixes is not allowed"));
+                        "Merging DEX file containing classes with prefix 'j$.' "
+                            + "with other classes, except classes with prefix 'java.', "
+                            + "is not allowed:"));
               });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.

@@ -92,6 +92,7 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.NeverMergeGroup;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -106,7 +107,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 public class IRConverter {
 
@@ -157,7 +157,7 @@ public class IRConverter {
   private List<Action> onWaveDoneActions = null;
   private final Set<DexMethod> prunedMethodsInWave = Sets.newIdentityHashSet();
 
-  private final List<DexString> neverMergePrefixes;
+  private final NeverMergeGroup<DexString> neverMerge;
   // Use AtomicBoolean to satisfy TSAN checking (see b/153714743).
   AtomicBoolean seenNotNeverMergePrefix = new AtomicBoolean();
   AtomicBoolean seenNeverMergePrefix = new AtomicBoolean();
@@ -183,11 +183,11 @@ public class IRConverter {
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.assertionsRewriter = new AssertionsRewriter(appView);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
-    this.neverMergePrefixes =
-        options.neverMergePrefixes.stream()
-            .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
-            .map(options.itemFactory::createString)
-            .collect(Collectors.toList());
+    this.neverMerge =
+        options.neverMerge.map(
+            prefix ->
+                options.itemFactory.createString(
+                    "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix)));
     if (options.isDesugaredLibraryCompilation()) {
       // Specific L8 Settings, performs all desugaring including L8 specific desugaring.
       //
@@ -550,11 +550,17 @@ public class IRConverter {
     if (!appView.options().enableNeverMergePrefixes) {
       return;
     }
-    for (DexString neverMergePrefix : neverMergePrefixes) {
-      if (method.getHolderType().descriptor.startsWith(neverMergePrefix)) {
+    DexString descriptor = method.getHolderType().descriptor;
+    for (DexString neverMergePrefix : neverMerge.getPrefixes()) {
+      if (descriptor.startsWith(neverMergePrefix)) {
         seenNeverMergePrefix.getAndSet(true);
       } else {
-        seenNotNeverMergePrefix.getAndSet(true);
+        for (DexString exceptionPrefix : neverMerge.getExceptionPrefixes()) {
+          if (!descriptor.startsWith(exceptionPrefix)) {
+            seenNotNeverMergePrefix.getAndSet(true);
+            break;
+          }
+        }
       }
       // Don't mix.
       // TODO(b/168001352): Consider requiring that no 'never merge' prefix is ever seen as a
@@ -562,16 +568,37 @@ public class IRConverter {
       if (seenNeverMergePrefix.get() && seenNotNeverMergePrefix.get()) {
         StringBuilder message = new StringBuilder();
         message
-            .append("Merging dex file containing classes with prefix")
-            .append(neverMergePrefixes.size() > 1 ? "es " : " ");
-        for (int i = 0; i < neverMergePrefixes.size(); i++) {
+            .append("Merging DEX file containing classes with prefix")
+            .append(neverMerge.getPrefixes().size() > 1 ? "es " : " ");
+        for (int i = 0; i < neverMerge.getPrefixes().size(); i++) {
           message
               .append("'")
-              .append(neverMergePrefixes.get(0).toString().substring(1).replace('/', '.'))
+              .append(neverMerge.getPrefixes().get(i).toString().substring(1).replace('/', '.'))
               .append("'")
-              .append(i < neverMergePrefixes.size() - 1 ? ", " : "");
+              .append(i < neverMerge.getPrefixes().size() - 1 ? ", " : "");
         }
-        message.append(" with classes with any other prefixes is not allowed: ");
+        if (!neverMerge.getExceptionPrefixes().isEmpty()) {
+          message
+              .append(" with other classes, except classes with prefix")
+              .append(neverMerge.getExceptionPrefixes().size() > 1 ? "es " : " ");
+          for (int i = 0; i < neverMerge.getExceptionPrefixes().size(); i++) {
+            message
+                .append("'")
+                .append(
+                    neverMerge
+                        .getExceptionPrefixes()
+                        .get(i)
+                        .toString()
+                        .substring(1)
+                        .replace('/', '.'))
+                .append("'")
+                .append(i < neverMerge.getExceptionPrefixes().size() - 1 ? ", " : "");
+          }
+          message.append(",");
+        } else {
+          message.append(" with classes with any other prefixes");
+        }
+        message.append(" is not allowed: ");
         boolean first = true;
         int limit = 11;
         for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {

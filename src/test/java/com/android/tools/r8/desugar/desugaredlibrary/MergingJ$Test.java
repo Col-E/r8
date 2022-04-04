@@ -7,12 +7,14 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static com.android.tools.r8.DiagnosticsMatcher.diagnosticType;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DexFileMergerHelper;
+import com.android.tools.r8.DiagnosticsMatcher;
 import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
@@ -24,8 +26,10 @@ import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11DesugaredLibr
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -127,4 +131,134 @@ public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
             .build());
     return outputDex;
   }
+
+  @Test
+  public void testJavaMergesWithEverything() throws Exception {
+    // java and other prefixes can co-exist in same DEX.
+    Path dexWithJavaAndNonJ$Classes =
+        testForD8()
+            .addProgramClassFileData(
+                transformer(A.class).setClassDescriptor("Ljava/A;").transform())
+            .addInnerClasses(getClass())
+            .compile()
+            .writeToZip();
+
+    // Can be merged with other java classes.
+    testForD8()
+        .addProgramFiles(dexWithJavaAndNonJ$Classes)
+        .addProgramFiles(
+            testForD8()
+                .addProgramClassFileData(
+                    transformer(B.class).setClassDescriptor("Ljava/B;").transform())
+                .compile()
+                .writeToZip())
+        .compile();
+
+    // Cannot be merged with j$ classes.
+    Path j$Dex =
+        testForD8()
+            .addProgramClassFileData(transformer(A.class).setClassDescriptor("Lj$/A;").transform())
+            .compile()
+            .writeToZip();
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForD8()
+                .addProgramFiles(dexWithJavaAndNonJ$Classes)
+                .addProgramFiles(j$Dex)
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics.assertErrorsMatch(
+                            DiagnosticsMatcher.diagnosticMessage(
+                                containsString(
+                                    "Merging DEX file containing classes with prefix")))));
+
+    // Cannot be merged with j$ even if they are together with java.
+    Path j$JavaDex =
+        testForD8()
+            .addProgramClassFileData(transformer(A.class).setClassDescriptor("Lj$/A;").transform())
+            .addProgramClassFileData(
+                transformer(B.class).setClassDescriptor("Ljava/B;").transform())
+            .compile()
+            .writeToZip();
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForD8()
+                .addProgramFiles(dexWithJavaAndNonJ$Classes)
+                .addProgramFiles(j$JavaDex)
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics.assertErrorsMatch(
+                            DiagnosticsMatcher.diagnosticMessage(
+                                containsString(
+                                    "Merging DEX file containing classes with prefix")))));
+  }
+
+  @Test
+  public void testJ$OnlyMergesWithJava() throws Exception {
+    Path j$Dex =
+        testForD8()
+            .addProgramClassFileData(transformer(A.class).setClassDescriptor("Lj$/A;").transform())
+            .compile()
+            .writeToZip();
+    Path javaDex =
+        testForD8()
+            .addProgramClassFileData(
+                transformer(A.class).setClassDescriptor("Ljava/A;").transform())
+            .compile()
+            .writeToZip();
+    Path j$Dex2 =
+        testForD8()
+            .addProgramClassFileData(transformer(B.class).setClassDescriptor("Lj$/B;").transform())
+            .compile()
+            .writeToZip();
+    Path javaDex2 =
+        testForD8()
+            .addProgramClassFileData(
+                transformer(B.class).setClassDescriptor("Ljava/B;").transform())
+            .compile()
+            .writeToZip();
+    Path javaJ$Dex =
+        testForD8()
+            .addProgramClassFileData(transformer(C.class).setClassDescriptor("Lj$/C;").transform())
+            .addProgramClassFileData(
+                transformer(C.class).setClassDescriptor("Ljava/C;").transform())
+            .compile()
+            .writeToZip();
+
+    List<Path> j$Dexes = ImmutableList.of(j$Dex, j$Dex2, javaJ$Dex);
+    List<Path> allDexes = ImmutableList.of(j$Dex, javaDex, j$Dex2, javaDex2, javaJ$Dex);
+    testForD8().addProgramFiles(allDexes).compile();
+
+    for (Path first : allDexes) {
+      for (Path second : allDexes) {
+        if (first != second) {
+          testForD8().addProgramFiles(first, second).compile();
+        }
+      }
+      if (j$Dexes.contains(first)) {
+        assertThrows(
+            CompilationFailedException.class,
+            () ->
+                testForD8()
+                    .addInnerClasses(getClass())
+                    .addProgramFiles(first)
+                    .compileWithExpectedDiagnostics(
+                        diagnostics ->
+                            diagnostics.assertErrorsMatch(
+                                DiagnosticsMatcher.diagnosticMessage(
+                                    containsString(
+                                        "Merging DEX file containing classes with prefix")))));
+      } else {
+        testForD8().addInnerClasses(getClass()).addProgramFiles(first).compile();
+      }
+    }
+  }
+
+  static class A {}
+
+  static class B {}
+
+  static class C {}
 }

@@ -107,6 +107,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
 public class InternalOptions implements GlobalKeepInfoConfiguration {
@@ -270,10 +271,34 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
 
+  public static class NeverMergeGroup<T> {
+    private final List<T> prefixes;
+    private final List<T> exceptionPrefixes;
+
+    NeverMergeGroup(List<T> prefixes, List<T> exceptionPrefixes) {
+      this.prefixes = prefixes;
+      this.exceptionPrefixes = exceptionPrefixes;
+    }
+
+    public List<T> getPrefixes() {
+      return prefixes;
+    }
+
+    public List<T> getExceptionPrefixes() {
+      return exceptionPrefixes;
+    }
+
+    public <R> NeverMergeGroup<R> map(Function<T, R> fn) {
+      return new NeverMergeGroup<>(
+          prefixes.stream().map(fn).collect(Collectors.toList()),
+          exceptionPrefixes.stream().map(fn).collect(Collectors.toList()));
+    }
+  }
+
   // Flag to toggle if the prefix based merge restriction should be enforced.
   public boolean enableNeverMergePrefixes = true;
-  // TODO(b/227277105): Control merging with desugared library and maintain prefix.
-  public Set<String> neverMergePrefixes = ImmutableSet.of("j$.");
+  public NeverMergeGroup<String> neverMerge =
+      new NeverMergeGroup<>(ImmutableList.of("j$."), ImmutableList.of("java."));
 
   public boolean classpathInterfacesMayHaveStaticInitialization = false;
   public boolean libraryInterfacesMayHaveStaticInitialization = false;
@@ -936,10 +961,6 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     }
     timing.begin("Load machine specification");
     loadMachineDesugaredLibrarySpecification.accept(timing, app);
-    if (!machineDesugaredLibrarySpecification.getMaintainType().isEmpty()) {
-      // TODO(b/227277105): Control merging with desugared library and maintain prefix.
-      neverMergePrefixes = ImmutableSet.of();
-    }
     timing.end();
   }
 
