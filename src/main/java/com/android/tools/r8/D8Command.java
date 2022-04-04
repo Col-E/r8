@@ -579,7 +579,9 @@ public final class D8Command extends BaseCompilerCommand {
     HorizontalClassMergerOptions horizontalClassMergerOptions =
         internal.horizontalClassMergerOptions();
     if (internal.isGeneratingDex()) {
-      horizontalClassMergerOptions.setRestrictToSynthetics();
+      // TODO(b/227791663): Disable until fixed.
+      horizontalClassMergerOptions.disable();
+      // horizontalClassMergerOptions.setRestrictToSynthetics();
     } else {
       assert internal.isGeneratingClassFiles();
       horizontalClassMergerOptions.disable();
