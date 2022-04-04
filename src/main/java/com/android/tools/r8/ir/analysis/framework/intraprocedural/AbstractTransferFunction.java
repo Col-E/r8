@@ -4,19 +4,17 @@
 
 package com.android.tools.r8.ir.analysis.framework.intraprocedural;
 
-import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.Instruction;
-
 /**
  * A transfer function that defines the abstract semantics of the instructions in the program
  * according to some abstract state {@link StateType}.
  */
-public interface AbstractTransferFunction<StateType extends AbstractState<StateType>> {
+public interface AbstractTransferFunction<
+    Block, Instruction, StateType extends AbstractState<StateType>> {
 
   TransferFunctionResult<StateType> apply(Instruction instruction, StateType state);
 
   default StateType computeBlockEntryState(
-      BasicBlock block, BasicBlock predecessor, StateType predecessorExitState) {
+      Block block, Block predecessor, StateType predecessorExitState) {
     return predecessorExitState;
   }
 }

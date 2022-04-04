@@ -24,8 +24,8 @@ public abstract class DataflowAnalysisResult {
     return false;
   }
 
-  public <StateType extends AbstractState<StateType>>
-      SuccessfulDataflowAnalysisResult<StateType> asSuccessfulAnalysisResult() {
+  public <Block, StateType extends AbstractState<StateType>>
+      SuccessfulDataflowAnalysisResult<Block, StateType> asSuccessfulAnalysisResult() {
     return null;
   }
 
@@ -33,12 +33,13 @@ public abstract class DataflowAnalysisResult {
     return false;
   }
 
-  public static class SuccessfulDataflowAnalysisResult<StateType extends AbstractState<StateType>>
+  public static class SuccessfulDataflowAnalysisResult<
+          Block, StateType extends AbstractState<StateType>>
       extends DataflowAnalysisResult {
 
-    private final Map<BasicBlock, StateType> blockExitStates;
+    private final Map<Block, StateType> blockExitStates;
 
-    public SuccessfulDataflowAnalysisResult(Map<BasicBlock, StateType> blockExitStates) {
+    public SuccessfulDataflowAnalysisResult(Map<Block, StateType> blockExitStates) {
       this.blockExitStates = blockExitStates;
     }
 
@@ -57,7 +58,7 @@ public abstract class DataflowAnalysisResult {
 
     @SuppressWarnings("unchecked")
     @Override
-    public SuccessfulDataflowAnalysisResult<StateType> asSuccessfulAnalysisResult() {
+    public SuccessfulDataflowAnalysisResult<Block, StateType> asSuccessfulAnalysisResult() {
       return this;
     }
   }

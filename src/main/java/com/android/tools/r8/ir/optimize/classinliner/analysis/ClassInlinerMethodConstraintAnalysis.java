@@ -26,8 +26,8 @@ public class ClassInlinerMethodConstraintAnalysis {
     // Analyze code.
     IntraproceduralDataflowAnalysis<ParameterUsages> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            ParameterUsages.bottom(), new TransferFunction(appView, method, code));
-    SuccessfulDataflowAnalysisResult<ParameterUsages> result =
+            ParameterUsages.bottom(), code, new TransferFunction(appView, method, code));
+    SuccessfulDataflowAnalysisResult<?, ParameterUsages> result =
         timing.time(
             "Data flow analysis",
             () -> analysis.run(code.entryBlock(), timing).asSuccessfulAnalysisResult());

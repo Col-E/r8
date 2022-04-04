@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.analysis.framework.intraprocedural.FailedTransfer
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.IntraproceduralDataflowAnalysis;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.TransferFunctionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -39,10 +40,10 @@ class StringBuilderAppendFlowAnalysis {
    * loop.
    */
   static boolean hasAppendInstructionInLoop(
-      Value builder, StringBuilderOptimizationConfiguration configuration) {
+      IRCode code, Value builder, StringBuilderOptimizationConfiguration configuration) {
     IntraproceduralDataflowAnalysis<AbstractStateImpl> analysis =
         new IntraproceduralDataflowAnalysis<>(
-            AbstractStateImpl.bottom(), new TransferFunction(builder, configuration));
+            AbstractStateImpl.bottom(), code, new TransferFunction(builder, configuration));
     DataflowAnalysisResult result = analysis.run(builder.definition.getBlock());
     return result.isFailedAnalysisResult();
   }
@@ -121,7 +122,8 @@ class StringBuilderAppendFlowAnalysis {
    * <p>If a call to {@code toString()} on the builder i seen, then the abstract state is reset to
    * bottom.
    */
-  private static class TransferFunction implements AbstractTransferFunction<AbstractStateImpl> {
+  private static class TransferFunction
+      implements AbstractTransferFunction<BasicBlock, Instruction, AbstractStateImpl> {
 
     private final Value builder;
     private final StringBuilderOptimizationConfiguration configuration;

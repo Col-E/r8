@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.ControlFlowGraph;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -33,6 +34,7 @@ import com.android.tools.r8.utils.LinkedHashSetUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -55,13 +57,14 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class IRCode implements ValueFactory {
+public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueFactory {
 
   private static final int MAX_MARKING_COLOR = 0x40000000;
 
@@ -1361,6 +1364,29 @@ public class IRCode implements ValueFactory {
 
   public LinkedList<BasicBlock> getBlocks() {
     return blocks;
+  }
+
+  @Override
+  public Collection<BasicBlock> getPredecessors(BasicBlock block) {
+    return block.getPredecessors();
+  }
+
+  @Override
+  public Collection<BasicBlock> getSuccessors(BasicBlock block) {
+    return block.getSuccessors();
+  }
+
+  @Override
+  public <T> TraversalContinuation<T> traverseInstructions(
+      BasicBlock block, BiFunction<Instruction, T, TraversalContinuation<T>> fn, T initialValue) {
+    TraversalContinuation<T> traversalContinuation = TraversalContinuation.doContinue(initialValue);
+    for (Instruction instruction : block.getInstructions()) {
+      traversalContinuation = fn.apply(instruction, traversalContinuation.getValue());
+      if (traversalContinuation.shouldBreak()) {
+        return traversalContinuation;
+      }
+    }
+    return traversalContinuation;
   }
 
   /**

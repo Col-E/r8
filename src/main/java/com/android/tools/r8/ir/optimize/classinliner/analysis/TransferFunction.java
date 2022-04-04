@@ -52,7 +52,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-class TransferFunction implements AbstractTransferFunction<ParameterUsages> {
+class TransferFunction
+    implements AbstractTransferFunction<BasicBlock, Instruction, ParameterUsages> {
 
   private static final AliasedValueConfiguration aliasedValueConfiguration =
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
