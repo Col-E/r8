@@ -83,7 +83,6 @@ import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagator;
 import com.android.tools.r8.optimize.argumentpropagation.ArgumentPropagatorIROptimizer;
 import com.android.tools.r8.optimize.interfaces.analysis.OpenClosedInterfacesAnalysis;
-import com.android.tools.r8.optimize.interfaces.analysis.OpenClosedInterfacesAnalysisImpl;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.KeepMethodInfo;
@@ -259,7 +258,8 @@ public class IRConverter {
       this.memberValuePropagation = new MemberValuePropagation(appViewWithLiveness);
       this.methodOptimizationInfoCollector =
           new MethodOptimizationInfoCollector(appViewWithLiveness, this);
-      this.openClosedInterfacesAnalysis = new OpenClosedInterfacesAnalysisImpl(appViewWithLiveness);
+      // TODO(b/214496607): Enable open/closed interfaces analysis.
+      this.openClosedInterfacesAnalysis = OpenClosedInterfacesAnalysis.empty();
       if (options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {

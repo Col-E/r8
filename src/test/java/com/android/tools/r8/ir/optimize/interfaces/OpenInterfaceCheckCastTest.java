@@ -41,7 +41,7 @@ public class OpenInterfaceCheckCastTest extends TestBase {
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines());
+        .assertSuccessWithOutputLines(getExpectedOutputLines(false));
   }
 
   @Test
@@ -52,7 +52,7 @@ public class OpenInterfaceCheckCastTest extends TestBase {
         .addProgramClassFileData(getTransformedMainClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines());
+        .assertSuccessWithOutputLines(getExpectedOutputLines(false));
   }
 
   @Test
@@ -68,7 +68,7 @@ public class OpenInterfaceCheckCastTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines());
+        .assertSuccessWithOutputLines(getExpectedOutputLines(true));
   }
 
   private List<Class<?>> getProgramClasses() {
@@ -102,7 +102,11 @@ public class OpenInterfaceCheckCastTest extends TestBase {
         .transform();
   }
 
-  private List<String> getExpectedOutputLines() {
+  private List<String> getExpectedOutputLines(boolean isR8) {
+    if (isR8) {
+      // TODO(b/214496607): R8 should not optimize the check-cast instruction since I is open.
+      return ImmutableList.of("OK", "OK");
+    }
     if (parameters.isDexRuntime()
         && parameters
             .getDexRuntimeVersion()

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.proxy;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresentAndNotRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -57,11 +58,8 @@ public class MockitoTest extends TestBase {
             .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
-    // TODO(b/214496607): This could be removed as a result of devirtualization, but this only
-    //  happens if the call site is reprocessed, since we don't have knowledge of open/closed
-    //  interfaces until the second optimization pass.
     MethodSubject mtd = itf.uniqueMethodWithName("onEnterForeground");
-    assertThat(mtd, isPresent());
+    assertThat(mtd, isAbsent());
   }
 
   @Test

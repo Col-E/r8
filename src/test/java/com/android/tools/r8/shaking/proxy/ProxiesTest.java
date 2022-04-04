@@ -139,8 +139,8 @@ public class ProxiesTest extends TestBase {
   private void noInterfaceKept(CodeInspector inspector) {
     // Indirectly assert that method is inlined into x, y and z and that redundant field loads
     // remove invokes.
-    assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
-    assertEquals(3, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(0, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(0, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
     assertEquals(0, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
   }
 
@@ -149,10 +149,7 @@ public class ProxiesTest extends TestBase {
     runTest(
         ImmutableList.of(),
         this::noInterfaceKept,
-        "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n"
-            + "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nProxy\nProxy\n"
-            + "TestClass 3\nTestClass 3\nTestClass 3\n"
-            + "TestClass 4\nTestClass 4\nTestClass 4\nSUCCESS\n");
+        "TestClass 1\nTestClass 1\nTestClass 1\nEXCEPTION\n");
   }
 
   private void baseInterfaceKept(CodeInspector inspector) {
@@ -160,7 +157,7 @@ public class ProxiesTest extends TestBase {
     assertEquals(3, countInstructionInX(inspector, InstructionSubject::isInvokeInterface));
     // Indirectly assert that method is inlined into y and z and that redundant field loads
     // remove invokes.
-    assertEquals(3, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
+    assertEquals(0, countInstructionInY(inspector, InstructionSubject::isInvokeInterface));
     assertEquals(0, countInstructionInZ(inspector, InstructionSubject::isInvokeVirtual));
     assertEquals(0, countInstructionInZSubClass(inspector, InstructionSubject::isInvokeVirtual));
   }
@@ -174,9 +171,7 @@ public class ProxiesTest extends TestBase {
             "}"),
         this::baseInterfaceKept,
         "TestClass 1\nTestClass 1\nTestClass 1\nProxy\nProxy\nProxy\n"
-            + "TestClass 2\nTestClass 2\nTestClass 2\nProxy\nProxy\nProxy\n"
-            + "TestClass 3\nTestClass 3\nTestClass 3\n"
-            + "TestClass 4\nTestClass 4\nTestClass 4\nSUCCESS\n");
+            + "TestClass 2\nTestClass 2\nTestClass 2\nEXCEPTION\n");
   }
 
   private void subInterfaceKept(CodeInspector inspector) {

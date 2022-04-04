@@ -84,6 +84,10 @@ public class SingleTargetExecutionTest extends AsmTestBase {
   }
 
   private String getExpectedOutput() {
+    String icceOrNot =
+        enableInliningAnnotations || !parameters.canUseDefaultAndStaticInterfaceMethods()
+            ? "ICCE"
+            : "InterfaceWithDefault";
     return StringUtils.lines(
         "SubSubClassOne",
         "SubSubClassOne",
@@ -93,7 +97,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
         "com.android.tools.r8.resolution.singletarget.one.AbstractSubClass",
         "InterfaceWithDefault",
         "InterfaceWithDefault",
-        "ICCE",
+        icceOrNot,
         "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
         "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
         "AbstractTopClass",
@@ -105,7 +109,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
         "InterfaceWithDefault",
         "InterfaceWithDefault",
         "InterfaceWithDefault",
-        "ICCE",
+        icceOrNot,
         "InterfaceWithDefault",
         "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
         "InterfaceWithDefault",

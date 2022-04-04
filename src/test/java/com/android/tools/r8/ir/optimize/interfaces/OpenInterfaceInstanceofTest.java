@@ -41,7 +41,7 @@ public class OpenInterfaceInstanceofTest extends TestBase {
         .addProgramClasses(getProgramClasses())
         .addProgramClassFileData(getTransformedMainClass())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines());
+        .assertSuccessWithOutputLines(getExpectedOutputLines(false));
   }
 
   @Test
@@ -52,7 +52,7 @@ public class OpenInterfaceInstanceofTest extends TestBase {
         .addProgramClassFileData(getTransformedMainClass())
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines());
+        .assertSuccessWithOutputLines(getExpectedOutputLines(false));
   }
 
   @Test
@@ -68,7 +68,7 @@ public class OpenInterfaceInstanceofTest extends TestBase {
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(getExpectedOutputLines());
+        .assertSuccessWithOutputLines(getExpectedOutputLines(true));
   }
 
   private List<Class<?>> getProgramClasses() {
@@ -95,7 +95,11 @@ public class OpenInterfaceInstanceofTest extends TestBase {
         .transform();
   }
 
-  private List<String> getExpectedOutputLines() {
+  private List<String> getExpectedOutputLines(boolean isR8) {
+    if (isR8) {
+      // TODO(b/214496607): R8 should not optimize the instanceof instruction since I is open.
+      return ImmutableList.of("true", "true");
+    }
     if (parameters.isDexRuntime() && parameters.getDexRuntimeVersion().isEqualTo(Version.V7_0_0)) {
       return ImmutableList.of("true", "true");
     }
