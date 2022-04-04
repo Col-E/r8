@@ -39,20 +39,20 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
@@ -61,12 +61,6 @@ import java.util.function.Predicate;
 public class VirtualFile {
 
   public static final int MAX_ENTRIES = Constants.U16BIT_MAX + 1;
-
-  /**
-   * When distributing classes across files we aim to leave some space. The amount of space left is
-   * driven by this constant.
-   */
-  private static final int MAX_PREFILL_ENTRIES = MAX_ENTRIES - 5000;
 
   private final int id;
   private final VirtualFileIndexedItemCollection indexedItems;
@@ -185,22 +179,6 @@ public class VirtualFile {
               DescriptorUtils.descriptorToJavaType(originalType.toDescriptorString(), proguardMap));
         });
     return originalNames;
-  }
-
-  private static String extractPrefixToken(int prefixLength, String className, boolean addStar) {
-    int index = 0;
-    int lastIndex = 0;
-    int segmentCount = 0;
-    while (lastIndex != -1 && segmentCount++ < prefixLength) {
-      index = lastIndex;
-      lastIndex = className.indexOf('.', index + 1);
-    }
-    String prefix = className.substring(0, index);
-    if (addStar && segmentCount >= prefixLength) {
-      // Full match, add a * to also match sub-packages.
-      prefix += ".*";
-    }
-    return prefix;
   }
 
   private ObjectToOffsetMapping objectMapping = null;
@@ -427,38 +405,6 @@ public class VirtualFile {
       mainDexFile.throwIfFull(true, options.reporter);
     }
 
-    TreeSet<DexProgramClass> sortClassesByPackage(Set<DexProgramClass> classes,
-        Map<DexProgramClass, String> originalNames) {
-      TreeSet<DexProgramClass> sortedClasses = new TreeSet<>(
-          (DexProgramClass a, DexProgramClass b) -> {
-            String originalA = originalNames.get(a);
-            String originalB = originalNames.get(b);
-            int indexA = originalA.lastIndexOf('.');
-            int indexB = originalB.lastIndexOf('.');
-            if (indexA == -1 && indexB == -1) {
-              // Empty package, compare the class names.
-              return originalA.compareTo(originalB);
-            }
-            if (indexA == -1) {
-              // Empty package name comes first.
-              return -1;
-            }
-            if (indexB == -1) {
-              // Empty package name comes first.
-              return 1;
-            }
-            String prefixA = originalA.substring(0, indexA);
-            String prefixB = originalB.substring(0, indexB);
-            int result = prefixA.compareTo(prefixB);
-            if (result != 0) {
-              return result;
-            }
-            return originalA.compareTo(originalB);
-          });
-      sortedClasses.addAll(classes);
-      return sortedClasses;
-    }
-
     protected Map<FeatureSplit, Set<DexProgramClass>> removeFeatureSplitClassesGetMapping() {
       assert appView.appInfo().hasClassHierarchy() == appView.enableWholeProgramOptimizations();
       if (!appView.appInfo().hasClassHierarchy()) {
@@ -482,8 +428,8 @@ public class VirtualFile {
       return featureSplitClasses;
     }
 
-    protected void addFeatureSplitFiles(Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses)
-        throws IOException {
+    protected void addFeatureSplitFiles(
+        Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses) {
       if (featureSplitClasses.isEmpty()) {
         return;
       }
@@ -499,19 +445,15 @@ public class VirtualFile {
                 featureSplitSetEntry.getKey());
         virtualFiles.add(featureFile);
         addMarkers(featureFile);
-        Set<DexProgramClass> featureClasses =
-            sortClassesByPackage(featureSplitSetEntry.getValue(), originalNames);
         filesForDistribution = virtualFiles.subList(virtualFiles.size() - 1, virtualFiles.size());
-
         new PackageSplitPopulator(
                 filesForDistribution,
                 appView,
-                featureClasses,
+                featureSplitSetEntry.getValue(),
                 originalNames,
                 0,
-                writer.namingLens,
-                options)
-            .call();
+                writer.namingLens)
+            .run();
       }
     }
   }
@@ -564,18 +506,14 @@ public class VirtualFile {
                 executorService)
             .distribute();
       } else {
-        // Sort the remaining classes based on the original names.
-        // This with make classes from the same package be adjacent.
-        classes = sortClassesByPackage(classes, originalNames);
         new PackageSplitPopulator(
                 filesForDistribution,
                 appView,
                 classes,
                 originalNames,
                 fileIndexOffset,
-                writer.namingLens,
-                options)
-            .call();
+                writer.namingLens)
+            .run();
       }
       addFeatureSplitFiles(featureSplitClasses);
 
@@ -974,7 +912,63 @@ public class VirtualFile {
    * <p>The populator cycles through the files until all classes have been successfully placed and
    * adds new files to the passed in map if it can't fit in the existing files.
    */
-  private static class PackageSplitPopulator implements Callable<Map<String, Integer>> {
+  private static class PackageSplitPopulator {
+
+    static class PackageSplitClassPartioning {
+
+      // The set of classes that must be written, sorted by original names so that classes in the
+      // same package are adjacent.
+      private final List<DexProgramClass> nonStartupClasses;
+
+      private PackageSplitClassPartioning(List<DexProgramClass> nonStartupClasses) {
+        this.nonStartupClasses = nonStartupClasses;
+      }
+
+      public static PackageSplitClassPartioning create(
+          Collection<DexProgramClass> classes, Map<DexProgramClass, String> originalNames) {
+        return create(classes, getClassesByPackageComparator(originalNames));
+      }
+
+      private static PackageSplitClassPartioning create(
+          Collection<DexProgramClass> classes, Comparator<DexProgramClass> comparator) {
+        List<DexProgramClass> nonStartupClasses = new ArrayList<>(classes);
+        nonStartupClasses.sort(comparator);
+        return new PackageSplitClassPartioning(nonStartupClasses);
+      }
+
+      private static Comparator<DexProgramClass> getClassesByPackageComparator(
+          Map<DexProgramClass, String> originalNames) {
+        return (a, b) -> {
+          String originalA = originalNames.get(a);
+          String originalB = originalNames.get(b);
+          int indexA = originalA.lastIndexOf('.');
+          int indexB = originalB.lastIndexOf('.');
+          if (indexA == -1 && indexB == -1) {
+            // Empty package, compare the class names.
+            return originalA.compareTo(originalB);
+          }
+          if (indexA == -1) {
+            // Empty package name comes first.
+            return -1;
+          }
+          if (indexB == -1) {
+            // Empty package name comes first.
+            return 1;
+          }
+          String prefixA = originalA.substring(0, indexA);
+          String prefixB = originalB.substring(0, indexB);
+          int result = prefixA.compareTo(prefixB);
+          if (result != 0) {
+            return result;
+          }
+          return originalA.compareTo(originalB);
+        };
+      }
+
+      public List<DexProgramClass> getNonStartupClasses() {
+        return nonStartupClasses;
+      }
+    }
 
     /**
      * Android suggests com.company.product for package names, so the components will be at level 4
@@ -988,7 +982,7 @@ public class VirtualFile {
      */
     private static final int MIN_FILL_FACTOR = 5;
 
-    private final List<DexProgramClass> classes;
+    private final PackageSplitClassPartioning classPartioning;
     private final Map<DexProgramClass, String> originalNames;
     private final DexItemFactory dexItemFactory;
     private final InternalOptions options;
@@ -997,15 +991,14 @@ public class VirtualFile {
     PackageSplitPopulator(
         List<VirtualFile> files,
         AppView<?> appView,
-        Set<DexProgramClass> classes,
+        Collection<DexProgramClass> classes,
         Map<DexProgramClass, String> originalNames,
         int fileIndexOffset,
-        NamingLens namingLens,
-        InternalOptions options) {
-      this.classes = new ArrayList<>(classes);
+        NamingLens namingLens) {
+      this.classPartioning = PackageSplitClassPartioning.create(classes, originalNames);
       this.originalNames = originalNames;
       this.dexItemFactory = appView.dexItemFactory();
-      this.options = options;
+      this.options = appView.options();
       this.cycler = new VirtualFileCycler(files, appView, namingLens, fileIndexOffset);
     }
 
@@ -1022,17 +1015,21 @@ public class VirtualFile {
     }
 
     private String getOriginalName(DexProgramClass clazz) {
-      return originalNames != null ? originalNames.get(clazz) : clazz.toString();
+      return originalNames.get(clazz);
     }
 
-    @Override
-    public Map<String, Integer> call() throws IOException {
+    public void run() {
+      List<DexProgramClass> nonPackageClasses = addNonStartupClasses();
+      addNonPackageClasses(cycler, nonPackageClasses);
+    }
+
+    private List<DexProgramClass> addNonStartupClasses() {
       int prefixLength = MINIMUM_PREFIX_LENGTH;
       int transactionStartIndex = 0;
-      int fileStartIndex = 0;
       String currentPrefix = null;
-      Map<String, Integer> newPackageAssignments = new LinkedHashMap<>();
+      Object2IntMap<String> packageAssignments = new Object2IntOpenHashMap<>();
       VirtualFile current = cycler.next();
+      List<DexProgramClass> classes = classPartioning.getNonStartupClasses();
       List<DexProgramClass> nonPackageClasses = new ArrayList<>();
       for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
         DexProgramClass clazz = classes.get(classIndex);
@@ -1040,10 +1037,9 @@ public class VirtualFile {
         if (!coveredByPrefix(originalName, currentPrefix)) {
           if (currentPrefix != null) {
             current.commitTransaction();
+            assert verifyPackageToVirtualFileAssignment(packageAssignments, currentPrefix, current);
             // Reset the cycler to again iterate over all files, starting with the current one.
             cycler.restart();
-            assert !newPackageAssignments.containsKey(currentPrefix);
-            newPackageAssignments.put(currentPrefix, current.id);
             // Try to reduce the prefix length if possible. Only do this on a successful commit.
             prefixLength = MINIMUM_PREFIX_LENGTH - 1;
           }
@@ -1067,58 +1063,93 @@ public class VirtualFile {
           }
           transactionStartIndex = classIndex;
         }
-        if (currentPrefix != null) {
-          assert clazz.superType != null || clazz.type == dexItemFactory.objectType;
-          current.addClass(clazz);
-        } else {
+
+        if (currentPrefix == null) {
           assert clazz.superType != null;
           // We don't have a package, add this to a list of classes that we will add last.
-          assert current.transaction.classes.isEmpty();
+          assert current.transaction.isEmpty();
           nonPackageClasses.add(clazz);
           continue;
         }
-        if (isFullEnough(current, options)) {
-          current.abortTransaction();
-          // We allow for a final rollback that has at most 20% of classes in it.
-          // This is a somewhat random number that was empirically chosen.
-          if (classIndex - transactionStartIndex > (classIndex - fileStartIndex) / MIN_FILL_FACTOR
-              && prefixLength < MAXIMUM_PREFIX_LENGTH) {
-            prefixLength++;
-          } else {
-            // Reset the state to after the last commit and cycle through files.
-            // The idea is that we do not increase the number of files, so it has to fit
-            // somewhere.
-            fileStartIndex = transactionStartIndex;
-            if (!cycler.hasNext()) {
-              // Special case where we simply will never be able to fit the current package into
-              // one dex file. This is currently the case for Strings in jumbo tests, see:
-              // b/33227518
-              if (current.transaction.getNumberOfClasses() == 0) {
-                for (int j = transactionStartIndex; j <= classIndex; j++) {
-                  nonPackageClasses.add(classes.get(j));
-                }
-                transactionStartIndex = classIndex + 1;
-              }
-              // All files are filled up to the 20% mark.
-              cycler.addFile();
-            }
-            current = cycler.next();
-          }
-          currentPrefix = null;
+
+        assert clazz.superType != null || clazz.type == dexItemFactory.objectType;
+        current.addClass(clazz);
+
+        if (hasSpaceForTransaction(current, options)) {
+          continue;
+        }
+
+        int numberOfClassesInTransaction = classIndex - transactionStartIndex + 1;
+        int numberOfClassesInVirtualFileWithTransaction = current.getNumberOfClasses();
+
+        current.abortTransaction();
+
+        // We allow for a final rollback that has at most 20% of classes in it.
+        // This is a somewhat random number that was empirically chosen.
+        if (numberOfClassesInTransaction
+                > numberOfClassesInVirtualFileWithTransaction / MIN_FILL_FACTOR
+            && prefixLength < MAXIMUM_PREFIX_LENGTH) {
           // Go back to previous start index.
           classIndex = transactionStartIndex - 1;
-          assert current != null;
+          currentPrefix = null;
+          prefixLength++;
+          continue;
         }
+
+        // Reset the state to after the last commit and cycle through files.
+        // The idea is that we do not increase the number of files, so it has to fit somewhere.
+        if (!cycler.hasNext()) {
+          // Special case where we simply will never be able to fit the current package into
+          // one dex file. This is currently the case for Strings in jumbo tests, see b/33227518.
+          if (current.isEmpty()) {
+            for (int j = transactionStartIndex; j <= classIndex; j++) {
+              nonPackageClasses.add(classes.get(j));
+            }
+            transactionStartIndex = classIndex + 1;
+          }
+          // All files are filled up to the 20% mark.
+          cycler.addFile();
+        }
+
+        // Go back to previous start index.
+        classIndex = transactionStartIndex - 1;
+        current = cycler.next();
+        currentPrefix = null;
+        prefixLength = MINIMUM_PREFIX_LENGTH;
       }
+
       current.commitTransaction();
-      assert !newPackageAssignments.containsKey(currentPrefix);
-      if (currentPrefix != null) {
-        newPackageAssignments.put(currentPrefix, current.id);
+      assert currentPrefix == null
+          || verifyPackageToVirtualFileAssignment(packageAssignments, currentPrefix, current);
+
+      return nonPackageClasses;
+    }
+
+    private static String extractPrefixToken(int prefixLength, String className, boolean addStar) {
+      int index = 0;
+      int lastIndex = 0;
+      int segmentCount = 0;
+      while (lastIndex != -1 && segmentCount++ < prefixLength) {
+        index = lastIndex;
+        lastIndex = className.indexOf('.', index + 1);
       }
-      if (nonPackageClasses.size() > 0) {
-        addNonPackageClasses(cycler, nonPackageClasses);
+      String prefix = className.substring(0, index);
+      if (addStar && segmentCount >= prefixLength) {
+        // Full match, add a * to also match sub-packages.
+        prefix += ".*";
       }
-      return newPackageAssignments;
+      return prefix;
+    }
+
+    private boolean verifyPackageToVirtualFileAssignment(
+        Object2IntMap<String> packageAssignments, String packageName, VirtualFile virtualFile) {
+      assert !packageAssignments.containsKey(packageName);
+      packageAssignments.put(packageName, virtualFile.getId());
+      return true;
+    }
+
+    private boolean hasSpaceForTransaction(VirtualFile current, InternalOptions options) {
+      return !isFullEnough(current, options);
     }
 
     private boolean isFullEnough(VirtualFile current, InternalOptions options) {
@@ -1131,6 +1162,9 @@ public class VirtualFile {
 
     private void addNonPackageClasses(
         VirtualFileCycler cycler, List<DexProgramClass> nonPackageClasses) {
+      if (nonPackageClasses.isEmpty()) {
+        return;
+      }
       cycler.restart();
       VirtualFile current;
       current = cycler.next();
