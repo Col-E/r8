@@ -4,98 +4,25 @@
 package com.android.tools.r8.benchmarks;
 
 import com.android.tools.r8.benchmarks.BenchmarkRunner.ResultMode;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
 
-public class BenchmarkResults {
+public interface BenchmarkResults {
+  // Append a runtime result. This may be summed or averaged depending on the benchmark set up.
+  void addRuntimeResult(long result);
 
-  private final BenchmarkMetric runtimeMetric;
-  private final LongList runtimeResults = new LongArrayList();
-  private final LongList codeSizeResults = new LongArrayList();
+  // Append a code size result. This is always assumed to be identical if called multiple times.
+  void addCodeSizeResult(long result);
 
-  public static BenchmarkResults create() {
-    return new BenchmarkResults(false);
-  }
+  // Get the results collection for a "sub-benchmark" when defining a group of benchmarks.
+  // This will throw if called on a benchmark without sub-benchmarks.
+  BenchmarkResults getSubResults(String name);
 
-  public static BenchmarkResults createForWarmup() {
-    return new BenchmarkResults(true);
-  }
+  void printResults(ResultMode resultMode);
 
-  private BenchmarkResults(boolean isWarmupResults) {
-    this.runtimeMetric = isWarmupResults ? BenchmarkMetric.StartupTime : BenchmarkMetric.RunTimeRaw;
-  }
-
-  private boolean isWarmupResults() {
-    return runtimeMetric == BenchmarkMetric.StartupTime;
-  }
-
-  private String getName(BenchmarkConfig config) {
-    return config.getName();
-  }
-
-  public void addRuntimeResult(long result) {
-    runtimeResults.add(result);
-  }
-
-  public void addCodeSizeResult(long result) {
-    codeSizeResults.add(result);
-  }
-
-  private static void verifyMetric(BenchmarkMetric metric, boolean expected, boolean actual) {
-    if (expected != actual) {
-      throw new BenchmarkConfigError(
-          "Mismatched config and result for "
-              + metric.name()
-              + ". Expected by config: "
-              + expected
-              + ", but has result: "
-              + actual);
-    }
-  }
-
-  private void verifyConfigAndResults(BenchmarkConfig config) {
-    verifyMetric(
-        BenchmarkMetric.RunTimeRaw,
-        config.getMetrics().contains(BenchmarkMetric.RunTimeRaw),
-        !runtimeResults.isEmpty());
-    verifyMetric(
-        BenchmarkMetric.CodeSize,
-        config.getMetrics().contains(BenchmarkMetric.CodeSize),
-        !codeSizeResults.isEmpty());
-  }
-
-  public static String prettyTime(long nanoTime) {
+  static String prettyTime(long nanoTime) {
     return "" + (nanoTime / 1000000) + " ms";
   }
 
-  private void printRunTime(BenchmarkConfig config, long duration) {
-    String metric = runtimeMetric.name();
-    System.out.println(getName(config) + "(" + metric + "): " + prettyTime(duration));
-  }
-
-  private void printCodeSize(BenchmarkConfig config, long bytes) {
-    System.out.println(getName(config) + "(CodeSize): " + bytes);
-  }
-
-  public void printResults(ResultMode mode, BenchmarkConfig config) {
-    verifyConfigAndResults(config);
-    if (config.hasMetric(runtimeMetric)) {
-      long sum = runtimeResults.stream().mapToLong(l -> l).sum();
-      if (mode == ResultMode.SUM) {
-        printRunTime(config, sum);
-      } else if (mode == ResultMode.AVERAGE) {
-        printRunTime(config, sum / runtimeResults.size());
-      }
-    }
-    if (!isWarmupResults() && config.hasMetric(BenchmarkMetric.CodeSize)) {
-      long size = codeSizeResults.getLong(0);
-      for (int i = 1; i < codeSizeResults.size(); i++) {
-        if (size != codeSizeResults.getLong(i)) {
-          throw new RuntimeException(
-              "Unexpected code size difference: " + size + " and " + codeSizeResults.getLong(i));
-        }
-      }
-      printCodeSize(config, size);
-    }
+  static String prettyMetric(String name, BenchmarkMetric metric, String value) {
+    return name + "(" + metric.name() + "): " + value;
   }
 }

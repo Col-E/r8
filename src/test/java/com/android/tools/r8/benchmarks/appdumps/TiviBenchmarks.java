@@ -34,6 +34,17 @@ public class TiviBenchmarks extends BenchmarkBase {
             .setName("TiviApp")
             .setDumpDependencyPath(dump)
             .setFromRevision(12215)
-            .build());
+            .buildR8(),
+        AppDumpBenchmarkBuilder.builder()
+            .setName("TiviApp")
+            .setDumpDependencyPath(dump)
+            .setFromRevision(12370)
+            .buildBatchD8(),
+        AppDumpBenchmarkBuilder.builder()
+            .setName("TiviIncremental")
+            .setDumpDependencyPath(dump)
+            .setFromRevision(12370)
+            .addProgramPackages("app/tivi")
+            .buildIncrementalD8());
   }
 }

@@ -3,12 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.benchmarks;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -18,9 +22,23 @@ public class BenchmarkConfig {
     if (benchmark.getTarget().equals(other.getTarget())) {
       throw new BenchmarkConfigError("Duplicate benchmark name and target: " + benchmark);
     }
-    if (!benchmark.getMetrics().equals(other.getMetrics())) {
+    if (benchmark.isSingleBenchmark() != other.isSingleBenchmark()) {
       throw new BenchmarkConfigError(
-          "Inconsistent metrics for benchmarks: " + benchmark + " and " + other);
+          "Inconsistent single/group benchmark setup: " + benchmark + " and " + other);
+    }
+    Set<String> subNames =
+        Sets.union(benchmark.getSubBenchmarks().keySet(), other.getSubBenchmarks().keySet());
+    for (String subName : subNames) {
+      if (!Objects.equals(
+          benchmark.getSubBenchmarks().get(subName), other.getSubBenchmarks().get(subName))) {
+        throw new BenchmarkConfigError(
+            "Inconsistent metrics for sub-benchmark "
+                + subName
+                + " in benchmarks: "
+                + benchmark
+                + " and "
+                + other);
+      }
     }
     if (!benchmark.getSuite().equals(other.getSuite())) {
       throw new BenchmarkConfigError(
@@ -38,6 +56,15 @@ public class BenchmarkConfig {
 
   public static BenchmarkSuite getCommonSuite(List<BenchmarkConfig> variants) {
     return getConsistentRepresentative(variants).getSuite();
+  }
+
+  public static boolean getCommonHasTimeWarmup(List<BenchmarkConfig> variants) {
+    return getConsistentRepresentative(variants).hasTimeWarmupRuns();
+  }
+
+  public static Map<String, Set<BenchmarkMetric>> getCommonSubBenchmarks(
+      List<BenchmarkConfig> variants) {
+    return getConsistentRepresentative(variants).getSubBenchmarks();
   }
 
   // Use the largest configured timeout as the timeout for the full group.
@@ -71,41 +98,63 @@ public class BenchmarkConfig {
     private BenchmarkMethod method = null;
     private BenchmarkTarget target = null;
     private Set<BenchmarkMetric> metrics = new HashSet<>();
+    private Map<String, Set<BenchmarkMetric>> subBenchmarks = new HashMap<>();
     private BenchmarkSuite suite = BenchmarkSuite.getDefault();
     private Collection<BenchmarkDependency> dependencies = new ArrayList<>();
     private int fromRevision = -1;
     private BenchmarkTimeout timeout = null;
+    private boolean measureWarmup = false;
 
     private Builder() {}
 
     public BenchmarkConfig build() {
       if (name == null) {
-        throw new Unreachable("Benchmark name must be set");
+        throw new BenchmarkConfigError("Benchmark name must be set");
       }
       if (method == null) {
-        throw new Unreachable("Benchmark method must be set");
+        throw new BenchmarkConfigError("Benchmark method must be set");
       }
       if (target == null) {
-        throw new Unreachable("Benchmark target must be set");
-      }
-      if (metrics.isEmpty()) {
-        throw new Unreachable("Benchmark must have at least one metric to measure");
+        throw new BenchmarkConfigError("Benchmark target must be set");
       }
       if (suite == null) {
-        throw new Unreachable("Benchmark must have a suite");
+        throw new BenchmarkConfigError("Benchmark must have a suite");
       }
       if (fromRevision < 0) {
-        throw new Unreachable("Benchmark must specify from which golem revision it is valid");
+        throw new BenchmarkConfigError(
+            "Benchmark must specify from which golem revision it is valid");
+      }
+      if (!metrics.isEmpty()) {
+        if (subBenchmarks.containsKey(name)) {
+          throw new BenchmarkConfigError(
+              "Benchmark must not specify both direct metrics and a sub-benchmark of the same"
+                  + " name");
+        }
+        subBenchmarks.put(name, ImmutableSet.copyOf(metrics));
+      }
+      if (subBenchmarks.isEmpty()) {
+        throw new BenchmarkConfigError(
+            "Benchmark must have at least one metric / sub-benchmark to measure");
+      }
+      if (measureWarmup) {
+        for (Set<BenchmarkMetric> subMetrics : subBenchmarks.values()) {
+          if (subMetrics.contains(BenchmarkMetric.StartupTime)) {
+            throw new BenchmarkConfigError(
+                "Benchmark cannot both measure warmup and set metric: "
+                    + BenchmarkMetric.StartupTime);
+          }
+        }
       }
       return new BenchmarkConfig(
           name,
           method,
           target,
-          ImmutableSet.copyOf(metrics),
+          subBenchmarks,
           suite,
           fromRevision,
           dependencies,
-          timeout);
+          timeout,
+          measureWarmup);
     }
 
     public Builder setName(String name) {
@@ -134,7 +183,16 @@ public class BenchmarkConfig {
     }
 
     public Builder measureWarmup() {
-      metrics.add(BenchmarkMetric.StartupTime);
+      measureWarmup = true;
+      return this;
+    }
+
+    public Builder addSubBenchmark(String name, BenchmarkMetric... metrics) {
+      return addSubBenchmark(name, new HashSet<>(Arrays.asList(metrics)));
+    }
+
+    public Builder addSubBenchmark(String name, Set<BenchmarkMetric> metrics) {
+      subBenchmarks.put(name, metrics);
       return this;
     }
 
@@ -165,28 +223,31 @@ public class BenchmarkConfig {
 
   private final BenchmarkIdentifier id;
   private final BenchmarkMethod method;
-  private final ImmutableSet<BenchmarkMetric> metrics;
+  private final Map<String, Set<BenchmarkMetric>> benchmarks;
   private final BenchmarkSuite suite;
   private final Collection<BenchmarkDependency> dependencies;
   private final int fromRevision;
   private final BenchmarkTimeout timeout;
+  private final boolean measureWarmup;
 
   private BenchmarkConfig(
       String name,
       BenchmarkMethod benchmarkMethod,
       BenchmarkTarget target,
-      ImmutableSet<BenchmarkMetric> metrics,
+      Map<String, Set<BenchmarkMetric>> benchmarks,
       BenchmarkSuite suite,
       int fromRevision,
       Collection<BenchmarkDependency> dependencies,
-      BenchmarkTimeout timeout) {
+      BenchmarkTimeout timeout,
+      boolean measureWarmup) {
     this.id = new BenchmarkIdentifier(name, target);
     this.method = benchmarkMethod;
-    this.metrics = metrics;
+    this.benchmarks = benchmarks;
     this.suite = suite;
     this.fromRevision = fromRevision;
     this.dependencies = dependencies;
     this.timeout = timeout;
+    this.measureWarmup = measureWarmup;
   }
 
   public BenchmarkIdentifier getIdentifier() {
@@ -205,12 +266,19 @@ public class BenchmarkConfig {
     return id.getTarget();
   }
 
-  public Set<BenchmarkMetric> getMetrics() {
-    return metrics;
+  public boolean isSingleBenchmark() {
+    return benchmarks.size() == 1 && benchmarks.containsKey(getName());
   }
 
-  public boolean hasMetric(BenchmarkMetric metric) {
-    return metrics.contains(metric);
+  public Map<String, Set<BenchmarkMetric>> getSubBenchmarks() {
+    return benchmarks;
+  }
+
+  public Set<BenchmarkMetric> getMetrics() {
+    if (!isSingleBenchmark()) {
+      throw new BenchmarkConfigError("Attempt to get single metrics set from group benchmark");
+    }
+    return benchmarks.get(getName());
   }
 
   public BenchmarkSuite getSuite() {
@@ -222,7 +290,7 @@ public class BenchmarkConfig {
   }
 
   public boolean hasTimeWarmupRuns() {
-    return hasMetric(BenchmarkMetric.StartupTime);
+    return measureWarmup;
   }
 
   public Collection<BenchmarkDependency> getDependencies() {

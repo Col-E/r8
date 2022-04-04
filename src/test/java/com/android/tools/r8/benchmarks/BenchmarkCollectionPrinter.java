@@ -5,6 +5,7 @@ package com.android.tools.r8.benchmarks;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -19,9 +20,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class BenchmarkCollectionPrinter {
 
@@ -100,29 +103,77 @@ public class BenchmarkCollectionPrinter {
           for (String benchmarkName : sortedNames) {
             List<BenchmarkConfig> benchmarkTargets = nameToTargets.get(benchmarkName);
             assert !benchmarkTargets.isEmpty();
-            scopeBraces(() -> printBenchmarkBlock(benchmarkName, benchmarkTargets));
+            if (benchmarkTargets.get(0).isSingleBenchmark()) {
+              scopeBraces(() -> printStandardBenchmarkBlock(benchmarkName, benchmarkTargets));
+            } else {
+              scopeBraces(() -> printGroupBenchmarkBlock(benchmarkName, benchmarkTargets));
+            }
           }
         });
     print("}");
   }
 
-  private void printBenchmarkBlock(String benchmarkName, List<BenchmarkConfig> benchmarkVariants)
-      throws IOException {
-    // Common properties that must be consistent among all the benchmark variants.
+  private String prettyMetrics(Collection<BenchmarkMetric> metrics) {
+    List<String> metricsStrings =
+        new ArrayList<>(ListUtils.map(metrics, BenchmarkMetric::getDartType));
+    metricsStrings.sort(String::compareTo);
+    return StringUtils.join(", ", metricsStrings, BraceType.SQUARE);
+  }
+
+  private void printStandardBenchmarkBlock(
+      String benchmarkName, List<BenchmarkConfig> benchmarkVariants) throws IOException {
     String suite = BenchmarkConfig.getCommonSuite(benchmarkVariants).getDartName();
-    List<String> metrics =
-        new ArrayList<>(
-            ListUtils.map(
-                BenchmarkConfig.getCommonMetrics(benchmarkVariants), BenchmarkMetric::getDartType));
-    metrics.sort(String::compareTo);
+    List<BenchmarkMetric> metrics =
+        new ArrayList<>(BenchmarkConfig.getCommonMetrics(benchmarkVariants));
+    if (BenchmarkConfig.getCommonHasTimeWarmup(benchmarkVariants)) {
+      metrics.add(BenchmarkMetric.StartupTime);
+    }
     printSemi("final name = " + quote(benchmarkName));
-    printSemi("final metrics = " + StringUtils.join(", ", metrics, BraceType.SQUARE));
+    printSemi("final metrics = " + prettyMetrics(metrics));
     printSemi("final benchmark = StandardBenchmark(name, metrics)");
     BenchmarkTimeout timeout = BenchmarkConfig.getCommonTimeout(benchmarkVariants);
     if (timeout != null) {
       printSemi("final timeout = const Duration(seconds: " + timeout.asSeconds() + ")");
       printSemi("ExecutionManagement.addTimeoutConstraint(timeout, benchmark: benchmark)");
     }
+    printBenchmarkVariantOptionBlock(benchmarkVariants);
+    printSemi(suite + ".addBenchmark(name)");
+  }
+
+  private void printGroupBenchmarkBlock(
+      String benchmarkName, List<BenchmarkConfig> benchmarkVariants) throws IOException {
+    String suite = BenchmarkConfig.getCommonSuite(benchmarkVariants).getDartName();
+    printSemi("final name = " + quote(benchmarkName));
+    printSemi("final benchmark = GroupBenchmark(name, [])");
+    BenchmarkTimeout timeout = BenchmarkConfig.getCommonTimeout(benchmarkVariants);
+    if (timeout != null) {
+      printSemi("final timeout = const Duration(seconds: " + timeout.asSeconds() + ")");
+      printSemi("ExecutionManagement.addTimeoutConstraint(timeout, benchmark: benchmark)");
+    }
+    printBenchmarkVariantOptionBlock(benchmarkVariants);
+    Map<String, Set<BenchmarkMetric>> subBenchmarks =
+        BenchmarkConfig.getCommonSubBenchmarks(benchmarkVariants);
+    Collection<String> subNames = CollectionUtils.sort(subBenchmarks.keySet(), String::compareTo);
+    for (String subName : subNames) {
+      scopeBraces(
+          () -> {
+            Set<BenchmarkMetric> subMetrics = subBenchmarks.get(subName);
+            printSemi("final subName = " + quote(subName));
+            printSemi("benchmark.addBenchmark(subName, " + prettyMetrics(subMetrics) + ")");
+            printSemi(suite + ".addBenchmark(subName)");
+          });
+    }
+    if (BenchmarkConfig.getCommonHasTimeWarmup(benchmarkVariants)) {
+      printSemi(
+          "benchmark.addBenchmark(name, "
+              + prettyMetrics(Collections.singletonList(BenchmarkMetric.StartupTime))
+              + ")");
+    }
+    printSemi(suite + ".addBenchmark(name)");
+  }
+
+  private void printBenchmarkVariantOptionBlock(List<BenchmarkConfig> benchmarkVariants)
+      throws IOException {
     for (BenchmarkConfig benchmark : benchmarkVariants) {
       scopeBraces(
           () -> {
@@ -153,7 +204,6 @@ public class BenchmarkCollectionPrinter {
             }
           });
     }
-    printSemi(suite + ".addBenchmark(name)");
   }
 
   private void addGolemResource(String name, Path tarball) throws IOException {
