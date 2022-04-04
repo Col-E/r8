@@ -81,7 +81,8 @@ public class CollisionWithDefaultMethodOutsideMergeGroupLambdaTest extends TestB
             parameters.isCfRuntime(),
             builder ->
                 builder.assertFailureWithErrorThatThrows(
-                    parameters.isCfRuntime(CfVm.JDK11)
+                    parameters.isCfRuntime()
+                            && parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK11)
                         ? AbstractMethodError.class
                         : IncompatibleClassChangeError.class),
             builder -> builder.assertSuccessWithOutputLines("K", "J"));
