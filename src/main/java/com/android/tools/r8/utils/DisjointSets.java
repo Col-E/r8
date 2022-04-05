@@ -125,9 +125,6 @@ public class DisjointSets<T> {
    * <p>Returns the representative for the union set.
    */
   public T unionWithMakeSet(T element1, T element2) {
-    if (element1.toString().contains("Enum") || element2.toString().contains("Enum")) {
-      System.out.println();
-    }
     if (element1 == element2) {
       return findOrMakeSet(element1);
     }
