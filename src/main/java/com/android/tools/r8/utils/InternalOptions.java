@@ -969,9 +969,9 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
       MachineDesugaredLibrarySpecification.empty();
 
   public TypeRewriter getTypeRewriter() {
-    return machineDesugaredLibrarySpecification.getRewriteType().isEmpty()
-        ? TypeRewriter.empty()
-        : new MachineDesugarPrefixRewritingMapper(machineDesugaredLibrarySpecification);
+    return machineDesugaredLibrarySpecification.requiresTypeRewriting()
+        ? new MachineDesugarPrefixRewritingMapper(machineDesugaredLibrarySpecification)
+        : TypeRewriter.empty();
   }
 
   public boolean relocatorCompilation = false;

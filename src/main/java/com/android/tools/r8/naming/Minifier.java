@@ -53,7 +53,9 @@ public class Minifier {
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
-            new MinificationClassNamingStrategy(appView),
+            appView.options().synthesizedClassPrefix.isEmpty()
+                ? new MinificationClassNamingStrategy(appView)
+                : new L8MinificationClassNamingStrategy(appView),
             // Use deterministic class order to make sure renaming is deterministic.
             appView.appInfo().classesWithDeterministicOrder());
     ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
@@ -122,6 +124,11 @@ public class Minifier {
     String nextName(char[] packagePrefix, InternalNamingState state) {
       StringBuilder nextName = new StringBuilder();
       nextName.append(packagePrefix);
+      nextName.append(nextString(packagePrefix, state));
+      return nextName.toString();
+    }
+
+    String nextString(char[] packagePrefix, InternalNamingState state) {
       String nextString;
       do {
         if (state.getDictionaryIndex() < obfuscationDictionary.size()) {
@@ -133,8 +140,36 @@ public class Minifier {
           } while (obfuscationDictionaryForLookup.contains(nextString));
         }
       } while (RESERVED_NAMES.contains(nextString));
-      nextName.append(nextString);
-      return nextName.toString();
+      return nextString;
+    }
+  }
+
+  static class L8MinificationClassNamingStrategy extends MinificationClassNamingStrategy {
+
+    private final String prefix;
+
+    L8MinificationClassNamingStrategy(AppView<AppInfoWithLiveness> appView) {
+      super(appView);
+      String synthesizedClassPrefix = appView.options().synthesizedClassPrefix;
+      prefix = synthesizedClassPrefix.substring(0, synthesizedClassPrefix.length() - 1);
+    }
+
+    private boolean startsWithPrefix(char[] packagePrefix) {
+      if (packagePrefix.length < prefix.length() + 1) {
+        return false;
+      }
+      for (int i = 0; i < prefix.length(); i++) {
+        if (prefix.charAt(i) != packagePrefix[i + 1]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override
+    String nextString(char[] packagePrefix, InternalNamingState state) {
+      String nextString = super.nextString(packagePrefix, state);
+      return startsWithPrefix(packagePrefix) ? nextString : prefix + nextString;
     }
   }
 

@@ -200,6 +200,10 @@ public class MachineDesugaredLibrarySpecification {
     return topLevelFlags.getRequiredCompilationAPILevel();
   }
 
+  public boolean requiresTypeRewriting() {
+    return !getRewriteType().isEmpty() || !getRewriteDerivedTypeOnly().isEmpty();
+  }
+
   private int getLeadingVersionNumber() {
     if (leadingVersionNumberCache != -1) {
       return leadingVersionNumberCache;
