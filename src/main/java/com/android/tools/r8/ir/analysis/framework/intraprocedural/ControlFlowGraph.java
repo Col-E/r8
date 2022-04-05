@@ -37,6 +37,6 @@ public interface ControlFlowGraph<Block, Instruction> {
     return Iterables.getOnlyElement(getSuccessors(block));
   }
 
-  <T> TraversalContinuation<T> traverseInstructions(
-      Block block, BiFunction<Instruction, T, TraversalContinuation<T>> fn, T initialValue);
+  <BT, CT> TraversalContinuation<BT, CT> traverseInstructions(
+      Block block, BiFunction<Instruction, CT, TraversalContinuation<BT, CT>> fn, CT initialValue);
 }

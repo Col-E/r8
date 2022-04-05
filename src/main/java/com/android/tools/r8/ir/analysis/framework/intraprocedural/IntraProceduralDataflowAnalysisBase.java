@@ -70,7 +70,7 @@ public class IntraProceduralDataflowAnalysisBase<
 
       timing.begin("Compute transfers");
       do {
-        TraversalContinuation<StateType> traversalContinuation =
+        TraversalContinuation<FailedDataflowAnalysisResult, StateType> traversalContinuation =
             cfg.traverseInstructions(
                 block,
                 (instruction, previousState) -> {
@@ -78,16 +78,16 @@ public class IntraProceduralDataflowAnalysisBase<
                       transfer.apply(instruction, previousState);
                   if (transferResult.isFailedTransferResult()) {
                     timing.end();
-                    return TraversalContinuation.doBreak();
+                    return TraversalContinuation.doBreak(new FailedDataflowAnalysisResult());
                   }
                   assert transferResult.isAbstractState();
                   return TraversalContinuation.doContinue(transferResult.asAbstractState());
                 },
                 state);
         if (traversalContinuation.isBreak()) {
-          return new FailedDataflowAnalysisResult();
+          return traversalContinuation.asBreak().getValue();
         }
-        state = traversalContinuation.getValue();
+        state = traversalContinuation.asContinue().getValue();
         if (cfg.hasUniqueSuccessorWithUniquePredecessor(block)) {
           block = cfg.getUniqueSuccessor(block);
         } else {

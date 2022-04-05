@@ -1377,11 +1377,14 @@ public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueF
   }
 
   @Override
-  public <T> TraversalContinuation<T> traverseInstructions(
-      BasicBlock block, BiFunction<Instruction, T, TraversalContinuation<T>> fn, T initialValue) {
-    TraversalContinuation<T> traversalContinuation = TraversalContinuation.doContinue(initialValue);
+  public <BT, CT> TraversalContinuation<BT, CT> traverseInstructions(
+      BasicBlock block,
+      BiFunction<Instruction, CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
     for (Instruction instruction : block.getInstructions()) {
-      traversalContinuation = fn.apply(instruction, traversalContinuation.getValue());
+      traversalContinuation = fn.apply(instruction, traversalContinuation.asContinue().getValue());
       if (traversalContinuation.shouldBreak()) {
         return traversalContinuation;
       }
