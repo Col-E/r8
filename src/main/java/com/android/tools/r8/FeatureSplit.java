@@ -44,6 +44,11 @@ public class FeatureSplit {
         public boolean isBase() {
           return true;
         }
+
+        @Override
+        public boolean isStartupBase() {
+          return true;
+        }
       };
 
   private final ProgramConsumer programConsumer;
@@ -56,6 +61,10 @@ public class FeatureSplit {
   }
 
   public boolean isBase() {
+    return false;
+  }
+
+  public boolean isStartupBase() {
     return false;
   }
 

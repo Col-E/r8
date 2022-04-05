@@ -4,6 +4,7 @@
 package com.android.tools.r8.dex;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.debuginfo.DebugRepresentation;
@@ -29,6 +30,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.MainDexInfo;
+import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -916,24 +918,46 @@ public class VirtualFile {
 
     static class PackageSplitClassPartioning {
 
-      // The set of classes that must be written, sorted by original names so that classes in the
-      // same package are adjacent.
+      // The set of startup classes, sorted by original names so that classes in the same package
+      // are adjacent. This is empty if no startup configuration is given.
+      private final List<DexProgramClass> startupClasses;
+
+      // The remaining set of classes that must be written, sorted by original names so that classes
+      // in the same package are adjacent.
       private final List<DexProgramClass> nonStartupClasses;
 
-      private PackageSplitClassPartioning(List<DexProgramClass> nonStartupClasses) {
+      private PackageSplitClassPartioning(
+          List<DexProgramClass> startupClasses, List<DexProgramClass> nonStartupClasses) {
+        this.startupClasses = startupClasses;
         this.nonStartupClasses = nonStartupClasses;
       }
 
       public static PackageSplitClassPartioning create(
-          Collection<DexProgramClass> classes, Map<DexProgramClass, String> originalNames) {
-        return create(classes, getClassesByPackageComparator(originalNames));
+          Collection<DexProgramClass> classes,
+          AppView<?> appView,
+          Map<DexProgramClass, String> originalNames) {
+        return create(
+            classes,
+            getClassesByPackageComparator(originalNames),
+            getStartupClassPredicate(appView));
       }
 
       private static PackageSplitClassPartioning create(
-          Collection<DexProgramClass> classes, Comparator<DexProgramClass> comparator) {
-        List<DexProgramClass> nonStartupClasses = new ArrayList<>(classes);
+          Collection<DexProgramClass> classes,
+          Comparator<DexProgramClass> comparator,
+          Predicate<DexProgramClass> startupClassPredicate) {
+        List<DexProgramClass> startupClasses = new ArrayList<>();
+        List<DexProgramClass> nonStartupClasses = new ArrayList<>(classes.size());
+        for (DexProgramClass clazz : classes) {
+          if (startupClassPredicate.test(clazz)) {
+            startupClasses.add(clazz);
+          } else {
+            nonStartupClasses.add(clazz);
+          }
+        }
+        startupClasses.sort(comparator);
         nonStartupClasses.sort(comparator);
-        return new PackageSplitClassPartioning(nonStartupClasses);
+        return new PackageSplitClassPartioning(startupClasses, nonStartupClasses);
       }
 
       private static Comparator<DexProgramClass> getClassesByPackageComparator(
@@ -963,6 +987,21 @@ public class VirtualFile {
           }
           return originalA.compareTo(originalB);
         };
+      }
+
+      private static Predicate<DexProgramClass> getStartupClassPredicate(AppView<?> appView) {
+        if (!appView.hasClassHierarchy()) {
+          return alwaysFalse();
+        }
+        ClassToFeatureSplitMap classToFeatureSplitMap =
+            appView.appInfo().withClassHierarchy().getClassToFeatureSplitMap();
+        SyntheticItems syntheticItems = appView.getSyntheticItems();
+        return clazz ->
+            classToFeatureSplitMap.getFeatureSplit(clazz, syntheticItems).isStartupBase();
+      }
+
+      public List<DexProgramClass> getStartupClasses() {
+        return startupClasses;
       }
 
       public List<DexProgramClass> getNonStartupClasses() {
@@ -995,7 +1034,7 @@ public class VirtualFile {
         Map<DexProgramClass, String> originalNames,
         int fileIndexOffset,
         NamingLens namingLens) {
-      this.classPartioning = PackageSplitClassPartioning.create(classes, originalNames);
+      this.classPartioning = PackageSplitClassPartioning.create(classes, appView, originalNames);
       this.originalNames = originalNames;
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();
@@ -1019,8 +1058,40 @@ public class VirtualFile {
     }
 
     public void run() {
+      addStartupClasses();
       List<DexProgramClass> nonPackageClasses = addNonStartupClasses();
       addNonPackageClasses(cycler, nonPackageClasses);
+    }
+
+    private void addStartupClasses() {
+      // In practice, all startup classes should fit in a single dex file, so optimistically try to
+      // commit the startup classes using a single transaction.
+      VirtualFile virtualFile = cycler.next();
+      for (DexProgramClass startupClass : classPartioning.getStartupClasses()) {
+        virtualFile.addClass(startupClass);
+      }
+
+      if (hasSpaceForTransaction(virtualFile, options)) {
+        virtualFile.commitTransaction();
+      } else {
+        virtualFile.abortTransaction();
+
+        // If the above failed, then add the startup classes one by one.
+        for (DexProgramClass startupClass : classPartioning.getStartupClasses()) {
+          virtualFile.addClass(startupClass);
+          if (hasSpaceForTransaction(virtualFile, options)) {
+            virtualFile.commitTransaction();
+          } else {
+            virtualFile.abortTransaction();
+            virtualFile = cycler.addFile();
+            virtualFile.addClass(startupClass);
+            assert hasSpaceForTransaction(virtualFile, options);
+            virtualFile.commitTransaction();
+          }
+        }
+      }
+
+      cycler.restart();
     }
 
     private List<DexProgramClass> addNonStartupClasses() {
