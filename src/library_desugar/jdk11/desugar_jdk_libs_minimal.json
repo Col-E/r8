@@ -1,0 +1,24 @@
+{
+  "identifier": "com.tools.android:desugar_jdk_libs_minimal:2.0.0",
+  "configuration_format_version": 100,
+  "required_compilation_api_level": 24,
+  "synthesized_library_classes_package_prefix": "j$.",
+  "support_all_callbacks_from_library": false,
+  "common_flags": [
+    {
+      "api_level_below_or_equal": 23,
+      "maintain_prefix": [
+        "java.util.function.",
+        "java.util.Optional"
+      ]
+    }
+  ],
+  "program_flags": [],
+  "library_flags": [],
+  "shrinker_config": [
+    "-keeppackagenames java.**",
+    "-keepattributes Signature",
+    "-keepattributes EnclosingMethod",
+    "-keepattributes InnerClasses"
+  ]
+}

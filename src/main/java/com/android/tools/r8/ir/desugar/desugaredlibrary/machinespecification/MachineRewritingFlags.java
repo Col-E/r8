@@ -196,6 +196,15 @@ public class MachineRewritingFlags {
     return emulatedInterfaces.get(method.getHolderType()).getEmulatedMethods().get(method);
   }
 
+  public boolean isEmpty() {
+    return rewriteType.isEmpty()
+        && maintainType.isEmpty()
+        && rewriteDerivedTypeOnly.isEmpty()
+        && !hasRetargeting()
+        && emulatedInterfaces.isEmpty()
+        && legacyBackport.isEmpty();
+  }
+
   public static class Builder {
 
     Builder() {}

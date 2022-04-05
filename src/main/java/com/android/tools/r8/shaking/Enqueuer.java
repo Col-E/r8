@@ -27,6 +27,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassDefinition;
+import com.android.tools.r8.graph.ClassResolutionResult;
 import com.android.tools.r8.graph.ClasspathOrLibraryClass;
 import com.android.tools.r8.graph.ClasspathOrLibraryDefinition;
 import com.android.tools.r8.graph.Definition;
@@ -160,6 +161,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -667,26 +669,39 @@ public class Enqueuer {
     return definitionFor(type, context, this::recordNonProgramClass, this::reportMissingClass);
   }
 
+  public boolean hasAlternativeLibraryDefinition(DexProgramClass programClass) {
+    ClassResolutionResult classResolutionResult =
+        internalDefinitionFor(
+            programClass.type, programClass, this::recordNonProgramClass, this::reportMissingClass);
+    assert classResolutionResult.hasClassResolutionResult();
+    DexClass alternativeClass = classResolutionResult.toAlternativeClassWithProgramOverLibrary();
+    assert alternativeClass == null || alternativeClass.isLibraryClass();
+    return alternativeClass != null;
+  }
+
   private DexClass definitionFor(
       DexType type,
       ProgramDerivedContext context,
       BiConsumer<DexClass, ProgramDerivedContext> foundClassConsumer,
       BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
-    return internalDefinitionFor(type, context, foundClassConsumer, missingClassConsumer);
+    return internalDefinitionFor(type, context, foundClassConsumer, missingClassConsumer)
+        .toSingleClassWithProgramOverLibrary();
   }
 
-  private DexClass internalDefinitionFor(
+  private ClassResolutionResult internalDefinitionFor(
       DexType type,
       ProgramDerivedContext context,
       BiConsumer<DexClass, ProgramDerivedContext> foundClassConsumer,
       BiConsumer<DexType, ProgramDerivedContext> missingClassConsumer) {
-    DexClass clazz = appInfo().definitionFor(type);
-    if (clazz == null) {
+    ClassResolutionResult classResolutionResult =
+        appInfo().contextIndependentDefinitionForWithResolutionResult(type);
+    if (classResolutionResult.hasClassResolutionResult()) {
+      classResolutionResult.forEachClassResolutionResult(
+          clazz -> foundClassConsumer.accept(clazz, context));
+    } else {
       missingClassConsumer.accept(type, context);
-      return null;
     }
-    foundClassConsumer.accept(clazz, context);
-    return clazz;
+    return classResolutionResult;
   }
 
   public FieldAccessInfoCollectionImpl getFieldAccessInfoCollection() {
@@ -783,12 +798,18 @@ public class Enqueuer {
     if (!type.isClassType()) {
       return;
     }
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz == null) {
+    ClassResolutionResult classResolutionResult =
+        appView.contextIndependentDefinitionForWithResolutionResult(type);
+    if (!classResolutionResult.hasClassResolutionResult()) {
       missingClassConsumer.accept(type, context);
-    } else if (!clazz.isProgramClass()) {
-      classAdder.accept(clazz.asClasspathOrLibraryClass());
+      return;
     }
+    classResolutionResult.forEachClassResolutionResult(
+        clazz -> {
+          if (!clazz.isProgramClass()) {
+            classAdder.accept(clazz.asClasspathOrLibraryClass());
+          }
+        });
   }
 
   private DexProgramClass getProgramClassOrNull(DexType type, ProgramDefinition context) {
@@ -2086,6 +2107,9 @@ public class Enqueuer {
     // Update keep info.
     applyMinimumKeepInfo(clazz);
     applyMinimumKeepInfoDependentOn(new LiveClassEnqueuerEvent(clazz));
+    if (hasAlternativeLibraryDefinition(clazz)) {
+      getKeepInfo().keepClass(clazz);
+    }
 
     processAnnotations(clazz);
 
@@ -2470,6 +2494,16 @@ public class Enqueuer {
     }
     DexProgramClass clazz = asProgramClassOrNull(appInfo().definitionFor(type));
     if (clazz == null) {
+      return;
+    }
+    DexClass alternativeResolutionResult =
+        appInfo()
+            .contextIndependentDefinitionForWithResolutionResult(type)
+            .toAlternativeClassWithProgramOverLibrary();
+    if (alternativeResolutionResult != null && alternativeResolutionResult.isLibraryClass()) {
+      // We are in a situation where a library class inherits from a library class, which has a
+      // program class duplicated version for low API levels.
+      recordNonProgramClass(alternativeResolutionResult, clazz);
       return;
     }
     if (forceProguardCompatibility) {
@@ -3000,6 +3034,9 @@ public class Enqueuer {
 
     // Update keep info.
     applyMinimumKeepInfo(field);
+    if (hasAlternativeLibraryDefinition(field.getHolder()) && !field.getDefinition().isPrivate()) {
+      getKeepInfo().keepField(field);
+    }
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field, context, workList));
@@ -4561,6 +4598,10 @@ public class Enqueuer {
 
     // Update keep info.
     applyMinimumKeepInfo(method);
+    if (hasAlternativeLibraryDefinition(method.getHolder())
+        && !method.getDefinition().isPrivateMethod()) {
+      getKeepInfo().keepMethod(method);
+    }
   }
 
   private void traceNonDesugaredCode(ProgramMethod method) {

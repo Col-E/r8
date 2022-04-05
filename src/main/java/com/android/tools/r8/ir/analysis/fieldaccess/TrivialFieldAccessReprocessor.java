@@ -331,8 +331,8 @@ public class TrivialFieldAccessReprocessor {
 
       if (definition.isStatic() != isStatic
           || appView.isCfByteCodePassThrough(getContext().getDefinition())
-          || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()
           || !resolutionResult.isSingleProgramFieldResolutionResult()
+          || resolutionResult.isAccessibleFrom(getContext(), appView).isPossiblyFalse()
           || appView.appInfo().isNeverReprocessMethod(getContext())) {
         recordAccessThatCannotBeOptimized(field, definition);
         return;

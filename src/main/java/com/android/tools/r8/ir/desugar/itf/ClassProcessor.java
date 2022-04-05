@@ -377,7 +377,8 @@ final class ClassProcessor {
     this.dexItemFactory = appView.dexItemFactory();
     this.helper = new InterfaceDesugaringSyntheticHelper(appView);
     needsLibraryInfo =
-        appView.options().machineDesugaredLibrarySpecification.hasEmulatedInterfaces();
+        !appView.options().canUseDefaultAndStaticInterfaceMethods()
+            && !appView.options().machineDesugaredLibrarySpecification.isEmpty();
     this.isLiveMethod = isLiveMethod;
   }
 

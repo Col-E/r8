@@ -52,6 +52,10 @@ public class MachineDesugaredLibrarySpecification {
     this.rewritingFlags = rewritingFlags;
   }
 
+  public boolean isEmpty() {
+    return rewritingFlags.isEmpty();
+  }
+
   public boolean isLibraryCompilation() {
     return libraryCompilation;
   }
@@ -167,7 +171,10 @@ public class MachineDesugaredLibrarySpecification {
 
   public boolean isSupported(DexReference reference) {
     // Support through type rewriting.
-    if (rewritingFlags.getRewriteType().containsKey(reference.getContextType())) {
+    if (getRewriteType().containsKey(reference.getContextType())) {
+      return true;
+    }
+    if (getMaintainType().contains(reference.getContextType())) {
       return true;
     }
     if (!reference.isDexMethod()) {

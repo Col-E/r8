@@ -26,6 +26,8 @@ public class LibraryValidator {
       levelType = app.dexItemFactory.createType("Ljava/time/LocalTime;");
     } else if (requiredCompilationAPILevel.isEqualTo(AndroidApiLevel.R)) {
       levelType = app.dexItemFactory.createType("Ljava/util/concurrent/Flow;");
+    } else if (requiredCompilationAPILevel.isEqualTo(AndroidApiLevel.N)) {
+      levelType = app.dexItemFactory.createType("Ljava/util/function/Supplier;");
     } else {
       app.options.reporter.warning(
           "Unsupported requiredCompilationAPILevel: " + requiredCompilationAPILevel);

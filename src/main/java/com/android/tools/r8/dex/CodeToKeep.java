@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.itf.InterfaceDesugaringSyntheticHelper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -66,17 +67,26 @@ public abstract class CodeToKeep {
       this.options = options;
     }
 
-    private boolean shouldKeep(DexType type) {
-      return namingLens.prefixRewrittenType(type) != null
-          || options.machineDesugaredLibrarySpecification.getMaintainType().contains(type)
-          || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(type)
-          || options.machineDesugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(type)
+    private boolean shouldKeep(DexType givenType) {
+      if (namingLens.prefixRewrittenType(givenType) != null
+          || options.machineDesugaredLibrarySpecification.isCustomConversionRewrittenType(givenType)
+          || options.machineDesugaredLibrarySpecification.isEmulatedInterfaceRewrittenType(
+              givenType)
           // TODO(b/158632510): This should prefix match on DexString.
-          || type.toDescriptorString()
+          || givenType
+              .toDescriptorString()
               .startsWith(
                   "L"
                       + options.machineDesugaredLibrarySpecification
-                          .getSynthesizedLibraryClassesPackagePrefix());
+                          .getSynthesizedLibraryClassesPackagePrefix())) {
+        return true;
+      }
+      DexType type =
+          InterfaceDesugaringSyntheticHelper.isCompanionClassType(givenType)
+              ? InterfaceDesugaringSyntheticHelper.getInterfaceClassType(
+                  givenType, options.dexItemFactory())
+              : givenType;
+      return options.machineDesugaredLibrarySpecification.getMaintainType().contains(type);
     }
 
     @Override

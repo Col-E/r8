@@ -196,6 +196,10 @@ public class ToolHelper {
     return System.getProperty("desugar_jdk_json_dir", "src/library_desugar");
   }
 
+  public static Path getDesugarLibJsonMinimalForTesting() {
+    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_minimal.json");
+  }
+
   public static Path getDesugarLibJsonForTesting() {
     return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs.json");
   }

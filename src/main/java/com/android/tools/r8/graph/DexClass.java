@@ -150,6 +150,11 @@ public abstract class DexClass extends DexDefinition
     return this;
   }
 
+  @Override
+  public DexClass toAlternativeClassWithProgramOverLibrary() {
+    return null;
+  }
+
   public abstract void accept(
       Consumer<DexProgramClass> programClassConsumer,
       Consumer<DexClasspathClass> classpathClassConsumer,

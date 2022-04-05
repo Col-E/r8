@@ -249,13 +249,22 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
               return;
             }
             AndroidApiLevel theApi = apiLevel.asKnownApiLevel().getApiLevel();
-            if (appView.typeRewriter.hasRewrittenType(type, appView)) {
+            if (typeIsInDesugaredLibrary(type)) {
               assert theApi.equals(appView.options().getMinApiLevel());
               return;
             }
             assert theApi.equals(api.max(appView.options().getMinApiLevel()));
           });
       return true;
+    }
+
+    private boolean typeIsInDesugaredLibrary(DexType type) {
+      return appView.typeRewriter.hasRewrittenType(type, appView)
+          || appView
+              .options()
+              .machineDesugaredLibrarySpecification
+              .getMaintainType()
+              .contains(type);
     }
 
     private boolean typeIsAbsentOrPresentWithoutBackportsFrom(
@@ -268,7 +277,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     }
 
     private boolean typeIsPresentWithoutBackportsFrom(DexType type, AndroidApiLevel methodsMinAPI) {
-      if (appView.typeRewriter.hasRewrittenType(type, appView)) {
+      if (typeIsInDesugaredLibrary(type)) {
         // Desugared library is enabled, the methods are present if desugared library specifies it.
         return methodsMinAPI.isGreaterThan(AndroidApiLevel.N)
             && !appView.options().machineDesugaredLibrarySpecification.includesJDK11Methods();
@@ -284,7 +293,7 @@ public final class BackportedMethodRewriter implements CfInstructionDesugaring {
     private boolean typeIsPresent(DexType type) {
       // TODO(b/224954240): Always use the apiDatabase when always available.
       return appView.options().getMinApiLevel().isGreaterThanOrEqualTo(typeMinApi.get(type))
-          || appView.typeRewriter.hasRewrittenType(type, appView);
+          || typeIsInDesugaredLibrary(type);
     }
 
     boolean isEmpty() {
