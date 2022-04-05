@@ -799,11 +799,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     BasicBlock invokePredecessor = invokeBlock.getPredecessors().get(0);
     BasicBlock invokeSuccessor = invokeBlock.getSuccessors().get(0);
 
-    // Invalidate position-on-throwing-instructions property if it does not hold for the inlinee.
-    if (!inlinee.doAllThrowingInstructionsHavePositions()) {
-      code.setAllThrowingInstructionsHavePositions(false);
-    }
-
     Set<Value> argumentUsers = Sets.newIdentityHashSet();
 
     // Map all argument values. The first one needs special handling if there is a downcast type.

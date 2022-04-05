@@ -125,10 +125,6 @@ public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueF
   private boolean numbered = false;
   private int nextInstructionNumber = 0;
 
-  // Initial value indicating if the code does have actual positions on all throwing instructions.
-  // If this is the case, which holds for javac code, then we want to ensure that it remains so.
-  private boolean allThrowingInstructionsHavePositions;
-
   private final IRMetadata metadata;
   private final InternalOptions options;
 
@@ -154,8 +150,6 @@ public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueF
     this.basicBlockNumberGenerator = basicBlockNumberGenerator;
     this.metadata = metadata;
     this.origin = origin;
-    // TODO(zerny): Remove or update this property now that all instructions have positions.
-    allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
   }
 
   public IRMetadata metadata() {
@@ -642,7 +636,7 @@ public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueF
     assert consistentCatchHandlers();
     assert consistentBlockInstructions(appView, ssa);
     assert consistentMetadata();
-    assert !allThrowingInstructionsHavePositions || computeAllThrowingInstructionsHavePositions();
+    assert verifyAllThrowingInstructionsHavePositions();
     return true;
   }
 
@@ -1233,15 +1227,7 @@ public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueF
     return createNumberConstant(0, TypeElement.getNull(), local);
   }
 
-  public boolean doAllThrowingInstructionsHavePositions() {
-    return allThrowingInstructionsHavePositions;
-  }
-
-  public void setAllThrowingInstructionsHavePositions(boolean value) {
-    this.allThrowingInstructionsHavePositions = value;
-  }
-
-  private boolean computeAllThrowingInstructionsHavePositions() {
+  private boolean verifyAllThrowingInstructionsHavePositions() {
     for (Instruction instruction : instructions()) {
       if (instruction.instructionTypeCanThrow()
           && !instruction.isConstString()
