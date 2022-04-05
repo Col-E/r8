@@ -55,9 +55,6 @@ public class ContinuousSteppingTest extends DebugTestBase {
         .addAll(
             findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR)),
             ContinuousSteppingTest::fromAndroidN)
-        // TODO(b/79911828) Investigate timeout issues for Android O examples.
-        //  .addAll(findAllJarsIn(Paths.get(ToolHelper.EXAMPLES_ANDROID_O_BUILD_DIR)),
-        //      ContinuousSteppingTest::fromAndroidO)
         .build();
   }
 
