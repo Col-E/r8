@@ -5,7 +5,11 @@
 package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
+import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
+import com.android.tools.r8.retrace.IllegalClassNameLookupException;
 import com.android.tools.r8.retrace.ProguardMappingProvider;
+import java.util.Set;
 
 /**
  * IntelliJ highlights the class as being invalid because it cannot see getClassNameMapper is
@@ -14,13 +18,29 @@ import com.android.tools.r8.retrace.ProguardMappingProvider;
 public class ProguardMappingProviderImpl extends ProguardMappingProvider {
 
   private final ClassNameMapper classNameMapper;
+  private final Set<String> allowedLookupTypeNames;
 
   public ProguardMappingProviderImpl(ClassNameMapper classNameMapper) {
+    this(classNameMapper, null);
+  }
+
+  public ProguardMappingProviderImpl(
+      ClassNameMapper classNameMapper, Set<String> allowedLookupTypeNames) {
     this.classNameMapper = classNameMapper;
+    this.allowedLookupTypeNames = allowedLookupTypeNames;
   }
 
   @Override
-  ClassNameMapper getClassNameMapper() {
-    return classNameMapper;
+  Set<MapVersionMappingInformation> getMapVersions() {
+    return classNameMapper.getMapVersions();
+  }
+
+  @Override
+  ClassNamingForNameMapper getClassNaming(String typeName) {
+    // TODO(b/226885646): Enable lookup check when there are no additional lookups.
+    if (false && !allowedLookupTypeNames.contains(typeName)) {
+      throw new IllegalClassNameLookupException(typeName);
+    }
+    return classNameMapper.getClassNaming(typeName);
   }
 }

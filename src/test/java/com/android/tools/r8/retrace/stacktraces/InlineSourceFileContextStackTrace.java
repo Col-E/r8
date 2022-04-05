@@ -40,9 +40,11 @@ public class InlineSourceFileContextStackTrace implements StackTraceForTest {
   public List<String> retracedStackTrace() {
     return Arrays.asList(
         "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestLibrary"
-            + ".throwsException(KotlinJavaSourceFileTestLibrary.kt:22)",
+            // TODO(b/226885646): Should be KotlinJavaSourceFileTestLibrary.kt
+            + ".throwsException(KotlinJavaSourceFileTestLibrary.java:22)",
         "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestLibrary"
-            + ".callsThrowsException(KotlinJavaSourceFileTestLibrary.kt:19)",
+            // TODO(b/226885646): Should be KotlinJavaSourceFileTestLibrary.kt
+            + ".callsThrowsException(KotlinJavaSourceFileTestLibrary.java:19)",
         "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestObject"
             + ".main(KotlinJavaSourceFileTestObject.java:32)");
   }
@@ -51,9 +53,11 @@ public class InlineSourceFileContextStackTrace implements StackTraceForTest {
   public List<String> retraceVerboseStackTrace() {
     return Arrays.asList(
         "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestLibrary"
-            + ".void throwsException()(KotlinJavaSourceFileTestLibrary.kt:22)",
+            // TODO(b/226885646): Should be KotlinJavaSourceFileTestLibrary.kt
+            + ".void throwsException()(KotlinJavaSourceFileTestLibrary.java:22)",
         "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestLibrary"
-            + ".void callsThrowsException()(KotlinJavaSourceFileTestLibrary.kt:19)",
+            // TODO(b/226885646): Should be KotlinJavaSourceFileTestLibrary.kt
+            + ".void callsThrowsException()(KotlinJavaSourceFileTestLibrary.java:19)",
         "  at com.google.appreduce.remapper.KotlinJavaSourceFileTestObject"
             + ".void main(java.lang.String[])(KotlinJavaSourceFileTestObject.java:32)");
   }

@@ -106,6 +106,43 @@ public class StringRetrace extends Retrace<String, StackTraceElementStringProxy>
   }
 
   /**
+   * Retraces a list of parsed stack trace lines and returns a list. Ambiguous and inline frames
+   * will be appended automatically to the retraced string.
+   *
+   * @param stackTrace the incoming parsed stack trace
+   * @return the retraced stack trace
+   */
+  public List<String> retraceParsed(List<StackTraceElementStringProxy> stackTrace) {
+    List<String> retracedStrings = new ArrayList<>();
+    List<List<List<String>>> lists = retraceStackTraceParsed(stackTrace);
+    for (List<List<String>> newLines : lists) {
+      ListUtils.forEachWithIndex(
+          newLines,
+          (inlineFrames, ambiguousIndex) -> {
+            for (int i = 0; i < inlineFrames.size(); i++) {
+              String stackTraceLine = inlineFrames.get(i);
+              if (i == 0 && ambiguousIndex > 0) {
+                // We are reporting an ambiguous frame. To support retracing tools that retrace line
+                // by line we have to emit <OR> at the point of the first 'at ' if we can find it.
+                int indexToInsertOr = stackTraceLine.indexOf("at ");
+                if (indexToInsertOr < 0) {
+                  indexToInsertOr =
+                      Math.max(StringUtils.firstNonWhitespaceCharacter(stackTraceLine), 0);
+                }
+                retracedStrings.add(
+                    stackTraceLine.substring(0, indexToInsertOr)
+                        + "<OR> "
+                        + stackTraceLine.substring(indexToInsertOr));
+              } else {
+                retracedStrings.add(stackTraceLine);
+              }
+            }
+          });
+    }
+    return retracedStrings;
+  }
+
+  /**
    * Retraces a single stack trace line and returns the potential list of original frames
    *
    * @param stackTraceLine the stack trace line to retrace

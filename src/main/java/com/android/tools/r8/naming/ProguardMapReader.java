@@ -162,6 +162,10 @@ public class ProguardMapReader implements AutoCloseable {
     return false;
   }
 
+  private boolean isClassMapping() {
+    return !isEmptyOrCommentLine(line) && line.endsWith(":");
+  }
+
   private static boolean hasFirstCharJsonBrace(String line, int commentCharIndex) {
     for (int i = commentCharIndex + 1; i < line.length(); i++) {
       char c = line.charAt(i);
@@ -258,11 +262,18 @@ public class ProguardMapReader implements AutoCloseable {
       String after = parseType(false);
       skipWhitespace();
       expect(':');
-      ClassNaming.Builder currentClassBuilder =
-          mapBuilder.classNamingBuilder(after, before, getPosition());
-      skipWhitespace();
-      if (nextLine()) {
-        parseMemberMappings(currentClassBuilder);
+      if (mapBuilder.buildForClass(after)) {
+        ClassNaming.Builder currentClassBuilder =
+            mapBuilder.classNamingBuilder(after, before, getPosition());
+        skipWhitespace();
+        if (nextLine()) {
+          parseMemberMappings(currentClassBuilder);
+        }
+      } else {
+        do {
+          lineOffset = line.length();
+          nextLine();
+        } while (hasLine() && !isClassMapping());
       }
     }
   }

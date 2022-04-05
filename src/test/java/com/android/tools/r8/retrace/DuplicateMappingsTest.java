@@ -44,7 +44,7 @@ public class DuplicateMappingsTest extends TestBase {
                             + " com.android.tools.r8.retrace.a:",
                         "# {'id':'sourceFile','fileName':'foobarbaz.java'}",
                         "# {'id':'sourceFile','fileName':'foobarbaz2.java'}")))
-            .setStackTrace(ImmutableList.of())
+            .setStackTrace(ImmutableList.of(" at com.android.tools.r8.retrace.a.foo(Unknown)"))
             .setRetracedStackTraceConsumer(
                 strings -> {
                   // No need to do anything, we are just checking for diagnostics.

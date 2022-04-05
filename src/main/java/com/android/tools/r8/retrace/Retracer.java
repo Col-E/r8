@@ -77,6 +77,7 @@ public interface Retracer {
           ProguardMappingProvider.builder()
               .setProguardMapProducer(proguardMapProducer)
               .setDiagnosticsHandler(diagnosticsHandler)
+              .allowLookupAllClasses()
               .build();
       return Retracer.builder()
           .setMappingProvider(mappingProvider)

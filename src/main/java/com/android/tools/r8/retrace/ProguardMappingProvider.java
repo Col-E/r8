@@ -5,6 +5,7 @@
 package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.internal.ProguardMappingProviderBuilderImpl;
 
 @Keep
@@ -17,6 +18,10 @@ public abstract class ProguardMappingProvider extends MappingProvider {
   @Keep
   public abstract static class Builder
       extends MappingProviderBuilder<ProguardMappingProvider, Builder> {
+
+    public abstract Builder registerUse(ClassReference classReference);
+
+    public abstract Builder allowLookupAllClasses();
 
     public abstract Builder setProguardMapProducer(ProguardMapProducer proguardMapProducer);
   }

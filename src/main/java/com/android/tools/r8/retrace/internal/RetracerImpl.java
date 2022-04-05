@@ -5,7 +5,6 @@
 package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.mappinginformation.MapVersionMappingInformation;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
@@ -22,13 +21,14 @@ import java.util.Set;
 /** A default implementation for the retrace api using the ClassNameMapper defined in R8. */
 public class RetracerImpl implements Retracer {
 
-  private final ClassNameMapper classNameMapper;
+  private final MappingProviderInternal classNameMapperProvider;
   private final DiagnosticsHandler diagnosticsHandler;
 
-  private RetracerImpl(ClassNameMapper classNameMapper, DiagnosticsHandler diagnosticsHandler) {
-    this.classNameMapper = classNameMapper;
+  private RetracerImpl(
+      MappingProviderInternal classNameMapperProvider, DiagnosticsHandler diagnosticsHandler) {
+    this.classNameMapperProvider = classNameMapperProvider;
     this.diagnosticsHandler = diagnosticsHandler;
-    assert classNameMapper != null;
+    assert classNameMapperProvider != null;
   }
 
   public DiagnosticsHandler getDiagnosticsHandler() {
@@ -70,7 +70,7 @@ public class RetracerImpl implements Retracer {
   @Override
   public RetraceClassResultImpl retraceClass(ClassReference classReference) {
     return RetraceClassResultImpl.create(
-        classReference, classNameMapper.getClassNaming(classReference.getTypeName()), this);
+        classReference, classNameMapperProvider.getClassNaming(classReference.getTypeName()), this);
   }
 
   @Override
@@ -84,7 +84,7 @@ public class RetracerImpl implements Retracer {
   }
 
   public Set<MapVersionMappingInformation> getMapVersions() {
-    return classNameMapper.getMapVersions();
+    return classNameMapperProvider.getMapVersions();
   }
 
   public static Builder builder() {
@@ -112,8 +112,7 @@ public class RetracerImpl implements Retracer {
 
     @Override
     public RetracerImpl build() {
-      return new RetracerImpl(
-          ((MappingProviderInternal) mappingProvider).getClassNameMapper(), diagnosticsHandler);
+      return new RetracerImpl(mappingProvider, diagnosticsHandler);
     }
   }
 }

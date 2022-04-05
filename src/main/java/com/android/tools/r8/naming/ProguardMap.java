@@ -16,6 +16,10 @@ public interface ProguardMap {
     abstract Builder setCurrentMapVersion(MapVersionMappingInformation mapVersion);
 
     abstract ProguardMap build();
+
+    public boolean buildForClass(String typeName) {
+      return true;
+    }
   }
 
   boolean hasMapping(DexType type);

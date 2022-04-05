@@ -75,6 +75,7 @@ public class RetraceUtils {
     return clazz.substring(lastIndexOfPeriod + 1, endIndex);
   }
 
+  // TODO(b/226885646): Retracing of a source file should not be dependent on retraced information.
   public static RetracedSourceFile getSourceFileOrLookup(
       RetracedClassReference holder, RetraceClassElement context, Retracer retracer) {
     if (holder.equals(context.getRetracedClass())) {

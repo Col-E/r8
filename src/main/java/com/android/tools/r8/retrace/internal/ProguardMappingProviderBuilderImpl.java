@@ -6,15 +6,20 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingProvider;
 import java.io.BufferedReader;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.Builder {
 
   private ProguardMapProducer proguardMapProducer;
   private boolean allowExperimental = false;
+  private Set<String> allowedLookup = new HashSet<>();
+  private boolean allowLookupAllClasses = false;
   private DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
 
   @Override
@@ -36,6 +41,18 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
   }
 
   @Override
+  public ProguardMappingProvider.Builder registerUse(ClassReference classReference) {
+    allowedLookup.add(classReference.getTypeName());
+    return self();
+  }
+
+  @Override
+  public ProguardMappingProvider.Builder allowLookupAllClasses() {
+    allowLookupAllClasses = true;
+    return self();
+  }
+
+  @Override
   public ProguardMappingProvider.Builder setProguardMapProducer(
       ProguardMapProducer proguardMapProducer) {
     this.proguardMapProducer = proguardMapProducer;
@@ -45,12 +62,23 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
   @Override
   public ProguardMappingProvider build() {
     try {
-      return new ProguardMappingProviderImpl(
-          ClassNameMapper.mapperFromBufferedReader(
-              new BufferedReader(proguardMapProducer.get()),
-              diagnosticsHandler,
-              true,
-              allowExperimental));
+      if (allowLookupAllClasses) {
+        return new ProguardMappingProviderImpl(
+            ClassNameMapper.mapperFromBufferedReader(
+                new BufferedReader(proguardMapProducer.get()),
+                diagnosticsHandler,
+                true,
+                allowExperimental));
+      } else {
+        return new ProguardMappingProviderImpl(
+            ClassNameMapper.mapperFromBufferedReaderWithFiltering(
+                new BufferedReader(proguardMapProducer.get()),
+                diagnosticsHandler,
+                true,
+                allowExperimental,
+                allowedLookup),
+            allowedLookup);
+      }
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }
