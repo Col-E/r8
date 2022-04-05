@@ -54,9 +54,11 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
+        "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
+        "java.util.Objects": "j$.util.Objects",
         "java.util.Optional": "j$.util.Optional",
         "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
         "java.util.Spliterator": "j$.util.Spliterator",
@@ -67,6 +69,9 @@
         "java.util.function.": "j$.util.function.",
         "java.util.stream.": "j$.util.stream."
       },
+      "maintain_prefix": [
+        "java.io.UncheckedIOException"
+      ],
       "emulate_interface": {
         "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Collection": "j$.util.Collection",
@@ -101,6 +106,7 @@
         "java.util.stream.Stream java.util.Arrays#stream(java.lang.Object[], int, int)": "java.util.DesugarArrays"
       },
       "retarget_method_with_emulated_dispatch": {
+        "java.util.stream.Stream java.io.BufferedReader#lines()": "java.io.DesugarBufferedReader",
         "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet"
       },
       "wrapper_conversion": [

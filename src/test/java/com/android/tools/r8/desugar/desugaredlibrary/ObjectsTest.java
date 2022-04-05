@@ -18,7 +18,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -69,21 +68,15 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   private final boolean shrinkDesugaredLibrary = false;
   private final Path androidJar;
 
-  @Parameters(name = "{0}, libraryDesugarJavaUtilObjects: {1}")
+  @Parameters(name = "{0}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build(),
-        BooleanUtils.values());
+        getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build());
   }
 
-  public ObjectsTest(TestParameters parameters, boolean libraryDesugarJavaUtilObjects) {
+  public ObjectsTest(TestParameters parameters) {
     this.parameters = parameters;
-    if (libraryDesugarJavaUtilObjects) {
-      Assume.assumeTrue(
-          "The alternative 3 configuration is available only in JDK 11 desugared library.",
-          isJDK11DesugaredLibrary());
-    }
-    this.libraryDesugarJavaUtilObjects = libraryDesugarJavaUtilObjects;
+    this.libraryDesugarJavaUtilObjects = isJDK11DesugaredLibrary();
     this.androidJar =
         ToolHelper.getAndroidJar(
             Ordered.max(parameters.getApiLevel(), getRequiredCompilationAPILevel()));
@@ -92,10 +85,7 @@ public class ObjectsTest extends DesugaredLibraryTestBase implements Opcodes {
   DesugaredLibrarySpecification desugaredLibrarySpecification(
       InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
     return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(
-            libraryDesugarJavaUtilObjects
-                ? ToolHelper.getDesugarLibJsonForTestingAlternative3()
-                : ToolHelper.getDesugarLibJsonForTesting()),
+        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTesting()),
         options.dexItemFactory(),
         options.reporter,
         libraryCompilation,
