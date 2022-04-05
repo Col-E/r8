@@ -132,6 +132,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -1231,7 +1232,6 @@ public class CodeRewriter {
     AssumeRemover assumeRemover = new AssumeRemover(appView, code);
     boolean changed = false;
     boolean mayHaveRemovedTrivialPhi = false;
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
@@ -1254,29 +1254,45 @@ public class CodeRewriter {
         }
 
         MethodOptimizationInfo optimizationInfo = target.getDefinition().getOptimizationInfo();
-        if (optimizationInfo.returnsArgument()) {
-          int argumentIndex = optimizationInfo.getReturnedArgument();
-          // Replace the out value of the invoke with the argument and ignore the out value.
-          if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
-            Value argument = invoke.arguments().get(argumentIndex);
-            Value outValue = invoke.outValue();
-            assert outValue.verifyCompatible(argument.outType());
-            // Make sure that we are only narrowing information here. Note, in cases where
-            // we cannot find the definition of types, computing lessThanOrEqual will
-            // return false unless it is object.
-            if (argument.getType().lessThanOrEqual(outValue.getType(), appView)) {
-              affectedValues.addAll(outValue.affectedValues());
-              assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
-              mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
-              outValue.replaceUsers(argument);
-              invoke.setOutValue(null);
-              changed = true;
-            }
-          }
+        if (!optimizationInfo.returnsArgument()) {
+          continue;
+        }
+
+        int argumentIndex = optimizationInfo.getReturnedArgument();
+        // Replace the out value of the invoke with the argument and ignore the out value.
+        if (argumentIndex < 0 || !checkArgumentType(invoke, argumentIndex)) {
+          continue;
+        }
+
+        Value argument = invoke.arguments().get(argumentIndex);
+        Value outValue = invoke.outValue();
+        assert outValue.verifyCompatible(argument.outType());
+
+        // Make sure that we are only narrowing information here. Note, in cases where we cannot
+        // find the definition of types, computing lessThanOrEqual will return false unless it is
+        // object.
+        if (!argument.getType().lessThanOrEqual(outValue.getType(), appView)) {
+          continue;
+        }
+
+        Set<Value> affectedValues =
+            argument.getType().equals(outValue.getType())
+                ? Collections.emptySet()
+                : outValue.affectedValues();
+
+        assumeRemover.markAssumeDynamicTypeUsersForRemoval(outValue);
+        mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
+        outValue.replaceUsers(argument);
+        invoke.setOutValue(null);
+        changed = true;
+
+        if (!affectedValues.isEmpty()) {
+          new TypeAnalysis(appView).narrowing(affectedValues);
         }
       }
     }
     assumeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);
       code.removeAllDeadAndTrivialPhis(affectedValues);
