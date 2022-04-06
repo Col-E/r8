@@ -945,8 +945,10 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.featureSplitConfiguration = featureSplitConfiguration;
 
-    internal.startupConfiguration =
-        StartupConfiguration.createStartupConfiguration(getDexItemFactory(), getReporter());
+    internal
+        .getStartupOptions()
+        .setStartupConfiguration(
+            StartupConfiguration.createStartupConfiguration(getDexItemFactory(), getReporter()));
 
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 

@@ -44,12 +44,14 @@ public class HorizontalClassMergingWithStartupClassesTest extends TestBase {
         .addOptionsModification(
             options -> {
               DexItemFactory dexItemFactory = options.dexItemFactory();
-              options.startupConfiguration =
-                  new StartupConfiguration(
-                      startupClasses.stream()
-                          .map(clazz -> toDexType(clazz, dexItemFactory))
-                          .collect(Collectors.toList()),
-                      Collections.emptyList());
+              options
+                  .getStartupOptions()
+                  .setStartupConfiguration(
+                      new StartupConfiguration(
+                          startupClasses.stream()
+                              .map(clazz -> toDexType(clazz, dexItemFactory))
+                              .collect(Collectors.toList()),
+                          Collections.emptyList()));
             })
         .addHorizontallyMergedClassesInspector(
             inspector ->

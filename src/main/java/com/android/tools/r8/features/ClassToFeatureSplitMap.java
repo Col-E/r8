@@ -50,7 +50,7 @@ public class ClassToFeatureSplitMap {
     return createInitialClassToFeatureSplitMap(
         options.dexItemFactory(),
         options.featureSplitConfiguration,
-        options.startupConfiguration,
+        options.getStartupOptions().getStartupConfiguration(),
         options.reporter);
   }
 

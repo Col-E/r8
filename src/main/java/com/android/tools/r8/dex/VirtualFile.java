@@ -852,6 +852,11 @@ public class VirtualFile {
       reset();
     }
 
+    void clearFilesForDistribution() {
+      filesForDistribution.clear();
+      reset();
+    }
+
     void reset() {
       allFilesCyclic = Iterators.cycle(filesForDistribution);
       restart();
@@ -1090,6 +1095,8 @@ public class VirtualFile {
         return;
       }
 
+      assert options.getStartupOptions().hasStartupConfiguration();
+
       // In practice, all startup classes should fit in a single dex file, so optimistically try to
       // commit the startup classes using a single transaction.
       VirtualFile virtualFile = cycler.next();
@@ -1117,7 +1124,11 @@ public class VirtualFile {
         }
       }
 
-      cycler.restart();
+      if (options.getStartupOptions().isMinimalStartupDexEnabled()) {
+        cycler.clearFilesForDistribution();
+      } else {
+        cycler.restart();
+      }
     }
 
     private List<DexProgramClass> addNonStartupClasses() {
