@@ -291,7 +291,7 @@ final class InlineCandidateProcessor {
 
         if (user.isInvokeMethod()) {
           InvokeMethod invoke = user.asInvokeMethod();
-          SingleResolutionResult resolutionResult =
+          SingleResolutionResult<?> resolutionResult =
               appView
                   .appInfo()
                   .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
@@ -1071,7 +1071,7 @@ final class InlineCandidateProcessor {
   //
   private boolean isEligibleDirectMethodCall(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       Supplier<InliningOracle> defaultOracle,
       Set<Instruction> indirectUsers) {
@@ -1175,7 +1175,7 @@ final class InlineCandidateProcessor {
     if (!usage.isBottom()) {
       NonEmptyParameterUsage nonEmptyUsage = usage.asNonEmpty();
       for (DexMethod invokedMethod : nonEmptyUsage.getMethodCallsWithParameterAsReceiver()) {
-        SingleResolutionResult resolutionResult =
+        SingleResolutionResult<?> resolutionResult =
             appView.appInfo().resolveMethodOn(eligibleClass, invokedMethod).asSingleResolution();
         if (resolutionResult == null || !resolutionResult.getResolvedHolder().isProgramClass()) {
           return false;

@@ -50,7 +50,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod candidate,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
@@ -70,7 +70,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   public InlineResult computeInlining(
       IRCode code,
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
@@ -88,7 +88,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   private InlineAction computeForInvoke(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info == null) {

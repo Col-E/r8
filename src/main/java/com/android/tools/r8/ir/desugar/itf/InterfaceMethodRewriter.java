@@ -405,7 +405,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .build();
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfoForDesugaring()
             .resolveMethodOnInterface(holder, invoke.getMethod())
@@ -435,7 +435,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   private DesugarDescription computeInvokeVirtualDispatch(
       DexClass holder, CfInvoke invoke, ProgramMethod context) {
     AppInfoWithClassHierarchy appInfoForDesugaring = appView.appInfoForDesugaring();
-    SingleResolutionResult resolution =
+    SingleResolutionResult<?> resolution =
         appInfoForDesugaring
             .resolveMethod(invoke.getMethod(), invoke.isInterface())
             .asSingleResolution();
@@ -497,7 +497,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
       return computeInvokeAsThrowRewrite(invoke, null, context);
     }
 
-    SingleResolutionResult singleResolution = resolution.asSingleResolution();
+    SingleResolutionResult<?> singleResolution = resolution.asSingleResolution();
     if (singleResolution == null) {
       return DesugarDescription.nothing();
     }
@@ -573,7 +573,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private DesugarDescription computeInvokeAsThrowRewrite(
-      CfInvoke invoke, SingleResolutionResult resolution, ProgramMethod context) {
+      CfInvoke invoke, SingleResolutionResult<?> resolution, ProgramMethod context) {
     assert !isAlreadyDesugared(invoke, context);
     return AlwaysThrowingInstructionDesugaring.computeInvokeAsThrowRewrite(
         appView, invoke, resolution);
@@ -637,7 +637,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
           .build();
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView.appInfoForDesugaring().resolveMethodOn(clazz, invokedMethod).asSingleResolution();
     if (clazz.isInterface() && shouldRewriteToInvokeToThrow(resolutionResult, false)) {
       return computeInvokeAsThrowRewrite(invoke, resolutionResult, context);
@@ -760,7 +760,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
   }
 
   private boolean shouldRewriteToInvokeToThrow(
-      SingleResolutionResult resolutionResult, boolean isInvokeStatic) {
+      SingleResolutionResult<?> resolutionResult, boolean isInvokeStatic) {
     return resolutionResult == null
         || resolutionResult.getResolvedMethod().isStatic() != isInvokeStatic;
   }

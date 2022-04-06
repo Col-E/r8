@@ -289,7 +289,7 @@ public class MemberValuePropagation {
       return;
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).asSingleResolution();
     if (resolutionResult == null) {
       return;

@@ -88,7 +88,7 @@ public class MultiCallerInliner {
         continue;
       }
 
-      SingleResolutionResult resolutionResult =
+      SingleResolutionResult<?> resolutionResult =
           appView
               .appInfo()
               .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())

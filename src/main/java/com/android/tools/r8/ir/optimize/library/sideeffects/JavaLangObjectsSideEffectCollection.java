@@ -48,7 +48,7 @@ public class JavaLangObjectsSideEffectCollection {
       // Check if this is a program class with a toString() method that does not have side effects.
       DexClass clazz = appInfo.definitionFor(classType);
       if (clazz != null && clazz.isEffectivelyFinal(appView)) {
-        SingleResolutionResult resolutionResult =
+        SingleResolutionResult<?> resolutionResult =
             appInfo.resolveMethodOn(clazz, toStringMethodReference).asSingleResolution();
         if (resolutionResult != null
             && !resolutionResult.getResolvedMethod().getOptimizationInfo().mayHaveSideEffects()) {

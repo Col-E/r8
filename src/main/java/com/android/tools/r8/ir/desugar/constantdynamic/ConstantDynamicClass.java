@@ -123,7 +123,7 @@ public class ConstantDynamicClass {
             .resolveMethod(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
     if (resolution.isSingleResolution()
         && resolution.asSingleResolution().getResolvedMethod().isStatic()) {
-      SingleResolutionResult result = resolution.asSingleResolution();
+      SingleResolutionResult<?> result = resolution.asSingleResolution();
       if (bootstrapMethodHandle.isInterface
           && appView.options().isInterfaceMethodDesugaringEnabled()) {
         bootstrapMethodReference =

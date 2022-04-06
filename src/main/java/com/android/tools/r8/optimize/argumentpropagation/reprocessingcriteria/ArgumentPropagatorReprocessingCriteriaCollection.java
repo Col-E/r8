@@ -124,7 +124,7 @@ public class ArgumentPropagatorReprocessingCriteriaCollection {
             }
 
             // Do not reprocess the method if the invoke resolves to a library method.
-            SingleResolutionResult resolutionResult =
+            SingleResolutionResult<?> resolutionResult =
                 appView
                     .appInfo()
                     .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())

@@ -227,7 +227,7 @@ public class AssumeInserter {
 
   private boolean computeAssumedValuesFromSingleTarget(
       IRCode code, InvokeMethod invoke, AssumedValues.Builder assumedValuesBuilder) {
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
             .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())

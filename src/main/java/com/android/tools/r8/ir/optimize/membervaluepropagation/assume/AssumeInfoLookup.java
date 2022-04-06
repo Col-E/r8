@@ -18,7 +18,7 @@ public class AssumeInfoLookup {
 
   public static AssumeInfo lookupAssumeInfo(
       AppView<AppInfoWithLiveness> appView,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       DexClassAndMethod singleTarget) {
     AssumeInfo resolutionLookup = lookupAssumeInfo(appView, resolutionResult.getResolutionPair());
     if (resolutionLookup == null) {

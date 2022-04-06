@@ -247,7 +247,7 @@ class TransferFunction
       return state.abandonClassInliningInCurrentContexts(receiverRoot);
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
             .resolveMethodOnClassHolder(invoke.getInvokedMethod())
@@ -286,7 +286,7 @@ class TransferFunction
       return state;
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
             .resolveMethodOnInterfaceHolder(invoke.getInvokedMethod())
@@ -302,7 +302,7 @@ class TransferFunction
   private ParameterUsages analyzeInvokeStatic(InvokeStatic invoke, NonEmptyParameterUsages state) {
     // We generally don't class inline instances that escape through invoke-static calls, but we
     // make an exception for calls to Objects.requireNonNull().
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
             .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())
@@ -328,7 +328,7 @@ class TransferFunction
       return state;
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
             .resolveMethodOnClassHolder(invoke.getInvokedMethod())

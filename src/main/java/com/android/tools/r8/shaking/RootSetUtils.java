@@ -598,7 +598,7 @@ public class RootSetUtils {
       }
 
       private void tryAndKeepMethodOnClass(DexClassAndMethod method, ProguardMemberRule rule) {
-        SingleResolutionResult resolutionResult =
+        SingleResolutionResult<?> resolutionResult =
             appView
                 .appInfo()
                 .resolveMethodOn(originalClazz, method.getReference())

@@ -26,7 +26,7 @@ public interface InliningOracle {
 
   boolean passesInliningConstraints(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod candidate,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
@@ -34,7 +34,7 @@ public interface InliningOracle {
   InlineResult computeInlining(
       IRCode code,
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,

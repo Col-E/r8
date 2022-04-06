@@ -21,7 +21,7 @@ public class MemberRebindingUtils {
     if (clazz == null) {
       return false;
     }
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView.appInfo().resolveMethodOn(clazz, method).asSingleResolution();
     return resolutionResult != null
         && resolutionResult.getResolvedHolder().getType() != method.getHolderType();

@@ -57,7 +57,7 @@ public class VirtualMethodMerger {
     private DexMethod superMethod(
         AppView<? extends AppInfoWithClassHierarchy> appView, MergeGroup group) {
       DexMethod template = methods.iterator().next().getReference();
-      SingleResolutionResult resolutionResult =
+      SingleResolutionResult<?> resolutionResult =
           appView
               .appInfo()
               .resolveMethodOnClass(group.getSuperType(), template)

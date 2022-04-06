@@ -196,7 +196,7 @@ public class InvokeStatic extends InvokeMethod {
     AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
     AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appViewWithLiveness
             .appInfo()
             .resolveMethod(getInvokedMethod(), isInterface)

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.MethodResolutionResult.ArrayCloneMethodResult;
 import com.android.tools.r8.graph.MethodResolutionResult.ClassNotFoundResult;
 import com.android.tools.r8.graph.MethodResolutionResult.IllegalAccessOrNoSuchMethodResult;
@@ -27,15 +28,31 @@ import java.util.function.Function;
  */
 public class MethodResolution {
 
-  private final Function<DexType, DexClass> definitionFor;
+  private final Function<DexType, ClassResolutionResult> definitionFor;
   private final DexItemFactory factory;
+  private final boolean escapeIfLibraryHasProgramSuperType;
 
-  public MethodResolution(Function<DexType, DexClass> definitionFor, DexItemFactory factory) {
+  private MethodResolution(
+      Function<DexType, ClassResolutionResult> definitionFor,
+      DexItemFactory factory,
+      boolean escapeIfLibraryHasProgramSuperType) {
     this.definitionFor = definitionFor;
     this.factory = factory;
+    this.escapeIfLibraryHasProgramSuperType = escapeIfLibraryHasProgramSuperType;
   }
 
-  private DexClass definitionFor(DexType type) {
+  public static MethodResolution createLegacy(
+      Function<DexType, DexClass> definitionFor, DexItemFactory factory) {
+    return new MethodResolution(
+        type -> {
+          DexClass clazz = definitionFor.apply(type);
+          return clazz == null ? ClassResolutionResult.NoResolutionResult.noResult() : clazz;
+        },
+        factory,
+        false);
+  }
+
+  private ClassResolutionResult definitionFor(DexType type) {
     return definitionFor.apply(type);
   }
 
@@ -53,14 +70,19 @@ public class MethodResolution {
     if (holder.isArrayType()) {
       return resolveMethodOnArray(holder, method.getProto(), method.getName());
     }
-    DexClass definition = definitionFor(holder);
-    if (definition == null) {
-      return ClassNotFoundResult.INSTANCE;
-    } else if (definition.isInterface()) {
-      return resolveMethodOnInterface(definition, method.getProto(), method.getName());
-    } else {
-      return resolveMethodOnClass(definition, method.getProto(), method.getName());
-    }
+    MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
+    definitionFor(holder)
+        .forEachClassResolutionResult(
+            clazz -> {
+              if (clazz.isInterface()) {
+                builder.addResolutionResult(
+                    resolveMethodOnInterface(clazz, method.getProto(), method.getName()));
+              } else {
+                builder.addResolutionResult(
+                    resolveMethodOnClass(clazz, method.getProto(), method.getName()));
+              }
+            });
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
   }
 
   /**
@@ -96,15 +118,18 @@ public class MethodResolution {
     if (holder.isArrayType()) {
       return resolveMethodOnArray(holder, methodProto, methodName);
     }
-    DexClass clazz = definitionFor(holder);
-    if (clazz == null) {
-      return ClassNotFoundResult.INSTANCE;
-    }
-    // Step 1: If holder is an interface, resolution fails with an ICCE. We return null.
-    if (clazz.isInterface()) {
-      return IncompatibleClassResult.INSTANCE;
-    }
-    return resolveMethodOnClass(clazz, methodProto, methodName);
+    MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
+    definitionFor(holder)
+        .forEachClassResolutionResult(
+            clazz -> {
+              // Step 1: If holder is an interface, resolution fails with an ICCE.
+              if (clazz.isInterface()) {
+                builder.addResolutionResult(IncompatibleClassResult.INSTANCE);
+              } else {
+                builder.addResolutionResult(resolveMethodOnClass(clazz, methodProto, methodName));
+              }
+            });
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
   }
 
   public MethodResolutionResult resolveMethodOnClass(
@@ -135,7 +160,8 @@ public class MethodResolution {
     // Section 2.9 of the JVM Spec</a>.
     DexEncodedMethod result = clazz.lookupSignaturePolymorphicMethod(methodName, factory);
     if (result != null) {
-      return new SingleResolutionResult(initialResolutionHolder, clazz, result);
+      return MethodResolutionResult.createSingleResolutionResult(
+          initialResolutionHolder, clazz, result);
     }
     // Pt 2: Find a method that matches the descriptor.
     result = clazz.lookupMethod(methodProto, methodName);
@@ -148,17 +174,27 @@ public class MethodResolution {
       if (result.isPrivateMethod() && clazz != initialResolutionHolder) {
         return new IllegalAccessOrNoSuchMethodResult(initialResolutionHolder, result);
       }
-      return new SingleResolutionResult(initialResolutionHolder, clazz, result);
+      return MethodResolutionResult.createSingleResolutionResult(
+          initialResolutionHolder, clazz, result);
     }
     // Pt 3: Apply step two to direct superclass of holder.
+    MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
     if (clazz.superType != null) {
-      DexClass superClass = definitionFor(clazz.superType);
-      if (superClass != null) {
-        return resolveMethodOnClassStep2(
-            superClass, methodProto, methodName, initialResolutionHolder);
-      }
+      definitionFor(clazz.superType)
+          .forEachClassResolutionResult(
+              superClass -> {
+                // Guard against going back into the program for resolution.
+                if (escapeIfLibraryHasProgramSuperType
+                    && clazz.isLibraryClass()
+                    && !superClass.isLibraryClass()) {
+                  return;
+                }
+                builder.addResolutionResult(
+                    resolveMethodOnClassStep2(
+                        superClass, methodProto, methodName, initialResolutionHolder));
+              });
     }
-    return null;
+    return builder.buildOrIfEmpty(null);
   }
 
   /**
@@ -201,7 +237,7 @@ public class MethodResolution {
     MaximallySpecificMethodsBuilder builder =
         new MaximallySpecificMethodsBuilder(definitionFor, factory);
     resolveMethodStep3Helper(
-        method.getProto(), method.getName(), factory.objectType, lambda.interfaces, builder);
+        method.getProto(), method.getName(), null, builder, factory.objectType, lambda.interfaces);
     return builder;
   }
 
@@ -212,37 +248,57 @@ public class MethodResolution {
       DexClass clazz,
       MaximallySpecificMethodsBuilder builder) {
     resolveMethodStep3Helper(
-        methodProto, methodName, clazz.superType, Arrays.asList(clazz.interfaces.values), builder);
+        methodProto,
+        methodName,
+        clazz,
+        builder,
+        clazz.superType,
+        Arrays.asList(clazz.interfaces.values));
   }
 
   private void resolveMethodStep3Helper(
       DexProto methodProto,
       DexString methodName,
+      DexClass clazz,
+      MaximallySpecificMethodsBuilder builder,
       DexType superType,
-      List<DexType> interfaces,
-      MaximallySpecificMethodsBuilder builder) {
+      List<DexType> interfaces) {
     for (DexType iface : interfaces) {
-      DexClass definition = definitionFor(iface);
-      if (definition == null) {
-        // Ignore missing interface definitions.
-        continue;
+      ClassResolutionResult classResolutionResult = definitionFor(iface);
+      if (classResolutionResult.isMultipleClassResolutionResult()) {
+        // TODO(b/214382176, b/226170842): Compute maximal specific set in precense of
+        //   multiple results.
+        throw new Unreachable(
+            "MethodResolution should not be passed definition with multiple results");
       }
-      assert definition.isInterface();
-      DexEncodedMethod result = definition.lookupMethod(methodProto, methodName);
-      if (isMaximallySpecificCandidate(result)) {
-        // The candidate is added and doing so will prohibit shadowed methods from being in the set.
-        builder.addCandidate(definition, result);
-      } else {
-        // Look at the super-interfaces of this class and keep searching.
-        resolveMethodStep3Helper(methodProto, methodName, definition, builder);
-      }
+      classResolutionResult.forEachClassResolutionResult(
+          definition -> {
+            assert definition.isInterface();
+            DexEncodedMethod result = definition.lookupMethod(methodProto, methodName);
+            if (isMaximallySpecificCandidate(result)) {
+              // The candidate is added and doing so will prohibit shadowed methods from being
+              // in the set.
+              builder.addCandidate(definition, result);
+            } else {
+              // Look at the super-interfaces of this class and keep searching.
+              resolveMethodStep3Helper(methodProto, methodName, definition, builder);
+            }
+          });
     }
     // Now look at indirect super interfaces.
     if (superType != null) {
-      DexClass superClass = definitionFor(superType);
-      if (superClass != null) {
-        resolveMethodStep3Helper(methodProto, methodName, superClass, builder);
-      }
+      definitionFor(superType)
+          .forEachClassResolutionResult(
+              superClass -> {
+                // Guard against going back into the program for resolution.
+                if (escapeIfLibraryHasProgramSuperType
+                    && clazz != null
+                    && clazz.isLibraryClass()
+                    && !superClass.isLibraryClass()) {
+                  return;
+                }
+                resolveMethodStep3Helper(methodProto, methodName, superClass, builder);
+              });
     }
   }
 
@@ -271,17 +327,20 @@ public class MethodResolution {
     if (holder.isArrayType()) {
       return IncompatibleClassResult.INSTANCE;
     }
+    MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
     // Step 1: Lookup interface.
-    DexClass definition = definitionFor(holder);
-    // If the definition is not an interface, resolution fails with an ICCE. We just return the
-    // empty result here.
-    if (definition == null) {
-      return ClassNotFoundResult.INSTANCE;
-    }
-    if (!definition.isInterface()) {
-      return IncompatibleClassResult.INSTANCE;
-    }
-    return resolveMethodOnInterface(definition, proto, methodName);
+    definitionFor(holder)
+        .forEachClassResolutionResult(
+            definition -> {
+              // If the definition is not an interface, resolution fails with an ICCE.
+              if (!definition.isInterface()) {
+                builder.addResolutionResult(IncompatibleClassResult.INSTANCE);
+              } else {
+                builder.addResolutionResult(
+                    resolveMethodOnInterface(definition, proto, methodName));
+              }
+            });
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
   }
 
   public MethodResolutionResult resolveMethodOnInterface(
@@ -290,20 +349,28 @@ public class MethodResolution {
     // Step 2: Look for exact method on interface.
     DexEncodedMethod result = definition.lookupMethod(methodProto, methodName);
     if (result != null) {
-      return new SingleResolutionResult(definition, definition, result);
+      return MethodResolutionResult.createSingleResolutionResult(definition, definition, result);
     }
     // Step 3: Look for matching method on object class.
-    DexClass objectClass = definitionFor(factory.objectType);
-    if (objectClass == null) {
-      return ClassNotFoundResult.INSTANCE;
-    }
-    result = objectClass.lookupMethod(methodProto, methodName);
-    if (result != null && result.accessFlags.isPublic() && !result.accessFlags.isAbstract()) {
-      return new SingleResolutionResult(definition, objectClass, result);
-    }
-    // Step 3: Look for maximally-specific superinterface methods or any interface definition.
-    //         This is the same for classes and interfaces.
-    return resolveMethodStep3(definition, methodProto, methodName);
+    MethodResolutionResult.Builder builder = MethodResolutionResult.builder();
+    definitionFor(factory.objectType)
+        .forEachClassResolutionResult(
+            objectClass -> {
+              DexEncodedMethod objectResult = objectClass.lookupMethod(methodProto, methodName);
+              if (objectResult != null
+                  && objectResult.accessFlags.isPublic()
+                  && !objectResult.accessFlags.isAbstract()) {
+                builder.addResolutionResult(
+                    MethodResolutionResult.createSingleResolutionResult(
+                        definition, objectClass, objectResult));
+              } else {
+                // Step 3: Look for maximally-specific superinterface methods or any interface
+                // definition. This is the same for classes and interfaces.
+                builder.addResolutionResult(
+                    resolveMethodStep3(definition, methodProto, methodName));
+              }
+            });
+    return builder.buildOrIfEmpty(ClassNotFoundResult.INSTANCE);
   }
 
   static class MaximallySpecificMethodsBuilder {
@@ -316,11 +383,11 @@ public class MethodResolution {
     // prior to writing.
     private final LinkedHashMap<DexClass, DexEncodedMethod> maximallySpecificMethods =
         new LinkedHashMap<>();
-    private final Function<DexType, DexClass> definitionFor;
+    private final Function<DexType, ClassResolutionResult> definitionFor;
     private final DexItemFactory factory;
 
     private MaximallySpecificMethodsBuilder(
-        Function<DexType, DexClass> definitionFor, DexItemFactory factory) {
+        Function<DexType, ClassResolutionResult> definitionFor, DexItemFactory factory) {
       this.definitionFor = definitionFor;
       this.factory = factory;
     }
@@ -343,22 +410,29 @@ public class MethodResolution {
       if (type == null) {
         return;
       }
-      DexClass clazz = definitionFor.apply(type);
-      if (clazz == null) {
-        return;
+      ClassResolutionResult classResolutionResult = definitionFor.apply(type);
+      if (classResolutionResult.isMultipleClassResolutionResult()) {
+        // TODO(b/214382176, b/226170842): Compute maximal specific set in precense of
+        //   multiple results.
+        throw new Unreachable(
+            "MethodResolution should not be passed definition with multiple results");
       }
-      assert clazz.isInterface();
-      assert clazz.superType == factory.objectType;
-      // A null entry signifies that the candidate is shadowed blocking future candidates.
-      // If the candidate is already shadowed at this type there is no need to shadow further up.
-      if (maximallySpecificMethods.containsKey(clazz)
-          && maximallySpecificMethods.get(clazz) == null) {
-        return;
-      }
-      maximallySpecificMethods.put(clazz, null);
-      for (DexType iface : clazz.interfaces.values) {
-        markShadowed(iface);
-      }
+      classResolutionResult.forEachClassResolutionResult(
+          clazz -> {
+            assert clazz.isInterface();
+            assert clazz.superType == factory.objectType;
+            // A null entry signifies that the candidate is shadowed blocking future candidates.
+            // If the candidate is already shadowed at this type there is no need to shadow
+            // further up.
+            if (maximallySpecificMethods.containsKey(clazz)
+                && maximallySpecificMethods.get(clazz) == null) {
+              return;
+            }
+            maximallySpecificMethods.put(clazz, null);
+            for (DexType iface : clazz.interfaces.values) {
+              markShadowed(iface);
+            }
+          });
     }
 
     DexClassAndMethod lookup() {
@@ -407,9 +481,9 @@ public class MethodResolution {
       return IncompatibleClassResult.create(ListUtils.map(nonAbstractMethods, Entry::getValue));
     }
 
-    private static SingleResolutionResult singleResultHelper(
+    private static SingleResolutionResult<?> singleResultHelper(
         DexClass initialResolutionResult, Entry<DexClass, DexEncodedMethod> entry) {
-      return new SingleResolutionResult(
+      return MethodResolutionResult.createSingleResolutionResult(
           initialResolutionResult != null ? initialResolutionResult : entry.getKey(),
           entry.getKey(),
           entry.getValue());

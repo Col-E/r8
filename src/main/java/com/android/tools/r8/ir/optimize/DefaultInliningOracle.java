@@ -124,7 +124,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
@@ -261,7 +261,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   public InlineResult computeInlining(
       IRCode code,
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
@@ -336,7 +336,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   private boolean neverInline(
       InvokeMethod invoke,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     AppInfoWithLiveness appInfo = appView.appInfo();

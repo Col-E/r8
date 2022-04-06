@@ -62,7 +62,7 @@ public class MemberRebindingAnalysis {
 
   private DexMethod validMemberRebindingTargetForNonProgramMethod(
       DexClassAndMethod resolvedMethod,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethodSet contexts,
       Type invokeType,
       DexMethod original) {
@@ -95,7 +95,7 @@ public class MemberRebindingAnalysis {
     }
 
     LibraryMethod eligibleLibraryMethod = null;
-    SingleResolutionResult currentResolutionResult = resolutionResult;
+    SingleResolutionResult<?> currentResolutionResult = resolutionResult;
     while (currentResolutionResult != null) {
       DexClassAndMethod currentResolvedMethod = currentResolutionResult.getResolutionPair();
       if (canRebindDirectlyToLibraryMethod(
@@ -138,7 +138,7 @@ public class MemberRebindingAnalysis {
 
   private boolean canRebindDirectlyToLibraryMethod(
       DexClassAndMethod resolvedMethod,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethodSet contexts,
       Type invokeType) {
     // TODO(b/194422791): It could potentially be that `original.holder` is not a subtype of
@@ -154,7 +154,7 @@ public class MemberRebindingAnalysis {
 
   private boolean isAccessibleInAllContexts(
       DexClassAndMethod resolvedMethod,
-      SingleResolutionResult resolutionResult,
+      SingleResolutionResult<?> resolutionResult,
       ProgramMethodSet contexts) {
     if (resolvedMethod.getHolder().isPublic() && resolvedMethod.getDefinition().isPublic()) {
       return true;

@@ -102,7 +102,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
 
               inactiveMethodStates.forEach(
                   (signature, methodState) -> {
-                    SingleResolutionResult resolutionResult =
+                    SingleResolutionResult<?> resolutionResult =
                         appView.appInfo().resolveMethodOn(clazz, signature).asSingleResolution();
 
                     // Find the first virtual method in the super class hierarchy.

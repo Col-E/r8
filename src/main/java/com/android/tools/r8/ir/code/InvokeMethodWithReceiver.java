@@ -197,7 +197,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     AppView<? extends AppInfoWithClassHierarchy> appViewWithClassHierarchy =
         appView.withClassHierarchy();
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appViewWithClassHierarchy
             .appInfo()
             .resolveMethod(getInvokedMethod(), getInterfaceBit())

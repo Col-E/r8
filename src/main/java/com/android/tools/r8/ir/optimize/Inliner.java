@@ -960,7 +960,7 @@ public class Inliner {
           InvokeMethod invoke = current.asInvokeMethod();
           // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget()!
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          SingleResolutionResult resolutionResult =
+          SingleResolutionResult<?> resolutionResult =
               appView
                   .appInfo()
                   .resolveMethod(invokedMethod, invoke.getInterfaceBit())

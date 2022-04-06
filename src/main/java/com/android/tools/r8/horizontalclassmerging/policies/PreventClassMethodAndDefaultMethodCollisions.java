@@ -170,7 +170,7 @@ public class PreventClassMethodAndDefaultMethodCollisions extends MultiClassPoli
         MethodCategory category = MethodCategory.CLASS_HIERARCHY_SAFE;
         if (clazzReserved.contains(signature)) {
           DexMethod template = signature.withHolder(clazz, appView.dexItemFactory());
-          SingleResolutionResult result =
+          SingleResolutionResult<?> result =
               appView.appInfo().resolveMethodOnClass(clazz, template).asSingleResolution();
           if (result == null || result.getResolvedHolder().isInterface()) {
             category = MethodCategory.KEEP_ABSENT;

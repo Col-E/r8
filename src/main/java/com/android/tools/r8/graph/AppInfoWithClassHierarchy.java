@@ -532,17 +532,17 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * may be abstract.
    */
   public DexClassAndMethod lookupMaximallySpecificMethod(DexClass clazz, DexMethod method) {
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .lookupMaximallySpecificTarget(clazz, method);
   }
 
   MethodResolutionResult resolveMaximallySpecificTarget(DexClass clazz, DexMethod method) {
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .resolveMaximallySpecificTarget(clazz, method);
   }
 
   MethodResolutionResult resolveMaximallySpecificTarget(LambdaDescriptor lambda, DexMethod method) {
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .resolveMaximallySpecificTarget(lambda, method);
   }
 
@@ -648,7 +648,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    */
   public MethodResolutionResult unsafeResolveMethodDueToDexFormat(DexMethod method) {
     assert checkIfObsolete();
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .unsafeResolveMethodDueToDexFormat(method);
   }
 
@@ -698,7 +698,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public MethodResolutionResult resolveMethodOnClass(
       DexType holder, DexProto proto, DexString name) {
     assert checkIfObsolete();
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .resolveMethodOnClass(holder, proto, name);
   }
 
@@ -715,7 +715,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public MethodResolutionResult resolveMethodOnClass(
       DexClass clazz, DexProto proto, DexString name) {
     assert checkIfObsolete();
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .resolveMethodOnClass(clazz, proto, name);
   }
 
@@ -726,7 +726,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public MethodResolutionResult resolveMethodOnInterface(DexType holder, DexMethod method) {
     assert checkIfObsolete();
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .resolveMethodOnInterface(holder, method.getProto(), method.getName());
   }
 
@@ -744,7 +744,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public MethodResolutionResult resolveMethodOnInterface(
       DexClass clazz, DexProto proto, DexString name) {
     assert checkIfObsolete();
-    return new MethodResolution(this::definitionFor, dexItemFactory())
+    return MethodResolution.createLegacy(this::definitionFor, dexItemFactory())
         .resolveMethodOnInterface(clazz, proto, name);
   }
 

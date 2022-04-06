@@ -1140,7 +1140,7 @@ public class Enqueuer {
   }
 
   private void disableClosedWorldReasoning(DexMethod reference, ProgramMethod context) {
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         resolveMethod(reference, context, KeepReason.methodHandleReferencedIn(context));
     if (resolutionResult != null && resolutionResult.getResolvedHolder().isProgramClass()) {
       applyMinimumKeepInfoWhenLiveOrTargeted(
@@ -2296,7 +2296,7 @@ public class Enqueuer {
     return fieldResolutionResult;
   }
 
-  private SingleResolutionResult resolveMethod(
+  private SingleResolutionResult<?> resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason) {
     // Record the references in case they are not program types.
     MethodResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
@@ -2310,7 +2310,7 @@ public class Enqueuer {
     return resolutionResult.asSingleResolution();
   }
 
-  private SingleResolutionResult resolveMethod(
+  private SingleResolutionResult<?> resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
     MethodResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
@@ -2328,7 +2328,7 @@ public class Enqueuer {
 
   private void handleInvokeOfStaticTarget(
       DexMethod reference, ProgramDefinition context, KeepReason reason) {
-    SingleResolutionResult resolution = resolveMethod(reference, context, reason);
+    SingleResolutionResult<?> resolution = resolveMethod(reference, context, reason);
     if (resolution == null || resolution.getResolvedHolder().isNotProgramClass()) {
       return;
     }
@@ -2792,7 +2792,7 @@ public class Enqueuer {
     getReachableVirtualTargets(currentClass)
         .forEach(
             (resolutionSearchKey, contexts) -> {
-              SingleResolutionResult singleResolution =
+              SingleResolutionResult<?> singleResolution =
                   appInfo
                       .resolveMethod(resolutionSearchKey.method, resolutionSearchKey.isInterface)
                       .asSingleResolution();
@@ -3240,7 +3240,7 @@ public class Enqueuer {
       return;
     }
 
-    SingleResolutionResult resolution = resolveMethod(method, context, reason, interfaceInvoke);
+    SingleResolutionResult<?> resolution = resolveMethod(method, context, reason, interfaceInvoke);
     if (resolution == null) {
       return;
     }
@@ -3386,7 +3386,7 @@ public class Enqueuer {
   // Package protected due to entry point from worklist.
   void markSuperMethodAsReachable(DexMethod reference, ProgramMethod from) {
     KeepReason reason = KeepReason.targetedBySuperFrom(from);
-    SingleResolutionResult resolution = resolveMethod(reference, from, reason);
+    SingleResolutionResult<?> resolution = resolveMethod(reference, from, reason);
     if (resolution == null) {
       return;
     }

@@ -1387,7 +1387,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
           singleTargetLookupCache.getCachedItem(refinedReceiverType, method);
       return cachedItem;
     }
-    SingleResolutionResult resolution =
+    SingleResolutionResult<?> resolution =
         resolveMethodOn(initialResolutionHolder, method).asSingleResolution();
     if (resolution == null
         || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), this).isFalse()) {
@@ -1460,7 +1460,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   private DexEncodedMethod getMethodTargetFromExactRuntimeInformation(
       DexType refinedReceiverType,
       ClassTypeElement receiverLowerBoundType,
-      SingleResolutionResult resolution,
+      SingleResolutionResult<?> resolution,
       DexClass refinedReceiverClass) {
     // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
     // runtime type information. In this case, the invoke will dispatch to the resolution result
@@ -1555,6 +1555,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public SubtypingInfo computeSubtypingInfo() {
     return SubtypingInfo.create(this);
   }
+
   /** Predicate on types that *must* never be merged horizontally. */
   public boolean isNoHorizontalClassMergingOfType(DexType type) {
     return noClassMerging.contains(type) || noHorizontalClassMerging.contains(type);

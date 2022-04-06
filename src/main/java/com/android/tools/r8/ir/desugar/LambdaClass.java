@@ -381,7 +381,7 @@ public final class LambdaClass {
             appView.dexItemFactory().icceType,
             descriptor.implHandle.isInterface);
       }
-      SingleResolutionResult result = resolution.asSingleResolution();
+      SingleResolutionResult<?> result = resolution.asSingleResolution();
       assert result.getResolvedMethod().isStatic();
       assert result.getResolvedHolder().isProgramClass();
       return new StaticLambdaImplTarget(

@@ -21,6 +21,10 @@ public interface ClassResolutionResult {
 
   void forEachClassResolutionResult(Consumer<DexClass> consumer);
 
+  default boolean isMultipleClassResolutionResult() {
+    return false;
+  }
+
   static Builder builder() {
     return new Builder();
   }
@@ -121,6 +125,11 @@ public interface ClassResolutionResult {
     public void forEachClassResolutionResult(Consumer<DexClass> consumer) {
       consumer.accept(programOrClasspathClass);
       consumer.accept(libraryClass);
+    }
+
+    @Override
+    public boolean isMultipleClassResolutionResult() {
+      return true;
     }
   }
 

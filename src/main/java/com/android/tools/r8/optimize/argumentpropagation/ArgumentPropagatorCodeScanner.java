@@ -163,7 +163,7 @@ public class ArgumentPropagatorCodeScanner {
       return;
     }
 
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).asSingleResolution();
     if (resolutionResult == null) {
       // Nothing to propagate; the invoke instruction fails.
@@ -540,7 +540,7 @@ public class ArgumentPropagatorCodeScanner {
     // If the bootstrap method is program declared it will be called. The call is with runtime
     // provided arguments so ensure that the argument information is unknown.
     DexMethodHandle bootstrapMethod = invoke.getCallSite().bootstrapMethod;
-    SingleResolutionResult resolution =
+    SingleResolutionResult<?> resolution =
         appView
             .appInfo()
             .resolveMethod(bootstrapMethod.asMethod(), bootstrapMethod.isInterface)

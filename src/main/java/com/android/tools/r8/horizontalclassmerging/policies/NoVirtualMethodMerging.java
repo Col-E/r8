@@ -105,7 +105,7 @@ public class NoVirtualMethodMerging extends MultiClassPolicy {
   }
 
   private boolean hasNonAbstractDefinitionInSuperClass(DexType superType, ProgramMethod method) {
-    SingleResolutionResult resolutionResult =
+    SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
             .resolveMethodOnClass(superType, method.getReference())
@@ -118,7 +118,7 @@ public class NoVirtualMethodMerging extends MultiClassPolicy {
     return Iterables.any(
         interfaceTypes,
         interfaceType -> {
-          SingleResolutionResult resolutionResult =
+          SingleResolutionResult<?> resolutionResult =
               appView
                   .appInfo()
                   .resolveMethodOnInterface(interfaceType, method.getReference())

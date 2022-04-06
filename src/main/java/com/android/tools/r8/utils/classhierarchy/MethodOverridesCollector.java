@@ -108,7 +108,7 @@ public class MethodOverridesCollector {
         }
 
         for (DexMethodSignature interfaceMethod : interfaceMethodsOfInterestForClass) {
-          SingleResolutionResult resolutionResult =
+          SingleResolutionResult<?> resolutionResult =
               appView
                   .appInfo()
                   .resolveMethodOnClass(implementer, interfaceMethod)
