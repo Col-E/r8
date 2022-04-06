@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
@@ -279,26 +280,29 @@ public class InheritanceClassInDexDistributor {
   }
 
   private final VirtualFile mainDex;
-  private final List<VirtualFile> dexes;
+  private final List<VirtualFile> files;
+  private final List<VirtualFile> filesForDistribution;
   private final BitSet fullDex = new BitSet();
   private final Set<DexProgramClass> classes;
   private final AppView<?> appView;
-  private final int dexIndexOffset;
+  private final IntBox nextFileId;
   private final NamingLens namingLens;
   private final DirectSubClassesInfo directSubClasses;
 
   public InheritanceClassInDexDistributor(
       VirtualFile mainDex,
-      List<VirtualFile> dexes,
+      List<VirtualFile> files,
+      List<VirtualFile> filesForDistribution,
       Set<DexProgramClass> classes,
-      int dexIndexOffset,
+      IntBox nextFileId,
       NamingLens namingLens,
       AppView<?> appView,
       ExecutorService executorService) {
     this.mainDex = mainDex;
-    this.dexes = dexes;
+    this.files = files;
+    this.filesForDistribution = filesForDistribution;
     this.classes = classes;
-    this.dexIndexOffset = dexIndexOffset;
+    this.nextFileId = nextFileId;
     this.namingLens = namingLens;
     this.appView = appView;
     this.executorService = executorService;
@@ -315,6 +319,8 @@ public class InheritanceClassInDexDistributor {
 
     // Allocate member of groups depending on
     // the main dex members
+    VirtualFileCycler cycler =
+        new VirtualFileCycler(files, filesForDistribution, appView, namingLens, nextFileId);
     for (Iterator<ClassGroup> iter = remainingInheritanceGroups.iterator(); iter.hasNext();) {
       ClassGroup group = iter.next();
       if (group.dependsOnMainDexClasses) {
@@ -344,19 +350,19 @@ public class InheritanceClassInDexDistributor {
             new ClassGroup(groupSplit.mainDexIndependents);
 
         Collection<VirtualFile> mainDexInpendentsDexes =
-            assignGroup(mainDexIndependentGroup, Collections.singletonList(mainDex));
+            assignGroup(mainDexIndependentGroup, cycler, Collections.singletonList(mainDex));
 
         Set<DexProgramClass> classesWithLinkingError =
             new HashSet<>(groupSplit.dependentsOfMainDexIndependents);
         classesWithLinkingError.addAll(classesMissingMainDex);
-        assignClassesWithLinkingError(classesWithLinkingError, mainDexInpendentsDexes);
+        assignClassesWithLinkingError(classesWithLinkingError, cycler, mainDexInpendentsDexes);
       }
     }
 
     // Allocate member of groups independents from the main dex members
     for (ClassGroup group : remainingInheritanceGroups) {
       if (!group.dependsOnMainDexClasses) {
-        assignGroup(group, Collections.emptyList());
+        assignGroup(group, cycler, Collections.emptyList());
       }
     }
   }
@@ -369,11 +375,13 @@ public class InheritanceClassInDexDistributor {
     return groupClassNumber;
   }
 
-  private Collection<VirtualFile> assignGroup(ClassGroup group, List<VirtualFile> exclude) {
-    VirtualFileCycler cycler = new VirtualFileCycler(dexes, appView, namingLens, dexIndexOffset);
+  private Collection<VirtualFile> assignGroup(
+      ClassGroup group, VirtualFileCycler cycler, List<VirtualFile> exclude) {
     if (group.members.isEmpty()) {
       return Collections.emptyList();
-    } else if (group.canFitInOneDex()) {
+    }
+    cycler.reset();
+    if (group.canFitInOneDex()) {
       VirtualFile currentDex;
       while (true) {
         currentDex = cycler.nextOrCreate(dex -> !exclude.contains(dex) && !isDexFull(dex));
@@ -399,7 +407,8 @@ public class InheritanceClassInDexDistributor {
       Collection<VirtualFile> newExclude = new HashSet<>(exclude);
       newExclude.add(dexForLinkingClasses);
 
-      Collection<VirtualFile> usedDex = assignClassesWithLinkingError(remaining, newExclude);
+      Collection<VirtualFile> usedDex =
+          assignClassesWithLinkingError(remaining, cycler, newExclude);
       usedDex.add(dexForLinkingClasses);
       return usedDex;
     }
@@ -412,14 +421,11 @@ public class InheritanceClassInDexDistributor {
    * @param classes set of classes to assign, the set will be destroyed during assignment.
    */
   private Collection<VirtualFile> assignClassesWithLinkingError(
-      Set<DexProgramClass> classes, Collection<VirtualFile> exclude) {
-
+      Set<DexProgramClass> classes, VirtualFileCycler cycler, Collection<VirtualFile> exclude) {
     List<ClassGroup> layers = collectNoDirectInheritanceGroups(classes);
-
     Collections.sort(layers);
 
     Collection<VirtualFile> usedDex = new ArrayList<>();
-    VirtualFileCycler cycler = new VirtualFileCycler(dexes, appView, namingLens, dexIndexOffset);
     // Don't modify exclude. Think about modifying the input collection considering this
     // is private API.
     Set<VirtualFile> currentExclude = new HashSet<>(exclude);
@@ -456,10 +462,8 @@ public class InheritanceClassInDexDistributor {
             dexForLayer.commitTransaction();
             break;
           }
-
         }
       }
-
     }
 
     return usedDex;

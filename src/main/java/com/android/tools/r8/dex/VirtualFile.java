@@ -34,10 +34,12 @@ import com.android.tools.r8.synthesis.SyntheticItems;
 import com.android.tools.r8.synthesis.SyntheticNaming;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -46,6 +48,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -320,11 +323,7 @@ public class VirtualFile {
         if (!combineSyntheticClassesWithPrimaryClass
             || !appView.getSyntheticItems().isSyntheticClass(clazz)) {
           VirtualFile file =
-              new VirtualFile(
-                  virtualFiles.size(),
-                  writer.appView,
-                  writer.namingLens,
-                  clazz);
+              new VirtualFile(virtualFiles.size(), appView, writer.namingLens, clazz);
           virtualFiles.add(file);
           file.addClass(clazz);
           files.put(clazz, file);
@@ -362,7 +361,7 @@ public class VirtualFile {
       this.classes = SetUtils.newIdentityHashSet(classes);
 
       // Create the primary dex file. The distribution will add more if needed.
-      mainDexFile = new VirtualFile(0, writer.appView, writer.namingLens);
+      mainDexFile = new VirtualFile(0, appView, writer.namingLens);
       assert virtualFiles.isEmpty();
       virtualFiles.add(mainDexFile);
       addMarkers(mainDexFile);
@@ -435,25 +434,27 @@ public class VirtualFile {
       if (featureSplitClasses.isEmpty()) {
         return;
       }
-      List<VirtualFile> filesForDistribution;
       for (Map.Entry<FeatureSplit, Set<DexProgramClass>> featureSplitSetEntry :
           featureSplitClasses.entrySet()) {
         // Add a new virtual file, start from index 0 again
+        IntBox nextFileId = new IntBox();
         VirtualFile featureFile =
             new VirtualFile(
-                0,
-                writer.appView,
+                nextFileId.getAndIncrement(),
+                appView,
                 writer.namingLens,
                 featureSplitSetEntry.getKey());
         virtualFiles.add(featureFile);
         addMarkers(featureFile);
-        filesForDistribution = virtualFiles.subList(virtualFiles.size() - 1, virtualFiles.size());
+        List<VirtualFile> files = virtualFiles;
+        List<VirtualFile> filesForDistribution = ImmutableList.of(featureFile);
         new PackageSplitPopulator(
+                files,
                 filesForDistribution,
                 appView,
                 featureSplitSetEntry.getValue(),
                 originalNames,
-                0,
+                nextFileId,
                 writer.namingLens)
             .run();
       }
@@ -474,6 +475,9 @@ public class VirtualFile {
 
     @Override
     public List<VirtualFile> run() throws IOException {
+      assert virtualFiles.size() == 1;
+      assert virtualFiles.get(0).isEmpty();
+
       int totalClassNumber = classes.size();
       // First fill required classes into the main dex file.
       fillForMainDexList(classes);
@@ -483,37 +487,37 @@ public class VirtualFile {
       }
 
       List<VirtualFile> filesForDistribution = virtualFiles;
-      int fileIndexOffset = 0;
       boolean multidexLegacy = !mainDexFile.isEmpty();
       if (options.minimalMainDex && multidexLegacy) {
-        assert !virtualFiles.get(0).isEmpty();
         assert virtualFiles.size() == 1;
-        // The main dex file is filtered out, so ensure at least one file for the remaining classes.
-        virtualFiles.add(new VirtualFile(1, writer.appView, writer.namingLens));
-        filesForDistribution = virtualFiles.subList(1, virtualFiles.size());
-        fileIndexOffset = 1;
+        assert !virtualFiles.get(0).isEmpty();
+        // Don't consider the main dex for distribution.
+        filesForDistribution = Collections.emptyList();
       }
 
       Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses =
           removeFeatureSplitClassesGetMapping();
 
+      IntBox nextFileId = new IntBox(1);
       if (multidexLegacy && options.enableInheritanceClassInDexDistributor) {
         new InheritanceClassInDexDistributor(
                 mainDexFile,
+                virtualFiles,
                 filesForDistribution,
                 classes,
-                fileIndexOffset,
+                nextFileId,
                 writer.namingLens,
-                writer.appView,
+                appView,
                 executorService)
             .distribute();
       } else {
         new PackageSplitPopulator(
+                virtualFiles,
                 filesForDistribution,
                 appView,
                 classes,
                 originalNames,
-                fileIndexOffset,
+                nextFileId,
                 writer.namingLens)
             .run();
       }
@@ -820,33 +824,36 @@ public class VirtualFile {
   static class VirtualFileCycler {
 
     private final List<VirtualFile> files;
+    private final List<VirtualFile> filesForDistribution;
     private final AppView<?> appView;
     private final NamingLens namingLens;
 
-    private int nextFileId;
+    private final IntBox nextFileId;
     private Iterator<VirtualFile> allFilesCyclic;
     private Iterator<VirtualFile> activeFiles;
-    private FeatureSplit featuresplit;
+    private FeatureSplit featureSplit;
 
     VirtualFileCycler(
         List<VirtualFile> files,
+        List<VirtualFile> filesForDistribution,
         AppView<?> appView,
         NamingLens namingLens,
-        int fileIndexOffset) {
+        IntBox nextFileId) {
       this.files = files;
+      this.filesForDistribution = new ArrayList<>(filesForDistribution);
       this.appView = appView;
       this.namingLens = namingLens;
+      this.nextFileId = nextFileId;
 
-      nextFileId = files.size() + fileIndexOffset;
-      if (files.size() > 0) {
-        featuresplit = files.get(0).getFeatureSplit();
+      if (filesForDistribution.size() > 0) {
+        featureSplit = filesForDistribution.get(0).getFeatureSplit();
       }
 
       reset();
     }
 
     void reset() {
-      allFilesCyclic = Iterators.cycle(files);
+      allFilesCyclic = Iterators.cycle(filesForDistribution);
       restart();
     }
 
@@ -863,11 +870,10 @@ public class VirtualFile {
      */
     VirtualFile nextOrCreate() {
       if (hasNext()) {
-        return activeFiles.next();
+        return next();
       } else {
-        VirtualFile newFile = new VirtualFile(nextFileId++, appView, namingLens, featuresplit);
-        files.add(newFile);
-        allFilesCyclic = Iterators.cycle(files);
+        VirtualFile newFile = internalAddFile();
+        allFilesCyclic = Iterators.cycle(filesForDistribution);
         return newFile;
       }
     }
@@ -892,15 +898,28 @@ public class VirtualFile {
 
     // Start a new iteration over all files, starting at the current one.
     void restart() {
-      activeFiles = Iterators.limit(allFilesCyclic, files.size());
+      activeFiles = Iterators.limit(allFilesCyclic, filesForDistribution.size());
     }
 
     VirtualFile addFile() {
-      VirtualFile newFile = new VirtualFile(nextFileId++, appView, namingLens, featuresplit);
-      files.add(newFile);
-
+      VirtualFile newFile = internalAddFile();
       reset();
       return newFile;
+    }
+
+    private VirtualFile internalAddFile() {
+      VirtualFile newFile =
+          new VirtualFile(nextFileId.getAndIncrement(), appView, namingLens, featureSplit);
+      files.add(newFile);
+      filesForDistribution.add(newFile);
+      return newFile;
+    }
+
+    VirtualFileCycler ensureFile() {
+      if (filesForDistribution.isEmpty()) {
+        addFile();
+      }
+      return this;
     }
   }
 
@@ -1029,16 +1048,18 @@ public class VirtualFile {
 
     PackageSplitPopulator(
         List<VirtualFile> files,
+        List<VirtualFile> filesForDistribution,
         AppView<?> appView,
         Collection<DexProgramClass> classes,
         Map<DexProgramClass, String> originalNames,
-        int fileIndexOffset,
+        IntBox nextFileId,
         NamingLens namingLens) {
       this.classPartioning = PackageSplitClassPartioning.create(classes, appView, originalNames);
       this.originalNames = originalNames;
       this.dexItemFactory = appView.dexItemFactory();
       this.options = appView.options();
-      this.cycler = new VirtualFileCycler(files, appView, namingLens, fileIndexOffset);
+      this.cycler =
+          new VirtualFileCycler(files, filesForDistribution, appView, namingLens, nextFileId);
     }
 
     static boolean coveredByPrefix(String originalName, String currentPrefix) {
@@ -1064,6 +1085,11 @@ public class VirtualFile {
     }
 
     private void addStartupClasses() {
+      List<DexProgramClass> startupClasses = classPartioning.getStartupClasses();
+      if (startupClasses.isEmpty()) {
+        return;
+      }
+
       // In practice, all startup classes should fit in a single dex file, so optimistically try to
       // commit the startup classes using a single transaction.
       VirtualFile virtualFile = cycler.next();
@@ -1099,7 +1125,7 @@ public class VirtualFile {
       int transactionStartIndex = 0;
       String currentPrefix = null;
       Object2IntMap<String> packageAssignments = new Object2IntOpenHashMap<>();
-      VirtualFile current = cycler.next();
+      VirtualFile current = cycler.ensureFile().next();
       List<DexProgramClass> classes = classPartioning.getNonStartupClasses();
       List<DexProgramClass> nonPackageClasses = new ArrayList<>();
       for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
