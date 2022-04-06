@@ -15,12 +15,18 @@ public class StartupOptions {
     return enableMinimalStartupDex;
   }
 
-  public void setEnableMinimalStartupDex() {
+  public StartupOptions setEnableMinimalStartupDex() {
     enableMinimalStartupDex = true;
+    return this;
   }
 
   public boolean isStartupCompletenessCheckForTesting() {
     return enableStartupCompletenessCheckForTesting;
+  }
+
+  public StartupOptions setEnableStartupCompletenessCheckForTesting() {
+    enableStartupCompletenessCheckForTesting = true;
+    return this;
   }
 
   public boolean hasStartupConfiguration() {
