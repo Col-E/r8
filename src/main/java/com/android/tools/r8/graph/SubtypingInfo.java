@@ -234,6 +234,10 @@ public class SubtypingInfo {
     return ImmutableList.of();
   }
 
+  public Set<DexType> allImmediateSubtypes(DexType type) {
+    return getTypeInfo(type).directSubtypes;
+  }
+
   public void forAllInterfaceRoots(Consumer<DexType> fn) {
     Iterables.filter(
             getTypeInfo(factory.objectType).directSubtypes,
@@ -245,12 +249,13 @@ public class SubtypingInfo {
 
     private final DexType type;
 
-    int hierarchyLevel = UNKNOWN_LEVEL;
+    private int hierarchyLevel = UNKNOWN_LEVEL;
+
     /**
      * Set of direct subtypes. This set has to remain sorted to ensure determinism. The actual
      * sorting is not important but {@link DexType#compareTo(StructuralItem)} works well.
      */
-    Set<DexType> directSubtypes = NO_DIRECT_SUBTYPE;
+    private Set<DexType> directSubtypes = NO_DIRECT_SUBTYPE;
 
     TypeInfo(DexType type) {
       this.type = type;
@@ -296,54 +301,33 @@ public class SubtypingInfo {
       }
     }
 
-    synchronized void addDirectSubtype(TypeInfo subtypeInfo) {
+    private void addDirectSubtype(TypeInfo subtypeInfo) {
       assert hierarchyLevel != UNKNOWN_LEVEL;
       ensureDirectSubTypeSet();
       directSubtypes.add(subtypeInfo.type);
       subtypeInfo.setLevel(hierarchyLevel + 1);
     }
 
-    void tagAsSubtypeRoot() {
+    private void tagAsSubtypeRoot() {
       setLevel(ROOT_LEVEL);
     }
 
-    void tagAsInterface() {
+    private void tagAsInterface() {
       setLevel(INTERFACE_LEVEL);
     }
 
-    public boolean isInterface() {
+    private boolean isInterface() {
       assert hierarchyLevel != UNKNOWN_LEVEL : "Program class missing: " + this;
       assert type.isClassType();
       return hierarchyLevel == INTERFACE_LEVEL;
     }
 
-    public boolean isUnknown() {
-      return hierarchyLevel == UNKNOWN_LEVEL;
-    }
-
-    synchronized void addInterfaceSubtype(DexType type) {
+    private void addInterfaceSubtype(DexType type) {
       // Interfaces all inherit from java.lang.Object. However, we assign a special level to
       // identify them later on.
       setLevel(INTERFACE_LEVEL);
       ensureDirectSubTypeSet();
       directSubtypes.add(type);
     }
-  }
-
-  public Set<DexType> allImmediateSubtypes(DexType type) {
-    return getTypeInfo(type).directSubtypes;
-  }
-
-  public boolean isUnknown(DexType type) {
-    return getTypeInfo(type).isUnknown();
-  }
-
-  public boolean hasSubtypes(DexType type) {
-    return !getTypeInfo(type).directSubtypes.isEmpty();
-  }
-
-  void registerNewType(DexType newType, DexType superType) {
-    // Register the relationship between this type and its superType.
-    getTypeInfo(superType).addDirectSubtype(getTypeInfo(newType));
   }
 }
