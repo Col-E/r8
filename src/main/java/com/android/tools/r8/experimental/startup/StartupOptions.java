@@ -7,6 +7,7 @@ package com.android.tools.r8.experimental.startup;
 public class StartupOptions {
 
   private boolean enableMinimalStartupDex = false;
+  private boolean enableStartupCompletenessCheckForTesting = false;
 
   private StartupConfiguration startupConfiguration;
 
@@ -16,6 +17,10 @@ public class StartupOptions {
 
   public void setEnableMinimalStartupDex() {
     enableMinimalStartupDex = true;
+  }
+
+  public boolean isStartupCompletenessCheckForTesting() {
+    return enableStartupCompletenessCheckForTesting;
   }
 
   public boolean hasStartupConfiguration() {
