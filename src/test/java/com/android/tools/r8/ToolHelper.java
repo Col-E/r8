@@ -209,7 +209,7 @@ public class ToolHelper {
   }
 
   public static Path getDesugarLibJsonForTestingAlternative3() {
-    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_alternative_3.json");
+    return Paths.get(getDesugarLibraryJsonDir(), "desugar_jdk_libs_path_alternative_3.json");
   }
 
   public static boolean isLocalDevelopment() {

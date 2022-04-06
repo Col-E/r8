@@ -7,16 +7,10 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecification;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableList;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
@@ -54,28 +48,6 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     return StringUtils.lines("Hello", "Larry", "Page", "Caught java.io.UncheckedIOException");
   }
 
-  DesugaredLibrarySpecification configurationAlternative3(
-      InternalOptions options, boolean libraryCompilation, TestParameters parameters) {
-    // Parse the current configuration and amend the configuration for BufferedReader.lines. The
-    // configuration is the same for both program and library.
-    return DesugaredLibrarySpecificationParser.parseDesugaredLibrarySpecification(
-        StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingAlternative3()),
-        options.dexItemFactory(),
-        options.reporter,
-        libraryCompilation,
-        parameters.getApiLevel().getLevel());
-  }
-
-  private void configurationForProgramCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, configurationAlternative3(options, false, parameters));
-  }
-
-  private void configurationForLibraryCompilation(InternalOptions options) {
-    setDesugaredLibrarySpecificationForTesting(
-        options, configurationAlternative3(options, true, parameters));
-  }
-
   @Test
   public void testBufferedReaderD8Cf() throws Exception {
     Assume.assumeTrue(
@@ -85,7 +57,6 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     // Use D8 to desugar with Java classfile output.
     Path jar =
         testForD8(Backend.CF)
-            .addOptionsModification(this::configurationForProgramCompilation)
             .addInnerClasses(BufferedReaderTest.class)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
@@ -108,13 +79,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
           .disableDesugaring()
           .compile()
           .addDesugaredCoreLibraryRunClassPath(
-              (apiLevel, keepRules, shrink) ->
-                  buildDesugaredLibrary(
-                      apiLevel,
-                      keepRules,
-                      shrink,
-                      ImmutableList.of(),
-                      this::configurationForLibraryCompilation),
+              this::buildDesugaredLibrary,
               parameters.getApiLevel(),
               desugaredLibraryKeepRules,
               shrinkDesugaredLibrary)
@@ -122,8 +87,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
           .assertSuccessWithOutput(expectedOutput());
     } else {
       // Build the desugared library in class file format.
-      Path desugaredLib =
-          getDesugaredLibraryInCF(parameters, this::configurationForLibraryCompilation);
+      Path desugaredLib = getDesugaredLibraryInCF(parameters, opt -> {});
 
       // Run on the JVM with desugared library on classpath.
       testForJvm()
@@ -143,19 +107,12 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addLibraryFiles(getLibraryFile())
-        .addOptionsModification(this::configurationForProgramCompilation)
         .addInnerClasses(BufferedReaderTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
-            (apiLevel, keepRules, shrink) ->
-                buildDesugaredLibrary(
-                    apiLevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    this::configurationForLibraryCompilation),
+            this::buildDesugaredLibrary,
             parameters.getApiLevel(),
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)
@@ -172,7 +129,6 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
-        .addOptionsModification(this::configurationForProgramCompilation)
         .addInnerClasses(BufferedReaderTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
@@ -180,13 +136,7 @@ public class BufferedReaderTest extends DesugaredLibraryTestBase {
         .enableInliningAnnotations()
         .compile()
         .addDesugaredCoreLibraryRunClassPath(
-            (apiLevel, keepRules, shrink) ->
-                buildDesugaredLibrary(
-                    apiLevel,
-                    keepRules,
-                    shrink,
-                    ImmutableList.of(),
-                    this::configurationForLibraryCompilation),
+            this::buildDesugaredLibrary,
             parameters.getApiLevel(),
             keepRuleConsumer.get(),
             shrinkDesugaredLibrary)

@@ -170,6 +170,7 @@
       "api_level_below_or_equal": 30,
       "rewrite_prefix": {
         "j$.time.": "java.time.",
+        "jdk.internal.": "j$.jdk.internal.",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
         "sun.security.action.": "j$.sun.security.action."
       },

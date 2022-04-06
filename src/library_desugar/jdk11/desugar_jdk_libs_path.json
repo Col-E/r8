@@ -6,6 +6,20 @@
   "support_all_callbacks_from_library": true,
   "common_flags": [
     {
+      "api_level_below_or_equal": 32,
+      "rewrite_prefix": {
+        "java.net.URLDecoder": "j$.net.URLDecoder",
+        "java.net.URLEncoder": "j$.net.URLEncoder",
+        "java.io.DesugarInputStream": "j$.io.DesugarInputStream"
+      },
+      "retarget_method_with_emulated_dispatch": {
+        "long java.io.InputStream#transferTo(java.io.OutputStream)": "java.io.DesugarInputStream"
+      },
+      "amend_library_method": [
+        "public long java.io.InputStream#transferTo(java.io.OutputStream)"
+      ]
+    },
+    {
       "api_level_below_or_equal": 30,
       "rewrite_prefix": {
         "java.time.": "j$.time.",
@@ -161,6 +175,16 @@
         "java.util.OptionalInt": "java.util.OptionalConversions",
         "java.util.OptionalLong": "java.util.OptionalConversions"
       }
+    },
+    {
+      "api_level_below_or_equal": 18,
+      "rewrite_prefix": {
+        "java.lang.DesugarCharacter": "j$.lang.DesugarCharacter",
+        "java.nio.charset.StandardCharsets": "j$.nio.charset.StandardCharsets"
+      },
+      "retarget_method": {
+        "boolean java.lang.Character#isBmpCodePoint(int)": "java.lang.DesugarCharacter"
+      }
     }
   ],
   "program_flags": [
@@ -191,32 +215,76 @@
         "long java.util.concurrent.atomic.AtomicLong#getAndUpdate(java.util.function.LongUnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicLong",
         "long java.util.concurrent.atomic.AtomicLong#updateAndGet(java.util.function.LongUnaryOperator)": "java.util.concurrent.atomic.DesugarAtomicLong"
       }
+    },
+    {
+      "api_level_below_or_equal": 19,
+      "dont_retarget": [
+        "android.support.multidex.MultiDexExtractor$ExtractedDex"
+      ]
     }
   ],
   "library_flags": [
     {
-      "api_level_below_or_equal": 30,
+      "api_level_below_or_equal": 32,
       "rewrite_prefix": {
-        "jdk.internal.": "j$.jdk.internal.",
-        "sun.security.action.": "j$.sun.security.action.",
-        "sun.misc.Desugar": "j$.sun.misc.Desugar"
-      },
+        "desugar.": "j$.desugar.",
+        "libcore.": "j$.libcore.",
+        "java.lang.Desugar": "j$.lang.Desugar",
+        "java.lang.ref.Cleaner": "j$.lang.ref.Cleaner",
+        "sun.security.action.": "j$.sun.security.action."
+      }
+    },
+    {
+      "api_level_below_or_equal": 30,
       "rewrite_derived_prefix": {
         "java.time.": {
           "j$.time.": "java.time."
         }
+      }
+    },
+    {
+      "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.io.DesugarFile": "j$.io.DesugarFile",
+        "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
+        "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
+        "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
+        "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
+        "java.nio.file.": "j$.nio.file.",
+        "jdk.internal.": "j$.jdk.internal.",
+        "sun.misc.Desugar": "j$.sun.misc.Desugar",
+        "sun.nio.cs.": "j$.sun.nio.cs.",
+        "sun.nio.fs.AbstractFileSystemProvider": "j$.sun.nio.fs.AbstractFileSystemProvider",
+        "sun.nio.fs.AbstractFileTypeDetector": "j$.sun.nio.fs.AbstractFileTypeDetector",
+        "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
+        "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
+        "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap",
+        "wrapper." : "j$.wrapper."
+      },
+      "rewrite_derived_prefix": {
+        "java.nio.file.attribute.FileTime": {
+          "j$.nio.file.attribute.FileTime": "java.nio.file.attribute.FileTime"
+        },
+        "java.io.": {
+          "__wrapper__.j$.io.": "j$.io.",
+          "__wrapper__.java.io.": "java.io."
+        },
+        "java.nio.": {
+          "__wrapper__.j$.nio.": "j$.nio.",
+          "__wrapper__.java.nio.": "java.nio."
+        }
+      },
+      "retarget_method": {
+        "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
+      },
+      "retarget_method_with_emulated_dispatch": {
+        "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
       "backport": {
         "java.lang.DesugarDouble": "java.lang.Double",
         "java.lang.DesugarInteger": "java.lang.Integer",
         "java.lang.DesugarLong": "java.lang.Long",
         "java.lang.DesugarMath": "java.lang.Math"
-      }
-    },
-    {
-      "api_level_below_or_equal": 25,
-      "retarget_method": {
-        "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
       },
       "amend_library_method": [
         "private static boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)"
@@ -225,6 +293,8 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
+        "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
+        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
         "java.util.AbstractList": "j$.util.AbstractList",
         "java.util.CollSer": "j$.util.CollSer",
         "java.util.Comparators": "j$.util.Comparators",
