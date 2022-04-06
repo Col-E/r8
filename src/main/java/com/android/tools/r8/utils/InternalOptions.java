@@ -866,7 +866,7 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return ImmutableSet.of();
   }
 
-  private static boolean isSystemPropertyForDevelopmentSet(String propertyName) {
+  public static boolean isSystemPropertyForDevelopmentSet(String propertyName) {
     if (Version.isDevelopmentVersion()) {
       return System.getProperty(propertyName) != null;
     }

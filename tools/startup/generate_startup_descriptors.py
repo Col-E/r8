@@ -22,6 +22,7 @@ def extend_startup_descriptors(startup_descriptors, iteration, options):
     print(
         'Found %i new startup descriptors in iteration %i'
             % (number_of_new_startup_descriptors, iteration + 1))
+  return number_of_new_startup_descriptors
 
 def generate_startup_profile_on_device(options):
   if not options.use_existing_profile:
@@ -74,6 +75,8 @@ def add_r8_startup_descriptors(startup_descriptors, startup_descriptors_to_add):
 def parse_options(argv):
   result = argparse.ArgumentParser(
       description='Generate a perfetto trace file.')
+  result.add_argument('--apk',
+                      help='Path to the APK')
   result.add_argument('--app-id',
                       help='The application ID of interest',
                       required=True)
@@ -104,6 +107,11 @@ def parse_options(argv):
                            'descriptors are found',
                       action='store_true',
                       default=False)
+  result.add_argument('--until-stable-iterations',
+                      help='Number of times that profile generation must must '
+                           'not find new startup descriptors before exiting',
+                      default=1,
+                      type=int)
   result.add_argument('--use-existing-profile',
                       help='Do not launch app to generate startup profile',
                       action='store_true',
@@ -116,13 +124,22 @@ def parse_options(argv):
 
 def main(argv):
   (options, args) = parse_options(argv)
+  adb_utils.root(options.device_id)
+  if options.apk:
+    adb_utils.uninstall(options.app_id, options.device_id)
+    adb_utils.install(options.apk, options.device_id)
   startup_descriptors = set()
   if options.until_stable:
     iteration = 0
+    stable_iterations = 0
     while True:
       diff = extend_startup_descriptors(startup_descriptors, iteration, options)
       if diff == 0:
-        break
+        stable_iterations = stable_iterations + 1
+        if stable_iterations == options.until_stable_iterations:
+          break
+      else:
+        stable_iterations = 0
       iteration = iteration + 1
   else:
     for iteration in range(options.iterations):

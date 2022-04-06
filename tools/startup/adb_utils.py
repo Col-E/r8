@@ -91,7 +91,7 @@ def get_profile_path(app_id):
 
 def get_minor_major_page_faults(app_id, device_id=None):
   pid = get_pid(app_id, device_id)
-  cmd = create_adb_cmd('shell ps -p %i -o MINFL,MAJFL' % pid)
+  cmd = create_adb_cmd('shell ps -p %i -o MINFL,MAJFL' % pid, device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8')
   lines_it = iter(stdout.splitlines())
   first_line = next(lines_it)
@@ -145,7 +145,7 @@ def get_classes_and_methods_from_app_profile(app_id, device_id=None):
   cmd = create_adb_cmd(
     'shell profman --dump-classes-and-methods'
     ' --profile-file=%s --apk=%s --dex-location=%s'
-        % (profile_path, apk_path, apk_path))
+        % (profile_path, apk_path, apk_path), device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
   lines = stdout.splitlines()
   classes_and_methods = []

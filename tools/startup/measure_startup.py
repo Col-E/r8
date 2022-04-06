@@ -82,11 +82,14 @@ def prepare_for_run(out_dir, options):
   os.makedirs(out_dir, exist_ok=True)
 
 def run(out_dir, options, tmp_dir):
-  assert adb_utils.get_screen_state().is_on_and_unlocked()
+  assert adb_utils.get_screen_state(options.device_id).is_on_and_unlocked()
 
   # Start perfetto trace collector.
-  perfetto_process, perfetto_trace_path = perfetto_utils.record_android_trace(
-      out_dir, tmp_dir)
+  perfetto_process = None
+  perfetto_trace_path = None
+  if not options.no_perfetto:
+    perfetto_process, perfetto_trace_path = perfetto_utils.record_android_trace(
+        out_dir, tmp_dir)
 
   # Launch main activity.
   launch_activity_result = adb_utils.launch_activity(
@@ -96,7 +99,8 @@ def run(out_dir, options, tmp_dir):
       wait_for_activity_to_launch=True)
 
   # Wait for perfetto trace collector to stop.
-  perfetto_utils.stop_record_android_trace(perfetto_process, out_dir)
+  if not options.no_perfetto:
+    perfetto_utils.stop_record_android_trace(perfetto_process, out_dir)
 
   # Get minor and major page faults from app process.
   data = compute_data(launch_activity_result, perfetto_trace_path, options)

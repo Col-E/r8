@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.experimental.startup;
 
+import static com.android.tools.r8.utils.InternalOptions.isSystemPropertyForDevelopmentSet;
+
 public class StartupOptions {
 
-  private boolean enableMinimalStartupDex = false;
-  private boolean enableStartupCompletenessCheckForTesting = false;
+  private boolean enableMinimalStartupDex =
+      isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.minimalstartupdex");
+  private boolean enableStartupCompletenessCheckForTesting =
+      isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.completenesscheck");
 
   private StartupConfiguration startupConfiguration;
 

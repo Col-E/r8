@@ -45,10 +45,12 @@ public class StartupConfiguration {
    */
   public static StartupConfiguration createStartupConfiguration(
       DexItemFactory dexItemFactory, Reporter reporter) {
-    String propertyValue = System.getProperty("com.android.tools.r8.startupclassdescriptors");
+    String propertyValue = System.getProperty("com.android.tools.r8.startup.config");
     if (propertyValue == null) {
       return null;
     }
+
+    reporter.warning("Use of startupconfig is experimental");
 
     List<String> startupDescriptors;
     try {
@@ -115,10 +117,10 @@ public class StartupConfiguration {
 
     String protoWithNameDescriptor = startupMethodDescriptor.substring(methodNameStartIndex);
     int methodNameEndIndex = protoWithNameDescriptor.indexOf('(');
-    if (methodNameEndIndex <= 1) {
+    if (methodNameEndIndex <= 0) {
       return null;
     }
-    String methodName = protoWithNameDescriptor.substring(methodNameEndIndex);
+    String methodName = protoWithNameDescriptor.substring(0, methodNameEndIndex);
 
     String protoDescriptor = protoWithNameDescriptor.substring(methodNameEndIndex);
     DexProto proto = parseStartupMethodProto(protoDescriptor, dexItemFactory);
