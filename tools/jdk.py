@@ -11,7 +11,7 @@ import defines
 JDK_DIR = os.path.join(defines.THIRD_PARTY, 'openjdk')
 
 def GetJdkHome():
-  return GetJdk9Home()
+  return GetJdk11Home()
 
 def GetJdk11Home():
   root = os.path.join(JDK_DIR, 'jdk-11')
