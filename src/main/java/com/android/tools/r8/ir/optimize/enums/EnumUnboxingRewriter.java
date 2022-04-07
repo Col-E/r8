@@ -440,9 +440,9 @@ public class EnumUnboxingRewriter {
 
     // Calls to java.lang.System.
     if (invokedMethod.getHolderType() == factory.javaLangSystemType) {
-      if (invokedMethod == factory.javaLangSystemMethods.arraycopy) {
+      if (invokedMethod == factory.javaLangSystemMembers.arraycopy) {
         // Intentionally empty.
-      } else if (invokedMethod == factory.javaLangSystemMethods.identityHashCode) {
+      } else if (invokedMethod == factory.javaLangSystemMembers.identityHashCode) {
         assert invoke.arguments().size() == 1;
         Value argument = invoke.getFirstArgument();
         DexType enumType = getEnumTypeOrNull(argument, convertedEnums);

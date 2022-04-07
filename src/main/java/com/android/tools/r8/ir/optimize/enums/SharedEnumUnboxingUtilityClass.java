@@ -314,7 +314,7 @@ public class SharedEnumUnboxingUtilityClass extends EnumUnboxingUtilityClass {
               new CfConstNumber(0, ValueType.INT),
               new CfLoad(ValueType.INT, argumentLocalSlot),
               new CfInvoke(
-                  Opcodes.INVOKESTATIC, dexItemFactory.javaLangSystemMethods.arraycopy, false),
+                  Opcodes.INVOKESTATIC, dexItemFactory.javaLangSystemMembers.arraycopy, false),
               // return result
               new CfLoad(ValueType.OBJECT, resultLocalSlot),
               new CfReturn(ValueType.OBJECT)));

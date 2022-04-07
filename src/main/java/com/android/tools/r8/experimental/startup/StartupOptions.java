@@ -12,6 +12,8 @@ public class StartupOptions {
       isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.minimalstartupdex");
   private boolean enableStartupCompletenessCheckForTesting =
       isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.completenesscheck");
+  private boolean enableStartupInstrumentation =
+      isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.instrument");
 
   private StartupConfiguration startupConfiguration;
 
@@ -21,6 +23,15 @@ public class StartupOptions {
 
   public StartupOptions setEnableMinimalStartupDex() {
     enableMinimalStartupDex = true;
+    return this;
+  }
+
+  public boolean isStartupInstrumentationEnabled() {
+    return enableStartupInstrumentation;
+  }
+
+  public StartupOptions setEnableStartupInstrumentation() {
+    enableStartupInstrumentation = true;
     return this;
   }
 

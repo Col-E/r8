@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.desugar.lambda.D8LambdaDesugaring.rewriteE
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.experimental.startup.StartupInstrumentation;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -468,6 +469,8 @@ public class IRConverter {
       D8CfInstructionDesugaringEventConsumer desugaringEventConsumer,
       D8MethodProcessor methodProcessor,
       InterfaceProcessor interfaceProcessor) {
+    new StartupInstrumentation(appView).instrumentClass(clazz);
+
     // When converting all methods on a class always convert <clinit> first.
     ProgramMethod classInitializer = clazz.getProgramClassInitializer();
 
@@ -483,7 +486,6 @@ public class IRConverter {
 
     for (ProgramMethod method : methods) {
       if (!method.getDefinition().isClassInitializer()) {
-        DexEncodedMethod definition = method.getDefinition();
         methodProcessor.processMethod(method, desugaringEventConsumer);
         if (interfaceProcessor != null) {
           interfaceProcessor.processMethod(method, desugaringEventConsumer);

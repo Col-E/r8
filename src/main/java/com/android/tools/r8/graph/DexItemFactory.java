@@ -551,7 +551,8 @@ public class DexItemFactory {
       new JavaLangReflectArrayMembers();
   public final JavaLangAnnotationRetentionPolicyMembers javaLangAnnotationRetentionPolicyMembers =
       new JavaLangAnnotationRetentionPolicyMembers();
-  public final JavaLangSystemMethods javaLangSystemMethods = new JavaLangSystemMethods();
+  public final JavaLangSystemMembers javaLangSystemMembers = new JavaLangSystemMembers();
+  public final JavaIoPrintStreamMembers javaIoPrintStreamMembers = new JavaIoPrintStreamMembers();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final IllegalArgumentExceptionMethods illegalArgumentExceptionMethods =
       new IllegalArgumentExceptionMethods();
@@ -1722,7 +1723,9 @@ public class DexItemFactory {
     private JavaLangReflectArrayMembers() {}
   }
 
-  public class JavaLangSystemMethods {
+  public class JavaLangSystemMembers {
+
+    public final DexField out = createField(javaLangSystemType, javaIoPrintStreamType, "out");
 
     public final DexMethod arraycopy =
         createMethod(
@@ -1732,7 +1735,15 @@ public class DexItemFactory {
     public final DexMethod identityHashCode =
         createMethod(javaLangSystemType, createProto(intType, objectType), identityHashCodeName);
 
-    private JavaLangSystemMethods() {}
+    private JavaLangSystemMembers() {}
+  }
+
+  public class JavaIoPrintStreamMembers {
+
+    public final DexMethod printlnWithString =
+        createMethod(javaIoPrintStreamType, createProto(voidType, stringType), "println");
+
+    private JavaIoPrintStreamMembers() {}
   }
 
   public class EnumMembers {

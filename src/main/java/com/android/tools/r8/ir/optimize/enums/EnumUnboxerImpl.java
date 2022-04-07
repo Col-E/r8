@@ -1338,12 +1338,12 @@ public class EnumUnboxerImpl extends EnumUnboxer {
 
     // Calls to java.lang.System.
     if (targetHolder.getType() == factory.javaLangSystemType) {
-      if (singleTargetReference == factory.javaLangSystemMethods.arraycopy) {
+      if (singleTargetReference == factory.javaLangSystemMembers.arraycopy) {
         // Important for Kotlin 1.5 enums, which use arraycopy to create a copy of $VALUES instead
         // of int[].clone().
         return Reason.ELIGIBLE;
       }
-      if (singleTargetReference == factory.javaLangSystemMethods.identityHashCode) {
+      if (singleTargetReference == factory.javaLangSystemMembers.identityHashCode) {
         // Important for proto enum unboxing.
         return Reason.ELIGIBLE;
       }
