@@ -636,7 +636,7 @@ class SemanticVersion:
     # Build metadata currently not suppported
 
   def larger_than(self, other):
-    if self.prepelease or other.prepelease:
+    if self.prerelease or other.prerelease:
       raise Exception("Comparison with prerelease not implemented")
     if self.major > other.major:
       return True
