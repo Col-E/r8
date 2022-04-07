@@ -29,7 +29,11 @@ public class BenchmarkEnvironment {
 
   public Path translateDependencyPath(String directoryName, Path location) {
     return isGolem
-        ? Paths.get("benchmarks", config.getDependencyDirectoryName(), directoryName)
+        ? getGolemDependencyRoot().resolve(directoryName)
         : location.resolve(directoryName);
+  }
+
+  public Path getGolemDependencyRoot() {
+    return Paths.get("benchmarks", config.getDependencyDirectoryName());
   }
 }

@@ -8,10 +8,10 @@ import os
 import subprocess
 import sys
 
+import compiledump
 import gradle
 import jdk
 import utils
-import compiledump
 
 NONLIB_BUILD_TARGET = 'R8WithRelocatedDeps'
 NONLIB_TEST_BUILD_TARGETS = [utils.R8_TESTS_TARGET, utils.R8_TESTS_DEPS_TARGET]
@@ -99,7 +99,13 @@ def main(argv, temp):
   if not options.no_build:
     gradle.RunGradle(buildTargets + ['-Pno_internal'])
 
-  return run(options, r8jar, testjars)
+  if not options.golem:
+    # When running locally, change the working directory to be in 'temp'.
+    # This is hard to do properly within the JVM so we do it here.
+    with utils.ChangedWorkingDirectory(temp):
+      return run(options, r8jar, testjars)
+  else:
+    return run(options, r8jar, testjars)
 
 def run(options, r8jar, testjars):
   jdkhome = get_jdk_home(options, options.benchmark)
@@ -113,7 +119,9 @@ def run(options, r8jar, testjars):
     'com.android.tools.r8.benchmarks.BenchmarkMainEntryRunner',
     options.benchmark,
     options.target,
-    'golem' if options.golem else 'local',
+    # When running locally the working directory is moved and we pass the
+    # repository root as an argument. The runner can then setup dependencies.
+    'golem' if options.golem else utils.REPO_ROOT,
     ])
   return subprocess.check_call(cmd)
 
