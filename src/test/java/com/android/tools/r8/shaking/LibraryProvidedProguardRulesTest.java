@@ -4,50 +4,46 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticMessage;
+import static com.android.tools.r8.DiagnosticsMatcher.diagnosticOrigin;
+import static com.android.tools.r8.OriginMatcher.hasPart;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.notIf;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataResourceProvider;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.DiagnosticsChecker;
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.CharSource;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.jar.JarOutputStream;
-import java.util.zip.ZipEntry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -60,7 +56,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
 
     public static void main(String[] args) {
       try {
-        Class bClass = Class.forName(buildClassName("B"));
+        Class.forName(buildClassName("B"));
         System.out.println("YES");
       } catch (ClassNotFoundException e) {
         System.out.println("NO");
@@ -70,113 +66,116 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
 
   static class B {}
 
-  private Backend backend;
+  @Parameter(0)
+  public TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameter(1)
+  public boolean isAar;
+
+  @Parameters(name = "{0} AAR: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public LibraryProvidedProguardRulesTest(Backend backend) {
-    this.backend = backend;
-  }
-
-  private void addTextJarEntry(JarOutputStream out, String name, String content) throws Exception {
-    out.putNextEntry(new ZipEntry(name));
-    ByteStreams.copy(
-        CharSource.wrap(content).asByteSource(StandardCharsets.UTF_8).openBufferedStream(), out);
-    out.closeEntry();
-  }
-
-  private AndroidApp runTest(List<String> rules, DiagnosticsHandler handler) throws Exception {
-    Path jar = temp.newFile("test.jar").toPath();
-    try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
-      addTestClassesToJar(out, ImmutableList.of(A.class, B.class));
-      for (int i =  0; i < rules.size(); i++) {
+  private Path buildLibrary(List<String> rules) throws Exception {
+    ZipBuilder builder =
+        ZipBuilder.builder(temp.newFile(isAar ? "classes.jar" : "test.jar").toPath());
+    addTestClassesToZip(builder.getOutputStream(), ImmutableList.of(A.class, B.class));
+    if (isAar) {
+      Path jar = builder.build();
+      String allRules = StringUtils.lines(rules);
+      return ZipBuilder.builder(temp.newFile("test.aar").toPath())
+          .addFilesRelative(jar.getParent(), jar)
+          .addText("proguard.txt", allRules)
+          .build();
+    } else {
+      for (int i = 0; i < rules.size(); i++) {
         String name = "META-INF/proguard/jar" + (i == 0 ? "" : i) + ".rules";
-        addTextJarEntry(out, name, rules.get(i));
+        builder.addText(name, rules.get(i));
       }
-    }
-
-    try {
-      R8Command.Builder builder =
-          (handler != null ? R8Command.builder(handler) : R8Command.builder()).addProgramFiles(jar);
-      if (backend == Backend.DEX) {
-        builder
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-      } else {
-        assert backend == Backend.CF;
-        builder
-            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-      }
-      return ToolHelper.runR8(builder.build());
-    } catch (CompilationFailedException e) {
-      assertNotNull(handler);
-      return null;
+      return builder.build();
     }
   }
 
-  private AndroidApp runTest(String rules, DiagnosticsHandler handler) throws Exception {
-    return runTest(ImmutableList.of(rules), handler);
+  private CodeInspector runTest(List<String> rules) throws Exception {
+    return testForR8(parameters.getBackend())
+        .addProgramFiles(buildLibrary(rules))
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspector();
   }
 
+  private CodeInspector runTest(String rules) throws Exception {
+    return runTest(ImmutableList.of(rules));
+  }
 
   @Test
   public void keepOnlyA() throws Exception {
-    AndroidApp app = runTest("-keep class " + A.class.getTypeName() +" {}", null);
-    CodeInspector inspector = new CodeInspector(app);
-    assertThat(inspector.clazz(A.class), isPresent());
+    CodeInspector inspector = runTest("-keep class " + A.class.getTypeName() + " {}");
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assertThat(inspector.clazz(A.class), notIf(isPresent(), isAar));
     assertThat(inspector.clazz(B.class), not(isPresent()));
   }
 
   @Test
   public void keepOnlyB() throws Exception {
-    AndroidApp app = runTest("-keep class **B {}", null);
-    CodeInspector inspector = new CodeInspector(app);
+    CodeInspector inspector = runTest("-keep class **B {}");
     assertThat(inspector.clazz(A.class), not(isPresent()));
-    assertThat(inspector.clazz(B.class), isPresent());
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assertThat(inspector.clazz(B.class), notIf(isPresent(), isAar));
   }
 
   @Test
   public void keepBoth() throws Exception {
-    AndroidApp app = runTest("-keep class ** {}", null);
-    CodeInspector inspector = new CodeInspector(app);
-    assertThat(inspector.clazz(A.class), isPresent());
-    assertThat(inspector.clazz(B.class), isPresent());
+    CodeInspector inspector = runTest("-keep class ** {}");
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assertThat(inspector.clazz(A.class), notIf(isPresent(), isAar));
+    assertThat(inspector.clazz(B.class), notIf(isPresent(), isAar));
   }
 
   @Test
   public void multipleFiles() throws Exception {
-    AndroidApp app = runTest(ImmutableList.of("-keep class **A {}", "-keep class **B {}"), null);
-    CodeInspector inspector = new CodeInspector(app);
-    assertThat(inspector.clazz(A.class), isPresent());
-    assertThat(inspector.clazz(B.class), isPresent());
-  }
-
-  private void checkOrigin(Origin origin) {
-    assertTrue(origin instanceof ArchiveEntryOrigin);
-    assertEquals(origin.part(), "META-INF/proguard/jar.rules");
-    assertTrue(origin.parent() instanceof PathOrigin);
+    CodeInspector inspector = runTest(ImmutableList.of("-keep class **A {}", "-keep class **B {}"));
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assertThat(inspector.clazz(A.class), notIf(isPresent(), isAar));
+    assertThat(inspector.clazz(B.class), notIf(isPresent(), isAar));
   }
 
   @Test
   public void syntaxError() throws Exception {
-    DiagnosticsChecker checker = new DiagnosticsChecker();
-    AndroidApp app = runTest("error", checker);
-    assertNull(app);
-    DiagnosticsChecker.checkDiagnostic(
-        checker.errors.get(0), this::checkOrigin, 1, 1, "Expected char '-'");
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assumeTrue(!isAar);
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramFiles(buildLibrary(ImmutableList.of("error")))
+                .setMinApi(parameters.getApiLevel())
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics.assertErrorThatMatches(
+                            allOf(
+                                diagnosticMessage(containsString("Expected char '-'")),
+                                diagnosticOrigin(hasPart("META-INF/proguard/jar.rules")),
+                                diagnosticOrigin(instanceOf(ArchiveEntryOrigin.class))))));
   }
 
   @Test
   public void includeError() throws Exception {
-    DiagnosticsChecker checker = new DiagnosticsChecker();
-    AndroidApp app = runTest("-include other.rules", checker);
-    assertNull(app);
-    DiagnosticsChecker.checkDiagnostic(checker.errors.get(0), this::checkOrigin, 1, 10,
-        "Options with file names are not supported");
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assumeTrue(!isAar);
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramFiles(buildLibrary(ImmutableList.of("-include other.rules")))
+                .setMinApi(parameters.getApiLevel())
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics.assertErrorThatMatches(
+                            diagnosticMessage(
+                                containsString("Options with file names are not supported")))));
   }
 
   static class TestProvider implements ProgramResourceProvider, DataResourceProvider {
@@ -207,27 +206,20 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
 
   @Test
   public void throwingDataResourceProvider() throws Exception {
-    DiagnosticsChecker checker = new DiagnosticsChecker();
-    try {
-      R8Command.Builder builder =
-          R8Command.builder(checker).addProgramResourceProvider(new TestProvider());
-      if (backend == Backend.DEX) {
-        builder
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-      } else {
-        assert backend == Backend.CF;
-        builder
-            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-      }
-      builder.build();
-      fail("Should not succeed");
-    } catch (CompilationFailedException e) {
-      DiagnosticsChecker.checkDiagnostic(
-          checker.errors.get(0),
-          origin -> assertSame(origin, Origin.unknown()),
-          "Cannot provide data resources after all");
-    }
+    // TODO(b/228319861): Read Proguard rules from AAR's.
+    assumeTrue(!isAar);
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramResourceProviders(new TestProvider())
+                .setMinApi(parameters.getApiLevel())
+                .compileWithExpectedDiagnostics(
+                    diagnostics ->
+                        diagnostics.assertErrorThatMatches(
+                            allOf(
+                                diagnosticMessage(
+                                    containsString("Cannot provide data resources after all")),
+                                diagnosticOrigin(is(Origin.unknown()))))));
   }
 }

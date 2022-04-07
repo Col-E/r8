@@ -30,4 +30,18 @@ public abstract class OriginMatcher extends TypeSafeMatcher<Origin> {
       }
     };
   }
+
+  public static Matcher<Origin> hasPart(String part) {
+    return new OriginMatcher() {
+      @Override
+      protected boolean matchesSafely(Origin origin) {
+        return origin.part().equals(part);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("part is not " + part);
+      }
+    };
+  }
 }

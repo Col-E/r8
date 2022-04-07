@@ -690,8 +690,8 @@ public class TestBase {
   protected Path jarTestClasses(Iterable<Class<?>> classes, List<DataResource> dataResources)
       throws IOException {
     Path jar = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
-    try (JarOutputStream out = new JarOutputStream(new FileOutputStream(jar.toFile()))) {
-      addTestClassesToJar(out, classes);
+    try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(jar.toFile()))) {
+      addTestClassesToZip(out, classes);
       if (dataResources != null) {
         addDataResourcesToJar(out, dataResources);
       }
@@ -700,7 +700,7 @@ public class TestBase {
   }
 
   /** Create a temporary JAR file containing the specified test classes. */
-  protected void addTestClassesToJar(JarOutputStream out, Iterable<Class<?>> classes)
+  protected void addTestClassesToZip(ZipOutputStream out, Iterable<Class<?>> classes)
       throws IOException {
     for (Class<?> clazz : classes) {
       try (FileInputStream in =
@@ -714,7 +714,7 @@ public class TestBase {
 
   /** Create a temporary JAR file containing the specified data resources. */
   protected void addDataResourcesToJar(
-      JarOutputStream out, List<? extends DataResource> dataResources) throws IOException {
+      ZipOutputStream out, List<? extends DataResource> dataResources) throws IOException {
     try {
       for (DataResource dataResource : dataResources) {
         String name = dataResource.getName();

@@ -239,6 +239,10 @@ public class ZipUtils {
       return new ZipBuilder(zipFile);
     }
 
+    public ZipOutputStream getOutputStream() {
+      return stream;
+    }
+
     public ZipBuilder addFilesRelative(Path basePath, Collection<Path> filesToAdd)
         throws IOException {
       for (Path path : filesToAdd) {
@@ -265,6 +269,14 @@ public class ZipUtils {
       ZipEntry zipEntry = new ZipEntry(path);
       stream.putNextEntry(zipEntry);
       stream.write(bytes);
+      stream.closeEntry();
+      return this;
+    }
+
+    public ZipBuilder addText(String path, String text) throws IOException {
+      ZipEntry zipEntry = new ZipEntry(path);
+      stream.putNextEntry(zipEntry);
+      stream.write(text.getBytes(StandardCharsets.UTF_8));
       stream.closeEntry();
       return this;
     }
