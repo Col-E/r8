@@ -547,6 +547,7 @@ public class DexItemFactory {
   public final ClassMethods classMethods = new ClassMethods();
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
   public final EnumMembers enumMembers = new EnumMembers();
+  public final AndroidUtilLogMembers androidUtilLogMembers = new AndroidUtilLogMembers();
   public final JavaLangReflectArrayMembers javaLangReflectArrayMembers =
       new JavaLangReflectArrayMembers();
   public final JavaLangAnnotationRetentionPolicyMembers javaLangAnnotationRetentionPolicyMembers =
@@ -1701,6 +1702,14 @@ public class DexItemFactory {
               objectDescriptor,
               new DexString[] {objectArrayDescriptor});
     }
+  }
+
+  public class AndroidUtilLogMembers {
+
+    public final DexMethod i =
+        createMethod(androidUtilLogType, createProto(intType, stringType, stringType), "i");
+
+    private AndroidUtilLogMembers() {}
   }
 
   public class JavaLangAnnotationRetentionPolicyMembers {

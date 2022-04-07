@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.experimental.startup;
 
+import static com.android.tools.r8.utils.InternalOptions.getSystemPropertyForDevelopmentOrDefault;
 import static com.android.tools.r8.utils.InternalOptions.isSystemPropertyForDevelopmentSet;
 
 public class StartupOptions {
@@ -14,8 +15,19 @@ public class StartupOptions {
       isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.completenesscheck");
   private boolean enableStartupInstrumentation =
       isSystemPropertyForDevelopmentSet("com.android.tools.r8.startup.instrument");
+  private String startupInstrumentationTag =
+      getSystemPropertyForDevelopmentOrDefault(
+          "com.android.tools.r8.startup.instrumentationtag", null);
 
   private StartupConfiguration startupConfiguration;
+
+  public boolean hasStartupInstrumentationTag() {
+    return startupInstrumentationTag != null;
+  }
+
+  public String getStartupInstrumentationTag() {
+    return startupInstrumentationTag;
+  }
 
   public boolean isMinimalStartupDexEnabled() {
     return enableMinimalStartupDex;

@@ -873,6 +873,17 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     return false;
   }
 
+  public static String getSystemPropertyForDevelopmentOrDefault(
+      String propertyName, String defaultValue) {
+    if (Version.isDevelopmentVersion()) {
+      String propertyValue = System.getProperty(propertyName);
+      if (propertyValue != null) {
+        return propertyValue;
+      }
+    }
+    return defaultValue;
+  }
+
   private static int parseSystemPropertyForDevelopmentOrDefault(
       String propertyName, int defaultValue) {
     if (Version.isDevelopmentVersion()) {

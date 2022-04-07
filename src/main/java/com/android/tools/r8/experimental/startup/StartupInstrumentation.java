@@ -10,6 +10,8 @@ import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfReturnVoid;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfStaticFieldRead;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -31,10 +33,12 @@ public class StartupInstrumentation {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
+  private final StartupOptions options;
 
   public StartupInstrumentation(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
+    this.options = appView.options().getStartupOptions();
   }
 
   public void instrumentClasses(ExecutorService executorService) throws ExecutionException {
@@ -87,14 +91,25 @@ public class StartupInstrumentation {
     }
 
     CfCode cfCode = code.asCfCode();
-    List<CfInstruction> instructions = new ArrayList<>(3 + cfCode.getInstructions().size());
-    instructions.add(new CfStaticFieldRead(dexItemFactory.javaLangSystemMembers.out));
-    instructions.add(new CfConstString(classInitializer.getHolderType().getDescriptor()));
-    instructions.add(
-        new CfInvoke(
-            Opcodes.INVOKEVIRTUAL,
-            dexItemFactory.javaIoPrintStreamMembers.printlnWithString,
-            false));
+    List<CfInstruction> instructions;
+    if (options.hasStartupInstrumentationTag()) {
+      instructions = new ArrayList<>(4 + cfCode.getInstructions().size());
+      instructions.add(
+          new CfConstString(dexItemFactory.createString(options.getStartupInstrumentationTag())));
+      instructions.add(new CfConstString(classInitializer.getHolderType().getDescriptor()));
+      instructions.add(
+          new CfInvoke(Opcodes.INVOKESTATIC, dexItemFactory.androidUtilLogMembers.i, false));
+      instructions.add(new CfStackInstruction(Opcode.Pop));
+    } else {
+      instructions = new ArrayList<>(3 + cfCode.getInstructions().size());
+      instructions.add(new CfStaticFieldRead(dexItemFactory.javaLangSystemMembers.out));
+      instructions.add(new CfConstString(classInitializer.getHolderType().getDescriptor()));
+      instructions.add(
+          new CfInvoke(
+              Opcodes.INVOKEVIRTUAL,
+              dexItemFactory.javaIoPrintStreamMembers.printlnWithString,
+              false));
+    }
     instructions.addAll(cfCode.getInstructions());
     classInitializer.setCode(
         new CfCode(
