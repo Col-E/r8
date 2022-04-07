@@ -30,6 +30,7 @@ import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -130,7 +131,13 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   private void assertCorrect(CodeInspector inspector) {
-    inspector.allClasses().forEach(clazz -> assertThat(clazz.getOriginalName(), startsWith("j$.")));
+    inspector
+        .allClasses()
+        .forEach(
+            clazz ->
+                assertThat(
+                    clazz.getOriginalName(),
+                    CoreMatchers.anyOf(startsWith("j$."), startsWith("java."))));
     assertThat(inspector.clazz("j$.time.Clock"), isPresent());
     // Above N the following classes are removed instead of being desugared.
     if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
