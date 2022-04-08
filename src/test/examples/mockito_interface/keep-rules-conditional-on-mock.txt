@@ -8,7 +8,7 @@
   public static void main(...);
 }
 
--keep @**.RunWith class * { *; }
+-keep class **.InterfaceTest { *; }
 
 # Mockito generates mocks of interface types at runtime. If interface methods are optimized, i.e.,
 # stripped out, mock-based tests will fail. So, keep all methods of interfaces if they are used as

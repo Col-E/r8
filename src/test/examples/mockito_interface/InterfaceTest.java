@@ -6,15 +6,11 @@ package mockito_interface;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-@RunWith(Parameterized.class)
 public class InterfaceTest {
+
   @Mock
   private Interface fld;
 
@@ -22,22 +18,23 @@ public class InterfaceTest {
 
   private boolean flag;
 
-  @Parameterized.Parameters(name = "flag: {0}")
-  public static Boolean[] data() {
-    return new Boolean[] {true, false};
+  public static void main(String[] args) {
+    for (boolean flag : new boolean[] {true, false}) {
+      InterfaceTest test = new InterfaceTest(flag);
+      test.setUp();
+      test.test();
+    }
   }
 
   public InterfaceTest(boolean flag) {
     this.flag = flag;
   }
 
-  @Before
   public void setUp() {
     MockitoAnnotations.initMocks(this);
     user = new InterfaceUser(fld);
   }
 
-  @Test
   public void test() {
     if (flag) {
       user.consume();
