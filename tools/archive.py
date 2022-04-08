@@ -127,55 +127,7 @@ def Main():
   if not utils.IsWindows():
     PrintResourceInfo()
 
-  # Create maven release which uses a build that exclude dependencies.
-  create_maven_release.generate_r8_maven_zip(utils.MAVEN_ZIP)
-  create_maven_release.generate_r8_maven_zip(
-      utils.MAVEN_ZIP_LIB, is_r8lib=True)
-
-  # Generate and copy a full build without dependencies.
-  gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
-  shutil.copyfile(utils.R8_JAR, utils.R8_FULL_EXCLUDE_DEPS_JAR)
-
-  # Ensure all archived artifacts has been built before archiving.
-  # The target tasks postfixed by 'lib' depend on the actual target task so
-  # building it invokes the original task first.
-  # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
-  gradle.RunGradle([
-    utils.R8,
-    utils.D8,
-    utils.R8LIB,
-    utils.R8LIB_NO_DEPS,
-    utils.R8RETRACE,
-    utils.R8RETRACE_NO_DEPS,
-    utils.LIBRARY_DESUGAR_CONVERSIONS,
-    '-Pno_internal'
-  ])
-
-  # Create maven release of the desuage_jdk_libs configuration. This require
-  # an r8.jar with dependencies to have been built.
-  create_maven_release.generate_desugar_configuration_maven_zip(
-      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
-      utils.DESUGAR_CONFIGURATION,
-      utils.DESUGAR_IMPLEMENTATION)
-  create_maven_release.generate_desugar_configuration_maven_zip(
-      utils.DESUGAR_CONFIGURATION_LEGACY_JDK11_MAVEN_ZIP,
-      utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
-      utils.DESUGAR_IMPLEMENTATION_JDK11)
-
-  version = GetVersion()
-  is_main = IsMain(version)
-  if is_main:
-    # On main we use the git hash to archive with
-    print('On main, using git hash for archiving')
-    version = GetGitHash()
-
-  destination = GetVersionDestination('gs://', version, is_main)
-  if utils.cloud_storage_exists(destination) and not options.dry_run:
-    raise Exception('Target archive directory %s already exists' % destination)
   with utils.TempDir() as temp:
-    # Create pom file for our maven repository that we build for testing.
-    default_pom_file = os.path.join(temp, 'r8.pom')
-    create_maven_release.write_default_r8_pom_file(default_pom_file, version)
 
     version_file = os.path.join(temp, 'r8-version.properties')
     with open(version_file,'w') as version_writer:
@@ -189,6 +141,56 @@ def Main():
                 + os.environ.get('SWARMING_BOT_ID') + ')\n')
       version_writer.write(releaser)
       version_writer.write('version-file.version.code=1\n')
+
+    # Create maven release which uses a build that exclude dependencies.
+    create_maven_release.generate_r8_maven_zip(utils.MAVEN_ZIP, version_file=version_file)
+    create_maven_release.generate_r8_maven_zip(
+        utils.MAVEN_ZIP_LIB, is_r8lib=True, version_file=version_file)
+
+    # Generate and copy a full build without dependencies.
+    gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
+    shutil.copyfile(utils.R8_JAR, utils.R8_FULL_EXCLUDE_DEPS_JAR)
+
+    # Ensure all archived artifacts has been built before archiving.
+    # The target tasks postfixed by 'lib' depend on the actual target task so
+    # building it invokes the original task first.
+    # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
+    gradle.RunGradle([
+        utils.R8,
+        utils.D8,
+        utils.R8LIB,
+        utils.R8LIB_NO_DEPS,
+        utils.R8RETRACE,
+        utils.R8RETRACE_NO_DEPS,
+        utils.LIBRARY_DESUGAR_CONVERSIONS,
+        '-Pno_internal'
+    ])
+
+    # Create maven release of the desuage_jdk_libs configuration. This require
+    # an r8.jar with dependencies to have been built.
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION,
+        utils.DESUGAR_IMPLEMENTATION)
+    create_maven_release.generate_desugar_configuration_maven_zip(
+        utils.DESUGAR_CONFIGURATION_LEGACY_JDK11_MAVEN_ZIP,
+        utils.DESUGAR_CONFIGURATION_JDK11_LEGACY,
+        utils.DESUGAR_IMPLEMENTATION_JDK11)
+
+    version = GetVersion()
+    is_main = IsMain(version)
+    if is_main:
+      # On main we use the git hash to archive with
+      print('On main, using git hash for archiving')
+      version = GetGitHash()
+
+    destination = GetVersionDestination('gs://', version, is_main)
+    if utils.cloud_storage_exists(destination) and not options.dry_run:
+      raise Exception('Target archive directory %s already exists' % destination)
+
+    # Create pom file for our maven repository that we build for testing.
+    default_pom_file = os.path.join(temp, 'r8.pom')
+    create_maven_release.write_default_r8_pom_file(default_pom_file, version)
 
     for file in [
       utils.D8_JAR,

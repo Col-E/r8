@@ -9,7 +9,7 @@ import hashlib
 import jdk
 import json
 from os import makedirs
-from os.path import join
+from os.path import join, basename
 from shutil import copyfile, make_archive, move, rmtree
 import subprocess
 import sys
@@ -309,7 +309,7 @@ def generate_maven_zip(name, version, pom_file, jar_file, out):
     base_no_zip = out[0:len(out)-4]
     make_archive(base_no_zip, 'zip', tmp_dir)
 
-def generate_r8_maven_zip(out, is_r8lib=False):
+def generate_r8_maven_zip(out, is_r8lib=False, version_file=None):
   # Build the R8 no deps artifact.
   if not is_r8lib:
     gradle.RunGradleExcludeDeps([utils.R8])
@@ -318,6 +318,13 @@ def generate_r8_maven_zip(out, is_r8lib=False):
 
   version = determine_version()
   with utils.TempDir() as tmp_dir:
+    file_copy = join(tmp_dir, 'copy_of_jar.jar')
+    copyfile(utils.R8LIB_JAR if is_r8lib else utils.R8_JAR, file_copy)
+
+    if version_file:
+      with zipfile.ZipFile(file_copy, 'a') as zip:
+        zip.write(version_file, basename(version_file))
+
     # Generate the pom file.
     pom_file = join(tmp_dir, 'r8.pom')
     write_pom_file(
@@ -331,7 +338,7 @@ def generate_r8_maven_zip(out, is_r8lib=False):
         'r8',
         version,
         pom_file,
-        utils.R8LIB_JAR if is_r8lib else utils.R8_JAR,
+        file_copy,
         out)
 
 # Write the desugaring configuration of a jar file with the following content:
