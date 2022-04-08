@@ -29,6 +29,7 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
   public abstract boolean exceedsBuffer();
 
+  @Override
   public String readLine() throws IOException {
     byte[] bytes = readLineFromMultipleReads();
     if (bytes == null) {
