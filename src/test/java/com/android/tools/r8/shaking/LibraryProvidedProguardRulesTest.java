@@ -28,7 +28,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils.ZipBuilder;
@@ -66,35 +65,58 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
 
   static class B {}
 
+  enum LibraryType {
+    JAR_WITH_RULES,
+    AAR_WITH_RULES,
+    AAR_WITH_RULES_ONLY_IN_JAR,
+    AAR_WITH_RULES_BOTH_IN_JAR_AND_IN_AAR;
+
+    boolean isAar() {
+      return this != JAR_WITH_RULES;
+    }
+
+    boolean hasRulesInJar() {
+      return this != AAR_WITH_RULES;
+    }
+
+    boolean hasRulesInAar() {
+      return this == AAR_WITH_RULES || this == AAR_WITH_RULES_BOTH_IN_JAR_AND_IN_AAR;
+    }
+  }
+
   @Parameter(0)
   public TestParameters parameters;
 
   @Parameter(1)
-  public boolean isAar;
+  public LibraryType libraryType;
 
   @Parameters(name = "{0} AAR: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(), LibraryType.values());
   }
 
   private Path buildLibrary(List<String> rules) throws Exception {
-    ZipBuilder builder =
-        ZipBuilder.builder(temp.newFile(isAar ? "classes.jar" : "test.jar").toPath());
-    addTestClassesToZip(builder.getOutputStream(), ImmutableList.of(A.class, B.class));
-    if (isAar) {
-      Path jar = builder.build();
-      String allRules = StringUtils.lines(rules);
-      return ZipBuilder.builder(temp.newFile("test.aar").toPath())
-          .addFilesRelative(jar.getParent(), jar)
-          .addText("proguard.txt", allRules)
-          .build();
-    } else {
+    ZipBuilder jarBuilder =
+        ZipBuilder.builder(temp.newFile(libraryType.isAar() ? "classes.jar" : "test.jar").toPath());
+    addTestClassesToZip(jarBuilder.getOutputStream(), ImmutableList.of(A.class, B.class));
+    if (libraryType.hasRulesInJar()) {
       for (int i = 0; i < rules.size(); i++) {
         String name = "META-INF/proguard/jar" + (i == 0 ? "" : i) + ".rules";
-        builder.addText(name, rules.get(i));
+        jarBuilder.addText(name, rules.get(i));
       }
-      return builder.build();
+    }
+    if (libraryType.isAar()) {
+      Path jar = jarBuilder.build();
+      String allRules = StringUtils.lines(rules);
+      ZipBuilder aarBuilder = ZipBuilder.builder(temp.newFile("test.aar").toPath());
+      aarBuilder.addFilesRelative(jar.getParent(), jar);
+      if (libraryType.hasRulesInAar()) {
+        aarBuilder.addText("proguard.txt", allRules);
+      }
+      return aarBuilder.build();
+    } else {
+      return jarBuilder.build();
     }
   }
 
@@ -114,7 +136,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   public void keepOnlyA() throws Exception {
     CodeInspector inspector = runTest("-keep class " + A.class.getTypeName() + " {}");
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assertThat(inspector.clazz(A.class), notIf(isPresent(), isAar));
+    assertThat(inspector.clazz(A.class), notIf(isPresent(), libraryType.isAar()));
     assertThat(inspector.clazz(B.class), not(isPresent()));
   }
 
@@ -123,29 +145,29 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
     CodeInspector inspector = runTest("-keep class **B {}");
     assertThat(inspector.clazz(A.class), not(isPresent()));
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assertThat(inspector.clazz(B.class), notIf(isPresent(), isAar));
+    assertThat(inspector.clazz(B.class), notIf(isPresent(), libraryType.isAar()));
   }
 
   @Test
   public void keepBoth() throws Exception {
     CodeInspector inspector = runTest("-keep class ** {}");
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assertThat(inspector.clazz(A.class), notIf(isPresent(), isAar));
-    assertThat(inspector.clazz(B.class), notIf(isPresent(), isAar));
+    assertThat(inspector.clazz(A.class), notIf(isPresent(), libraryType.isAar()));
+    assertThat(inspector.clazz(B.class), notIf(isPresent(), libraryType.isAar()));
   }
 
   @Test
   public void multipleFiles() throws Exception {
     CodeInspector inspector = runTest(ImmutableList.of("-keep class **A {}", "-keep class **B {}"));
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assertThat(inspector.clazz(A.class), notIf(isPresent(), isAar));
-    assertThat(inspector.clazz(B.class), notIf(isPresent(), isAar));
+    assertThat(inspector.clazz(A.class), notIf(isPresent(), libraryType.isAar()));
+    assertThat(inspector.clazz(B.class), notIf(isPresent(), libraryType.isAar()));
   }
 
   @Test
   public void syntaxError() throws Exception {
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assumeTrue(!isAar);
+    assumeTrue(!libraryType.isAar());
     assertThrows(
         CompilationFailedException.class,
         () ->
@@ -164,7 +186,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   @Test
   public void includeError() throws Exception {
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assumeTrue(!isAar);
+    assumeTrue(!libraryType.isAar());
     assertThrows(
         CompilationFailedException.class,
         () ->
@@ -207,7 +229,7 @@ public class LibraryProvidedProguardRulesTest extends TestBase {
   @Test
   public void throwingDataResourceProvider() throws Exception {
     // TODO(b/228319861): Read Proguard rules from AAR's.
-    assumeTrue(!isAar);
+    assumeTrue(!libraryType.isAar());
     assertThrows(
         CompilationFailedException.class,
         () ->
