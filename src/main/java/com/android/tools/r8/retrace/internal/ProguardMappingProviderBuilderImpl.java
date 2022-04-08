@@ -6,11 +6,13 @@ package com.android.tools.r8.retrace.internal;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.LineReader;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.retrace.InvalidMappingFileException;
 import com.android.tools.r8.retrace.ProguardMapProducer;
 import com.android.tools.r8.retrace.ProguardMappingProvider;
-import java.io.BufferedReader;
+import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringInputBuffer;
+import com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.ProguardMapReaderWithFilteringMappedBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -62,23 +64,17 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
   @Override
   public ProguardMappingProvider build() {
     try {
-      if (allowLookupAllClasses) {
-        return new ProguardMappingProviderImpl(
-            ClassNameMapper.mapperFromBufferedReader(
-                new BufferedReader(proguardMapProducer.get()),
-                diagnosticsHandler,
-                true,
-                allowExperimental));
-      } else {
-        return new ProguardMappingProviderImpl(
-            ClassNameMapper.mapperFromBufferedReaderWithFiltering(
-                new BufferedReader(proguardMapProducer.get()),
-                diagnosticsHandler,
-                true,
-                allowExperimental,
-                allowedLookup),
-            allowedLookup);
-      }
+      LineReader reader =
+          proguardMapProducer.isFileBacked()
+              ? new ProguardMapReaderWithFilteringMappedBuffer(proguardMapProducer.getPath())
+              : new ProguardMapReaderWithFilteringInputBuffer(proguardMapProducer.get());
+      return new ProguardMappingProviderImpl(
+          ClassNameMapper.mapperFromLineReaderWithFiltering(
+              reader,
+              diagnosticsHandler,
+              true,
+              allowExperimental,
+              allowLookupAllClasses ? null : allowedLookup));
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }

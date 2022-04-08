@@ -33,9 +33,9 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -302,9 +302,10 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
       Timing timing = Timing.create("R8 retrace", command.printMemory());
       RetraceOptions options = command.getOptions();
       if (command.getOptions().isVerifyMappingFileHash()) {
-        try (Reader reader = options.getProguardMapProducer().get()) {
+        try (InputStream reader = options.getProguardMapProducer().get()) {
           VerifyMappingFileHashResult checkResult =
-              ProguardMapChecker.validateProguardMapHash(CharStreams.toString(reader));
+              ProguardMapChecker.validateProguardMapHash(
+                  CharStreams.toString(new InputStreamReader(reader, Charsets.UTF_8)));
           if (checkResult.isError()) {
             command
                 .getOptions()

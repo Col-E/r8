@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -62,7 +61,7 @@ import java.util.function.Consumer;
  */
 public class ProguardMapReader implements AutoCloseable {
 
-  private final BufferedReader reader;
+  private final LineReader reader;
   private final JsonParser jsonParser = new JsonParser();
   private final DiagnosticsHandler diagnosticsHandler;
   private final boolean allowEmptyMappedRanges;
@@ -74,7 +73,7 @@ public class ProguardMapReader implements AutoCloseable {
   }
 
   ProguardMapReader(
-      BufferedReader reader,
+      LineReader reader,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping) {

@@ -6,28 +6,53 @@ package com.android.tools.r8.retrace;
 
 import com.android.tools.r8.Keep;
 import com.google.common.primitives.Bytes;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 /** Interface for producing a string format of a mapping file. */
 @Keep
 public interface ProguardMapProducer {
 
-  Reader get() throws IOException;
+  InputStream get() throws IOException;
+
+  default boolean isFileBacked() {
+    return false;
+  }
+
+  default Path getPath() throws FileNotFoundException {
+    return null;
+  }
 
   static ProguardMapProducer fromString(String proguardMapString) {
-    return () -> new StringReader(proguardMapString);
+    return () -> new ByteArrayInputStream(proguardMapString.getBytes(StandardCharsets.UTF_8));
   }
 
   static ProguardMapProducer fromPath(Path path) {
-    return () -> Files.newBufferedReader(path, StandardCharsets.UTF_8);
+    return new ProguardMapProducer() {
+      @Override
+      public InputStream get() throws IOException {
+        return new BufferedInputStream(new FileInputStream(path.toFile()));
+      }
+
+      @Override
+      public boolean isFileBacked() {
+        return true;
+      }
+
+      @Override
+      public Path getPath() {
+        return path;
+      }
+    };
   }
 
   static ProguardMapProducer fromBytes(byte[]... partitions) {
-    return fromString(new String(Bytes.concat(partitions), StandardCharsets.UTF_8));
+    return () -> new ByteArrayInputStream(Bytes.concat(partitions));
   }
 }

@@ -126,6 +126,16 @@ public class RetraceCommandLineTests {
   }
 
   @Test
+  public void testWindowsLineEndings() throws IOException {
+    ActualRetraceBotStackTrace stackTrace = new ActualRetraceBotStackTrace();
+    runTest(
+        stackTrace.mapping().replace("\n", "\r\n"),
+        StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
+        false,
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR);
+  }
+
+  @Test
   public void testRegularExpression() throws IOException {
     ActualRetraceBotStackTrace stackTrace = new ActualRetraceBotStackTrace();
     runTest(

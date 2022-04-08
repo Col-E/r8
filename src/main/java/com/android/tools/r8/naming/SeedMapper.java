@@ -81,7 +81,9 @@ public class SeedMapper implements ProguardMap {
 
   private static SeedMapper seedMapperFromInputStream(Reporter reporter, InputStream in)
       throws IOException {
-    BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+    LineReader reader =
+        LineReader.fromBufferedReader(
+            new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)));
     try (ProguardMapReader proguardReader = new ProguardMapReader(reader, reporter, false, false)) {
       SeedMapper.Builder builder = SeedMapper.builder(reporter);
       proguardReader.parse(builder);

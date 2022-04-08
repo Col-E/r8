@@ -126,8 +126,8 @@ public class ClassNameMapper implements ProguardMap {
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping)
       throws IOException {
-    return mapperFromBufferedReader(
-        CharSource.wrap(contents).openBufferedStream(),
+    return mapperFromLineReader(
+        LineReader.fromBufferedReader(CharSource.wrap(contents).openBufferedStream()),
         diagnosticsHandler,
         allowEmptyMappedRanges,
         allowExperimentalMapping);
@@ -144,6 +144,19 @@ public class ClassNameMapper implements ProguardMap {
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping)
       throws IOException {
+    return mapperFromLineReader(
+        LineReader.fromBufferedReader(reader),
+        diagnosticsHandler,
+        allowEmptyMappedRanges,
+        allowExperimentalMapping);
+  }
+
+  public static ClassNameMapper mapperFromLineReader(
+      LineReader reader,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean allowEmptyMappedRanges,
+      boolean allowExperimentalMapping)
+      throws IOException {
     try (ProguardMapReader proguardReader =
         new ProguardMapReader(
             reader,
@@ -156,8 +169,8 @@ public class ClassNameMapper implements ProguardMap {
     }
   }
 
-  public static ClassNameMapper mapperFromBufferedReaderWithFiltering(
-      BufferedReader reader,
+  public static ClassNameMapper mapperFromLineReaderWithFiltering(
+      LineReader reader,
       DiagnosticsHandler diagnosticsHandler,
       boolean allowEmptyMappedRanges,
       boolean allowExperimentalMapping,
