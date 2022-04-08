@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.io.IOException;
 import java.util.List;
 import java.util.jar.JarFile;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,6 +68,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/228587114")
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
         .addInnerClasses(getClass())
@@ -89,6 +91,7 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/228587114")
   public void testR8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())

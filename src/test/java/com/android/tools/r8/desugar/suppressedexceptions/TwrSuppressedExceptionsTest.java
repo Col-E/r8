@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.Closeable;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,6 +59,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/228587114")
   public void testD8() throws Exception {
     testForDesugaring(parameters)
         .addProgramClasses(TestClass.class, MyClosable.class)
@@ -94,6 +96,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/228587114")
   public void testR8() throws Exception {
     assumeTrue(
         "R8 does not desugar CF so only run the high API variant.",
