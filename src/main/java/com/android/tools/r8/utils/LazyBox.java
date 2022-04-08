@@ -6,7 +6,7 @@ package com.android.tools.r8.utils;
 
 import java.util.function.Supplier;
 
-public class LazyBox<T> extends Box<T> {
+public class LazyBox<T> extends BoxBase<T> {
 
   private final Supplier<T> supplier;
 

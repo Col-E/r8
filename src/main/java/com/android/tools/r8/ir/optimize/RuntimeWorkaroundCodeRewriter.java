@@ -23,13 +23,12 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.base.Suppliers;
+import com.android.tools.r8.utils.LazyBox;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.Collections;
 import java.util.ListIterator;
-import java.util.function.Supplier;
 
 public class RuntimeWorkaroundCodeRewriter {
 
@@ -87,8 +86,8 @@ public class RuntimeWorkaroundCodeRewriter {
       return;
     }
     DexItemFactory factory = options.itemFactory;
-    final Supplier<DexMethod> javaLangLangSignum =
-        Suppliers.memoize(
+    LazyBox<DexMethod> javaLangLangSignum =
+        new LazyBox<>(
             () ->
                 factory.createMethod(
                     factory.createString("Ljava/lang/Long;"),
@@ -118,7 +117,7 @@ public class RuntimeWorkaroundCodeRewriter {
           Value longValue = firstMaterializing.inValues().get(0);
           InvokeStatic invokeLongSignum =
               new InvokeStatic(
-                  javaLangLangSignum.get(), null, Collections.singletonList(longValue));
+                  javaLangLangSignum.computeIfAbsent(), null, Collections.singletonList(longValue));
           ensureThrowingInstructionBefore(code, firstMaterializing, it, invokeLongSignum);
           return;
         }

@@ -72,7 +72,6 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.retrace.internal.RetraceUtils;
 import com.android.tools.r8.shaking.KeepInfoCollection;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
-import com.google.common.base.Suppliers;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -87,7 +86,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class LineNumberOptimizer {
 
@@ -502,8 +500,8 @@ public class LineNumberOptimizer {
       // Create a supplier which creates a new, cached ClassNaming.Builder on-demand.
       DexType originalType = appView.graphLens().getOriginalType(clazz.type);
       DexString renamedDescriptor = namingLens.lookupDescriptor(clazz.getType());
-      Supplier<ClassNaming.Builder> onDemandClassNamingBuilder =
-          Suppliers.memoize(
+      LazyBox<ClassNaming.Builder> onDemandClassNamingBuilder =
+          new LazyBox<>(
               () ->
                   classNameMapperBuilder.classNamingBuilder(
                       DescriptorUtils.descriptorToJavaType(renamedDescriptor.toString()),
@@ -516,14 +514,14 @@ public class LineNumberOptimizer {
         String sourceFile = originalSourceFile.toString();
         if (!RetraceUtils.hasPredictableSourceFileName(clazz.toSourceString(), sourceFile)) {
           onDemandClassNamingBuilder
-              .get()
+              .computeIfAbsent()
               .addMappingInformation(FileNameInformation.build(sourceFile), Unreachable::raise);
         }
       }
 
       if (isSyntheticClass) {
         onDemandClassNamingBuilder
-            .get()
+            .computeIfAbsent()
             .addMappingInformation(
                 CompilerSynthesizedMappingInformation.builder().build(), Unreachable::raise);
       }
@@ -621,13 +619,13 @@ public class LineNumberOptimizer {
           }
 
           MemberNaming memberNaming = new MemberNaming(originalSignature, obfuscatedName);
-          onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
+          onDemandClassNamingBuilder.computeIfAbsent().addMemberEntry(memberNaming);
 
           // Add simple "a() -> b" mapping if we won't have any other with concrete line numbers
           if (mappedPositions.isEmpty()) {
             MappedRange range =
                 onDemandClassNamingBuilder
-                    .get()
+                    .computeIfAbsent()
                     .addMappedRange(null, originalSignature, null, obfuscatedName);
             methodMappingInfo.forEach(
                 info -> range.addMappingInformation(info, Unreachable::raise));
@@ -702,7 +700,7 @@ public class LineNumberOptimizer {
               obfuscatedRange =
                   new Range(firstPosition.obfuscatedLine, lastPosition.obfuscatedLine);
             }
-            ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.get();
+            ClassNaming.Builder classNamingBuilder = onDemandClassNamingBuilder.computeIfAbsent();
             MappedRange lastMappedRange =
                 getMappedRangesForPosition(
                     appView.options().dexItemFactory(),
@@ -895,11 +893,11 @@ public class LineNumberOptimizer {
   private static void addClassToClassNaming(
       DexType originalType,
       DexString renamedClassName,
-      Supplier<Builder> onDemandClassNamingBuilder) {
+      LazyBox<Builder> onDemandClassNamingBuilder) {
     // We do know we need to create a ClassNaming.Builder if the class itself had been renamed.
     if (originalType.descriptor != renamedClassName) {
       // Not using return value, it's registered in classNameMapperBuilder
-      onDemandClassNamingBuilder.get();
+      onDemandClassNamingBuilder.computeIfAbsent();
     }
   }
 
@@ -908,7 +906,7 @@ public class LineNumberOptimizer {
       NamingLens namingLens,
       DexProgramClass clazz,
       DexType originalType,
-      Supplier<Builder> onDemandClassNamingBuilder) {
+      LazyBox<Builder> onDemandClassNamingBuilder) {
     clazz.forEachField(
         dexEncodedField -> {
           DexField dexField = dexEncodedField.getReference();
@@ -918,7 +916,7 @@ public class LineNumberOptimizer {
             FieldSignature originalSignature =
                 FieldSignature.fromDexField(originalField, originalField.holder != originalType);
             MemberNaming memberNaming = new MemberNaming(originalSignature, renamedName.toString());
-            onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
+            onDemandClassNamingBuilder.computeIfAbsent().addMemberEntry(memberNaming);
           }
         });
   }

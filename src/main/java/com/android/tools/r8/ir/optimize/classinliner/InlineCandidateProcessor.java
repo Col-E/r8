@@ -65,6 +65,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
@@ -79,7 +80,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 final class InlineCandidateProcessor {
 
@@ -218,7 +218,7 @@ final class InlineCandidateProcessor {
    *
    * @return null if all users are eligible, or the first ineligible user.
    */
-  InstructionOrPhi areInstanceUsersEligible(Supplier<InliningOracle> defaultOracle) {
+  InstructionOrPhi areInstanceUsersEligible(LazyBox<InliningOracle> defaultOracle) {
     // No Phi users.
     if (eligibleInstance.hasPhiUsers()) {
       return eligibleInstance.firstPhiUser(); // Not eligible.
@@ -1073,7 +1073,7 @@ final class InlineCandidateProcessor {
       InvokeMethod invoke,
       SingleResolutionResult<?> resolutionResult,
       ProgramMethod singleTarget,
-      Supplier<InliningOracle> defaultOracle,
+      LazyBox<InliningOracle> defaultOracle,
       Set<Instruction> indirectUsers) {
     if (!((invoke.isInvokeDirect() && !invoke.isInvokeConstructor(dexItemFactory))
         || invoke.isInvokeInterface()
@@ -1092,7 +1092,7 @@ final class InlineCandidateProcessor {
     }
 
     // Check if the method is inline-able by standard inliner.
-    InliningOracle oracle = defaultOracle.get();
+    InliningOracle oracle = defaultOracle.computeIfAbsent();
     if (!oracle.passesInliningConstraints(
         invoke,
         resolutionResult,

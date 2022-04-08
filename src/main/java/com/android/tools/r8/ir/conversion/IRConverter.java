@@ -94,12 +94,12 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.NeverMergeGroup;
+import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1402,7 +1402,7 @@ public class IRConverter {
           methodProcessor,
           methodProcessingContext,
           inliner,
-          Suppliers.memoize(
+          new LazyBox<>(
               () ->
                   inliner.createDefaultOracle(
                       code.context(),

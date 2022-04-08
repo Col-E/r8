@@ -222,7 +222,7 @@ public class Retrace<T, ST extends StackTraceElementProxy<T, ST>> {
                         resultsForLine.add(Pair.create(retracedElement, currentList.get()));
                         contexts.add(retracedElement.getContext());
                       } else {
-                        currentList.empty();
+                        currentList.clear();
                       }
                     }
                     if (currentList.isSet()) {

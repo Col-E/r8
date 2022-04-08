@@ -29,13 +29,13 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.LazyBox;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 
 public final class ClassInliner {
 
@@ -135,7 +135,7 @@ public final class ClassInliner {
       MethodProcessor methodProcessor,
       MethodProcessingContext methodProcessingContext,
       Inliner inliner,
-      Supplier<InliningOracle> defaultOracle) {
+      LazyBox<InliningOracle> defaultOracle) {
 
     // Collect all the new-instance and static-get instructions in the code before inlining.
     List<Instruction> roots =

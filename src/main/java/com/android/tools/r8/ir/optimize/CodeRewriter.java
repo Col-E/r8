@@ -98,11 +98,11 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
+import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -145,7 +145,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public class CodeRewriter {
 
@@ -1838,8 +1837,7 @@ public class CodeRewriter {
     // and ConstStrings with one user.
     // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently
     // doing so seems to make things worse.
-    Supplier<DominatorTree> dominatorTreeMemoization =
-        Suppliers.memoize(() -> new DominatorTree(code));
+    LazyBox<DominatorTree> dominatorTreeMemoization = new LazyBox<>(() -> new DominatorTree(code));
     Map<BasicBlock, Map<Value, Instruction>> addConstantInBlock = new IdentityHashMap<>();
     LinkedList<BasicBlock> blocks = code.blocks;
     for (BasicBlock block : blocks) {
@@ -1945,7 +1943,7 @@ public class CodeRewriter {
   private void shortenLiveRangesInsideBlock(
       IRCode code,
       BasicBlock block,
-      Supplier<DominatorTree> dominatorTreeMemoization,
+      LazyBox<DominatorTree> dominatorTreeMemoization,
       Map<BasicBlock, Map<Value, Instruction>> addConstantInBlock,
       Predicate<ConstInstruction> selector) {
     InstructionListIterator iterator = block.listIterator(code);
@@ -2014,7 +2012,7 @@ public class CodeRewriter {
         userBlocks.add(phi.getBlock());
       }
       // Locate the closest dominator block for all user blocks.
-      DominatorTree dominatorTree = dominatorTreeMemoization.get();
+      DominatorTree dominatorTree = dominatorTreeMemoization.computeIfAbsent();
       BasicBlock dominator = dominatorTree.closestDominator(userBlocks);
       // If the closest dominator block is a block that uses the constant for a phi the constant
       // needs to go in the immediate dominator block so that it is available for phi moves.
@@ -2816,9 +2814,9 @@ public class CodeRewriter {
       return;
     }
 
-    Supplier<Long2ReferenceMap<List<ConstNumber>>> constantsByValue =
-        Suppliers.memoize(() -> getConstantsByValue(code));
-    Supplier<DominatorTree> dominatorTree = Suppliers.memoize(() -> new DominatorTree(code));
+    LazyBox<Long2ReferenceMap<List<ConstNumber>>> constantsByValue =
+        new LazyBox<>(() -> getConstantsByValue(code));
+    LazyBox<DominatorTree> dominatorTree = new LazyBox<>(() -> new DominatorTree(code));
 
     boolean changed = false;
     for (BasicBlock block : code.blocks) {
@@ -2908,7 +2906,7 @@ public class CodeRewriter {
         }
       }
 
-      if (constantsByValue.get().isEmpty()) {
+      if (constantsByValue.computeIfAbsent().isEmpty()) {
         break;
       }
     }
@@ -2954,16 +2952,17 @@ public class CodeRewriter {
       long withValue,
       Value newValue,
       BasicBlock dominator,
-      Supplier<Long2ReferenceMap<List<ConstNumber>>> constantsByValueSupplier,
+      LazyBox<Long2ReferenceMap<List<ConstNumber>>> constantsByValueSupplier,
       IRCode code,
-      Supplier<DominatorTree> dominatorTree) {
+      LazyBox<DominatorTree> dominatorTree) {
     if (newValue.hasLocalInfo()) {
       // We cannot replace a constant with a value that has local info, because that could change
       // debugging behavior.
       return false;
     }
 
-    Long2ReferenceMap<List<ConstNumber>> constantsByValue = constantsByValueSupplier.get();
+    Long2ReferenceMap<List<ConstNumber>> constantsByValue =
+        constantsByValueSupplier.computeIfAbsent();
     List<ConstNumber> constantsWithValue = constantsByValue.get(withValue);
     if (constantsWithValue == null || constantsWithValue.isEmpty()) {
       return false;
@@ -3003,7 +3002,7 @@ public class CodeRewriter {
         continue;
       }
 
-      if (dominatorTree.get().dominatedBy(block, dominator)) {
+      if (dominatorTree.computeIfAbsent().dominatedBy(block, dominator)) {
         if (newValue.getType().lessThanOrEqual(value.getType(), appView)) {
           value.replaceUsers(newValue);
           block.listIterator(code, constNumber).removeOrReplaceByDebugLocalRead();
