@@ -963,6 +963,16 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
             isAssignablePredicate(appView),
             appView.dexItemFactory(),
             maxStack);
+    for (CfTryCatch tryCatchRange : tryCatchRanges) {
+      try {
+        builder.checkTryCatchRange(tryCatchRange);
+      } catch (CfCodeStackMapValidatingException ex) {
+        return reportStackMapError(
+            CfCodeStackMapValidatingException.invalidTryCatchRange(
+                method, tryCatchRange, ex.getMessage(), appView),
+            appView);
+      }
+    }
     if (stateMap.containsKey(null)) {
       assert !shouldComputeInitialFrame();
       builder.checkFrameAndSet(stateMap.get(null));
@@ -989,7 +999,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
         instruction.evaluate(builder, previousMethodSignature, appView, appView.dexItemFactory());
       } catch (CfCodeStackMapValidatingException ex) {
         return reportStackMapError(
-            CfCodeStackMapValidatingException.toDiagnostics(
+            CfCodeStackMapValidatingException.invalidStackMapForInstruction(
                 method, i, instruction, ex.getMessage(), appView),
             appView);
       }

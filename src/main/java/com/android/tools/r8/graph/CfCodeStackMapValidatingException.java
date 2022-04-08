@@ -5,6 +5,8 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.utils.StringUtils;
 
 public class CfCodeStackMapValidatingException extends RuntimeException {
 
@@ -52,7 +54,24 @@ public class CfCodeStackMapValidatingException extends RuntimeException {
         sb.toString());
   }
 
-  public static CfCodeDiagnostics toDiagnostics(
+  public static CfCodeDiagnostics invalidTryCatchRange(
+      ProgramMethod method, CfTryCatch tryCatch, String detailMessage, AppView<?> appView) {
+    StringBuilder sb =
+        new StringBuilder("Invalid try catch range for ")
+            .append(StringUtils.join(", ", tryCatch.guards, DexType::getTypeName))
+            .append(": ")
+            .append(detailMessage)
+            .append(".");
+    if (appView.enableWholeProgramOptimizations()) {
+      sb.append(" In later version of R8, the method may be assumed not reachable.");
+    }
+    return new CfCodeDiagnostics(
+        method.getOrigin(),
+        appView.graphLens().getOriginalMethodSignature(method.getReference()),
+        sb.toString());
+  }
+
+  public static CfCodeDiagnostics invalidStackMapForInstruction(
       ProgramMethod method,
       int instructionIndex,
       CfInstruction instruction,

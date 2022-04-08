@@ -174,21 +174,40 @@ public class CfFrameVerificationHelper {
       for (CfTryCatch tryCatchRange : tryCatchRanges) {
         if (tryCatchRange.start == label) {
           currentCatchRanges.add(tryCatchRange);
-          // We can have fall-through into this range requiring the current frame being
-          // assignable to the handler frame. This is handled for locals when we see a throwing
-          // instruction, but we can validate here that the stack will be a single element stack
-          // [throwable].
-          CfFrame destinationFrame = stateMap.get(tryCatchRange.start);
-          if (destinationFrame == null) {
-            throw CfCodeStackMapValidatingException.error("No frame for target catch range target");
-          }
-          checkStackIsAssignable(
-              destinationFrame.getStack(), throwStack, factory, isJavaAssignable);
         }
       }
       currentCatchRanges.removeIf(currentRange -> currentRange.end == label);
     }
     return this;
+  }
+
+  public void checkTryCatchRange(CfTryCatch tryCatchRange) {
+    // According to the spec:
+    // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1
+    // saying ` and the handler's target (the initial instruction of the handler code) is type
+    // safe assuming an incoming type state T. The type state T is derived from ExcStackFrame
+    // by replacing the operand stack with a stack whose sole element is the handler's
+    // exception class.
+    tryCatchRange.targets.forEach(
+        target -> {
+          CfFrame destinationFrame = stateMap.get(target);
+          if (destinationFrame == null) {
+            throw CfCodeStackMapValidatingException.error("No frame for target catch range target");
+          }
+          // From the spec: the handler's exception class is assignable to the class Throwable.
+          tryCatchRange.guards.forEach(
+              guard -> {
+                if (!isJavaAssignable.test(guard, factory.throwableType)) {
+                  throw CfCodeStackMapValidatingException.error(
+                      "Could not assign '" + guard.toSourceString() + "' to throwable.");
+                }
+                checkStackIsAssignable(
+                    ImmutableDeque.of(FrameType.initialized(guard)),
+                    destinationFrame.getStack(),
+                    factory,
+                    isJavaAssignable);
+              });
+        });
   }
 
   private void checkFrameIsSet() {
@@ -218,9 +237,6 @@ public class CfFrameVerificationHelper {
         if (destinationFrame == null) {
           throw CfCodeStackMapValidatingException.error("No frame for target catch range target");
         }
-        // We have to check all current handler targets have assignable locals and a 1-element
-        // stack assignable to throwable. It is not required that the the thrown error is
-        // handled.
         checkLocalsIsAssignable(
             currentFrame.getLocals(), destinationFrame.getLocals(), factory, isJavaAssignable);
       }

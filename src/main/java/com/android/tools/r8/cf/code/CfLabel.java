@@ -100,6 +100,6 @@ public class CfLabel extends CfInstruction {
       DexMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // This is a no-op.
+    frameBuilder.seenLabel(this);
   }
 }
