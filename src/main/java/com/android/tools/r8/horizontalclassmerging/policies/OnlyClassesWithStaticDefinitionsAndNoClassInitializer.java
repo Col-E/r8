@@ -9,10 +9,13 @@ import com.android.tools.r8.horizontalclassmerging.SingleClassPolicy;
 import com.google.common.collect.Iterables;
 
 /** Prevent merging of classes that has non-static methods or fields. */
-public class OnlyClassesWithStaticDefinitions extends SingleClassPolicy {
+public class OnlyClassesWithStaticDefinitionsAndNoClassInitializer extends SingleClassPolicy {
 
   @Override
   public boolean canMerge(DexProgramClass program) {
+    if (program.hasClassInitializer()) {
+      return false;
+    }
     return !Iterables.any(program.members(), member -> !member.isStatic());
   }
 

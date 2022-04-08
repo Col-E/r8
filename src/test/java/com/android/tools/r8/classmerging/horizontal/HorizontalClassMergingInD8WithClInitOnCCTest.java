@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assume.assumeTrue;
-
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,22 +27,17 @@ public class HorizontalClassMergingInD8WithClInitOnCCTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    // TODO(b/227791663): Ensure we do not class merge classes with static initializers.
-    assumeTrue(
-        parameters.getApiLevel().isLessThan(TestBase.apiLevelWithStaticInterfaceMethodsSupport()));
-    assertThrows(
-        CompilationFailedException.class,
-        () ->
-            testForD8(parameters.getBackend())
-                .addInnerClasses(getClass())
-                .setMode(CompilationMode.RELEASE)
-                .setMinApi(parameters.getApiLevel())
-                .addOptionsModification(
-                    options -> {
-                      options.horizontalClassMergerOptions().enable();
-                      options.horizontalClassMergerOptions().setRestrictToSynthetics();
-                    })
-                .compile());
+    testForD8(parameters.getBackend())
+        .addInnerClasses(getClass())
+        .setMode(CompilationMode.RELEASE)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> {
+              options.horizontalClassMergerOptions().enable();
+              options.horizontalClassMergerOptions().setRestrictToSynthetics();
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("0", "1");
   }
 
   public interface A {

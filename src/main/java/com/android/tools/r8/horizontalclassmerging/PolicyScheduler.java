@@ -44,7 +44,7 @@ import com.android.tools.r8.horizontalclassmerging.policies.NoVerticallyMergedCl
 import com.android.tools.r8.horizontalclassmerging.policies.NoVirtualMethodMerging;
 import com.android.tools.r8.horizontalclassmerging.policies.NoWeakerAccessPrivileges;
 import com.android.tools.r8.horizontalclassmerging.policies.NotMatchedByNoHorizontalClassMerging;
-import com.android.tools.r8.horizontalclassmerging.policies.OnlyClassesWithStaticDefinitions;
+import com.android.tools.r8.horizontalclassmerging.policies.OnlyClassesWithStaticDefinitionsAndNoClassInitializer;
 import com.android.tools.r8.horizontalclassmerging.policies.OnlyDirectlyConnectedOrUnrelatedInterfaces;
 import com.android.tools.r8.horizontalclassmerging.policies.PreserveMethodCharacteristics;
 import com.android.tools.r8.horizontalclassmerging.policies.PreventClassMethodAndDefaultMethodCollisions;
@@ -137,7 +137,7 @@ public class PolicyScheduler {
     ImmutableList.Builder<SingleClassPolicy> builder =
         ImmutableList.<SingleClassPolicy>builder()
             .add(new CheckSyntheticClasses(appView))
-            .add(new OnlyClassesWithStaticDefinitions());
+            .add(new OnlyClassesWithStaticDefinitionsAndNoClassInitializer());
     assert verifySingleClassPoliciesIrrelevantForMergingSyntheticsInD8(appView, mode, builder);
     return builder.build();
   }
