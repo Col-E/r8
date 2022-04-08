@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBuilder<RR, T>> {
 
@@ -154,6 +155,14 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     return addLibraryFiles(Arrays.asList(files));
   }
 
+  public T addLibraryClassFileData(byte[]... classes) {
+    return addLibraryClassFileData(Arrays.asList(classes));
+  }
+
+  public T addLibraryClassFileData(Collection<byte[]> classes) {
+    return addByteCollectionToJar("library.jar", classes, this::addLibraryFiles);
+  }
+
   public T addDefaultRuntimeLibrary(TestParameters parameters) {
     if (parameters.getBackend() == Backend.DEX) {
       addLibraryFiles(ToolHelper.getFirstSupportedAndroidJar(parameters.getApiLevel()));
@@ -181,9 +190,14 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
   }
 
   public T addClasspathClassFileData(Collection<byte[]> classes) {
+    return addByteCollectionToJar("cp.jar", classes, this::addClasspathFiles);
+  }
+
+  private T addByteCollectionToJar(
+      String name, Collection<byte[]> classes, Function<Path, T> outputConsumer) {
     Path out;
     try {
-      out = getState().getNewTempFolder().resolve("cp.jar");
+      out = getState().getNewTempFolder().resolve(name);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -192,7 +206,7 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
       consumer.accept(ByteDataView.of(bytes), TestBase.extractClassDescriptor(bytes), null);
     }
     consumer.finished(null);
-    return addClasspathFiles(out);
+    return outputConsumer.apply(out);
   }
 
   public final T addTestingAnnotationsAsProgramClasses() {

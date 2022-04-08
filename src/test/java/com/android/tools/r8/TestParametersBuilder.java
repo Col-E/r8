@@ -232,6 +232,10 @@ public class TestParametersBuilder {
     return withApiLevelsEndingAtExcluding(AndroidApiLevel.L);
   }
 
+  public TestParametersBuilder apiLevelWithDefaultMethodsSupport() {
+    return withApiLevelsStartingAtIncluding(TestBase.apiLevelWithDefaultInterfaceMethodsSupport());
+  }
+
   public TestParametersBuilder withCustomRuntime(TestRuntime runtime) {
     assert getUnfilteredAvailableRuntimes().noneMatch(r -> r == runtime);
     customRuntimes.add(runtime);

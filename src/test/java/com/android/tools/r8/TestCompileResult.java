@@ -36,6 +36,7 @@ import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ObjectArrays;
 import java.io.File;
 import java.io.IOException;
@@ -286,7 +287,8 @@ public abstract class TestCompileResult<
     try {
       AndroidApp.Builder appBuilder = AndroidApp.builder();
       for (byte[] clazz : classes) {
-        appBuilder.addClassProgramData(clazz, Origin.unknown());
+        appBuilder.addClassProgramData(
+            clazz, Origin.unknown(), ImmutableSet.of(TestBase.extractClassDescriptor(clazz)));
       }
       Path path = state.getNewTempFolder().resolve("runtime-classes.jar");
       appBuilder.build().writeToZip(path, OutputMode.ClassFile);
