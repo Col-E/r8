@@ -574,7 +574,9 @@ public class RootSetUtils {
           visitAllSuperInterfaces(iface);
         }
         if (!clazz.isInterface()) {
-          visitAllSuperInterfaces(clazz.superType);
+          if (clazz.superType != null) {
+            visitAllSuperInterfaces(clazz.superType);
+          }
           return;
         }
         if (originalClazz == clazz) {

@@ -84,7 +84,11 @@ public abstract class DepthFirstTopDownClassHierarchyTraversal {
   }
 
   public boolean isRoot(DexProgramClass clazz) {
-    DexProgramClass superclass = asProgramClassOrNull(appView.definitionFor(clazz.getSuperType()));
+    DexType superType = clazz.getSuperType();
+    if (superType == null) {
+      return true;
+    }
+    DexProgramClass superclass = asProgramClassOrNull(appView.definitionFor(superType));
     if (superclass != null) {
       return false;
     }
