@@ -87,6 +87,9 @@ public class NaturalIntLoopRemover {
     if (!analyzeLoopExit(loopBody, comparison, builder)) {
       return false;
     }
+    if (!analyzePhiUses(loopBody, comparison, builder)) {
+      return false;
+    }
 
     NaturalIntLoopWithKnowIterations loop = builder.build();
 
@@ -95,6 +98,42 @@ public class NaturalIntLoopRemover {
       return true;
     }
     return false;
+  }
+
+  /**
+   * The loop unroller removes phis corresponding to the loop backjump. There are three scenarios:
+   * (1) The loop has a single exit point analyzed, phis used outside the loop are replaced by the
+   *     value at the end of the loop body.
+   * (2) The phis are unused outside the loop, and they are simply removed.
+   * (3) The loop has multiple exits and the phis are used outside the loop, this would require
+   *     dealing with complex merge point and postponing phis after the loop, we bail out.
+   */
+  private boolean analyzePhiUses(
+      Set<BasicBlock> loopBody, If comparison, NaturalIntLoopWithKnowIterations.Builder builder) {
+    // Check for single exit scenario.
+    Set<BasicBlock> successors = Sets.newIdentityHashSet();
+    for (BasicBlock basicBlock : loopBody) {
+      successors.addAll(basicBlock.getSuccessors());
+    }
+    successors.removeAll(loopBody);
+    if (successors.size() == 1) {
+      assert successors.iterator().next() == builder.getLoopExit();
+      return true;
+    }
+    // Check phis are unused outside the loop.
+    for (Phi phi : comparison.getBlock().getPhis()) {
+      for (Instruction use : phi.uniqueUsers()) {
+        if (!loopBody.contains(use.getBlock())) {
+          return false;
+        }
+      }
+      for (Phi phiUse : phi.uniquePhiUsers()) {
+        if (!loopBody.contains(phiUse.getBlock())) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -303,6 +342,10 @@ public class NaturalIntLoopRemover {
       public void setLoop(BasicBlock loopExit, BasicBlock loopBodyEntry) {
         this.loopExit = loopExit;
         this.loopBodyEntry = loopBodyEntry;
+      }
+
+      public BasicBlock getLoopExit() {
+        return loopExit;
       }
 
       public void setLoopBody(Set<BasicBlock> loopBody) {
