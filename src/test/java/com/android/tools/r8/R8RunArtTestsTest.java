@@ -102,7 +102,7 @@ public abstract class R8RunArtTestsTest {
           DexVm.Version.V9_0_0,
           DexVm.Version.V10_0_0,
           DexVm.Version.V12_0_0,
-          DexVm.Version.V13_MASTER);
+          DexVm.Version.V13_0_0);
 
   private static final String JUNIT_TEST_RUNNER = "org.junit.runner.JUnitCore";
   private static final String JUNIT_JAR = "third_party/junit/junit-4.13-beta-2.jar";
@@ -186,13 +186,13 @@ public abstract class R8RunArtTestsTest {
           .put(
               "098-ddmc",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.Version.V12_0_0, DexVm.Version.V13_MASTER)))
+                  TestCondition.runtimes(DexVm.Version.V12_0_0, DexVm.Version.V13_0_0)))
           // TODO(b/197079442): Triage - fails with "java.lang.NoSuchMethodException:
           //  org.apache.harmony.dalvik.ddmc.DdmVmInternal.enableRecentAllocations [boolean]"
           .put(
               "145-alloc-tracking-stress",
               TestCondition.match(
-                  TestCondition.runtimes(DexVm.Version.V12_0_0, DexVm.Version.V13_MASTER)))
+                  TestCondition.runtimes(DexVm.Version.V12_0_0, DexVm.Version.V13_0_0)))
           .build();
 
   // Tests that are flaky with the Art version we currently use.
@@ -499,7 +499,7 @@ public abstract class R8RunArtTestsTest {
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
         .put(
-            DexVm.Version.V13_MASTER,
+            DexVm.Version.V13_0_0,
             ImmutableList.of("454-get-vreg", "457-regs", "543-env-long-ref", "518-null-array-get"))
         .put(
             DexVm.Version.V12_0_0,
@@ -848,7 +848,7 @@ public abstract class R8RunArtTestsTest {
                           DexVm.Version.V5_1_1,
                           DexVm.Version.V6_0_1,
                           DexVm.Version.V7_0_0,
-                          DexVm.Version.V13_MASTER)),
+                          DexVm.Version.V13_0_0)),
                   TestCondition.match(
                       TestCondition.compilers(
                           CompilerUnderTest.R8,

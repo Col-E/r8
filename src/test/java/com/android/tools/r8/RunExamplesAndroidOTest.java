@@ -310,7 +310,7 @@ public abstract class RunExamplesAndroidOTest<
                 // TODO(b/120402963): Triage.
                 "invokecustom", "invokecustom2"))
         .put(
-            Version.V13_MASTER,
+            Version.V13_0_0,
             ImmutableList.of(
                 // TODO(b/120402963): Triage.
                 "invokecustom", "invokecustom2"))

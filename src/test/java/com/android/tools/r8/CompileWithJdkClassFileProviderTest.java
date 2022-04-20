@@ -111,7 +111,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
         testBuilder
             .run(parameters.getRuntime(), "MySubscriber")
             .applyIf(
-                parameters.asDexRuntime().getVersion().isOlderThan(DexVm.Version.V13_MASTER),
+                parameters.asDexRuntime().getVersion().isOlderThan(DexVm.Version.V13_0_0),
                 b ->
                     b.assertFailureWithErrorThatMatches(
                         anyOf(

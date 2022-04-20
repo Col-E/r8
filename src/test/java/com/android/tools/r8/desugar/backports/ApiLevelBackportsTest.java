@@ -102,7 +102,7 @@ public class ApiLevelBackportsTest extends TestBase {
         .setMinApi(AndroidApiLevel.ANDROID_PLATFORM)
         .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .applyIf(
-            parameters.getDexRuntimeVersion().isOlderThan(Version.V13_MASTER),
+            parameters.getDexRuntimeVersion().isOlderThan(Version.V13_0_0),
             b ->
                 b.assertFailureWithErrorThatMatches(
                     containsString(

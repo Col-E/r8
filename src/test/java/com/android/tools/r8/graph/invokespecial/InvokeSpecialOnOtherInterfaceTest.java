@@ -12,6 +12,7 @@ import com.android.tools.r8.NoMethodStaticizing;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.io.IOException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,9 +40,13 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .addProgramClasses(I.class)
         .addProgramClassFileData(getClassWithTransformedInvoked())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class)
         // TODO(b/144410139): Consider making this a compilation failure when generating DEX.
-        .assertSuccessWithOutputLinesIf(parameters.isDexRuntime(), "Hello World!");
+        .applyIf(
+            parameters.isCfRuntime(),
+            r -> r.assertFailureWithErrorThatThrows(VerifyError.class),
+            parameters.isDexRuntime() && !parameters.isDexRuntimeVersion(Version.V13_0_0),
+            r -> r.assertSuccessWithOutputLines("Hello World!"),
+            r -> r.assertFailureWithErrorThatThrows(VerifyError.class));
   }
 
   @Test
@@ -54,14 +59,17 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .enableNoMethodStaticizingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatThrowsIf(parameters.isCfRuntime(), VerifyError.class)
         // TODO(b/144410139): Consider making this a compilation failure when generating DEX.
-        .assertSuccessWithOutputLinesIf(
+        .applyIf(
+            parameters.isCfRuntime(),
+            r -> r.assertFailureWithErrorThatThrows(VerifyError.class),
             parameters.isDexRuntime() && !parameters.canUseDefaultAndStaticInterfaceMethods(),
-            "Hello World!")
-        .assertFailureWithErrorThatThrowsIf(
-            parameters.isDexRuntime() && parameters.canUseDefaultAndStaticInterfaceMethods(),
-            NullPointerException.class);
+            r -> r.assertSuccessWithOutputLines("Hello World!"),
+            parameters.isDexRuntime()
+                && !parameters.isDexRuntimeVersion(Version.V13_0_0)
+                && parameters.canUseDefaultAndStaticInterfaceMethods(),
+            r -> r.assertFailureWithErrorThatThrows(NullPointerException.class),
+            r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

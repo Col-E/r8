@@ -138,7 +138,7 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
   }
 
   @Test(expected = CompilationFailedException.class)
-  @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.V13_MASTER) // No desugaring
+  @IgnoreForRangeOfVmVersions(from = Version.V7_0_0, to = Version.V13_0_0) // No desugaring
   public void testInvokeDefault1() throws Exception {
     ensureSameOutput(
         TestMainDefault1.class.getCanonicalName(),

@@ -42,9 +42,9 @@ To reproduce that AOSP state, use the following commands:
   <continue with repo sync as above>
 
 
-art-13-master (Android T)
--------------------------
-Build from master commit e208b04cc2efaf707390d7acbe8f978142701d72.
+art-13 (Android T)
+------------------
+Build from tm-dev commit 442e1091f39417c692d91609af05e58af60d8e2b.
 
 repo sync -cq -j24
 source build/envsetup.sh
@@ -53,16 +53,16 @@ m -j48
 m -j48 build-art
 m -j48 test-art-host
 
-Collected into tools/linux/host/art-13-master. The "host" path element is checked
+Collected into tools/linux/host/art-13. The "host" path element is checked
 by the script for running Art.
 
   cd <r8 checkout>
   scripts/update-host-art.sh \
-     --android-checkout <...>/android/master \
-     --art-dir host/art-13-master \
+     --android-checkout <...>/android/tm-dev \
+     --art-dir host/art-13 \
      --android-product redfin
 
-(cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-13-master)
+(cd tools/linux/host; upload_to_google_storage.py -a --bucket r8-deps art-13)
 
 art-12.0.0 (Android S)
 ---------------------

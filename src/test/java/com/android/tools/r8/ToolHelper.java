@@ -271,8 +271,8 @@ public class ToolHelper {
     ART_10_0_0_HOST(Version.V10_0_0, Kind.HOST),
     ART_12_0_0_TARGET(Version.V12_0_0, Kind.TARGET),
     ART_12_0_0_HOST(Version.V12_0_0, Kind.HOST),
-    ART_13_0_0_TARGET(Version.V13_MASTER, Kind.TARGET),
-    ART_13_0_0_HOST(Version.V13_MASTER, Kind.HOST);
+    ART_13_0_0_TARGET(Version.V13_0_0, Kind.TARGET),
+    ART_13_0_0_HOST(Version.V13_0_0, Kind.HOST);
 
     private static final ImmutableMap<String, DexVm> SHORT_NAME_MAP =
         Arrays.stream(DexVm.values()).collect(ImmutableMap.toImmutableMap(
@@ -290,7 +290,7 @@ public class ToolHelper {
       V9_0_0("9.0.0"),
       V10_0_0("10.0.0"),
       V12_0_0("12.0.0"),
-      V13_MASTER("13.0.0");
+      V13_0_0("13.0.0");
 
       /** This should generally be the latest DEX VM fully supported. */
       // TODO(b/204855476): Rename to DEFAULT alias once the checked in VM is removed.
@@ -352,7 +352,7 @@ public class ToolHelper {
       }
 
       public static Version last() {
-        return V13_MASTER;
+        return V13_0_0;
       }
 
       static {
@@ -623,7 +623,7 @@ public class ToolHelper {
   private static final Map<DexVm, String> ART_DIRS =
       ImmutableMap.<DexVm, String>builder()
           .put(DexVm.ART_DEFAULT, "art")
-          .put(DexVm.ART_13_0_0_HOST, "host/art-13-master")
+          .put(DexVm.ART_13_0_0_HOST, "host/art-13-dev")
           .put(DexVm.ART_12_0_0_HOST, "host/art-12.0.0-beta4")
           .put(DexVm.ART_10_0_0_HOST, "art-10.0.0")
           .put(DexVm.ART_9_0_0_HOST, "art-9.0.0")
@@ -1027,7 +1027,7 @@ public class ToolHelper {
 
   public static AndroidApiLevel getMinApiLevelForDexVm(DexVm dexVm) {
     switch (dexVm.version) {
-      case V13_MASTER:
+      case V13_0_0:
         return AndroidApiLevel.T;
       case V12_0_0:
         return AndroidApiLevel.S;
@@ -1996,7 +1996,7 @@ public class ToolHelper {
         "b/144975341",
         vm.version == DexVm.Version.V10_0_0
             || vm.version == DexVm.Version.V12_0_0
-            || vm.version == DexVm.Version.V13_MASTER);
+            || vm.version == DexVm.Version.V13_0_0);
     if (vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Run default dex2oat for tests on dalvik runtimes.
       vm = DexVm.ART_DEFAULT;

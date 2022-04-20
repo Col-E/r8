@@ -99,7 +99,7 @@ public class OpenUninstantiatedInterfaceInstanceofTest extends TestBase {
     }
     if (parameters.isDexRuntime()) {
       if (parameters.getDexRuntimeVersion().isEqualTo(Version.V7_0_0)
-          || parameters.getDexRuntimeVersion().isEqualTo(Version.V13_MASTER)) {
+          || parameters.getDexRuntimeVersion().isEqualTo(Version.V13_0_0)) {
         return ImmutableList.of("true");
       }
     }

@@ -86,7 +86,8 @@ public class PackagePrivateReentryWithNarrowingTest extends TestBase {
             .addProgramClassFileData(getDWithPackagePrivateFoo())
             .run(parameters.getRuntime(), Main.class);
     if (parameters.isCfRuntime()
-        || parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
+        || parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)
+        || parameters.getRuntime().asDex().getVm().isNewerThanOrEqual(DexVm.ART_13_0_0_TARGET)) {
       runResult.assertSuccessWithOutputLines(EXPECTED);
     } else {
       runResult.assertSuccessWithOutputLines(EXPECTED_ART);

@@ -6,7 +6,6 @@ package com.android.tools.r8.jasmin;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,11 +50,6 @@ public class Regress65007724 extends JasminTestBase {
             .setMinApi(parameters.getApiLevel())
             .addProgramClassFileData(builder.buildClasses())
             .run(parameters.getRuntime(), clazz.name);
-    if (parameters.getDexRuntimeVersion().isEqualTo(Version.V13_MASTER)) {
-      // See b/220821265
-      d8TestRunResult.assertFailure();
-    } else {
-      d8TestRunResult.assertSuccessWithOutput("Hello World!");
-    }
+    d8TestRunResult.assertSuccessWithOutput("Hello World!");
   }
 }

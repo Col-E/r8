@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.redundantfieldloadelimination;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,7 +37,11 @@ public class ThrowingInstructionBeforeOtherwiseRedundantStaticStoreTest extends 
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("1");
+        .applyIf(
+            // See b/229706824.
+            parameters.getDexRuntimeVersion().equals(Version.V13_0_0),
+            r -> r.assertSuccessWithOutputLines("0"),
+            r -> r.assertSuccessWithOutputLines("1"));
   }
 
   static class Main {
