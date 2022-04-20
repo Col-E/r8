@@ -91,6 +91,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -129,6 +130,7 @@ public class RootSetUtils {
     private final Map<DexMember<?, ?>, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
     private final Map<DexMember<?, ?>, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
     private final Set<DexMember<?, ?>> identifierNameStrings = Sets.newIdentityHashSet();
+    private final Map<DexMethod, ProgramMethod> keptMethodBridges = new ConcurrentHashMap<>();
     private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
         new ConcurrentLinkedQueue<>();
     private final InternalOptions options;
@@ -616,16 +618,24 @@ public class RootSetUtils {
           // TODO(b/143643942): For fullmode, this check should probably be removed.
           return;
         }
-        ProgramMethod resolutionMethod =
-            new ProgramMethod(
-                resolutionResult.getResolvedHolder().asProgramClass(),
-                resolutionResult.getResolvedMethod());
-        ProgramMethod methodToKeep =
-            canInsertForwardingMethod(originalClazz, resolutionMethod.getDefinition())
-                ? new ProgramMethod(
-                    originalClazz,
-                    resolutionMethod.getDefinition().toForwardingMethod(originalClazz, appView))
-                : resolutionMethod;
+        ProgramMethod resolutionMethod = resolutionResult.getResolvedProgramMethod();
+        ProgramMethod methodToKeep;
+        if (canInsertForwardingMethod(originalClazz, resolutionMethod.getDefinition())) {
+          DexMethod methodToKeepReference =
+              resolutionMethod.getReference().withHolder(originalClazz, appView.dexItemFactory());
+          methodToKeep =
+              keptMethodBridges.computeIfAbsent(
+                  methodToKeepReference,
+                  k ->
+                      new ProgramMethod(
+                          originalClazz,
+                          resolutionMethod
+                              .getDefinition()
+                              .toForwardingMethod(originalClazz, appView)));
+          assert methodToKeepReference.equals(methodToKeep.getReference());
+        } else {
+          methodToKeep = resolutionMethod;
+        }
 
         delayedRootSetActionItems.add(
             new InterfaceMethodSyntheticBridgeAction(

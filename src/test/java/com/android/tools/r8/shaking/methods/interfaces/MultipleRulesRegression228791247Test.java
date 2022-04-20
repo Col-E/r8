@@ -1,12 +1,10 @@
 // Copyright (c) 2022, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.shaking.interfacebridge;
+package com.android.tools.r8.shaking.methods.interfaces;
 
 import static com.android.tools.r8.references.Reference.classFromClass;
-import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -44,22 +42,13 @@ public class MultipleRulesRegression228791247Test extends TestBase {
     // Regression adds two rules causes the forwarding method to be generated twice.
     String rule1 = "-keep class " + classFromClass(J.class).getTypeName() + "{ void *oo(); }";
     String rule2 = "-keep class " + classFromClass(J.class).getTypeName() + "{ void fo*(); }";
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(I.class, J.class, A.class, TestClass.class)
-          .addKeepMainRule(TestClass.class)
-          .addKeepRules(rule1, rule2)
-          .setMinApi(parameters.getApiLevel())
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutput(EXPECTED);
-      assertTrue(
-          parameters.isCfRuntime()
-              || parameters
-                  .getApiLevel()
-                  .isGreaterThanOrEqualTo(apiLevelWithDefaultInterfaceMethodsSupport()));
-    } catch (CompilationFailedException e) {
-      assertTrue(parameters.getApiLevel().isLessThan(apiLevelWithDefaultInterfaceMethodsSupport()));
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(I.class, J.class, A.class, TestClass.class)
+        .addKeepMainRule(TestClass.class)
+        .addKeepRules(rule1, rule2)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   public interface I {
