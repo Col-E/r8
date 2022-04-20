@@ -476,7 +476,7 @@ public class RecordDesugaring
 
   @Override
   public String uniqueIdentifier() {
-    return "$record$";
+    return "$record";
   }
 
   @Override

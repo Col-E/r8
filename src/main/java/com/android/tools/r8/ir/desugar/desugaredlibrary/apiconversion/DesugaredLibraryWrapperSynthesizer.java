@@ -287,7 +287,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
                 + invokedMethod.holder
                 + "#"
                 + invokedMethod.name
-                + " may not work correctly at runtime (Cannot convert type "
+                + " may not work correctly at runtime (No conversion registered for type "
                 + desugaredType
                 + ").",
             origin,
@@ -650,7 +650,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
 
   @Override
   public String uniqueIdentifier() {
-    return "$wrapper$";
+    return "$wrapper";
   }
 
   // Program wrappers are harder to deal with than classpath wrapper because generating a method's

@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
@@ -36,11 +37,11 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,11 +87,11 @@ public class LegacyToHumanSpecificationConverter {
         AppForSpecConversion.readAppForTesting(desugaredJDKLib, androidLib, options, true, timing);
 
     HumanTopLevelFlags humanTopLevelFlags = convertTopLevelFlags(legacySpec.getTopLevelFlags());
-    Int2ObjectArrayMap<HumanRewritingFlags> commonFlags =
+    Map<ApiLevelRange, HumanRewritingFlags> commonFlags =
         convertRewritingFlagMap(legacySpec.getCommonFlags(), app, origin);
-    Int2ObjectArrayMap<HumanRewritingFlags> programFlags =
+    Map<ApiLevelRange, HumanRewritingFlags> programFlags =
         convertRewritingFlagMap(legacySpec.getProgramFlags(), app, origin);
-    Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags =
+    Map<ApiLevelRange, HumanRewritingFlags> libraryFlags =
         convertRewritingFlagMap(legacySpec.getLibraryFlags(), app, origin);
 
     legacyLibraryFlagHacks(libraryFlags, app, origin);
@@ -166,9 +167,9 @@ public class LegacyToHumanSpecificationConverter {
   }
 
   private void legacyLibraryFlagHacks(
-      Int2ObjectArrayMap<HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
-    int level = LEGACY_HACK_LEVEL.getLevel();
-    HumanRewritingFlags humanRewritingFlags = libraryFlags.get(level);
+      Map<ApiLevelRange, HumanRewritingFlags> libraryFlags, DexApplication app, Origin origin) {
+    ApiLevelRange range = new ApiLevelRange(LEGACY_HACK_LEVEL.getLevel());
+    HumanRewritingFlags humanRewritingFlags = libraryFlags.get(range);
     if (humanRewritingFlags == null) {
       // Skip CHM only configuration.
       return;
@@ -176,7 +177,7 @@ public class LegacyToHumanSpecificationConverter {
     HumanRewritingFlags.Builder builder =
         humanRewritingFlags.newBuilder(app.options.reporter, origin);
     legacyLibraryFlagHacks(app.dexItemFactory(), builder);
-    libraryFlags.put(level, builder.build());
+    libraryFlags.put(range, builder.build());
   }
 
   private void legacyLibraryFlagHacks(
@@ -210,10 +211,11 @@ public class LegacyToHumanSpecificationConverter {
     builder.retargetMethod(source, target);
   }
 
-  private Int2ObjectArrayMap<HumanRewritingFlags> convertRewritingFlagMap(
+  private Map<ApiLevelRange, HumanRewritingFlags> convertRewritingFlagMap(
       Int2ObjectMap<LegacyRewritingFlags> libFlags, DexApplication app, Origin origin) {
-    Int2ObjectArrayMap<HumanRewritingFlags> map = new Int2ObjectArrayMap<>();
-    libFlags.forEach((key, flags) -> map.put((int) key, convertRewritingFlags(flags, app, origin)));
+    Map<ApiLevelRange, HumanRewritingFlags> map = new HashMap<>();
+    libFlags.forEach(
+        (key, flags) -> map.put(new ApiLevelRange(key), convertRewritingFlags(flags, app, origin)));
     return map;
   }
 

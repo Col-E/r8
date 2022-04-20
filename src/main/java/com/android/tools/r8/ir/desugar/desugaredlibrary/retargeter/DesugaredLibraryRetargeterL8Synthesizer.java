@@ -35,7 +35,7 @@ public class DesugaredLibraryRetargeterL8Synthesizer implements CfClassSynthesiz
 
   @Override
   public String uniqueIdentifier() {
-    return "$retargeter$";
+    return "$retargeter";
   }
 
   @Override

@@ -52,6 +52,44 @@
       }
     },
     {
+      "api_level_below_or_equal": 25,
+      "wrapper_conversion": [
+        "java.nio.file.Path",
+        "java.nio.file.FileSystem",
+        "java.nio.file.WatchService",
+        "java.nio.file.WatchEvent$Kind",
+        "java.nio.file.WatchKey",
+        "java.nio.file.Watchable",
+        "java.nio.file.PathMatcher",
+        "java.nio.file.WatchEvent$Modifier",
+        "java.nio.file.attribute.UserPrincipalLookupService",
+        "java.nio.file.spi.FileSystemProvider",
+        "java.nio.file.AccessMode",
+        "java.nio.file.LinkOption",
+        "java.nio.file.CopyOption",
+        "java.nio.file.attribute.GroupPrincipal",
+        "java.nio.file.attribute.FileAttribute",
+        "java.nio.file.attribute.FileAttributeView",
+        "java.nio.file.attribute.UserPrincipal",
+        "java.nio.file.FileStore",
+        "java.nio.file.attribute.FileStoreAttributeView",
+        "java.nio.file.DirectoryStream$Filter",
+        "java.nio.file.DirectoryStream",
+        "java.nio.file.OpenOption",
+        "java.nio.file.attribute.BasicFileAttributes"
+      ],
+      "custom_conversion": {
+        "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions"
+      }
+    },
+    {
+      "api_level_below_or_equal": 32,
+      "api_level_greater_or_equal": 24,
+      "rewrite_prefix": {
+        "java.util.stream.Collectors": "j$.util.stream.Collectors"
+      }
+    },
+    {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
@@ -198,6 +236,16 @@
       }
     },
     {
+      "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.io.DesugarFile": "j$.io.DesugarFile",
+        "java.nio.file.": "j$.nio.file."
+      },
+      "retarget_method_with_emulated_dispatch": {
+        "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
+      }
+    },
+    {
       "api_level_below_or_equal": 23,
       "retarget_method": {
         "int java.util.concurrent.atomic.AtomicInteger#accumulateAndGet(int, java.util.function.IntBinaryOperator)": "java.util.concurrent.atomic.DesugarAtomicInteger",
@@ -246,9 +294,6 @@
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
         "java.io.DesugarFile": "j$.io.DesugarFile",
-        "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
-        "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
-        "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
         "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
         "java.nio.file.": "j$.nio.file.",
         "jdk.internal.": "j$.jdk.internal.",
@@ -294,7 +339,6 @@
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.lang.FunctionalInterface": "j$.lang.FunctionalInterface",
-        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
         "java.util.AbstractList": "j$.util.AbstractList",
         "java.util.CollSer": "j$.util.CollSer",
         "java.util.Comparators": "j$.util.Comparators",

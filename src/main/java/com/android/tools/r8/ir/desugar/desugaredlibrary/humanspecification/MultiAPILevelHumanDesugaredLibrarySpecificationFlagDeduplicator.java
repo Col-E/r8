@@ -8,10 +8,10 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.Reporter;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.IntArraySet;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -23,12 +23,12 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
       Reporter reporter) {
 
-    IntArraySet apis = new IntArraySet();
+    Set<ApiLevelRange> apis = new HashSet<>();
     apis.addAll(specification.getCommonFlags().keySet());
     apis.addAll(specification.getLibraryFlags().keySet());
     apis.addAll(specification.getProgramFlags().keySet());
 
-    for (Integer api : apis) {
+    for (ApiLevelRange api : apis) {
       deduplicateFlags(specification, reporter, api);
     }
   }
@@ -36,11 +36,11 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
   private static void deduplicateFlags(
       MultiAPILevelHumanDesugaredLibrarySpecification specification,
       Reporter reporter,
-      int api) {
+      ApiLevelRange api) {
 
-    Int2ObjectMap<HumanRewritingFlags> commonFlags = specification.getCommonFlags();
-    Int2ObjectMap<HumanRewritingFlags> libraryFlags = specification.getLibraryFlags();
-    Int2ObjectMap<HumanRewritingFlags> programFlags = specification.getProgramFlags();
+    Map<ApiLevelRange, HumanRewritingFlags> commonFlags = specification.getCommonFlags();
+    Map<ApiLevelRange, HumanRewritingFlags> libraryFlags = specification.getLibraryFlags();
+    Map<ApiLevelRange, HumanRewritingFlags> programFlags = specification.getProgramFlags();
 
     HumanRewritingFlags library = libraryFlags.get(api);
     HumanRewritingFlags program = programFlags.get(api);
@@ -68,7 +68,9 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationFlagDeduplicator {
   }
 
   private static void putNewFlags(
-      int api, Int2ObjectMap<HumanRewritingFlags> flags, HumanRewritingFlags.Builder builder) {
+      ApiLevelRange api,
+      Map<ApiLevelRange, HumanRewritingFlags> flags,
+      HumanRewritingFlags.Builder builder) {
     HumanRewritingFlags build = builder.build();
     if (build.isEmpty()) {
       flags.remove(api);

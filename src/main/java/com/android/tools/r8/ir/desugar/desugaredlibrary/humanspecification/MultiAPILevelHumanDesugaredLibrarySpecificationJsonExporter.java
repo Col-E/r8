@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.DesugaredLibrarySpecificationParser.CONFIGURATION_FORMAT_VERSION_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.AMEND_LIBRARY_METHOD_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_LEVEL_BELOW_OR_EQUAL_KEY;
+import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.API_LEVEL_GREATER_OR_EQUAL_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.BACKPORT_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.COMMON_FLAGS_KEY;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanDesugaredLibrarySpecificationParser.CURRENT_HUMAN_CONFIGURATION_FORMAT_VERSION;
@@ -35,10 +36,9 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.google.gson.Gson;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,14 +81,17 @@ public class MultiAPILevelHumanDesugaredLibrarySpecificationJsonExporter {
   }
 
   private List<Object> rewritingFlagsToString(
-      Int2ObjectMap<HumanRewritingFlags> rewritingFlagsMap) {
+      Map<ApiLevelRange, HumanRewritingFlags> rewritingFlagsMap) {
     ArrayList<Object> list = new ArrayList<>();
-    ArrayList<Integer> apis = new ArrayList<>(rewritingFlagsMap.keySet());
-    apis.sort(Comparator.reverseOrder());
-    for (int apiBelowOrEqual : apis) {
-      HumanRewritingFlags flags = rewritingFlagsMap.get(apiBelowOrEqual);
+    ArrayList<ApiLevelRange> apis = new ArrayList<>(rewritingFlagsMap.keySet());
+    apis.sort((x, y) -> -x.deterministicOrder(y));
+    for (ApiLevelRange range : apis) {
+      HumanRewritingFlags flags = rewritingFlagsMap.get(range);
       HashMap<String, Object> toJson = new LinkedHashMap<>();
-      toJson.put(API_LEVEL_BELOW_OR_EQUAL_KEY, apiBelowOrEqual);
+      toJson.put(API_LEVEL_BELOW_OR_EQUAL_KEY, range.getApiLevelBelowOrEqualAsInt());
+      if (range.hasApiLevelGreaterOrEqual()) {
+        toJson.put(API_LEVEL_GREATER_OR_EQUAL_KEY, range.getApiLevelGreaterOrEqualAsInt());
+      }
       if (!flags.getRewritePrefix().isEmpty()) {
         toJson.put(REWRITE_PREFIX_KEY, new TreeMap<>(flags.getRewritePrefix()));
       }

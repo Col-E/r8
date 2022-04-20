@@ -114,7 +114,7 @@ public final class ProgramEmulatedInterfaceSynthesizer implements CfClassSynthes
 
   @Override
   public String uniqueIdentifier() {
-    return "$emulatedInterface$";
+    return "$emulatedInterface";
   }
 
   @Override

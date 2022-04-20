@@ -47,6 +47,7 @@ public class HumanDesugaredLibrarySpecificationParser {
   static final String PROGRAM_FLAGS_KEY = "program_flags";
 
   static final String API_LEVEL_BELOW_OR_EQUAL_KEY = "api_level_below_or_equal";
+  static final String API_LEVEL_GREATER_OR_EQUAL_KEY = "api_level_greater_or_equal";
   static final String WRAPPER_CONVERSION_KEY = "wrapper_conversion";
   static final String WRAPPER_CONVERSION_EXCLUDING_KEY = "wrapper_conversion_excluding";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
@@ -231,7 +232,13 @@ public class HumanDesugaredLibrarySpecificationParser {
       JsonObject flag = jsonFlagSet.getAsJsonObject();
       int api_level_below_or_equal = required(flag, API_LEVEL_BELOW_OR_EQUAL_KEY).getAsInt();
       if (minAPILevel <= api_level_below_or_equal) {
-        parseFlags(flag, builder);
+        if (flag.has(API_LEVEL_GREATER_OR_EQUAL_KEY)) {
+          if (minAPILevel >= flag.get(API_LEVEL_GREATER_OR_EQUAL_KEY).getAsInt()) {
+            parseFlags(flag, builder);
+          }
+        } else {
+          parseFlags(flag, builder);
+        }
       }
     }
   }

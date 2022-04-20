@@ -12,6 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanTopLevelFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.MultiAPILevelHumanDesugaredLibrarySpecification;
@@ -80,21 +81,18 @@ public class ConvertExportReadTest extends DesugaredLibraryTestBase {
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec1,
       MultiAPILevelHumanDesugaredLibrarySpecification humanSpec2) {
     assertTopLevelFlagsEquals(humanSpec1.getTopLevelFlags(), humanSpec2.getTopLevelFlags());
-    assertFlagMapEquals(
-        humanSpec1.getCommonFlagsForTesting(), humanSpec2.getCommonFlagsForTesting());
-    assertFlagMapEquals(
-        humanSpec1.getLibraryFlagsForTesting(), humanSpec2.getLibraryFlagsForTesting());
-    assertFlagMapEquals(
-        humanSpec1.getProgramFlagsForTesting(), humanSpec2.getProgramFlagsForTesting());
+    assertFlagMapEquals(humanSpec1.getCommonFlags(), humanSpec2.getCommonFlags());
+    assertFlagMapEquals(humanSpec1.getLibraryFlags(), humanSpec2.getLibraryFlags());
+    assertFlagMapEquals(humanSpec1.getProgramFlags(), humanSpec2.getProgramFlags());
   }
 
   private void assertFlagMapEquals(
-      Map<Integer, HumanRewritingFlags> commonFlags1,
-      Map<Integer, HumanRewritingFlags> commonFlags2) {
+      Map<ApiLevelRange, HumanRewritingFlags> commonFlags1,
+      Map<ApiLevelRange, HumanRewritingFlags> commonFlags2) {
     assertEquals(commonFlags1.size(), commonFlags2.size());
-    for (int integer : commonFlags1.keySet()) {
-      assertTrue(commonFlags2.containsKey(integer));
-      assertFlagsEquals(commonFlags1.get(integer), commonFlags2.get(integer));
+    for (ApiLevelRange range : commonFlags1.keySet()) {
+      assertTrue(commonFlags2.containsKey(range));
+      assertFlagsEquals(commonFlags1.get(range), commonFlags2.get(range));
     }
   }
 

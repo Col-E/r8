@@ -4,24 +4,24 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification;
 
+import com.android.tools.r8.ir.desugar.desugaredlibrary.ApiLevelRange;
 import com.android.tools.r8.origin.Origin;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import java.util.Map;
 
 public class MultiAPILevelHumanDesugaredLibrarySpecification {
 
   private final Origin origin;
   private final HumanTopLevelFlags topLevelFlags;
-  private final Int2ObjectMap<HumanRewritingFlags> commonFlags;
-  private final Int2ObjectMap<HumanRewritingFlags> libraryFlags;
-  private final Int2ObjectMap<HumanRewritingFlags> programFlags;
+  private final Map<ApiLevelRange, HumanRewritingFlags> commonFlags;
+  private final Map<ApiLevelRange, HumanRewritingFlags> libraryFlags;
+  private final Map<ApiLevelRange, HumanRewritingFlags> programFlags;
 
   public MultiAPILevelHumanDesugaredLibrarySpecification(
       Origin origin,
       HumanTopLevelFlags topLevelFlags,
-      Int2ObjectMap<HumanRewritingFlags> commonFlags,
-      Int2ObjectMap<HumanRewritingFlags> libraryFlags,
-      Int2ObjectMap<HumanRewritingFlags> programFlags) {
+      Map<ApiLevelRange, HumanRewritingFlags> commonFlags,
+      Map<ApiLevelRange, HumanRewritingFlags> libraryFlags,
+      Map<ApiLevelRange, HumanRewritingFlags> programFlags) {
     this.origin = origin;
     this.topLevelFlags = topLevelFlags;
     this.commonFlags = commonFlags;
@@ -37,28 +37,15 @@ public class MultiAPILevelHumanDesugaredLibrarySpecification {
     return topLevelFlags;
   }
 
-  public Int2ObjectMap<HumanRewritingFlags> getCommonFlags() {
+  public Map<ApiLevelRange, HumanRewritingFlags> getCommonFlags() {
     return commonFlags;
   }
 
-  public Int2ObjectMap<HumanRewritingFlags> getLibraryFlags() {
+  public Map<ApiLevelRange, HumanRewritingFlags> getLibraryFlags() {
     return libraryFlags;
   }
 
-  public Int2ObjectMap<HumanRewritingFlags> getProgramFlags() {
+  public Map<ApiLevelRange, HumanRewritingFlags> getProgramFlags() {
     return programFlags;
   }
-
-  public Map<Integer, HumanRewritingFlags> getCommonFlagsForTesting() {
-    return commonFlags;
-  }
-
-  public Map<Integer, HumanRewritingFlags> getLibraryFlagsForTesting() {
-    return libraryFlags;
-  }
-
-  public Map<Integer, HumanRewritingFlags> getProgramFlagsForTesting() {
-    return programFlags;
-  }
-
 }

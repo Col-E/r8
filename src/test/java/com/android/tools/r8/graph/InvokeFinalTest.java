@@ -75,8 +75,6 @@ public class InvokeFinalTest extends TestBase {
     }
 
     public void bar() {
-      // TODO(b/110175213): We cannot change this to an invoke-special since this requires a
-      //  direct bridge in DEX.
       foo();
     }
   }
