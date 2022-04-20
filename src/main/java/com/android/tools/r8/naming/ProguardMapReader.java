@@ -261,18 +261,11 @@ public class ProguardMapReader implements AutoCloseable {
       String after = parseType(false);
       skipWhitespace();
       expect(':');
-      if (mapBuilder.buildForClass(after)) {
-        ClassNaming.Builder currentClassBuilder =
-            mapBuilder.classNamingBuilder(after, before, getPosition());
-        skipWhitespace();
-        if (nextLine()) {
-          parseMemberMappings(currentClassBuilder);
-        }
-      } else {
-        do {
-          lineOffset = line.length();
-          nextLine();
-        } while (hasLine() && !isClassMapping());
+      ClassNaming.Builder currentClassBuilder =
+          mapBuilder.classNamingBuilder(after, before, getPosition());
+      skipWhitespace();
+      if (nextLine()) {
+        parseMemberMappings(currentClassBuilder);
       }
     }
   }

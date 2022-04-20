@@ -47,16 +47,6 @@ public class ClassNameMapper implements ProguardMap {
 
     private final Map<String, ClassNamingForNameMapper.Builder> mapping = new HashMap<>();
     private LinkedHashSet<MapVersionMappingInformation> mapVersions = new LinkedHashSet<>();
-    private final Set<String> buildForClass;
-
-    private Builder(Set<String> buildForClass) {
-      this.buildForClass = buildForClass;
-    }
-
-    @Override
-    public boolean buildForClass(String typeName) {
-      return buildForClass == null || buildForClass.contains(typeName);
-    }
 
     @Override
     public ClassNamingForNameMapper.Builder classNamingBuilder(
@@ -88,11 +78,7 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static Builder builder() {
-    return new Builder(null);
-  }
-
-  public static Builder builder(Set<String> buildForClass) {
-    return new Builder(buildForClass);
+    return new Builder();
   }
 
   public static ClassNameMapper mapperFromFile(Path path) throws IOException {
@@ -182,7 +168,7 @@ public class ClassNameMapper implements ProguardMap {
             diagnosticsHandler != null ? diagnosticsHandler : new Reporter(),
             allowEmptyMappedRanges,
             allowExperimentalMapping)) {
-      ClassNameMapper.Builder builder = ClassNameMapper.builder(buildForClass);
+      ClassNameMapper.Builder builder = ClassNameMapper.builder();
       proguardReader.parse(builder);
       return builder.build();
     }

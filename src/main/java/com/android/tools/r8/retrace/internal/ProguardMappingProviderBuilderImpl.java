@@ -64,17 +64,16 @@ public class ProguardMappingProviderBuilderImpl extends ProguardMappingProvider.
   @Override
   public ProguardMappingProvider build() {
     try {
+      Set<String> buildForClass = allowLookupAllClasses ? null : allowedLookup;
       LineReader reader =
           proguardMapProducer.isFileBacked()
-              ? new ProguardMapReaderWithFilteringMappedBuffer(proguardMapProducer.getPath())
-              : new ProguardMapReaderWithFilteringInputBuffer(proguardMapProducer.get());
+              ? new ProguardMapReaderWithFilteringMappedBuffer(
+                  proguardMapProducer.getPath(), buildForClass)
+              : new ProguardMapReaderWithFilteringInputBuffer(
+                  proguardMapProducer.get(), buildForClass);
       return new ProguardMappingProviderImpl(
           ClassNameMapper.mapperFromLineReaderWithFiltering(
-              reader,
-              diagnosticsHandler,
-              true,
-              allowExperimental,
-              allowLookupAllClasses ? null : allowedLookup));
+              reader, diagnosticsHandler, true, allowExperimental, buildForClass));
     } catch (Exception e) {
       throw new InvalidMappingFileException(e);
     }

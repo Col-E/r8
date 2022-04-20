@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.retrace.internal;
 
+import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.COMPLETE_CLASS_MAPPING;
+import static com.android.tools.r8.retrace.internal.ProguardMapReaderWithFiltering.LineParserState.IS_COMMENT_SOURCE_FILE;
 import static java.lang.Integer.MAX_VALUE;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.LineReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,11 +18,181 @@ import java.nio.channels.FileChannel.MapMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Set;
 
 public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
+  // The LineParserState encodes a simple state that the line parser can be in, where the
+  // (successful) transitions allowed are:
+
+  // BEGINNING -> BEGINNING_NO_WHITESPACE -> SEEN_ORIGINAL_CLASS || IS_COMMENT_START
+
+  // IS_COMMENT_START -> IS_COMMENT_SOURCE_FILE
+
+  // SEEN_ORIGINAL_CLASS -> SEEN_ARROW -> SEEN_OBFUSCATED_CLASS -> COMPLETE_CLASS_MAPPING
+  //
+  // From all states there is a transition on invalid input to NOT_CLASS_MAPPING_OR_SOURCE_FILE.
+  // The terminal states are:
+  // { IS_COMMENT_SOURCE_FILE, COMPLETE_CLASS_MAPPING, NOT_CLASS_MAPPING_OR_SOURCE_FILE }
+  //
+  public enum LineParserState {
+    BEGINNING,
+    BEGINNING_NO_WHITESPACE,
+    SEEN_ORIGINAL_CLASS,
+    SEEN_ARROW,
+    SEEN_OBFUSCATED_CLASS,
+    COMPLETE_CLASS_MAPPING,
+    IS_COMMENT_START,
+    IS_COMMENT_SOURCE_FILE,
+    NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+
+    private boolean isTerminal() {
+      return this == NOT_CLASS_MAPPING_OR_SOURCE_FILE
+          || this == COMPLETE_CLASS_MAPPING
+          || this == IS_COMMENT_SOURCE_FILE;
+    }
+
+    private static int currentIndex;
+    private static int endIndex;
+    private static byte[] bytes;
+    private static final byte[] SOURCE_FILE_BYTES = "sourceFile".getBytes();
+
+    public static LineParserState computeState(byte[] bytes, int startIndex, int endIndex) {
+      currentIndex = startIndex;
+      LineParserState.endIndex = endIndex;
+      LineParserState.bytes = bytes;
+      LineParserState currentState = BEGINNING;
+      while (!currentState.isTerminal()) {
+        currentState = currentState.computeNextState();
+      }
+      return currentState;
+    }
+
+    private LineParserState computeNextState() {
+      assert this != NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+      switch (this) {
+        case BEGINNING:
+          return readUntilNoWhiteSpace()
+              ? BEGINNING_NO_WHITESPACE
+              : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+        case BEGINNING_NO_WHITESPACE:
+          if (isCommentChar()) {
+            return IS_COMMENT_START;
+          } else {
+            int readLength = readCharactersNoWhiteSpaceUntil(' ');
+            return readLength > 0 ? SEEN_ORIGINAL_CLASS : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+          }
+        case SEEN_ORIGINAL_CLASS:
+          return readArrow() ? SEEN_ARROW : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+        case SEEN_ARROW:
+          int colonIndex = readCharactersNoWhiteSpaceUntil(':');
+          return colonIndex > 0 ? SEEN_OBFUSCATED_CLASS : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+        case SEEN_OBFUSCATED_CLASS:
+          boolean read = readColon();
+          if (!read) {
+            return NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+          }
+          boolean noWhiteSpace = readUntilNoWhiteSpace();
+          return (!noWhiteSpace || isCommentChar())
+              ? COMPLETE_CLASS_MAPPING
+              : NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+        case IS_COMMENT_START:
+          if (readCharactersUntil('{')
+              && readCharactersUntil(':')
+              && readSingleOrDoubleQuote()
+              && readSourceFile()) {
+            return IS_COMMENT_SOURCE_FILE;
+          } else {
+            return NOT_CLASS_MAPPING_OR_SOURCE_FILE;
+          }
+        default:
+          assert isTerminal();
+          throw new Unreachable("Should not compute next state on terminal state");
+      }
+    }
+
+    private boolean readColon() {
+      return read(':');
+    }
+
+    private boolean readCharactersUntil(char ch) {
+      while (currentIndex < endIndex) {
+        if (bytes[currentIndex++] == ch) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private int readCharactersNoWhiteSpaceUntil(char ch) {
+      int startIndex = currentIndex;
+      while (currentIndex < endIndex) {
+        byte readByte = bytes[currentIndex];
+        if (readByte == ch) {
+          return currentIndex - startIndex;
+        }
+        if (Character.isWhitespace(readByte)) {
+          return -1;
+        }
+        currentIndex++;
+      }
+      return -1;
+    }
+
+    private boolean readUntilNoWhiteSpace() {
+      while (currentIndex < endIndex) {
+        if (!Character.isWhitespace(bytes[currentIndex])) {
+          return true;
+        }
+        currentIndex++;
+      }
+      return false;
+    }
+
+    private boolean readArrow() {
+      return readSpace() && read('-') && read('>') && readSpace();
+    }
+
+    private boolean readSpace() {
+      return read(' ');
+    }
+
+    private boolean read(char ch) {
+      return bytes[currentIndex++] == ch;
+    }
+
+    private boolean isCommentChar() {
+      return bytes[currentIndex] == '#';
+    }
+
+    private boolean readSourceFile() {
+      if (endIndex - currentIndex < SOURCE_FILE_BYTES.length) {
+        return false;
+      }
+      int endSourceFileIndex = currentIndex + SOURCE_FILE_BYTES.length;
+      int sourceFileByteIndex = 0;
+      for (; currentIndex < endSourceFileIndex; currentIndex++) {
+        if (SOURCE_FILE_BYTES[sourceFileByteIndex++] != bytes[currentIndex]) {
+          return false;
+        }
+      }
+      return readSingleOrDoubleQuote();
+    }
+
+    private boolean readSingleOrDoubleQuote() {
+      byte readByte = bytes[currentIndex++];
+      return readByte == '\'' || readByte == '"';
+    }
+  }
+
   private int startIndex = 0;
   private int endIndex = 0;
+
+  private final Set<String> filter;
+
+  protected ProguardMapReaderWithFiltering(Set<String> filter) {
+    this.filter = filter;
+  }
 
   public abstract byte[] read() throws IOException;
 
@@ -29,13 +202,41 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
 
   public abstract boolean exceedsBuffer();
 
+  private boolean isInsideClassOfInterest = false;
+  private boolean seenFirstClass = false;
+
   @Override
   public String readLine() throws IOException {
-    byte[] bytes = readLineFromMultipleReads();
-    if (bytes == null) {
-      return null;
+    while (true) {
+      byte[] bytes = readLineFromMultipleReads();
+      if (bytes == null) {
+        return null;
+      }
+      if (filter == null) {
+        return new String(bytes, startIndex, endIndex - startIndex, StandardCharsets.UTF_8);
+      }
+      LineParserState lineParserState = LineParserState.computeState(bytes, startIndex, endIndex);
+      if (lineParserState == COMPLETE_CLASS_MAPPING) {
+        seenFirstClass = true;
+        String classMapping = getBufferAsString(bytes);
+        String obfuscatedClassName = getObfuscatedClassName(classMapping);
+        isInsideClassOfInterest = filter.contains(obfuscatedClassName);
+        return classMapping;
+      } else if (lineParserState == IS_COMMENT_SOURCE_FILE) {
+        return getBufferAsString(bytes);
+      } else if (isInsideClassOfInterest || !seenFirstClass) {
+        return getBufferAsString(bytes);
+      }
     }
+  }
+
+  private String getBufferAsString(byte[] bytes) {
     return new String(bytes, startIndex, endIndex - startIndex, StandardCharsets.UTF_8);
+  }
+
+  private String getObfuscatedClassName(String classMapping) {
+    int arrowIndex = classMapping.indexOf(">");
+    return classMapping.substring(arrowIndex + 2, classMapping.length() - 1);
   }
 
   private byte[] readLineFromMultipleReads() throws IOException {
@@ -82,7 +283,9 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
     private int currentPosition = 0;
     private int temporaryBufferPosition = 0;
 
-    public ProguardMapReaderWithFilteringMappedBuffer(Path mappingFile) throws IOException {
+    public ProguardMapReaderWithFilteringMappedBuffer(
+        Path mappingFile, Set<String> classNamesOfInterest) throws IOException {
+      super(classNamesOfInterest);
       fileChannel = FileChannel.open(mappingFile, StandardOpenOption.READ);
       channelSize = fileChannel.size();
       readFromChannel();
@@ -160,7 +363,9 @@ public abstract class ProguardMapReaderWithFiltering implements LineReader {
     private int endIndex = 0;
     private int endReadIndex = 0;
 
-    public ProguardMapReaderWithFilteringInputBuffer(InputStream inputStream) {
+    public ProguardMapReaderWithFilteringInputBuffer(
+        InputStream inputStream, Set<String> classNamesOfInterest) {
+      super(classNamesOfInterest);
       this.inputStream = inputStream;
     }
 
