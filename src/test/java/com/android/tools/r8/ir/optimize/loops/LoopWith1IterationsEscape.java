@@ -32,7 +32,6 @@ public class LoopWith1IterationsEscape extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
-        .addOptionsModification(options -> options.testing.enableExperimentalLoopUnrolling = true)
         .enableInliningAnnotations()
         .noMinification()
         .compile()

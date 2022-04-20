@@ -30,7 +30,7 @@ import java.util.Set;
 public class NaturalIntLoopRemover {
 
   public void run(AppView<?> appView, IRCode code) {
-    if (!appView.testing().enableExperimentalLoopUnrolling) {
+    if (!appView.options().enableLoopUnrolling) {
       return;
     }
     boolean loopRemoved = false;
