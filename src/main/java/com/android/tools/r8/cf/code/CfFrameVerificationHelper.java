@@ -326,6 +326,7 @@ public class CfFrameVerificationHelper {
       Int2ReferenceSortedMap<FrameType> destLocals,
       DexItemFactory factory,
       BiPredicate<DexType, DexType> isJavaAssignable) {
+    // TODO(b/229826687): The tail of locals could have top(s) at destination but still be valid.
     final int localsLastKey = sourceLocals.isEmpty() ? -1 : sourceLocals.lastIntKey();
     final int otherLocalsLastKey = destLocals.isEmpty() ? -1 : destLocals.lastIntKey();
     if (localsLastKey < otherLocalsLastKey) {
