@@ -128,6 +128,9 @@
         "java.util.function.": "j$.util.function.",
         "java.util.stream.": "j$.util.stream."
       },
+      "dont_rewrite_prefix": [
+        "java.nio.channels.FileChannel$MapMode"
+      ],
       "maintain_prefix": [
         "java.io.UncheckedIOException"
       ],

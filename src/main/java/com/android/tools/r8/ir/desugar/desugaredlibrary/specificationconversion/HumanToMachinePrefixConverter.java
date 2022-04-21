@@ -27,6 +27,7 @@ public class HumanToMachinePrefixConverter {
   private final boolean libraryCompilation;
   private final Map<DexString, DexString> descriptorPrefix;
   private final Set<DexString> descriptorMaintainPrefix;
+  private final Set<DexString> descriptorDontRewritePrefix;
   private final Map<DexString, Map<DexString, DexString>> descriptorDifferentPrefix;
   private final Set<DexString> usedPrefix = Sets.newIdentityHashSet();
 
@@ -40,7 +41,8 @@ public class HumanToMachinePrefixConverter {
     this.synthesizedPrefix = humanSpec.getSynthesizedLibraryClassesPackagePrefix();
     this.libraryCompilation = humanSpec.isLibraryCompilation();
     this.descriptorPrefix = convertRewritePrefix(rewritingFlags.getRewritePrefix());
-    this.descriptorMaintainPrefix = convertMaintainPrefix(rewritingFlags.getMaintainPrefix());
+    this.descriptorDontRewritePrefix = convertPrefixSet(rewritingFlags.getDontRewritePrefix());
+    this.descriptorMaintainPrefix = convertPrefixSet(rewritingFlags.getMaintainPrefix());
     this.descriptorDifferentPrefix =
         convertRewriteDifferentPrefix(rewritingFlags.getRewriteDerivedPrefix());
   }
@@ -115,6 +117,9 @@ public class HumanToMachinePrefixConverter {
   private void registerType(DexType type) {
     DexType rewrittenType = rewrittenType(type);
     if (rewrittenType != null) {
+      if (prefixMatching(type, descriptorDontRewritePrefix) != null) {
+        return;
+      }
       builder.rewriteType(type, rewrittenType);
     }
   }
@@ -179,7 +184,7 @@ public class HumanToMachinePrefixConverter {
     return mapBuilder.build();
   }
 
-  private ImmutableSet<DexString> convertMaintainPrefix(Set<String> maintainPrefix) {
+  private ImmutableSet<DexString> convertPrefixSet(Set<String> maintainPrefix) {
     ImmutableSet.Builder<DexString> builder = ImmutableSet.builder();
     for (String prefix : maintainPrefix) {
       builder.add(toDescriptorPrefix(prefix));
