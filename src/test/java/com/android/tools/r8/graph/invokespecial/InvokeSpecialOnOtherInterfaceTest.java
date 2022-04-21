@@ -44,9 +44,10 @@ public class InvokeSpecialOnOtherInterfaceTest extends TestBase {
         .applyIf(
             parameters.isCfRuntime(),
             r -> r.assertFailureWithErrorThatThrows(VerifyError.class),
-            parameters.isDexRuntime() && !parameters.isDexRuntimeVersion(Version.V13_0_0),
+            !(parameters.isDexRuntimeVersion(Version.V13_0_0)
+                && parameters.canUseDefaultAndStaticInterfaceMethods()),
             r -> r.assertSuccessWithOutputLines("Hello World!"),
-            r -> r.assertFailureWithErrorThatThrows(VerifyError.class));
+            r -> r.assertFailureWithErrorThatThrows(NoSuchMethodError.class));
   }
 
   @Test
