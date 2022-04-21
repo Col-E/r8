@@ -255,6 +255,10 @@ def launch_activity(
   assert not wait_for_activity_to_launch or 'total_time' in result
   return result
 
+def navigate_to_home_screen(device_id=None):
+  cmd = create_adb_cmd('shell input keyevent KEYCODE_HOME', device_id)
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+
 def prepare_for_interaction_with_device(device_id=None, device_pin=None):
   # Increase screen off timeout to avoid device screen turns off.
   twenty_four_hours_in_millis = 24 * 60 * 60 * 1000

@@ -75,6 +75,15 @@ def prepare_for_run(apk, out_dir, options):
       adb_utils.install_profile(options.app_id, options.device_id)
     else:
       adb_utils.force_compilation(options.app_id, options.device_id)
+  if options.hot_startup:
+    adb_utils.launch_activity(
+        options.app_id,
+        options.main_activity,
+        options.device_id,
+        wait_for_activity_to_launch=False)
+    time.sleep(options.startup_duration)
+    adb_utils.navigate_to_home_screen(options.device_id)
+    time.sleep(1)
   adb_utils.drop_caches(options.device_id)
   os.makedirs(out_dir, exist_ok=True)
 
@@ -147,24 +156,25 @@ def compute_startup_data(launch_activity_result, perfetto_trace_path, options):
         startup_metric.android_startup.startup[0].to_first_frame.dur_ms
     perfetto_startup_data['perfetto_startup'] = round(time_to_first_frame_ms)
 
-    # Compute time to first and last doFrame event.
-    bind_application_slice = perfetto_utils.find_unique_slice_by_name(
-        'bindApplication', options, trace_processor)
-    activity_start_slice = perfetto_utils.find_unique_slice_by_name(
-        'activityStart', options, trace_processor)
-    do_frame_slices = perfetto_utils.find_slices_by_name(
-        'Choreographer#doFrame', options, trace_processor)
-    first_do_frame_slice = next(do_frame_slices)
-    *_, last_do_frame_slice = do_frame_slices
+    if not options.hot_startup:
+      # Compute time to first and last doFrame event.
+      bind_application_slice = perfetto_utils.find_unique_slice_by_name(
+          'bindApplication', options, trace_processor)
+      activity_start_slice = perfetto_utils.find_unique_slice_by_name(
+          'activityStart', options, trace_processor)
+      do_frame_slices = perfetto_utils.find_slices_by_name(
+          'Choreographer#doFrame', options, trace_processor)
+      first_do_frame_slice = next(do_frame_slices)
+      *_, last_do_frame_slice = do_frame_slices
 
-    perfetto_startup_data.update({
-      'time_to_first_choreographer_do_frame_ms':
-          round(perfetto_utils.get_slice_end_since_start(
-              first_do_frame_slice, bind_application_slice)),
-      'time_to_last_choreographer_do_frame_ms':
-          round(perfetto_utils.get_slice_end_since_start(
-              last_do_frame_slice, bind_application_slice))
-    })
+      perfetto_startup_data.update({
+        'time_to_first_choreographer_do_frame_ms':
+            round(perfetto_utils.get_slice_end_since_start(
+                first_do_frame_slice, bind_application_slice)),
+        'time_to_last_choreographer_do_frame_ms':
+            round(perfetto_utils.get_slice_end_since_start(
+                last_do_frame_slice, bind_application_slice))
+      })
 
   # Return combined startup data.
   return startup_data | perfetto_startup_data
@@ -196,6 +206,10 @@ def parse_options(argv):
                       help='Device id (e.g., emulator-5554).')
   result.add_argument('--device-pin',
                       help='Device pin code (e.g., 1234)')
+  result.add_argument('--hot-startup',
+                      help='Measure hot startup instead of cold startup',
+                      default=False,
+                      action='store_true')
   result.add_argument('--iterations',
                       help='Number of traces to generate',
                       default=1,
@@ -212,6 +226,10 @@ def parse_options(argv):
                       required=True)
   result.add_argument('--baseline-profile',
                       help='Baseline profile to install')
+  result.add_argument('--startup-duration',
+                      help='Duration in seconds before shutting down app',
+                      default=15,
+                      type=int)
   options, args = result.parse_known_args(argv)
   setattr(options, 'perfetto', not options.no_perfetto)
   # Profile is only used with --aot.
