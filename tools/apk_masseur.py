@@ -45,9 +45,6 @@ def parse_options():
   apk = args[0]
   return (options, apk)
 
-def findKeystore():
-  return os.path.join(os.getenv('HOME'), '.android', 'app.keystore')
-
 def repack(apk, processed_out, resources, temp, quiet, logging):
   processed_apk = os.path.join(temp, 'processed.apk')
   shutil.copyfile(apk, processed_apk)
@@ -80,25 +77,13 @@ def repack(apk, processed_out, resources, temp, quiet, logging):
 
 def sign(unsigned_apk, keystore, temp, quiet, logging):
   signed_apk = os.path.join(temp, 'unaligned.apk')
-  apk_utils.sign_with_apksigner(
+  return apk_utils.sign_with_apksigner(
       unsigned_apk, signed_apk, keystore, quiet=quiet, logging=logging)
-  return signed_apk
 
 def align(signed_apk, temp, quiet, logging):
   utils.Print('Aligning', quiet=quiet)
   aligned_apk = os.path.join(temp, 'aligned.apk')
-  zipalign_path = (
-      'zipalign' if 'build_tools' in os.environ.get('PATH')
-      else os.path.join(utils.getAndroidBuildTools(), 'zipalign'))
-  cmd = [
-    zipalign_path,
-    '-f',
-    '4',
-    signed_apk,
-    aligned_apk
-  ]
-  utils.RunCmd(cmd, quiet=quiet, logging=logging)
-  return signed_apk
+  return apk_utils.align(signed_apk, aligned_apk)
 
 def masseur(
     apk, dex=None, resources=None, out=None, adb_options=None, keystore=None,
@@ -106,7 +91,7 @@ def masseur(
   if not out:
     out = os.path.basename(apk)
   if not keystore:
-    keystore = findKeystore()
+    keystore = apk_utils.default_keystore()
   with utils.TempDir() as temp:
     processed_apk = None
     if dex:

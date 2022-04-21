@@ -31,7 +31,7 @@ def ensure_record_android_trace(tmp_dir):
     assert os.path.exists(record_android_trace_path)
   return record_android_trace_path
 
-def record_android_trace(out_dir, tmp_dir):
+def record_android_trace(out_dir, tmp_dir, device_id=None):
   record_android_trace_path = ensure_record_android_trace(tmp_dir)
   config_path = os.path.join(os.path.dirname(__file__), 'config.pbtx')
   perfetto_trace_path = os.path.join(out_dir, 'trace.perfetto-trace')
@@ -43,6 +43,8 @@ def record_android_trace(out_dir, tmp_dir):
       '--out',
       perfetto_trace_path,
       '--no-open']
+  if device_id is not None:
+    cmd.extend(['--serial', device_id])
   perfetto_process = subprocess.Popen(
       cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   lines = []

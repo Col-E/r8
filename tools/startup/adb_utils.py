@@ -49,6 +49,11 @@ class ScreenState(Enum):
   def is_on_and_unlocked(self):
     return self == ScreenState.ON_UNLOCKED
 
+def broadcast(action, component, device_id=None):
+  print('Sending broadcast %s' % action)
+  cmd = create_adb_cmd('shell am broadcast -a %s %s' % (action, component), device_id)
+  return subprocess.check_output(cmd).decode('utf-8').strip().splitlines()
+
 def create_adb_cmd(arguments, device_id=None):
   assert isinstance(arguments, list) or isinstance(arguments, str)
   cmd = ['adb']
@@ -91,11 +96,13 @@ def drop_caches(device_id=None):
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
 def force_compilation(app_id, device_id=None):
+  print('Applying AOT (full)')
   cmd = create_adb_cmd(
       'shell cmd package compile -m speed -f %s' % app_id, device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
 def force_profile_compilation(app_id, device_id=None):
+  print('Applying AOT (profile)')
   cmd = create_adb_cmd(
       'shell cmd package compile -m speed-profile -f %s' % app_id, device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
@@ -205,9 +212,22 @@ def get_screen_off_timeout(device_id=None):
   return screen_off_timeout
 
 def install(apk, device_id=None):
+  print('Installing %s' % apk)
   cmd = create_adb_cmd('install %s' % apk, device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8')
   assert 'Success' in stdout
+
+def install_profile(app_id, device_id=None):
+  # This assumes that the profileinstaller library has been added to the app,
+  # https://developer.android.com/jetpack/androidx/releases/profileinstaller.
+  action = 'androidx.profileinstaller.action.INSTALL_PROFILE'
+  component = '%s/androidx.profileinstaller.ProfileInstallReceiver' % app_id
+  stdout = broadcast(action, component, device_id)
+  assert len(stdout) == 2
+  assert stdout[0] == ('Broadcasting: Intent { act=%s flg=0x400000 cmp=%s }' % (action, component))
+  assert stdout[1] == 'Broadcast completed: result=1', stdout[1]
+  stop_app(app_id, device_id)
+  force_profile_compilation(app_id, device_id)
 
 def issue_key_event(key_event, device_id=None, sleep_in_seconds=1):
   cmd = create_adb_cmd('shell input keyevent %s' % key_event, device_id)
@@ -280,6 +300,7 @@ def stop_logcat(logcat_reader):
   return logcat_reader.lines
 
 def stop_app(app_id, device_id=None):
+  print('Shutting down %s' % app_id)
   cmd = create_adb_cmd('shell am force-stop %s' % app_id, device_id)
   subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
@@ -290,6 +311,7 @@ def tear_down_after_interaction_with_device(tear_down_options, device_id=None):
       device_id)
 
 def uninstall(app_id, device_id=None):
+  print('Uninstalling %s' % app_id)
   cmd = create_adb_cmd('uninstall %s' % app_id, device_id)
   process_result = subprocess.run(cmd, capture_output=True)
   stdout = process_result.stdout.decode('utf-8')
@@ -299,7 +321,8 @@ def uninstall(app_id, device_id=None):
   else:
     expected_error = (
         'java.lang.IllegalArgumentException: Unknown package: %s' % app_id)
-    assert expected_error in stderr
+    assert 'Failure [DELETE_FAILED_INTERNAL_ERROR]' in stdout \
+        or expected_error in stderr
 
 def unlock(device_id=None, device_pin=None):
   screen_state = get_screen_state(device_id)

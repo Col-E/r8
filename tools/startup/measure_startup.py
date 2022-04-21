@@ -20,6 +20,7 @@ except ImportError:
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import adb_utils
+import apk_utils
 import perfetto_utils
 import utils
 
@@ -45,13 +46,13 @@ def tear_down(options, tear_down_options):
       tear_down_options['previous_screen_off_timeout'],
       options.device_id)
 
-def run_all(options, tmp_dir):
+def run_all(apk, options, tmp_dir):
   # Launch app while collecting information.
   data_avg = {}
   for iteration in range(options.iterations):
     print('Starting iteration %i' % iteration)
     out_dir = os.path.join(options.out_dir, str(iteration))
-    prepare_for_run(out_dir, options)
+    prepare_for_run(apk, out_dir, options)
     data = run(out_dir, options, tmp_dir)
     add_data(data_avg, data)
     print("Result:")
@@ -64,20 +65,16 @@ def run_all(options, tmp_dir):
   print(data_avg)
   write_data(options.out_dir, data_avg)
 
-def prepare_for_run(out_dir, options):
+def prepare_for_run(apk, out_dir, options):
   adb_utils.root(options.device_id)
   adb_utils.uninstall(options.app_id, options.device_id)
-  adb_utils.install(options.apk, options.device_id)
-  adb_utils.clear_profile_data(options.app_id, options.device_id)
+  adb_utils.install(apk, options.device_id)
   if options.aot:
-    adb_utils.force_compilation(options.app_id, options.device_id)
-  elif options.aot_profile:
-    adb_utils.launch_activity(
-        options.app_id, options.main_activity, options.device_id)
-    time.sleep(options.aot_profile_sleep)
-    adb_utils.stop_app(options.app_id, options.device_id)
-    adb_utils.force_profile_compilation(options.app_id, options.device_id)
-
+    if options.baseline_profile:
+      adb_utils.clear_profile_data(options.app_id, options.device_id)
+      adb_utils.install_profile(options.app_id, options.device_id)
+    else:
+      adb_utils.force_compilation(options.app_id, options.device_id)
   adb_utils.drop_caches(options.device_id)
   os.makedirs(out_dir, exist_ok=True)
 
@@ -87,9 +84,9 @@ def run(out_dir, options, tmp_dir):
   # Start perfetto trace collector.
   perfetto_process = None
   perfetto_trace_path = None
-  if not options.no_perfetto:
+  if options.perfetto:
     perfetto_process, perfetto_trace_path = perfetto_utils.record_android_trace(
-        out_dir, tmp_dir)
+        out_dir, tmp_dir, options.device_id)
 
   # Launch main activity.
   launch_activity_result = adb_utils.launch_activity(
@@ -99,7 +96,7 @@ def run(out_dir, options, tmp_dir):
       wait_for_activity_to_launch=True)
 
   # Wait for perfetto trace collector to stop.
-  if not options.no_perfetto:
+  if options.perfetto:
     perfetto_utils.stop_record_android_trace(perfetto_process, out_dir)
 
   # Get minor and major page faults from app process.
@@ -137,16 +134,18 @@ def compute_data(launch_activity_result, perfetto_trace_path, options):
 
 def compute_startup_data(launch_activity_result, perfetto_trace_path, options):
   startup_data = {
-    'time_to_activity_started_ms': launch_activity_result.get('total_time')
+    'adb_startup': launch_activity_result.get('total_time')
   }
   perfetto_startup_data = {}
-  if not options.no_perfetto:
+  if options.perfetto:
     trace_processor = TraceProcessor(file_path=perfetto_trace_path)
 
-    # Compute time to first frame according to the builtin android_startup metric.
+    # Compute time to first frame according to the builtin android_startup
+    # metric.
     startup_metric = trace_processor.metric(['android_startup'])
     time_to_first_frame_ms = \
         startup_metric.android_startup.startup[0].to_first_frame.dur_ms
+    perfetto_startup_data['perfetto_startup'] = round(time_to_first_frame_ms)
 
     # Compute time to first and last doFrame event.
     bind_application_slice = perfetto_utils.find_unique_slice_by_name(
@@ -158,15 +157,14 @@ def compute_startup_data(launch_activity_result, perfetto_trace_path, options):
     first_do_frame_slice = next(do_frame_slices)
     *_, last_do_frame_slice = do_frame_slices
 
-    perfetto_startup_data = {
-      'time_to_first_frame_ms': round(time_to_first_frame_ms),
+    perfetto_startup_data.update({
       'time_to_first_choreographer_do_frame_ms':
           round(perfetto_utils.get_slice_end_since_start(
               first_do_frame_slice, bind_application_slice)),
       'time_to_last_choreographer_do_frame_ms':
           round(perfetto_utils.get_slice_end_since_start(
               last_do_frame_slice, bind_application_slice))
-    }
+    })
 
   # Return combined startup data.
   return startup_data | perfetto_startup_data
@@ -191,10 +189,6 @@ def parse_options(argv):
                       help='Enable force compilation using profiles',
                       default=False,
                       action='store_true')
-  result.add_argument('--aot-profile-sleep',
-                      help='Duration in seconds before forcing compilation',
-                      default=15,
-                      type=int)
   result.add_argument('--apk',
                       help='Path to the APK',
                       required=True)
@@ -216,16 +210,22 @@ def parse_options(argv):
   result.add_argument('--out-dir',
                       help='Directory to store trace files in',
                       required=True)
+  result.add_argument('--baseline-profile',
+                      help='Baseline profile to install')
   options, args = result.parse_known_args(argv)
-  assert (not options.aot) or (not options.aot_profile)
+  setattr(options, 'perfetto', not options.no_perfetto)
+  # Profile is only used with --aot.
+  assert options.aot or not options.baseline_profile
   return options, args
 
 def main(argv):
   (options, args) = parse_options(argv)
   with utils.TempDir() as tmp_dir:
+    apk = apk_utils.add_baseline_profile_to_apk(
+        options.apk, options.baseline_profile, tmp_dir)
     tear_down_options = adb_utils.prepare_for_interaction_with_device(
         options.device_id, options.device_pin)
-    run_all(options, tmp_dir)
+    run_all(apk, options, tmp_dir)
     adb_utils.tear_down_after_interaction_with_device(
         tear_down_options, options.device_id)
 

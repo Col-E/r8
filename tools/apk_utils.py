@@ -5,9 +5,13 @@
 
 import optparse
 import os
+import shutil
 import subprocess
 import sys
+import time
+
 import utils
+import zip_utils
 
 USAGE = 'usage: %prog [options] <apk>'
 
@@ -34,6 +38,30 @@ def parse_options():
   apk = args[0]
   return (options, apk)
 
+def add_baseline_profile_to_apk(apk, baseline_profile, tmp_dir):
+  if baseline_profile is None:
+    return apk
+  ts = time.time_ns()
+  dest_apk = os.path.join(tmp_dir, 'app-%s.apk' % ts)
+  dest_apk_aligned = os.path.join(tmp_dir, 'app-aligned-%s.apk' % ts)
+  dest_apk_signed = os.path.join(tmp_dir, 'app-signed-%s.apk' % ts)
+  shutil.copy2(apk, dest_apk)
+  zip_utils.add_file_to_zip(
+      baseline_profile, 'assets/dexopt/baseline.prof', dest_apk)
+  align(dest_apk, dest_apk_aligned)
+  sign_with_apksigner(dest_apk_aligned, dest_apk_signed)
+  return dest_apk_signed
+
+def align(apk, aligned_apk):
+  zipalign_path = (
+      'zipalign' if 'build_tools' in os.environ.get('PATH')
+      else os.path.join(utils.getAndroidBuildTools(), 'zipalign'))
+  cmd = [zipalign_path, '-f', '4', apk, aligned_apk]
+  utils.RunCmd(cmd, quiet=True, logging=False)
+  return aligned_apk
+
+def default_keystore():
+  return os.path.join(os.getenv('HOME'), '.android', 'app.keystore')
 
 def sign(unsigned_apk, signed_apk, keystore, quiet=False, logging=True):
   utils.Print('Signing (ignore the warnings)', quiet=quiet)
@@ -52,20 +80,20 @@ def sign(unsigned_apk, signed_apk, keystore, quiet=False, logging=True):
   utils.RunCmd(cmd, quiet=quiet)
 
 def sign_with_apksigner(
-    unsigned_apk, signed_apk, keystore, password='android', quiet=False,
+    unsigned_apk, signed_apk, keystore=None, password='android', quiet=False,
     logging=True):
   cmd = [
     os.path.join(utils.getAndroidBuildTools(), 'apksigner'),
     'sign',
     '-v',
-    '--ks', keystore,
+    '--ks', keystore or default_keystore(),
     '--ks-pass', 'pass:' + password,
     '--min-sdk-version', '19',
     '--out', signed_apk,
     unsigned_apk
   ]
   utils.RunCmd(cmd, quiet=quiet, logging=logging)
-
+  return signed_apk
 
 def main():
   (options, apk) = parse_options()
