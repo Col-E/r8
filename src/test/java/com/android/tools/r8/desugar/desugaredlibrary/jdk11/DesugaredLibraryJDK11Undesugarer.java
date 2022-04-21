@@ -35,6 +35,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("java/lang/DesugarMath", "java/lang/Math")
           .put("java/io/DesugarBufferedReader", "java/io/BufferedReader")
           .put("java/io/DesugarInputStream", "java/io/InputStream")
+          .put("wrapper/adapter/HybridFileSystemProvider", "java/adapter/HybridFileSystemProvider")
           .build();
 
   public static void main(String[] args) throws Exception {
@@ -47,9 +48,6 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
       return ToolHelper.getDesugarJDKLibsBazelGeneratedFile();
     }
     Path desugaredLibJDK11Undesugared = Paths.get("build/libs/desugar_jdk_libs_11_undesugared.jar");
-    if (Files.exists(desugaredLibJDK11Undesugared)) {
-      return desugaredLibJDK11Undesugared;
-    }
     return generateUndesugaredJar(desugaredLibJDK11Undesugared);
   }
 

@@ -576,11 +576,14 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
   public static class APIConverterConstructorCfCodeProvider extends SyntheticCfCodeProvider {
 
-    DexField wrapperField;
+    private final DexField wrapperField;
+    private final DexType superType;
 
-    public APIConverterConstructorCfCodeProvider(AppView<?> appView, DexField wrapperField) {
+    public APIConverterConstructorCfCodeProvider(
+        AppView<?> appView, DexField wrapperField, DexType superType) {
       super(appView, wrapperField.holder);
       this.wrapperField = wrapperField;
+      this.superType = superType;
     }
 
     @Override
@@ -592,9 +595,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
           new CfInvoke(
               Opcodes.INVOKESPECIAL,
               factory.createMethod(
-                  factory.objectType,
-                  factory.createProto(factory.voidType),
-                  factory.constructorMethodName),
+                  superType, factory.createProto(factory.voidType), factory.constructorMethodName),
               false));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));

@@ -1672,6 +1672,10 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public void disableApiCallerIdentification() {
       enableApiCallerIdentification = false;
     }
+
+    public void disableSubbingOfClasses() {
+      enableStubbingOfClasses = false;
+    }
   }
 
   public static class ProtoShrinkingOptions {

@@ -53,7 +53,19 @@
     },
     {
       "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.io.DesugarFile": "j$.io.DesugarFile",
+        "java.nio.channels.AsynchronousChannel": "j$.nio.channels.AsynchronousChannel",
+        "java.nio.channels.AsynchronousFileChannel": "j$.nio.channels.AsynchronousFileChannel",
+        "java.nio.channels.CompletionHandler": "j$.nio.channels.CompletionHandler",
+        "java.nio.file.": "j$.nio.file."
+      },
+      "retarget_method_with_emulated_dispatch": {
+        "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
+      },
       "wrapper_conversion": [
+        "java.nio.channels.AsynchronousChannel",
+        "java.nio.channels.CompletionHandler",
         "java.nio.file.Path",
         "java.nio.file.FileSystem",
         "java.nio.file.WatchService",
@@ -78,6 +90,13 @@
         "java.nio.file.OpenOption",
         "java.nio.file.attribute.BasicFileAttributes"
       ],
+      "wrapper_conversion_excluding": {
+        "java.nio.channels.AsynchronousFileChannel": [
+          "void java.nio.channels.AsynchronousFileChannel#lock(java.lang.Object, java.nio.channels.CompletionHandler)",
+          "java.util.concurrent.Future java.nio.channels.AsynchronousFileChannel#lock()",
+          "java.nio.channels.FileLock java.nio.channels.AsynchronousFileChannel#tryLock()"
+        ]
+      },
       "custom_conversion": {
         "java.nio.file.attribute.FileTime": "java.nio.file.attribute.FileAttributeConversions"
       }
@@ -93,6 +112,8 @@
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "java.io.DesugarBufferedReader": "j$.io.DesugarBufferedReader",
+        "java.nio.channels.FileChannel": "j$.nio.channels.FileChannel",
+        "java.nio.channels.SeekableByteChannel": "j$.nio.channels.SeekableByteChannel",
         "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
         "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
         "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
@@ -148,6 +169,7 @@
         "java.util.Spliterator java.util.LinkedHashSet#spliterator()": "java.util.DesugarLinkedHashSet"
       },
       "wrapper_conversion": [
+        "java.nio.channels.SeekableByteChannel",
         "java.util.function.IntUnaryOperator",
         "java.util.function.BiFunction",
         "java.util.function.IntConsumer",
@@ -202,6 +224,16 @@
         "java.util.Spliterator": [
           "boolean java.util.Spliterator#hasCharacteristics(int)",
           "long java.util.Spliterator#getExactSizeIfKnown()"
+        ],
+        "java.nio.channels.FileChannel": [
+          "long java.nio.channels.FileChannel#read(java.nio.ByteBuffer[])",
+          "long java.nio.channels.FileChannel#write(java.nio.ByteBuffer[])",
+          "java.nio.channels.FileLock java.nio.channels.FileChannel#lock()",
+          "java.nio.channels.FileLock java.nio.channels.FileChannel#tryLock()",
+          "void java.nio.channels.spi.AbstractInterruptibleChannel#close()",
+          "boolean java.nio.channels.spi.AbstractInterruptibleChannel#isOpen()",
+          "void java.nio.channels.spi.AbstractInterruptibleChannel#begin()",
+          "void java.nio.channels.spi.AbstractInterruptibleChannel#end(boolean)"
         ]
       },
       "custom_conversion": {
@@ -293,9 +325,7 @@
     {
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
-        "java.io.DesugarFile": "j$.io.DesugarFile",
         "java.nio.channels.Desugar": "j$.nio.channels.Desugar",
-        "java.nio.file.": "j$.nio.file.",
         "jdk.internal.": "j$.jdk.internal.",
         "sun.misc.Desugar": "j$.sun.misc.Desugar",
         "sun.nio.cs.": "j$.sun.nio.cs.",
@@ -304,26 +334,15 @@
         "sun.nio.fs.BasicFileAttributesHolder": "j$.sun.nio.fs.BasicFileAttributesHolder",
         "sun.nio.fs.DynamicFileAttributeView": "j$.sun.nio.fs.DynamicFileAttributeView",
         "sun.util.PreHashedMap": "j$.sun.util.PreHashedMap",
-        "wrapper." : "j$.wrapper."
+        "java.adapter" : "j$.adapter"
       },
       "rewrite_derived_prefix": {
         "java.nio.file.attribute.FileTime": {
           "j$.nio.file.attribute.FileTime": "java.nio.file.attribute.FileTime"
-        },
-        "java.io.": {
-          "__wrapper__.j$.io.": "j$.io.",
-          "__wrapper__.java.io.": "java.io."
-        },
-        "java.nio.": {
-          "__wrapper__.j$.nio.": "j$.nio.",
-          "__wrapper__.java.nio.": "java.nio."
         }
       },
       "retarget_method": {
         "boolean java.util.Arrays#deepEquals0(java.lang.Object, java.lang.Object)": "java.util.DesugarArrays"
-      },
-      "retarget_method_with_emulated_dispatch": {
-        "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
       "backport": {
         "java.lang.DesugarDouble": "java.lang.Double",

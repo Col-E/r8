@@ -986,7 +986,11 @@ public final class R8Command extends BaseCompilerCommand {
     internal.setDesugaredLibrarySpecification(desugaredLibrarySpecification);
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     // TODO(b/214382176): Enable all the time.
-    internal.loadAllClassDefinitions = !synthesizedClassPrefix.isEmpty();
+    boolean l8Shrinking = !synthesizedClassPrefix.isEmpty();
+    internal.loadAllClassDefinitions = l8Shrinking;
+    if (l8Shrinking) {
+      internal.apiModelingOptions().disableSubbingOfClasses();
+    }
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     // Set up the map and source file providers.

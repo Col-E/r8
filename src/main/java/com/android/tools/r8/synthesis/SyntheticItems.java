@@ -569,7 +569,7 @@ public class SyntheticItems implements SyntheticDefinitionsProvider {
     SynthesizingContext outerContext = internalGetOuterContext(context, appView);
     DexType type = SyntheticNaming.createFixedType(kind, outerContext, appView.dexItemFactory());
     DexClass clazz = appView.definitionFor(type);
-    assert clazz != null;
+    assert clazz != null : "Missing existing fixed class " + type;
     assert isSyntheticClass(type);
     assert clazz.isProgramClass();
     return clazz.asProgramClass();

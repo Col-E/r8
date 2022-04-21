@@ -12,9 +12,12 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.humanspecification.HumanRewritingFlags;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineRewritingFlags;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +25,7 @@ import java.util.function.BiConsumer;
 
 public class HumanToMachineWrapperConverter {
 
+  private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
   private final AppInfoWithClassHierarchy appInfo;
   private final Set<DexType> missingClasses = Sets.newIdentityHashSet();
 
@@ -56,6 +60,10 @@ public class HumanToMachineWrapperConverter {
 
   private List<DexMethod> allImplementedMethods(
       DexClass wrapperClass, Set<DexMethod> excludedMethods) {
+    HashSet<Wrapper<DexMethod>> wrappers = new HashSet<>();
+    for (DexMethod excludedMethod : excludedMethods) {
+      wrappers.add(equivalence.wrap(excludedMethod));
+    }
     LinkedList<DexClass> workList = new LinkedList<>();
     List<DexMethod> implementedMethods = new ArrayList<>();
     workList.add(wrapperClass);
@@ -64,7 +72,7 @@ public class HumanToMachineWrapperConverter {
       for (DexEncodedMethod virtualMethod : dexClass.virtualMethods()) {
         if (!virtualMethod.isPrivateMethod()) {
           assert virtualMethod.isProtectedMethod() || virtualMethod.isPublicMethod();
-          boolean alreadyAdded = excludedMethods.contains(virtualMethod.getReference());
+          boolean alreadyAdded = wrappers.contains(equivalence.wrap(virtualMethod.getReference()));
           // This looks quadratic but given the size of the collections met in practice for
           // desugared libraries (Max ~15) it does not matter.
           if (!alreadyAdded) {
