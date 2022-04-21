@@ -530,7 +530,7 @@ def compute_failed_tests(args):
   print("Reading failed tests in", report)
   failing = set()
   inFailedSection = False
-  for line in file(report):
+  for line in open(report):
     l = line.strip()
     if l == "<h2>Failed tests</h2>":
       inFailedSection = True
