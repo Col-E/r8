@@ -48,43 +48,6 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
   }
 
   @Test
-  public void testInliningFromFeature() throws Exception {
-    // Static merging is based on sorting order, we assert that we merged to the feature.
-    ThrowingConsumer<R8TestCompileResult, Exception> ensureMergingToFeature =
-        r8TestCompileResult -> {
-          ClassSubject clazz = r8TestCompileResult.inspector().clazz(AFeatureWithStatic.class);
-          assertEquals(2, clazz.allMethods().size());
-          assertThat(clazz.uniqueMethodWithName("getBase42"), isPresent());
-          assertThat(clazz.uniqueMethodWithName("getFoobar"), isPresent());
-        };
-    Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder ->
-            r8FullTestBuilder
-                .addOptionsModification(
-                    options ->
-                        options.testing.horizontalClassMergingTarget =
-                            (appView, candidates, target) -> candidates.iterator().next())
-                .addHorizontallyMergedClassesInspector(
-                    inspector ->
-                        inspector.assertMergedInto(BaseWithStatic.class, AFeatureWithStatic.class))
-                .enableNoVerticalClassMergingAnnotations()
-                .enableInliningAnnotations()
-                .noMinification();
-    ProcessResult processResult =
-        testDexSplitter(
-            parameters,
-            ImmutableSet.of(BaseClass.class, BaseWithStatic.class),
-            ImmutableSet.of(FeatureClass.class, AFeatureWithStatic.class),
-            FeatureClass.class,
-            EXPECTED,
-            ensureMergingToFeature,
-            configurator);
-    // We expect art to fail on this with the dex splitter.
-    assertNotEquals(processResult.exitCode, 0);
-    assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
-  }
-
-  @Test
   public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     ThrowableConsumer<R8FullTestBuilder> configurator =
