@@ -4,10 +4,32 @@
 # BSD-style license that can be found in the LICENSE file.
 
 from enum import Enum
+import os
 import subprocess
+import sys
+import threading
 import time
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import utils
+
 DEVNULL=subprocess.DEVNULL
+
+class ProcessReader(threading.Thread):
+
+  def __init__(self, process):
+    threading.Thread.__init__(self)
+    self.lines = []
+    self.process = process
+
+  def run(self):
+    for line in self.process.stdout:
+      line = line.decode('utf-8').strip()
+      self.lines.append(line)
+
+  def stop(self):
+    self.process.kill()
 
 class ScreenState(Enum):
   OFF_LOCKED = 1,
@@ -39,7 +61,7 @@ def create_adb_cmd(arguments, device_id=None):
 def capture_app_profile_data(app_id, device_id=None):
   cmd = create_adb_cmd(
       'shell killall -s SIGUSR1 %s' % app_id, device_id)
-  subprocess.check_output(cmd)
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
   time.sleep(5)
 
 def check_app_has_profile_data(app_id, device_id=None):
@@ -53,6 +75,10 @@ def check_app_has_profile_data(app_id, device_id=None):
   size = int(size_str)
   if size == 4:
     raise ValueError('Expected size of profile at %s to be > 4K' % profile_path)
+
+def clear_logcat(device_id=None):
+  cmd = create_adb_cmd('logcat -c', device_id)
+  subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
 
 def clear_profile_data(app_id, device_id=None):
   cmd = create_adb_cmd(
@@ -85,6 +111,15 @@ def get_apk_path(app_id, device_id=None):
     raise ValueError(
         'Expected stdout to end with ".apk", was: %s' % stdout)
   return apk_path
+
+def get_profile_data(app_id, device_id=None):
+  with utils.TempDir() as temp:
+    source = get_profile_path(app_id)
+    target = os.path.join(temp, 'primary.prof')
+    cmd = create_adb_cmd('pull %s %s' % (source, target), device_id)
+    subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+    with open(target, 'rb') as f:
+      return f.read()
 
 def get_profile_path(app_id):
   return '/data/misc/profiles/cur/0/%s/primary.prof' % app_id
@@ -225,6 +260,24 @@ def set_screen_off_timeout(screen_off_timeout_in_millis, device_id=None):
       device_id)
   stdout = subprocess.check_output(cmd).decode('utf-8').strip()
   assert len(stdout) == 0
+
+def start_logcat(device_id=None, format=None, filter=None):
+  args = ['logcat']
+  if format:
+    args.extend(['--format', format])
+  if filter:
+    args.append(filter)
+  cmd = create_adb_cmd(args, device_id)
+  logcat_process = subprocess.Popen(
+      cmd, bufsize=1024*1024, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  reader = ProcessReader(logcat_process)
+  reader.start()
+  return reader
+
+def stop_logcat(logcat_reader):
+  logcat_reader.stop()
+  logcat_reader.join()
+  return logcat_reader.lines
 
 def stop_app(app_id, device_id=None):
   cmd = create_adb_cmd('shell am force-stop %s' % app_id, device_id)
