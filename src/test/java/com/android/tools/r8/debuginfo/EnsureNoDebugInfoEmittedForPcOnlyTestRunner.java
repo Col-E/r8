@@ -5,11 +5,10 @@
 package com.android.tools.r8.debuginfo;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
-import static com.android.tools.r8.utils.InternalOptions.LineNumberOptimization.ON;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.SourceFileEnvironment;
@@ -74,7 +73,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .addProgramClasses(MAIN)
         .setMinApi(parameters.getApiLevel())
         .internalEnableMappingOutput()
-        // TODO(b/191038746): Enable LineNumberOptimization for release builds for DEX PC Output.
         .applyIf(
             apiLevelSupportsPcAndSourceFileOutput(),
             builder ->
@@ -92,7 +90,6 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
                               return true;
                             }
                           };
-                      options.lineNumberOptimization = ON;
                     }))
         .run(parameters.getRuntime(), MAIN)
         .inspectFailure(
@@ -150,10 +147,7 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
     List<DexDebugEntry> entries =
         new DexDebugEntryBuilder(main.getMethod(), inspector.getFactory()).build();
     Set<Integer> lines = entries.stream().map(e -> e.line).collect(Collectors.toSet());
-    // Check some of the lines in main are present (not 27 as it may be optimized out).
-    assertTrue(lines.contains(22));
-    assertTrue(lines.contains(23));
-    assertTrue(lines.contains(25));
+    assertFalse(lines.isEmpty());
   }
 
   private void checkExpectedStackTrace(StackTrace stackTrace) {

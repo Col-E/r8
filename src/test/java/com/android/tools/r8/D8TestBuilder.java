@@ -123,13 +123,10 @@ public class D8TestBuilder
     return self();
   }
 
-  // TODO(b/183125319): Make this the default as part of API support in D8.
   public D8TestBuilder internalEnableMappingOutput() {
     assert proguardMapOutputBuilder == null;
     proguardMapOutputBuilder = new StringBuilder();
-    // TODO(b/183125319): Use the API once supported in D8.
-    addOptionsModification(
-        o -> o.proguardMapConsumer = (s, h) -> proguardMapOutputBuilder.append(s));
+    getBuilder().setProguardMapConsumer((s, h) -> proguardMapOutputBuilder.append(s));
     return self();
   }
 }
