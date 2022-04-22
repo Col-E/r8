@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import static org.objectweb.asm.Opcodes.F_NEW;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -26,6 +27,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -377,12 +379,6 @@ public class CfFrame extends CfInstruction {
     return locals;
   }
 
-  // This is used from tests. As fastutils are repackaged and minified the method above is
-  // not available from tests which use fastutils in their original namespace.
-  public SortedMap<Integer, FrameType> getLocalsAsSortedMap() {
-    return locals;
-  }
-
   public Deque<FrameType> getStack() {
     return stack;
   }
@@ -504,6 +500,16 @@ public class CfFrame extends CfInstruction {
     frameBuilder.checkFrameAndSet(this);
   }
 
+  @Override
+  public CfFrameState evaluate(
+      CfFrameState frame,
+      ProgramMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
+    // TODO(b/214496607): Implement this.
+    throw new Unimplemented();
+  }
+
   public CfFrame markInstantiated(FrameType uninitializedType, DexType initType) {
     if (uninitializedType.isInitialized()) {
       throw CfCodeStackMapValidatingException.error(
@@ -520,7 +526,8 @@ public class CfFrame extends CfInstruction {
     return new CfFrame(newLocals, newStack);
   }
 
-  private FrameType getInitializedFrameType(FrameType unInit, FrameType other, DexType newType) {
+  private static FrameType getInitializedFrameType(
+      FrameType unInit, FrameType other, DexType newType) {
     assert !unInit.isInitialized();
     if (other.isInitialized()) {
       return other;

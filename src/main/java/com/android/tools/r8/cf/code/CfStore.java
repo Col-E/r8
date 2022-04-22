@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.BiPredicateUtils.or;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -25,6 +26,7 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -171,5 +173,15 @@ public class CfStore extends CfInstruction {
       default:
         throw new Unreachable("Unexpected type " + type);
     }
+  }
+
+  @Override
+  public CfFrameState evaluate(
+      CfFrameState frame,
+      ProgramMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
+    // TODO(b/214496607): Implement this.
+    throw new Unimplemented();
   }
 }

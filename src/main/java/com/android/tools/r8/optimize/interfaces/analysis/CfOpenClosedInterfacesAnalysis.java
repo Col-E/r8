@@ -63,8 +63,7 @@ public class CfOpenClosedInterfacesAnalysis {
     @Override
     public TransferFunctionResult<CfFrameState> apply(
         CfInstruction instruction, CfFrameState state) {
-      // TODO(b/214496607): Implement this.
-      throw new Unimplemented();
+      return instruction.evaluate(state, context, appView, appView.dexItemFactory());
     }
 
     @Override
