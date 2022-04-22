@@ -25,8 +25,11 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ListIterator;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class CfInstruction implements CfOrDexInstruction {
@@ -104,6 +107,26 @@ public abstract class CfInstruction implements CfOrDexInstruction {
 
   public CfLabel getTarget() {
     return null;
+  }
+
+  public final void forEachNormalTarget(
+      Consumer<? super CfInstruction> consumer, CfInstruction fallthroughInstruction) {
+    traverseNormalTargets(
+        (target, ignore) -> {
+          consumer.accept(target);
+          return TraversalContinuation.doContinue();
+        },
+        fallthroughInstruction,
+        null);
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
+      BiFunction<? super CfInstruction, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CfInstruction fallthroughInstruction,
+      CT initialValue) {
+    // The method is overridden in each jump instruction.
+    assert !isJump();
+    return fn.apply(fallthroughInstruction, initialValue);
   }
 
   @Override

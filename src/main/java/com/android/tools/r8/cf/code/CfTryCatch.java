@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class CfTryCatch {
   public final CfLabel start;
@@ -26,6 +27,22 @@ public class CfTryCatch {
     this.guards = guards;
     this.targets = targets;
     assert verifyAllNonNull(guards);
+  }
+
+  public void forEachTarget(Consumer<CfLabel> consumer) {
+    targets.forEach(consumer);
+  }
+
+  public CfLabel getStart() {
+    return start;
+  }
+
+  public CfLabel getEnd() {
+    return end;
+  }
+
+  public List<CfLabel> getTargets() {
+    return targets;
   }
 
   private static boolean verifyAllNonNull(List<DexType> types) {

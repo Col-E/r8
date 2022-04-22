@@ -24,7 +24,9 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
+import java.util.function.BiFunction;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -65,6 +67,16 @@ public class CfIfCmp extends CfInstruction {
   @Override
   public CfLabel getTarget() {
     return target;
+  }
+
+  @Override
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
+      BiFunction<? super CfInstruction, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CfInstruction fallthroughInstruction,
+      CT initialValue) {
+    return fn.apply(target, initialValue)
+        .ifContinueThen(
+            continuation -> fn.apply(fallthroughInstruction, continuation.getValueOrDefault(null)));
   }
 
   public int getOpcode() {

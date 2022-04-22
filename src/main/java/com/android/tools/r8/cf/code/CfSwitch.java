@@ -21,9 +21,12 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.TraversalUtils;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -44,6 +47,16 @@ public class CfSwitch extends CfInstruction {
     this.targets = targets;
     assert kind != Kind.LOOKUP || keys.length == targets.size();
     assert kind != Kind.TABLE || keys.length == 1;
+  }
+
+  @Override
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalTargets(
+      BiFunction<? super CfInstruction, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CfInstruction fallthroughInstruction,
+      CT initialValue) {
+    return TraversalUtils.traverseIterable(targets, fn, initialValue)
+        .ifContinueThen(
+            continuation -> fn.apply(defaultTarget, continuation.getValueOrDefault(null)));
   }
 
   @Override

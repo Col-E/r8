@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.FunctionUtils.ignoreArgument;
 
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -36,5 +37,21 @@ public class TraversalUtils {
     traversal.accept(
         ignoreArgument(() -> TraversalContinuation.breakIf(counter.incrementAndGet() > value)));
     return counter.get() > value;
+  }
+
+  public static <S, BT, CT> TraversalContinuation<BT, CT> traverseIterable(
+      Iterable<S> iterable,
+      BiFunction<? super S, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (S element : iterable) {
+      traversalContinuation =
+          fn.apply(element, traversalContinuation.asContinue().getValueOrDefault(null));
+      if (traversalContinuation.isBreak()) {
+        break;
+      }
+    }
+    return traversalContinuation;
   }
 }
