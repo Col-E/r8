@@ -487,7 +487,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeDirect(method, getContext()).getReference();
         MethodResolutionResult resolutionResult =
-            appView.appInfo().resolveMethodOnClassHolder(rewrittenMethod);
+            appView.appInfo().resolveMethodOnClassHolderLegacy(rewrittenMethod);
         if (resolutionResult.isSingleResolution()
             && resolutionResult.getResolvedHolder().isProgramClass()) {
           enqueueMethod(resolutionResult.getResolvedProgramMethod());
@@ -499,7 +499,10 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeInterface(method, getContext()).getReference();
         DexClassAndMethod resolvedMethod =
-            appView.appInfo().resolveMethodOnInterfaceHolder(rewrittenMethod).getResolutionPair();
+            appView
+                .appInfo()
+                .resolveMethodOnInterfaceHolderLegacy(rewrittenMethod)
+                .getResolutionPair();
         if (resolvedMethod != null) {
           fail();
         }
@@ -512,7 +515,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         ProgramMethod resolvedMethod =
             appView
                 .appInfo()
-                .unsafeResolveMethodDueToDexFormat(rewrittenMethod)
+                .unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod)
                 .getResolvedProgramMethod();
         if (resolvedMethod != null) {
           triggerClassInitializerIfNotAlreadyTriggeredInContext(resolvedMethod.getHolder());
@@ -537,7 +540,7 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         DexMethod rewrittenMethod =
             appView.graphLens().lookupInvokeVirtual(method, getContext()).getReference();
         DexClassAndMethod resolvedMethod =
-            appView.appInfo().resolveMethodOnClassHolder(rewrittenMethod).getResolutionPair();
+            appView.appInfo().resolveMethodOnClassHolderLegacy(rewrittenMethod).getResolutionPair();
         if (resolvedMethod != null) {
           if (!resolvedMethod.getHolder().isEffectivelyFinal(appView)) {
             fail();

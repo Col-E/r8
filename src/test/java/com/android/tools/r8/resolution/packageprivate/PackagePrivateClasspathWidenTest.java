@@ -74,7 +74,7 @@ public class PackagePrivateClasspathWidenTest extends TestBase {
             .buildWithLiveness();
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Abstract.class, "foo", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Abstract.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

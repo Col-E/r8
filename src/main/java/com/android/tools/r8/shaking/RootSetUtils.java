@@ -422,7 +422,7 @@ public class RootSetUtils {
         DexEncodedMethod target =
             appView
                 .appInfo()
-                .unsafeResolveMethodDueToDexFormat(referenceInSubType)
+                .unsafeResolveMethodDueToDexFormatLegacy(referenceInSubType)
                 .getSingleTarget();
         // But, the resolution should not be landed on the current type we are visiting.
         if (target == null || target.getHolderType() == type) {
@@ -605,7 +605,7 @@ public class RootSetUtils {
         SingleResolutionResult<?> resolutionResult =
             appView
                 .appInfo()
-                .resolveMethodOn(originalClazz, method.getReference())
+                .resolveMethodOnLegacy(originalClazz, method.getReference())
                 .asSingleResolution();
         if (resolutionResult == null || !resolutionResult.isVirtualTarget()) {
           return;

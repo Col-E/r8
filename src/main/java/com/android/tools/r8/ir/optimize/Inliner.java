@@ -963,7 +963,7 @@ public class Inliner {
           SingleResolutionResult<?> resolutionResult =
               appView
                   .appInfo()
-                  .resolveMethod(invokedMethod, invoke.getInterfaceBit())
+                  .resolveMethodLegacy(invokedMethod, invoke.getInterfaceBit())
                   .asSingleResolution();
           if (resolutionResult == null
               || resolutionResult.isAccessibleFrom(context, appView).isPossiblyFalse()) {

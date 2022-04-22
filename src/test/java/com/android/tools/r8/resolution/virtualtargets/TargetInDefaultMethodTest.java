@@ -63,7 +63,7 @@ public class TargetInDefaultMethodTest extends TestBase {
             .buildWithLiveness();
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnInterfaceHolder(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnInterfaceHolderLegacy(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

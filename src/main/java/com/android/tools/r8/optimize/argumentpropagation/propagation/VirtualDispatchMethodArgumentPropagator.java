@@ -103,7 +103,10 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
               inactiveMethodStates.forEach(
                   (signature, methodState) -> {
                     SingleResolutionResult<?> resolutionResult =
-                        appView.appInfo().resolveMethodOn(clazz, signature).asSingleResolution();
+                        appView
+                            .appInfo()
+                            .resolveMethodOnLegacy(clazz, signature)
+                            .asSingleResolution();
 
                     // Find the first virtual method in the super class hierarchy.
                     while (resolutionResult != null
@@ -111,7 +114,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                       resolutionResult =
                           appView
                               .appInfo()
-                              .resolveMethodOnClass(
+                              .resolveMethodOnClassLegacy(
                                   resolutionResult.getResolvedHolder().getSuperType(), signature)
                               .asSingleResolution();
                     }

@@ -164,7 +164,10 @@ public class ArgumentPropagatorCodeScanner {
     }
 
     SingleResolutionResult<?> resolutionResult =
-        appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).asSingleResolution();
+        appView
+            .appInfo()
+            .unsafeResolveMethodDueToDexFormatLegacy(invokedMethod)
+            .asSingleResolution();
     if (resolutionResult == null) {
       // Nothing to propagate; the invoke instruction fails.
       return;
@@ -543,7 +546,7 @@ public class ArgumentPropagatorCodeScanner {
     SingleResolutionResult<?> resolution =
         appView
             .appInfo()
-            .resolveMethod(bootstrapMethod.asMethod(), bootstrapMethod.isInterface)
+            .resolveMethodLegacy(bootstrapMethod.asMethod(), bootstrapMethod.isInterface)
             .asSingleResolution();
     if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
       methodStates.set(resolution.getResolvedProgramMethod(), UnknownMethodState.get());

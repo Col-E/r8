@@ -123,7 +123,7 @@ public final class LambdaDescriptor {
       case INVOKE_INSTANCE: {
           DexEncodedMethod target =
               appInfo
-                  .resolveMethodOn(getImplReceiverType(), method, implHandle.isInterface)
+                  .resolveMethodOnLegacy(getImplReceiverType(), method, implHandle.isInterface)
                   .getSingleTarget();
         if (target == null) {
             target = appInfo.lookupDirectTarget(method, context);
@@ -149,7 +149,9 @@ public final class LambdaDescriptor {
 
       case INVOKE_INTERFACE: {
           DexEncodedMethod target =
-              appInfo.resolveMethodOnInterface(getImplReceiverType(), method).getSingleTarget();
+              appInfo
+                  .resolveMethodOnInterfaceLegacy(getImplReceiverType(), method)
+                  .getSingleTarget();
         assert target == null || isInstanceMethod(target);
         return target;
       }

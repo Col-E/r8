@@ -64,7 +64,7 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOnInterface(method.holder, method);
+        appInfo.resolveMethodOnInterfaceLegacy(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

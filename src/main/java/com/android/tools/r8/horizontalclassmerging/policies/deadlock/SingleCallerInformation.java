@@ -216,7 +216,7 @@ public class SingleCallerInformation {
         ProgramMethod target =
             appView
                 .appInfo()
-                .unsafeResolveMethodDueToDexFormat(rewrittenMethod)
+                .unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod)
                 .getResolvedProgramMethod();
         if (target != null) {
           recordDispatchTarget(target);

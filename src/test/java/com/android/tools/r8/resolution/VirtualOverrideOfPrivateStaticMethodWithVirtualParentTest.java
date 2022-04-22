@@ -108,7 +108,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends T
   @Test
   public void testResolution() {
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
+        appInfo.resolveMethodOnClassLegacy(methodOnB.holder, methodOnB);
     assertTrue(resolutionResult.isFailedResolution());
   }
 

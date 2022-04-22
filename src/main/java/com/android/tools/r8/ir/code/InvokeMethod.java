@@ -151,7 +151,7 @@ public abstract class InvokeMethod extends Invoke {
       }
     }
     MethodResolutionResult resolutionResult =
-        appView.appInfo().resolveMethod(method, getInterfaceBit());
+        appView.appInfo().resolveMethodLegacy(method, getInterfaceBit());
     LookupResult lookupResult;
     if (refinedReceiverUpperBound != null) {
       lookupResult =

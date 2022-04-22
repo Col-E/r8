@@ -307,7 +307,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     // would change behavior from throwing ICCE to dispatching to the companion class method.
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MethodResolutionResult resolution =
-        appInfo.resolveMethod(invoke.getMethod(), invoke.isInterface());
+        appInfo.resolveMethodLegacy(invoke.getMethod(), invoke.isInterface());
     if (!resolution.isSingleResolution()
         || !resolution.asSingleResolution().getResolvedMethod().isStatic()) {
       return DesugarDescription.nothing();
@@ -408,7 +408,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     SingleResolutionResult<?> resolutionResult =
         appView
             .appInfoForDesugaring()
-            .resolveMethodOnInterface(holder, invoke.getMethod())
+            .resolveMethodOnInterfaceLegacy(holder, invoke.getMethod())
             .asSingleResolution();
     if (holder.isInterface() && shouldRewriteToInvokeToThrow(resolutionResult, true)) {
       return computeInvokeAsThrowRewrite(invoke, resolutionResult, context);
@@ -437,7 +437,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     AppInfoWithClassHierarchy appInfoForDesugaring = appView.appInfoForDesugaring();
     SingleResolutionResult<?> resolution =
         appInfoForDesugaring
-            .resolveMethod(invoke.getMethod(), invoke.isInterface())
+            .resolveMethodLegacy(invoke.getMethod(), invoke.isInterface())
             .asSingleResolution();
     if (resolution != null
         && resolution.getResolvedMethod().isPrivate()
@@ -454,7 +454,9 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
 
   private DesugarDescription computeEmulatedInterfaceVirtualDispatchOrNull(CfInvoke invoke) {
     MethodResolutionResult resolutionResult =
-        appView.appInfoForDesugaring().resolveMethod(invoke.getMethod(), invoke.isInterface());
+        appView
+            .appInfoForDesugaring()
+            .resolveMethodLegacy(invoke.getMethod(), invoke.isInterface());
     DerivedMethod emulatedDispatchMethod =
         helper.computeEmulatedInterfaceDispatchMethod(resolutionResult);
     if (emulatedDispatchMethod == null) {
@@ -492,7 +494,7 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
 
     MethodResolutionResult resolution =
-        appView.appInfoForDesugaring().resolveMethod(invokedMethod, invoke.isInterface());
+        appView.appInfoForDesugaring().resolveMethodLegacy(invokedMethod, invoke.isInterface());
     if (resolution.isFailedResolution()) {
       return computeInvokeAsThrowRewrite(invoke, null, context);
     }
@@ -638,7 +640,10 @@ public final class InterfaceMethodRewriter implements CfInstructionDesugaring {
     }
 
     SingleResolutionResult<?> resolutionResult =
-        appView.appInfoForDesugaring().resolveMethodOn(clazz, invokedMethod).asSingleResolution();
+        appView
+            .appInfoForDesugaring()
+            .resolveMethodOnLegacy(clazz, invokedMethod)
+            .asSingleResolution();
     if (clazz.isInterface() && shouldRewriteToInvokeToThrow(resolutionResult, false)) {
       return computeInvokeAsThrowRewrite(invoke, resolutionResult, context);
     }

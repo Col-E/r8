@@ -58,7 +58,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
               .buildWithLiveness()
               .appInfo();
       DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-      MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
+      MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
       if (minApi.isLessThan(apiLevelWithDefaultInterfaceMethodsSupport())) {
         // When desugaring a forwarding method throwing ICCE is inserted.
         // Check that the resolved method throws such an exception.

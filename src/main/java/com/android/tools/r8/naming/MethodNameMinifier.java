@@ -382,7 +382,8 @@ class MethodNameMinifier {
       return;
     }
 
-    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethodOn(holder, method);
+    MethodResolutionResult resolutionResult =
+        appView.appInfo().resolveMethodOnLegacy(holder, method);
     if (resolutionResult.isSingleResolution()) {
       DexEncodedMethod resolvedMethod = resolutionResult.getSingleTarget();
       if (resolvedMethod.getReference() == method) {

@@ -246,7 +246,7 @@ public class Tracer {
 
       DexClassAndMethod superTarget =
           appInfo()
-              .resolveMethodOn(method.getHolder(), method.getReference())
+              .resolveMethodOnLegacy(method.getHolder(), method.getReference())
               .lookupInvokeSpecialTarget(method.getHolder(), appInfo());
       if (superTarget != null
           && !superTarget.isProgramMethod()
@@ -267,7 +267,8 @@ public class Tracer {
           method -> {
             DexClassAndMethod resolvedMethod =
                 appInfo()
-                    .resolveMethodOn(superType, method.getReference(), superType != clazz.superType)
+                    .resolveMethodOnLegacy(
+                        superType, method.getReference(), superType != clazz.superType)
                     .getResolutionPair();
             if (resolvedMethod != null
                 && !resolvedMethod.isProgramMethod()
@@ -311,7 +312,7 @@ public class Tracer {
         assert lookupResult.getType().isStatic();
         DexMethod rewrittenMethod = lookupResult.getReference();
         handleRewrittenMethodResolution(
-            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod));
+            rewrittenMethod, appInfo().unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod));
       }
 
       @Override
@@ -320,7 +321,7 @@ public class Tracer {
         assert lookupResult.getType().isSuper();
         DexMethod rewrittenMethod = lookupResult.getReference();
         MethodResolutionResult resolutionResult =
-            appInfo().unsafeResolveMethodDueToDexFormat(rewrittenMethod);
+            appInfo().unsafeResolveMethodDueToDexFormatLegacy(rewrittenMethod);
         if (resolutionResult.isFailedResolution()
             && resolutionResult.asFailedResolution().hasMethodsCausingError()) {
           handleRewrittenMethodResolution(rewrittenMethod, resolutionResult);
@@ -349,8 +350,8 @@ public class Tracer {
         handleRewrittenMethodResolution(
             method,
             lookupResult.getType().isInterface()
-                ? appInfo().resolveMethodOnInterfaceHolder(method)
-                : appInfo().resolveMethodOnClassHolder(method));
+                ? appInfo().resolveMethodOnInterfaceHolderLegacy(method)
+                : appInfo().resolveMethodOnClassHolderLegacy(method));
       }
 
       private void handleRewrittenMethodResolution(

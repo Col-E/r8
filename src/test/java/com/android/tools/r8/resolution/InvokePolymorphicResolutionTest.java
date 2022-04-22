@@ -48,7 +48,9 @@ public class InvokePolymorphicResolutionTest extends TestBase {
     MethodReference invokeExact =
         methodFromMethod(MethodHandle.class.getMethod("invokeExact", Object[].class));
     MethodResolutionResult resolution1 =
-        appView.appInfo().resolveMethod(buildMethod(invokeExact, appView.dexItemFactory()), false);
+        appView
+            .appInfo()
+            .resolveMethodLegacy(buildMethod(invokeExact, appView.dexItemFactory()), false);
     assertFalse(resolution1.isFailedResolution());
 
     // An inexact signature should also find invokeExact.
@@ -61,7 +63,7 @@ public class InvokePolymorphicResolutionTest extends TestBase {
     MethodResolutionResult resolution2 =
         appView
             .appInfo()
-            .resolveMethod(buildMethod(inexactInvokeExact, appView.dexItemFactory()), false);
+            .resolveMethodLegacy(buildMethod(inexactInvokeExact, appView.dexItemFactory()), false);
     assertFalse(resolution2.isFailedResolution());
 
     // The should both be the same MethodHandle.invokeExact method.

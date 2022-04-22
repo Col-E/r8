@@ -373,7 +373,7 @@ public final class LambdaClass {
     assert descriptor.verifyTargetFoundInClass(accessedFrom.getHolderType());
     if (implHandle.type.isInvokeStatic()) {
       MethodResolutionResult resolution =
-          appView.appInfoForDesugaring().resolveMethod(implMethod, implHandle.isInterface);
+          appView.appInfoForDesugaring().resolveMethodLegacy(implMethod, implHandle.isInterface);
       if (resolution.isFailedResolution()) {
         return new InvalidLambdaImplTarget(
             implMethod,

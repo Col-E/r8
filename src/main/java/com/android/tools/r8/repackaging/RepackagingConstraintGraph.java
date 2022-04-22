@@ -160,7 +160,7 @@ public class RepackagingConstraintGraph {
         appView.definitionFor(method.getHolder().getSuperType(), method.getHolder());
     if (superClass != null) {
       registry.registerMemberAccess(
-          appView.appInfo().resolveMethodOn(superClass, method.getReference()));
+          appView.appInfo().resolveMethodOnLegacy(superClass, method.getReference()));
     }
 
     // Trace the references in the method and method parameter annotations.

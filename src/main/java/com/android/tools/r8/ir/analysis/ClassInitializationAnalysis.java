@@ -333,7 +333,7 @@ public class ClassInitializationAnalysis {
       }
       DexMethod method = instruction.getInvokedMethod();
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOnInterface(method.holder, method);
+          appView.appInfo().resolveMethodOnInterfaceLegacy(method.holder, method);
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
@@ -394,7 +394,7 @@ public class ClassInitializationAnalysis {
         return false;
       }
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOn(superType, method, instruction.isInterface);
+          appView.appInfo().resolveMethodOnLegacy(superType, method, instruction.isInterface);
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
@@ -431,7 +431,7 @@ public class ClassInitializationAnalysis {
       }
       DexMethod method = instruction.getInvokedMethod();
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethodOnClass(method.holder, method);
+          appView.appInfo().resolveMethodOnClassLegacy(method.holder, method);
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }

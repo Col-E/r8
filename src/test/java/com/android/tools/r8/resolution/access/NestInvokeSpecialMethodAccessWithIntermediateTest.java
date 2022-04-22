@@ -121,7 +121,7 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
     // Resolve the method from the point of the declared holder.
     assertEquals(method.holder, declaredClassDefinition.type);
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOn(declaredClassDefinition, method);
+        appInfo.resolveMethodOnLegacy(declaredClassDefinition, method);
 
     // Resolution fails when there is a mismatch between the symbolic reference and the definition.
     if (!symbolicReferenceIsDefiningType) {

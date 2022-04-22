@@ -290,7 +290,10 @@ public class MemberValuePropagation {
     }
 
     SingleResolutionResult<?> resolutionResult =
-        appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).asSingleResolution();
+        appView
+            .appInfo()
+            .unsafeResolveMethodDueToDexFormatLegacy(invokedMethod)
+            .asSingleResolution();
     if (resolutionResult == null) {
       return;
     }

@@ -91,7 +91,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   @Test
   public void resolveTarget() {
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
+        appInfo.resolveMethodOnClassLegacy(methodOnB.holder, methodOnB);
     DexClass context = appInfo.definitionFor(methodOnB.holder);
     assertTrue(resolutionResult.isIllegalAccessErrorResult(context, appInfo));
   }

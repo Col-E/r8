@@ -250,7 +250,7 @@ class TransferFunction
     SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
-            .resolveMethodOnClassHolder(invoke.getInvokedMethod())
+            .resolveMethodOnClassHolderLegacy(invoke.getInvokedMethod())
             .asSingleResolution();
     if (resolutionResult == null) {
       return state.abandonClassInliningInCurrentContexts(receiverRoot);
@@ -289,7 +289,7 @@ class TransferFunction
     SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
-            .resolveMethodOnInterfaceHolder(invoke.getInvokedMethod())
+            .resolveMethodOnInterfaceHolderLegacy(invoke.getInvokedMethod())
             .asSingleResolution();
     if (resolutionResult == null) {
       return state.abandonClassInliningInCurrentContexts(receiverRoot);
@@ -305,7 +305,7 @@ class TransferFunction
     SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
-            .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())
+            .unsafeResolveMethodDueToDexFormatLegacy(invoke.getInvokedMethod())
             .asSingleResolution();
     if (resolutionResult != null
         && resolutionResult.getResolvedMethod().getReference()
@@ -331,7 +331,7 @@ class TransferFunction
     SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
-            .resolveMethodOnClassHolder(invoke.getInvokedMethod())
+            .resolveMethodOnClassHolderLegacy(invoke.getInvokedMethod())
             .asSingleResolution();
     if (resolutionResult == null) {
       return state.abandonClassInliningInCurrentContexts(receiverRoot);

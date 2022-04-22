@@ -131,7 +131,7 @@ public class InterfaceMethodArgumentPropagator extends MethodArgumentPropagator 
             interfaceState.forEach(
                 (interfaceMethod, interfaceMethodState) -> {
                   MethodResolutionResult resolutionResult =
-                      appView.appInfo().resolveMethodOnClass(subclass, interfaceMethod);
+                      appView.appInfo().resolveMethodOnClassLegacy(subclass, interfaceMethod);
                   if (resolutionResult.isFailedResolution()) {
                     // TODO(b/190154391): Do we need to propagate argument information to the first
                     //  virtual method above the inaccessible method in the class hierarchy?

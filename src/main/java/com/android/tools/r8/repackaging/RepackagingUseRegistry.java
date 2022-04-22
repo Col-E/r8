@@ -108,7 +108,8 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
   }
 
   public ProgramMethod registerMethodReference(DexMethod method) {
-    MethodResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult resolutionResult =
+        appInfo.unsafeResolveMethodDueToDexFormatLegacy(method);
     registerMemberAccess(resolutionResult, false);
     return resolutionResult.isSingleResolution()
         ? resolutionResult.asSingleResolution().getResolvedProgramMethod()
@@ -209,7 +210,7 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
   @Override
   public void registerInvokeVirtual(DexMethod invokedMethod) {
     registerMemberAccessForInvoke(
-        appInfo.resolveMethod(
+        appInfo.resolveMethodLegacy(
             graphLens.lookupInvokeVirtual(invokedMethod, methodContext, codeLens).getReference(),
             false));
   }
@@ -217,21 +218,21 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
   @Override
   public void registerInvokeDirect(DexMethod invokedMethod) {
     registerMemberAccessForInvoke(
-        appInfo.unsafeResolveMethodDueToDexFormat(
+        appInfo.unsafeResolveMethodDueToDexFormatLegacy(
             graphLens.lookupInvokeDirect(invokedMethod, methodContext, codeLens).getReference()));
   }
 
   @Override
   public void registerInvokeStatic(DexMethod invokedMethod) {
     registerMemberAccessForInvoke(
-        appInfo.unsafeResolveMethodDueToDexFormat(
+        appInfo.unsafeResolveMethodDueToDexFormatLegacy(
             graphLens.lookupInvokeStatic(invokedMethod, methodContext, codeLens).getReference()));
   }
 
   @Override
   public void registerInvokeInterface(DexMethod invokedMethod) {
     registerMemberAccessForInvoke(
-        appInfo.resolveMethod(
+        appInfo.resolveMethodLegacy(
             graphLens.lookupInvokeInterface(invokedMethod, methodContext, codeLens).getReference(),
             true));
   }
@@ -239,7 +240,7 @@ public class RepackagingUseRegistry extends UseRegistry<ProgramDefinition> {
   @Override
   public void registerInvokeSuper(DexMethod invokedMethod) {
     registerMemberAccessForInvoke(
-        appInfo.unsafeResolveMethodDueToDexFormat(
+        appInfo.unsafeResolveMethodDueToDexFormatLegacy(
             graphLens.lookupInvokeSuper(invokedMethod, methodContext, codeLens).getReference()));
   }
 

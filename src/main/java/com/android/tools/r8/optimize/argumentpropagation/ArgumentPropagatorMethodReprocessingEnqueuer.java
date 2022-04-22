@@ -188,7 +188,7 @@ public class ArgumentPropagatorMethodReprocessingEnqueuer {
 
     private void registerInvokeMethod(DexMethod method) {
       SingleResolutionResult<?> resolutionResult =
-          appView.appInfo().unsafeResolveMethodDueToDexFormat(method).asSingleResolution();
+          appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method).asSingleResolution();
       if (resolutionResult == null || !resolutionResult.getResolvedHolder().isProgramClass()) {
         return;
       }

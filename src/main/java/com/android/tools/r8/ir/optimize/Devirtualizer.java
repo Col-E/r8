@@ -369,7 +369,10 @@ public class Devirtualizer {
     }
 
     SingleResolutionResult<?> resolutionResult =
-        appView.appInfo().resolveMethodOnClass(target.getHolderType(), target).asSingleResolution();
+        appView
+            .appInfo()
+            .resolveMethodOnClassLegacy(target.getHolderType(), target)
+            .asSingleResolution();
     if (resolutionResult == null
         || resolutionResult
             .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())
@@ -385,7 +388,7 @@ public class Devirtualizer {
     }
 
     SingleResolutionResult<?> newResolutionResult =
-        appView.appInfo().resolveMethodOnClass(receiverType, target).asSingleResolution();
+        appView.appInfo().resolveMethodOnClassLegacy(receiverType, target).asSingleResolution();
     if (newResolutionResult == null
         || newResolutionResult
             .isAccessibleForVirtualDispatchFrom(context, appView.appInfo())

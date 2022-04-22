@@ -646,7 +646,7 @@ final class ClassProcessor {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     for (Wrapper<DexMethod> signature : emulatedInterfaceInfo.signatures.signatures) {
       MethodResolutionResult resolutionResult =
-          appInfo.resolveMethodOnClass(clazz, signature.get());
+          appInfo.resolveMethodOnClassLegacy(clazz, signature.get());
       if (resolutionResult.isFailedResolution()) {
         return true;
       }
@@ -685,7 +685,7 @@ final class ClassProcessor {
   private void resolveForwardForSignature(
       DexClass clazz, DexMethod method, BiConsumer<DexClassAndMethod, DexMethod> addForward) {
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOn(clazz, method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnLegacy(clazz, method);
     if (resolutionResult.isFailedResolution()
         || resolutionResult.asSuccessfulMemberResolutionResult().getResolvedMember().isStatic()) {
       // When doing resolution we may find a static or private targets and bubble up the failed
@@ -702,7 +702,7 @@ final class ClassProcessor {
             resolutionResult.asSuccessfulMemberResolutionResult().getResolvedMember().isStatic());
       }
       if (staticTarget.isAssigned() && staticTarget.isTrue()) {
-        resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
+        resolutionResult = appInfo.resolveMethodOnInterfaceLegacy(method.holder, method);
       }
       if (resolutionResult.isFailedResolution()) {
         if (resolutionResult.isIncompatibleClassChangeErrorResult()) {

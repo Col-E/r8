@@ -49,7 +49,7 @@ public class JavaLangObjectsSideEffectCollection {
       DexClass clazz = appInfo.definitionFor(classType);
       if (clazz != null && clazz.isEffectivelyFinal(appView)) {
         SingleResolutionResult<?> resolutionResult =
-            appInfo.resolveMethodOn(clazz, toStringMethodReference).asSingleResolution();
+            appInfo.resolveMethodOnLegacy(clazz, toStringMethodReference).asSingleResolution();
         if (resolutionResult != null
             && !resolutionResult.getResolvedMethod().getOptimizationInfo().mayHaveSideEffects()) {
           return false;

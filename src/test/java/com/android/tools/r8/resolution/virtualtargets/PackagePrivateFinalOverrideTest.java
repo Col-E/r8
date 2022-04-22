@@ -68,7 +68,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(ViewModel.class, "clear", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     DexProgramClass context =
         appView.definitionForProgramType(
             buildType(ViewModelRunner.class, appInfo.dexItemFactory()));
@@ -119,7 +119,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(ViewModel.class, "clear", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
@@ -171,7 +171,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(ViewModel.class, "clear", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     DexProgramClass context =
         appView.definitionForProgramType(
             buildType(ViewModelRunnerWithCast.class, appInfo.dexItemFactory()));

@@ -70,7 +70,7 @@ public class AlwaysThrowingInstructionDesugaring implements CfInstructionDesugar
       CfInvoke invoke = instruction.asInvoke();
       DexMethod invokedMethod = invoke.getMethod();
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethod(invokedMethod, invoke.isInterface());
+          appView.appInfo().resolveMethodLegacy(invokedMethod, invoke.isInterface());
       if (shouldRewriteInvokeToThrow(invoke, resolutionResult)) {
         return computeInvokeAsThrowRewrite(appView, invoke, resolutionResult);
       }

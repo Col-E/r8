@@ -175,7 +175,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.ALWAYS;
     }
     MethodResolutionResult resolutionResult =
-        appView.appInfo().unsafeResolveMethodDueToDexFormat(lookup);
+        appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(lookup);
     DexEncodedMethod target =
         singleTargetWhileVerticalClassMerging(
             resolutionResult, context, MethodResolutionResult::lookupInvokeDirectTarget);
@@ -207,7 +207,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.ALWAYS;
     }
     MethodResolutionResult resolutionResult =
-        appView.appInfo().unsafeResolveMethodDueToDexFormat(lookup);
+        appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(lookup);
     DexEncodedMethod target =
         singleTargetWhileVerticalClassMerging(
             resolutionResult, context, MethodResolutionResult::lookupInvokeStaticTarget);
@@ -364,7 +364,8 @@ public class InliningConstraints {
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
     // resolution result.
-    MethodResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
+    MethodResolutionResult resolutionResult =
+        appView.appInfo().resolveMethodLegacy(method, isInterface);
     if (!resolutionResult.isVirtualTarget()) {
       return ConstraintWithTarget.NEVER;
     }

@@ -62,7 +62,8 @@ public class ObjectAllocationInfoCollectionUtils {
                 SingleResolutionResult resolution =
                     appView
                         .appInfo()
-                        .resolveMethodOn(clazz, appView.dexItemFactory().objectMembers.finalize)
+                        .resolveMethodOnLegacy(
+                            clazz, appView.dexItemFactory().objectMembers.finalize)
                         .asSingleResolution();
                 if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
                   return TraversalContinuation.doBreak();

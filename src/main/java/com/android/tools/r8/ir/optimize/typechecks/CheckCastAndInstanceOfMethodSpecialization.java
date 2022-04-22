@@ -174,7 +174,10 @@ public class CheckCastAndInstanceOfMethodSpecialization {
     }
 
     SingleResolutionResult<?> resolutionResult =
-        appView.appInfo().resolveMethodOn(superClass, method.getReference()).asSingleResolution();
+        appView
+            .appInfo()
+            .resolveMethodOnLegacy(superClass, method.getReference())
+            .asSingleResolution();
     if (resolutionResult == null) {
       return null;
     }

@@ -216,7 +216,7 @@ public class MemberRebindingIdentityLens extends NonIdentityGraphLens {
       DexClass holder = appView.contextIndependentDefinitionFor(reference.getHolderType());
       if (holder != null) {
         SingleResolutionResult<?> resolutionResult =
-            appView.appInfo().resolveMethodOn(holder, reference).asSingleResolution();
+            appView.appInfo().resolveMethodOnLegacy(holder, reference).asSingleResolution();
         if (resolutionResult != null && resolutionResult.getResolvedHolder() != holder) {
           recordNonReboundMethodAccess(
               reference, resolutionResult.getResolvedMethod().getReference());

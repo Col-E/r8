@@ -150,7 +150,7 @@ public class EffectivelyUnusedArgumentsAnalysis {
         ProgramMethod resolvedMethod =
             appView
                 .appInfo()
-                .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())
+                .unsafeResolveMethodDueToDexFormatLegacy(invoke.getInvokedMethod())
                 .getResolvedProgramMethod();
         if (resolvedMethod == null || isUnoptimizable(resolvedMethod)) {
           return null;

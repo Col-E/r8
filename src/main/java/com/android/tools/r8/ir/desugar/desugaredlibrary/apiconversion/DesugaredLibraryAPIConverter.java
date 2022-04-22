@@ -139,7 +139,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         ? appView.appInfoForDesugaring().lookupSuperTarget(invokedMethod, context)
         : appView
             .appInfoForDesugaring()
-            .resolveMethod(invokedMethod, invoke.isInterface())
+            .resolveMethodLegacy(invokedMethod, invoke.isInterface())
             .getResolutionPair();
   }
 

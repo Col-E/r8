@@ -263,7 +263,10 @@ public class InterfaceDesugaringSyntheticHelper {
     }
     assert verifyKind(method, kinds -> kinds.COMPANION_CLASS);
     DexClassAndMethod resolvedMethod =
-        appView.appInfoForDesugaring().resolveMethod(method.getMethod(), true).getResolutionPair();
+        appView
+            .appInfoForDesugaring()
+            .resolveMethodLegacy(method.getMethod(), true)
+            .getResolutionPair();
     return ensureDefaultAsMethodOfCompanionClassStub(resolvedMethod).getReference();
   }
 
@@ -274,7 +277,7 @@ public class InterfaceDesugaringSyntheticHelper {
     DexClassAndMethod method =
         appView
             .appInfoForDesugaring()
-            .resolveMethod(emulatedDispatchMethod.getMethod(), true)
+            .resolveMethodLegacy(emulatedDispatchMethod.getMethod(), true)
             .getResolutionPair();
     assert verifyKind(emulatedDispatchMethod, kinds -> kinds.EMULATED_INTERFACE_CLASS);
     if (method.isProgramMethod()) {

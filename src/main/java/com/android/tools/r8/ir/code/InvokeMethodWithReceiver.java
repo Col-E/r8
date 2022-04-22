@@ -200,7 +200,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     SingleResolutionResult<?> resolutionResult =
         appViewWithClassHierarchy
             .appInfo()
-            .resolveMethod(getInvokedMethod(), getInterfaceBit())
+            .resolveMethodLegacy(getInvokedMethod(), getInterfaceBit())
             .asSingleResolution();
     if (resolutionResult == null) {
       return true;

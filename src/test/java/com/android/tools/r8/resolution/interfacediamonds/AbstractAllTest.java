@@ -45,7 +45,7 @@ public class AbstractAllTest extends TestBase {
         buildClasses(CLASSES).addLibraryFile(parameters.getDefaultRuntimeLibrary()).build();
     AppInfoWithLiveness appInfo = computeAppViewWithLiveness(app, Main.class).appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolder(method);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodOnClassHolderLegacy(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     // Currently R8 will resolve to L::f as that is the first in the topological search.
     // Resolution may return any of the matches, so it is valid if this expectation changes.

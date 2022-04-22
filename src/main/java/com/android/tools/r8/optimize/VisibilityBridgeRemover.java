@@ -53,7 +53,10 @@ public class VisibilityBridgeRemover {
     }
     // This is a visibility forward, so check for the direct target.
     ProgramMethod targetMethod =
-        appView.appInfo().unsafeResolveMethodDueToDexFormat(target).getResolvedProgramMethod();
+        appView
+            .appInfo()
+            .unsafeResolveMethodDueToDexFormatLegacy(target)
+            .getResolvedProgramMethod();
     if (targetMethod == null || !targetMethod.getAccessFlags().isPublic()) {
       return false;
     }

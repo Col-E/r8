@@ -128,7 +128,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
     DexProgramClass bClass = appInfo.definitionForProgramType(methodOnBReference.holder);
     ProgramMethod methodOnB = bClass.lookupProgramMethod(methodOnBReference);
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOnInterface(methodOnBReference.holder, methodOnBReference);
+        appInfo.resolveMethodOnInterfaceLegacy(methodOnBReference.holder, methodOnBReference);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnBReference, resolved.getReference());
     assertFalse(resolutionResult.isVirtualTarget());
@@ -140,7 +140,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
   @Test
   public void lookupVirtualTargets() {
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethodOnInterface(methodOnBReference.holder, methodOnBReference);
+        appInfo.resolveMethodOnInterfaceLegacy(methodOnBReference.holder, methodOnBReference);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnBReference, resolved.getReference());
     assertFalse(resolutionResult.isVirtualTarget());

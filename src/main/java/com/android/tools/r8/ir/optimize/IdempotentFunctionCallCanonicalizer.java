@@ -139,7 +139,7 @@ public class IdempotentFunctionCallCanonicalizer {
 
           SingleResolutionResult<?> resolutionResult =
               appInfoWithLiveness
-                  .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
+                  .resolveMethodLegacy(invoke.getInvokedMethod(), invoke.getInterfaceBit())
                   .asSingleResolution();
           if (resolutionResult == null
               || resolutionResult

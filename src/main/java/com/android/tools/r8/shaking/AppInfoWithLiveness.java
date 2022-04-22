@@ -1388,7 +1388,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return cachedItem;
     }
     SingleResolutionResult<?> resolution =
-        resolveMethodOn(initialResolutionHolder, method).asSingleResolution();
+        resolveMethodOnLegacy(initialResolutionHolder, method).asSingleResolution();
     if (resolution == null
         || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), this).isFalse()) {
       return null;

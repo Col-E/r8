@@ -853,7 +853,7 @@ public class VerticalClassMerger {
         // Conservatively find all possible targets for this method.
         LookupResultSuccess lookupResult =
             appInfo
-                .resolveMethodOnInterface(method.getHolderType(), method.getReference())
+                .resolveMethodOnInterfaceLegacy(method.getHolderType(), method.getReference())
                 .lookupVirtualDispatchTargets(target, appInfo)
                 .asLookupResultSuccess();
         assert lookupResult != null;
@@ -1568,7 +1568,7 @@ public class VerticalClassMerger {
     // Returns the method that shadows the given method, or null if method is not shadowed.
     private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
       MethodResolutionResult resolutionResult =
-          appInfo.resolveMethodOn(target, method.getReference());
+          appInfo.resolveMethodOnLegacy(target, method.getReference());
       if (!resolutionResult.isSingleResolution()) {
         // May happen in case of missing classes, or if multiple implementations were found.
         abortMerge = true;
@@ -2133,8 +2133,8 @@ public class VerticalClassMerger {
 
         MethodResolutionResult resolutionResult =
             isInterface.isUnknown()
-                ? appView.appInfo().unsafeResolveMethodDueToDexFormat(method)
-                : appView.appInfo().resolveMethod(method, isInterface.isTrue());
+                ? appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method)
+                : appView.appInfo().resolveMethodLegacy(method, isInterface.isTrue());
         if (!resolutionResult.isSingleResolution()
             || !resolutionResult.asSingleResolution().getResolvedMethod().isPublic()) {
           setResult(true);

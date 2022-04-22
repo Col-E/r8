@@ -78,7 +78,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
     if (type == Invoke.Type.INTERFACE || type == Invoke.Type.VIRTUAL) {
       // For virtual and interface calls add all potential targets that could be called.
       MethodResolutionResult resolutionResult =
-          appView.appInfo().resolveMethod(method, type == Invoke.Type.INTERFACE);
+          appView.appInfo().resolveMethodLegacy(method, type == Invoke.Type.INTERFACE);
       DexClassAndMethod target = resolutionResult.getResolutionPair();
       if (target != null) {
         processInvokeWithDynamicDispatch(type, target, context);
@@ -115,7 +115,7 @@ public class InvokeExtractor<N extends NodeBase<N>> extends UseRegistry<ProgramM
             target,
             method -> {
               MethodResolutionResult resolution =
-                  appView.appInfo().resolveMethod(method, isInterface);
+                  appView.appInfo().resolveMethodLegacy(method, isInterface);
               if (resolution.isVirtualTarget()) {
                 LookupResult lookupResult =
                     resolution.lookupVirtualDispatchTargets(context.getHolder(), appView.appInfo());

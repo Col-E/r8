@@ -199,7 +199,7 @@ public class InvokeStatic extends InvokeMethod {
     SingleResolutionResult<?> resolutionResult =
         appViewWithLiveness
             .appInfo()
-            .resolveMethod(getInvokedMethod(), isInterface)
+            .resolveMethodLegacy(getInvokedMethod(), isInterface)
             .asSingleResolution();
 
     // Verify that the target method is present.

@@ -965,7 +965,7 @@ public class MethodOptimizationInfoCollector {
     MethodResolutionResult resolutionResult =
         appView
             .appInfo()
-            .resolveMethodOnClass(clazz, appView.dexItemFactory().objectMembers.finalize);
+            .resolveMethodOnClassLegacy(clazz, appView.dexItemFactory().objectMembers.finalize);
     DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target != null
         && target.getReference() != dexItemFactory.enumMembers.finalize

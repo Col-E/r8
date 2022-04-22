@@ -230,7 +230,7 @@ public class AssumeInserter {
     SingleResolutionResult<?> resolutionResult =
         appView
             .appInfo()
-            .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())
+            .unsafeResolveMethodDueToDexFormatLegacy(invoke.getInvokedMethod())
             .asSingleResolution();
     if (resolutionResult == null) {
       return false;

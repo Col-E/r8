@@ -116,7 +116,7 @@ public class MemberRebindingAnalysis {
         currentResolutionResult =
             appView
                 .appInfo()
-                .resolveMethodOnClass(currentResolvedHolder.getSuperType(), original)
+                .resolveMethodOnClassLegacy(currentResolvedHolder.getSuperType(), original)
                 .asSingleResolution();
       } else {
         break;
@@ -244,15 +244,15 @@ public class MemberRebindingAnalysis {
   }
 
   private MethodResolutionResult resolveMethodOnClass(DexMethod method) {
-    return appView.appInfo().resolveMethodOnClass(method.holder, method);
+    return appView.appInfo().resolveMethodOnClassLegacy(method.holder, method);
   }
 
   private MethodResolutionResult resolveMethodOnInterface(DexMethod method) {
-    return appView.appInfo().resolveMethodOnInterface(method.holder, method);
+    return appView.appInfo().resolveMethodOnInterfaceLegacy(method.holder, method);
   }
 
   private MethodResolutionResult resolveMethod(DexMethod method) {
-    return appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
+    return appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method);
   }
 
   private void computeMethodRebinding(MethodAccessInfoCollection methodAccessInfoCollection) {

@@ -216,7 +216,7 @@ public class MemberRebindingIdentityLensFactory {
         return;
       }
       SingleResolutionResult<?> resolutionResult =
-          appInfo.resolveMethodOn(holder, method).asSingleResolution();
+          appInfo.resolveMethodOnLegacy(holder, method).asSingleResolution();
       if (resolutionResult == null) {
         return;
       }

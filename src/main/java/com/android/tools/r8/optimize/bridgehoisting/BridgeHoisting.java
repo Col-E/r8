@@ -166,7 +166,7 @@ public class BridgeHoisting {
       DexEncodedMethod definition = subclass.lookupVirtualMethod(method);
       if (definition == null) {
         DexEncodedMethod resolutionTarget =
-            appView.appInfo().resolveMethodOnClass(subclass, method).getSingleTarget();
+            appView.appInfo().resolveMethodOnClassLegacy(subclass, method).getSingleTarget();
         if (resolutionTarget == null || resolutionTarget.isAbstract()) {
           // The fact that this class does not declare the bridge (or the bridge is abstract) should
           // not prevent us from hoisting the bridge.
@@ -228,7 +228,7 @@ public class BridgeHoisting {
 
     // The targeted method must be present on the new holder class for this to be feasible.
     MethodResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnClass(clazz, methodToInvoke);
+        appView.appInfo().resolveMethodOnClassLegacy(clazz, methodToInvoke);
     if (!resolutionResult.isSingleResolution()) {
       return;
     }

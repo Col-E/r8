@@ -294,7 +294,7 @@ final class InlineCandidateProcessor {
           SingleResolutionResult<?> resolutionResult =
               appView
                   .appInfo()
-                  .resolveMethod(invoke.getInvokedMethod(), invoke.getInterfaceBit())
+                  .resolveMethodLegacy(invoke.getInvokedMethod(), invoke.getInterfaceBit())
                   .asSingleResolution();
           if (resolutionResult == null
               || resolutionResult.isAccessibleFrom(method, appView).isPossiblyFalse()) {
@@ -1028,7 +1028,7 @@ final class InlineCandidateProcessor {
     // signature of the invocation resolves to a private or static method.
     // TODO(b/147212189): Why not inline private methods? If access is permitted it is valid.
     MethodResolutionResult resolutionResult =
-        appView.appInfo().resolveMethodOnClass(eligibleClass, callee);
+        appView.appInfo().resolveMethodOnClassLegacy(eligibleClass, callee);
     if (resolutionResult.isSingleResolution()
         && !resolutionResult.getSingleTarget().isNonPrivateVirtualMethod()) {
       return false;
@@ -1176,7 +1176,10 @@ final class InlineCandidateProcessor {
       NonEmptyParameterUsage nonEmptyUsage = usage.asNonEmpty();
       for (DexMethod invokedMethod : nonEmptyUsage.getMethodCallsWithParameterAsReceiver()) {
         SingleResolutionResult<?> resolutionResult =
-            appView.appInfo().resolveMethodOn(eligibleClass, invokedMethod).asSingleResolution();
+            appView
+                .appInfo()
+                .resolveMethodOnLegacy(eligibleClass, invokedMethod)
+                .asSingleResolution();
         if (resolutionResult == null || !resolutionResult.getResolvedHolder().isProgramClass()) {
           return false;
         }

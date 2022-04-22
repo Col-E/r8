@@ -2299,7 +2299,8 @@ public class Enqueuer {
   private SingleResolutionResult<?> resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason) {
     // Record the references in case they are not program types.
-    MethodResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult resolutionResult =
+        appInfo.unsafeResolveMethodDueToDexFormatLegacy(method);
     if (resolutionResult.isFailedResolution()) {
       markFailedMethodResolutionTargets(
           method, resolutionResult.asFailedResolution(), context, reason);
@@ -2313,7 +2314,7 @@ public class Enqueuer {
   private SingleResolutionResult<?> resolveMethod(
       DexMethod method, ProgramDefinition context, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
-    MethodResolutionResult resolutionResult = appInfo.resolveMethod(method, interfaceInvoke);
+    MethodResolutionResult resolutionResult = appInfo.resolveMethodLegacy(method, interfaceInvoke);
     if (resolutionResult.isSingleResolution()) {
       recordMethodReference(
           method, resolutionResult.getResolutionPair().asProgramDerivedContext(context));
@@ -2794,7 +2795,8 @@ public class Enqueuer {
             (resolutionSearchKey, contexts) -> {
               SingleResolutionResult<?> singleResolution =
                   appInfo
-                      .resolveMethod(resolutionSearchKey.method, resolutionSearchKey.isInterface)
+                      .resolveMethodLegacy(
+                          resolutionSearchKey.method, resolutionSearchKey.isInterface)
                       .asSingleResolution();
               if (singleResolution == null) {
                 assert false : "Should not be null";
@@ -2859,7 +2861,7 @@ public class Enqueuer {
       markLibraryOrClasspathOverrideLive(
           instantiation,
           libraryClass,
-          appInfo.resolveMethodOn(libraryClass, method.getReference()));
+          appInfo.resolveMethodOnLegacy(libraryClass, method.getReference()));
 
       // Due to API conversion, some overrides can be hidden since they will be rewritten. See
       // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
@@ -2876,7 +2878,7 @@ public class Enqueuer {
         markLibraryOrClasspathOverrideLive(
             instantiation,
             libraryClass,
-            appInfo.resolveMethodOn(instantiation.asClass(), methodToResolve));
+            appInfo.resolveMethodOnLegacy(instantiation.asClass(), methodToResolve));
       }
     }
   }

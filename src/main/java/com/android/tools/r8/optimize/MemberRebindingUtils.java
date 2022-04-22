@@ -22,7 +22,7 @@ public class MemberRebindingUtils {
       return false;
     }
     SingleResolutionResult<?> resolutionResult =
-        appView.appInfo().resolveMethodOn(clazz, method).asSingleResolution();
+        appView.appInfo().resolveMethodOnLegacy(clazz, method).asSingleResolution();
     return resolutionResult != null
         && resolutionResult.getResolvedHolder().getType() != method.getHolderType();
   }

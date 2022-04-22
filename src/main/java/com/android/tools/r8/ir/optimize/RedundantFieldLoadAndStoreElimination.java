@@ -512,7 +512,7 @@ public class RedundantFieldLoadAndStoreElimination {
           appView
               .appInfo()
               .withClassHierarchy()
-              .unsafeResolveMethodDueToDexFormat(invoke.getInvokedMethod())
+              .unsafeResolveMethodDueToDexFormatLegacy(invoke.getInvokedMethod())
               .getResolvedProgramMethod();
       if (resolvedMethod != null) {
         markClassAsInitialized(resolvedMethod.getHolderType());

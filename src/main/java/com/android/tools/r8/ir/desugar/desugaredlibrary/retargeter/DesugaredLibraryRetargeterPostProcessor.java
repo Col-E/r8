@@ -153,7 +153,7 @@ public class DesugaredLibraryRetargeterPostProcessor implements CfPostProcessing
     DexMethod forwardMethod = syntheticHelper.forwardingMethod(descriptor);
     assert forwardMethod != null && forwardMethod != target;
     DexEncodedMethod resolvedMethod =
-        appView.appInfoForDesugaring().resolveMethod(target, true).getResolvedMethod();
+        appView.appInfoForDesugaring().resolveMethodLegacy(target, true).getResolvedMethod();
     assert resolvedMethod != null;
     DexEncodedMethod desugaringForwardingMethod =
         DexEncodedMethod.createDesugaringForwardingMethod(

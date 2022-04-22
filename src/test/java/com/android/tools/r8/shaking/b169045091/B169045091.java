@@ -100,7 +100,7 @@ public class B169045091 extends TestBase {
     DexMethod helloReference = buildNullaryVoidMethod(HelloGreeter.class, "hello", dexItemFactory);
     assertTrue(
         appInfo
-            .resolveMethodOnClassHolder(helloReference)
+            .resolveMethodOnClassHolderLegacy(helloReference)
             .isAccessibleFrom(context, appView)
             .isTrue());
 
@@ -108,7 +108,7 @@ public class B169045091 extends TestBase {
     DexMethod worldReference = buildNullaryVoidMethod(WorldGreeter.class, "world", dexItemFactory);
     assertTrue(
         appInfo
-            .resolveMethodOnClassHolder(worldReference)
+            .resolveMethodOnClassHolderLegacy(worldReference)
             .isAccessibleFrom(context, appView)
             .isFalse());
   }

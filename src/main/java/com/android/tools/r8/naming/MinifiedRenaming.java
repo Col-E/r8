@@ -106,7 +106,8 @@ class MinifiedRenaming extends NonIdentityNamingLens {
       return true;
     }
 
-    MethodResolutionResult resolution = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
+    MethodResolutionResult resolution =
+        appView.appInfo().unsafeResolveMethodDueToDexFormatLegacy(method);
     assert resolution != null;
 
     if (resolution.isSingleResolution()) {

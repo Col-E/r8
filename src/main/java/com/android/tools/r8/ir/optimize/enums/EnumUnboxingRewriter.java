@@ -461,7 +461,7 @@ public class EnumUnboxingRewriter {
       ProgramMethod checkNotZeroMethod =
           appView
               .appInfo()
-              .resolveMethodOnClassHolder(checkNotZeroMethodReference)
+              .resolveMethodOnClassHolderLegacy(checkNotZeroMethodReference)
               .getResolvedProgramMethod();
       if (checkNotZeroMethod != null) {
         EnumUnboxerMethodClassification classification =

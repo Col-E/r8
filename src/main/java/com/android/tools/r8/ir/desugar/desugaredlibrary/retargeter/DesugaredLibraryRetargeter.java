@@ -175,7 +175,7 @@ public class DesugaredLibraryRetargeter implements CfInstructionDesugaring {
     DexMethod invokedMethod = cfInvoke.getMethod();
     AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     MethodResolutionResult resolutionResult =
-        appInfo.resolveMethod(invokedMethod, cfInvoke.isInterface());
+        appInfo.resolveMethodLegacy(invokedMethod, cfInvoke.isInterface());
     if (!resolutionResult.isSingleResolution()) {
       return NO_REWRITING;
     }

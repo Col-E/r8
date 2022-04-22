@@ -120,7 +120,7 @@ public class ConstantDynamicClass {
     MethodResolutionResult resolution =
         appView
             .appInfoForDesugaring()
-            .resolveMethod(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
+            .resolveMethodLegacy(bootstrapMethodReference, bootstrapMethodHandle.isInterface);
     if (resolution.isSingleResolution()
         && resolution.asSingleResolution().getResolvedMethod().isStatic()) {
       SingleResolutionResult<?> result = resolution.asSingleResolution();
