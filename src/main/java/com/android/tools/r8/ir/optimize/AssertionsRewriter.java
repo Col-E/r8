@@ -32,7 +32,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LazyBox;
 import com.android.tools.r8.utils.ThrowingCharIterator;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableList;
 import java.io.UTFDataFormatException;
 import java.util.IdentityHashMap;
@@ -382,9 +381,9 @@ public class AssertionsRewriter {
                           theIf.lhs().getDefinition().asStaticGet());
                   BasicBlock assertionBlockEntry =
                       theIf.targetFromBoolean(conditionForAssertionBlock);
-                  List<BasicBlock> blocks =
-                      dominatorTree.computeIfAbsent().dominatedBlocks(assertionBlockEntry);
-                  Throw throwInstruction = isAlwaysThrowingEntry(assertionBlockEntry, blocks);
+                  Throw throwInstruction =
+                      dominatedBlocksHasSingleThrow(
+                          assertionBlockEntry, dominatorTree.computeIfAbsent());
                   if (throwInstruction != null) {
                     assertionEntryIfs.put(theIf, conditionForAssertionBlock);
                     throwSuccessorAfterHandler.put(
@@ -394,7 +393,6 @@ public class AssertionsRewriter {
               });
     }
     assert assertionEntryIfs.size() == throwSuccessorAfterHandler.size();
-
     // For javac generated code it is assumed that the code in <clinit> will tell if the code
     // in other methods of the class can have assertion checks.
     boolean isInitializerEnablingJavaVmAssertions =
@@ -541,15 +539,10 @@ public class AssertionsRewriter {
         : null;
   }
 
-  private Throw isAlwaysThrowingEntry(BasicBlock block, List<BasicBlock> blocks) {
-    WorkList<BasicBlock> workList = WorkList.newIdentityWorkList(block);
+  private Throw dominatedBlocksHasSingleThrow(BasicBlock block, DominatorTree dominatorTree) {
     Throw theThrow = null;
-    while (workList.hasNext()) {
-      BasicBlock current = workList.next();
-      workList.addIfNotSeen(current.getNormalSuccessors());
-      if (!blocks.containsAll(current.getNormalSuccessors())) {
-        return null;
-      }
+    List<BasicBlock> blocks = dominatorTree.dominatedBlocks(block);
+    for (BasicBlock current : blocks) {
       if (current.exit().isReturn()) {
         return null;
       }
