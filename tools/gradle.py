@@ -59,10 +59,10 @@ def EnsureGradle():
     GRADLE, GRADLE_TGZ, GRADLE_SHA1, 'Gradle binary')
 
 def EnsureJdk():
-  jdkHome = jdk.GetJdkHome()
-  jdkTgz = jdkHome + '.tar.gz'
+  jdkRoot = jdk.GetJdkRoot()
+  jdkTgz = jdkRoot + '.tar.gz'
   jdkSha1 = jdkTgz + '.sha1'
-  utils.EnsureDepFromGoogleCloudStorage(jdkHome, jdkTgz, jdkSha1, 'JDK')
+  utils.EnsureDepFromGoogleCloudStorage(jdkRoot, jdkTgz, jdkSha1, 'JDK')
 
 def EnsureDeps():
   EnsureGradle()

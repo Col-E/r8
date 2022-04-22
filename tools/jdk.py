@@ -13,7 +13,10 @@ JDK_DIR = os.path.join(defines.THIRD_PARTY, 'openjdk')
 def GetJdkHome():
   return GetJdk11Home()
 
-def GetJdk11Home():
+def GetJdkRoot():
+  return GetJdk11Root()
+
+def GetJdk11Root():
   root = os.path.join(JDK_DIR, 'jdk-11')
   if defines.IsLinux():
     return os.path.join(root, 'linux')
@@ -23,6 +26,14 @@ def GetJdk11Home():
     return os.path.join(root, 'windows')
   else:
     return os.environ['JAVA_HOME']
+
+def GetJdk11Home():
+  root = GetJdk11Root()
+  # osx has the home inside Contents/Home in the bundle
+  if defines.IsOsX():
+    return os.path.join(root,'Contents', 'Home')
+  else:
+    return root
 
 def GetJdk9Home():
   root = os.path.join(JDK_DIR, 'openjdk-9.0.4')
