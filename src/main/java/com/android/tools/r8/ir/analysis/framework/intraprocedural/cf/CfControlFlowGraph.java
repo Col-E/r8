@@ -57,6 +57,10 @@ public class CfControlFlowGraph implements ControlFlowGraph<CfBlock, CfInstructi
     return blocks.get(blockEntry);
   }
 
+  public CfBlock getEntryBlock() {
+    return getBlock(code.getInstructions().get(0));
+  }
+
   @Override
   public <BT, CT> TraversalContinuation<BT, CT> traverseNormalPredecessors(
       CfBlock block,
