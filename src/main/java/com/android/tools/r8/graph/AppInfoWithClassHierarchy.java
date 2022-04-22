@@ -752,6 +752,104 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   /**
+   * This method will query the definition of the holder to decide on which resolution to use.
+   *
+   * <p>This is to overcome the shortcoming of the DEX file format that does not allow to encode the
+   * kind of a method reference.
+   */
+  public MethodResolutionResult unsafeResolveMethodDueToDexFormat(DexMethod method) {
+    assert checkIfObsolete();
+    return MethodResolution.create(
+            this::contextIndependentDefinitionForWithResolutionResult, dexItemFactory())
+        .unsafeResolveMethodDueToDexFormat(method);
+  }
+
+  public MethodResolutionResult resolveMethod(DexMethod invokedMethod, boolean isInterface) {
+    assert checkIfObsolete();
+    return resolveMethodOn(invokedMethod.getHolderType(), invokedMethod, isInterface);
+  }
+
+  public MethodResolutionResult resolveMethodOn(
+      DexType holder, DexMethod method, boolean isInterface) {
+    assert checkIfObsolete();
+    return isInterface
+        ? resolveMethodOnInterface(holder, method)
+        : resolveMethodOnClass(holder, method);
+  }
+
+  public MethodResolutionResult resolveMethodOnClassHolder(DexMethod method) {
+    assert checkIfObsolete();
+    return resolveMethodOnClass(method.getHolderType(), method);
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(DexType holder, DexMethod method) {
+    assert checkIfObsolete();
+    return resolveMethodOnClass(holder, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(DexType holder, DexMethodSignature signature) {
+    assert checkIfObsolete();
+    return resolveMethodOnClass(holder, signature.getProto(), signature.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(
+      DexType holder, DexProto proto, DexString name) {
+    assert checkIfObsolete();
+    return MethodResolution.create(
+            this::contextIndependentDefinitionForWithResolutionResult, dexItemFactory())
+        .resolveMethodOnClass(holder, proto, name);
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(DexClass clazz, DexMethod method) {
+    assert checkIfObsolete();
+    return resolveMethodOnClass(clazz, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(DexClass clazz, DexMethodSignature signature) {
+    assert checkIfObsolete();
+    return resolveMethodOnClass(clazz, signature.getProto(), signature.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnClass(
+      DexClass clazz, DexProto proto, DexString name) {
+    assert checkIfObsolete();
+    return MethodResolution.create(
+            this::contextIndependentDefinitionForWithResolutionResult, dexItemFactory())
+        .resolveMethodOnClass(clazz, proto, name);
+  }
+
+  public MethodResolutionResult resolveMethodOnInterfaceHolder(DexMethod method) {
+    assert checkIfObsolete();
+    return resolveMethodOnInterface(method.getHolderType(), method);
+  }
+
+  public MethodResolutionResult resolveMethodOnInterface(DexType holder, DexMethod method) {
+    assert checkIfObsolete();
+    return MethodResolution.create(
+            this::contextIndependentDefinitionForWithResolutionResult, dexItemFactory())
+        .resolveMethodOnInterface(holder, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnInterface(DexClass clazz, DexMethod method) {
+    assert checkIfObsolete();
+    return resolveMethodOnInterface(clazz, method.getProto(), method.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnInterface(
+      DexClass clazz, DexMethodSignature methodSignature) {
+    assert checkIfObsolete();
+    return resolveMethodOnInterface(clazz, methodSignature.getProto(), methodSignature.getName());
+  }
+
+  public MethodResolutionResult resolveMethodOnInterface(
+      DexClass clazz, DexProto proto, DexString name) {
+    assert checkIfObsolete();
+    return MethodResolution.create(
+            this::contextIndependentDefinitionForWithResolutionResult, dexItemFactory())
+        .resolveMethodOnInterface(clazz, proto, name);
+  }
+
+  /**
    * Implements resolution of a field descriptor against the holder of the field. See also {@link
    * #resolveFieldOn}.
    */

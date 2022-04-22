@@ -52,6 +52,11 @@ public class MethodResolution {
         false);
   }
 
+  public static MethodResolution create(
+      Function<DexType, ClassResolutionResult> definitionFor, DexItemFactory factory) {
+    return new MethodResolution(definitionFor, factory, true);
+  }
+
   private ClassResolutionResult definitionFor(DexType type) {
     return definitionFor.apply(type);
   }
