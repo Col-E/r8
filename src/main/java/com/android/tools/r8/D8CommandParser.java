@@ -30,6 +30,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--lib",
           "--classpath",
           "--pg-map",
+          "--pg-map-output",
           MIN_API_FLAG,
           "--main-dex-rules",
           "--main-dex-list",
@@ -131,6 +132,9 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                       + AndroidApiLevel.getDefault().getLevel()
                       + ".",
                   "  --pg-map <file>         # Use <file> as a mapping file for distribution.",
+                  // TODO(b/183125319): Add help info once supported.
+                  // "  --pg-map-output <file>  # Enable line optimization and output mapping to"
+                  //     +" <file>.",
                   "  --intermediate          # Compile an intermediate result intended for later",
                   "                          # merging.",
                   "  --file-per-class        # Produce a separate dex file per class.",
@@ -226,6 +230,8 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         outputMode = OutputMode.ClassFile;
       } else if (arg.equals("--pg-map")) {
         builder.setProguardInputMapFile(Paths.get(nextArg));
+      } else if (arg.equals("--pg-map-output")) {
+        builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--output")) {
         if (outputPath != null) {
           builder.error(

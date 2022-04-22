@@ -34,12 +34,6 @@ public class RetraceLambdaTest extends TestBase {
 
   private static final String JAVAC_LAMBDA_METHOD = "lambda$main$0";
 
-  // TODO(b/172014416): These should not be needed once fixed.
-  private static final String LAMBDA_BRIDGE_METHOD = "$r8$lambda$dX5OYTAgq4ijGUv_zaGoVsFINMs";
-  private static final String INTERNAL_LAMBDA_CLASS =
-      Main.class.getTypeName()
-          + "$$InternalSyntheticLambda$0$11a5d582ed94e937718cf3ed497d4d164b60dfa85d606466457007fade57dce8$0";
-
   @Parameters(name = "{0}")
   public static TestParametersCollection parameters() {
     return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();

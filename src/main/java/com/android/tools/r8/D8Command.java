@@ -146,6 +146,41 @@ public final class D8Command extends BaseCompilerCommand {
     }
 
     /**
+     * Set a consumer for receiving the proguard-map content.
+     *
+     * <p>Note that when a proguard-map consumer is specified for a release build, the compiler will
+     * optimize the line-number information and obtaining a source-level stacktrace will require the
+     * use of a retrace tool exactly as is needed for programs built by R8.
+     *
+     * <p>Note that any subsequent call to this method or {@link #setProguardMapOutputPath} will
+     * override the previous setting.
+     *
+     * @param proguardMapConsumer Consumer to receive the content once produced.
+     */
+    @Override
+    public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
+      return super.setProguardMapConsumer(proguardMapConsumer);
+    }
+
+    /**
+     * Set an output destination to which proguard-map content should be written.
+     *
+     * <p>Note that when a proguard-map output is specified for a release build, the compiler will
+     * optimize the line-number information and obtaining a source-level stacktrace will require the
+     * use of a retrace tool exactly as is needed for programs built by R8.
+     *
+     * <p>This is a short-hand for setting a {@link StringConsumer.FileConsumer} using {@link
+     * #setProguardMapConsumer}. Note that any subsequent call to this method or {@link
+     * #setProguardMapConsumer} will override the previous setting.
+     *
+     * @param proguardMapOutput File-system path to write output at.
+     */
+    @Override
+    public Builder setProguardMapOutputPath(Path proguardMapOutput) {
+      return super.setProguardMapOutputPath(proguardMapOutput);
+    }
+
+    /**
      * Indicate if compilation is to intermediate results, i.e., intended for later merging.
      *
      * <p>When compiling to intermediate mode, the compiler will avoid sharing of synthetic items,
@@ -376,6 +411,7 @@ public final class D8Command extends BaseCompilerCommand {
           getThreadCount(),
           getDumpInputFlags(),
           getMapIdProvider(),
+          proguardMapConsumer,
           factory);
     }
   }
@@ -392,6 +428,7 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean enableMainDexListCheck;
   private final boolean minimalMainDex;
   private final ImmutableList<ProguardConfigurationRule> mainDexKeepRules;
+  private final StringConsumer proguardMapConsumer;
   private final DexItemFactory factory;
 
   public static Builder builder() {
@@ -460,6 +497,7 @@ public final class D8Command extends BaseCompilerCommand {
       int threadCount,
       DumpInputFlags dumpInputFlags,
       MapIdProvider mapIdProvider,
+      StringConsumer proguardMapConsumer,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -488,6 +526,7 @@ public final class D8Command extends BaseCompilerCommand {
     this.enableMainDexListCheck = enableMainDexListCheck;
     this.minimalMainDex = minimalMainDex;
     this.mainDexKeepRules = mainDexKeepRules;
+    this.proguardMapConsumer = proguardMapConsumer;
     this.factory = factory;
   }
 
@@ -503,6 +542,7 @@ public final class D8Command extends BaseCompilerCommand {
     enableMainDexListCheck = true;
     minimalMainDex = false;
     mainDexKeepRules = null;
+    proguardMapConsumer = null;
     factory = null;
   }
 
@@ -532,7 +572,11 @@ public final class D8Command extends BaseCompilerCommand {
     internal.setGlobalSyntheticsConsumer(globalSyntheticsConsumer);
     internal.desugarGraphConsumer = desugarGraphConsumer;
     internal.mainDexKeepRules = mainDexKeepRules;
-    internal.lineNumberOptimization = LineNumberOptimization.OFF;
+    internal.proguardMapConsumer = proguardMapConsumer;
+    internal.lineNumberOptimization =
+        !internal.debug && proguardMapConsumer != null
+            ? LineNumberOptimization.ON
+            : LineNumberOptimization.OFF;
 
     // Assert and fixup defaults.
     assert !internal.isShrinking();
