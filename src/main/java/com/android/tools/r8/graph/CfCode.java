@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.bytecodemetadata.BytecodeInstructionMetadata;
 import com.android.tools.r8.graph.bytecodemetadata.BytecodeMetadata;
 import com.android.tools.r8.graph.proto.RewrittenPrototypeDescription;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumberGenerator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Position.SyntheticPosition;
@@ -62,7 +61,6 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.function.BiPredicate;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -957,12 +955,7 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
     }
     CfFrameVerificationHelper builder =
         new CfFrameVerificationHelper(
-            previousMethodSignature.getHolderType(),
-            stateMap,
-            tryCatchRanges,
-            isAssignablePredicate(appView),
-            appView.dexItemFactory(),
-            maxStack);
+            appView, previousMethodSignature.getHolderType(), stateMap, tryCatchRanges, maxStack);
     for (CfTryCatch tryCatchRange : tryCatchRanges) {
       try {
         builder.checkTryCatchRange(tryCatchRange);
@@ -1079,48 +1072,5 @@ public class CfCode extends Code implements CfWritableCode, StructuralItem<CfCod
       }
     }
     return initialLocals;
-  }
-
-  private BiPredicate<DexType, DexType> isAssignablePredicate(AppView<?> appView) {
-    return (source, target) -> isAssignable(source, target, appView);
-  }
-
-  // Rules found at https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.10.1.2
-  private boolean isAssignable(DexType source, DexType target, AppView<?> appView) {
-    DexItemFactory factory = appView.dexItemFactory();
-    source = byteCharShortOrBooleanToInt(source, factory);
-    target = byteCharShortOrBooleanToInt(target, factory);
-    if (source == target) {
-      return true;
-    }
-    if (source.isPrimitiveType() || target.isPrimitiveType()) {
-      return false;
-    }
-    // Both are now references - everything is assignable to object.
-    if (target == factory.objectType) {
-      return true;
-    }
-    // isAssignable(null, class(_, _)).
-    // isAssignable(null, arrayOf(_)).
-    if (source == DexItemFactory.nullValueType) {
-      return true;
-    }
-    if (target.isArrayType() != target.isArrayType()) {
-      return false;
-    }
-    if (target.isArrayType()) {
-      return isAssignable(
-          target.toArrayElementType(factory), target.toArrayElementType(factory), appView);
-    }
-    // TODO(b/166570659): Do a sub-type check that allows for missing classes in hierarchy.
-    return MemberType.fromDexType(source) == MemberType.fromDexType(target);
-  }
-
-  private DexType byteCharShortOrBooleanToInt(DexType type, DexItemFactory factory) {
-    // byte, char, short and boolean has verification type int.
-    if (type.isByteType() || type.isCharType() || type.isShortType() || type.isBooleanType()) {
-      return factory.intType;
-    }
-    return type;
   }
 }
