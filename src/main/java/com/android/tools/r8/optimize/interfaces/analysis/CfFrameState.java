@@ -4,8 +4,14 @@
 
 package com.android.tools.r8.optimize.interfaces.analysis;
 
+import com.android.tools.r8.cf.code.CfFrame.FrameType;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.framework.intraprocedural.AbstractState;
+import java.util.function.Function;
 
 public abstract class CfFrameState extends AbstractState<CfFrameState> {
 
@@ -21,6 +27,31 @@ public abstract class CfFrameState extends AbstractState<CfFrameState> {
   public CfFrameState asAbstractState() {
     return this;
   }
+
+  public abstract CfFrameState markInitialized(
+      FrameType uninitializedType, DexType initializedType);
+
+  public abstract CfFrameState pop();
+
+  public abstract CfFrameState pop(Function<FrameType, CfFrameState> fn);
+
+  public abstract CfFrameState pop(AppView<?> appView, FrameType expectedType);
+
+  public abstract CfFrameState pop(
+      AppView<?> appView, FrameType expectedType, Function<FrameType, CfFrameState> fn);
+
+  public abstract CfFrameState pop(AppView<?> appView, FrameType... expectedTypes);
+
+  public abstract CfFrameState popAndInitialize(
+      AppView<?> appView, DexMethod constructor, ProgramMethod context);
+
+  public abstract CfFrameState popInitialized(AppView<?> appView, DexType expectedType);
+
+  public abstract CfFrameState popInitialized(AppView<?> appView, DexType... expectedTypes);
+
+  public abstract CfFrameState push(DexType type);
+
+  public abstract CfFrameState push(FrameType frameType);
 
   @Override
   public final CfFrameState join(CfFrameState state) {

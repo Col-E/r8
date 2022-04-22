@@ -5,9 +5,22 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
+import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.CfSourceCode;
+import com.android.tools.r8.ir.conversion.CfState;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
+import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import java.util.ListIterator;
 import org.objectweb.asm.Opcodes;
 
@@ -18,7 +31,17 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
   }
 
   public CfInstanceFieldRead(DexField field, DexField declaringField) {
-    super(Opcodes.GETFIELD, field, declaringField);
+    super(field, declaringField);
+  }
+
+  @Override
+  public int getOpcode() {
+    return Opcodes.GETFIELD;
+  }
+
+  @Override
+  public boolean isFieldGet() {
+    return true;
   }
 
   @Override
@@ -30,5 +53,38 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
   void internalRegisterUse(
       UseRegistry<?> registry, DexClassAndMethod context, ListIterator<CfInstruction> iterator) {
     registry.registerInstanceFieldReadInstruction(this);
+  }
+
+  @Override
+  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
+    Slot object = state.pop();
+    builder.addInstanceGet(state.push(getField().getType()).register, object.register, getField());
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
+    return inliningConstraints.forInstanceGet(getField(), context);
+  }
+
+  @Override
+  public void evaluate(
+      CfFrameVerificationHelper frameBuilder,
+      DexMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
+    // ..., objectref →
+    // ..., value
+    frameBuilder.popAndDiscardInitialized(getField().getHolderType()).push(getField().getType());
+  }
+
+  @Override
+  public CfFrameState evaluate(
+      CfFrameState frame,
+      ProgramMethod context,
+      AppView<?> appView,
+      DexItemFactory dexItemFactory) {
+    // TODO(b/214496607): Implement this.
+    throw new Unimplemented();
   }
 }

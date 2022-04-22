@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -345,8 +344,22 @@ public class CfInvoke extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., objectref, [arg1, [arg2 ...]] →
+    // ... [ returnType ]
+    // OR, for static method calls:
+    // ..., [arg1, [arg2 ...]] →
+    // ...
+    frame = frame.popInitialized(appView, method.getParameters().getBacking());
+    if (opcode != Opcodes.INVOKESTATIC) {
+      frame =
+          opcode == Opcodes.INVOKESPECIAL && context.getDefinition().isInstanceInitializer()
+              ? frame.popAndInitialize(appView, method, context)
+              : frame.popInitialized(appView, method.getHolderType());
+    }
+    if (method.getReturnType().isVoidType()) {
+      return frame;
+    }
+    return frame.push(method.getReturnType());
   }
 
   private Type computeInvokeTypeForInvokeSpecial(

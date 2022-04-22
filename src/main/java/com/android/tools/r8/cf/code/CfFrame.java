@@ -526,7 +526,7 @@ public class CfFrame extends CfInstruction {
     return new CfFrame(newLocals, newStack);
   }
 
-  private static FrameType getInitializedFrameType(
+  public static FrameType getInitializedFrameType(
       FrameType unInit, FrameType other, DexType newType) {
     assert !unInit.isInitialized();
     if (other.isInitialized()) {

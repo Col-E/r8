@@ -521,7 +521,54 @@ public class CfStackInstruction extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    switch (opcode) {
+      case Pop:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case Pop2:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case Dup:
+        // ..., value →
+        // ..., value, value
+        return frame.pop(
+            appView, FrameType.oneWord(), frameType -> frame.push(frameType).push(frameType));
+      case DupX1:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case DupX2:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case Dup2:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case Dup2X1:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case Dup2X2:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      case Swap:
+        {
+          // TODO(b/214496607): Implement this.
+          throw new Unimplemented();
+        }
+      default:
+        throw new Unreachable("Invalid opcode for CfStackInstruction");
+    }
   }
 }

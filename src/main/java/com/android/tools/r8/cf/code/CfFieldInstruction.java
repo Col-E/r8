@@ -3,30 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
-import static com.android.tools.r8.utils.BiPredicateUtils.or;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCompareHelper;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLens;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.conversion.CfSourceCode;
-import com.android.tools.r8.ir.conversion.CfState;
-import com.android.tools.r8.ir.conversion.CfState.Slot;
-import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.LensCodeRewriterUtils;
-import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.optimize.interfaces.analysis.CfFrameState;
 import com.android.tools.r8.utils.structural.CompareToVisitor;
 import com.android.tools.r8.utils.structural.StructuralSpecification;
 import org.objectweb.asm.MethodVisitor;
@@ -34,20 +22,20 @@ import org.objectweb.asm.Opcodes;
 
 public abstract class CfFieldInstruction extends CfInstruction {
 
-  private final int opcode;
   private final DexField field;
   private final DexField declaringField;
 
   private static void specify(StructuralSpecification<CfFieldInstruction, ?> spec) {
-    spec.withInt(f -> f.opcode).withItem(f -> f.field).withItem(f -> f.declaringField);
+    spec.withInt(CfFieldInstruction::getOpcode)
+        .withItem(CfFieldInstruction::getField)
+        .withItem(CfFieldInstruction::getDeclaringField);
   }
 
-  public CfFieldInstruction(int opcode, DexField field) {
-    this(opcode, field, field);
+  public CfFieldInstruction(DexField field) {
+    this(field, field);
   }
 
-  public CfFieldInstruction(int opcode, DexField field, DexField declaringField) {
-    this.opcode = opcode;
+  public CfFieldInstruction(DexField field, DexField declaringField) {
     this.field = field;
     this.declaringField = declaringField;
     assert field.type == declaringField.type;
@@ -72,13 +60,15 @@ public abstract class CfFieldInstruction extends CfInstruction {
     return field;
   }
 
-  public int getOpcode() {
-    return opcode;
+  public DexField getDeclaringField() {
+    return declaringField;
   }
+
+  public abstract int getOpcode();
 
   @Override
   public int getCompareToId() {
-    return opcode;
+    return getOpcode();
   }
 
   @Override
@@ -88,15 +78,15 @@ public abstract class CfFieldInstruction extends CfInstruction {
   }
 
   public boolean isFieldGet() {
-    return opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC;
+    return false;
   }
 
   public boolean isStaticFieldGet() {
-    return opcode == Opcodes.GETSTATIC;
+    return false;
   }
 
   public boolean isStaticFieldPut() {
-    return opcode == Opcodes.PUTSTATIC;
+    return false;
   }
 
   public abstract CfFieldInstruction createWithField(DexField field);
@@ -126,7 +116,7 @@ public abstract class CfFieldInstruction extends CfInstruction {
     String owner = namingLens.lookupInternalName(rewrittenField.holder);
     String name = namingLens.lookupName(rewrittenDeclaringField).toString();
     String desc = namingLens.lookupDescriptor(rewrittenField.type).toString();
-    visitor.visitFieldInsn(opcode, owner, name, desc);
+    visitor.visitFieldInsn(getOpcode(), owner, name, desc);
   }
 
   @Override
@@ -142,103 +132,5 @@ public abstract class CfFieldInstruction extends CfInstruction {
   @Override
   public boolean canThrow() {
     return true;
-  }
-
-  @Override
-  public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    DexType type = field.type;
-    switch (opcode) {
-      case Opcodes.GETSTATIC:
-        {
-          builder.addStaticGet(state.push(type).register, field);
-          break;
-        }
-      case Opcodes.PUTSTATIC:
-        {
-          Slot value = state.pop();
-          builder.addStaticPut(value.register, field);
-          break;
-        }
-      case Opcodes.GETFIELD:
-        {
-          Slot object = state.pop();
-          builder.addInstanceGet(state.push(type).register, object.register, field);
-          break;
-        }
-      case Opcodes.PUTFIELD:
-        {
-          Slot value = state.pop();
-          Slot object = state.pop();
-          builder.addInstancePut(value.register, object.register, field);
-          break;
-        }
-      default:
-        throw new Unreachable("Unexpected opcode " + opcode);
-    }
-  }
-
-  @Override
-  public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, CfCode code, ProgramMethod context) {
-    switch (opcode) {
-      case Opcodes.GETSTATIC:
-        return inliningConstraints.forStaticGet(field, context);
-      case Opcodes.PUTSTATIC:
-        return inliningConstraints.forStaticPut(field, context);
-      case Opcodes.GETFIELD:
-        return inliningConstraints.forInstanceGet(field, context);
-      case Opcodes.PUTFIELD:
-        return inliningConstraints.forInstancePut(field, context);
-      default:
-        throw new Unreachable("Unexpected opcode " + opcode);
-    }
-  }
-
-  @Override
-  public void evaluate(
-      CfFrameVerificationHelper frameBuilder,
-      DexMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    switch (opcode) {
-      case Opcodes.GETFIELD:
-        // ..., objectref →
-        // ..., value
-        frameBuilder.popAndDiscardInitialized(field.holder).push(field.type);
-        return;
-      case Opcodes.GETSTATIC:
-        // ..., →
-        // ..., value
-        frameBuilder.push(field.type);
-        return;
-      case Opcodes.PUTFIELD:
-        // ..., objectref, value →
-        // ...,
-        frameBuilder
-            .popAndDiscardInitialized(field.type)
-            .pop(
-                field.holder,
-                or(
-                    frameBuilder::isUninitializedThisAndTarget,
-                    frameBuilder::isAssignableAndInitialized));
-        return;
-      case Opcodes.PUTSTATIC:
-        // ..., value →
-        // ...
-        frameBuilder.popAndDiscardInitialized(field.type);
-        return;
-      default:
-        throw new Unreachable("Unexpected opcode " + opcode);
-    }
-  }
-
-  @Override
-  public CfFrameState evaluate(
-      CfFrameState frame,
-      ProgramMethod context,
-      AppView<?> appView,
-      DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
   }
 }
