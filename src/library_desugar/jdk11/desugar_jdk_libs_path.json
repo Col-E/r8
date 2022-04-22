@@ -342,6 +342,9 @@
       "rewrite_derived_prefix": {
         "java.nio.file.attribute.FileTime": {
           "j$.nio.file.attribute.FileTime": "java.nio.file.attribute.FileTime"
+        },
+        "java.nio.file.Files": {
+          "j$.nio.file.Files": "java.nio.file.Files"
         }
       },
       "retarget_method": {

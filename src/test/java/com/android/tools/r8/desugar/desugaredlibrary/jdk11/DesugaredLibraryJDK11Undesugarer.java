@@ -36,6 +36,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           .put("java/io/DesugarBufferedReader", "java/io/BufferedReader")
           .put("java/io/DesugarInputStream", "java/io/InputStream")
           .put("wrapper/adapter/HybridFileSystemProvider", "java/adapter/HybridFileSystemProvider")
+          .put("wrapper/adapter/HybridFileTypeDetector", "java/adapter/HybridFileTypeDetector")
           .build();
 
   public static void main(String[] args) throws Exception {
