@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.VerifyTypesHelper;
-import com.android.tools.r8.ir.analysis.framework.intraprocedural.ControlFlowGraph;
+import com.android.tools.r8.ir.analysis.framework.intraprocedural.IRControlFlowGraph;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -64,7 +64,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueFactory {
+public class IRCode implements IRControlFlowGraph, ValueFactory {
 
   private static final int MAX_MARKING_COLOR = 0x40000000;
 
@@ -1352,14 +1352,44 @@ public class IRCode implements ControlFlowGraph<BasicBlock, Instruction>, ValueF
     return blocks;
   }
 
-  @Override
   public Collection<BasicBlock> getPredecessors(BasicBlock block) {
     return block.getPredecessors();
   }
 
-  @Override
   public Collection<BasicBlock> getSuccessors(BasicBlock block) {
     return block.getSuccessors();
+  }
+
+  @Override
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalPredecessors(
+      BasicBlock block,
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return block.traverseNormalPredecessors(fn, initialValue);
+  }
+
+  @Override
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalSuccessors(
+      BasicBlock block,
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return block.traverseNormalSuccessors(fn, initialValue);
+  }
+
+  @Override
+  public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalPredecessors(
+      BasicBlock block,
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return block.traverseExceptionalPredecessors(fn, initialValue);
+  }
+
+  @Override
+  public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalSuccessors(
+      BasicBlock block,
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    return block.traverseExceptionalSuccessors(fn, initialValue);
   }
 
   @Override

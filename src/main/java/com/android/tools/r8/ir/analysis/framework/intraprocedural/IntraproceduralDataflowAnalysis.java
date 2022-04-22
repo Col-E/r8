@@ -17,4 +17,9 @@ public class IntraproceduralDataflowAnalysis<StateType extends AbstractState<Sta
       AbstractTransferFunction<BasicBlock, Instruction, StateType> transfer) {
     super(bottom, code, transfer);
   }
+
+  @Override
+  boolean shouldCacheBlockEntryStateFor(BasicBlock block) {
+    return block.getPredecessors().size() > 2;
+  }
 }

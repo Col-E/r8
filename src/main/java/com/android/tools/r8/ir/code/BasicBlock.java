@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -48,6 +49,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -119,7 +121,7 @@ public class BasicBlock {
 
   public enum ThrowingInfo {
     NO_THROW,
-    CAN_THROW;
+    CAN_THROW
   }
 
   public enum EdgeType {
@@ -188,6 +190,73 @@ public class BasicBlock {
 
   // Map of registers to current SSA value. Used during SSA numbering and cleared once filled.
   private Map<Integer, Value> currentDefinitions = new HashMap<>();
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalPredecessors(
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (BasicBlock predecessor : getPredecessors()) {
+      if (predecessor.hasCatchSuccessor(this)) {
+        continue;
+      }
+      traversalContinuation =
+          fn.apply(predecessor, traversalContinuation.asContinue().getValueOrDefault(null));
+      if (traversalContinuation.isBreak()) {
+        break;
+      }
+    }
+    return traversalContinuation;
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseNormalSuccessors(
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (int i = successors.size() - numberOfNormalSuccessors(); i < successors.size(); i++) {
+      traversalContinuation =
+          fn.apply(successors.get(i), traversalContinuation.asContinue().getValueOrDefault(null));
+      if (traversalContinuation.isBreak()) {
+        break;
+      }
+    }
+    return traversalContinuation;
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalPredecessors(
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (BasicBlock predecessor : getPredecessors()) {
+      if (!predecessor.hasCatchSuccessor(this)) {
+        continue;
+      }
+      traversalContinuation =
+          fn.apply(predecessor, traversalContinuation.asContinue().getValueOrDefault(null));
+      if (traversalContinuation.isBreak()) {
+        break;
+      }
+    }
+    return traversalContinuation;
+  }
+
+  public <BT, CT> TraversalContinuation<BT, CT> traverseExceptionalSuccessors(
+      BiFunction<? super BasicBlock, ? super CT, TraversalContinuation<BT, CT>> fn,
+      CT initialValue) {
+    int numberOfExceptionalSuccessors = numberOfExceptionalSuccessors();
+    TraversalContinuation<BT, CT> traversalContinuation =
+        TraversalContinuation.doContinue(initialValue);
+    for (int i = 0; i < numberOfExceptionalSuccessors; i++) {
+      traversalContinuation =
+          fn.apply(successors.get(i), traversalContinuation.asContinue().getValueOrDefault(null));
+      if (traversalContinuation.isBreak()) {
+        break;
+      }
+    }
+    return traversalContinuation;
+  }
 
   public void addControlFlowEdgesMayChangeListener(BasicBlockChangeListener listener) {
     if (onControlFlowEdgesMayChangeListeners == null) {

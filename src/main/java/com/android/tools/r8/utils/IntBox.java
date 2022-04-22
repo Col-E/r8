@@ -53,6 +53,15 @@ public class IntBox {
     value += i;
   }
 
+  public int incrementAndGet() {
+    return incrementAndGet(1);
+  }
+
+  public int incrementAndGet(int i) {
+    increment(i);
+    return get();
+  }
+
   public void set(int value) {
     this.value = value;
   }
