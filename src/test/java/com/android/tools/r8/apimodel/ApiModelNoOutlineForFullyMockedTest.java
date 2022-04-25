@@ -11,7 +11,6 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -21,7 +20,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -67,10 +65,7 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeTrue(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    assumeTrue(parameters.isDexRuntime());
     String result;
     if (parameters.isDexRuntime()
         && parameters.getApiLevel().isGreaterThanOrEqualTo(libraryApiLevel)) {
@@ -90,10 +85,6 @@ public class ApiModelNoOutlineForFullyMockedTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeFalse(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
     testForR8(parameters.getBackend())
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)

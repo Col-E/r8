@@ -676,14 +676,21 @@ public class ToolHelper {
           "core-oj-hostdex.jar",
           "apache-xml-hostdex.jar");
 
+  private static final List<String> NEWER_ART_BOOT_LIBS =
+      ImmutableList.of(
+          "core-libart-hostdex.jar",
+          "core-oj-hostdex.jar",
+          "core-icu4j-hostdex.jar",
+          "apache-xml-hostdex.jar");
+
   private static final Map<DexVm, List<String>> BOOT_LIBS;
 
   static {
     ImmutableMap.Builder<DexVm, List<String>> builder = ImmutableMap.builder();
     builder
         .put(DexVm.ART_DEFAULT, ART_BOOT_LIBS)
-        .put(DexVm.ART_13_0_0_HOST, ART_BOOT_LIBS)
-        .put(DexVm.ART_12_0_0_HOST, ART_BOOT_LIBS)
+        .put(DexVm.ART_13_0_0_HOST, NEWER_ART_BOOT_LIBS)
+        .put(DexVm.ART_12_0_0_HOST, NEWER_ART_BOOT_LIBS)
         .put(DexVm.ART_10_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_9_0_0_HOST, ART_BOOT_LIBS)
         .put(DexVm.ART_8_1_0_HOST, ART_BOOT_LIBS)

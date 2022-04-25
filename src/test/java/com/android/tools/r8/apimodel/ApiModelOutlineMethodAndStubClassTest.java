@@ -8,7 +8,6 @@ import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLeve
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForDefaultInstanceInitializer;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.setMockApiLevelForMethod;
 import static com.android.tools.r8.apimodel.ApiModelingTestHelper.verifyThat;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -17,7 +16,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.apimodel.ApiModelMockClassTest.TestClass;
 import com.android.tools.r8.testing.AndroidBuildVersion;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -69,10 +67,7 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
 
   @Test
   public void testD8Debug() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeTrue(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isOlderThan(Version.V12_0_0));
+    assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .setMode(CompilationMode.DEBUG)
         .apply(this::setupTestBuilder)
@@ -85,10 +80,7 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
 
   @Test
   public void testD8Release() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeFalse(
-        parameters.isCfRuntime()
-            || parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
+    assumeTrue(parameters.isDexRuntime());
     testForD8(parameters.getBackend())
         .setMode(CompilationMode.RELEASE)
         .apply(this::setupTestBuilder)
@@ -101,10 +93,6 @@ public class ApiModelOutlineMethodAndStubClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    // TODO(b/197078995): Make this work on 12+.
-    assumeFalse(
-        parameters.isDexRuntime()
-            && parameters.getDexRuntimeVersion().isNewerThanOrEqual(Version.V12_0_0));
     testForR8(parameters.getBackend())
         .apply(this::setupTestBuilder)
         .addKeepMainRule(Main.class)
