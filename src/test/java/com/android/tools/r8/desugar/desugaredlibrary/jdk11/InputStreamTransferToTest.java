@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.jdk11;
 
+import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.LibraryDesugaringTestConfiguration;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -41,21 +44,24 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
     this.parameters = parameters;
   }
 
+  private LibraryDesugaringTestConfiguration pathConfiguration() {
+    return LibraryDesugaringTestConfiguration.builder()
+        .setMinApi(parameters.getApiLevel())
+        .addDesugaredLibraryConfiguration(
+            StringResource.fromFile(ToolHelper.getDesugarLibJsonForTestingWithPath()))
+        .setMode(shrinkDesugaredLibrary ? CompilationMode.RELEASE : CompilationMode.DEBUG)
+        .withKeepRuleConsumer()
+        .build();
+  }
+
   @Test
   public void testD8() throws Exception {
     Assume.assumeTrue(isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
         .addProgramFiles(INPUT_JAR)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
+        .enableCoreLibraryDesugaring(pathConfiguration())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
@@ -63,19 +69,12 @@ public class InputStreamTransferToTest extends DesugaredLibraryTestBase {
   @Test
   public void testR8() throws Exception {
     Assume.assumeTrue(isJDK11DesugaredLibrary());
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addLibraryFiles(getLibraryFile())
         .addProgramFiles(INPUT_JAR)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(MAIN_CLASS)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary,
-            parameters.getApiLevel(),
-            keepRuleConsumer.get(),
-            shrinkDesugaredLibrary)
+        .enableCoreLibraryDesugaring(pathConfiguration())
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
