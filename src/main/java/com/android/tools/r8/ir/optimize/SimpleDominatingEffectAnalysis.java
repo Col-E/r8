@@ -219,16 +219,20 @@ public class SimpleDominatingEffectAnalysis {
       result = ResultState.NOT_SATISFIED;
     }
 
-    public void addSatisfyingInstruction(Instruction instruction) {
+    public SimpleEffectAnalysisResultBuilder addSatisfyingInstruction(Instruction instruction) {
       satisfyingInstructions.add(instruction);
+      return this;
     }
 
-    public void setFailingBlocksForPartialResults(List<BasicBlock> basicBlocks) {
+    public SimpleEffectAnalysisResultBuilder setFailingBlocksForPartialResults(
+        List<BasicBlock> basicBlocks) {
       this.failingBlocksForPartialResults = basicBlocks;
+      return this;
     }
 
-    public void setResult(ResultState result) {
+    public SimpleEffectAnalysisResultBuilder setResult(ResultState result) {
       this.result = result;
+      return this;
     }
 
     public SimpleEffectAnalysisResult build() {
@@ -246,63 +250,69 @@ public class SimpleDominatingEffectAnalysis {
   public static SimpleEffectAnalysisResult run(IRCode code, InstructionAnalysis analysis) {
     SimpleEffectAnalysisResultBuilder builder = SimpleEffectAnalysisResult.builder();
     IntBox visitedInstructions = new IntBox();
-    new StatefulDepthFirstSearchWorkList<BasicBlock, ResultStateWithPartialBlocks>() {
+    TraversalContinuation<Void, ResultStateWithPartialBlocks> runResult =
+        new StatefulDepthFirstSearchWorkList<BasicBlock, ResultStateWithPartialBlocks, Void>() {
 
-      @Override
-      protected TraversalContinuation<?, ?> process(
-          DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
-          Function<BasicBlock, DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>>
-              childNodeConsumer) {
-        InstructionEffect effect = NO_EFFECT;
-        for (Instruction instruction : node.getNode().getInstructions()) {
-          if (visitedInstructions.getAndIncrement() > analysis.maxNumberOfInstructions()) {
-            builder.fail();
-            return doBreak();
-          }
-          effect = analysis.analyze(instruction);
-          if (!effect.isNoEffect()) {
-            if (effect.isDesired()) {
-              builder.addSatisfyingInstruction(instruction);
+          @Override
+          protected TraversalContinuation<Void, ResultStateWithPartialBlocks> process(
+              DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
+              Function<BasicBlock, DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>>
+                  childNodeConsumer) {
+            InstructionEffect effect = NO_EFFECT;
+            for (Instruction instruction : node.getNode().getInstructions()) {
+              if (visitedInstructions.getAndIncrement() > analysis.maxNumberOfInstructions()) {
+                return doBreak();
+              }
+              effect = analysis.analyze(instruction);
+              if (!effect.isNoEffect()) {
+                if (effect.isDesired()) {
+                  builder.addSatisfyingInstruction(instruction);
+                }
+                break;
+              }
             }
-            break;
-          }
-        }
-        if (effect.isNoEffect()) {
-          List<BasicBlock> successors = analysis.getSuccessors(node.getNode());
-          for (BasicBlock successor : successors) {
-            DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> childNode =
-                childNodeConsumer.apply(successor);
-            if (childNode.hasState()) {
-              // If we see a block where the children have not been processed we cannot guarantee
-              // all paths having the effect since - ex. we could have a non-terminating loop.
-              builder.fail();
-              return doBreak();
+            if (effect.isNoEffect()) {
+              List<BasicBlock> successors = analysis.getSuccessors(node.getNode());
+              for (BasicBlock successor : successors) {
+                DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> childNode =
+                    childNodeConsumer.apply(successor);
+                if (childNode.hasState()) {
+                  // If we see a block where the children have not been processed we cannot
+                  // guarantee all paths having the effect since - ex. we could have a
+                  // non-terminating loop.
+                  return doBreak();
+                }
+              }
             }
+            node.setState(
+                new ResultStateWithPartialBlocks(effect.toResultState(), ImmutableList.of()));
+            return doContinue();
           }
-        }
-        node.setState(new ResultStateWithPartialBlocks(effect.toResultState(), ImmutableList.of()));
-        return doContinue();
-      }
 
-      @Override
-      protected TraversalContinuation<?, ?> joiner(
-          DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
-          List<DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>> childNodes) {
-        ResultStateWithPartialBlocks resultState = node.getState();
-        if (resultState.state.isNotComputed()) {
-          resultState = resultState.joinChildren(childNodes);
-        } else {
-          assert resultState.state.isSatisfied() || resultState.state.isNotSatisfied();
-          assert childNodes.isEmpty();
-        }
-        node.setState(resultState);
-        if (node.getNode().isEntry()) {
-          builder.setResult(resultState.state);
-          builder.setFailingBlocksForPartialResults(resultState.failingBlocks);
-        }
-        return doContinue();
-      }
-    }.run(code.entryBlock());
+          @Override
+          protected TraversalContinuation<Void, ResultStateWithPartialBlocks> joiner(
+              DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks> node,
+              List<DFSNodeWithState<BasicBlock, ResultStateWithPartialBlocks>> childNodes) {
+            ResultStateWithPartialBlocks resultState = node.getState();
+            if (resultState.state.isNotComputed()) {
+              resultState = resultState.joinChildren(childNodes);
+            } else {
+              assert resultState.state.isSatisfied() || resultState.state.isNotSatisfied();
+              assert childNodes.isEmpty();
+            }
+            node.setState(resultState);
+            return doContinue(resultState);
+          }
+        }.run(code.entryBlock());
+
+    if (runResult.isBreak()) {
+      builder.fail();
+    } else {
+      ResultStateWithPartialBlocks resultState = runResult.asContinue().getValue();
+      builder
+          .setResult(resultState.state)
+          .setFailingBlocksForPartialResults(resultState.failingBlocks);
+    }
 
     return builder.build();
   }

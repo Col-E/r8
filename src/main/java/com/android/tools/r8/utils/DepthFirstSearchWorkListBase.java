@@ -13,12 +13,13 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> {
+public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>, TB, TC> {
 
   public interface DFSNode<N> {
     N getNode();
@@ -103,36 +104,48 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
   }
 
   private final ArrayDeque<T> workList = new ArrayDeque<>();
+  // This map is necessary ensure termination since we embed nodes into nodes with state.
+  private final Map<N, T> nodeToNodeWithStateMap = new IdentityHashMap<>();
 
   abstract T createDfsNode(N node);
 
   /** The initial processing of a node during forward search */
-  abstract TraversalContinuation<?, ?> internalOnVisit(T node);
+  abstract TraversalContinuation<TB, TC> internalOnVisit(T node);
 
   /** The joining of state during backtracking of the algorithm. */
-  abstract TraversalContinuation<?, ?> internalOnJoin(T node);
+  abstract TraversalContinuation<TB, TC> internalOnJoin(T node);
+
+  abstract List<TC> getFinalStateForRoots(Collection<N> roots);
 
   final T internalEnqueueNode(N value) {
-    T dfsNode = createDfsNode(value);
+    T dfsNode = nodeToNodeWithStateMap.computeIfAbsent(value, this::createDfsNode);
     if (dfsNode.isNotProcessed()) {
       workList.addLast(dfsNode);
     }
     return dfsNode;
   }
 
+  protected T getNodeStateForNode(N value) {
+    return nodeToNodeWithStateMap.get(value);
+  }
+
+  public final TraversalContinuation<TB, TC> run(N root) {
+    return run(Collections.singletonList(root)).map(Function.identity(), results -> results.get(0));
+  }
+
   @SafeVarargs
-  public final TraversalContinuation<?, ?> run(N... roots) {
+  public final TraversalContinuation<TB, List<TC>> run(N... roots) {
     return run(Arrays.asList(roots));
   }
 
-  public final TraversalContinuation<?, ?> run(Collection<N> roots) {
+  public final TraversalContinuation<TB, List<TC>> run(Collection<N> roots) {
     roots.forEach(this::internalEnqueueNode);
-    TraversalContinuation<?, ?> continuation = TraversalContinuation.doContinue();
     while (!workList.isEmpty()) {
       T node = workList.removeLast();
       if (node.isFinished()) {
         continue;
       }
+      TraversalContinuation<TB, TC> continuation;
       if (node.isNotProcessed()) {
         workList.addLast(node);
         node.setWaiting();
@@ -143,14 +156,15 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
         node.setFinished();
       }
       if (continuation.shouldBreak()) {
-        return continuation;
+        return TraversalContinuation.doBreak(continuation.asBreak().getValue());
       }
     }
-    return continuation;
+
+    return TraversalContinuation.doContinue(getFinalStateForRoots(roots));
   }
 
-  public abstract static class DepthFirstSearchWorkList<N>
-      extends DepthFirstSearchWorkListBase<N, DFSNodeImpl<N>> {
+  public abstract static class DepthFirstSearchWorkList<N, TB, TC>
+      extends DepthFirstSearchWorkListBase<N, DFSNodeImpl<N>, TB, TC> {
 
     /**
      * The initial processing of the node when visiting the first time during the depth first
@@ -161,7 +175,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
      *     before but not finished there is a cycle.
      * @return A value describing if the DFS algorithm should continue to run.
      */
-    protected abstract TraversalContinuation<?, ?> process(
+    protected abstract TraversalContinuation<TB, TC> process(
         DFSNode<N> node, Function<N, DFSNode<N>> childNodeConsumer);
 
     @Override
@@ -170,18 +184,18 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
     }
 
     @Override
-    TraversalContinuation<?, ?> internalOnVisit(DFSNodeImpl<N> node) {
+    TraversalContinuation<TB, TC> internalOnVisit(DFSNodeImpl<N> node) {
       return process(node, this::internalEnqueueNode);
     }
 
     @Override
-    protected TraversalContinuation<?, ?> internalOnJoin(DFSNodeImpl<N> node) {
+    protected TraversalContinuation<TB, TC> internalOnJoin(DFSNodeImpl<N> node) {
       return TraversalContinuation.doContinue();
     }
   }
 
-  public abstract static class StatefulDepthFirstSearchWorkList<N, S>
-      extends DepthFirstSearchWorkListBase<N, DFSNodeWithStateImpl<N, S>> {
+  public abstract static class StatefulDepthFirstSearchWorkList<N, S, TB>
+      extends DepthFirstSearchWorkListBase<N, DFSNodeWithStateImpl<N, S>, TB, S> {
 
     private final Map<DFSNodeWithStateImpl<N, S>, List<DFSNodeWithState<N, S>>> childStateMap =
         new IdentityHashMap<>();
@@ -195,7 +209,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
      *     before but not finished there is a cycle.
      * @return A value describing if the DFS algorithm should continue to run.
      */
-    protected abstract TraversalContinuation<?, ?> process(
+    protected abstract TraversalContinuation<TB, S> process(
         DFSNodeWithState<N, S> node, Function<N, DFSNodeWithState<N, S>> childNodeConsumer);
 
     /**
@@ -205,7 +219,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
      * @param childStates The already computed child states.
      * @return A value describing if the DFS algorithm should continue to run.
      */
-    protected abstract TraversalContinuation<?, ?> joiner(
+    protected abstract TraversalContinuation<TB, S> joiner(
         DFSNodeWithState<N, S> node, List<DFSNodeWithState<N, S>> childStates);
 
     @Override
@@ -214,7 +228,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
     }
 
     @Override
-    TraversalContinuation<?, ?> internalOnVisit(DFSNodeWithStateImpl<N, S> node) {
+    TraversalContinuation<TB, S> internalOnVisit(DFSNodeWithStateImpl<N, S> node) {
       List<DFSNodeWithState<N, S>> childStates = new ArrayList<>();
       List<DFSNodeWithState<N, S>> removedChildStates = childStateMap.put(node, childStates);
       assert removedChildStates == null;
@@ -228,7 +242,7 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
     }
 
     @Override
-    protected TraversalContinuation<?, ?> internalOnJoin(DFSNodeWithStateImpl<N, S> node) {
+    protected TraversalContinuation<TB, S> internalOnJoin(DFSNodeWithStateImpl<N, S> node) {
       return joiner(
           node,
           childStateMap.computeIfAbsent(
@@ -237,6 +251,11 @@ public abstract class DepthFirstSearchWorkListBase<N, T extends DFSNodeImpl<N>> 
                 assert false : "Unexpected joining of not visited node";
                 return new ArrayList<>();
               }));
+    }
+
+    @Override
+    List<S> getFinalStateForRoots(Collection<N> roots) {
+      return ListUtils.map(roots, root -> getNodeStateForNode(root).state);
     }
   }
 }

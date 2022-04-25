@@ -26,6 +26,16 @@ public abstract class TraversalContinuation<TB, TC> {
     return null;
   }
 
+  public <TBx, TCx> TraversalContinuation<TBx, TCx> map(
+      Function<TB, TBx> mapBreak, Function<TC, TCx> mapContinue) {
+    if (isBreak()) {
+      return new Break<>(mapBreak.apply(asBreak().getValue()));
+    } else {
+      assert isContinue();
+      return new Continue<>(mapContinue.apply(asContinue().getValue()));
+    }
+  }
+
   public static class Continue<TB, TC> extends TraversalContinuation<TB, TC> {
     private static final TraversalContinuation.Continue<?, ?> CONTINUE_NO_VALUE =
         new Continue<Object, Object>(null) {
