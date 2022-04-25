@@ -16,15 +16,20 @@ import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,6 +45,19 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "String written: Hello World",
           "bytes read: 11",
           "String read: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
+          "null",
+          "true",
+          "unsupported");
+  private static final String EXPECTED_RESULT_24_26 =
+      StringUtils.lines(
+          "bytes written: 11",
+          "String written: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
+          "unsupported",
+          "unsupported",
           "null",
           "true",
           "unsupported");
@@ -47,6 +65,8 @@ public class FilesTest extends DesugaredLibraryTestBase {
       StringUtils.lines(
           "bytes written: 11",
           "String written: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
           "bytes read: 11",
           "String read: Hello World",
           "true",
@@ -69,8 +89,11 @@ public class FilesTest extends DesugaredLibraryTestBase {
   }
 
   private String getExpectedResult() {
-    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)
-        ? EXPECTED_RESULT_26
+    if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)) {
+      return EXPECTED_RESULT_26;
+    }
+    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
+        ? EXPECTED_RESULT_24_26
         : EXPECTED_RESULT;
   }
 
@@ -124,8 +147,12 @@ public class FilesTest extends DesugaredLibraryTestBase {
 
     public static void main(String[] args) throws Throwable {
       Path path = Files.createTempFile("example", ".txt");
-      readWrite(path);
+      readWriteThroughFilesAPI(path);
+      readThroughFileChannelAPI(path);
+      attributeAccess(path);
+    }
 
+    private static void attributeAccess(Path path) throws IOException {
       PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
       if (view != null) {
         System.out.println(
@@ -154,7 +181,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
       }
     }
 
-    private static void readWrite(Path path) throws IOException {
+    private static void readWriteThroughFilesAPI(Path path) throws IOException {
       try (SeekableByteChannel channel =
           Files.newByteChannel(path, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
         String toWrite = "Hello World";
@@ -171,6 +198,27 @@ public class FilesTest extends DesugaredLibraryTestBase {
         int read = channel.read(byteBuffer2);
         System.out.println("bytes read: " + read);
         System.out.println("String read: " + new String(byteBuffer2.array()));
+      }
+    }
+
+    private static void readThroughFileChannelAPI(Path path) throws IOException {
+      try {
+        Set<OpenOption> openOptions = new HashSet<>();
+        openOptions.add(LinkOption.NOFOLLOW_LINKS);
+        try (FileChannel channel = FileChannel.open(path, openOptions)) {
+          String toWrite = "Hello World";
+
+          // Read the String toWrite from the channel.
+          channel.position(0);
+          ByteBuffer byteBuffer2 = ByteBuffer.allocate(toWrite.length());
+          int read = channel.read(byteBuffer2);
+          System.out.println("bytes read: " + read);
+          System.out.println("String read: " + new String(byteBuffer2.array()));
+        }
+      } catch (NoClassDefFoundError err) {
+        // TODO(b/222647019): FileChannel#open is not supported in between 24 and 26.
+        System.out.println("unsupported");
+        System.out.println("unsupported");
       }
     }
   }
