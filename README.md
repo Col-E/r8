@@ -24,11 +24,11 @@ Typical steps to download and build:
 
     $ git clone https://r8.googlesource.com/r8
     $ cd r8
-    $ tools/gradle.py d8 r8
+    $ tools/gradle.py r8
 
 The `tools/gradle.py` script will bootstrap using depot_tools to download
 a version of gradle to use for building on the first run. This will produce
-two jar files: `build/libs/d8.jar` and `build/libs/r8.jar`.
+a jar file: `build/libs/r8.jar` which contains both R8 and D8.
 
 ## Running D8
 
@@ -45,11 +45,11 @@ Typical invocations of D8 to produce dex file(s) in the out directoy:
 
 Debug mode build:
 
-    $ java -jar build/libs/d8.jar --output out input.jar
+    $ java -cp build/libs/r8.jar com.android.tools.r8.D8  --output out input.jar
 
 Release mode build:
 
-    $ java -jar build/libs/d8.jar --release --output out input.jar
+    $ java -cp build/libs/r8.jar com.android.tools.r8.D8 --release --output out input.jar
 
 The full set of D8 options can be obtained by running the command line tool with
 the `--help` option.
