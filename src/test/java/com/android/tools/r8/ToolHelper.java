@@ -161,7 +161,6 @@ public class ToolHelper {
 
   public static final long BOT_MAX_HEAP_SIZE = 7908360192L;
 
-  public static final Path D8_JAR = Paths.get(LIBS_DIR, "d8.jar");
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_DEPS_JAR = Paths.get(LIBS_DIR, "r8_with_deps.jar");
   public static final Path R8_WITHOUT_DEPS_JAR =

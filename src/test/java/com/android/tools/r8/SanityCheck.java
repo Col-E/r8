@@ -117,7 +117,6 @@ public class SanityCheck extends TestBase {
 
   @Test
   public void testJarsContent() throws Exception {
-    checkJarContent(ToolHelper.D8_JAR);
     checkJarContent(ToolHelper.R8_JAR);
   }
 }

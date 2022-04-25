@@ -929,15 +929,6 @@ task r8NoManifest(type: Copy) {
     outputs.file "${buildDir}/libs/r8_no_manifest.jar"
 }
 
-task D8(type: Jar) {
-    dependsOn r8
-    from zipTree(r8.outputs.files[0])
-    archiveFileName = 'd8.jar'
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.D8'
-    }
-}
-
 def baseCompilerCommandLine(compiler, args = []) {
     // Execute r8 commands against a stable r8 with dependencies.
     // TODO(b/139725780): See if we can remove or lower the heap size (-Xmx8g).

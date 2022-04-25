@@ -33,22 +33,13 @@ def ParseOptions():
       type="string", action="store")
   return result.parse_args()
 
-def GetToolVersion(jar_path):
-  # TODO(mkroghj) This would not work for r8-lib, maybe use utils.getR8Version.
-  output = subprocess.check_output([
-    jdk.GetJavaExecutable(), '-jar', jar_path, '--version'
-  ]).decode('utf-8')
-  return output.splitlines()[0].strip()
-
 def GetVersion():
-  r8_version = GetToolVersion(utils.R8_JAR)
-  d8_version = GetToolVersion(utils.D8_JAR)
-  # The version printed is "D8 vVERSION_NUMBER" and "R8 vVERSION_NUMBER"
-  # Sanity check that versions match.
-  if d8_version.split()[1] != r8_version.split()[1]:
-    raise Exception(
-        'Version mismatch: \n%s\n%s' % (d8_version, r8_version))
-  return d8_version.split()[1]
+  output = subprocess.check_output([
+      jdk.GetJavaExecutable(), '-cp', utils.R8_JAR, 'com.android.tools.r8.R8',
+      '--version'
+  ]).decode('utf-8')
+  r8_version = output.splitlines()[0].strip()
+  return r8_version.split()[1]
 
 def GetGitBranches():
   return subprocess.check_output(['git', 'show', '-s', '--pretty=%d', 'HEAD'])
@@ -157,7 +148,6 @@ def Main():
     # The '-Pno_internal' flag is important because we generate the lib based on uses in tests.
     gradle.RunGradle([
         utils.R8,
-        utils.D8,
         utils.R8LIB,
         utils.R8LIB_NO_DEPS,
         utils.R8RETRACE,
@@ -193,7 +183,6 @@ def Main():
     create_maven_release.write_default_r8_pom_file(default_pom_file, version)
 
     for file in [
-      utils.D8_JAR,
       utils.R8_JAR,
       utils.R8LIB_JAR,
       utils.R8LIB_JAR + '.map',

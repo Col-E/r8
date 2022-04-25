@@ -51,7 +51,6 @@ R8LIB_TESTS_TARGET = 'configureTestForR8Lib'
 R8LIB_TESTS_DEPS_TARGET = R8_TESTS_DEPS_TARGET
 
 ALL_DEPS_JAR = os.path.join(LIBS, 'deps_all.jar')
-D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
 R8_WITH_RELOCATED_DEPS_JAR = os.path.join(LIBS, 'r8_with_relocated_deps.jar')
 R8LIB_JAR = os.path.join(LIBS, 'r8lib.jar')
