@@ -344,7 +344,9 @@ def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_re
   if is_html:
     cmd += ['-z', 'html']
   if public_read:
-    cmd += ['-a', 'public-read']
+    # TODO(b/177799191) Temporarily disable public-read to test uniform access control
+    if 'r8-test-results' not in destination:
+      cmd += ['-a', 'public-read']
   cmd += ['-R', directory, destination]
   PrintCmd(cmd)
   subprocess.check_call(cmd)
