@@ -35,8 +35,7 @@ public class InterfaceInvokeWithNonTrivialButImpreciseStaticTypeTest extends Tes
         .enableNoVerticalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/229951611): Should succeed with "B".
-        .assertFailureWithErrorThatThrows(NullPointerException.class);
+        .assertSuccessWithOutputLines("B");
   }
 
   static class Main {

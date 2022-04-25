@@ -60,9 +60,6 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     //  memory usage, but would require visiting all transitive (program) super classes for each
     //  subclass.
     private void addParentState(DexProgramClass clazz, DexProgramClass superclass) {
-      ClassTypeElement classType =
-          TypeElement.fromDexType(clazz.getType(), maybeNull(), appView).asClassType();
-
       PropagationState parentState = propagationStates.get(superclass.asProgramClass());
       assert parentState != null;
 
@@ -87,7 +84,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
       parentState.inactiveUntilUpperBound.forEach(
           (bounds, inactiveMethodStates) -> {
             ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
-            if (upperBound.equalUpToNullability(classType)) {
+            if (shouldActivateMethodStateGuardedByBounds(upperBound, clazz, superclass)) {
               // The upper bound is the current class, thus this inactive information now becomes
               // active.
               if (bounds.hasDynamicLowerBoundType()) {
@@ -161,6 +158,20 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
       }
       return methodState;
     }
+
+    private boolean shouldActivateMethodStateGuardedByBounds(
+        ClassTypeElement upperBound, DexProgramClass currentClass, DexProgramClass superClass) {
+      ClassTypeElement classType =
+          TypeElement.fromDexType(currentClass.getType(), maybeNull(), appView).asClassType();
+      // When propagating argument information for interface methods downwards from an interface to
+      // a non-interface we need to account for the parent classes of the current class.
+      if (superClass.isInterface()
+          && !currentClass.isInterface()
+          && currentClass.getSuperType() != appView.dexItemFactory().objectType) {
+        return classType.lessThanOrEqualUpToNullability(upperBound, appView);
+      }
+      return classType.equalUpToNullability(upperBound);
+    }
   }
 
   // For each class, stores the argument information for each virtual method on this class and all
@@ -227,7 +238,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
                   // TODO(b/190154391): Verify that the bounds are not trivial according to the
                   //  static receiver type.
                   ClassTypeElement upperBound = bounds.getDynamicUpperBoundType().asClassType();
-                  if (isUpperBoundSatisfied(upperBound, clazz, propagationState)) {
+                  if (isUpperBoundSatisfied(upperBound, clazz)) {
                     if (bounds.hasDynamicLowerBoundType()) {
                       // TODO(b/190154391): Verify that the lower bound is a subtype of the current
                       //  class.
@@ -258,10 +269,7 @@ public class VirtualDispatchMethodArgumentPropagator extends MethodArgumentPropa
     propagationStates.put(clazz, propagationState);
   }
 
-  private boolean isUpperBoundSatisfied(
-      ClassTypeElement upperBound,
-      DexProgramClass currentClass,
-      PropagationState propagationState) {
+  private boolean isUpperBoundSatisfied(ClassTypeElement upperBound, DexProgramClass currentClass) {
     DexType upperBoundType =
         upperBound.getClassType() == appView.dexItemFactory().objectType
                 && upperBound.getInterfaces().hasSingleKnownInterface()
