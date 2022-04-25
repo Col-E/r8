@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -38,7 +39,7 @@ public class ConcreteCfFrameState extends CfFrameState {
     if (uninitializedType.isInitialized()) {
       return error();
     }
-    for (Int2ObjectSortedMap.Entry<FrameType> entry : locals.int2ObjectEntrySet()) {
+    for (Int2ObjectMap.Entry<FrameType> entry : locals.int2ObjectEntrySet()) {
       FrameType frameType = entry.getValue();
       FrameType initializedFrameType =
           getInitializedFrameType(uninitializedType, frameType, initializedType);

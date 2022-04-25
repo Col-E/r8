@@ -26,7 +26,7 @@ public abstract class BoxBase<T> {
     if (!isSet()) {
       set(supplier.get());
     }
-    return get();
+    return value;
   }
 
   T get() {
