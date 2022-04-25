@@ -4,12 +4,13 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.KotlinTestParameters;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestCompilerBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.MethodReference;
@@ -70,9 +71,20 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
 
   protected abstract List<Path> getKotlinFiles() throws IOException;
 
+  protected boolean transformKotlinClasses() {
+    return false;
+  }
+
+  protected byte[] transformedKotlinClasses(Path kotlinClasses) throws IOException {
+    assert false;
+    return null;
+  }
+
   protected abstract String getTestClassName();
 
   protected void configureR8(R8FullTestBuilder builder) {}
+
+  protected void configureResultR8(R8TestCompileResult builder) {}
 
   private Path kotlinStdlibLibraryForRuntime() throws Exception {
     Path kotlinStdlibCf = kotlinc.getKotlinStdlibJar();
@@ -107,6 +119,16 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
     }
   }
 
+  private void addKotlinClasses(TestBuilder<?, ?> builder) {
+    builder.applyIf(
+        transformKotlinClasses(),
+        b ->
+            b.addProgramClassFileData(
+                transformedKotlinClasses(
+                    compiledForAssertions.getForConfiguration(kotlinc, targetVersion))),
+        b -> b.addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion)));
+  }
+
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
@@ -114,7 +136,7 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
         .apply(this::configureKotlinStdlib)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(AssertionHandlers.class)
-        .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
+        .apply(this::addKotlinClasses)
         .addAssertionsConfiguration(
             builder ->
                 builder
@@ -131,7 +153,7 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
         .apply(this::configureKotlinStdlib)
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(AssertionHandlers.class)
-        .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
+        .apply(this::addKotlinClasses)
         .addAssertionsConfiguration(
             builder ->
                 builder
@@ -140,13 +162,8 @@ public abstract class AssertionConfigurationAssertionHandlerKotlinTestBase exten
                     .build())
         .addKeepMainRule(getTestClassName())
         .apply(this::configureR8)
-        .allowDiagnosticWarningMessages(!kotlinStdlibAsLibrary)
         .compile()
-        .applyIf(
-            !kotlinStdlibAsLibrary,
-            result ->
-                result.assertAllWarningMessagesMatch(
-                    equalTo("Resource 'META-INF/MANIFEST.MF' already exists.")))
+        .apply(this::configureResultR8)
         .run(parameters.getRuntime(), getTestClassName())
         .assertSuccessWithOutput(getExpectedOutput());
   }

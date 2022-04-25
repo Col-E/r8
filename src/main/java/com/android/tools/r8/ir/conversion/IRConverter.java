@@ -1175,7 +1175,7 @@ public class IRConverter {
       return timing;
     }
 
-    assertionsRewriter.run(method, code, timing);
+    assertionsRewriter.run(method, code, deadCodeRemover, timing);
 
     if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
