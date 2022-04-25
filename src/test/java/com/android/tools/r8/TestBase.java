@@ -785,7 +785,7 @@ public class TestBase {
     return computeAppViewWithClassHierarchy(app, keepConfig, null);
   }
 
-  private static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(
+  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithClassHierarchy(
       AndroidApp app,
       Function<DexItemFactory, ProguardConfiguration> keepConfig,
       Consumer<InternalOptions> optionsConsumer)

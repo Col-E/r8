@@ -331,6 +331,15 @@ public abstract class TestCompileResult<
     }
   }
 
+  public CR addBootClasspathFiles(Path... files) {
+    return addBootClasspathFiles(Arrays.asList(files));
+  }
+
+  public CR addBootClasspathFiles(Collection<Path> files) {
+    additionalBootClasspath.addAll(files);
+    return self();
+  }
+
   public CR addDesugaredCoreLibraryRunClassPath(
       Function<AndroidApiLevel, Path> classPathSupplier, AndroidApiLevel minAPILevel) {
     addRunClasspathFiles(classPathSupplier.apply(minAPILevel));
