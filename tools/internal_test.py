@@ -189,7 +189,7 @@ def git_checkout(git_hash):
   return utils.get_HEAD_sha1()
 
 def get_test_result_dir():
-  return os.path.join(utils.R8_TEST_RESULTS_BUCKET, TEST_RESULT_DIR)
+  return os.path.join(utils.R8_INTERNAL_TEST_RESULTS_BUCKET, TEST_RESULT_DIR)
 
 def get_sha_destination(sha):
   return os.path.join(get_test_result_dir(), sha)

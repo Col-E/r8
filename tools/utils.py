@@ -101,6 +101,7 @@ ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME = "ANDROID_TOOLS_VERSION"
 USER_HOME = os.path.expanduser('~')
 
 R8_TEST_RESULTS_BUCKET = 'r8-test-results'
+R8_INTERNAL_TEST_RESULTS_BUCKET = 'r8-internal-test-results'
 
 def archive_file(name, gs_dir, src_file):
   gs_file = '%s/%s' % (gs_dir, name)
