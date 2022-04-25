@@ -11,13 +11,19 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.List;
 import org.junit.Assume;
 import org.junit.Test;
@@ -33,7 +39,20 @@ public class FilesTest extends DesugaredLibraryTestBase {
           "bytes written: 11",
           "String written: Hello World",
           "bytes read: 11",
-          "String read: Hello World");
+          "String read: Hello World",
+          "null",
+          "true",
+          "unsupported");
+  private static final String EXPECTED_RESULT_26 =
+      StringUtils.lines(
+          "bytes written: 11",
+          "String written: Hello World",
+          "bytes read: 11",
+          "String read: Hello World",
+          "true",
+          "true",
+          "true");
+
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
 
@@ -47,6 +66,12 @@ public class FilesTest extends DesugaredLibraryTestBase {
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
             .build());
+  }
+
+  private String getExpectedResult() {
+    return parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.O)
+        ? EXPECTED_RESULT_26
+        : EXPECTED_RESULT;
   }
 
   public FilesTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
@@ -76,7 +101,7 @@ public class FilesTest extends DesugaredLibraryTestBase {
         .withArt6Plus64BitsLib()
         .withArtFrameworks()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(getExpectedResult());
   }
 
   @Test
@@ -92,13 +117,44 @@ public class FilesTest extends DesugaredLibraryTestBase {
         .withArt6Plus64BitsLib()
         .withArtFrameworks()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED_RESULT);
+        .assertSuccessWithOutput(getExpectedResult());
   }
 
   public static class TestClass {
 
     public static void main(String[] args) throws Throwable {
       Path path = Files.createTempFile("example", ".txt");
+      readWrite(path);
+
+      PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
+      if (view != null) {
+        System.out.println(
+            view.readAttributes().permissions().contains(PosixFilePermission.OWNER_READ));
+      } else {
+        System.out.println("null");
+      }
+
+      BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+      if (attributes != null) {
+        System.out.println(attributes.isRegularFile());
+      } else {
+        System.out.println("null");
+      }
+
+      try {
+        PosixFileAttributes posixAttributes = Files.readAttributes(path, PosixFileAttributes.class);
+        if (attributes != null) {
+          System.out.println(
+              posixAttributes.permissions().contains(PosixFilePermission.OWNER_READ));
+        } else {
+          System.out.println("null");
+        }
+      } catch (UnsupportedOperationException e) {
+        System.out.println("unsupported");
+      }
+    }
+
+    private static void readWrite(Path path) throws IOException {
       try (SeekableByteChannel channel =
           Files.newByteChannel(path, StandardOpenOption.READ, StandardOpenOption.WRITE)) {
         String toWrite = "Hello World";
