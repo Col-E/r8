@@ -225,8 +225,7 @@ def archive_failures(options):
       relative_file = absolute_file[len(upload_dir)+1:]
       if (should_upload(relative_file, absolute_file)):
         utils.upload_file_to_cloud_storage(absolute_file,
-                                           destination_dir + relative_file,
-                                           public_read=False)
+                                           destination_dir + relative_file)
   url = 'https://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, file_name)
   print('Test results available at: %s' % url)
 

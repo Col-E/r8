@@ -105,7 +105,7 @@ R8_INTERNAL_TEST_RESULTS_BUCKET = 'r8-internal-test-results'
 
 def archive_file(name, gs_dir, src_file):
   gs_file = '%s/%s' % (gs_dir, name)
-  upload_file_to_cloud_storage(src_file, gs_file, public_read=False)
+  upload_file_to_cloud_storage(src_file, gs_file)
 
 def archive_value(name, gs_dir, value):
   with TempDir() as temp:
@@ -338,7 +338,7 @@ def makedirs_if_needed(path):
 def get_gsutil():
   return 'gsutil.py' if os.name != 'nt' else 'gsutil.py.bat'
 
-def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_read=True):
+def upload_dir_to_cloud_storage(directory, destination, is_html=False):
   # Upload and make the content encoding right for viewing directly
   cmd = [get_gsutil(), '-m', 'cp']
   if is_html:
@@ -347,7 +347,7 @@ def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_re
   PrintCmd(cmd)
   subprocess.check_call(cmd)
 
-def upload_file_to_cloud_storage(source, destination, public_read=True):
+def upload_file_to_cloud_storage(source, destination):
   cmd = [get_gsutil(), 'cp']
   cmd += [source, destination]
   PrintCmd(cmd)
