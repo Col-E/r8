@@ -287,9 +287,6 @@ def run_bot():
     print('Tests failed, you can print the logs by running(googlers only):')
     print('  tools/internal_test.py --print_logs %s' % git_hash)
     return 1
-  else:
-    print(' Test validation of archiving logs, see b/177799191')
-    print('  tools/internal_test.py --print_logs %s' % git_hash)
 
 def run_continuously():
   # If this script changes, we will restart ourselves
@@ -377,7 +374,7 @@ def execute(cmd, archive, env=None):
         stderr_fd.close()
       if stdout_fd:
         stdout_fd.close()
-      if exitcode != 0 or True:
+      if exitcode != 0:
         handle_output(archive, stderr, stdout, popen.returncode,
                       timed_out, ' '.join(cmd))
     return exitcode
