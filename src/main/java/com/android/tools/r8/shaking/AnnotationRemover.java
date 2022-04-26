@@ -260,9 +260,17 @@ public class AnnotationRemover {
 
   private DexAnnotationElement rewriteAnnotationElement(
       DexType annotationType, DexAnnotationElement original) {
-    DexClass definition = appView.definitionFor(annotationType);
+    // The dalvik.annotation.AnnotationDefault is typically not on bootclasspath. However, if it
+    // is present, the definition does not define the 'value' getter but that is the spec:
+    // https://source.android.com/devices/tech/dalvik/dex-format#dalvik-annotation-default
+    // If the annotation matches the structural requirement keep it.
+    if (appView.dexItemFactory().annotationDefault.equals(annotationType)
+        && appView.dexItemFactory().valueString.equals(original.name)) {
+      return original;
+    }
     // We cannot strip annotations where we cannot look up the definition, because this will break
     // apps that rely on the annotation to exist. See b/134766810 for more information.
+    DexClass definition = appView.definitionFor(annotationType);
     if (definition == null) {
       return original;
     }
