@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.desugar.CfClassSynthesizerDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.EnumConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.EnumConversionCfCodeProvider;
 import com.android.tools.r8.synthesis.SyntheticClasspathClassBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder;
 import com.android.tools.r8.synthesis.SyntheticMethodBuilder.SyntheticCodeGenerator;

@@ -31,11 +31,11 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredL
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.CustomConversionDescriptor;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.ArrayConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider.VivifiedWrapperConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider.WrapperConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.ArrayConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.WrapperConstructorCfCodeProvider;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.position.Position;
@@ -481,7 +481,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   private CfCode computeProgramConversionMethodCode(
       DexField wrapperField, DexField reverseWrapperField, DexClass context) {
     assert context.isProgramClass();
-    return new APIConverterWrapperConversionCfCodeProvider(
+    return new NullableConversionCfCodeProvider.WrapperConversionCfCodeProvider(
             appView, reverseWrapperField, wrapperField)
         .generateCfCode();
   }
@@ -531,7 +531,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
         .disableAndroidApiLevelCheck()
         .setCode(
             codeSynthesizor ->
-                new APIConverterConstructorCfCodeProvider(
+                new WrapperConstructorCfCodeProvider(
                         appView, wrappedValueField.getReference(), superType)
                     .generateCfCode());
   }
@@ -571,7 +571,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     } else {
       isInterface = holderClass.isInterface();
     }
-    return new APIConverterVivifiedWrapperCfCodeProvider(
+    return new VivifiedWrapperConversionCfCodeProvider(
             appView, method, wrapperField, this, isInterface, eventConsumer, contextSupplier)
         .generateCfCode();
   }
@@ -600,7 +600,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     DexClass holderClass = appView.definitionFor(method.getHolderType());
     assert holderClass != null || appView.options().isDesugaredLibraryCompilation();
     boolean isInterface = holderClass == null || holderClass.isInterface();
-    return new APIConverterWrapperCfCodeProvider(
+    return new WrapperConversionCfCodeProvider(
             appView, method, wrapperField, this, isInterface, eventConsumer, contextSupplier)
         .generateCfCode();
   }

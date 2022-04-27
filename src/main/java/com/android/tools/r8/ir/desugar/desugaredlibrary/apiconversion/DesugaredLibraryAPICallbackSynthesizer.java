@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APICallbackWrapperCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider.CallbackConversionCfCodeProvider;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
@@ -200,7 +200,7 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
     DexMethod methodToInstall =
         methodWithVivifiedTypeInSignature(originalMethod.getReference(), clazz.type, appView);
     CfCode cfCode =
-        new APICallbackWrapperCfCodeProvider(
+        new CallbackConversionCfCodeProvider(
                 appView,
                 originalMethod.getReference(),
                 wrapperSynthesizor,

@@ -35,7 +35,7 @@ import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
-import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider.OutlinedAPIConversionCfCodeProvider;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
@@ -293,7 +293,6 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
       MethodProcessingContext methodProcessingContext) {
     DexType returnType = invokedMethod.proto.returnType;
     if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod, context)) {
-      DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
       return wrapperSynthesizor.ensureConversionMethod(
           returnType, false, eventConsumer, methodProcessingContext::createUniqueContext);
     }
@@ -310,7 +309,6 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     for (int i = 0; i < parameters.length; i++) {
       DexType argType = parameters[i];
       if (wrapperSynthesizor.shouldConvert(argType, invokedMethod, context)) {
-        DexType argVivifiedType = vivifiedTypeFor(argType, appView);
         parameterConversions[i] =
             wrapperSynthesizor.ensureConversionMethod(
                 argType, true, eventConsumer, methodProcessingContext::createUniqueContext);
@@ -536,7 +534,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
                         .disableAndroidApiLevelCheck()
                         .setCode(
                             methodSignature ->
-                                new APIConversionCfCodeProvider(
+                                new OutlinedAPIConversionCfCodeProvider(
                                         appView,
                                         methodSignature.holder,
                                         invoke,
