@@ -1204,23 +1204,22 @@ public class ClassFileTransformer {
   }
 
   public ClassFileTransformer setMaxStackHeight(MethodPredicate predicate, int newMaxStack) {
-    return addMethodTransformer(
-        new MethodTransformer() {
-          @Override
-          public void visitMaxs(int maxStack, int maxLocals) {
-            super.visitMaxs(
-                MethodPredicate.testContext(predicate, getContext()) ? newMaxStack : maxStack,
-                maxLocals);
-          }
-        });
+    return setMaxs(predicate, newMaxStack, null);
   }
 
-  public ClassFileTransformer computeMaxs() {
+  public ClassFileTransformer setMaxs(
+      MethodPredicate predicate, Integer newMaxStack, Integer newMaxLocals) {
     return addMethodTransformer(
         new MethodTransformer() {
           @Override
           public void visitMaxs(int maxStack, int maxLocals) {
-            super.visitMaxs(maxStack, maxLocals);
+            if (MethodPredicate.testContext(predicate, getContext())) {
+              super.visitMaxs(
+                  newMaxStack != null ? newMaxStack : maxStack,
+                  newMaxLocals != null ? newMaxLocals : maxLocals);
+            } else {
+              super.visitMaxs(maxStack, maxLocals);
+            }
           }
         });
   }

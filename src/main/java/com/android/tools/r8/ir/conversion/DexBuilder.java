@@ -54,7 +54,6 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
-import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
@@ -72,7 +71,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -351,6 +350,50 @@ public class DexBuilder {
         && currentBlock.getPredecessors().get(0) == previousBlock;
   }
 
+  private static void removeTrivialFallthroughBlocks(IRCode code) {
+    for (int blockIndex = 1; blockIndex < code.blocks.size() - 1; blockIndex++) {
+      // We skip the last block as it has no fallthrough. We also skip checking the entry block as
+      // it has no predecessors and must define the initial position. Any subsequent block must be
+      // statically reachable and thus have predecessors.
+      BasicBlock currentBlock = code.blocks.get(blockIndex);
+      assert !currentBlock.getPredecessors().isEmpty();
+      if (currentBlock.size() != 2) {
+        continue;
+      }
+      DebugPosition debugPosition = currentBlock.entry().asDebugPosition();
+      com.android.tools.r8.ir.code.Goto exit = currentBlock.exit().asGoto();
+      if (debugPosition == null || exit == null || debugPosition.getPosition().isNone()) {
+        continue;
+      }
+      BasicBlock nextBlock = code.blocks.get(blockIndex + 1);
+      if (exit.getTarget() != nextBlock) {
+        continue;
+      }
+      // The block is a trivial position block that falls through to the following.
+      // If the position is equal to each predecessor block then the line is already active on
+      // each entry to the fallthrough and it can be safely removed.
+      boolean allMatch = true;
+      Position position = debugPosition.getPosition();
+      for (BasicBlock pred : currentBlock.getPredecessors()) {
+        // Do to the target == next check this cannot be a trivial loop.
+        assert pred != currentBlock;
+        Position predExit = pred.exit().getPosition();
+        if (!position.equals(predExit)) {
+          allMatch = false;
+          break;
+        }
+      }
+      if (allMatch) {
+        currentBlock.removeInstruction(debugPosition);
+        CodeRewriter.unlinkTrivialGotoBlock(currentBlock, nextBlock);
+        code.removeBlocks(Collections.singleton(currentBlock));
+        // Having removed the block at blockIndex, the previous block may now be a trivial
+        // fallthrough. Rewind to that point and retry. This avoids iterating to a fixed point.
+        blockIndex = Math.max(0, blockIndex - 2);
+      }
+    }
+  }
+
   // Eliminates unneeded debug positions.
   //
   // After this pass all remaining debug positions mark places where we must ensure a materializing
@@ -359,6 +402,12 @@ public class DexBuilder {
     if (!code.metadata().mayHaveDebugPosition()) {
       return;
     }
+
+    // We must start by removing any blocks that are already trivial fallthrough blocks with no
+    // position change. With these removed it is then sound to make the fallthrough judgement when
+    // determining if a goto will materialize or not.
+    removeTrivialFallthroughBlocks(code);
+
     // Current position known to have a materializing instruction associated with it.
     Position currentMaterializedPosition = Position.none();
 
@@ -373,7 +422,6 @@ public class DexBuilder {
     // Compute the set of all positions that can be removed.
     // (Delaying removal to avoid ConcurrentModificationException).
     List<DebugPosition> toRemove = new ArrayList<>();
-    Set<BasicBlock> trivialBlocks = new HashSet<>();
 
     for (int blockIndex = 0; blockIndex < code.blocks.size(); blockIndex++) {
       BasicBlock currentBlock = code.blocks.get(blockIndex);
@@ -425,12 +473,11 @@ public class DexBuilder {
               && currentMaterializedPosition == instruction.getPosition()) {
             // Here we don't need to check locals state as the line is already active.
             toRemove.add(instruction.asDebugPosition());
-            if (currentBlock.getInstructions().size() == 2) {
-              JumpInstruction exit = currentBlock.exit();
-              if (exit.isGoto() && exit.getPosition() == currentMaterializedPosition) {
-                trivialBlocks.add(currentBlock);
-              }
-            }
+            assert currentBlock.size() != 2
+                    || currentBlock.exit().getPosition() != currentMaterializedPosition
+                    || !currentBlock.exit().isGoto()
+                    || currentBlock.exit().asGoto().getTarget() != nextBlock
+                : "Unexpected trivial fallthrough block. This should be removed already.";
           } else if (unresolvedPosition != null
               && unresolvedPosition.getPosition() == instruction.getPosition()
               && locals.equals(localsAtUnresolvedPosition)) {
@@ -474,29 +521,6 @@ public class DexBuilder {
       }
       assert i == toRemove.size();
     }
-
-    // Remove all trivial goto blocks that have a position known to be emitted in their predecessor.
-    if (!trivialBlocks.isEmpty()) {
-      List<BasicBlock> blocksToRemove = new ArrayList<>();
-      ListIterator<BasicBlock> iterator = code.listIterator();
-      // Skip the entry block.
-      assert code.blocks.size() > 1;
-      iterator.next();
-      BasicBlock nextBlock = iterator.next();
-      do {
-        BasicBlock block = nextBlock;
-        nextBlock = iterator.hasNext() ? iterator.next() : null;
-        if (block.isTrivialGoto()
-            && trivialBlocks.contains(block)
-            && block.exit().asGoto().getTarget() != block
-            && !CodeRewriter.isFallthroughBlock(block)) {
-          BasicBlock target = block.exit().asGoto().getTarget();
-          blocksToRemove.add(block);
-          CodeRewriter.unlinkTrivialGotoBlock(block, target);
-        }
-      } while (iterator.hasNext());
-      code.removeBlocks(blocksToRemove);
-    }
   }
 
   // Rewrite ifs with offsets that are too large for the if encoding. The rewriting transforms:
@@ -522,8 +546,10 @@ public class DexBuilder {
         BasicBlock trueTarget = theIf.getTrueTarget();
         BasicBlock newBlock =
             BasicBlock.createGotoBlock(
-                ir.blocks.size(), theIf.getPosition(), ir.metadata(), trueTarget);
+                ir.getNextBlockNumber(), theIf.getPosition(), ir.metadata(), trueTarget);
         theIf.setTrueTarget(newBlock);
+        newBlock.getMutablePredecessors().add(block);
+        trueTarget.replacePredecessor(block, newBlock);
         theIf.invert();
         it.add(newBlock);
       }

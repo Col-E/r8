@@ -343,6 +343,10 @@ public abstract class Instruction implements CfOrDexInstruction, StructuralItem<
   @Override
   public final int acceptCompareTo(Instruction other, CompareToVisitor visitor) {
     int opcodeDiff = visitor.visitInt(getCompareToId(), other.getCompareToId());
+    if (opcodeDiff != 0) {
+      return opcodeDiff;
+    }
+    opcodeDiff = visitor.visitInt(getOffset(), other.getOffset());
     return opcodeDiff != 0 ? opcodeDiff : internalAcceptCompareTo(other, visitor);
   }
 

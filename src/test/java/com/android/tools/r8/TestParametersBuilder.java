@@ -93,6 +93,10 @@ public class TestParametersBuilder {
     return withCfRuntime(CfRuntime.getDefaultCfRuntime().getVm());
   }
 
+  public TestParametersBuilder withDefaultRuntimes() {
+    return withDefaultDexRuntime().withDefaultCfRuntime();
+  }
+
   /** Add all available CF runtimes. */
   public TestParametersBuilder withCfRuntimes() {
     return withCfRuntimeFilter(vm -> true);

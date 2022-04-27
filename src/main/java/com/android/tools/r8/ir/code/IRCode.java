@@ -516,7 +516,9 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   }
 
   public void removeBlocks(Collection<BasicBlock> blocksToRemove) {
-    blocks.removeAll(blocksToRemove);
+    if (!blocksToRemove.isEmpty()) {
+      blocks.removeAll(blocksToRemove);
+    }
   }
 
   /**

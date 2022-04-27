@@ -412,6 +412,11 @@ public class CfSourceCode implements SourceCode {
     if (needsGeneratedMethodSynchronization) {
       buildMethodEnterSynchronization(builder);
     }
+    Position entryPosition = getCanonicalDebugPositionAtOffset(0);
+    if (!state.getPosition().equals(entryPosition)) {
+      state.setPosition(entryPosition);
+      builder.addDebugPosition(state.getPosition());
+    }
     recordStateForTarget(0, state.getSnapshot());
     inPrelude = false;
   }
