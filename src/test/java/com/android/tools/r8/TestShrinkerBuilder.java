@@ -332,6 +332,16 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T addKeepEnumsRule() {
+    addKeepRules(
+        StringUtils.lines(
+            "-keepclassmembers enum * {",
+            "    public static **[] values();",
+            "    public static ** valueOf(java.lang.String);",
+            "}"));
+    return self();
+  }
+
   public T addPrintSeeds() {
     return addKeepRules("-printseeds");
   }
