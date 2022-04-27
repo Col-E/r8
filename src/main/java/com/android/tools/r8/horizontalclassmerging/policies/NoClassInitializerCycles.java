@@ -5,6 +5,7 @@
 package com.android.tools.r8.horizontalclassmerging.policies;
 
 import static com.android.tools.r8.graph.DexClassAndMethod.asProgramMethodOrNull;
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.desugar.LambdaDescriptor.isLambdaMetafactoryMethod;
 import static com.android.tools.r8.utils.MapUtils.ignoreKey;
 
@@ -26,6 +27,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions.HorizontalClassMergerOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.WorkList;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -321,10 +323,6 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
       worklist.clear();
     }
 
-    boolean markClassInitializerAsSeen(DexProgramClass clazz) {
-      return seenClassInitializers.add(clazz);
-    }
-
     boolean enqueueMethod(ProgramMethod method) {
       if (seenMethods.add(method)) {
         worklist.addLast(method);
@@ -434,44 +432,38 @@ public class NoClassInitializerCycles extends MultiClassPolicyWithPreprocessing<
         return appView.appInfo().isSubtype(getContext().getHolder(), clazz);
       }
 
-      private void triggerClassInitializer(DexType type) {
-        DexProgramClass clazz = type.asProgramClass(appView);
-        if (clazz != null) {
-          triggerClassInitializer(clazz);
-        }
-      }
-
-      private void triggerClassInitializer(DexProgramClass clazz) {
-        if (!markClassInitializerAsSeen(clazz)) {
-          return;
-        }
-
-        if (groupMembers.contains(clazz)) {
-          if (hasSingleTracingRoot(clazz)) {
-            // We found an execution path from the class initializer of the given class back to its
-            // own class initializer. Therefore this class is not eligible for merging.
-            fail();
-          } else {
-            // Record that this class initializer is reachable from the tracing roots.
-            recordClassInitializerReachableFromTracingRoots(clazz);
+      private void triggerClassInitializer(DexProgramClass root) {
+        WorkList<DexProgramClass> worklist = WorkList.newWorkList(seenClassInitializers);
+        worklist.addIfNotSeen(root);
+        while (worklist.hasNext()) {
+          DexProgramClass clazz = worklist.next();
+          if (groupMembers.contains(clazz)) {
+            if (hasSingleTracingRoot(clazz)) {
+              // We found an execution path from the class initializer of the given class back to
+              // its own class initializer. Therefore this class is not eligible for merging.
+              fail();
+            } else {
+              // Record that this class initializer is reachable from the tracing roots.
+              recordClassInitializerReachableFromTracingRoots(clazz);
+            }
           }
-        }
 
-        ProgramMethod classInitializer = clazz.getProgramClassInitializer();
-        if (classInitializer != null) {
-          if (!enqueueMethod(classInitializer)) {
+          ProgramMethod classInitializer = clazz.getProgramClassInitializer();
+          if (classInitializer != null && !enqueueMethod(classInitializer)) {
             // This class initializer is already seen in the current context, thus all of the parent
             // class initializers are also seen in the current context.
             return;
           }
-        }
 
-        triggerClassInitializer(clazz.getSuperType());
+          DexProgramClass superClass =
+              asProgramClassOrNull(appView.definitionFor(clazz.getSuperType()));
+          if (superClass != null) {
+            worklist.addIfNotSeen(superClass);
+          }
 
-        MergeGroup other = allGroups.get(clazz);
-        if (other != null && other != group) {
-          for (DexProgramClass member : other) {
-            triggerClassInitializer(member);
+          MergeGroup other = allGroups.get(clazz);
+          if (other != null && other != group) {
+            worklist.addIfNotSeen(other);
           }
         }
       }
