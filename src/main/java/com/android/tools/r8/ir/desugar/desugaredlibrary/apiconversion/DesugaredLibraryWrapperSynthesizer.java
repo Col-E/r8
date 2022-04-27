@@ -132,10 +132,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
 
   public DexMethod ensureConversionMethod(
       DexType type,
-      DexType srcType,
-      DexType destType,
+      boolean destIsVivified,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier) {
+    DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
+    DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
     if (type.isArrayType()) {
       return ensureArrayConversionMethod(type, srcType, destType, eventConsumer, contextSupplier);
     }
@@ -166,11 +167,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         ensureConversionMethod(
-            type.toDimensionMinusOneType(factory),
-            srcType.toDimensionMinusOneType(factory),
-            destType.toDimensionMinusOneType(factory),
-            eventConsumer,
-            contextSupplier);
+            type.toDimensionMinusOneType(factory), srcType == type, eventConsumer, contextSupplier);
     return ensureArrayConversionMethod(
         srcType, destType, eventConsumer, contextSupplier, conversion);
   }
@@ -183,11 +180,7 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         getExistingProgramConversionMethod(
-            type.toDimensionMinusOneType(factory),
-            srcType.toDimensionMinusOneType(factory),
-            destType.toDimensionMinusOneType(factory),
-            eventConsumer,
-            contextSupplier);
+            type.toDimensionMinusOneType(factory), srcType == type, eventConsumer, contextSupplier);
     return ensureArrayConversionMethod(
         srcType, destType, eventConsumer, contextSupplier, conversion);
   }
@@ -224,10 +217,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
 
   public DexMethod getExistingProgramConversionMethod(
       DexType type,
-      DexType srcType,
-      DexType destType,
+      boolean destIsVivified,
       DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier) {
+    DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
+    DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
     if (type.isArrayType()) {
       return ensureArrayConversionMethodFromExistingBaseConversion(
           type, srcType, destType, eventConsumer, contextSupplier);

@@ -71,12 +71,9 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
   }
 
   public static class APIConverterVivifiedWrapperCfCodeProvider
-      extends DesugaredLibraryAPIConversionCfCodeProvider {
+      extends AbstractAPIConversionCfCodeProvider {
 
     private final DexField wrapperField;
-    private final DexMethod forwardMethod;
-    private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizer;
-    private final boolean itfCall;
     private final DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer;
     private final Supplier<UniqueContext> contextSupplier;
 
@@ -88,89 +85,64 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
         boolean itfCall,
         DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
         Supplier<UniqueContext> contextSupplier) {
-      super(appView, wrapperField.holder);
-      this.forwardMethod = forwardMethod;
+      super(appView, wrapperField.holder, forwardMethod, wrapperSynthesizer, itfCall);
       this.wrapperField = wrapperField;
-      this.wrapperSynthesizer = wrapperSynthesizer;
-      this.itfCall = itfCall;
       this.eventConsumer = eventConsumer;
       this.contextSupplier = contextSupplier;
     }
 
     @Override
-    public CfCode generateCfCode() {
-      DexItemFactory factory = appView.dexItemFactory();
-      List<CfInstruction> instructions = new ArrayList<>();
-      // Wrapped value is a vivified type. Method uses type as external. Forward method should
-      // use vivifiedTypes.
-
+    void generatePushReceiver(List<CfInstruction> instructions) {
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
       instructions.add(new CfInstanceFieldRead(wrapperField));
-      int index = 1;
-      int stackIndex = 1;
+    }
+
+    @Override
+    DexMethod ensureConversionMethod(DexType type, boolean destIsVivified) {
+      return wrapperSynthesizor.getExistingProgramConversionMethod(
+          type, destIsVivified, eventConsumer, contextSupplier);
+    }
+
+    @Override
+    DexMethod getMethodToForwardTo() {
       DexType[] newParameters = forwardMethod.proto.parameters.values.clone();
-      for (DexType param : forwardMethod.proto.parameters.values) {
-        instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
-        if (wrapperSynthesizer.shouldConvert(param, forwardMethod)) {
-          instructions.add(
-              new CfInvoke(
-                  Opcodes.INVOKESTATIC,
-                  conversionMethod(param, param, vivifiedTypeFor(param)),
-                  false));
-          newParameters[index - 1] = vivifiedTypeFor(param);
+      for (int i = 0; i < forwardMethod.proto.parameters.values.length; i++) {
+        DexType param = forwardMethod.proto.parameters.values[i];
+        if (wrapperSynthesizor.shouldConvert(param, forwardMethod)) {
+          newParameters[i] = vivifiedTypeFor(param);
         }
-        if (param == factory.longType || param == factory.doubleType) {
-          stackIndex++;
-        }
-        stackIndex++;
-        index++;
       }
 
       DexType returnType = forwardMethod.proto.returnType;
       DexType forwardMethodReturnType =
-          appView.typeRewriter.hasRewrittenType(returnType, appView)
+          wrapperSynthesizor.shouldConvert(returnType, forwardMethod)
               ? vivifiedTypeFor(returnType)
               : returnType;
 
-      DexProto newProto = factory.createProto(forwardMethodReturnType, newParameters);
-      DexMethod newForwardMethod =
-          factory.createMethod(wrapperField.type, newProto, forwardMethod.name);
-
-      if (itfCall) {
-        instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, newForwardMethod, true));
-      } else {
-        instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newForwardMethod, false));
-      }
-
-      if (wrapperSynthesizer.shouldConvert(returnType, forwardMethod)) {
-        instructions.add(
-            new CfInvoke(
-                Opcodes.INVOKESTATIC,
-                conversionMethod(returnType, vivifiedTypeFor(returnType), returnType),
-                false));
-      }
-      if (returnType == factory.voidType) {
-        instructions.add(new CfReturnVoid());
-      } else {
-        instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
-      }
-      return standardCfCodeFromInstructions(instructions);
+      DexProto newProto =
+          appView.dexItemFactory().createProto(forwardMethodReturnType, newParameters);
+      return appView.dexItemFactory().createMethod(wrapperField.type, newProto, forwardMethod.name);
     }
 
-    private DexMethod conversionMethod(DexType type, DexType srcType, DexType destType) {
-      return wrapperSynthesizer.getExistingProgramConversionMethod(
-          type, srcType, destType, eventConsumer, contextSupplier);
+    @Override
+    DexMethod parameterConversion(DexType param) {
+      return ensureConversionMethod(param, true);
+    }
+
+    @Override
+    DexMethod returnConversion(DexType param) {
+      return ensureConversionMethod(param, false);
     }
   }
 
-  public abstract static class AbstractAPIConverterWrapperCfCodeProvider
+  public abstract static class AbstractAPIConversionCfCodeProvider
       extends DesugaredLibraryAPIConversionCfCodeProvider {
 
     DexMethod forwardMethod;
     DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
     boolean itfCall;
 
-    public AbstractAPIConverterWrapperCfCodeProvider(
+    public AbstractAPIConversionCfCodeProvider(
         AppView<?> appView,
         DexType holder,
         DexMethod forwardMethod,
@@ -184,45 +156,30 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
     abstract void generatePushReceiver(List<CfInstruction> instructions);
 
-    abstract DexMethod ensureConversionMethod(DexType type, DexType srcType, DexType destType);
+    abstract DexMethod ensureConversionMethod(DexType type, boolean destIsVivified);
+
+    abstract DexMethod parameterConversion(DexType param);
+
+    abstract DexMethod returnConversion(DexType param);
+
+    abstract DexMethod getMethodToForwardTo();
 
     @Override
     public CfCode generateCfCode() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
-      // Wrapped value is a type. Method uses vivifiedTypes as external. Forward method should
-      // use types.
-
       generatePushReceiver(instructions);
-      int stackIndex = 1;
-      for (DexType param : forwardMethod.proto.parameters.values) {
-        instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
-        if (wrapperSynthesizor.shouldConvert(param, forwardMethod)) {
-          instructions.add(
-              new CfInvoke(
-                  Opcodes.INVOKESTATIC,
-                  ensureConversionMethod(param, vivifiedTypeFor(param), param),
-                  false));
-        }
-        if (param == factory.longType || param == factory.doubleType) {
-          stackIndex++;
-        }
-        stackIndex++;
-      }
+      generateParameterConvertAndLoad(factory, instructions);
+      generateForwardCall(instructions);
+      generateConvertAndReturn(factory, instructions);
+      return standardCfCodeFromInstructions(instructions);
+    }
 
-      if (itfCall) {
-        instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, forwardMethod, true));
-      } else {
-        instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, forwardMethod, false));
-      }
-
+    private void generateConvertAndReturn(
+        DexItemFactory factory, List<CfInstruction> instructions) {
       DexType returnType = forwardMethod.proto.returnType;
       if (wrapperSynthesizor.shouldConvert(returnType, forwardMethod)) {
-        instructions.add(
-            new CfInvoke(
-                Opcodes.INVOKESTATIC,
-                ensureConversionMethod(returnType, returnType, vivifiedTypeFor(returnType)),
-                false));
+        instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, returnConversion(returnType), false));
         returnType = vivifiedTypeFor(returnType);
       }
       if (returnType == factory.voidType) {
@@ -230,12 +187,33 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       } else {
         instructions.add(new CfReturn(ValueType.fromDexType(returnType)));
       }
-      return standardCfCodeFromInstructions(instructions);
+    }
+
+    private void generateForwardCall(List<CfInstruction> instructions) {
+      if (itfCall) {
+        instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, getMethodToForwardTo(), true));
+      } else {
+        instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, getMethodToForwardTo(), false));
+      }
+    }
+
+    private void generateParameterConvertAndLoad(
+        DexItemFactory factory, List<CfInstruction> instructions) {
+      int stackIndex = 1;
+      for (DexType param : forwardMethod.proto.parameters.values) {
+        instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
+        if (wrapperSynthesizor.shouldConvert(param, forwardMethod)) {
+          instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversion(param), false));
+        }
+        if (param == factory.longType || param == factory.doubleType) {
+          stackIndex++;
+        }
+        stackIndex++;
+      }
     }
   }
 
-  public static class APICallbackWrapperCfCodeProvider
-      extends AbstractAPIConverterWrapperCfCodeProvider {
+  public static class APICallbackWrapperCfCodeProvider extends AbstractAPIConversionCfCodeProvider {
 
     private final DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer;
     private final Supplier<UniqueContext> contextSupplier;
@@ -258,14 +236,29 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     }
 
     @Override
-    DexMethod ensureConversionMethod(DexType type, DexType srcType, DexType destType) {
+    DexMethod ensureConversionMethod(DexType type, boolean destIsVivified) {
       return wrapperSynthesizor.ensureConversionMethod(
-          type, srcType, destType, eventConsumer, contextSupplier);
+          type, destIsVivified, eventConsumer, contextSupplier);
+    }
+
+    @Override
+    DexMethod parameterConversion(DexType param) {
+      return ensureConversionMethod(param, false);
+    }
+
+    @Override
+    DexMethod returnConversion(DexType param) {
+      return ensureConversionMethod(param, true);
+    }
+
+    @Override
+    DexMethod getMethodToForwardTo() {
+      return forwardMethod;
     }
   }
 
   public static class APIConverterWrapperCfCodeProvider
-      extends AbstractAPIConverterWrapperCfCodeProvider {
+      extends AbstractAPIConversionCfCodeProvider {
 
     private final DexField wrapperField;
     private final DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer;
@@ -292,9 +285,24 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     }
 
     @Override
-    DexMethod ensureConversionMethod(DexType type, DexType srcType, DexType destType) {
+    DexMethod ensureConversionMethod(DexType type, boolean destIsVivified) {
       return wrapperSynthesizor.getExistingProgramConversionMethod(
-          type, srcType, destType, eventConsumer, contextSupplier);
+          type, destIsVivified, eventConsumer, contextSupplier);
+    }
+
+    @Override
+    DexMethod parameterConversion(DexType param) {
+      return ensureConversionMethod(param, false);
+    }
+
+    @Override
+    DexMethod returnConversion(DexType param) {
+      return ensureConversionMethod(param, true);
+    }
+
+    @Override
+    DexMethod getMethodToForwardTo() {
+      return forwardMethod;
     }
   }
 

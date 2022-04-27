@@ -295,11 +295,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod, context)) {
       DexType newReturnType = DesugaredLibraryAPIConverter.vivifiedTypeFor(returnType, appView);
       return wrapperSynthesizor.ensureConversionMethod(
-          returnType,
-          newReturnType,
-          returnType,
-          eventConsumer,
-          methodProcessingContext::createUniqueContext);
+          returnType, false, eventConsumer, methodProcessingContext::createUniqueContext);
     }
     return null;
   }
@@ -317,11 +313,7 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
         DexType argVivifiedType = vivifiedTypeFor(argType, appView);
         parameterConversions[i] =
             wrapperSynthesizor.ensureConversionMethod(
-                argType,
-                argType,
-                argVivifiedType,
-                eventConsumer,
-                methodProcessingContext::createUniqueContext);
+                argType, true, eventConsumer, methodProcessingContext::createUniqueContext);
       }
     }
     return parameterConversions;
