@@ -130,7 +130,7 @@ public class JarDiff {
 
   private byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
       throws Exception {
-    return StreamUtils.StreamToByteArrayClose(
+    return StreamUtils.streamToByteArrayClose(
         inputJar.getProgramResource(descriptor).getByteStream());
   }
 

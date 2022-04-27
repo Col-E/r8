@@ -77,7 +77,7 @@ public class DesugaredLibraryJDK11Undesugarer extends DesugaredLibraryTestBase {
           if (!entry.getName().endsWith(".class")) {
             return;
           }
-          final byte[] bytes = StreamUtils.StreamToByteArrayClose(input);
+          final byte[] bytes = StreamUtils.streamToByteArrayClose(input);
           final byte[] rewrittenBytes =
               transformInvoke(entry.getName().substring(0, entry.getName().length() - 6), bytes);
           ZipUtils.writeToZipStream(out, entry.getName(), rewrittenBytes, ZipEntry.STORED);

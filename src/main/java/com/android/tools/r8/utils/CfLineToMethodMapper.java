@@ -47,7 +47,7 @@ public class CfLineToMethodMapper {
                 return;
               }
               try {
-                new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
+                new ClassReader(StreamUtils.streamToByteArrayClose(programResource.getByteStream()))
                     .accept(classVisitor, ClassReader.SKIP_FRAMES);
               } catch (IOException | ResourceException e) {
                 // Intentionally left empty because the addition of inline info for kotlin inline
@@ -58,7 +58,7 @@ public class CfLineToMethodMapper {
         for (ProgramResource programResource : resourceProvider.getProgramResources()) {
           if (programResource.getKind() == Kind.CF) {
             try {
-              new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
+              new ClassReader(StreamUtils.streamToByteArrayClose(programResource.getByteStream()))
                   .accept(classVisitor, ClassReader.SKIP_FRAMES);
             } catch (IOException e) {
               // Intentionally left empty because the addition of inline info for kotlin inline

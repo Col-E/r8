@@ -121,7 +121,7 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
         // For dex this also contains Rhino: com.sun.script.javascript.RhinoScriptEngineFactory.
         parameters.isCfRuntime() ? 2 : 3,
         StringUtils.splitLines(
-                new String(StreamUtils.StreamToByteArrayClose(zip.getInputStream(entry))))
+                new String(StreamUtils.streamToByteArrayClose(zip.getInputStream(entry))))
             .size());
   }
 

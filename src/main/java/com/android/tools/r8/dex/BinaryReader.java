@@ -19,7 +19,7 @@ public abstract class BinaryReader {
   protected final CompatByteBuffer buffer;
 
   protected BinaryReader(ProgramResource resource) throws ResourceException, IOException {
-    this(resource.getOrigin(), StreamUtils.StreamToByteArrayClose(resource.getByteStream()));
+    this(resource.getOrigin(), StreamUtils.streamToByteArrayClose(resource.getByteStream()));
   }
 
   protected BinaryReader(Origin origin, byte[] bytes) {

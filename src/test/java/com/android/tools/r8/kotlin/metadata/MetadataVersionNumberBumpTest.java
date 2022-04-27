@@ -101,7 +101,7 @@ public class MetadataVersionNumberBumpTest extends KotlinMetadataTestBase {
           if (!entry.getName().endsWith(".class")) {
             return;
           }
-          final byte[] bytes = StreamUtils.StreamToByteArrayClose(input);
+          final byte[] bytes = StreamUtils.streamToByteArrayClose(input);
           final byte[] rewrittenBytes =
               transformMetadataVersion(
                   entry.getName().substring(0, entry.getName().length() - 6), bytes, newVersion);

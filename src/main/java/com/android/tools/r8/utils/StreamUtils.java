@@ -11,9 +11,10 @@ public class StreamUtils {
 
   /**
    * Read all data from the stream into a byte[], close the stream and return the bytes.
+   *
    * @return The bytes of the stream
    */
-  public static byte[] StreamToByteArrayClose(InputStream inputStream) throws IOException {
+  public static byte[] streamToByteArrayClose(InputStream inputStream) throws IOException {
     byte[] result = ByteStreams.toByteArray(inputStream);
     inputStream.close();
     return result;

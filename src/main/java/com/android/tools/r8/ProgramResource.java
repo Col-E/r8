@@ -62,7 +62,7 @@ public interface ProgramResource extends Resource {
   /** Optional getter to obtain the bytes of the program resource as an array. */
   default byte[] getBytes() throws ResourceException {
     try {
-      return StreamUtils.StreamToByteArrayClose(getByteStream());
+      return StreamUtils.streamToByteArrayClose(getByteStream());
     } catch (IOException e) {
       throw new ResourceException(getOrigin(), e);
     }
