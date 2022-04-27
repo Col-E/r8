@@ -4669,6 +4669,8 @@ public class Enqueuer {
             defaultInitializer.getReference(),
             defaultInitializer,
             graphReporter.reportCompatKeepDefaultInitializer(defaultInitializer));
+        applyMinimumKeepInfoWhenLiveOrTargeted(
+            defaultInitializer, KeepMethodInfo.newEmptyJoiner().disallowOptimization());
       }
     }
   }

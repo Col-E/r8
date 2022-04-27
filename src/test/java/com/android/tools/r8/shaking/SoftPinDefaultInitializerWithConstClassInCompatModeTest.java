@@ -32,8 +32,7 @@ public class SoftPinDefaultInitializerWithConstClassInCompatModeTest extends Tes
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/229951611): Should succeed with "A".
-        .assertFailureWithErrorThatThrows(NullPointerException.class);
+        .assertSuccessWithOutputLines("A");
   }
 
   static class Main {

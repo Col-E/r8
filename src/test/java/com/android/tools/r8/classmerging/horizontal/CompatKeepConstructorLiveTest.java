@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.classmerging.horizontal;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isAbsent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NoHorizontalClassMerging;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import org.junit.Test;
@@ -24,6 +24,7 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
         .addInnerClasses(getClass())
         .addKeepMainRule(Main.class)
         .enableNeverClassInliningAnnotations()
+        .enableNoHorizontalClassMergingAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("b: main", "true")
@@ -31,18 +32,20 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
             codeInspector -> {
               ClassSubject aClassSubject = codeInspector.clazz(A.class);
               assertThat(aClassSubject, isPresent());
-
               assertThat(aClassSubject.init(), isPresent());
 
-              assertThat(codeInspector.clazz(A.class), isPresent());
-              assertThat(codeInspector.clazz(B.class), isAbsent());
+              ClassSubject bClassSubject = codeInspector.clazz(B.class);
+              assertThat(bClassSubject, isPresent());
+              assertThat(bClassSubject.init(), isPresent());
             });
   }
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class A {}
 
   @NeverClassInline
+  @NoHorizontalClassMerging
   public static class B {
     public B(String v) {
       System.out.println("b: " + v);
@@ -50,7 +53,7 @@ public class CompatKeepConstructorLiveTest extends HorizontalClassMergingTestBas
   }
 
   public static class Main {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
       new B("main");
       System.out.println(A.class.toString().length() > 0);
     }
