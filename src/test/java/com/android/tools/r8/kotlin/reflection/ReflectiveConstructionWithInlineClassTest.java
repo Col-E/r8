@@ -50,6 +50,7 @@ public class ReflectiveConstructionWithInlineClassTest extends KotlinTestBase {
         getKotlinTestParameters()
             // Internal classes are supported from Kotlin 1.5.
             .withCompilersStartingFromIncluding(KotlinCompilerVersion.KOTLINC_1_5_0)
+            .withOldCompilersStartingFrom(KotlinCompilerVersion.KOTLINC_1_5_0)
             .withAllTargetVersions()
             .build());
   }
