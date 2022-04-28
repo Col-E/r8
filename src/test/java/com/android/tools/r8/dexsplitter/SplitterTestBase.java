@@ -17,9 +17,12 @@ import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.ZipUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import dalvik.system.PathClassLoader;
 import java.io.IOException;
@@ -28,7 +31,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -148,6 +153,96 @@ public class SplitterTestBase extends TestBase {
     Path baseOutput = r8TestCompileResult.writeToZip();
     return runFeatureOnArt(
         toRun, baseOutput, r8TestCompileResult.getFeature(0), parameters.getRuntime());
+  }
+
+  // Compile the passed in classes plus RunInterface and SplitRunner using R8, then split
+  // based on the base/feature sets. toRun must implement the BaseRunInterface
+  <E extends Throwable> ProcessResult testDexSplitter(
+      TestParameters parameters,
+      Set<Class<?>> baseClasses,
+      Set<Class<?>> featureClasses,
+      Class<?> toRun,
+      String expectedOutput,
+      ThrowingConsumer<R8TestCompileResult, E> compileResultConsumer,
+      Consumer<R8FullTestBuilder> r8TestConfigurator)
+      throws Exception, E {
+    List<Class<?>> baseClassesWithRunner =
+        ImmutableList.<Class<?>>builder()
+            .add(RunInterface.class, SplitRunner.class)
+            .addAll(baseClasses)
+            .build();
+
+    Path baseJar = jarTestClasses(baseClassesWithRunner);
+    Path featureJar = jarTestClasses(featureClasses);
+
+    Path featureOnly =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(featureClasses)
+            .addClasspathClasses(baseClasses)
+            .addClasspathClasses(RunInterface.class)
+            .addKeepAllClassesRule()
+            .addInliningAnnotations()
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip();
+    if (parameters.isDexRuntime()) {
+      // With D8 this should just work. We compile all of the base classes, then run with the
+      // feature loaded at runtime. Since there is no inlining/class merging we don't
+      // have any issues.
+      testForD8()
+          .addProgramClasses(SplitRunner.class, RunInterface.class)
+          .addProgramClasses(baseClasses)
+          .setMinApi(parameters.getApiLevel())
+          .compile()
+          .run(
+              parameters.getRuntime(),
+              SplitRunner.class,
+              toRun.getName(),
+              featureOnly.toAbsolutePath().toString())
+          .assertSuccessWithOutput(expectedOutput);
+    }
+
+    R8FullTestBuilder builder = testForR8(parameters.getBackend());
+    if (parameters.isCfRuntime()) {
+      // Compiling to jar we need to support the same way of loading code at runtime as
+      // android supports.
+      builder
+          .addProgramClasses(PathClassLoader.class)
+          .addKeepClassAndMembersRules(PathClassLoader.class);
+    }
+
+    R8FullTestBuilder r8FullTestBuilder =
+        builder
+            .setMinApi(parameters.getApiLevel())
+            .addProgramClasses(SplitRunner.class, RunInterface.class)
+            .addProgramClasses(baseClasses)
+            .addProgramClasses(featureClasses)
+            .addKeepMainRule(SplitRunner.class)
+            .addKeepClassRules(toRun);
+    r8TestConfigurator.accept(r8FullTestBuilder);
+    R8TestCompileResult r8TestCompileResult = r8FullTestBuilder.compile();
+    compileResultConsumer.accept(r8TestCompileResult);
+    Path fullFiles = r8TestCompileResult.writeToZip();
+
+    // Ensure that we can run the program as a unit (i.e., without splitting)
+    r8TestCompileResult
+        .run(parameters.getRuntime(), SplitRunner.class, toRun.getName())
+        .assertSuccessWithOutput(expectedOutput);
+
+    Path splitterOutput = temp.newFolder().toPath();
+    Path splitterBaseDexFile = splitterOutput.resolve("base").resolve("classes.dex");
+    Path splitterFeatureDexFile = splitterOutput.resolve("feature").resolve("classes.dex");
+
+    Options options = new Options();
+    options.setOutput(splitterOutput.toString());
+    options.addBaseJar(baseJar.toString());
+    options.addFeatureJar(featureJar.toString(), "feature");
+
+    options.addInputArchive(fullFiles.toString());
+    DexSplitter.run(options);
+
+    return runFeatureOnArt(
+        toRun, splitterBaseDexFile, splitterFeatureDexFile, parameters.getRuntime());
   }
 
   ProcessResult runFeatureOnArt(

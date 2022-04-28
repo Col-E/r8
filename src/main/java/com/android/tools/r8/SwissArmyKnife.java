@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.bisect.Bisect;
 import com.android.tools.r8.cf.CfVerifierTool;
 import com.android.tools.r8.compatproguard.CompatProguard;
+import com.android.tools.r8.dexsplitter.DexSplitter;
 import com.android.tools.r8.relocator.RelocatorCommandLine;
 import com.android.tools.r8.tracereferences.TraceReferences;
 import java.util.Arrays;
@@ -39,6 +40,9 @@ public class SwissArmyKnife {
         break;
       case "dexsegments":
         DexSegments.main(shift(args));
+        break;
+      case "dexsplitter":
+        DexSplitter.main(shift(args));
         break;
       case "disasm":
         Disassemble.main(shift(args));

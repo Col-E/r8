@@ -47,6 +47,28 @@ public class DexSplitterFieldTypeStrengtheningTest extends SplitterTestBase {
   }
 
   @Test
+  public void testPropagationFromFeature() throws Exception {
+    ThrowingConsumer<R8TestCompileResult, Exception> ensureGetFromFeatureGone =
+        r8TestCompileResult -> {
+          // Ensure that getFromFeature from FeatureClass is inlined into the run method.
+          ClassSubject clazz = r8TestCompileResult.inspector().clazz(FeatureClass.class);
+          assertThat(clazz.uniqueMethodWithName("getFromFeature"), not(isPresent()));
+        };
+    ProcessResult processResult =
+        testDexSplitter(
+            parameters,
+            ImmutableSet.of(BaseSuperClass.class),
+            ImmutableSet.of(FeatureClass.class),
+            FeatureClass.class,
+            EXPECTED,
+            ensureGetFromFeatureGone,
+            TestShrinkerBuilder::noMinification);
+    // We expect art to fail on this with the dex splitter, see b/122902374
+    assertNotEquals(processResult.exitCode, 0);
+    assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
+  }
+
+  @Test
   public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     ProcessResult processResult =
