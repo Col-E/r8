@@ -120,17 +120,14 @@ public class APIConversionCfCodeProvider extends SyntheticCfCodeProvider {
 
   private void generateParameterConvertAndLoads(
       List<CfInstruction> instructions, boolean isStatic) {
-    int stackIndex = BooleanUtils.intValue(!isStatic);
+    int localIndex = BooleanUtils.intValue(!isStatic);
     for (int i = 0; i < forwardMethod.getArity(); i++) {
       ValueType valueType = valueTypeFromForwardMethod(forwardMethod.getParameter(i));
-      instructions.add(new CfLoad(valueType, stackIndex));
+      instructions.add(new CfLoad(valueType, localIndex));
       if (parameterConversions[i] != null) {
         instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversions[i], false));
       }
-      if (valueType.isWide()) {
-        stackIndex++;
-      }
-      stackIndex++;
+      localIndex += valueType.isWide() ? 2 : 1;
     }
   }
 
