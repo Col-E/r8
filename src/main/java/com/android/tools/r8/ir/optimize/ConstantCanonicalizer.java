@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.logging.Log;
@@ -190,7 +189,6 @@ public class ConstantCanonicalizer {
     // Double-check the entry block does not have catch handlers.
     // Otherwise, we need to split it before moving canonicalized const-string, which may throw.
     assert !code.entryBlock().hasCatchHandlers();
-    final Position firstNonNonePosition = code.findFirstNonNonePosition(Position.syntheticNone());
     FastSortedEntrySet<Instruction, List<Value>> entries =
         valuesDefinedByConstant.object2ObjectEntrySet();
     // Sort the most frequently used constant first and exclude constant use only one time, such
@@ -256,7 +254,6 @@ public class ConstantCanonicalizer {
         default:
           throw new Unreachable();
       }
-      newConst.setPosition(firstNonNonePosition);
       insertCanonicalizedConstant(code, newConst);
       for (Value outValue : entry.getValue()) {
         outValue.replaceUsers(newConst.outValue());
@@ -280,7 +277,12 @@ public class ConstantCanonicalizer {
     // that can throw exceptions (since the value could be used on the exceptional edge).
     InstructionListIterator it = entryBlock.listIterator(code);
     while (it.hasNext()) {
-      if (!it.next().isArgument()) {
+      Instruction next = it.next();
+      if (!next.isArgument()) {
+        // Set the constant to be the same position as the point at which it is inserted.
+        // Doing so preserves the "break on entry / break on first line behavior" as the constant
+        // itself is assumed to be a non-observable change.
+        canonicalizedConstant.setPosition(next.getPosition());
         it.previous();
         break;
       }

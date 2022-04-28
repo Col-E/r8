@@ -1878,6 +1878,8 @@ public class InternalOptions implements GlobalKeepInfoConfiguration {
     public boolean readInputStackMaps = true;
     public boolean disableStackMapVerification = false;
 
+    public boolean disableShortenLiveRanges = false;
+
     // Force each call of application read to dump its inputs to a file, which is subsequently
     // deleted. Useful to check that our dump functionality does not cause compilation failure.
     public boolean dumpAll = false;

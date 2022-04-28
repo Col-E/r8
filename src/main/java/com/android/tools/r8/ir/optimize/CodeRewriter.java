@@ -1833,6 +1833,9 @@ public class CodeRewriter {
   }
 
   public void shortenLiveRanges(IRCode code) {
+    if (options.testing.disableShortenLiveRanges) {
+      return;
+    }
     // Currently, we are only shortening the live range of ConstNumbers in the entry block
     // and ConstStrings with one user.
     // TODO(ager): Generalize this to shorten live ranges for more instructions? Currently

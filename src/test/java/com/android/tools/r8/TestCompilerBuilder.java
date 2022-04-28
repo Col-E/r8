@@ -461,6 +461,7 @@ public abstract class TestCompilerBuilder<
     return super.addLibraryProvider(provider);
   }
 
+  @Override
   public T allowStdoutMessages() {
     allowStdoutMessages = true;
     return self();

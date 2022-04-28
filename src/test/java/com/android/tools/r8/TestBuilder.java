@@ -249,4 +249,9 @@ public abstract class TestBuilder<RR extends TestRunResult<RR>, T extends TestBu
     getState().setDiagnosticsLevelModifier(modifier);
     return self();
   }
+
+  public T allowStdoutMessages() {
+    // Default ignored.
+    return self();
+  }
 }

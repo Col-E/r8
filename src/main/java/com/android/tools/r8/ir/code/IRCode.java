@@ -1499,34 +1499,4 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
       }
     }
   }
-
-  public Position findFirstNonNonePosition() {
-    return findFirstNonNonePosition(Position.none());
-  }
-
-  public Position findFirstNonNonePosition(Position orElse) {
-    BasicBlock current = entryBlock();
-    Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
-    do {
-      boolean changed = visitedBlocks.add(current);
-      assert changed;
-
-      for (Instruction instruction : current.getInstructions()) {
-        if (instruction.isArgument() || instruction.isGoto()) {
-          continue;
-        }
-        if (instruction.getPosition().isSome()) {
-          return instruction.getPosition();
-        }
-      }
-
-      // The very first non-argument instruction can be chained via goto.
-      if (current.exit().isGoto()) {
-        current = current.exit().asGoto().getTarget();
-      } else {
-        break;
-      }
-    } while (!visitedBlocks.contains(current));
-    return orElse;
-  }
 }
