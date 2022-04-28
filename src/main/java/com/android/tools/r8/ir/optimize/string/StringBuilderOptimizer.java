@@ -504,7 +504,7 @@ public class StringBuilderOptimizer {
         if (temp == null) {
           return null;
         }
-        DexType conversionType = conversion.to.dexTypeFor(factory);
+        DexType conversionType = conversion.to.toDexType(factory);
         if (conversionType == factory.booleanType) {
           return temp.intValue() != 0 ? 1 : 0;
         } else if (conversionType == factory.byteType) {

@@ -5,7 +5,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.code.CfOrDexInstanceFieldRead;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -84,7 +83,8 @@ public class CfInstanceFieldRead extends CfFieldInstruction implements CfOrDexIn
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., objectref →
+    // ..., value
+    return frame.popInitialized(appView, getField().getHolderType()).push(getField().getType());
   }
 }

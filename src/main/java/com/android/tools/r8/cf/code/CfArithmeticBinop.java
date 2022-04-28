@@ -225,7 +225,6 @@ public class CfArithmeticBinop extends CfInstruction {
       DexItemFactory dexItemFactory) {
     // ..., value1, value2 →
     // ..., result
-    FrameType frameType = FrameType.fromNumericType(type, dexItemFactory);
-    return state.pop(appView, frameType, frameType).push(frameType);
+    return state.popInitialized(appView, type).popInitialized(appView, type).push(appView, type);
   }
 }

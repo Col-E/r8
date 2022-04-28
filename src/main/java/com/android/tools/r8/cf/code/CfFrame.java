@@ -156,7 +156,7 @@ public class CfFrame extends CfInstruction {
     }
 
     public static FrameType fromNumericType(NumericType numericType, DexItemFactory factory) {
-      return FrameType.initialized(numericType.dexTypeFor(factory));
+      return FrameType.initialized(numericType.toDexType(factory));
     }
   }
 

@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -238,7 +237,8 @@ public class CfConstNumber extends CfInstruction {
       DexItemFactory dexItemFactory) {
     // ... →
     // ..., value
-    frameBuilder.push(type.toPrimitiveType().toDexType(dexItemFactory));
+    assert type.isPrimitive();
+    frameBuilder.push(type.toDexType(dexItemFactory));
   }
 
   @Override
@@ -247,7 +247,9 @@ public class CfConstNumber extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ... →
+    // ..., value
+    assert type.isPrimitive();
+    return frame.push(appView, type);
   }
 }

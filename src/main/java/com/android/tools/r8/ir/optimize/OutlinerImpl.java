@@ -1083,7 +1083,7 @@ public class OutlinerImpl extends Outliner {
             if (instruction.isInvokeMethod()) {
               argumentTypes.add(argumentTypeFromValue(value, instruction.asInvokeMethod(), i));
             } else {
-              argumentTypes.add(instruction.asBinop().getNumericType().dexTypeFor(dexItemFactory));
+              argumentTypes.add(instruction.asBinop().getNumericType().toDexType(dexItemFactory));
             }
             argumentsMap.add(argumentTypes.size() - 1);
           }
@@ -1098,7 +1098,7 @@ public class OutlinerImpl extends Outliner {
         } else {
           updateReturnValueState(
               instruction.outValue(),
-              instruction.asBinop().getNumericType().dexTypeFor(dexItemFactory));
+              instruction.asBinop().getNumericType().toDexType(dexItemFactory));
         }
       }
     }

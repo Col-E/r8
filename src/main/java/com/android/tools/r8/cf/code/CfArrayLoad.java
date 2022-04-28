@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -145,7 +144,11 @@ public class CfArrayLoad extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., arrayref, index →
+    // ..., value
+    return frame
+        .popInitialized(appView, dexItemFactory.intType)
+        .popInitialized(appView, dexItemFactory.objectArrayType)
+        .push(appView, type);
   }
 }

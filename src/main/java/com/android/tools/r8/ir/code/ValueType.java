@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -36,6 +37,10 @@ public enum ValueType implements StructuralItem<ValueType> {
 
   public boolean isObject() {
     return this == OBJECT;
+  }
+
+  public boolean isPrimitive() {
+    return !isObject();
   }
 
   public boolean isSingle() {
@@ -136,6 +141,23 @@ public enum ValueType implements StructuralItem<ValueType> {
       return DOUBLE;
     }
     throw new Unreachable("Unexpected conversion of imprecise type: " + type);
+  }
+
+  public DexType toDexType(DexItemFactory dexItemFactory) {
+    switch (this) {
+      case OBJECT:
+        return dexItemFactory.objectType;
+      case INT:
+        return dexItemFactory.intType;
+      case FLOAT:
+        return dexItemFactory.floatType;
+      case LONG:
+        return dexItemFactory.longType;
+      case DOUBLE:
+        return dexItemFactory.doubleType;
+      default:
+        throw new Unreachable();
+    }
   }
 
   public PrimitiveTypeElement toPrimitiveType() {

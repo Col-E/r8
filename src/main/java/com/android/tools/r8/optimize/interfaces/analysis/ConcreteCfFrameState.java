@@ -18,6 +18,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class ConcreteCfFrameState extends CfFrameState {
@@ -76,16 +77,18 @@ public class ConcreteCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState pop(AppView<?> appView, FrameType expectedType) {
-    return pop(appView, expectedType, ignore -> this);
+    return pop(appView, expectedType, (newFrame, ignore) -> newFrame);
   }
 
   @Override
   public CfFrameState pop(
-      AppView<?> appView, FrameType expectedType, Function<FrameType, CfFrameState> fn) {
+      AppView<?> appView,
+      FrameType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return pop(
         frameType ->
             CfAssignability.isAssignable(frameType, expectedType, appView)
-                ? fn.apply(frameType)
+                ? fn.apply(this, frameType)
                 : error());
   }
 

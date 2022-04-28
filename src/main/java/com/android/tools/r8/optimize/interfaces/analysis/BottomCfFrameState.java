@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class BottomCfFrameState extends CfFrameState {
@@ -43,7 +44,9 @@ public class BottomCfFrameState extends CfFrameState {
 
   @Override
   public CfFrameState pop(
-      AppView<?> appView, FrameType expectedType, Function<FrameType, CfFrameState> fn) {
+      AppView<?> appView,
+      FrameType expectedType,
+      BiFunction<CfFrameState, FrameType, CfFrameState> fn) {
     return error();
   }
 

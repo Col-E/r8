@@ -524,8 +524,9 @@ public class CfStackInstruction extends CfInstruction {
     switch (opcode) {
       case Pop:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value →
+          // ...
+          return frame.pop(appView, FrameType.oneWord());
         }
       case Pop2:
         {
@@ -536,7 +537,9 @@ public class CfStackInstruction extends CfInstruction {
         // ..., value →
         // ..., value, value
         return frame.pop(
-            appView, FrameType.oneWord(), frameType -> frame.push(frameType).push(frameType));
+            appView,
+            FrameType.oneWord(),
+            (newFrame, frameType) -> newFrame.push(frameType).push(frameType));
       case DupX1:
         {
           // TODO(b/214496607): Implement this.
@@ -564,8 +567,16 @@ public class CfStackInstruction extends CfInstruction {
         }
       case Swap:
         {
-          // TODO(b/214496607): Implement this.
-          throw new Unimplemented();
+          // ..., value2, value1 →
+          // ..., value1, value2
+          return frame.pop(
+              appView,
+              FrameType.oneWord(),
+              (newFrame1, frameType1) ->
+                  newFrame1.pop(
+                      appView,
+                      FrameType.oneWord(),
+                      (newFrame2, frameType2) -> newFrame2.push(frameType1).push(frameType2)));
         }
       default:
         throw new Unreachable("Invalid opcode for CfStackInstruction");

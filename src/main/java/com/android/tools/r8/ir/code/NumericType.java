@@ -16,7 +16,7 @@ public enum NumericType {
   FLOAT,
   DOUBLE;
 
-  public DexType dexTypeFor(DexItemFactory factory) {
+  public DexType toDexType(DexItemFactory factory) {
     switch (this) {
       case BYTE:
         return factory.byteType;

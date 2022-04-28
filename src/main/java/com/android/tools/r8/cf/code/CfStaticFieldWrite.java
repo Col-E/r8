@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.cf.code;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -83,7 +82,8 @@ public class CfStaticFieldWrite extends CfFieldInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., value →
+    // ...
+    return frame.popInitialized(appView, getField().getType());
   }
 }

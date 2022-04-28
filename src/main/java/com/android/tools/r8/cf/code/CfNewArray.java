@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -173,7 +172,6 @@ public class CfNewArray extends CfInstruction implements CfTypeInstruction {
       DexItemFactory dexItemFactory) {
     // ..., count →
     // ..., arrayref
-    assert type.isArrayType();
     frameBuilder.popAndDiscardInitialized(dexItemFactory.intType).push(type);
   }
 
@@ -183,7 +181,8 @@ public class CfNewArray extends CfInstruction implements CfTypeInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., count →
+    // ..., arrayref
+    return frame.popInitialized(appView, dexItemFactory.intType).push(type);
   }
 }

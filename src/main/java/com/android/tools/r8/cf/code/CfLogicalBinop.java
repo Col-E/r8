@@ -5,7 +5,6 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -206,7 +205,22 @@ public class CfLogicalBinop extends CfInstruction {
       ProgramMethod context,
       AppView<?> appView,
       DexItemFactory dexItemFactory) {
-    // TODO(b/214496607): Implement this.
-    throw new Unimplemented();
+    // ..., value1, value2 →
+    // ..., result
+    NumericType value1Type = type;
+    NumericType value2Type;
+    switch (opcode) {
+      case And:
+      case Or:
+      case Xor:
+        value2Type = value1Type;
+        break;
+      default:
+        value2Type = NumericType.INT;
+    }
+    return frame
+        .popInitialized(appView, value2Type)
+        .popInitialized(appView, value1Type)
+        .push(appView, value1Type);
   }
 }
