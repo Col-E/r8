@@ -6,12 +6,10 @@ package com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion;
 
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter.generateTrackDesugaredAPIWarnings;
 import static com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter.isAPIConversionSyntheticType;
-import static com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature;
 
 import com.android.tools.r8.contexts.CompilationContext.MainThreadContext;
 import com.android.tools.r8.contexts.CompilationContext.ProcessorContext;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -21,10 +19,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaring;
 import com.android.tools.r8.ir.desugar.CfPostProcessingDesugaringEventConsumer;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryAPICallbackSynthesizorEventConsumer;
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
-import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider.CallbackConversionCfCodeProvider;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -71,11 +66,10 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
               trackedCallBackAPIs.add(virtualProgramMethod.getReference());
             }
             ProgramMethod callback =
-                generateCallbackMethod(
-                    virtualProgramMethod.getDefinition(),
-                    virtualProgramMethod.getHolder(),
-                    eventConsumer,
-                    mainThreadContext);
+                wrapperSynthesizor
+                    .getConversionCfProvider()
+                    .generateCallbackConversion(
+                        virtualProgramMethod, eventConsumer, mainThreadContext);
             callbacks.add(callback.getDefinition());
           }
         }
@@ -190,33 +184,6 @@ public class DesugaredLibraryAPICallbackSynthesizer implements CfPostProcessingD
         appView.options().machineDesugaredLibrarySpecification;
     return !(specification.getEmulatedInterfaces().containsKey(dexClass.type)
         || specification.isEmulatedInterfaceRewrittenType(dexClass.type));
-  }
-
-  private ProgramMethod generateCallbackMethod(
-      DexEncodedMethod originalMethod,
-      DexProgramClass clazz,
-      DesugaredLibraryAPICallbackSynthesizorEventConsumer eventConsumer,
-      MainThreadContext context) {
-    DexMethod methodToInstall =
-        methodWithVivifiedTypeInSignature(originalMethod.getReference(), clazz.type, appView);
-    CfCode cfCode =
-        new CallbackConversionCfCodeProvider(
-                appView,
-                originalMethod.getReference(),
-                wrapperSynthesizor,
-                clazz.isInterface(),
-                eventConsumer,
-                () -> context.createUniqueContext(clazz))
-            .generateCfCode();
-    DexEncodedMethod newMethod = wrapperSynthesizor.newSynthesizedMethod(methodToInstall, cfCode);
-    newMethod.setCode(cfCode, DexEncodedMethod.NO_PARAMETER_INFO);
-    if (originalMethod.isLibraryMethodOverride().isTrue()) {
-      newMethod.setLibraryMethodOverride(OptionalBool.TRUE);
-    }
-    ProgramMethod callback = new ProgramMethod(clazz, newMethod);
-    assert eventConsumer != null;
-    eventConsumer.acceptAPIConversionCallback(callback);
-    return callback;
   }
 
   private void generateTrackingWarnings() {

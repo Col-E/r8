@@ -4,20 +4,10 @@
 
 package com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion;
 
-import com.android.tools.r8.cf.code.CfArrayLoad;
-import com.android.tools.r8.cf.code.CfArrayStore;
-import com.android.tools.r8.cf.code.CfCheckCast;
-import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
-import com.android.tools.r8.cf.code.CfLoad;
-import com.android.tools.r8.cf.code.CfNewArray;
-import com.android.tools.r8.cf.code.CfReturn;
-import com.android.tools.r8.cf.code.CfStackInstruction;
-import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.contexts.CompilationContext.MethodProcessingContext;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -25,22 +15,16 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ProgramMethod;
-import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaring;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringCollection;
 import com.android.tools.r8.ir.desugar.CfInstructionDesugaringEventConsumer;
 import com.android.tools.r8.ir.desugar.FreshLocalProvider;
 import com.android.tools.r8.ir.desugar.LocalStackAllocator;
-import com.android.tools.r8.ir.desugar.desugaredlibrary.apiconversion.DesugaredLibraryWrapperSynthesizerEventConsumer.DesugaredLibraryClasspathWrapperSynthesizeEventConsumer;
-import com.android.tools.r8.ir.synthetic.apiconverter.APIConversionCfCodeProvider.OutlinedAPIConversionCfCodeProvider;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -239,84 +223,6 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     return vivifiedType;
   }
 
-  private static DexType invalidType(
-      DexMethod invokedMethod,
-      DexMethod returnConversion,
-      DexMethod[] parameterConversions,
-      AppView<?> appView) {
-    DexMethod convertedMethod =
-        methodWithVivifiedTypeInSignature(invokedMethod, invokedMethod.holder, appView);
-    if (invokedMethod.getReturnType() != convertedMethod.getReturnType()
-        && returnConversion == null) {
-      return invokedMethod.getReturnType();
-    }
-    for (int i = 0; i < invokedMethod.getArity(); i++) {
-      if (invokedMethod.getParameter(i) != convertedMethod.getParameter(i)
-          && parameterConversions[i] == null) {
-        return invokedMethod.getParameter(i);
-      }
-    }
-    return null;
-  }
-
-  public static DexMethod getConvertedAPI(
-      DexMethod invokedMethod,
-      DexMethod returnConversion,
-      DexMethod[] parameterConversions,
-      AppView<?> appView) {
-    DexType newReturnType =
-        returnConversion != null ? returnConversion.getParameter(0) : invokedMethod.getReturnType();
-    DexType[] newParameterTypes = new DexType[parameterConversions.length];
-    for (int i = 0; i < parameterConversions.length; i++) {
-      newParameterTypes[i] =
-          parameterConversions[i] != null
-              ? parameterConversions[i].getReturnType()
-              : invokedMethod.getParameter(i);
-    }
-    DexMethod convertedAPI =
-        appView
-            .dexItemFactory()
-            .createMethod(
-                invokedMethod.holder,
-                appView.dexItemFactory().createProto(newReturnType, newParameterTypes),
-                invokedMethod.name);
-    assert convertedAPI
-            == methodWithVivifiedTypeInSignature(invokedMethod, invokedMethod.holder, appView)
-        || invalidType(invokedMethod, returnConversion, parameterConversions, appView) != null;
-    return convertedAPI;
-  }
-
-  private DexMethod computeReturnConversion(
-      DexMethod invokedMethod,
-      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
-    DexType returnType = invokedMethod.proto.returnType;
-    if (wrapperSynthesizor.shouldConvert(returnType, invokedMethod, context)) {
-      return wrapperSynthesizor.ensureConversionMethod(
-          returnType, false, eventConsumer, methodProcessingContext::createUniqueContext);
-    }
-    return null;
-  }
-
-  private DexMethod[] computeParameterConversions(
-      DexMethod invokedMethod,
-      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
-      ProgramMethod context,
-      MethodProcessingContext methodProcessingContext) {
-    DexMethod[] parameterConversions = new DexMethod[invokedMethod.getArity()];
-    DexType[] parameters = invokedMethod.proto.parameters.values;
-    for (int i = 0; i < parameters.length; i++) {
-      DexType argType = parameters[i];
-      if (wrapperSynthesizor.shouldConvert(argType, invokedMethod, context)) {
-        parameterConversions[i] =
-            wrapperSynthesizor.ensureConversionMethod(
-                argType, true, eventConsumer, methodProcessingContext::createUniqueContext);
-      }
-    }
-    return parameterConversions;
-  }
-
   private Collection<CfInstruction> rewriteLibraryInvoke(
       CfInvoke invoke,
       MethodProcessingContext methodProcessingContext,
@@ -329,12 +235,18 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     }
     if (shouldOutlineAPIConversion(invoke, context)) {
       DexMethod outlinedAPIConversion =
-          createOutlinedAPIConversion(invoke, methodProcessingContext, eventConsumer, context);
+          wrapperSynthesizor
+              .getConversionCfProvider()
+              .generateOutlinedAPIConversion(
+                  invoke, eventConsumer, context, methodProcessingContext)
+              .getReference();
       return Collections.singletonList(
           new CfInvoke(Opcodes.INVOKESTATIC, outlinedAPIConversion, false));
     }
-    return rewriteLibraryInvokeToInlineAPIConversion(
-        invoke, methodProcessingContext, localStackAllocator, eventConsumer, context);
+    return wrapperSynthesizor
+        .getConversionCfProvider()
+        .generateInlinedAPIConversion(
+            invoke, methodProcessingContext, localStackAllocator, eventConsumer, context);
   }
 
   // If the option is set, we try to outline API conversions as much as possible to reduce the
@@ -353,195 +265,6 @@ public class DesugaredLibraryAPIConverter implements CfInstructionDesugaring {
     return methodForDesugaring.getAccessFlags().isPublic();
   }
 
-  private Collection<CfInstruction> rewriteLibraryInvokeToInlineAPIConversion(
-      CfInvoke invoke,
-      MethodProcessingContext methodProcessingContext,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context) {
 
-    DexMethod invokedMethod = invoke.getMethod();
-    DexMethod returnConversion =
-        computeReturnConversion(invokedMethod, eventConsumer, context, methodProcessingContext);
-    DexMethod[] parameterConversions =
-        computeParameterConversions(invokedMethod, eventConsumer, context, methodProcessingContext);
 
-    // If only the last 2 parameters require conversion, we do everything inlined.
-    // If other parameters require conversion, we outline the parameter conversion but keep the API
-    // call inlined.
-    // The returned value is always converted inlined.
-    boolean requireOutlinedParameterConversion = false;
-    for (int i = 0; i < parameterConversions.length - 2; i++) {
-      requireOutlinedParameterConversion |= parameterConversions[i] != null;
-    }
-
-    ArrayList<CfInstruction> cfInstructions = new ArrayList<>();
-    if (requireOutlinedParameterConversion) {
-      addOutlineParameterConversionInstructions(
-          parameterConversions,
-          cfInstructions,
-          methodProcessingContext,
-          invokedMethod,
-          localStackAllocator,
-          eventConsumer);
-    } else {
-      addInlineParameterConversionInstructions(parameterConversions, cfInstructions);
-    }
-
-    DexMethod convertedMethod =
-        getConvertedAPI(invokedMethod, returnConversion, parameterConversions, appView);
-    cfInstructions.add(new CfInvoke(invoke.getOpcode(), convertedMethod, invoke.isInterface()));
-
-    if (returnConversion != null) {
-      cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, returnConversion, false));
-    }
-
-    return cfInstructions;
-  }
-
-  // The parameters are converted and returned in an array of converted parameters. The parameter
-  // array then needs to be unwrapped at the call site.
-  private void addOutlineParameterConversionInstructions(
-      DexMethod[] parameterConversions,
-      ArrayList<CfInstruction> cfInstructions,
-      MethodProcessingContext methodProcessingContext,
-      DexMethod invokedMethod,
-      LocalStackAllocator localStackAllocator,
-      CfInstructionDesugaringEventConsumer eventConsumer) {
-    localStackAllocator.allocateLocalStack(4);
-    DexProto newProto =
-        appView
-            .dexItemFactory()
-            .createProto(
-                appView.dexItemFactory().objectArrayType, invokedMethod.getParameters().values);
-    ProgramMethod parameterConversion =
-        appView
-            .getSyntheticItems()
-            .createMethod(
-                kinds -> kinds.API_CONVERSION_PARAMETERS,
-                methodProcessingContext.createUniqueContext(),
-                appView,
-                builder ->
-                    builder
-                        .setProto(newProto)
-                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                        // Will be traced by the enqueuer.
-                        .disableAndroidApiLevelCheck()
-                        .setCode(
-                            methodSignature ->
-                                computeParameterConversionCfCode(
-                                    methodSignature.holder, invokedMethod, parameterConversions)));
-    eventConsumer.acceptAPIConversion(parameterConversion);
-    cfInstructions.add(
-        new CfInvoke(Opcodes.INVOKESTATIC, parameterConversion.getReference(), false));
-    for (int i = 0; i < parameterConversions.length; i++) {
-      cfInstructions.add(new CfStackInstruction(Opcode.Dup));
-      cfInstructions.add(new CfConstNumber(i, ValueType.INT));
-      DexType parameterType =
-          parameterConversions[i] != null
-              ? parameterConversions[i].getReturnType()
-              : invokedMethod.getParameter(i);
-      cfInstructions.add(new CfArrayLoad(MemberType.OBJECT));
-      if (parameterType.isPrimitiveType()) {
-        cfInstructions.add(new CfCheckCast(factory.getBoxedForPrimitiveType(parameterType)));
-        DexMethod method = appView.dexItemFactory().getUnboxPrimitiveMethod(parameterType);
-        cfInstructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method, false));
-      } else {
-        cfInstructions.add(new CfCheckCast(parameterType));
-      }
-      cfInstructions.add(new CfStackInstruction(Opcode.Swap));
-    }
-    cfInstructions.add(new CfStackInstruction(Opcode.Pop));
-  }
-
-  private CfCode computeParameterConversionCfCode(
-      DexType holder, DexMethod invokedMethod, DexMethod[] parameterConversions) {
-    ArrayList<CfInstruction> cfInstructions = new ArrayList<>();
-    cfInstructions.add(new CfConstNumber(parameterConversions.length, ValueType.INT));
-    cfInstructions.add(new CfNewArray(factory.objectArrayType));
-    int stackIndex = 0;
-    for (int i = 0; i < invokedMethod.getArity(); i++) {
-      cfInstructions.add(new CfStackInstruction(Opcode.Dup));
-      cfInstructions.add(new CfConstNumber(i, ValueType.INT));
-      DexType param = invokedMethod.getParameter(i);
-      cfInstructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
-      if (parameterConversions[i] != null) {
-        cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, parameterConversions[i], false));
-      }
-      if (param.isPrimitiveType()) {
-        DexMethod method = appView.dexItemFactory().getBoxPrimitiveMethod(param);
-        cfInstructions.add(new CfInvoke(Opcodes.INVOKESTATIC, method, false));
-      }
-      cfInstructions.add(new CfArrayStore(MemberType.OBJECT));
-      if (param == appView.dexItemFactory().longType
-          || param == appView.dexItemFactory().doubleType) {
-        stackIndex++;
-      }
-      stackIndex++;
-    }
-    cfInstructions.add(new CfReturn(ValueType.OBJECT));
-    return new CfCode(
-        holder,
-        invokedMethod.getParameters().size() + 4,
-        invokedMethod.getParameters().size(),
-        cfInstructions);
-  }
-
-  private void addInlineParameterConversionInstructions(
-      DexMethod[] parameterConversions, ArrayList<CfInstruction> cfInstructions) {
-    if (parameterConversions.length > 0
-        && parameterConversions[parameterConversions.length - 1] != null) {
-      cfInstructions.add(
-          new CfInvoke(
-              Opcodes.INVOKESTATIC, parameterConversions[parameterConversions.length - 1], false));
-    }
-    if (parameterConversions.length > 1
-        && parameterConversions[parameterConversions.length - 2] != null) {
-      cfInstructions.add(new CfStackInstruction(Opcode.Swap));
-      cfInstructions.add(
-          new CfInvoke(
-              Opcodes.INVOKESTATIC, parameterConversions[parameterConversions.length - 2], false));
-      cfInstructions.add(new CfStackInstruction(Opcode.Swap));
-    }
-  }
-
-  private DexMethod createOutlinedAPIConversion(
-      CfInvoke invoke,
-      MethodProcessingContext methodProcessingContext,
-      CfInstructionDesugaringEventConsumer eventConsumer,
-      ProgramMethod context) {
-    DexMethod invokedMethod = invoke.getMethod();
-    DexProto newProto =
-        invoke.isInvokeStatic()
-            ? invokedMethod.proto
-            : factory.prependTypeToProto(invokedMethod.getHolderType(), invokedMethod.getProto());
-    DexMethod returnConversion =
-        computeReturnConversion(invokedMethod, eventConsumer, context, methodProcessingContext);
-    DexMethod[] parameterConversions =
-        computeParameterConversions(invokedMethod, eventConsumer, context, methodProcessingContext);
-    ProgramMethod outline =
-        appView
-            .getSyntheticItems()
-            .createMethod(
-                kinds -> kinds.API_CONVERSION,
-                methodProcessingContext.createUniqueContext(),
-                appView,
-                builder ->
-                    builder
-                        .setProto(newProto)
-                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
-                        // Will be traced by the enqueuer.
-                        .disableAndroidApiLevelCheck()
-                        .setCode(
-                            methodSignature ->
-                                new OutlinedAPIConversionCfCodeProvider(
-                                        appView,
-                                        methodSignature.holder,
-                                        invoke,
-                                        returnConversion,
-                                        parameterConversions)
-                                    .generateCfCode()));
-    eventConsumer.acceptAPIConversion(outline);
-    return outline.getReference();
-  }
 }
