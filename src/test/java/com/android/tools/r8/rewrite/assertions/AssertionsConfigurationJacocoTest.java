@@ -52,7 +52,7 @@ public class AssertionsConfigurationJacocoTest extends TestBase implements Opcod
         .addProgramClasses(TestClass.class, MockJacocoInit.class)
         .addProgramClassFileData(transformClassWithJacocoInstrumentation(A.class))
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
+        .addAssertionsConfiguration(AssertionsConfiguration.Builder::compileTimeEnableAllAssertions)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::checkAssertionCodeEnabled)
         .assertSuccessWithOutputLines("AssertionError in A");
@@ -66,7 +66,7 @@ public class AssertionsConfigurationJacocoTest extends TestBase implements Opcod
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(A.class, MockJacocoInit.class)
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
+        .addAssertionsConfiguration(AssertionsConfiguration.Builder::compileTimeEnableAllAssertions)
         .run(parameters.getRuntime(), TestClass.class)
         .inspect(this::checkAssertionCodeEnabled)
         .assertSuccessWithOutputLines("AssertionError in A");

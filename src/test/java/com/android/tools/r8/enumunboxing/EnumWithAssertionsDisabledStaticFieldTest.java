@@ -6,12 +6,12 @@ package com.android.tools.r8.enumunboxing;
 
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import org.junit.Test;
@@ -22,6 +22,12 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class EnumWithAssertionsDisabledStaticFieldTest extends TestBase {
+
+  private enum AssertionTransformation {
+    ENABLE,
+    DISABLE,
+    PASSTHROUGH
+  }
 
   @Parameter(0)
   public AssertionTransformation assertionTransformation;
@@ -52,7 +58,18 @@ public class EnumWithAssertionsDisabledStaticFieldTest extends TestBase {
             inspector ->
                 inspector.assertUnboxed(EnumWithAssertionsDisabledStaticFieldEnumClass.class))
         .addAssertionsConfiguration(
-            builder -> builder.setTransformation(assertionTransformation).setScopeAll().build())
+            builder -> {
+              switch (assertionTransformation) {
+                case ENABLE:
+                  return builder.setCompileTimeEnable().setScopeAll().build();
+                case DISABLE:
+                  return builder.setCompileTimeDisable().setScopeAll().build();
+                case PASSTHROUGH:
+                  return builder.setPassthrough().setScopeAll().build();
+                default:
+                  throw new Unreachable();
+              }
+            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

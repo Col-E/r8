@@ -416,21 +416,27 @@ public class R8ApiUsageSample {
               .setProgramConsumer(new EnsureOutputConsumer())
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
-              .addAssertionsConfiguration(b -> b.setScopeAll().setEnable().build())
-              .addAssertionsConfiguration(b -> b.setScopeAll().setDisable().build())
+              .addAssertionsConfiguration(b -> b.setScopeAll().setCompileTimeEnable().build())
+              .addAssertionsConfiguration(b -> b.setScopeAll().setCompileTimeDisable().build())
               .addAssertionsConfiguration(
-                  b -> b.setScopePackage("com.android.tools.apiusagesample").setEnable().build())
+                  b ->
+                      b.setScopePackage("com.android.tools.apiusagesample")
+                          .setCompileTimeEnable()
+                          .build())
               .addAssertionsConfiguration(
                   b ->
                       b.setScopePackage("com.android.tools.apiusagesample")
                           .setPassthrough()
                           .build())
               .addAssertionsConfiguration(
-                  b -> b.setScopePackage("com.android.tools.apiusagesample").setDisable().build())
+                  b ->
+                      b.setScopePackage("com.android.tools.apiusagesample")
+                          .setCompileTimeDisable()
+                          .build())
               .addAssertionsConfiguration(
                   b ->
                       b.setScopeClass("com.android.tools.apiusagesample.D8ApiUsageSample")
-                          .setEnable()
+                          .setCompileTimeEnable()
                           .build())
               .addAssertionsConfiguration(
                   b ->
@@ -440,11 +446,13 @@ public class R8ApiUsageSample {
               .addAssertionsConfiguration(
                   b ->
                       b.setScopeClass("com.android.tools.apiusagesample.D8ApiUsageSample")
-                          .setDisable()
+                          .setCompileTimeDisable()
                           .build())
-              .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
+              .addAssertionsConfiguration(
+                  AssertionsConfiguration.Builder::compileTimeEnableAllAssertions)
               .addAssertionsConfiguration(AssertionsConfiguration.Builder::passthroughAllAssertions)
-              .addAssertionsConfiguration(AssertionsConfiguration.Builder::disableAllAssertions)
+              .addAssertionsConfiguration(
+                  AssertionsConfiguration.Builder::compileTimeDisableAllAssertions)
               .build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException("Unexpected compilation exceptions", e);

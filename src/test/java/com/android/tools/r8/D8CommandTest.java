@@ -14,7 +14,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.sdklib.AndroidVersion;
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.D8CommandParser.OrderedClassFileResourceProvider;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -38,7 +37,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.zip.ZipFile;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -583,39 +582,32 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
   }
 
   private void checkSingleForceAllAssertion(
-      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+      List<AssertionsConfiguration> entries, Predicate<AssertionsConfiguration> check) {
     assertEquals(1, entries.size());
-    assertEquals(transformation, entries.get(0).getTransformation());
-    assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
-  }
-
-  private void checkSingleForceAllAssertion(
-      List<AssertionsConfiguration> entries, Function<AssertionsConfiguration, Boolean> check) {
-    assertEquals(1, entries.size());
-    assertTrue(check.apply(entries.get(0)));
+    assertTrue(check.test(entries.get(0)));
     assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
   }
 
   private void checkSingleForceClassAndPackageAssertion(
-      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+      List<AssertionsConfiguration> entries, Predicate<AssertionsConfiguration> check) {
     assertEquals(2, entries.size());
-    assertEquals(transformation, entries.get(0).getTransformation());
+    assertTrue(check.test(entries.get(0)));
     assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
     assertEquals("ClassName", entries.get(0).getValue());
-    assertEquals(transformation, entries.get(1).getTransformation());
+    assertTrue(check.test(entries.get(1)));
     assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
     assertEquals("PackageName", entries.get(1).getValue());
   }
 
   private void checkSingleForceClassAndPackageAssertion(
       List<AssertionsConfiguration> entries,
-      Function<AssertionsConfiguration, Boolean> checkClass,
-      Function<AssertionsConfiguration, Boolean> checkPackage) {
+      Predicate<AssertionsConfiguration> checkClass,
+      Predicate<AssertionsConfiguration> checkPackage) {
     assertEquals(2, entries.size());
-    assertTrue(checkClass.apply(entries.get(0)));
+    assertTrue(checkClass.test(entries.get(0)));
     assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
     assertEquals("ClassName", entries.get(0).getValue());
-    assertTrue(checkPackage.apply(entries.get(1)));
+    assertTrue(checkPackage.test(entries.get(1)));
     assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
     assertEquals("PackageName", entries.get(1).getValue());
   }
@@ -624,27 +616,27 @@ public class D8CommandTest extends CommandTestBase<D8Command> {
   public void forceAssertionOption() throws Exception {
     checkSingleForceAllAssertion(
         parse("--force-enable-assertions").getAssertionsConfiguration(),
-        AssertionTransformation.ENABLE);
+        AssertionsConfiguration::isCompileTimeEnabled);
     checkSingleForceAllAssertion(
         parse("--force-disable-assertions").getAssertionsConfiguration(),
-        AssertionTransformation.DISABLE);
+        AssertionsConfiguration::isCompileTimeDisabled);
     checkSingleForceAllAssertion(
         parse("--force-passthrough-assertions").getAssertionsConfiguration(),
-        AssertionTransformation.PASSTHROUGH);
+        AssertionsConfiguration::isPassthrough);
     checkSingleForceClassAndPackageAssertion(
         parse("--force-enable-assertions:ClassName", "--force-enable-assertions:PackageName...")
             .getAssertionsConfiguration(),
-        AssertionTransformation.ENABLE);
+        AssertionsConfiguration::isCompileTimeEnabled);
     checkSingleForceClassAndPackageAssertion(
         parse("--force-disable-assertions:ClassName", "--force-disable-assertions:PackageName...")
             .getAssertionsConfiguration(),
-        AssertionTransformation.DISABLE);
+        AssertionsConfiguration::isCompileTimeDisabled);
     checkSingleForceClassAndPackageAssertion(
         parse(
                 "--force-passthrough-assertions:ClassName",
                 "--force-passthrough-assertions:PackageName...")
             .getAssertionsConfiguration(),
-        AssertionTransformation.PASSTHROUGH);
+        AssertionsConfiguration::isPassthrough);
     checkSingleForceAllAssertion(
         parse("--force-assertions-handler:com.example.MyHandler.handler")
             .getAssertionsConfiguration(),

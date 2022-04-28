@@ -338,26 +338,26 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     runD8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::disableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeDisableAllAssertions),
         inspector -> checkAssertionCodeRemoved(inspector, false),
         noAllAssertionsExpectedLines());
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::disableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeDisableAllAssertions),
         inspector -> checkAssertionCodeRemoved(inspector, true),
         noAllAssertionsExpectedLines());
     // Compile time enabling assertions gives assertions on Dalvik/Art.
     runD8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::enableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeEnableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, false),
         allAssertionsExpectedLines());
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::enableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeEnableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines());
     if (useJvmAssertions) {
@@ -365,8 +365,10 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runD8Test(
           builder ->
               builder
-                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class1).build())
-                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class2).build()),
+                  .addAssertionsConfiguration(
+                      b -> b.setCompileTimeEnable().setScopeClass(class1).build())
+                  .addAssertionsConfiguration(
+                      b -> b.setCompileTimeEnable().setScopeClass(class2).build()),
           inspector -> {
             // The default is applied to kotlin._Assertions (which for DEX is remove).
             if (!kotlinStdlibAsLibrary) {
@@ -381,7 +383,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runD8Test(
           builder ->
               builder.addAssertionsConfiguration(
-                  b -> b.setEnable().setScopeClass("kotlin._Assertions").build()),
+                  b -> b.setCompileTimeEnable().setScopeClass("kotlin._Assertions").build()),
           inspector -> checkAssertionCodeEnabled(inspector, false),
           allAssertionsExpectedLines());
     }
@@ -390,8 +392,10 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runR8Test(
           builder ->
               builder
-                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class1).build())
-                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class2).build()),
+                  .addAssertionsConfiguration(
+                      b -> b.setCompileTimeEnable().setScopeClass(class1).build())
+                  .addAssertionsConfiguration(
+                      b -> b.setCompileTimeEnable().setScopeClass(class2).build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
           allAssertionsExpectedLines());
     } else {
@@ -399,7 +403,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runR8Test(
           builder ->
               builder.addAssertionsConfiguration(
-                  b -> b.setEnable().setScopeClass("kotlin._Assertions").build()),
+                  b -> b.setCompileTimeEnable().setScopeClass("kotlin._Assertions").build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
           allAssertionsExpectedLines());
     }
@@ -408,7 +412,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runD8Test(
           builder ->
               builder.addAssertionsConfiguration(
-                  b -> b.setEnable().setScopePackage(kotlintestclasesPackage).build()),
+                  b -> b.setCompileTimeEnable().setScopePackage(kotlintestclasesPackage).build()),
           inspector -> {
             // The default is applied to kotlin._Assertions (which for DEX is remove).
             if (!kotlinStdlibAsLibrary) {
@@ -423,7 +427,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runD8Test(
           builder ->
               builder.addAssertionsConfiguration(
-                  b -> b.setEnable().setScopePackage("kotlin").build()),
+                  b -> b.setCompileTimeEnable().setScopePackage("kotlin").build()),
           inspector -> checkAssertionCodeEnabled(inspector, false),
           allAssertionsExpectedLines());
     }
@@ -432,7 +436,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runR8Test(
           builder ->
               builder.addAssertionsConfiguration(
-                  b -> b.setEnable().setScopePackage(kotlintestclasesPackage).build()),
+                  b -> b.setCompileTimeEnable().setScopePackage(kotlintestclasesPackage).build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
           allAssertionsExpectedLines());
     } else {
@@ -440,7 +444,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       runR8Test(
           builder ->
               builder.addAssertionsConfiguration(
-                  b -> b.setEnable().setScopePackage("kotlin").build()),
+                  b -> b.setCompileTimeEnable().setScopePackage("kotlin").build()),
           inspector -> checkAssertionCodeEnabled(inspector, true),
           allAssertionsExpectedLines());
     }
@@ -454,13 +458,15 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     // Compile time enabling or disabling assertions means the -ea flag has no effect.
     runR8Test(
         builder -> {
-          builder.addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions);
+          builder.addAssertionsConfiguration(
+              AssertionsConfiguration.Builder::compileTimeEnableAllAssertions);
         },
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines());
     runR8Test(
         builder -> {
-          builder.addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions);
+          builder.addAssertionsConfiguration(
+              AssertionsConfiguration.Builder::compileTimeEnableAllAssertions);
         },
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines(),
@@ -493,13 +499,13 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::enableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeEnableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines());
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::enableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeEnableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines(),
         true);
@@ -511,13 +517,13 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::disableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeDisableAllAssertions),
         inspector -> checkAssertionCodeRemoved(inspector, true),
         noAllAssertionsExpectedLines());
     runR8Test(
         builder ->
             builder.addAssertionsConfiguration(
-                AssertionsConfiguration.Builder::disableAllAssertions),
+                AssertionsConfiguration.Builder::compileTimeDisableAllAssertions),
         inspector -> checkAssertionCodeRemoved(inspector, true),
         noAllAssertionsExpectedLines(),
         true);
@@ -539,7 +545,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
+        .addAssertionsConfiguration(AssertionsConfiguration.Builder::compileTimeEnableAllAssertions)
         .run(
             parameters.getRuntime(),
             getClass().getPackage().getName() + ".kotlintestclasses.TestClassKt")
@@ -548,7 +554,8 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
         .addProgramFiles(compiledForAssertions.getForConfiguration(kotlinc, targetVersion))
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(AssertionsConfiguration.Builder::disableAllAssertions)
+        .addAssertionsConfiguration(
+            AssertionsConfiguration.Builder::compileTimeDisableAllAssertions)
         .run(
             parameters.getRuntime(),
             getClass().getPackage().getName() + ".kotlintestclasses.TestClassKt")

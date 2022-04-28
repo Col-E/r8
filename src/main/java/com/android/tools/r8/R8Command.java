@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
@@ -956,15 +955,12 @@ public final class R8Command extends BaseCompilerCommand {
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;
+    AssertionsConfiguration.Builder builder = AssertionsConfiguration.builder(getReporter());
     internal.assertionsConfiguration =
         new AssertionConfigurationWithDefault(
-            AssertionsConfiguration.builder(getReporter())
-                .setTransformation(
-                    getProgramConsumer() instanceof ClassFileConsumer
-                        ? AssertionTransformation.PASSTHROUGH
-                        : AssertionTransformation.DISABLE)
-                .setScopeAll()
-                .build(),
+            getProgramConsumer() instanceof ClassFileConsumer
+                ? AssertionsConfiguration.Builder.passthroughAllAssertions(builder)
+                : AssertionsConfiguration.Builder.compileTimeDisableAllAssertions(builder),
             getAssertionsConfiguration());
 
     // TODO(b/171552739): Enable class merging for CF. When compiling libraries, we need to be

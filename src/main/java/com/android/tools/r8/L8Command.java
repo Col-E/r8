@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.dump.DumpOptions;
@@ -204,7 +203,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.assertionsConfiguration =
         new AssertionConfigurationWithDefault(
             AssertionsConfiguration.builder(getReporter())
-                .setTransformation(AssertionTransformation.DISABLE)
+                .setCompileTimeDisable()
                 .setScopeAll()
                 .build(),
             getAssertionsConfiguration());

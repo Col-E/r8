@@ -11,25 +11,9 @@ import com.android.tools.r8.utils.Reporter;
 @Keep
 public class AssertionsConfiguration {
 
-  /**
-   * The simple transformations of the javac generated assertion code during compilation (see {@link
-   * AssertionsConfiguration.Builder#setTransformation(AssertionTransformation)}). For configuring
-   * the transformation to invoke an assertion handler use {@link
-   * AssertionsConfiguration.Builder#setAssertionHandler(MethodReference)}.
-   *
-   * @deprecated As of version 3.3 this enum should not be used.
-   */
-  @Deprecated
-  @Keep
-  public enum AssertionTransformation {
-    /** Unconditionally enable the javac generated assertion code. */
+  private enum AssertionTransformation {
     ENABLE,
-    /**
-     * Unconditionally disable the javac generated assertion code. This will most likely remove the
-     * javac generated assertion code completely.
-     */
     DISABLE,
-    /** Passthrough of the javac generated assertion code. */
     PASSTHROUGH
   }
 
@@ -72,15 +56,6 @@ public class AssertionsConfiguration {
     return assertionHandler != null;
   }
 
-  /**
-   * @deprecated As of version 3.3, use one of {@link #isCompileTimeEnabled()} ()}, {@link
-   *     #isCompileTimeDisabled()} ()} or {@link #isPassthrough()} ()}.
-   */
-  @Deprecated
-  public AssertionTransformation getTransformation() {
-    return transformation;
-  }
-
   public MethodReference getAssertionHandler() {
     return assertionHandler;
   }
@@ -115,14 +90,7 @@ public class AssertionsConfiguration {
       this.reporter = reporter;
     }
 
-    /**
-     * Set how to handle javac generated assertion code.
-     *
-     * @deprecated As of version 3.3, use one of {@link #setCompileTimeDisable()}, {@link
-     *     #setCompileTimeDisable()} or {@link #setPassthrough()} ()}.
-     */
-    @Deprecated
-    public AssertionsConfiguration.Builder setTransformation(
+    private AssertionsConfiguration.Builder setTransformation(
         AssertionTransformation transformation) {
       this.transformation = transformation;
       this.assertionHandler = null;
@@ -138,25 +106,11 @@ public class AssertionsConfiguration {
       return this;
     }
 
-    /** @deprecated As of version 3.3, replaced by {@link #setCompileTimeEnable()} ()} */
-    @Deprecated
-    public AssertionsConfiguration.Builder setEnable() {
-      setTransformation(AssertionTransformation.ENABLE);
-      return this;
-    }
-
     /**
      * Disable the javac generated assertion code in all packages and classes. This corresponds to
      * passing <code>-disableassertions</code> or <code>-da</code> to the java CLI.
      */
     public AssertionsConfiguration.Builder setCompileTimeDisable() {
-      setTransformation(AssertionTransformation.DISABLE);
-      return this;
-    }
-
-    /** @deprecated As of version 3.3, replaced by {@link #setCompileTimeDisable()} */
-    @Deprecated
-    public AssertionsConfiguration.Builder setDisable() {
       setTransformation(AssertionTransformation.DISABLE);
       return this;
     }
@@ -265,16 +219,6 @@ public class AssertionsConfiguration {
     }
 
     /**
-     * @deprecated As of version 3.3, replaced by {@link #compileTimeEnableAllAssertions(Builder)}
-     *     ()}
-     */
-    @Deprecated
-    public static AssertionsConfiguration enableAllAssertions(
-        AssertionsConfiguration.Builder builder) {
-      return compileTimeEnableAllAssertions(builder);
-    }
-
-    /**
      * Static helper to build an <code>AssertionConfiguration</code> which unconditionally disables
      * javac generated assertion code in all packages and classes. To be used like this:
      *
@@ -299,16 +243,6 @@ public class AssertionsConfiguration {
     public static AssertionsConfiguration compileTimeDisableAllAssertions(
         AssertionsConfiguration.Builder builder) {
       return builder.setCompileTimeDisable().setScopeAll().build();
-    }
-
-    /**
-     * @deprecated As of version 3.3, replaced by {@link #compileTimeDisableAllAssertions(Builder)}
-     *     ()}
-     */
-    @Deprecated
-    public static AssertionsConfiguration disableAllAssertions(
-        AssertionsConfiguration.Builder builder) {
-      return compileTimeDisableAllAssertions(builder);
     }
 
     /**

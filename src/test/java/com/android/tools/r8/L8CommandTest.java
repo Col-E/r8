@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.dex.Marker.Tool;
@@ -32,7 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -368,39 +367,32 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
   }
 
   private void checkSingleForceAllAssertion(
-      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+      List<AssertionsConfiguration> entries, Predicate<AssertionsConfiguration> x) {
     assertEquals(1, entries.size());
-    assertEquals(transformation, entries.get(0).getTransformation());
-    assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
-  }
-
-  private void checkSingleForceAllAssertion(
-      List<AssertionsConfiguration> entries, Function<AssertionsConfiguration, Boolean> check) {
-    assertEquals(1, entries.size());
-    assertTrue(check.apply(entries.get(0)));
+    assertTrue(x.test(entries.get(0)));
     assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
   }
 
   private void checkSingleForceClassAndPackageAssertion(
-      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+      List<AssertionsConfiguration> entries, Predicate<AssertionsConfiguration> x) {
     assertEquals(2, entries.size());
-    assertEquals(transformation, entries.get(0).getTransformation());
+    assertTrue(x.test(entries.get(0)));
     assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
     assertEquals("ClassName", entries.get(0).getValue());
-    assertEquals(transformation, entries.get(1).getTransformation());
+    assertTrue(x.test(entries.get(1)));
     assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
     assertEquals("PackageName", entries.get(1).getValue());
   }
 
   private void checkSingleForceClassAndPackageAssertion(
       List<AssertionsConfiguration> entries,
-      Function<AssertionsConfiguration, Boolean> checkClass,
-      Function<AssertionsConfiguration, Boolean> checkPackage) {
+      Predicate<AssertionsConfiguration> checkClass,
+      Predicate<AssertionsConfiguration> checkPackage) {
     assertEquals(2, entries.size());
-    assertTrue(checkClass.apply(entries.get(0)));
+    assertTrue(checkClass.test(entries.get(0)));
     assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
     assertEquals("ClassName", entries.get(0).getValue());
-    assertTrue(checkPackage.apply(entries.get(1)));
+    assertTrue(checkPackage.test(entries.get(1)));
     assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
     assertEquals("PackageName", entries.get(1).getValue());
   }
@@ -413,21 +405,21 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--desugared-lib",
                 ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
-        AssertionTransformation.ENABLE);
+        AssertionsConfiguration::isCompileTimeEnabled);
     checkSingleForceAllAssertion(
         parse(
                 "--force-disable-assertions",
                 "--desugared-lib",
                 ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
-        AssertionTransformation.DISABLE);
+        AssertionsConfiguration::isCompileTimeDisabled);
     checkSingleForceAllAssertion(
         parse(
                 "--force-passthrough-assertions",
                 "--desugared-lib",
                 ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
-        AssertionTransformation.PASSTHROUGH);
+        AssertionsConfiguration::isPassthrough);
     checkSingleForceClassAndPackageAssertion(
         parse(
                 "--force-enable-assertions:ClassName",
@@ -435,7 +427,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--desugared-lib",
                 ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
-        AssertionTransformation.ENABLE);
+        AssertionsConfiguration::isCompileTimeEnabled);
     checkSingleForceClassAndPackageAssertion(
         parse(
                 "--force-disable-assertions:ClassName",
@@ -443,7 +435,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--desugared-lib",
                 ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
-        AssertionTransformation.DISABLE);
+        AssertionsConfiguration::isCompileTimeDisabled);
     checkSingleForceClassAndPackageAssertion(
         parse(
                 "--force-passthrough-assertions:ClassName",
@@ -451,7 +443,7 @@ public class L8CommandTest extends CommandTestBase<L8Command> {
                 "--desugared-lib",
                 ToolHelper.getDesugarLibJsonForTesting().toString())
             .getAssertionsConfiguration(),
-        AssertionTransformation.PASSTHROUGH);
+        AssertionsConfiguration::isPassthrough);
     checkSingleForceAllAssertion(
         parse(
                 "--force-assertions-handler:com.example.MyHandler.handler",

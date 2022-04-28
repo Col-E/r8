@@ -5,7 +5,6 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.AssertionsConfiguration;
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.references.MethodReference;
 import com.google.common.collect.ImmutableList;
@@ -29,12 +28,11 @@ public class AssertionConfigurationWithDefault {
 
   public boolean isPassthroughAll() {
     if (assertionsConfigurations.size() == 0) {
-      return defaultConfiguration.getTransformation() == AssertionTransformation.PASSTHROUGH;
+      return defaultConfiguration.isPassthrough();
     }
     return assertionsConfigurations.size() == 1
         && assertionsConfigurations.get(0).getScope() == AssertionTransformationScope.ALL
-        && assertionsConfigurations.get(0).getTransformation()
-            == AssertionTransformation.PASSTHROUGH;
+        && assertionsConfigurations.get(0).isPassthrough();
   }
 
   public List<MethodReference> getAllAssertionHandlers() {
