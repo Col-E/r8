@@ -10,17 +10,19 @@ import com.android.tools.r8.DesugarTestConfiguration;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.examples.JavaExampleClassProxy;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IntBox;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.io.Closeable;
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,11 +30,19 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class TwrSuppressedExceptionsTest extends TestBase {
 
+  private static final String PKG = "twraddsuppressed";
+  private static final String EXAMPLE = "examplesJava9/" + PKG;
+  private final JavaExampleClassProxy MAIN = new JavaExampleClassProxy(EXAMPLE, PKG + ".TestClass");
+
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
+        .withDexRuntimes()
+        .withAllApiLevelsAlsoForCf()
+        .build();
   }
 
   public TwrSuppressedExceptionsTest(TestParameters parameters) {
@@ -58,18 +68,21 @@ public class TwrSuppressedExceptionsTest extends TestBase {
     return parameters.getApiLevel().isGreaterThanOrEqualTo(apiLevelWithTwrCloseResourceSupport());
   }
 
+  public List<Path> getProgramInputs() {
+    return ImmutableList.of(JavaExampleClassProxy.examplesJar(EXAMPLE));
+  }
+
   @Test
-  @Ignore("b/228587114")
   public void testD8() throws Exception {
     testForDesugaring(parameters)
-        .addProgramClasses(TestClass.class, MyClosable.class)
-        .run(parameters.getRuntime(), TestClass.class)
+        .addProgramFiles(getProgramInputs())
+        .run(parameters.getRuntime(), MAIN.typeName())
         .assertSuccessWithOutput(
             runtimeHasSuppressedExceptionsSupport() ? StringUtils.lines("CLOSE") : "NONE")
         .inspectIf(
             DesugarTestConfiguration::isDesugared,
             inspector -> {
-              ClassSubject clazz = inspector.clazz(TestClass.class);
+              ClassSubject clazz = inspector.clazz(MAIN.typeName());
               hasInvokesTo(
                   clazz.uniqueMethodWithName("bar"),
                   "$closeResource",
@@ -89,22 +102,21 @@ public class TwrSuppressedExceptionsTest extends TestBase {
         .inspectIf(
             DesugarTestConfiguration::isNotDesugared,
             inspector -> {
-              ClassSubject clazz = inspector.clazz(TestClass.class);
+              ClassSubject clazz = inspector.clazz(MAIN.typeName());
               hasInvokesTo(clazz.uniqueMethodWithName("bar"), "$closeResource", 4);
               hasInvokesTo(clazz.mainMethod(), "getSuppressed", 1);
             });
   }
 
   @Test
-  @Ignore("b/228587114")
   public void testR8() throws Exception {
     assumeTrue(
         "R8 does not desugar CF so only run the high API variant.",
         parameters.isDexRuntime() || parameters.getApiLevel().isGreaterThan(AndroidApiLevel.B));
     testForR8(parameters.getBackend())
-        .addInnerClasses(TwrSuppressedExceptionsTest.class)
+        .addProgramFiles(getProgramInputs())
         .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(TestClass.class)
+        .addKeepMainRule(MAIN.typeName())
         // TODO(b/214250388): Don't warn about AutoClosable in synthesized code.
         .apply(
             b -> {
@@ -112,7 +124,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
                 b.addDontWarn(AutoCloseable.class);
               }
             })
-        .run(parameters.getRuntime(), TestClass.class)
+        .run(parameters.getRuntime(), MAIN.typeName())
         .assertSuccessWithOutput(
             runtimeHasSuppressedExceptionsSupport() ? StringUtils.lines("CLOSE") : "NONE")
         .inspect(
@@ -127,7 +139,7 @@ public class TwrSuppressedExceptionsTest extends TestBase {
                             adds.increment(getInvokesTo(m, "addSuppressed").size());
                           }));
               if (apiLevelHasSuppressedExceptionsSupport()) {
-                hasInvokesTo(inspector.clazz(TestClass.class).mainMethod(), "getSuppressed", 1);
+                hasInvokesTo(inspector.clazz(MAIN.typeName()).mainMethod(), "getSuppressed", 1);
                 assertEquals(1, gets.get());
                 assertEquals(1, adds.get());
               } else {
@@ -147,45 +159,5 @@ public class TwrSuppressedExceptionsTest extends TestBase {
         .streamInstructions()
         .filter(i -> i.isInvoke() && i.getMethod().getName().toString().equals(callee))
         .collect(Collectors.toList());
-  }
-
-  static class MyClosable implements Closeable {
-
-    @Override
-    public void close() {
-      throw new RuntimeException("CLOSE");
-    }
-  }
-
-  static class TestClass {
-
-    public static void foo() {
-      throw new RuntimeException("FOO");
-    }
-
-    public static void bar() {
-      // Use twr twice to have javac generate a shared $closeResource helper.
-      try (MyClosable closable = new MyClosable()) {
-        foo();
-      }
-      try (MyClosable closable = new MyClosable()) {
-        foo();
-      }
-    }
-
-    public static void main(String[] args) {
-      try {
-        bar();
-      } catch (Exception e) {
-        Throwable[] suppressed = e.getSuppressed();
-        if (suppressed.length == 0) {
-          System.out.println("NONE");
-        } else {
-          for (Throwable throwable : suppressed) {
-            System.out.println(throwable.getMessage());
-          }
-        }
-      }
-    }
   }
 }

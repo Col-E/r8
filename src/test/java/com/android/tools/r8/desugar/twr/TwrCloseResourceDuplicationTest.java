@@ -9,20 +9,31 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.examples.JavaExampleClassProxy;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
-import java.util.jar.JarFile;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TwrCloseResourceDuplicationTest extends TestBase {
+
+  private static final String PKG = "twrcloseresourceduplication";
+  private static final String EXAMPLE = "examplesJava9/" + PKG;
+  private final JavaExampleClassProxy MAIN =
+      new JavaExampleClassProxy(EXAMPLE, PKG + ".TwrCloseResourceDuplication");
+  private final JavaExampleClassProxy FOO =
+      new JavaExampleClassProxy(EXAMPLE, PKG + ".TwrCloseResourceDuplication$Foo");
+  private final JavaExampleClassProxy BAR =
+      new JavaExampleClassProxy(EXAMPLE, PKG + ".TwrCloseResourceDuplication$Bar");
 
   static final int INPUT_CLASSES = 3;
 
@@ -43,7 +54,11 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevelsAlsoForCf().build();
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
+        .withDexRuntimes()
+        .withAllApiLevelsAlsoForCf()
+        .build();
   }
 
   public TwrCloseResourceDuplicationTest(TestParameters parameters) {
@@ -58,22 +73,25 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
         .toString();
   }
 
+  private List<Path> getProgramInputs() throws Exception {
+    return ImmutableList.of(JavaExampleClassProxy.examplesJar(EXAMPLE));
+  }
+
   @Test
   public void testJvm() throws Exception {
     assumeTrue(parameters.isCfRuntime());
     testForJvm()
-        .addInnerClasses(getClass())
-        .run(parameters.getRuntime(), TestClass.class, getZipFile())
+        .addProgramFiles(getProgramInputs())
+        .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
         .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
-  @Ignore("b/228587114")
   public void testD8() throws Exception {
     testForD8(parameters.getBackend())
-        .addInnerClasses(getClass())
+        .addProgramFiles(getProgramInputs())
         .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), TestClass.class, getZipFile())
+        .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
             inspector -> {
@@ -91,20 +109,19 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/228587114")
   public void testR8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     testForR8(parameters.getBackend())
-        .addInnerClasses(getClass())
-        .addKeepMainRule(TestClass.class)
-        .addKeepClassAndMembersRules(Foo.class, Bar.class)
+        .addProgramFiles(getProgramInputs())
+        .addKeepMainRule(MAIN.typeName())
+        .addKeepClassAndMembersRules(FOO.typeName(), BAR.typeName())
         // TODO(b/214250388): Don't warn about synthetic code.
         .applyIf(
             parameters.getApiLevel().isLessThan(apiLevelWithTwrCloseResourceSupport()),
             builder -> builder.addDontWarn("java.lang.AutoCloseable"))
         .setMinApi(parameters.getApiLevel())
         .noMinification()
-        .run(parameters.getRuntime(), TestClass.class, getZipFile())
+        .run(parameters.getRuntime(), MAIN.typeName(), getZipFile())
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
             inspector -> {
@@ -118,51 +135,4 @@ public class TwrCloseResourceDuplicationTest extends TestBase {
             });
   }
 
-  static class Foo {
-    void foo(String name) {
-      try (JarFile f = new JarFile(name)) {
-        System.out.println("foo opened 1");
-      } catch (Exception e) {
-        System.out.println("foo caught from 1: " + e.getClass().getSimpleName());
-      } finally {
-        System.out.println("foo post close 1");
-      }
-      try (JarFile f = new JarFile(name)) {
-        System.out.println("foo opened 2");
-        throw new RuntimeException();
-      } catch (Exception e) {
-        System.out.println("foo caught from 2: " + e.getClass().getSimpleName());
-      } finally {
-        System.out.println("foo post close 2");
-      }
-    }
-  }
-
-  static class Bar {
-    void bar(String name) {
-      try (JarFile f = new JarFile(name)) {
-        System.out.println("bar opened 1");
-      } catch (Exception e) {
-        System.out.println("bar caught from 1: " + e.getClass().getSimpleName());
-      } finally {
-        System.out.println("bar post close 1");
-      }
-      try (JarFile f = new JarFile(name)) {
-        System.out.println("bar opened 2");
-        throw new RuntimeException();
-      } catch (Exception e) {
-        System.out.println("bar caught from 2: " + e.getClass().getSimpleName());
-      } finally {
-        System.out.println("bar post close 2");
-      }
-    }
-  }
-
-  static class TestClass {
-
-    public static void main(String[] args) {
-      new Foo().foo(args[0]);
-      new Bar().bar(args[0]);
-    }
-  }
 }
