@@ -396,7 +396,7 @@ public class DesugaredLibraryConversionCfProvider {
     // is missing from the input, the context is null but the code runs correctly.
     return appView
         .appInfoForDesugaring()
-        .resolveMethod(method, isInterface)
+        .resolveMethodLegacy(method, isInterface)
         .getResolvedProgramMethod();
   }
 
