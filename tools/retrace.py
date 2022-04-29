@@ -17,6 +17,7 @@ def parse_arguments():
       description = 'R8lib wrapper for retrace tool.')
   parser.add_argument(
       '-c',
+      '--commit-hash',
       '--commit_hash',
       help='Commit hash to download r8lib map file for.',
       default=None)
@@ -29,11 +30,17 @@ def parse_arguments():
       help='Tag to download r8lib map file for.',
       default=None)
   parser.add_argument(
+      '--exclude-deps', '--exclude_deps',
+      default=None,
+      action='store_true',
+      help='Use the exclude-deps version of the mapping file.')
+  parser.add_argument(
       '--map',
       help='Path to r8lib map.',
       default=None)
   parser.add_argument(
       '--no-r8lib',
+      '--no_r8lib',
       default=False,
       action='store_true',
       help='Use r8.jar and not r8lib.jar.')
@@ -48,6 +55,7 @@ def parse_arguments():
       help='Disables diagnostics printing to stdout.')
   parser.add_argument(
       '--debug-agent',
+      '--debug_agent',
       default=None,
       action='store_true',
       help='Attach a debug-agent to the retracer java process.')
@@ -108,20 +116,21 @@ def get_map_file(args, temp):
       args.commit_hash = r8_version_or_hash
     map_path = None
     try:
-      map_path = utils.find_cloud_storage_file_from_options('r8lib.jar.map', args)
+      map_path = utils.find_cloud_storage_file_from_options(
+        'r8lib' + ('-exclude-deps' if args.exclude_deps else '' ) + '.jar.map', args)
     except Exception as e:
       print(e)
       print('WARNING: Falling back to using local mapping file.')
 
     if map_path and not args.disable_map_validation:
-      check_maphash(map_path, maphash)
+      check_maphash(map_path, maphash, args)
       return map_path
 
   # If no other map file was found, use the local mapping file.
   return utils.R8LIB_JAR + '.map'
 
 
-def check_maphash(mapping_path, maphash):
+def check_maphash(mapping_path, maphash, args):
   map_hash_header = "# pg_map_hash: SHA-256 "
   for line in open(mapping_path, 'r'):
     if line.startswith(map_hash_header):
@@ -130,6 +139,9 @@ def check_maphash(mapping_path, maphash):
         print('ERROR: The mapping file hash does not match the R8 line')
         print('  In mapping file: ' + infile_maphash)
         print('  In source file:  ' + maphash)
+        if (not args.exclude_deps):
+          print('If this could be a version without internalized dependencies '
+              + 'try passing --exclude-deps')
         sys.exit(1)
 
 
