@@ -279,10 +279,7 @@ public class ConstantCanonicalizer {
     while (it.hasNext()) {
       Instruction next = it.next();
       if (!next.isArgument()) {
-        // Set the constant to be the same position as the point at which it is inserted.
-        // Doing so preserves the "break on entry / break on first line behavior" as the constant
-        // itself is assumed to be a non-observable change.
-        canonicalizedConstant.setPosition(next.getPosition());
+        canonicalizedConstant.setPosition(code.getEntryPosition());
         it.previous();
         break;
       }

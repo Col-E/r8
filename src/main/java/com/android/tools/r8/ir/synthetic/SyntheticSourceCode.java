@@ -207,7 +207,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
 
   @Override
   public Position getCanonicalDebugPositionAtOffset(int offset) {
-    throw new Unreachable();
+    return Position.syntheticNone();
   }
 
   @Override

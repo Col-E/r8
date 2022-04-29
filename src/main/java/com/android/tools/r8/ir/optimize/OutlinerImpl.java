@@ -1738,7 +1738,7 @@ public class OutlinerImpl extends Outliner {
 
     @Override
     public Position getCanonicalDebugPositionAtOffset(int offset) {
-      throw new Unreachable();
+      return Position.syntheticNone();
     }
 
     @Override

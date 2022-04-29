@@ -142,6 +142,7 @@ public class ConstantRemovalTest {
         new IRCode(
             options,
             null,
+            Position.none(),
             blocks,
             new NumberGenerator(),
             basicBlockNumberGenerator,

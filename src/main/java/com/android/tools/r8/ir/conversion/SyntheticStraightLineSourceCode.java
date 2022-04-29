@@ -63,7 +63,7 @@ public abstract class SyntheticStraightLineSourceCode implements SourceCode {
 
   @Override
   public Position getCanonicalDebugPositionAtOffset(int offset) {
-    return null;
+    return Position.syntheticNone();
   }
 
   @Override

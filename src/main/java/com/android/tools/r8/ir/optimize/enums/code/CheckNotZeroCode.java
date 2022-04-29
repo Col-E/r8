@@ -83,6 +83,7 @@ public class CheckNotZeroCode extends Code {
     return new IRCode(
         appView.options(),
         checkNotZeroMethod,
+        code.getEntryPosition(),
         code.getBlocks(),
         code.valueNumberGenerator,
         code.basicBlockNumberGenerator,

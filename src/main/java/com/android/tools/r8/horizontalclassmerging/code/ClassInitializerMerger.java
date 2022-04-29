@@ -228,6 +228,7 @@ public class ClassInitializerMerger {
           new IRCode(
               appView.options(),
               method,
+              callerPosition,
               ListUtils.newLinkedList(block),
               valueNumberGenerator,
               blockNumberGenerator,

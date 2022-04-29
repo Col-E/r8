@@ -117,6 +117,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   private final ProgramMethod method;
   private final MutableMethodConversionOptions conversionOptions;
 
+  public final Position entryPosition;
   public LinkedList<BasicBlock> blocks;
   public final NumberGenerator valueNumberGenerator;
   public final NumberGenerator basicBlockNumberGenerator;
@@ -133,6 +134,7 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
   public IRCode(
       InternalOptions options,
       ProgramMethod method,
+      Position entryPosition,
       LinkedList<BasicBlock> blocks,
       NumberGenerator valueNumberGenerator,
       NumberGenerator basicBlockNumberGenerator,
@@ -142,9 +144,11 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
     assert metadata != null;
     assert options != null;
     assert blocks.size() == basicBlockNumberGenerator.peek();
+    assert entryPosition != null;
     this.options = options;
     this.conversionOptions = conversionOptions;
     this.method = method;
+    this.entryPosition = entryPosition;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
     this.basicBlockNumberGenerator = basicBlockNumberGenerator;
@@ -167,6 +171,10 @@ public class IRCode implements IRControlFlowGraph, ValueFactory {
 
   public BasicBlock entryBlock() {
     return blocks.getFirst();
+  }
+
+  public Position getEntryPosition() {
+    return entryPosition;
   }
 
   public MethodConversionOptions getConversionOptions() {

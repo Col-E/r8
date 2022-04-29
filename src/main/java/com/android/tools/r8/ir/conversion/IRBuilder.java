@@ -703,6 +703,7 @@ public class IRBuilder {
         new IRCode(
             appView.options(),
             method,
+            source.getCanonicalDebugPositionAtOffset(0),
             blocks,
             valueNumberGenerator,
             basicBlockNumberGenerator,

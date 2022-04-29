@@ -1014,7 +1014,7 @@ public class MainDexListTests extends TestBase {
 
     @Override
     public Position getCanonicalDebugPositionAtOffset(int offset) {
-      throw new Unreachable();
+      return Position.none();
     }
 
     @Override

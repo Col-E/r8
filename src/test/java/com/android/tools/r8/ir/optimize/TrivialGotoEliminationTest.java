@@ -100,6 +100,7 @@ public class TrivialGotoEliminationTest extends TestBase {
         new IRCode(
             options,
             null,
+            Position.none(),
             blocks,
             new NumberGenerator(),
             basicBlockNumberGenerator,
@@ -188,6 +189,7 @@ public class TrivialGotoEliminationTest extends TestBase {
         new IRCode(
             options,
             null,
+            Position.none(),
             blocks,
             new NumberGenerator(),
             basicBlockNumberGenerator,
