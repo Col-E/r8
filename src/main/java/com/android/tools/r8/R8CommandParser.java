@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FlagFile;
@@ -33,6 +34,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--feature",
           "--main-dex-list-output",
           "--pg-conf",
+          "--pg-conf-output",
           "--pg-map-output",
           "--desugared-lib",
           "--desugared-lib-pg-conf-output",
@@ -85,6 +87,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                       + ".",
                   "  --pg-compat             # Compile with R8 in Proguard compatibility mode.",
                   "  --pg-conf <file>        # Proguard configuration <file>.",
+                  "  --pg-conf-output <file> # Output the collective configuration to <file>.",
                   "  --pg-map-output <file>  # Output the resulting name and line mapping to"
                       + " <file>.",
                   "  --desugared-lib <file>  # Specify desugared library configuration.",
@@ -260,6 +263,9 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         builder.setOptimizeMultidexForLinearAlloc(true);
       } else if (arg.equals("--pg-conf")) {
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
+      } else if (arg.equals("--pg-conf-output")) {
+        FileConsumer consumer = new FileConsumer(Paths.get(nextArg));
+        builder.setProguardConfigurationConsumer(consumer);
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {

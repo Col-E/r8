@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -682,6 +683,14 @@ public class R8CommandTest extends CommandTestBase<R8Command> {
     assertTrue(parse("--pg-conf", proguardConfiguration).getEnableMinification());
     assertFalse(
         parse("--no-minification", "--pg-conf", proguardConfiguration).getEnableMinification());
+  }
+
+  @Test
+  public void setPgConfOutputFlag() throws Throwable {
+    Path file = temp.newFolder().toPath().resolve("output.conf");
+    R8Command command = parse("--pg-conf-output", file.toString());
+    InternalOptions options = command.getInternalOptions();
+    assertNotNull(options.configurationConsumer);
   }
 
   @Test
