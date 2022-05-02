@@ -96,6 +96,7 @@ public class HumanToMachineSpecificationConverter {
         ComputedApiLevel.unknown());
     rewritingFlags.getAmendLibraryMethod().forEach(builder::amendLibraryMethod);
     rewritingFlags.getAmendLibraryField().forEach(builder::amendLibraryField);
+    rewritingFlags.getApiConversionCollection().forEach(builder::addApiConversionCollection);
     new HumanToMachineRetargetConverter(appInfo)
         .convertRetargetFlags(rewritingFlags, builder, this::warnMissingReferences);
     new HumanToMachineEmulatedInterfaceConverter(appInfo)

@@ -63,6 +63,12 @@
       "retarget_method_with_emulated_dispatch": {
         "java.nio.file.Path java.io.File#toPath()": "java.io.DesugarFile"
       },
+      "api_conversion_collection": {
+        "java.nio.channels.AsynchronousFileChannel java.nio.file.spi.FileSystemProvider#newAsynchronousFileChannel(java.nio.file.Path, java.util.Set, java.util.concurrent.ExecutorService, java.nio.file.attribute.FileAttribute[])" : [1, "OpenOption"],
+        "java.nio.channels.SeekableByteChannel java.nio.file.spi.FileSystemProvider#newByteChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "OpenOption"],
+        "java.nio.channels.FileChannel java.nio.file.spi.FileSystemProvider#newFileChannel(java.nio.file.Path, java.util.Set, java.nio.file.attribute.FileAttribute[])" : [1, "OpenOption"],
+        "java.util.List java.nio.file.WatchKey#pollEvents()": [-1, "java.nio.file.WatchEvent"]
+      },
       "wrapper_conversion": [
         "java.nio.channels.AsynchronousChannel",
         "java.nio.channels.CompletionHandler",

@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.Cus
 import com.android.tools.r8.ir.desugar.desugaredlibrary.machinespecification.MachineDesugaredLibrarySpecification;
 import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.ArrayConversionCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.apiconverter.NullableConversionCfCodeProvider.CollectionConversionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.apiconverter.WrapperConstructorCfCodeProvider;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -137,8 +138,14 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   public DexMethod ensureConversionMethod(
       DexType type,
       boolean destIsVivified,
+      DexType apiConversionCollection,
       DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier) {
+    if (apiConversionCollection != null) {
+      assert !type.isArrayType();
+      return ensureCollectionConversionMethod(
+          type, destIsVivified, apiConversionCollection, eventConsumer, contextSupplier);
+    }
     DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
     if (type.isArrayType()) {
@@ -163,6 +170,68 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
     return conversion;
   }
 
+  private DexMethod ensureCollectionConversionMethod(
+      DexType type,
+      boolean destIsVivified,
+      DexType apiConversionCollection,
+      DesugaredLibraryClasspathWrapperSynthesizeEventConsumer eventConsumer,
+      Supplier<UniqueContext> contextSupplier) {
+    assert type == factory.setType || type == factory.listType;
+    DexMethod conversion =
+        ensureConversionMethod(
+            apiConversionCollection,
+            destIsVivified,
+            null, // We do not support nested collections.
+            eventConsumer,
+            contextSupplier);
+    return ensureCollectionConversionMethod(type, eventConsumer, contextSupplier, conversion);
+  }
+
+  private DexMethod ensureCollectionConversionMethodFromExistingBaseConversion(
+      DexType type,
+      boolean destIsVivified,
+      DexType apiConversionCollection,
+      DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
+      Supplier<UniqueContext> contextSupplier) {
+    assert type == factory.setType || type == factory.listType;
+    DexMethod conversion =
+        getExistingProgramConversionMethod(
+            apiConversionCollection,
+            destIsVivified,
+            null, // We do not support nested collections.
+            eventConsumer,
+            contextSupplier);
+    return ensureCollectionConversionMethod(type, eventConsumer, contextSupplier, conversion);
+  }
+
+  private DexMethod ensureCollectionConversionMethod(
+      DexType collectionType,
+      DesugaredLibraryWrapperSynthesizerEventConsumer eventConsumer,
+      Supplier<UniqueContext> contextSupplier,
+      DexMethod conversion) {
+    ProgramMethod arrayConversion =
+        appView
+            .getSyntheticItems()
+            .createMethod(
+                kinds -> kinds.ARRAY_CONVERSION,
+                contextSupplier.get(),
+                appView,
+                builder ->
+                    builder
+                        .setProto(factory.createProto(collectionType, collectionType))
+                        .setAccessFlags(MethodAccessFlags.createPublicStaticSynthetic())
+                        .setCode(
+                            codeSynthesizor ->
+                                new CollectionConversionCfCodeProvider(
+                                        appView,
+                                        codeSynthesizor.getHolderType(),
+                                        collectionType,
+                                        conversion)
+                                    .generateCfCode()));
+    eventConsumer.acceptArrayConversion(arrayConversion);
+    return arrayConversion.getReference();
+  }
+
   private DexMethod ensureArrayConversionMethod(
       DexType type,
       DexType srcType,
@@ -171,7 +240,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         ensureConversionMethod(
-            type.toDimensionMinusOneType(factory), srcType == type, eventConsumer, contextSupplier);
+            type.toDimensionMinusOneType(factory),
+            srcType == type,
+            null,
+            eventConsumer,
+            contextSupplier);
     return ensureArrayConversionMethod(
         srcType, destType, eventConsumer, contextSupplier, conversion);
   }
@@ -184,7 +257,11 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
       Supplier<UniqueContext> contextSupplier) {
     DexMethod conversion =
         getExistingProgramConversionMethod(
-            type.toDimensionMinusOneType(factory), srcType == type, eventConsumer, contextSupplier);
+            type.toDimensionMinusOneType(factory),
+            srcType == type,
+            null,
+            eventConsumer,
+            contextSupplier);
     return ensureArrayConversionMethod(
         srcType, destType, eventConsumer, contextSupplier, conversion);
   }
@@ -222,8 +299,14 @@ public class DesugaredLibraryWrapperSynthesizer implements CfClassSynthesizerDes
   public DexMethod getExistingProgramConversionMethod(
       DexType type,
       boolean destIsVivified,
+      DexType apiConversionCollection,
       DesugaredLibraryL8ProgramWrapperSynthesizerEventConsumer eventConsumer,
       Supplier<UniqueContext> contextSupplier) {
+    if (apiConversionCollection != null) {
+      assert !type.isArrayType();
+      return ensureCollectionConversionMethodFromExistingBaseConversion(
+          type, destIsVivified, apiConversionCollection, eventConsumer, contextSupplier);
+    }
     DexType srcType = destIsVivified ? type : vivifiedTypeFor(type);
     DexType destType = destIsVivified ? vivifiedTypeFor(type) : type;
     if (type.isArrayType()) {

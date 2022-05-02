@@ -48,6 +48,7 @@ public class HumanDesugaredLibrarySpecificationParser {
 
   static final String API_LEVEL_BELOW_OR_EQUAL_KEY = "api_level_below_or_equal";
   static final String API_LEVEL_GREATER_OR_EQUAL_KEY = "api_level_greater_or_equal";
+  static final String API_CONVERSION_COLLECTION = "api_conversion_collection";
   static final String WRAPPER_CONVERSION_KEY = "wrapper_conversion";
   static final String WRAPPER_CONVERSION_EXCLUDING_KEY = "wrapper_conversion_excluding";
   static final String CUSTOM_CONVERSION_KEY = "custom_conversion";
@@ -260,6 +261,18 @@ public class HumanDesugaredLibrarySpecificationParser {
       for (JsonElement dontRewritePrefix :
           jsonFlagSet.get(DONT_REWRITE_PREFIX_KEY).getAsJsonArray()) {
         builder.putDontRewritePrefix(dontRewritePrefix.getAsString());
+      }
+    }
+    if (jsonFlagSet.has(API_CONVERSION_COLLECTION)) {
+      for (Map.Entry<String, JsonElement> methodAndDescription :
+          jsonFlagSet.get(API_CONVERSION_COLLECTION).getAsJsonObject().entrySet()) {
+        JsonArray array = methodAndDescription.getValue().getAsJsonArray();
+        for (int i = 0; i < array.size(); i += 2) {
+          builder.addApiConversionCollection(
+              parseMethod(methodAndDescription.getKey()),
+              array.get(i).getAsInt(),
+              stringDescriptorToDexType(array.get(i + 1).getAsString()));
+        }
       }
     }
     if (jsonFlagSet.has(REWRITE_DERIVED_PREFIX_KEY)) {

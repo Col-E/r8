@@ -33,6 +33,7 @@ public class HumanRewritingFlags {
   private final Map<DexField, DexType> retargetStaticField;
   private final Map<DexMethod, DexType> retargetMethod;
   private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
+  private final Map<DexMethod, DexType[]> apiConversionCollection;
   private final Map<DexType, DexType> legacyBackport;
   private final Map<DexType, DexType> customConversions;
   private final Set<DexMethod> dontRewriteInvocation;
@@ -50,6 +51,7 @@ public class HumanRewritingFlags {
       Map<DexField, DexType> retargetStaticField,
       Map<DexMethod, DexType> retargetMethod,
       Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
+      Map<DexMethod, DexType[]> apiConversionCollection,
       Map<DexType, DexType> legacyBackport,
       Map<DexType, DexType> customConversion,
       Set<DexMethod> dontRewriteInvocation,
@@ -65,6 +67,7 @@ public class HumanRewritingFlags {
     this.retargetStaticField = retargetStaticField;
     this.retargetMethod = retargetMethod;
     this.retargetMethodEmulatedDispatch = retargetMethodEmulatedDispatch;
+    this.apiConversionCollection = apiConversionCollection;
     this.legacyBackport = legacyBackport;
     this.customConversions = customConversion;
     this.dontRewriteInvocation = dontRewriteInvocation;
@@ -79,6 +82,7 @@ public class HumanRewritingFlags {
         ImmutableMap.of(),
         ImmutableSet.of(),
         ImmutableSet.of(),
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -109,6 +113,7 @@ public class HumanRewritingFlags {
         retargetStaticField,
         retargetMethod,
         retargetMethodEmulatedDispatch,
+        apiConversionCollection,
         legacyBackport,
         customConversions,
         dontRewriteInvocation,
@@ -148,6 +153,10 @@ public class HumanRewritingFlags {
 
   public Map<DexMethod, DexType> getRetargetMethodEmulatedDispatch() {
     return retargetMethodEmulatedDispatch;
+  }
+
+  public Map<DexMethod, DexType[]> getApiConversionCollection() {
+    return apiConversionCollection;
   }
 
   public Map<DexType, DexType> getLegacyBackport() {
@@ -201,6 +210,7 @@ public class HumanRewritingFlags {
     private final Map<DexField, DexType> retargetStaticField;
     private final Map<DexMethod, DexType> retargetMethod;
     private final Map<DexMethod, DexType> retargetMethodEmulatedDispatch;
+    private final Map<DexMethod, DexType[]> apiConversionCollection;
     private final Map<DexType, DexType> legacyBackport;
     private final Map<DexType, DexType> customConversions;
     private final Set<DexMethod> dontRewriteInvocation;
@@ -217,6 +227,7 @@ public class HumanRewritingFlags {
           Sets.newIdentityHashSet(),
           Sets.newIdentityHashSet(),
           new HashMap<>(),
+          new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
           new IdentityHashMap<>(),
@@ -241,6 +252,7 @@ public class HumanRewritingFlags {
         Map<DexField, DexType> retargetStaticField,
         Map<DexMethod, DexType> retargetMethod,
         Map<DexMethod, DexType> retargetMethodEmulatedDispatch,
+        Map<DexMethod, DexType[]> apiConversionCollection,
         Map<DexType, DexType> backportCoreLibraryMember,
         Map<DexType, DexType> customConversions,
         Set<DexMethod> dontRewriteInvocation,
@@ -258,6 +270,7 @@ public class HumanRewritingFlags {
       this.retargetStaticField = new IdentityHashMap<>(retargetStaticField);
       this.retargetMethod = new IdentityHashMap<>(retargetMethod);
       this.retargetMethodEmulatedDispatch = new IdentityHashMap<>(retargetMethodEmulatedDispatch);
+      this.apiConversionCollection = new IdentityHashMap<>(apiConversionCollection);
       this.legacyBackport = new IdentityHashMap<>(backportCoreLibraryMember);
       this.customConversions = new IdentityHashMap<>(customConversions);
       this.dontRewriteInvocation = Sets.newIdentityHashSet();
@@ -370,6 +383,14 @@ public class HumanRewritingFlags {
       return this;
     }
 
+    public void addApiConversionCollection(DexMethod method, int index, DexType type) {
+      DexType[] types =
+          apiConversionCollection.computeIfAbsent(method, k -> new DexType[method.getArity() + 1]);
+      int actualIndex = index == -1 ? method.getArity() : index;
+      assert types[actualIndex] == null;
+      types[actualIndex] = type;
+    }
+
     public Builder putLegacyBackport(DexType backportType, DexType rewrittenBackportType) {
       put(
           legacyBackport,
@@ -410,6 +431,7 @@ public class HumanRewritingFlags {
           ImmutableMap.copyOf(retargetStaticField),
           ImmutableMap.copyOf(retargetMethod),
           ImmutableMap.copyOf(retargetMethodEmulatedDispatch),
+          ImmutableMap.copyOf(apiConversionCollection),
           ImmutableMap.copyOf(legacyBackport),
           ImmutableMap.copyOf(customConversions),
           ImmutableSet.copyOf(dontRewriteInvocation),

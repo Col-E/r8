@@ -49,7 +49,7 @@ import org.objectweb.asm.MethodVisitor;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
-  private static final boolean FORCE_JDK11_DESUGARED_LIB = false;
+  private static final boolean FORCE_JDK11_DESUGARED_LIB = true;
 
   @BeforeClass
   public static void setUpDesugaredLibrary() {
